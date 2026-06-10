@@ -7,6 +7,7 @@ from collections import deque
 
 from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
 from memnet.exceptions import MemNetError
+from memnet.filter import record_matches
 from memnet.models import Record, TagMap
 from memnet.output import emit_wrn
 
@@ -141,12 +142,15 @@ class MemStore:
         tag: str | None = None,
         *,
         active_only: bool = False,
+        where: list[tuple[str, str]] | None = None,
     ) -> list[Record]:
         rows = list(self.by_id.values())
         if tag:
             rows = [r for r in rows if r.tag == tag.upper()]
         if active_only:
             rows = [r for r in rows if not r.is_recyclable()]
+        if where:
+            rows = [r for r in rows if record_matches(r, where)]
         rows.sort(key=lambda r: r.id)
         return rows
 

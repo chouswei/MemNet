@@ -132,8 +132,10 @@ Default TTL is 60 minutes (`MEMNET_SESSION_TTL_MINUTES` or `--ttl`).
 - `query path <src> <dst>`
 
 ### Direct reads
-- `read list [--tag T] [--active-only]`
+- `read list [--tag T] [--active-only] [--where field=value ...]`
 - `read get --id ID [--tag T]`
+
+`--where` filters by field value (exact match). Repeat for AND. Use `*` or `?` wildcards for glob match (e.g. `--where name=*Tiexin*`).
 
 ### Housekeeping
 - `housekeep stats` — `@STAT` rows + caps for rows/edges/relations/orphans/dangling/recyclable.
@@ -200,6 +202,8 @@ No JSON on the wire for LLM consumption — only the `@TAG:` lines plus a handfu
 Rich, document-style worked examples live under `application-notes/`. These are self-contained narratives (one `.md` per note) showing complete usage patterns with all data — including background, configurations, bibles, rules, and user preferences — kept inside MemNet.
 
 See [application-notes/llm-novel-writer.md](application-notes/llm-novel-writer.md) for the first example: an interactive LLM novel writer driven by the explicit 6-step read → context → user-input-as-data → analyse → update → loop pipeline.
+
+See [application-notes/llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) for the second: LLM-assisted SysML v2 textual modeling (6U CubeSat PDU controller) with the same 6-step pipeline, a SysML v2 syntax reference table, a deployable "whole model as rows" block, explicit demonstration that models living in different .sysml files are easily referred to together via @PKG rows + declaredIn / cross-package EDG, and concrete examples of using the graph to help build the system (allocations, ports and connections driving wiring, implementation tasks and deployment), write the system model docs (interconnection views, behaviour specs, traceability matrices generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis, latency and power budgeting). Warm + EDG + settlement still keeps every turn's slice small, granular and on-demand.
 
 ## Development
 

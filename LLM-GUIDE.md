@@ -117,6 +117,7 @@ Background, rules, world facts, configs and character data are stored as many sm
 - Use `--depth 2` (or 1–3) and `--max-rows 50` (or less) to keep the injection small.
 - `query context` (without `--active-only`) is for **audit only**. It will flood you with settled missions and emit `stale_in_context` warnings on stderr. Do not use it as your default read.
 - `read list --active-only` or `read list --tag TSK --active-only` for simple filtered lists without graph traversal.
+- `read list --where field=value` to match a specific field (exact). Repeat `--where` for AND. Wildcards: `--where name=*Tiexin*`.
 
 ---
 
@@ -270,6 +271,8 @@ memnet query warm --anchor PLR01
 - `memnet examples map|workflow`
 
 **Application note:** see `application-notes/llm-novel-writer.md` for a long-running creative writing example that follows the explicit 6-step pipeline (read → context → user input as data → analyse citing rows → add/update with correct recycle → loop) where background, configurations, bibles, rules and user preferences are kept as persistent rows inside the graph.
+
+See `application-notes/llm-sysml-v2-modeling.md` for LLM-assisted SysML v2 textual modeling (PDU controller on a 6U CubeSat) using the same pipeline, a prominent SysML v2 syntax reference table, a deployable "complete model as rows" block, explicit demonstration that models whose definitions live in different .sysml files are easily referred to together via lightweight @PKG rows + declaredIn / cross-package EDG, and worked examples of using the graph to help build the system (allocations, ports and connections driving implementation tasks, wiring and deployment), write the official system model documentation (interconnection, behaviour and traceability artefacts generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis and budgeting). `query warm --anchor` + EDG + settlement still keeps every turn's injected slice small, granular and on-demand.
 
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 

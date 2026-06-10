@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-06-10
+
+### Added
+- `read list --where field=value` — filter rows by field value (exact match; repeat for AND). `*` and `?` wildcards supported (e.g. `--where name=*Tiexin*`).
+- Efficiency benchmarks and regression tests for `--where` filtering (`scripts/benchmark_efficiency.py`, `tests/test_efficiency.py`).
+- New application note: `application-notes/llm-sysml-v2-modeling.md` — LLM-assisted SysML v2 textual modeling (6U CubeSat PDU controller) following the 6-step pipeline; README and LLM-GUIDE updated with pointers.
+
 ## [0.2.0] — 2026-06-10
 
 ### Added
@@ -50,6 +57,7 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/chouswei/MemNet/compare/v0.2.2...v0.2.3
 [0.2.0]: https://github.com/chouswei/MemNet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chouswei/MemNet/releases/tag/v0.1.0

@@ -12,6 +12,7 @@ import typer
 from memnet import __version__
 from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, serve_host, serve_port
 from memnet.exceptions import MemNetError
+from memnet.filter import parse_wheres
 from memnet.help_text import (
     examples_map_text,
     examples_path_text,
@@ -492,11 +493,16 @@ def delete_cmd(
 def read_list(
     tag: Annotated[str | None, typer.Option("--tag")] = None,
     active_only: Annotated[bool, typer.Option("--active-only")] = False,
+    where: Annotated[list[str] | None, typer.Option("--where", help="field=value filter; repeat for AND; * and ? wildcards")] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    try:
+        filters = parse_wheres(where or [])
+    except MemNetError as exc:
+        _handle_error(exc)
     ss, lock = _load_session(session)
     with lock:
-        for rec in ss.store.list_records(tag, active_only=active_only):
+        for rec in ss.store.list_records(tag, active_only=active_only, where=filters or None):
             emit_stdout(emit_record(rec, ss.tag_map))
 
 

@@ -86,6 +86,30 @@ def bench_in_process() -> list[str]:
             ms(lambda: store.neighbors("N0000", depth=2), 200),
         )
     )
+    rows.append(
+        stat(
+            "list_records tag+where exact (500+800)",
+            ms(lambda: store.list_records("NPC", where=[("status", "active")]), 200),
+        )
+    )
+    rows.append(
+        stat(
+            "list_records tag+where glob (500+800)",
+            ms(lambda: store.list_records("NPC", where=[("name", "*name1*")]), 200),
+        )
+    )
+    rows.append(
+        stat(
+            "list_records 2x where AND (500+800)",
+            ms(
+                lambda: store.list_records(
+                    "NPC",
+                    where=[("status", "active"), ("recycle", "persistent")],
+                ),
+                200,
+            ),
+        )
+    )
 
     reset_registry()
     purge_expired()
@@ -145,6 +169,18 @@ def bench_cli() -> list[str]:
         stat(
             "CLI query warm --anchor PLR01",
             [run_cli(["query", "warm", "--anchor", "PLR01", "--session", sid])[0] for _ in range(20)],
+        )
+    )
+
+    rows.append(
+        stat(
+            "CLI read list --where status=active",
+            [
+                run_cli(
+                    ["read", "list", "--tag", "NPC", "--where", "status=active", "--session", sid],
+                )[0]
+                for _ in range(20)
+            ],
         )
     )
 
