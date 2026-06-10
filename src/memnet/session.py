@@ -26,6 +26,11 @@ def utc_now() -> datetime:
     return _now_override or datetime.now(UTC)
 
 
+def iso_timestamp(dt: datetime | None = None) -> str:
+    when = dt or utc_now()
+    return when.isoformat().replace("+00:00", "Z")
+
+
 def _seed_relations() -> list[str]:
     seed_file = examples_dir() / "relations.seed.txt"
     if not seed_file.exists():
@@ -69,6 +74,7 @@ class SessionStore:
 
     def mark_written(self) -> None:
         self.meta.has_writes = True
+        self.meta.modified_at = iso_timestamp()
 
     @contextmanager
     def lock(self, exclusive: bool) -> Iterator[None]:
@@ -143,17 +149,18 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     return SessionStore(session_id, caps)
 
 
-def list_sessions(caps: Caps | None = None) -> list[tuple[str, str, int]]:
+def list_sessions(caps: Caps | None = None) -> list[tuple[str, str, int, str]]:
     caps = caps or Caps()
     purge_expired(caps)
     now = utc_now()
-    out: list[tuple[str, str, int]] = []
+    out: list[tuple[str, str, int, str]] = []
     for entry in list_entries():
         expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
         if expires < now:
             continue
         ttl_left = max(0, int((expires - now).total_seconds() // 60))
-        out.append((entry.meta.session_id, entry.meta.expires_at, ttl_left))
+        modified = entry.meta.modified_at or "-"
+        out.append((entry.meta.session_id, entry.meta.expires_at, ttl_left, modified))
     out.sort(key=lambda row: row[0])
     return out
 

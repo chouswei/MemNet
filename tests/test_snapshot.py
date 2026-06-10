@@ -58,3 +58,18 @@ def test_snapshot_text_matches_file(memnet_temp, schema_file):
     ss = open_session(map_file=str(schema_file))
     text = snapshot_text(ss)
     assert text.startswith("# memnet-snapshot-v1\n")
+
+
+def test_snapshot_preserves_modified_at(memnet_temp, schema_file, workflow_file, tmp_path: Path):
+    r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
+    sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
+    ss = get_session(sid)
+    assert ss.meta.modified_at is not None
+
+    snap_path = tmp_path / "mod.snap"
+    write_snapshot(ss, snap_path)
+    assert f"|{ss.meta.modified_at}" in snap_path.read_text(encoding="utf-8")
+
+    loaded = load_snapshot(snap_path)
+    assert loaded.meta.modified_at == ss.meta.modified_at

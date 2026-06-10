@@ -48,3 +48,28 @@ def test_active_only_filters_recyclable():
     store.upsert(npc, relations=set())
     rows = store.context_pack(anchor_id="PLR01", active_only=True)
     assert all(r.id != "N99" for r in rows)
+
+
+def test_edge_index_maintained_on_update_and_delete():
+    store, tm = _store_with_plr()
+    assert {e.id for e in store._edges_from("N01")} == {"E01"}
+    assert {e.id for e in store._edges_to("PLR01")} == {"E01"}
+
+    updated = parse_line("@EDG: E01|PLR01|seeks_help|N01||persistent", tm)
+    store.replace_row(updated, relations={"seeks_help"})
+    assert store._edges_from("N01") == []
+    assert {e.id for e in store._edges_from("PLR01")} == {"E01"}
+    assert {e.id for e in store._edges_to("N01")} == {"E01"}
+
+    store.delete("E01")
+    assert store._edges_by_src == {}
+    assert store._edges_by_dist == {}
+
+
+def test_edge_index_rebuilt_on_load_records():
+    store, tm = _store_with_plr()
+    records = [store.by_id[rid] for rid in store.write_order]
+    reloaded = MemStore(tm)
+    reloaded.load_records(records)
+    assert {e.id for e in reloaded._edges_from("N01")} == {"E01"}
+    assert {e.id for e in reloaded._edges_to("PLR01")} == {"E01"}

@@ -15,7 +15,7 @@ sys.path.insert(0, str(SRC))
 
 os.environ.setdefault("MEMNET_TEST_INLINE", "1")
 
-from memnet.config import examples_dir  # noqa: E402
+from memnet.config import Caps, examples_dir  # noqa: E402
 from memnet.mem_store import MemStore  # noqa: E402
 from memnet.session import get_session, open_session, purge_expired, reset_registry  # noqa: E402
 from memnet.tag_map import load_map_from_file, parse_line  # noqa: E402
@@ -44,7 +44,11 @@ def stat(label: str, times: list[float]) -> str:
 
 def build_store(n_nodes: int, n_edges: int) -> tuple[MemStore, list[str]]:
     schema = load_map_from_file(str(examples_dir() / "schema.example.txt"))
-    store = MemStore(schema)
+    caps = Caps()
+    needed = n_nodes + n_edges
+    if needed > caps.max_rows:
+        caps.max_rows = needed + 100
+    store = MemStore(schema, caps)
     relations = {"links"}
     lines: list[str] = []
     for i in range(n_nodes):
@@ -86,6 +90,26 @@ def bench_in_process() -> list[str]:
             ms(lambda: store.neighbors("N0000", depth=2), 200),
         )
     )
+
+    large, _ = build_store(5000, 8000)
+    rows.append(
+        stat(
+            "neighbors depth=2 hub (5000+8000 indexed)",
+            ms(lambda: large.neighbors("N0000", depth=2), 200),
+        )
+    )
+    rows.append(
+        stat(
+            "context_pack warm (5000+8000 indexed)",
+            ms(
+                lambda: large.context_pack(
+                    anchor_id="N0000", depth=2, max_rows=50, active_only=True
+                ),
+                200,
+            ),
+        )
+    )
+
     rows.append(
         stat(
             "list_records tag+where exact (500+800)",

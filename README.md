@@ -110,7 +110,7 @@ Run any command with `--help` for full flags.
 | `session open --map-file` | Create a new session (prints `@SESSION:` and `MEMNET_SESSION=...` on stderr) |
 | `session resume <id>`    | Attach to an existing session |
 | `session current`        | Show the id from `$env:MEMNET_SESSION` (or "none") |
-| `session list`           | List live sessions (id, expires, minutes left) |
+| `session list`           | List live sessions (id, expires, minutes left, last modified) |
 | `session save --file`    | **Optional** export of the current graph to a user-chosen snapshot file (wire format) |
 | `session load --file`    | Restore a snapshot into RAM (new session id by default; `--keep-id` to reuse) |
 | `session close <id>`     | Destroy the session (graph is gone) |
@@ -138,7 +138,7 @@ Default TTL is 60 minutes (`MEMNET_SESSION_TTL_MINUTES` or `--ttl`).
 `--where` filters by field value (exact match). Repeat for AND. Use `*` or `?` wildcards for glob match (e.g. `--where name=*Tiexin*`).
 
 ### Housekeeping
-- `housekeep stats` — `@STAT` rows + caps for rows/edges/relations/orphans/dangling/recyclable.
+- `housekeep stats` — `@STAT` rows + caps for rows/edges/relations/orphans/dangling/recyclable/**modified**.
 - `housekeep stale|orphans|dangling|recyclable` — list the respective sets.
 - `housekeep prune stale|... --apply` — actually delete (emits `@DEL` lines and a summary on stderr).
 

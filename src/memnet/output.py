@@ -53,11 +53,18 @@ def emit_wrn(code: str, message: str, example: str | None = None) -> None:
         emit_stderr(line)
 
 
-def emit_session(session_id: str, field2: str, field3: str = "") -> None:
+def emit_session(
+    session_id: str,
+    field2: str,
+    field3: str = "",
+    field4: str = "",
+) -> None:
+    parts = [session_id, field2]
     if field3:
-        emit_stdout(f"@SESSION: {session_id}|{field2}|{field3}")
-    else:
-        emit_stdout(f"@SESSION: {session_id}|{field2}")
+        parts.append(field3)
+    if field4:
+        parts.append(field4)
+    emit_stdout(f"@SESSION: {'|'.join(parts)}")
 
 
 def emit_record_line(tag: str, values: list[str]) -> str:

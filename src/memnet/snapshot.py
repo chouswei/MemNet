@@ -25,7 +25,10 @@ def snapshot_text(ss: SessionStore) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
     hw = "1" if m.has_writes else "0"
-    lines.append(f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}")
+    modified = m.modified_at or "-"
+    lines.append(
+        f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}|{modified}"
+    )
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(ss.tag_map))
     lines.append(_SECTION_REL)
@@ -85,12 +88,14 @@ def _parse_snap(line: str) -> SessionMeta:
     if version != 1:
         raise MemNetError("bad_snapshot", f"unsupported snapshot version {version}")
     has_writes = len(parts) > 5 and parts[5] == "1"
+    modified_at = parts[6] if len(parts) > 6 and parts[6] not in ("", "-") else None
     return SessionMeta(
         session_id=parts[1],
         created_at=parts[2],
         expires_at=parts[3],
         ttl_minutes=int(parts[4]),
         has_writes=has_writes,
+        modified_at=modified_at,
     )
 
 
@@ -157,6 +162,7 @@ def load_snapshot_text(
         expires_at=expires.isoformat().replace("+00:00", "Z"),
         ttl_minutes=ttl,
         has_writes=meta.has_writes,
+        modified_at=meta.modified_at,
     )
     store = MemStore(tag_map, caps)
     for line in rec_lines:

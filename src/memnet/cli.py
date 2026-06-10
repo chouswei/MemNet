@@ -317,7 +317,8 @@ def session_current() -> None:
         from memnet.session import utc_now
 
         left = max(0, int((expires - utc_now()).total_seconds() // 60))
-        emit_session(env, str(left), "")
+        modified = ss.meta.modified_at or "-"
+        emit_session(env, str(left), modified)
     except MemNetError:
         emit_session("none", "")
 
@@ -325,8 +326,8 @@ def session_current() -> None:
 @session_app.command("list")
 def session_list() -> None:
     purge_expired(_caps())
-    for sid, exp, left in list_sessions(_caps()):
-        emit_session(sid, exp, str(left))
+    for sid, exp, left, modified in list_sessions(_caps()):
+        emit_session(sid, exp, str(left), modified)
 
 
 @session_app.command("save")
@@ -650,6 +651,8 @@ def housekeep_stats(
         emit_stat("orphans", s["orphans"], "-")
         emit_stat("dangling", s["dangling"], "-")
         emit_stat("recyclable", s["recyclable"], "-")
+        modified = ss.meta.modified_at or "-"
+        emit_stdout(f"@STAT: modified|{modified}|-")
 
 
 @housekeep_app.command("stale")

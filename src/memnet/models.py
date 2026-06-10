@@ -51,3 +51,4 @@ class SessionMeta(BaseModel):
     expires_at: str
     ttl_minutes: int
     has_writes: bool = False
+    modified_at: str | None = None

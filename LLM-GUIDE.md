@@ -118,6 +118,7 @@ Background, rules, world facts, configs and character data are stored as many sm
 - `query context` (without `--active-only`) is for **audit only**. It will flood you with settled missions and emit `stale_in_context` warnings on stderr. Do not use it as your default read.
 - `read list --active-only` or `read list --tag TSK --active-only` for simple filtered lists without graph traversal.
 - `read list --where field=value` to match a specific field (exact). Repeat `--where` for AND. Wildcards: `--where name=*Tiexin*`.
+- `housekeep stats` includes `@STAT: modified|…` — compare across turns to skip re-injecting warm output when the graph is unchanged.
 
 ---
 

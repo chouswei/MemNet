@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-06-10
+
 ### Changed
 - `memStore` maintains `src`/`dist` edge indexes for O(1) adjacency lookup; `neighbors`, `find_path`, and `query warm` no longer scan all EDG rows.
+- Sessions track `modified_at` (ISO UTC, set on add/update/delete/prune). Exposed in `session list`, `session current`, and `housekeep stats` (`@STAT: modified|…`); persisted in snapshots when present.
 
 ## [0.2.3] — 2026-06-10
 
@@ -60,7 +63,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/chouswei/MemNet/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/chouswei/MemNet/compare/v0.2.2...v0.2.3
 [0.2.0]: https://github.com/chouswei/MemNet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chouswei/MemNet/releases/tag/v0.1.0

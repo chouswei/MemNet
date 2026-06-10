@@ -18,13 +18,19 @@ class MemStore:
         self.caps = caps or Caps()
         self.by_id: dict[str, Record] = {}
         self.write_order: list[str] = []
+        self._edges_by_src: dict[str, set[str]] = {}
+        self._edges_by_dist: dict[str, set[str]] = {}
 
     def load_records(self, records: list[Record]) -> None:
         self.by_id.clear()
         self.write_order.clear()
+        self._edges_by_src.clear()
+        self._edges_by_dist.clear()
         for rec in records:
             self.by_id[rec.id] = rec
             self.write_order.append(rec.id)
+            if rec.tag == "EDG":
+                self._index_edge(rec)
 
     def row_count_non_law(self) -> int:
         return sum(1 for r in self.by_id.values() if r.tag != "LAW")
@@ -85,9 +91,13 @@ class MemStore:
         if agent:
             record.agent = agent
         record.written_at = time.time()
+        if existing and existing.tag == "EDG":
+            self._unindex_edge(existing)
         if not existing:
             self.write_order.append(rid)
         self.by_id[rid] = record
+        if record.tag == "EDG":
+            self._index_edge(record)
         return warnings
 
     def add_row(
@@ -129,6 +139,11 @@ class MemStore:
         )
 
     def delete(self, record_id: str) -> Record | None:
+        existing = self.by_id.get(record_id)
+        if existing is None:
+            return None
+        if existing.tag == "EDG":
+            self._unindex_edge(existing)
         rec = self.by_id.pop(record_id, None)
         if rec and record_id in self.write_order:
             self.write_order.remove(record_id)
@@ -154,19 +169,43 @@ class MemStore:
         rows.sort(key=lambda r: r.id)
         return rows
 
+    def _index_edge(self, edge: Record) -> None:
+        src = edge.fields.get("src", "")
+        dist = edge.fields.get("dist", "")
+        if src:
+            self._edges_by_src.setdefault(src, set()).add(edge.id)
+        if dist:
+            self._edges_by_dist.setdefault(dist, set()).add(edge.id)
+
+    def _unindex_edge(self, edge: Record) -> None:
+        src = edge.fields.get("src", "")
+        dist = edge.fields.get("dist", "")
+        if src:
+            bucket = self._edges_by_src.get(src)
+            if bucket:
+                bucket.discard(edge.id)
+                if not bucket:
+                    del self._edges_by_src[src]
+        if dist:
+            bucket = self._edges_by_dist.get(dist)
+            if bucket:
+                bucket.discard(edge.id)
+                if not bucket:
+                    del self._edges_by_dist[dist]
+
+    def _edge_records(self, edge_ids: set[str] | None) -> list[Record]:
+        if not edge_ids:
+            return []
+        return sorted(
+            (self.by_id[eid] for eid in edge_ids if eid in self.by_id),
+            key=lambda r: r.id,
+        )
+
     def _edges_from(self, node_id: str) -> list[Record]:
-        return [
-            r
-            for r in self.by_id.values()
-            if r.tag == "EDG" and r.fields.get("src") == node_id
-        ]
+        return self._edge_records(self._edges_by_src.get(node_id))
 
     def _edges_to(self, node_id: str) -> list[Record]:
-        return [
-            r
-            for r in self.by_id.values()
-            if r.tag == "EDG" and r.fields.get("dist") == node_id
-        ]
+        return self._edge_records(self._edges_by_dist.get(node_id))
 
     def neighbors(
         self,
