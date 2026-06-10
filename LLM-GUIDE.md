@@ -263,6 +263,8 @@ memnet query warm --anchor PLR01
 - `memnet guide --loose` — short cheat sheet.
 - `memnet examples map|workflow`
 
+**Application note:** see `application-notes/llm-novel-writer.md` for a long-running creative writing example that follows the explicit 6-step pipeline (read → context → user input as data → analyse citing rows → add/update with correct recycle → loop) where background, configurations, bibles, rules and user preferences are kept as persistent rows inside the graph.
+
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.

@@ -195,6 +195,12 @@ All caps have `MEMNET_MAX_*` names; see source for the full list and defaults.
 
 No JSON on the wire for LLM consumption — only the `@TAG:` lines plus a handful of control records on stderr.
 
+## Application notes
+
+Rich, document-style worked examples live under `application-notes/`. These are self-contained narratives (one `.md` per note) showing complete usage patterns with all data — including background, configurations, bibles, rules, and user preferences — kept inside MemNet.
+
+See [application-notes/llm-novel-writer.md](application-notes/llm-novel-writer.md) for the first example: an interactive LLM novel writer driven by the explicit 6-step read → context → user-input-as-data → analyse → update → loop pipeline.
+
 ## Development
 
 ```powershell
