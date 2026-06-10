@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-10
+
 ### Added
 - Single source of truth for the package version: `pyproject.toml` reads it from `src/memnet/__init__.py` via `hatch.version`.
 - `memnet version --json` for automation; default output is now a wire line `@VER: memnet|<version>`.
@@ -48,5 +50,6 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/chouswei/MemNet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chouswei/MemNet/releases/tag/v0.1.0
