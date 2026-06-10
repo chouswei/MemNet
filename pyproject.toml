@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "memnet"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A tiny CLI knowledge graph for LLM context and memory"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,6 +36,9 @@ dev = [
 
 [project.scripts]
 memnet = "memnet.cli:main"
+
+[tool.hatch.version]
+path = "src/memnet/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/memnet"]

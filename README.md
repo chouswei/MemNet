@@ -8,7 +8,7 @@ MemNet is **scratch memory for the current task**, not a durable knowledge base 
 
 LLMs lose track of entities, state, and rules between tool calls. MemNet gives the agent a small, typed, queryable graph it can:
 
-- write facts, tasks, and relations once,
+- add facts, tasks, and relations once; update them when state changes,
 - pull back only the live slice on the next turn (`query warm --anchor`),
 - settle or expire missions so they stop polluting the prompt,
 - keep hard limits and produce machine-readable warnings instead of silent bloat.
@@ -44,7 +44,7 @@ memnet session open --map-file src/memnet/examples/schema.example.txt
 $env:MEMNET_SESSION = "mn_xxxxxxxx"
 
 # Ingest a small world (LAW rules + world state + missions)
-memnet write --file src/memnet/examples/workflow.example.txt
+memnet add --file src/memnet/examples/workflow.example.txt
 
 # Preferred read for the next LLM turn: only live mission state
 memnet query warm --anchor PLR01
@@ -63,10 +63,10 @@ For one-off scripting or tests you can set `MEMNET_TEST_INLINE=1` to run in-proc
 
 A typical agent turn:
 
-1. `write` one or more `@TAG:` lines (batch via `--stdin` or `--file` is best).
+1. `add` new rows or `update` existing ones (`@TAG:` lines, batch via `--stdin` or `--file` is best).
 2. `query warm --anchor <focus>` — returns only active (non-recyclable) rows, always includes LAW.
-3. Paste the wire lines into the prompt, reason, decide on next writes or a mission settle.
-4. On mission complete: upsert the `TSK` (or equivalent) with both `status=settled` **and** `recycle=delete_on_settle`. Mission edges usually use `delete_on_expire` or `delete_on_settle`.
+3. Paste the wire lines into the prompt, reason, decide on next adds/updates or a mission settle.
+4. On mission complete: **update** the `TSK` (or equivalent) with both `status=settled` **and** `recycle=delete_on_settle`. Mission edges usually use `delete_on_expire` or `delete_on_settle`.
 5. Optionally `housekeep prune stale --apply` to physically remove settled rows.
 6. Next turn starts again at step 1 with a (usually new) anchor.
 
@@ -85,12 +85,16 @@ One record per line:
 - Reserved output tags: `@SESSION`, `@ERR`, `@WRN`, `@STAT`, `@REL`, `@DEL`.
 - Errors and advisories go to **stderr**; data rows to **stdout**.
 
-Example multi-line write (PowerShell):
+Example multi-line ingest (PowerShell):
 
 ```powershell
-memnet write --stdin @"
+memnet add --stdin @"
 @NPC: N01|Shen Tiexin|female(12)|0|traditional|80|active|persistent
 @EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_expire
+"@
+
+memnet update --stdin @"
+@NPC: N01|Shen Tiexin|female(12)|0|traditional|90|active|persistent
 "@
 ```
 
@@ -113,10 +117,12 @@ Run any command with `--help` for full flags.
 
 Default TTL is 60 minutes (`MEMNET_SESSION_TTL_MINUTES` or `--ttl`).
 
-### Write & mutate
-- `write [line] [--file PATH] [--stdin] [--dry-run] [--allow-new-relation] [--agent NAME] [--session]`
-  - Batch is strongly preferred. Sanitises input, validates against the tag map, honours relation allow-list.
-  - `--dry-run` parses and emits what *would* be written but does not mutate.
+### Add, update & delete
+- `add [line] [--file PATH] [--stdin] [--dry-run] [--allow-new-relation] [--agent NAME] [--session]`
+  - Create **new** rows only. Fails with `id_exists` if the id is already in the graph.
+- `update [line] [--file PATH] [--stdin] [--dry-run] [--allow-new-relation] [--agent NAME] [--session]`
+  - Replace **existing** rows only. Fails with `not_found` if the id is missing (catches update typos).
+- Batch via `--stdin` or `--file` is strongly preferred. `--dry-run` parses without mutating.
 - `delete --id ID`
 
 ### Query (graph reads)
@@ -140,10 +146,10 @@ Default TTL is 60 minutes (`MEMNET_SESSION_TTL_MINUTES` or `--ttl`).
 - `tagmap fields [--tag T]` / `map fields` — reference field lists.
 - `tagmap show` / `map show` — current session's effective tag map.
 - `relations list` — allowed EDG relation names for this session.
-- New relations are rejected unless the write uses `--allow-new-relation` (subject to `max_relations`).
+- New relations are rejected unless `add` or `update` uses `--allow-new-relation` (subject to `max_relations`).
 
 ### Examples & server
-- `examples map|workflow|write <tag>|path`
+- `examples map|workflow|add <tag>|path`
 - `serve [--host] [--port]` — the in-memory graph host. Required for normal CLI use across processes.
 - `version`, `guide`, `guide --loose`
 

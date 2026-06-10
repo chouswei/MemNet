@@ -1,4 +1,4 @@
-"""Input sanitiser for write batches."""
+"""Input sanitiser for add/update batches."""
 
 from __future__ import annotations
 

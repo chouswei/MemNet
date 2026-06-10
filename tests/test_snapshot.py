@@ -17,7 +17,7 @@ runner = CliRunner()
 def test_snapshot_roundtrip(memnet_temp, schema_file, workflow_file, tmp_path: Path):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
-    runner.invoke(app, ["write", "--file", str(workflow_file), "--session", sid])
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
 
     snap_path = tmp_path / "game.snap"
     ss = get_session(sid)
@@ -35,7 +35,7 @@ def test_snapshot_roundtrip(memnet_temp, schema_file, workflow_file, tmp_path: P
 def test_cli_session_save_load(memnet_temp, schema_file, workflow_file, tmp_path: Path):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
-    runner.invoke(app, ["write", "--file", str(workflow_file), "--session", sid])
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
 
     snap_path = tmp_path / "roundtrip.snap"
     save = runner.invoke(app, ["session", "save", "--file", str(snap_path), "--session", sid])

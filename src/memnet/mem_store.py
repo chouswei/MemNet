@@ -89,6 +89,44 @@ class MemStore:
         self.by_id[rid] = record
         return warnings
 
+    def add_row(
+        self,
+        record: Record,
+        *,
+        agent: str | None = None,
+        allow_new_relation: bool = False,
+        relations: set[str] | None = None,
+    ) -> list[str]:
+        existing = self.by_id.get(record.id)
+        if existing:
+            raise MemNetError(
+                "id_exists",
+                f"id {record.id} exists @{existing.tag}|use update",
+            )
+        return self.upsert(
+            record,
+            agent=agent,
+            allow_new_relation=allow_new_relation,
+            relations=relations,
+        )
+
+    def replace_row(
+        self,
+        record: Record,
+        *,
+        agent: str | None = None,
+        allow_new_relation: bool = False,
+        relations: set[str] | None = None,
+    ) -> list[str]:
+        if record.id not in self.by_id:
+            raise MemNetError("not_found", f"id {record.id}|use add")
+        return self.upsert(
+            record,
+            agent=agent,
+            allow_new_relation=allow_new_relation,
+            relations=relations,
+        )
+
     def delete(self, record_id: str) -> Record | None:
         rec = self.by_id.pop(record_id, None)
         if rec and record_id in self.write_order:

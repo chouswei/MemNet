@@ -14,7 +14,7 @@ runner = CliRunner()
 def test_s01_goldfish_refresh(memnet_temp, schema_file, workflow_file):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
-    runner.invoke(app, ["write", "--file", str(workflow_file), "--session", sid])
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
     warm = runner.invoke(app, ["query", "warm", "--anchor", "PLR01", "--session", sid])
     assert warm.exit_code == 0
     assert "@LAW:" in warm.stdout
@@ -26,7 +26,7 @@ def test_s08_pipe_escape(memnet_temp, schema_file):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
     line = "@PLR: PLR01|note\\|extra|1|0|0|0|bag"
-    w = runner.invoke(app, ["write", line, "--session", sid])
+    w = runner.invoke(app, ["add", line, "--session", sid])
     assert w.exit_code == 0
     g = runner.invoke(app, ["read", "get", "--id", "PLR01", "--session", sid])
     assert "note|extra" in g.stdout or "note\\|extra" in g.stdout

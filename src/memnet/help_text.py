@@ -21,7 +21,7 @@ REFERENCE_FIELDS: dict[str, str] = {
     "LAW": "id|name|cycle|mechanism|constraint",
 }
 
-WRITE_SAMPLES: dict[str, str] = {
+ADD_SAMPLES: dict[str, str] = {
     "BIZ": "@BIZ: B01|Unfound|none|none|0|0|0|persistent",
     "NPC": "@NPC: N01|Shen Tiexin|female(12)|0|traditional|80|active|persistent",
     "PLR": "@PLR: PLR01|Vagrant beggar|3|-5|0|0|wheat cake",
@@ -37,7 +37,7 @@ def guide_text(*, loose: bool = False) -> str:
             "Start server: memnet serve (one terminal).",
             "Open once: memnet session open --map-file schema.txt; export MEMNET_SESSION.",
             "Resume: memnet session resume <id> — never re-open for same task.",
-            "Write batch: memnet write --stdin or --file lines.txt.",
+            "New rows: memnet add --stdin or --file. Changes: memnet update --stdin or --file.",
             "Read turn: memnet query warm --anchor PLR01 (not query context).",
             "Optional: memnet session save --file snap.txt / session load --file snap.txt.",
             "Reuse ids; never invent new ids for the same entity.",
@@ -51,15 +51,16 @@ Quick start:
   memnet serve
   memnet examples map
   memnet session open --map-file schema.example.txt
-  memnet write --file workflow.example.txt
+  memnet add --file workflow.example.txt
   memnet query warm --anchor PLR01
 
 Wire format: @TAG: field|field|...
   Pipe in value: a\\|b
   Errors: @ERR: code|message|example on stderr
 
-Shell (PowerShell): memnet write \"@NPC: N01|Alice|...\"
-Shell (bash):       memnet write '@NPC: N01|Alice|...'
+Shell (PowerShell): memnet add \"@NPC: N01|Alice|...\"
+Shell (bash):       memnet add '@NPC: N01|Alice|...'
+  Update existing:  memnet update '@NPC: N01|Alice|...'
 
 See: memnet tagmap fields --tag NPC
      memnet guide --loose
@@ -103,10 +104,10 @@ def fields_text(tag: str | None = None) -> str:
     return "\n".join(lines)
 
 
-def write_example_text(tag: str) -> str:
+def add_example_text(tag: str) -> str:
     t = tag.upper()
-    if t in WRITE_SAMPLES:
-        return WRITE_SAMPLES[t]
+    if t in ADD_SAMPLES:
+        return ADD_SAMPLES[t]
     schema = examples_dir() / "schema.example.txt"
     if schema.exists():
         tm = load_map_from_file(str(schema))

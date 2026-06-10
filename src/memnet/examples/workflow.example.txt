@@ -1,8 +1,8 @@
 @CFG: CFG01|Ming Syndicate|Late Ming economy|Beggar|Soul Library (21C tech)|Faction warlords
 @LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02|node_upsert|on_write|replace|one row per global id same tag only
-@LAW: LAW03|edge_endpoints|on_write|validate|prefer src and dist to reference existing node ids before settle
-@LAW: LAW04|field_escape|on_write|use_backslash|pipe inside one field value is backslash pipe not bare pipe
+@LAW: LAW02|node_id|on_add|unique|one row per global id use add then update same tag only
+@LAW: LAW03|edge_endpoints|on_add|validate|prefer src and dist to reference existing node ids before settle
+@LAW: LAW04|field_escape|on_add|use_backslash|pipe inside one field value is backslash pipe not bare pipe
 @SYS: SYS01|1|Autumn Year 38|0|0|15|1 tael:750 cash
 @PLR: PLR01|Vagrant beggar|3|-5|0|0|Soul Library (21C tech),wheat cake
 @BIZ: B01|Unfound|none|none|0|0|0|persistent

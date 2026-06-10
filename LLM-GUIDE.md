@@ -4,7 +4,7 @@
 
 **Core contract**
 - Everything you need for the current task lives in the MemNet graph for this session.
-- You write facts, tasks, and relations once.
+- You **add** new facts, tasks, and relations once; you **update** them when something changes.
 - You re-inject only the live slice on each turn via `query warm`.
 - When a sub-task is done, you explicitly "settle" it so it disappears from future warm reads.
 - You clean up when appropriate.
@@ -15,14 +15,39 @@
 
 ---
 
+## Add vs update — pick the right command
+
+MemNet splits create and replace so mistakes fail loudly:
+
+| Intent | Command | If you get it wrong |
+|--------|---------|---------------------|
+| **New** entity / edge | `add` | `id_exists` — id already taken; use `update` |
+| **Change** existing row | `update` | `not_found` — typo or wrong id; fix id or use `add` |
+
+**Rules**
+- Copy ids from `query warm` output — never retype from memory.
+- New NPC / task / edge → `add` with a **new** id.
+- Status change, settlement, field edit → `update` with the **same** id from warm.
+- Unsure? `read get --id N01` first.
+
+There is no `write` command. Do not upsert implicitly.
+
+---
+
 ## The Goldfish Loop (do this every turn)
 
 1. **Think** what you need to remember or act on.
-2. **Write** (batch preferred):
+2. **Mutate** (batch preferred):
    ```powershell
-   memnet write --stdin @"
+   memnet add --stdin @"
    @TSK: T42|Clear the warehouse|2|in_progress|persistent
    @EDG: E77|N03|helps|T42|labour|persistent
+   "@
+   ```
+   Or, if rows already exist from a prior turn:
+   ```powershell
+   memnet update --stdin @"
+   @TSK: T42|Clear the warehouse|2|in_progress|persistent
    "@
    ```
 3. **Read the live slice** (always anchored, always warm):
@@ -31,7 +56,7 @@
    ```
    Paste the `@TAG:` lines (plus the `@LAW:` lines) into your prompt.
 4. **Act / reason** using only the warm data + the current user request.
-5. **Settle** finished work (see pattern below).
+5. **Settle** finished work (see pattern below) — always via `update`.
 6. (Occasionally) prune and continue.
 
 Repeat. Each new turn starts by calling `query warm`.
@@ -44,10 +69,10 @@ Repeat. Each new turn starts by calling `query warm`.
 - **Reuse the same ID** for the same conceptual thing forever (e.g. the same person is always `N01`).
 - **Never invent a new ID** for something that already exists in the graph.
 - When in doubt, first do a `read get --id XXX` or a `query warm` to check.
-- Bad: creating `N02` when `N01` already represents the same NPC.
-- Good: always refer to the existing `N01`.
+- Bad: `add` with `N02` when `N01` already represents the same NPC.
+- Good: `update` with the existing `N01` copied from warm output.
 
-Law 02 (enforced): one row per (id + tag).
+Law 02 (enforced): one row per (id + tag). `add` then `update` — never the reverse for the same id.
 
 ---
 
@@ -62,14 +87,8 @@ Valid values:
 
 **Settlement pattern (do this when a mission or sub-task ends)**
 
-Before (active):
-```
-@TSK: T01|Upgrade workshop|1|urgent|persistent
-@EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_expire
-@EDG: E02|PLR01|binds|TEC01|unlock|delete_on_expire
-```
+Use **`update`** (these rows already exist):
 
-After (settled — you emit these lines):
 ```
 @TSK: T01|Upgrade workshop|1|settled|delete_on_settle
 @EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_settle
@@ -103,7 +122,7 @@ to physically remove them and free cap space. Emit this after settlement when th
 
 - Relations are declared at session open (seeded from `relations.seed.txt`).
 - By default you may only use known relations.
-- To introduce a new one: `write ... --allow-new-relation`.
+- To introduce a new one: `add ... --allow-new-relation` or `update ... --allow-new-relation`.
 - Do not spam new relations. Prefer the existing vocabulary (`seeks_help`, `binds`, `produces`, `links`, etc.).
 - Check current vocabulary with `memnet relations list`.
 
@@ -173,13 +192,13 @@ Never guess field order or required columns. Use the map.
 
 ---
 
-## Write discipline
+## Ingest discipline
 
-- Prefer `--stdin` or `--file` with many lines in one call (atomic, fewer round-trips, one save).
-- Single-line `memnet write "@TAG: ..."` is allowed but less efficient.
+- Prefer `--stdin` or `--file` with many lines in one call (atomic, fewer round-trips).
+- New rows → `add`. Changes to existing rows → `update`.
 - Always escape pipes inside values: `note\|extra`.
-- Dry-run when you are unsure: `write --dry-run ...`
-- After any write that settles work, the very next read must be `query warm`.
+- Dry-run when you are unsure: `add --dry-run ...` or `update --dry-run ...`
+- After any update that settles work, the very next read must be `query warm`.
 
 ---
 
@@ -187,10 +206,14 @@ Never guess field order or required columns. Use the map.
 
 - Using `query context` every turn → prompt pollution, settled missions reappear, you get confused.
   → Fix: only `query warm --anchor ...`
-- Creating new IDs for the same thing ("N02" when N01 already exists).
-  → Fix: search first, always reuse.
+- `add` with a new id for something that already exists (`N02` when `N01` is the same NPC).
+  → Fix: read warm first, `update` with `N01`.
+- `update` with a typo (`N0l` instead of `N01`) → `not_found`.
+  → Fix: copy id from warm output; do not retype.
+- `add` when id already exists → `id_exists`.
+  → Fix: use `update` instead.
 - Leaving settled missions with `recycle=persistent`.
-  → Fix: on completion, write both `status=settled` **and** the appropriate `delete_on_*` value.
+  → Fix: on completion, `update` with both `status=settled` **and** the appropriate `delete_on_*` value.
 - Forgetting to prune after many settlements.
   → Fix: after settlement batch, run `housekeep prune stale --apply`.
 - Introducing random new relations on every edge.
@@ -203,8 +226,8 @@ Never guess field order or required columns. Use the map.
 ## Minimal complete turn (copy-paste shape)
 
 ```powershell
-# 1. Write new state (batch)
-memnet write --stdin @"
+# 1. Add new state (batch) — first time only
+memnet add --stdin @"
 @TSK: T07|Negotiate with the guild|3|in_progress|persistent
 @EDG: E19|B01|seeks_help|T07|terms|persistent
 "@
@@ -214,8 +237,8 @@ memnet query warm --anchor T07 --depth 2 --max-rows 30
 
 # (paste the returned @LAW: + @TAG: lines into your reasoning)
 
-# 3. Later, when done
-memnet write --stdin @"
+# 3. Later, when done — update existing rows
+memnet update --stdin @"
 @TSK: T07|Negotiate with the guild|3|settled|delete_on_settle
 @EDG: E19|B01|seeks_help|T07|terms|delete_on_settle
 "@
@@ -230,7 +253,8 @@ memnet query warm --anchor PLR01
 
 - `memnet serve` — must be running (one terminal).
 - `memnet session open --map-file ... [--ttl 90]`
-- `memnet write --stdin ...` or `--file`
+- `memnet add --stdin ...` — new rows only
+- `memnet update --stdin ...` — existing rows only
 - `memnet query warm --anchor <id> [--depth 2]`
 - `memnet housekeep stale`
 - `memnet housekeep prune stale --apply`
@@ -243,4 +267,4 @@ memnet query warm --anchor PLR01
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.
 
-Stay disciplined with IDs, the `recycle` label on settlement, and `query warm`. Everything else follows from that.
+Stay disciplined with ids, `add` vs `update`, the `recycle` label on settlement, and `query warm`. Everything else follows from that.

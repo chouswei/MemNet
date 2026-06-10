@@ -138,8 +138,8 @@ def bench_cli() -> list[str]:
     )
     sid = r.stdout.strip().split("\n")[0].split("|")[0].replace("@SESSION: ", "")
 
-    elapsed, code = run_cli(["write", "--file", workflow, "--session", sid])
-    rows.append(f"{'CLI write --file workflow (15 lines)':40} {elapsed:8.2f} ms  exit={code}")
+    elapsed, code = run_cli(["add", "--file", workflow, "--session", sid])
+    rows.append(f"{'CLI add --file workflow (15 lines)':40} {elapsed:8.2f} ms  exit={code}")
 
     rows.append(
         stat(
@@ -151,10 +151,10 @@ def bench_cli() -> list[str]:
     loop_times = []
     for _ in range(10):
         t0 = time.perf_counter()
-        run_cli(["write", "@SYS: SYS01|1|Day|0|0|0|1:1", "--session", sid])
+        run_cli(["update", "@SYS: SYS01|1|Day|0|0|0|1:1", "--session", sid])
         run_cli(["query", "warm", "--anchor", "PLR01", "--session", sid])
         loop_times.append((time.perf_counter() - t0) * 1000)
-    rows.append(stat("CLI goldfish loop (1 write + warm)", loop_times))
+    rows.append(stat("CLI goldfish loop (1 update + warm)", loop_times))
 
     return rows
 

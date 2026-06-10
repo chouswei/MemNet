@@ -12,7 +12,17 @@ runner = CliRunner()
 def test_version():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "memnet" in result.stdout
+    assert result.stdout.startswith("@VER: memnet|")
+
+
+def test_version_json():
+    import json
+
+    result = runner.invoke(app, ["version", "--json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout.strip())
+    assert payload["name"] == "memnet"
+    assert payload["version"].count(".") >= 2
 
 
 def test_guide_loose():

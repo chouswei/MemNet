@@ -18,7 +18,7 @@ from memnet.help_text import (
     examples_workflow_text,
     fields_text,
     guide_text,
-    write_example_text,
+    add_example_text,
 )
 from memnet.housekeep import (
     dangling_rows,
@@ -117,10 +117,11 @@ def _mission_settled_warn(old_status: str | None, record) -> None:
             )
 
 
-def _write_lines(
+def _ingest_lines(
     ss,
     lines: list[str],
     *,
+    mode: str,
     dry_run: bool = False,
     allow_new_relation: bool = False,
     agent: str | None = None,
@@ -151,7 +152,8 @@ def _write_lines(
         for line, rec in parsed:
             old = ss.store.get(rec.id)
             old_status = old.fields.get("status") if old and old.tag == "TSK" else None
-            warns = ss.store.upsert(
+            apply = ss.store.add_row if mode == "add" else ss.store.replace_row
+            warns = apply(
                 rec,
                 agent=agent,
                 allow_new_relation=allow_new_relation,
@@ -179,9 +181,16 @@ def emit_stderr_summary(ok: int, fail: int) -> None:
 
 
 @app.command()
-def version() -> None:
+def version(
+    json_out: Annotated[bool, typer.Option("--json", help="Emit JSON instead of wire line")] = False,
+) -> None:
     """Show the installed MemNet version."""
-    emit_stdout(f"memnet {__version__}")
+    if json_out:
+        import json as _json
+
+        emit_stdout(_json.dumps({"name": "memnet", "version": __version__}))
+    else:
+        emit_stdout(f"@VER: memnet|{__version__}")
 
 
 @app.command()
@@ -207,7 +216,7 @@ def guide(
 @examples_app.callback(invoke_without_command=True)
 def examples_list(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is None:
-        emit_stdout("map|workflow|write|path|agent-guide")
+        emit_stdout("map|workflow|add|path|agent-guide")
 
 
 @examples_app.command("map")
@@ -220,11 +229,11 @@ def examples_workflow() -> None:
     emit_stdout(examples_workflow_text())
 
 
-@examples_app.command("write")
-def examples_write(
+@examples_app.command("add")
+def examples_add(
     tag: Annotated[str, typer.Option("--tag")],
 ) -> None:
-    emit_stdout(write_example_text(tag))
+    emit_stdout(add_example_text(tag))
 
 
 @examples_app.command("path")
@@ -237,7 +246,8 @@ def examples_agent_guide() -> None:
     emit_stdout(
         "Read LLM-GUIDE.md (repository root) for the complete agent playbook.\n"
         "Key points: always use query warm --anchor, settle missions with status=settled + recycle=delete_on_settle, "
-        "reuse IDs, batch writes, run housekeep prune stale after settlement, respect @WRN on stderr.\n"
+        "reuse IDs, add for new rows and update for changes, run housekeep prune stale after settlement, "
+        "respect @WRN on stderr.\n"
         "See also: memnet guide --loose, memnet examples map, memnet tagmap fields."
     )
 
@@ -365,18 +375,12 @@ def relations_list(
             emit_stdout(f"@REL: {rel}")
 
 
-@app.command("write")
-def write_cmd(
-    line: Annotated[str | None, typer.Argument()] = None,
-    file: Annotated[Path | None, typer.Option("--file")] = None,
-    stdin: Annotated[bool, typer.Option("--stdin")] = False,
-    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
-    allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
-    agent: Annotated[str | None, typer.Option("--agent")] = None,
-    session: Annotated[str | None, typer.Option("--session")] = None,
-) -> None:
-    ss, lock = _load_session(session, exclusive=not dry_run)
-    caps = _caps()
+def _read_ingest_input(
+    line: str | None,
+    file: Path | None,
+    stdin: bool,
+    caps: Caps,
+) -> list[str]:
     raw_lines: list[str] = []
     if line:
         raw_lines = [line]
@@ -394,17 +398,80 @@ def write_cmd(
             )
         )
     try:
-        lines = sanitise_batch(raw_lines)
+        return sanitise_batch(raw_lines)
     except MemNetError as exc:
         _handle_error(exc)
+        raise AssertionError("unreachable") from exc
+
+
+def _ingest_cmd(
+    mode: str,
+    line: str | None,
+    file: Path | None,
+    stdin: bool,
+    dry_run: bool,
+    allow_new_relation: bool,
+    agent: str | None,
+    session: str | None,
+) -> None:
+    ss, lock = _load_session(session, exclusive=not dry_run)
+    caps = _caps()
+    lines = _read_ingest_input(line, file, stdin, caps)
     with lock:
-        _write_lines(
+        _ingest_lines(
             ss,
             lines,
+            mode=mode,
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
         )
+
+
+@app.command("add")
+def add_cmd(
+    line: Annotated[str | None, typer.Argument()] = None,
+    file: Annotated[Path | None, typer.Option("--file")] = None,
+    stdin: Annotated[bool, typer.Option("--stdin")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
+    agent: Annotated[str | None, typer.Option("--agent")] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Create new rows only (fails if id already exists)."""
+    _ingest_cmd(
+        "add",
+        line,
+        file,
+        stdin,
+        dry_run,
+        allow_new_relation,
+        agent,
+        session,
+    )
+
+
+@app.command("update")
+def update_cmd(
+    line: Annotated[str | None, typer.Argument()] = None,
+    file: Annotated[Path | None, typer.Option("--file")] = None,
+    stdin: Annotated[bool, typer.Option("--stdin")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
+    agent: Annotated[str | None, typer.Option("--agent")] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Replace existing rows only (fails if id not found)."""
+    _ingest_cmd(
+        "update",
+        line,
+        file,
+        stdin,
+        dry_run,
+        allow_new_relation,
+        agent,
+        session,
+    )
 
 
 @app.command("delete")

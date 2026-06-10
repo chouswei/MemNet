@@ -23,7 +23,7 @@ def test_open_write_resume_cross_process(memnet_temp, schema_file, workflow_file
 
     r2 = runner.invoke(
         app,
-        ["write", "--file", str(workflow_file), "--session", sid],
+        ["add", "--file", str(workflow_file), "--session", sid],
     )
     assert r2.exit_code == 0, r2.stderr
 
