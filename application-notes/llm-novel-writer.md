@@ -1,13 +1,17 @@
 # LLM Novel Writer — A MemNet Application Note
 
-**Single-file document example.** This file is self-contained. It demonstrates how to drive a long-form, user-steered novel writing session where *every* piece of data lives in MemNet:
+**Single-file document example.** This file is self-contained. It demonstrates how to drive a long-form, user-steered novel writing session where *every* piece of data lives in MemNet.
 
-- Background and world bible (LORE)
-- Style, tone, and mechanical constraints (RULE)
-- Character bibles and backstories (CHR)
-- High-level plot arcs and volume structure (PLT)
-- User writing preferences for *this* project (USR)
-- Current scenes, chapters, and in-flight choices (SCN, CHOICE)
+Background, rules, characters and preferences are **not** kept as monolithic bibles or external files. They are broken into many small, independent rows:
+
+- LORE — individual world facts, places, events, artefacts (one row per focused piece)
+- RULE — single style, tone, mechanical or project constraints (one rule per row)
+- CHR — character bibles and backstories (one character or focused facet per row)
+- PLT — high-level arcs and volume structure (one arc/phase per row)
+- USR — user writing preferences for *this* project (one key per row)
+- SCN / CHOICE — current scenes, beats and in-flight decisions (transient, settled when done)
+
+A given piece of background is only pulled into the LLM's context for a turn when it is needed — either by anchoring directly on it or (more commonly) when an EDG link from the current live focus (scene, choice, etc.) reaches it. The rest stays out of the warm slice.
 
 No external lore files, no hidden system prompts, no "the model will remember." The graph is the single source of truth. The session can be snapshotted and resumed with `session save` / `session load`.
 
@@ -15,7 +19,7 @@ No external lore files, no hidden system prompts, no "the model will remember." 
 
 This is the disciplined loop the orchestrator + LLM follow on every turn. The document's worked examples are structured strictly around these steps.
 
-1. **Read the data if it needs** — selective `query warm --anchor <focus>` (current SCN/CHR/CHOICE, or direct anchors on LORE/RULE/CHR_BIBLE/PLT_MASTER/USR_PREF when background or configuration is required). Use `--depth` and EDG links to pull only what is relevant. Never rely on prior chat messages for facts.
+1. **Read the data if it needs** — selective `query warm --anchor <focus>` (current SCN/CHR/CHOICE, or direct anchors on LORE/RULE/CHR_BIBLE/PLT_MASTER/USR_PREF when background or configuration is required). Use `--depth` and EDG links (the explicit wiring rows) to pull only the connected reference material. Never rely on prior chat messages for facts.
 
 2. **Generate context** — the warm result (LAW rows are *always* prepended, plus connected persistent reference rows + current transient state) becomes the deterministic context injected into the LLM prompt. This is external memory, not hallucinated lore.
 
@@ -27,11 +31,11 @@ This is the disciplined loop the orchestrator + LLM follow on every turn. The do
 
 6. **Loop** — return to step 1. The next turn begins with a fresh read. Settled transient rows disappear from `query warm` (unless still connected to the new anchor).
 
-After heavy settlement, optionally run `housekeep prune recyclable --apply` to physically remove settled rows and free cap space. Reference material (LORE, RULE, full CHR bibles, master PLT, USR prefs) is never settled away.
+After heavy settlement, optionally run `housekeep prune recyclable --apply` to physically remove settled rows and free cap space. Reference material (LORE facts, RULE constraints, focused CHR bibles/facets, master PLT, USR prefs) is never settled away.
 
 **Persistent vs transient (quick legend)**
 
-- Persistent (survives settlements, visible when anchored or connected via EDG): LORE, RULE, CHR (full bibles), PLT/ARC (master arcs), USR (prefs).
+- Persistent (survives settlements, visible when anchored or reached via EDG links): many small LORE facts, individual RULEs, focused CHR bibles/facets, PLT/ARC master arcs, USR prefs. Each is its own row and is only injected when the current anchor reaches it.
 - Transient (created/updated during the current writing, settled with `delete_on_settle` once done): SCN (current/draft scenes), CHOICE (pending decisions), active chapter/beat work.
 
 ## Part A: Schema (the user tag map)
@@ -50,9 +54,29 @@ This is the map you feed to `memnet session open --map-file`. It defines only th
 
 EDG relations used in this example (seed a few at start or use `--allow-new-relation` when genuinely new): `set_in`, `features`, `governs`, `continues`, `resolves`, `costs`, `influences`.
 
+**EDG rows — the explicit wiring for selective context**
+
+EDG is a *fixed, built-in tag* (always available; never declared in your map). It models directed, named links between any rows:
+
+```
+@EDG: E99|SRC_ID|relation|DST_ID|optional_attrs|recycle
+```
+
+**Core function in the pipeline:**
+- They are how you declare "this scene is *set_in* this lore", "this character *features* here", "this rule *governs* that character", "this beat *costs* this person".
+- `query warm --anchor <focus> --depth N` traverses EDG links to pull in *only* the connected persistent background, bibles and rules the current focus needs. Without the right EDGs, anchoring on a SCN or CHOICE would return almost nothing but LAW + the anchor itself.
+- LAW01 (`edge_recycle`) keeps the warm slice clean: most transient EDGs (and the rows they point to) are hidden from context unless the anchor is at src or dist.
+- You manage them with the same `add`/`update` discipline as nodes (copy ids from warm; use `--allow-new-relation` only for genuinely new relation verbs). They are first-class data, not implicit "the LLM will remember the connection".
+
+In short: EDG is the mechanism that makes "read only what the anchor can reach" reliable and deterministic for long-running work.
+
+**Background is many small pieces, referred only when needed**
+
+Because the persistent material itself is stored as many small rows rather than one giant bible, the warm slice for any turn contains only the fragments the current focus actually needs. In the seed you see separate LORE01/LORE02, four distinct RULE rows, individual CHR entries, etc. When you later need a specific rule or lore fact in isolation you can anchor directly on it (as Turn 3 does with RULE02). Most of the time the relevant pieces arrive automatically because earlier turns wired them with EDG from the scenes or choices that depend on them. Unrelated background stays out of context and out of the way.
+
 ## Part B: Initial Seed (complete starting state)
 
-Copy the block below (or extract it via heredoc) and feed it to `memnet add --stdin` after opening the session with the schema above. This populates the graph with *all* initial data: background, configuration, bibles, and the opening scene. Persistent rows use `persistent` (or omit the field); the opening scene is marked transient so it can be settled later.
+Copy the block below (or extract it via heredoc) and feed it to `memnet add --stdin` after opening the session with the schema above. This populates the graph with *all* initial data as many small pieces: the LORE facts, RULE constraints, CHR bibles, PLT arc, USR prefs, the opening scene, *and the EDG links that wire the scene (and later scenes) to only the reference rows they need*. Persistent rows use `persistent` (or omit the field); the opening scene (and its transient links) are marked for settlement so they drop out of warm once resolved.
 
 ```text
 @LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
@@ -231,7 +255,7 @@ memnet session load --file my-novel.snap
 # or --keep-id if you want the old session id
 ```
 
-The resulting session contains the complete novel project. Warm reads will surface whatever the current anchor can reach, including the persistent reference rows.
+The resulting session contains the complete novel project as many small rows. Warm reads surface only the fragments the current anchor (plus its EDG links) can reach — including whichever persistent reference pieces are relevant this turn.
 
 ## Pipeline-Aware Pitfalls (and how the design helps)
 
@@ -267,7 +291,7 @@ memnet session open --map-file $env:TEMP\novel.map.txt
 # stderr will print something like: MEMNET_SESSION=mn_3f8a2c1d
 $env:MEMNET_SESSION = "mn_3f8a2c1d"
 
-# 2. Add the initial seed (Part B block, the @LAW: ... through @EDG: lines).
+# 2. Add the initial seed (Part B block, the @LAW: ... through the final @EDG: wiring lines). The EDGs are what let the first warm pull in the right background for SCN01.
 # Again using a heredoc for clarity; in practice you can also use --file.
 memnet add --stdin @"
 @LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
@@ -329,7 +353,7 @@ flowchart TD
 
 **Persistent vs transient (legend for the diagram above)**
 
-- Persistent (stays across settlements, visible when anchored or connected): LORE, RULE, CHR (full bibles), PLT/ARC (master), USR (prefs).
+- Persistent (stays across settlements, visible when anchored or reached via EDG links): many small LORE facts, individual RULEs, focused CHR bibles/facets, PLT/ARC master arcs, USR prefs. Each piece is its own row and appears only when needed.
 - Transient (created/updated during writing, settled with `delete_on_settle` once done): SCN (current scenes), CHOICE (pending decisions), active chapter/beat work.
 
 ---

@@ -109,6 +109,8 @@ to physically remove them and free cap space. Emit this after settlement when th
 
 ## Reading strategy
 
+Background, rules, world facts, configs and character data are stored as many small rows, not monolithic blobs. Only the pieces the current anchor can reach (directly or via EDG links) appear in `query warm`. This keeps every turn's context small and precise even on long-running tasks.
+
 - **Normal agent turn**: `query warm --anchor <current focus>` (or a PLR / mission id).
   - Always includes all `@LAW:` rows.
   - Excludes everything with `recycle` = `delete_on_settle` or `delete_on_expire`.
@@ -120,11 +122,15 @@ to physically remove them and free cap space. Emit this after settlement when th
 
 ## Relations (EDG)
 
+EDG rows are first-class directed links (`@EDG: E99|src|relation|dist||recycle`). They are the explicit wiring the agent maintains so that `query warm --anchor <focus>` can pull in only the connected background, rules and entities needed for the current state (instead of the whole graph or nothing). Background itself is deliberately granular — many small rows (one fact, one rule, one character facet, etc.) — so only the relevant fragments are brought in. LAW01 hides transient edges from warm once settled unless the anchor touches an endpoint.
+
 - Relations are declared at session open (seeded from `relations.seed.txt`).
 - By default you may only use known relations.
 - To introduce a new one: `add ... --allow-new-relation` or `update ... --allow-new-relation`.
 - Do not spam new relations. Prefer the existing vocabulary (`seeks_help`, `binds`, `produces`, `links`, etc.).
 - Check current vocabulary with `memnet relations list`.
+
+See `application-notes/llm-novel-writer.md` for a long-form example where EDGs wire every scene to its LORE/CHR/RULE dependencies and transient links are settled away cleanly.
 
 ---
 
