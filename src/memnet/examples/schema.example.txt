@@ -1,0 +1,8 @@
+@CFG: id|world|economy|identity|core_ability|crisis
+@SYS: id|round|time|deficit|revenue|chaos|exchange_rate
+@PLR: id|identity|wealth|cashflow|monopoly|reputation|inventory
+@BIZ: id|name|type|location|profit|cashflow|employees|recycle
+@NPC: id|name|traits|corruption|craft|funding_gap|status|recycle
+@TSK: id|goal|deadline|status|recycle
+@TEC: id|name|domain|status|effect
+@PRD: id|name|type|cost|price|status

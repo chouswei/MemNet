@@ -1,0 +1,246 @@
+# MemNet — Agent Playbook (for LLMs)
+
+**You are a goldfish.** Your working memory is unreliable. Use MemNet as external structured scratch space so you do not have to hold state in your context.
+
+**Core contract**
+- Everything you need for the current task lives in the MemNet graph for this session.
+- You write facts, tasks, and relations once.
+- You re-inject only the live slice on each turn via `query warm`.
+- When a sub-task is done, you explicitly "settle" it so it disappears from future warm reads.
+- You clean up when appropriate.
+- You never rely on your own previous messages for durable state.
+
+**One non-negotiable rule**
+> **Always read with `query warm --anchor <something>` (or `read list --active-only`). Never use bare `query context` for normal turns.**
+
+---
+
+## The Goldfish Loop (do this every turn)
+
+1. **Think** what you need to remember or act on.
+2. **Write** (batch preferred):
+   ```powershell
+   memnet write --stdin @"
+   @TSK: T42|Clear the warehouse|2|in_progress|persistent
+   @EDG: E77|N03|helps|T42|labour|persistent
+   "@
+   ```
+3. **Read the live slice** (always anchored, always warm):
+   ```powershell
+   memnet query warm --anchor T42 --depth 2
+   ```
+   Paste the `@TAG:` lines (plus the `@LAW:` lines) into your prompt.
+4. **Act / reason** using only the warm data + the current user request.
+5. **Settle** finished work (see pattern below).
+6. (Occasionally) prune and continue.
+
+Repeat. Each new turn starts by calling `query warm`.
+
+---
+
+## IDs — the most important discipline
+
+- IDs are **global within a session** and **unique per tag**.
+- **Reuse the same ID** for the same conceptual thing forever (e.g. the same person is always `N01`).
+- **Never invent a new ID** for something that already exists in the graph.
+- When in doubt, first do a `read get --id XXX` or a `query warm` to check.
+- Bad: creating `N02` when `N01` already represents the same NPC.
+- Good: always refer to the existing `N01`.
+
+Law 02 (enforced): one row per (id + tag).
+
+---
+
+## The `recycle` field — how you control what the goldfish sees
+
+Only tags that declare `recycle` in the current map have this column (see `memnet tagmap fields` or `memnet examples map`).
+
+Valid values:
+- `persistent` (or omit the field) → stays visible in warm reads.
+- `delete_on_settle` → hidden from warm once you set it (finished mission / task).
+- `delete_on_expire` → hidden from warm (temporary links, usually edges).
+
+**Settlement pattern (do this when a mission or sub-task ends)**
+
+Before (active):
+```
+@TSK: T01|Upgrade workshop|1|urgent|persistent
+@EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_expire
+@EDG: E02|PLR01|binds|TEC01|unlock|delete_on_expire
+```
+
+After (settled — you emit these lines):
+```
+@TSK: T01|Upgrade workshop|1|settled|delete_on_settle
+@EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_settle
+@EDG: E02|PLR01|binds|TEC01|unlock|delete_on_settle
+```
+
+Then, on the **next** turn:
+- Call `query warm --anchor <new focus>`.
+- T01 and the settled edges will no longer appear (they are now recyclable).
+
+Optionally follow up with:
+```powershell
+memnet housekeep prune recyclable --apply
+```
+to physically remove them and free cap space. Emit this after settlement when the graph is getting noisy.
+
+---
+
+## Reading strategy
+
+- **Normal agent turn**: `query warm --anchor <current focus>` (or a PLR / mission id).
+  - Always includes all `@LAW:` rows.
+  - Excludes everything with `recycle` = `delete_on_settle` or `delete_on_expire`.
+- Use `--depth 2` (or 1–3) and `--max-rows 50` (or less) to keep the injection small.
+- `query context` (without `--active-only`) is for **audit only**. It will flood you with settled missions and emit `stale_in_context` warnings on stderr. Do not use it as your default read.
+- `read list --active-only` or `read list --tag TSK --active-only` for simple filtered lists without graph traversal.
+
+---
+
+## Relations (EDG)
+
+- Relations are declared at session open (seeded from `relations.seed.txt`).
+- By default you may only use known relations.
+- To introduce a new one: `write ... --allow-new-relation`.
+- Do not spam new relations. Prefer the existing vocabulary (`seeks_help`, `binds`, `produces`, `links`, etc.).
+- Check current vocabulary with `memnet relations list`.
+
+---
+
+## Housekeeping rhythm (what a disciplined agent does)
+
+After you settle one or more missions:
+```powershell
+memnet housekeep stale
+memnet housekeep prune stale --apply
+```
+
+Or be more precise:
+- `housekeep recyclable` + prune (settled missions)
+- `housekeep dangling` + prune (broken edges you accidentally created)
+- `housekeep orphans --tag NPC` (lonely characters you can safely forget)
+
+`housekeep stats` gives you the numbers vs your caps (`@STAT: rows|142|5000` etc.).
+
+You will also receive warnings on stderr:
+- `near_cap*` → you are close to a limit; prune or close missions.
+- `stale_graph` / `stale_in_store` → there is dirt; consider `housekeep stale`.
+- `ttl_expiring` → session is about to die; save a snapshot if you need it later (`session save --file ...`).
+
+---
+
+## Warnings live on stderr — you must read them
+
+Every stateful command can emit `@WRN:` lines before the data on stdout.
+
+Common ones you care about:
+- `stale_in_store|...|query warm or housekeep prune ...`
+- `mission_settled|T01|next read use query warm --anchor <focus>`
+- `near_cap_critical|rows|...|housekeep required`
+- `ttl_expiring|7`
+
+Treat these as first-class signals. Adjust behaviour (switch anchor, prune, settle, save snapshot, etc.).
+
+---
+
+## Session lifecycle (for the agent)
+
+- One task → one session id.
+- `session open --map-file ...` (or `--map` lines) at the very beginning of a big job.
+- `session resume $env:MEMNET_SESSION` on every subsequent turn (or rely on the env var).
+- `session current` and `session list` to inspect.
+- When the whole job is finished: `session close`.
+- Optional durability: `session save --file my-job.snap` before risky steps or at major milestones. Restore later with `session load --file my-job.snap [--ttl 120]`.
+
+Default TTL is 60 minutes. Override with `--ttl` on open/load or the `MEMNET_SESSION_TTL_MINUTES` env var.
+
+---
+
+## Schema discovery (you must do this)
+
+At the start of a session, or when you see an unfamiliar tag:
+
+```powershell
+memnet examples map          # full fixed + user tags for the bundled schema
+memnet tagmap fields         # or --tag NPC
+memnet tagmap show           # what this session actually loaded
+memnet examples workflow     # realistic example of a world + missions + edges
+```
+
+Never guess field order or required columns. Use the map.
+
+---
+
+## Write discipline
+
+- Prefer `--stdin` or `--file` with many lines in one call (atomic, fewer round-trips, one save).
+- Single-line `memnet write "@TAG: ..."` is allowed but less efficient.
+- Always escape pipes inside values: `note\|extra`.
+- Dry-run when you are unsure: `write --dry-run ...`
+- After any write that settles work, the very next read must be `query warm`.
+
+---
+
+## Common failure modes (and the correct behaviour)
+
+- Using `query context` every turn → prompt pollution, settled missions reappear, you get confused.
+  → Fix: only `query warm --anchor ...`
+- Creating new IDs for the same thing ("N02" when N01 already exists).
+  → Fix: search first, always reuse.
+- Leaving settled missions with `recycle=persistent`.
+  → Fix: on completion, write both `status=settled` **and** the appropriate `delete_on_*` value.
+- Forgetting to prune after many settlements.
+  → Fix: after settlement batch, run `housekeep prune stale --apply`.
+- Introducing random new relations on every edge.
+  → Fix: use the existing list; only `--allow-new-relation` when genuinely needed.
+- Ignoring `@WRN:` lines on stderr.
+  → Fix: read them. They tell you about caps, staleness, and mission state changes.
+
+---
+
+## Minimal complete turn (copy-paste shape)
+
+```powershell
+# 1. Write new state (batch)
+memnet write --stdin @"
+@TSK: T07|Negotiate with the guild|3|in_progress|persistent
+@EDG: E19|B01|seeks_help|T07|terms|persistent
+"@
+
+# 2. Read only the live relevant slice
+memnet query warm --anchor T07 --depth 2 --max-rows 30
+
+# (paste the returned @LAW: + @TAG: lines into your reasoning)
+
+# 3. Later, when done
+memnet write --stdin @"
+@TSK: T07|Negotiate with the guild|3|settled|delete_on_settle
+@EDG: E19|B01|seeks_help|T07|terms|delete_on_settle
+"@
+
+# 4. Next turn starts with warm again (T07 will be absent)
+memnet query warm --anchor PLR01
+```
+
+---
+
+## Quick reference for agents
+
+- `memnet serve` — must be running (one terminal).
+- `memnet session open --map-file ... [--ttl 90]`
+- `memnet write --stdin ...` or `--file`
+- `memnet query warm --anchor <id> [--depth 2]`
+- `memnet housekeep stale`
+- `memnet housekeep prune stale --apply`
+- `memnet relations list`
+- `memnet tagmap fields --tag <TAG>`
+- `memnet guide --loose` — short cheat sheet.
+- `memnet examples map|workflow`
+
+**Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
+
+When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.
+
+Stay disciplined with IDs, the `recycle` label on settlement, and `query warm`. Everything else follows from that.
