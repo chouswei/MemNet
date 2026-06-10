@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `memStore` maintains `src`/`dist` edge indexes for O(1) adjacency lookup; `neighbors`, `find_path`, and `query warm` no longer scan all EDG rows.
+
 ## [0.2.3] — 2026-06-10
 
 ### Added
