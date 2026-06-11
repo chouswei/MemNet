@@ -53,13 +53,14 @@ The six steps above describe the **orchestrator loop** (CLI calls, user I/O, ing
 | 2 Write | Engine prepends **all** LAW rows; orchestrator injects the data rows (warm output) into the LLM prompt. In this example, **in step 2 the LLM converts those data rows into the novel section with selections** and gives it to the human to read. |
 | 3 Respond | Orchestrator records steering as rows (e.g. CHOICE); optional domain LAW can require "record human choice as data, not prose only" |
 | 4 Analyse | Additional targeted reads on the captured player input (the chosen CHOICE, affected CHR, relevant RULEs, QUEST, etc.) to determine exactly how the selection interacts with the graph; produce the mutation plan; domain LAWs still apply |
-| 5 Persist | Emit the actual graph mutations (nodes + edges) in wire format; **LAW02** (add vs update), **LAW03** (edge endpoints), **LAW04** (escaping); domain LAWs still constrain what is legal to write |
+| 5 Persist | Emit the actual graph mutations (nodes + edges) in wire format; **LAW02** (add vs update), **LAW03** (edge endpoints), **LAW04** (escaping); **LAW-ATOM01** (no sentence in fields — break the sentence into nodes and edges; only ids/keys/codes/phases in row fields); domain LAWs still constrain what is legal to write |
 | 6 Loop | **LAW01** — settled transient EDGs/rows drop from warm unless anchor touches an endpoint |
 
-**Domain LAW rows** extend the same pattern for project-specific procedure that must never be skipped — e.g. `LAW-HP01` for "when resolving a skill challenge or spell in year 1, the consequence text and any new CHOICE must explicitly reference the acting character's relevant attr or skill value from the governing CHR row; do not invent success chances or numeric outcomes not licensed by the warm context". You may add explicit turn-discipline rows if the model drifts off the loop:
+**Domain LAW rows** extend the same pattern. The **`name` field = governed tag** (`CHR`, `SCN`, `*`, …); put the rule in `cycle|mechanism|constraint` as short codes only — e.g. `LAW-HP01|CHR|…|cite_chr_attr_step2` and `LAW-ATOM01|*|…|break_to_nodes_edges`. Optional turn-discipline row:
 
 ```text
-@LAW: LAW-PIPE01|turn_loop|on_turn|read_warm|anchor current SCN or CHOICE; cite only ids from warm output; emit add/update wire lines not prose-only state|persistent
+@LAW: LAW-PIPE01|SCN|on_turn|read_warm|anchor_scn_or_choice_cite_warm_ids
+@LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
 ```
 
 Keep LAW rows **short and procedural**. Story voice belongs in **RULE**; operator knobs in **USR**. This note's markdown pipeline is documentation for humans; **LAW is the machine-readable contract the LLM actually receives every turn.**
@@ -76,16 +77,21 @@ After heavy settlement, optionally run `housekeep prune recyclable --apply` to p
 This is the map you feed to `memnet session open --map-file`. It defines only the *user* tags for this domain. Fixed tags **EDG** and **LAW** are always present and do not appear here. See **LAW vs RULE vs USR** below for how LAW (fixed) differs from RULE (your schema).
 
 ```text
-@LORE: id|name|kind|text|recycle
-@RULE: id|name|scope|text|recycle
-@CHR: id|name|role|attr|backstory|status|recycle
-@ITEM: id|name|kind|uses|text|recycle
-@QUEST: id|title|stage|goal|progress|status|recycle
-@PLT: id|title|phase|summary|status|recycle
+@LORE: id|name|kind|code|recycle
+@RULE: id|name|scope|code|recycle
+@CHR: id|name|role|attr|facet|status|recycle
+@ITEM: id|name|kind|uses|effect|recycle
+@QUEST: id|key|stage|goal|progress|status|recycle
+@PLT: id|key|phase|arc|status|recycle
 @USR: id|key|value|recycle
-@SCN: id|title|summary|text|recycle
-@CHOICE: id|scn|prompt|options|chosen|recycle
+@SCN: id|key|phase|recycle
+@CHOICE: id|resolves|chosen|recycle
+@EVT: id|type|actor|focus|code|recycle
+@COST: id|subject|kind|site|recycle
+@BOND: id|left|right|delta|code|recycle
 ```
+
+**Important for token efficiency (this pattern):** Enforced by `LAW-ATOM01` (always prepended): **no sentence in any field, on any tag** — break meaning into more nodes and edges. Every field on every row (`@LAW` constraint codes included) holds only ids, keys, phases, short codes, or numeric attr values. No `text`, `backstory`, or prose blobs. If a fact needs several ideas, split it into multiple `@LORE` / `@RULE` / `@EVT` rows and wire them with `@EDG`. Reader-facing novel text is generated only in step 2 from this skeleton + the prepended LAW codes.
 
 ## LAW vs RULE vs USR (do not confuse them)
 
@@ -98,7 +104,7 @@ Both LAW and RULE are “rules” in plain English. In this note they are **diff
 | **Needs EDG to appear in warm?** | **No** — engine prepends all LAW rows | **Yes** — EDG-linked or direct anchor | **Yes** — same as RULE |
 | **Optional EDG (bookkeeping)** | `@EDG: LAW-HP01\|governs\|SCN01` (audit which scenes obeyed the stat-cite rule) | `@EDG: CHR01\|governs\|RULE02` | `@EDG: SCN01\|influences\|USR01` |
 | **Engine enforcement** | Partly (e.g. LAW02 duplicate id on `add`) | Prompt discipline only | Prompt discipline only |
-| **Example** | LAW02: one id per row; LAW-HP01: year-1 challenges must cite the acting attr/skill from CHR | RULE01: choices define the wizard | USR01: `scene_length=spare` |
+| **Example** | LAW02 (`*|on_add`): one id per row; LAW-HP01 (`CHR|on_turn`): cite acting attr from CHR in step 2 | RULE01: `cite_choices_not_ability` | USR01: `scene_length=spare` |
 
 **Decision guide — which tag?**
 
@@ -112,7 +118,7 @@ Both LAW and RULE are “rules” in plain English. In this note they are **diff
 
 **LAW rows need no EDG.** The `@LAW:` row alone is enough; every `query warm` prepends it. Optional `constrains` (or similar) EDGs are for **graph bookkeeping** — listing which nodes were minted under a domain LAW, auditing, or traversing from LAW → instances. They do **not** control whether the LAW text appears in context.
 
-EDG relations used in this example (seed a few at start or use `--allow-new-relation` when genuinely new): `set_in`, `features`, `governs`, `constrains`, `continues`, `resolves`, `costs`, `influences`.
+EDG relations used in this example (seed a few at start or use `--allow-new-relation` when genuinely new): `set_in`, `features`, `governs`, `constrains`, `continues`, `resolves`, `costs`, `influences`, `risk_if`, `seeks`, `targets`, `caused`, `suffered_by`, `imposed`, `carries`, `changed`, `between`, `applies_to`, `potential_for`.
 
 **EDG rows — the explicit wiring for selective context**
 
@@ -125,7 +131,7 @@ EDG is a *fixed, built-in tag* (always available; never declared in your map). I
 **Core function in the pipeline:**
 - They are how you declare "this scene is *set_in* this lore", "this character *features* here", "this rule *governs* that character", "this beat *costs* this person". Optionally, "this domain LAW *constrains* this NPC" — for audit and traversal only; the LAW row is already in every warm read without that link.
 - `query warm --anchor <focus> --depth N` traverses EDG links to pull in *only* the connected persistent background, bibles and rules the current focus needs. Without the right EDGs, anchoring on a SCN or CHOICE would return almost nothing but the prepended LAW rows (core invariants plus any domain constraints such as id rules) + the anchor itself.
-- LAW01 (`edge_recycle`) keeps the warm slice clean: most transient EDGs (and the rows they point to) are hidden from context unless the anchor is at src or dist.
+- LAW01 (`EDG|on_context|hide`) keeps the warm slice clean: most transient EDGs (and the rows they point to) are hidden from context unless the anchor is at src or dist.
 - You manage them with the same `add`/`update` discipline as nodes (copy ids from warm; use `--allow-new-relation` only for genuinely new relation verbs). They are first-class data, not implicit "the LLM will remember the connection".
 
 In short: EDG is the mechanism that makes "read only what the anchor can reach" reliable and deterministic for long-running work.
@@ -138,30 +144,38 @@ LAW is a *fixed, built-in tag* (not in your map). **Every** `query warm` prepend
 @LAW: id|name|cycle|mechanism|constraint
 ```
 
+MemNet names the second field `name` in the wire format; in this note we treat it as the **governed tag** — which `@TAG:` (or `EDG`, or `*` for all node tags) the law applies to. The last three fields are short codes only (`cycle`, `mechanism`, `constraint`); never sentences. LAW has no `recycle` field — LAW rows are always prepended and are not settled away.
+
+| Field (wire) | Role in this note |
+|--------------|-------------------|
+| `id` | LAW row id (`LAW01`, `LAW-ATOM01`, …) |
+| `name` | **Governed tag** — `EDG`, `CHR`, `LORE`, `SCN`, `*` (all node tags), etc. |
+| `cycle` | When it applies (`on_context`, `on_add`, `on_turn`, …) |
+| `mechanism` | How (`hide`, `unique`, `no_sentences`, …) |
+| `constraint` | What (`settled_edg_unless_anchor`, `break_to_nodes_edges`, …) |
+
 The four **core** LAWs (MemNet engine — seed in every project):
 
 ```text
-@LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02|node_id|on_add|unique|one row per global id use add then update same tag only
-@LAW: LAW03|edge_endpoints|on_add|validate|prefer src and dist to reference existing node ids before settle
-@LAW: LAW04|field_escape|on_add|use_backslash|pipe inside one field value is backslash pipe not bare pipe
+@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
+@LAW: LAW02|*|on_add|unique|one_id_add_then_update
+@LAW: LAW03|EDG|on_add|validate|src_dist_exist_first
+@LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
 ```
 
 **Core function in the pipeline:**
 
 See **LAW as the pipeline contract (for the LLM)** above for the orchestrator vs LAW split and step mapping. In brief:
 
-- LAW02 (`node_id`) is the reason you must read first, copy the exact id, and use `add` only for truly new things (or `update` for existing). It is enforced at ingest.
-- LAW01 (`edge_recycle`) and LAW03 (`edge_endpoints`) work with EDG to keep warm slices clean and wiring sound.
-- LAW04 protects the wire format itself.
+- LAW02 (`*|on_add|unique`) is the reason you must read first, copy the exact id, and use `add` only for truly new things (or `update` for existing). It is enforced at ingest.
+- LAW01 (`EDG|on_context|hide`) and LAW03 (`EDG|on_add|validate`) work with EDG to keep warm slices clean and wiring sound.
+- LAW04 (`*|on_add|use_backslash`) protects the wire format itself.
 
 **Domain LAW rows (project-specific, still always prepended)**
 
-Beyond LAW01–04, add **domain** LAW rows for constraints that must govern **how you create rows** and must never be missed — e.g. required references or "when resolving a year-1 challenge, cite the acting character's skill/attr value from the CHR row in the consequence text". They use the same `@LAW:` tag and appear in **every** warm read, same as the core four.
+Beyond LAW01–04, add **domain** LAW rows. Put the **governed tag** in the `name` field (`CHR`, `SCN`, `*`, …) and the rule in the three code fields. They appear in **every** warm read, same as the core four.
 
-Example in this note: in year 1, when you (the player character) face a skill test or spell, the new SCN or CHOICE text must explicitly name the relevant value from your CHR row (e.g. "your Charms 2") and the narrated outcome must feel consistent with it. We seed a persistent domain LAW row (`LAW-HP01`) that states the rule — that alone ensures the constraint is in **every** warm read. When you reach the final door, the analysis step reads the prepended LAW-HP01 and ensures the prose and the choice options cite your current Charms (or Courage, or the Wiggenweld boost) rather than inventing a free success. The row (and any EDG) is added in the same disciplined batch as any other work for the turn.
-
-**Optional:** you may also wire a `constrains` or `governs` EDG from the LAW row to the specific scene or to the friend who is named.
+Example in this note: `LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2` — when step 2 generates year-1 challenge prose, cite the acting attr/skill from the warm CHR row (e.g. Charms 2). SCN and CHOICE rows stay minimal; the LAW names `CHR` as the tag whose values must be cited. Optional audit EDG:
 
 ```
 @EDG: E06|LAW-HP01|governs|SCN01||persistent
@@ -186,56 +200,69 @@ RULE is a *user tag* from your map. Each row is one **narrative** constraint: vo
 - you **anchor directly** on the RULE (as Turn 3 does on `RULE02`).
 
 ```
-@RULE: id|name|scope|text|recycle
+@RULE: id|name|scope|code|recycle
 ```
 
-Examples from the seed: grim tone (`voice`), power costs (`magic`), scene economy (`pacing`). **Do not** put operator prefs here — use **USR** (`USR01|scene_length|concise`). **Do not** put id format or graph mechanics here — use **LAW**.
+Examples from the seed: `cite_choices_not_ability` (theme), `low_skill_visible_cost` (risk), `one_state_delta_per_beat` (structure). Each is a single short code — not a sentence. **Do not** put operator prefs here — use **USR** (`USR01|scene_length|spare`). **Do not** put id format or graph mechanics here — use **LAW**.
 
-When canon changes (Turn 3), **update** the existing RULE row in place; cite its id from warm output.
+When canon changes (Turn 3), **update** the existing RULE row's `code` field in place (e.g. `low_skill_visible_cost` → `low_skill_lingering_cost`); cite its id from warm output.
 
 **Background is many small pieces, referred only when needed**
 
-Because persistent material is many small rows, the warm slice for each turn contains only what the focus needs — **plus all LAW rows**. In the seed you see LORE01/LORE02, three RULE rows, four core LAWs + LAW-HP01, the player CHR with its current attr, a starting ITEM, the active QUEST, etc. RULE01 appears in Turn 1 because `CHR01|governs|RULE01` is wired; RULE03 may stay out until a scene links it. Anchor directly on a RULE (Turn 3) when you need to edit canon without traversing from a scene.
+Because persistent material is many small rows, the warm slice for each turn contains only what the focus needs — **plus all LAW rows**. SCN and CHOICE are deliberately tiny (key/phase or resolves+chosen); per-turn outcomes are recorded as atomic @EVT / @COST / @BOND nodes (fields are only ids + short codes) wired by many EDG relations. In the seed you see LORE01/LORE02, initial EVT00 + COST00 for the door risk, three RULE rows, four core LAWs + LAW-HP01, the player CHR with its current attr, a starting ITEM, the active QUEST (short progress key), etc. RULE01 appears in Turn 1 because `CHR01|governs|RULE01` is wired; RULE03 may stay out until a scene links it. Anchor directly on a RULE (Turn 3) when you need to edit canon without traversing from a scene. This keeps every warm read token-efficient.
 
 ## Part B: Initial Seed (complete starting state)
 
-Copy the block below (or extract it via heredoc) and feed it to `memnet add --stdin` after opening the session with the schema above. This populates the graph with *all* initial data as many small pieces: the LORE facts, RULE constraints, the core LAWs plus domain LAW constraints (the "cite acting attr/skill from CHR on year-1 challenges"), the player CHR with starting attributes, companion CHRs, a starting consumable ITEM, the active QUEST, PLT arc, USR prefs, the opening scene, *and the EDG links that wire the scene (and later scenes) to only the reference rows they need*. Persistent rows use `persistent` (or omit the field); the opening scene (and its transient links) are marked for settlement so they drop out of warm once resolved.
+Copy the block below (or extract it via heredoc) and feed it to `memnet add --stdin` after opening the session with the schema above. This populates the graph with *all* initial data as many small pieces: LORE facts, RULE codes, core LAWs plus domain LAWs (`LAW-ATOM01|*|…`, `LAW-HP01|CHR|…`), player and companion CHRs, ITEM, QUEST, PLT, USR, opening SCN, and EDG wiring. Persistent rows use `persistent` (or omit recycle); opening SCN and its transient links use `delete_on_settle`.
 
 ```text
-@LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02|node_id|on_add|unique|one row per global id use add then update same tag only
-@LAW: LAW03|edge_endpoints|on_add|validate|prefer src and dist to reference existing node ids before settle
-@LAW: LAW04|field_escape|on_add|use_backslash|pipe inside one field value is backslash pipe not bare pipe
-@LAW: LAW-HP01|year1_challenges|on_turn|stat_cite|In year 1, when a challenge or spell is resolved, the new SCN text or CHOICE prompt must explicitly name the acting character's relevant attr or skill value from the governing CHR row (e.g. "your Charms 2") and the outcome must be consistent with that value. Do not invent success chances or numeric outcomes not licensed by warm context.|persistent
+@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
+@LAW: LAW02|*|on_add|unique|one_id_add_then_update
+@LAW: LAW03|EDG|on_add|validate|src_dist_exist_first
+@LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
+@LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
+@LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2
 
-@LORE: LORE01|Philosopher's Stone|artifact|The only known source of the Elixir of Life. Nicolas Flamel's creation. If Voldemort obtains it he can return to full power this year.|persistent
-@LORE: LORE02|Voldemort's servant|threat|Professor Quirrell is possessed. He is in the castle and closing in on the Stone.|persistent
+@LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
+@LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
+@LORE: LORE03|quirrell|threat|possessed|persistent
+@LORE: LORE04|quirrell|threat|closing_stone|persistent
 
-@RULE: RULE01|Choices define the wizard|theme|"It is our choices, Harry, that show what we truly are, far more than our abilities." — Albus Dumbledore|persistent
-@RULE: RULE02|Magic has a toll|risk|When the acting skill is low the prose must show risk, backlash or a personal cost even on a narrated 'success'. The lower the number, the more the scene should feel precarious.|persistent
-@RULE: RULE03|One clear change|structure|One irreversible change of state, knowledge, item or relationship per scene. End on consequence or a decision that matters.|persistent
+@RULE: RULE01|choices_wizard|theme|cite_choices_not_ability|persistent
+@RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
+@RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
 
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|You are a first-year who arrived at Hogwarts hoping to belong. Your wandwork is shaky under pressure. You have a small circle of friends and a fierce desire to prove you are not just 'the new one'.|unhurt|persistent
-@CHR: CHR02|Harry Potter|ally|brave|scarred|The Boy Who Lived. Parents murdered by Voldemort. First year. Wants a family more than anything. The Mirror shows him what he has lost. Trusts you more than he lets on.|persistent
-@CHR: CHR03|Hermione Granger|ally|brilliant|loyal|Your brilliant friend this year. Values rules and professors. Would rather go to Dumbledore than risk everything alone. Will help — but she remembers when you lean on her.|persistent
+@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
+@CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
 
-@ITEM: ITM01|Wiggenweld potion|consumable|1|A small vial of healing draught. Steadying when drunk before a risky spell or confrontation.|persistent
+@ITEM: ITM01|wiggenweld|consumable|1|steady_spell|persistent
 
-@QUEST: QST01|The Stone Before He Claims It|1|Reach the Philosopher's Stone and stop Quirrell before he can use it this year.|At the final warded door with Harry and Hermione. Quirrell is on the other side.|active|persistent
+@QUEST: QST01|stone_y1|1|stop_quirrell|final_door_ward|active|persistent
 
-@PLT: PLT01|The Stone This Year|year-1|Voldemort must not get the Philosopher's Stone. If he does, he returns in force before any of you have the strength or knowledge to stop him.|active|persistent
+@PLT: PLT01|stone_y1|year-1|stone_not_voldemort|active|persistent
 
 @USR: USR01|scene_length|spare|persistent
 @USR: USR02|voice|close-second-wonder|persistent
 
-@SCN: SCN01|The Final Door|You, Harry and Hermione stand before the last protective enchantment between you and the chamber that holds the Stone. Quirrell's voice is a low mutter on the other side. The ward on the door reacts badly to poor wandwork.|You grip your wand. Harry is tense beside you; Hermione's hand hovers near her own. The door is old oak banded with iron, and a faint silver tracery of the locking ward pulses across it. One clean unlocking charm should open it without noise. Fail, and the ward may spark, cry out, or bite the caster. Your Charms is still only 2. The Wiggenweld in your pocket could steady a shaking hand. Hermione would do it perfectly if asked. You have seconds before the servant inside notices something is wrong.|delete_on_settle
+@SCN: SCN01|final_door|warded|delete_on_settle
+
+@EVT: EVT00|risk|door|charms|bite|persistent
+@COST: CST00|CHR01|potential_mark|hand|persistent
 
 @EDG: E01|SCN01|set_in|LORE01||persistent
+@EDG: L01|LORE01|risk_if|LORE02||persistent
+@EDG: L02|LORE03|seeks|LORE01||persistent
+@EDG: L03|LORE04|targets|LORE01||persistent
 @EDG: E02|SCN01|features|CHR01||persistent
 @EDG: E03|SCN01|features|CHR02||persistent
 @EDG: E04|SCN01|features|CHR03||persistent
 @EDG: E05|CHR01|governs|RULE01||persistent
 @EDG: E06|SCN01|features|ITM01||persistent
+@EDG: E07|SCN01|features|EVT00||persistent
+@EDG: E08|SCN01|features|CST00||persistent
+@EDG: E09|EVT00|applies_to|CHR01||persistent
+@EDG: E10|CST00|potential_for|CHR01||persistent
 ```
 
 ## The 6-Step Pipeline (command-level view, this example)
@@ -253,7 +280,7 @@ The LLM never "remembers" ids or facts across turns. It only ever sees what step
 
 ## Part D: Worked Turns (the pipeline in action)
 
-Three compact turns. Each is shown strictly as the six numbered steps. Warm output excerpts include the prepended `@LAW:` rows (core invariants plus any domain constraints). All ids are copied from the warm/context output. Transient rows are settled with `delete_on_settle` when their work is done. One turn demonstrates a legitimate update to a persistent RULE when the story changes the world's "canon." Turn 1 also demonstrates obeying a domain LAW constraint (LAW-HP01) when resolving a year-1 challenge — the prose and choices must cite the acting attr/skill from the player CHR; it **optionally** adds a `governs` EDG from LAW-HP01 to SCN01 for graph bookkeeping (the LAW row itself needs no link to appear in warm). The example is a novel-style RPG: the human reads immersive prose that feels like a book page; the graph holds the character sheet, inventory, quests and relationships as first-class rows.
+Three compact turns. Each is shown strictly as the six numbered steps. Warm output excerpts include the prepended `@LAW:` rows (core invariants plus any domain constraints). All ids are copied from the warm/context output. Transient rows are settled with `delete_on_settle` when their work is done. One turn demonstrates a legitimate update to a persistent RULE when the story changes the world's "canon." Turn 1 also demonstrates obeying domain LAWs: `LAW-HP01|CHR|…` (cite acting attr in step 2 prose) and `LAW-ATOM01|*|…` (no sentence in any row field — atomic nodes + EDGs). The example is a novel-style RPG: the human reads immersive prose that feels like a book page; the graph holds the character sheet, inventory, quests and relationships as first-class rows.
 
 ### Turn 1 — The First Hard Choice
 
@@ -266,28 +293,37 @@ memnet query warm --anchor SCN01 --depth 2 --max-rows 30
 
 **Step 2 — Write the novel section**
 ```
-@LAW: LAW01 edge_recycle on_context hide delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02 node_id on_add unique one row per global id use add then update same tag only
-@LAW: LAW03 edge_endpoints on_add validate prefer src and dist to reference existing node ids before settle
-@LAW: LAW04 field_escape on_add use_backslash pipe inside one field value is backslash pipe not bare pipe
-@LAW: LAW-HP01 year1_challenges on_turn stat_cite...
-@LORE: LORE01|Philosopher's Stone|artifact|...
-@LORE: LORE02|Voldemort's servant|threat|...
-@RULE: RULE01|Choices define the wizard|theme|...
-@RULE: RULE02|Magic has a toll|risk|...
-@RULE: RULE03|One clear change|structure|...
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|...|unhurt|persistent
-@CHR: CHR02|Harry Potter|ally|brave|...|persistent
-@CHR: CHR03|Hermione Granger|ally|brilliant|...|persistent
-@ITEM: ITM01|Wiggenweld potion|consumable|1|...|persistent
-@QUEST: QST01|The Stone Before He Claims It|1|...|active|persistent
-@SCN: SCN01|The Final Door|You, Harry and Hermione stand before the last protective enchantment...|...|delete_on_settle
+@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
+@LAW: LAW02|*|on_add|unique|one_id_add_then_update
+@LAW: LAW03|EDG|on_add|validate|src_dist_exist_first
+@LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
+@LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges...
+@LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2...
+@LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
+@LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
+@LORE: LORE03|quirrell|threat|possessed|persistent
+@LORE: LORE04|quirrell|threat|closing_stone|persistent
+@RULE: RULE01|choices_wizard|theme|cite_choices_not_ability|persistent
+@RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
+@RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
+@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
+@CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
+@ITEM: ITM01|wiggenweld|consumable|1|steady_spell|persistent
+@QUEST: QST01|stone_y1|1|stop_quirrell|final_door_ward|active|persistent
+@SCN: SCN01|final_door|warded|delete_on_settle
+@EVT: EVT00|risk|door|charms|bite|persistent
+@COST: CST00|CHR01|potential_mark|hand|persistent
 @EDG: E01|SCN01|set_in|LORE01||persistent
 @EDG: E02|SCN01|features|CHR01||persistent
 @EDG: E03|SCN01|features|CHR02||persistent
 @EDG: E04|SCN01|features|CHR03||persistent
 @EDG: E05|CHR01|governs|RULE01||persistent
 @EDG: E06|SCN01|features|ITM01||persistent
+@EDG: E07|SCN01|features|EVT00||persistent
+@EDG: E08|SCN01|features|CST00||persistent
+@EDG: E09|EVT00|applies_to|CHR01||persistent
+@EDG: E10|CST00|potential_for|CHR01||persistent
 ```
 
 **Novel section given to the human (what the reader/player reads right now)**
@@ -302,62 +338,78 @@ memnet query warm --anchor SCN01 --depth 2 --max-rows 30
 > 2. Ask Hermione to cast it (she will almost certainly succeed cleanly, but it will cost trust — she will remember that you asked her to take the risk for you).
 > 3. Drink the Wiggenweld first to steady your hand and nerves (consume the item; the prose will show the brief steadiness it lends your Charms 2 attempt).
 
-**Remark:** In step 2 the LLM converts the warm data rows shown above (plus the steering) into this novel section with selections. The blockquoted text is what the human is given to read. The data rows are the input (your current Charms 2, the single Wiggenweld, Hermione's relationship state, the active quest, the warded door); the readable novel page + choice description is the output the human consumes at this point in the turn. No graph update has happened yet.
+**Remark:** In step 2 the LLM converts the warm data rows shown above (plus the steering) into this novel section with selections. The blockquoted text is what the human is given to read. The data rows are the input (your current Charms 2, the single Wiggenweld, Hermione's relationship state, the active quest, the warded door + its initial EVT/COST risk facts); the readable novel page + choice description is the output the human consumes at this point in the turn. No graph update has happened yet.
 
 **Human selects (step 3 — concrete example)**
 
 "I choose 1."  (or "1. Attempt the unlocking charm yourself..." or the full text)
 
-The orchestrator captures the human's exact words ("I choose 1.") as the user input. In this turn's step 5 the selection is resolved against the numbered options and stored on the CHOICE node (with the full chosen text plus a short consequence note). The graph mutations that follow from the choice (CHR status, new outcome scene node, cost/relationship edges, settlement of the prior door scene and the choice itself) are also applied in this turn's Step 5 using node and edge rows in the wire format. The consequence novel section the human reads (the shaky cast, the bite, the yield, the personal price) is produced by a step 2 that uses the recorded choice as steering — either in the same cycle (once the selection is known) or the immediate follow-on cycle.
+The orchestrator captures the human's exact words ("I choose 1.") as the user input. In this turn's step 5 the selection is resolved against the numbered options and stored on the CHOICE node as a minimal record (resolves + chosen index/short label only — no sentences). The mechanical outcome (bite, yield, personal cost, companion note) is recorded as atomic @EVT / @COST / @BOND nodes + many EDGs. The graph mutations (CHR status code, new minimal SCN02, atomic nodes, edges, settlements) are applied in this turn's Step 5 using node and edge rows in the wire format. The consequence novel section the human reads is produced by a step 2 that uses the recorded choice + the new atomic nodes as steering.
 
 **Step 3 — Capture the response (detailed)**
 The human has just read the novel section above. That section was produced in step 2 by the LLM converting the preceding warm data rows into reader-facing novel prose plus the three numbered selection options that respect the RPG state (your Charms 2, the item, the companion relationship).
 
-The orchestrator records the human's exact selection (the number "1", resolved to the full option text) as first-class data on the CHOICE node. In this example the choice row is resolved (chosen value + consequence note) and the downstream graph mutations (node and edge updates) are applied in this same turn's Step 5. The human's words also become part of the steering for the step 2 that produces the reader-facing consequence prose (the novel section the human actually reads).
+The orchestrator records the human's exact selection (the number "1", resolved to a short label) as first-class data on the CHOICE node (minimal: resolves SCN + chosen key). No worded prompt or consequence text is stored on the row. The downstream graph mutations (minimal SCN02 + atomic @EVT / @COST / @BOND nodes for the bite/cost/shift + many EDGs + settlements) are applied in this same turn's Step 5. The human's words steer the step 2 that generates the reader-facing consequence prose from the updated structural rows.
 
 **Step 4 — Analyse the turn**
-"Warm (ids + current values copied exactly):
+" Warm (ids + current values copied exactly):
 - CHR01: Courage:3|Wit:4|Charms:2|Stealth:3|...|unhurt
 - ITM01: uses=1 (Wiggenweld)
-- QST01: stage=1, status=active
-- SCN01, RULE02 (toll on low skill), LAW-HP01 (must cite acting value)
+- QST01: stage=1, status=active , progress=final_door_ward
+- SCN01 (minimal key/phase), RULE02 (toll on low skill), LAW-HP01 (must cite acting value in generated prose)
+- EVT00 / CST00 (door risk facts) via EDGs from SCN01
 - Companions CHR02/03 present via features EDGs.
 
-Row mutations (no prose outcome written here):
-- CHOICE01: add, resolves=SCN01, prompt=..., options=[1. cast self (cite Charms 2 + risk), 2. ask Hermione (trust cost), 3. drink ITM01 (consume uses, boost for Charms 2)], chosen=null, recycle=delete_on_settle
-- EDG E06: add (src=LAW-HP01, governs, dist=SCN01) — audit only
-- (If item used in chosen path later: ITM01 uses-- in step 5 of next turn)
-- No settlement yet (choice open for human).
+Row mutations (pure atomic nodes + edges only; no sentences or phrases in any row):
+- CHOICE01: add, resolves=SCN01, chosen=1|self , recycle=delete_on_settle
+- SCN02: add, key=threshold , phase=breach , recycle=delete_on_settle
+- EVT01: add, type=yield , actor=CHR01 , focus=door , code=charms2_self
+- COST01: add, subject=CHR01 , kind=mark , site=hand
+- BOND01: add, left=CHR03 , right=CHR01 , delta=up , code=self_risk
+- EDG E10: LAW-HP01 governs SCN01 (audit)
+- Multiple EDG from SCN02 / EVT01 / COST01 / BOND01 to CHR01, LORE02, each other (caused, suffered, changed, records, applies_to, etc.)
+- Settle prior transient pair SCN01 + CHOICE01
 
-All new ids and values taken from this warm output or generated under LAW discipline. Ready for step 5 (the graph update that will mutate nodes and edges via the wire format)."
+All ids and short codes copied from warm or generated under LAW discipline (including LAW-ATOM01: no sentence in fields). The rich wording lives only in the generated novel section. Ready for step 5 (graph update in wire format)."
 
 **Step 5 — Persist the outcome (graph update in graph language)**
 
 The human has selected "1. Attempt the unlocking charm yourself (your Charms is 2...)".
 
-Step 4 (with its additional targeted reads anchored on the pending CHOICE01, CHR01, RULE02, LAW-HP01, etc.) has determined exactly how this selection interacts with the current rows: the player acted on their own Charms 2, the ward bites, the door yields, a personal cost is recorded on the protagonist, the scene advances, the prior door scene and the choice itself are settled.
+Step 4 (additional targeted reads on CHOICE01, CHR01, RULE02, LAW-HP01, the initial EVT/COST, etc.) has determined the exact row mutations licensed by that choice under the current state and LAW-HP01.
 
-Step 5 is the step that actually mutates the graph. We send node rows and edge rows (the wire format) to the memStore:
+Step 5 is where the graph is mutated using node + edge wire format. Per LAW-ATOM01 (always prepended), no sentences or phrases are written into any row. The outcome is expressed purely as typed atomic nodes (EVT/COST/BOND with only short codes) plus many named EDG relations that connect actor, scene, skill reference, bearer, etc.
 
 ```
 memnet update --stdin @"
-@CHOICE: CHOICE01|SCN01|You stand with Harry and Hermione before the warded door. Quirrell is close. Your Charms is 2. What do you do?|1. Attempt the unlocking charm yourself (your Charms is 2; risk of backlash or noise) / 2. Ask Hermione to cast it (high chance, costs trust) / 3. Drink the Wiggenweld first (consume the item; brief steadiness for your Charms 2)|1. Attempt the unlocking charm yourself (your Charms is 2; risk of backlash or noise)|The charm left your wand in a shaky blue spark. The silver tracery on the door flared, bit back, and then — with a sound like a breath held too long — the lock yielded. A thin line of red opened across the back of your wand hand where the ward had kissed you. The door moved a handspan, enough to slip through. Harry gave you a quick, fierce look; Hermione's mouth tightened. You had done it yourself. The cost was small, and it was yours.|delete_on_settle
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|You are a first-year who arrived at Hogwarts hoping to belong. Your wandwork is shaky under pressure. Tonight the ward bit you for trying on your own Charms 2, but the door opened. The mark on you is a thin red line across the back of your wand hand and the knowledge that you did not ask someone else to take the risk.|shaken (wand hand)|persistent
-@SCN: SCN02|02|The Threshold|You force the final door with your own shaky charm. The ward bites; the door yields. You, Harry and Hermione slip inside. Quirrell's voice is closer now. The Stone is in the chamber beyond.|The silver tracery spat a thin red line across the back of your hand as the lock gave. Harry slid through first, wand up. Hermione followed without a word, but her eyes flicked to your hand and away. The chamber on the other side is colder and the air tastes of old stone and something sweeter, like rotting lilies. Your hand stings. The quest has moved one room closer to the Stone, and you carry a small, personal price for having insisted on doing it yourself.|delete_on_settle
-@EDG: E07|SCN02|set_in|LORE02||persistent
-@EDG: E08|SCN02|features|CHR01||persistent
-@EDG: E09|SCN02|costs|CHR01||persistent
+@CHOICE: CHOICE01|SCN01|1|self|delete_on_settle
+@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|...|shaken_hand|persistent
+@SCN: SCN02|threshold|breach|delete_on_settle
+@EVT: EVT01|yield|CHR01|door|charms2_self|delete_on_settle
+@COST: COST01|CHR01|mark|hand|persistent
+@BOND: BOND01|CHR03|CHR01|up|self_risk|persistent
+@EDG: E10|SCN02|set_in|LORE02||persistent
+@EDG: E11|SCN02|features|CHR01||persistent
+@EDG: E12|SCN02|costs|CHR01||persistent
+@EDG: E13|SCN02|caused|EVT01||persistent
+@EDG: E14|EVT01|suffered_by|CHR01||persistent
+@EDG: E15|SCN02|imposed|COST01||persistent
+@EDG: E16|CHR01|carries|COST01||persistent
+@EDG: E17|SCN02|changed|BOND01||persistent
+@EDG: E18|BOND01|between|CHR03|CHR01
+@EDG: E19|EVT01|used|charms2||persistent
 "@
 ```
 
-This is the graph update for the player's choice:
-- The CHOICE node is updated with the exact `chosen` value and a short consequence note (so later warm reads or audits can see what the human picked and why it mattered).
-- CHR01 is updated (status changes to "shaken (wand hand)").
-- A new scene node SCN02 is added describing the outcome location and the personal cost.
-- Three new edges are added (set_in, features, costs).
-- The prior transient rows (the door SCN01 and the choice itself) will be settled via their recycle=delete_on_settle (the orchestrator can issue the settlement commands or rely on the memStore's settlement pass).
+This Step 5 update (in graph language):
+- CHOICE01: minimal selection record (short code only).
+- CHR01: status updated to a pure code (the linked COST01 carries the "what" via relations).
+- SCN02: tiny phase marker (key + phase).
+- EVT01, COST01, BOND01: three new atomic nodes. Their fields are only type codes, actor/focus/subject ids, and short reason codes. No English.
+- A larger number of EDG rows explicitly wire the semantics (caused, suffered_by, imposed, carries, changed, between, used, etc.).
+- Prior transients settled.
 
-All of this is expressed directly in MemNet's graph language (the `@TAG:` wire lines for nodes and `@EDG:` lines for edges) and sent via `update` / `add`.
+The rich literary wording ("shaky blue spark", "thin line of red", "Hermione's mouth tightened", the sting, the earned price) lives only in the novel section the LLM generated in step 2 for the human. Future warm reads see the atomic nodes + the web of EDG names + updated CHR status code; the LLM converts that pure structure back into consistent prose under the governing RULEs and LAW-HP01. This keeps token usage low each round.
 
 **Step 6 — Loop**
 Next turn will start with a fresh `query warm --anchor SCN02 --depth 2`. The new scene is now the live focus. The settled choice and prior door scene are gone (or pruned). CHR01 carries the updated status forward. Future challenges will still be governed by LAW-HP01 (always prepended) and will continue to cite the acting attr/skill value in prose and options.
@@ -368,9 +420,9 @@ The optional EDG from LAW-HP01 to SCN01 (or the new SCN) is only needed if you w
 
 ### Follow-on cycle — Consequence prose given to the human
 
-**Context:** The human selected "I choose 1." in the prior turn. That selection was recorded on the CHOICE node, and the full graph mutations (CHR status, new outcome scene SCN02, cost edges, settlements) were applied in that turn's Step 5 (the block of node + edge updates shown above).
+**Context:** The human selected "I choose 1." in the prior turn. The selection was recorded as a minimal chosen key on CHOICE01, and the full graph mutations (CHR status, minimal SCN02 phase marker, small atomic fact LORE rows for the event/cost/shift, EDGs, settlements) were applied in that turn's Step 5 using wire-format nodes and edges. No sentences were stored on any SCN or CHOICE row.
 
-This cycle illustrates the reader-facing consequence prose that the human actually reads (the shaky cast, the bite on the hand, the door yielding, the small personal price, the companions' reactions). The prose is produced in a step 2 that uses the now-updated warm context (the recorded choice + the mutated state). The analysis and any re-verification of the mutations can happen here, but the substantive node/edge changes were already emitted in graph language in the selection turn's Step 5.
+This cycle illustrates the reader-facing consequence prose (generated in its own step 2 from the now-updated small structural rows). The prose the human reads is rich; the graph stays tiny for cheap warm reads.
 
 **Step 1 — Read the state**
 ```
@@ -386,7 +438,7 @@ Warm now includes the pending CHOICE01 (with the human's prior selection), the s
 >
 > Harry slid through first, wand up, and gave you a quick, fierce look. Hermione followed without a word, but her eyes flicked to your hand and away. The chamber on the other side is colder; the air tastes of old stone and something sweeter, like rotting lilies. Your hand stings. The quest has moved one room closer to the Stone, and you carry a small, personal price for having insisted on doing it yourself.
 
-**Remark:** In this turn's step 2 the LLM converts the warm data rows (the recorded choice "1", your current Charms 2 from CHR01, the item still unused, the companions' presence, the warded door scene, RULE02 on tolls for low skill, LAW-HP01 requiring the cite, etc.) into the above novel section. The blockquoted text is what the human is given to read right now — the lived experience of the choice. No graph rows have been mutated yet. The structural record of "what this cost and where we are now" is produced later in step 5 so future warm reads remember the shaken hand, the new location, and the settled choice.
+**Remark:** In this turn's step 2 the LLM converts the warm data rows (minimal CHOICE01 with chosen key, CHR01 status code, the EVT/COST/BOND nodes reached via the new SCN02 EDGs, RULE02, LAW-HP01, companions, QUEST progress key, etc.) into the above novel section. The blockquoted text is the human's lived experience. The structural record (minimal SCN + atomic nodes + wires + CHR status code) was already written in the prior turn's Step 5 so that this and future warm reads see only the small skeleton. The LLM turns that skeleton into consistent prose.
 
 **Step 3 — Capture the response**
 The human has just read the consequence page above. That page was the output of step 2. The selection itself was already captured in the previous turn (when the CHOICE01 row was first created). This turn the human may add further steering ("make the cost sting more next time", "Hermione is a bit cross", etc.) or simply continue. Any new steering becomes part of the context for step 4/5.
@@ -406,30 +458,22 @@ memnet query warm --anchor QST01 --depth 1
 From these reads the interaction is modelled:
 
 "Warm values (from the extra reads + prior context, ids and live fields copied exactly):
-- CHOICE01 now carries the human's exact words for option 1; it is still open (needs chosen + consequence note + settlement).
-- CHR01: Charms:2, status=unhurt → the choice was 'cast yourself', so per RULE02 (low skill) a visible personal cost must be recorded; the most direct row mutation is status → shaken (wand hand). The numeric attrs themselves are not changed by this single action (no earned improvement yet).
-- RULE02 requires that when skill is low the prose (already given to the human in step 2) shows risk/cost, and the graph must remember a lingering effect (status or relationship). The choice to act on own Charms 2 rather than delegate creates a small relationship micro-shift (Hermione's regard).
-- QST01 stage=1 active; the successful (if costly) passage of the door logically advances the quest one room and can be reflected by a short progress note or by the new SCN becoming the new 'where we are'.
-- No ITEM was consumed on this path.
+- CHOICE01 carries chosen key '1|self'; transient.
+- CHR01: Charms:2 , status=shaken_hand per RULE02 + self-cast choice.
+- RULE02 (toll), LAW-HP01, QST01 progress key, new minimal SCN02 + its EVT01 / COST01 / BOND01 (and the web of EDG) reachable via anchor/EDG.
+- No ITEM consumed.
 
-Row mutations determined by the interaction analysis (no new reader prose here — only the structural consequences of the player's decision):
-- CHOICE01: update chosen= the exact selected text, add short consequence note (mechanical outcome + the cost that was shown), recycle=delete_on_settle
-- CHR01: update status=shaken (wand hand)   [Courage/Wit/Charms/Stealth values stay exactly as read]
-- SCN02: add (new id) — the 'memory' of having passed the door at this cost; text must cite the acting Charms 2 + the bite + the companion reaction (so future warm reads see it); recycle=delete_on_settle
-- EDG E07: add SCN02 set_in LORE02
-- EDG E08: add SCN02 features CHR01
-- EDG E09: add SCN02 costs CHR01   (the personal price link)
-- Settle the previous transient pair: SCN01 + CHOICE01
+Row mutations (already executed in the selection turn's Step 5; this cycle is verification + settle):
+- CHOICE01 and prior SCN01: settle via recycle.
+- (The minimal SCN02, the atomic EVT/COST/BOND nodes, CHR status code, and all the EDG wires were created earlier in graph language.)
 
-All of the above is derived from reading the actual current rows after the human chose. Ready for step 5 to execute these exact mutations against the memStore."
+The graph holds only the cheap skeleton. The prose the human read came from converting that skeleton in step 2. Ready for settlement or loop."
 
 **Step 5 — Persist the outcome (or verify)**
-The graph mutations that result from the player's choice (the CHOICE node carrying the exact selection + consequence note, the CHR01 status update, the new SCN02, the three EDGs, and settlement of the prior transients) were already emitted in graph language in the selection turn's Step 5 (the concrete `memnet update` block shown in the previous section).
-
-In this cycle the orchestrator may choose to re-issue the same mutations (idempotent for the memStore), run a settlement pass, or simply treat step 5 as a no-op / verification step because the substantive node and edge changes have already been applied. The important thing the human experiences in this cycle is the reader-facing consequence prose produced in step 2.
+The mutations (minimal CHOICE01 record, CHR01 status code, minimal SCN02, the atomic EVT/COST/BOND nodes, EDGs, settlements of prior transients) were already sent in graph language in the selection turn's Step 5. This cycle's step 5 can be a settlement pass or no-op. The human experiences the generated consequence prose from step 2.
 
 **Step 6 — Loop**
-Next read (e.g. `query warm --anchor SCN02 --depth 2`) will surface the new scene, the updated CHR01 status, the active quest, relevant LORE/RULE (including the prepended LAWs), and the companion links. The settled CHOICE01 and prior SCN01 will drop out of warm unless explicitly anchored. Future step 2 calls will convert this updated state into the next page of novel the human reads.
+Next read (e.g. `query warm --anchor SCN02 --depth 2`) surfaces the tiny SCN02 + its linked EVT/COST/BOND nodes + updated CHR01 status code + active QUEST key + LORE/RULEs (prepended LAWs always) + companion links. Settled transients are absent. Future step 2 converts this small skeleton into the next novel page the human reads. Token cost per round stays low because no sentences live in the graph rows.
 
 ### Turn 3 — A Canon Touch and a Quiet Cost
 
@@ -453,10 +497,10 @@ Warm on RULE02 surfaces the current (old) text plus linked LORE/CHR. Warm on SCN
 >
 > The quest has not changed. The Stone is still ahead. But something small and real has shifted between the three of you, and the toll of pushing a low skill under pressure is no longer just a line in a book.
 
-**Remark:** In step 2 the LLM converts the warm data rows (the updated RULE02 plus the current SCN, linked LORE/CHR/ITEM/QUEST, prepended LAWs, etc.) into this novel section. The blockquoted text is the readable story the human receives. The canon change to RULE02 (steeper toll when low skill is pushed) is also produced in this turn so that future conversions will turn the stricter understanding into consistent prose and costs. A small, legitimate progression (the relationship softening, the memory of the cost) is recorded for the next warm reads.
+**Remark:** In step 2 the LLM converts the warm data rows (updated RULE02 + minimal SCN02 + its linked EVT/COST/BOND nodes + CHR status code + companions + prepended LAWs) into this novel section. The blockquoted text is what the human reads. The RULE canon change and the quiet beat's memory (sting, pride, softening) are recorded as atomic nodes + relations so future warm reads (and conversions) stay consistent and cheap. The rich wording is generated, not stored.
 
 **Step 3 — Capture the response**
-The human has just read the new beat. The steering is treated as a request to revise the persistent RULE and continue; the orchestrator will persist the RULE update, a small CHR touch or QUEST note, and the new SCN (or update) in step 5.
+The human has just read the new beat. The steering revises a persistent RULE (canon) and asks for a quiet progression beat. The orchestrator will persist the RULE update and, for the beat, a minimal SCN phase marker + atomic EVT/COST/BOND nodes (sting memory, earned pride, softening) wired via many EDGs; no sentences in any row.
 
 **Step 4 — Analyse the turn**
 
@@ -471,34 +515,43 @@ memnet query warm --anchor CHR03 --depth 1
 ```
 
 "Warm (ids + live values copied from the reads above):
-- RULE02 current text (the previous version of the toll rule)
-- SCN02 (current consequence scene), CHR01 (now status=shaken (wand hand), Charms still 2), CHR03 (Hermione), QST01 stage=1, LORE02
+- RULE02 current text (previous toll rule)
+- SCN02 (minimal), CHR01 (shaken_hand, Charms 2), CHR03, QST01, LORE02 + prior EVT/COST/BOND.
 
-Row mutations (precise deltas, derived from how the new steering + prior choice interact with the rows):
-- RULE02: update in place — strengthen the 'low skill → visible ongoing cost or relationship shift' clause; keep scope=risk
-- SCN03: add (or update the prior SCN) with text that shows the physical sting + small earned pride + Hermione's micro-softening; recycle=delete_on_settle
-- EDG E10: add SCN03 set_in LORE02 (or reuse)
-- EDG E11: add SCN03 costs CHR01
-- EDG E12: add SCN03 features CHR03   (to surface the relationship beat)
-- (Optional) small note on QST01 progress or CHR01 memory if the beat warrants a persistent facet; otherwise no change to attrs themselves
+Row mutations (structural only):
+- RULE02: update code `low_skill_visible_cost` → `low_skill_lingering_cost`
+- SCN03: add minimal key=quiet_after , phase=sting_pride_softening , recycle=delete_on_settle
+- EVT02: add, type=quiet_sting , actor=CHR01 , focus=self , code=pride
+- COST02: add, subject=CHR01 , kind=lingering , site=hand
+- BOND02: add, left=CHR03 , right=CHR01 , delta=up , code=soften
+- EDGs: SCN03 set_in LORE02, costs CHR01, features CHR03; EVT02/COST02/BOND02 wired to SCN03 + CHR01/03 (caused, suffered, changed, between, etc.)
 
-Copy every id and the exact current RULE text from this warm read. The analysis phase used the extra reads to model the interaction; step 5 will be the writes.
+Copy ids + current RULE text from warm. Step 5 writes the nodes/edges.
 
 **Step 5 — Persist the outcome**
-Step 5 updates the graph itself in graph language. We send the node rows (`@RULE:`, `@SCN:`) and the edge rows (`@EDG:`) that the step-4 analysis decided must exist because of the player's steering and the prior choice.
+Step 5 sends the node rows and edge rows (graph language). RULE update + minimal SCN phase marker + atomic EVT/COST/BOND for the quiet beat (no sentences anywhere).
 
 ```
 memnet update --stdin @"
-@RULE: RULE02|Magic has a toll|risk|When the acting skill is low the prose must show risk, backlash or a personal cost even on a narrated 'success'. The lower the number, the more the scene should feel precarious — and the cost may linger as a status or a changed relationship until it is addressed.|persistent
-@SCN: SCN03|03|A Small, Earned Sting|A quiet minute after the door. Your hand throbs. Hermione's look has softened by a fraction because you insisted on using your own Charms 2 rather than spending hers. The quest is one room closer. The toll is now part of the rule and part of you.|The sting in your wand hand is a bright, private line. Harry has already moved on, but Hermione stays a half-step behind you for three breaths. "Next time," she says, not quite looking at you, "you can still ask." It is not quite forgiveness. It is something smaller and more useful: the beginning of trust that you will carry your own risks when you can. Your Charms has not improved on paper yet, but the night has written a new line under the old 2.|delete_on_settle
+@RULE: RULE02|magic_toll|risk|low_skill_lingering_cost|persistent
+@SCN: SCN03|quiet_after|sting_pride_softening|delete_on_settle
+@EVT: EVT02|quiet_sting|CHR01|self|pride|delete_on_settle
+@COST: COST02|CHR01|lingering|hand|persistent
+@BOND: BOND02|CHR03|CHR01|up|soften|persistent
 @EDG: E10|SCN03|set_in|LORE02||persistent
 @EDG: E11|SCN03|costs|CHR01||persistent
 @EDG: E12|SCN03|features|CHR03||persistent
+@EDG: E13|SCN03|caused|EVT02||persistent
+@EDG: E14|SCN03|imposed|COST02||persistent
+@EDG: E15|SCN03|changed|BOND02||persistent
+@EDG: E16|CHR01|carries|COST02||persistent
+@EDG: E17|BOND02|between|CHR03|CHR01
+@EDG: E18|EVT02|suffered_by|CHR01||persistent
 "@
 ```
 
 **Step 6 — Loop**
-Next turn begins with `query warm --anchor SCN03`. RULE02 (updated) remains visible when needed because it is persistent and connected. SCN02 is now absent from warm unless explicitly reached. The small shift in CHR03's regard and the physical reminder on CHR01 are now part of the persistent state the next warm read can surface when the anchor or an EDG reaches them.
+Next turn begins with `query warm --anchor SCN03`. RULE02 (updated) is reachable when needed. The new minimal SCN03 + its EVT/COST/BOND nodes surface the sting, the small pride, and the softening via the EDG names + CHR status code. Prior SCN02 is absent unless re-anchored. Future step 2 converts the small skeleton into the next prose the human reads.
 
 ## Snapshot (full project state)
 
@@ -530,6 +583,8 @@ The resulting session contains the complete novel project as many small rows. Wa
 - **Thinking LAW needs an EDG to appear** → it does not; only RULE/LORE/CHR/etc. need wiring. Optional `constrains` from LAW is for instance bookkeeping, not visibility.
 - **Anchoring only on a settled transient id** → warm returns mostly LAW and feels "empty." Fix: move the anchor to the new live SCN/CHR/CHOICE after settlement.
 - **Generating "new context" in prose instead of reading rows** → the story drifts from the recorded canon. Fix: the only context that matters is what step 1 + 2 put in the prompt.
+- **Putting sentences in any row field** → warm bloats every round. Fix: `LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges` applies to every tag. Fields = ids/keys/codes only. Split multi-idea facts into more nodes + `@EDG`. Prose lives only in step 2 output for the human.
+- **Using a prose label in LAW `name`** → `name` must be the **governed tag** (`CHR`, `EDG`, `*`, …), not a topic phrase like `year1_challenges` or `atomic_fields`.
 
 ## Quick-Start (copy-paste these commands)
 
@@ -542,49 +597,64 @@ memnet serve
 # 1. Extract the schema block (Part A above, the @LORE: ... lines only) to a temp map file.
 # PowerShell example:
 @'
-@LORE: id|name|kind|text|recycle
-@RULE: id|name|scope|text|recycle
-@CHR: id|name|role|attr|backstory|status|recycle
-@ITEM: id|name|kind|uses|text|recycle
-@QUEST: id|title|stage|goal|progress|status|recycle
-@PLT: id|title|phase|summary|status|recycle
+@LORE: id|name|kind|code|recycle
+@RULE: id|name|scope|code|recycle
+@CHR: id|name|role|attr|facet|status|recycle
+@ITEM: id|name|kind|uses|effect|recycle
+@QUEST: id|key|stage|goal|progress|status|recycle
+@PLT: id|key|phase|arc|status|recycle
 @USR: id|key|value|recycle
-@SCN: id|title|summary|text|recycle
-@CHOICE: id|scn|prompt|options|chosen|recycle
+@SCN: id|key|phase|recycle
+@CHOICE: id|resolves|chosen|recycle
+@EVT: id|type|actor|focus|code|recycle
+@COST: id|subject|kind|site|recycle
+@BOND: id|left|right|delta|code|recycle
 '@ | Out-File -Encoding utf8 $env:TEMP\novel.map.txt
 
 memnet session open --map-file $env:TEMP\novel.map.txt
 # stderr will print something like: MEMNET_SESSION=mn_3f8a2c1d
 $env:MEMNET_SESSION = "mn_3f8a2c1d"
 
-# 2. Add the initial seed (Part B block, the @LAW: ... through the final @EDG: wiring lines). The LAWs (core + domain constraints) and EDGs are what let the first warm surface the right background, rules and id discipline for SCN01.
+# 2. Add the initial seed (Part B block, the @LAW: ... through the final @EDG: wiring lines). Domain LAWs use the governed tag in the `name` field (`LAW-ATOM01|*|…`, `LAW-HP01|CHR|…`).
 # Again using a heredoc for clarity; in practice you can also use --file.
 memnet add --stdin @"
-@LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02|node_id|on_add|unique|one row per global id use add then update same tag only
-@LAW: LAW03|edge_endpoints|on_add|validate|prefer src and dist to reference existing node ids before settle
-@LAW: LAW04|field_escape|on_add|use_backslash|pipe inside one field value is backslash pipe not bare pipe
-@LAW: LAW-HP01|year1_challenges|on_turn|stat_cite|In year 1, when a challenge or spell is resolved, the new SCN text or CHOICE prompt must explicitly name the acting character's relevant attr or skill value from the governing CHR row (e.g. "your Charms 2") and the outcome must be consistent with that value. Do not invent success chances or numeric outcomes not licensed by warm context.|persistent
-@LORE: LORE01|Philosopher's Stone|artifact|The only known source of the Elixir of Life. Nicolas Flamel's creation. If Voldemort obtains it he can return to full power this year.|persistent
-@LORE: LORE02|Voldemort's servant|threat|Professor Quirrell is possessed. He is in the castle and closing in on the Stone.|persistent
-@RULE: RULE01|Choices define the wizard|theme|"It is our choices, Harry, that show what we truly are, far more than our abilities." — Albus Dumbledore|persistent
-@RULE: RULE02|Magic has a toll|risk|When the acting skill is low the prose must show risk, backlash or a personal cost even on a narrated 'success'. The lower the number, the more the scene should feel precarious.|persistent
-@RULE: RULE03|One clear change|structure|One irreversible change of state, knowledge, item or relationship per scene. End on consequence or a decision that matters.|persistent
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|You are a first-year who arrived at Hogwarts hoping to belong. Your wandwork is shaky under pressure. You have a small circle of friends and a fierce desire to prove you are not just 'the new one'.|unhurt|persistent
-@CHR: CHR02|Harry Potter|ally|brave|scarred|The Boy Who Lived. Parents murdered by Voldemort. First year. Wants a family more than anything. The Mirror shows him what he has lost. Trusts you more than he lets on.|persistent
-@CHR: CHR03|Hermione Granger|ally|brilliant|loyal|Your brilliant friend this year. Values rules and professors. Would rather go to Dumbledore than risk everything alone. Will help — but she remembers when you lean on her.|persistent
-@ITEM: ITM01|Wiggenweld potion|consumable|1|A small vial of healing draught. Steadying when drunk before a risky spell or confrontation.|persistent
-@QUEST: QST01|The Stone Before He Claims It|1|Reach the Philosopher's Stone and stop Quirrell before he can use it this year.|At the final warded door with Harry and Hermione. Quirrell is on the other side.|active|persistent
-@PLT: PLT01|The Stone This Year|year-1|Voldemort must not get the Philosopher's Stone. If he does, he returns in force before any of you have the strength or knowledge to stop him.|active|persistent
+@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
+@LAW: LAW02|*|on_add|unique|one_id_add_then_update
+@LAW: LAW03|EDG|on_add|validate|src_dist_exist_first
+@LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
+@LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
+@LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2
+@LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
+@LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
+@LORE: LORE03|quirrell|threat|possessed|persistent
+@LORE: LORE04|quirrell|threat|closing_stone|persistent
+@RULE: RULE01|choices_wizard|theme|cite_choices_not_ability|persistent
+@RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
+@RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
+@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
+@CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
+@ITEM: ITM01|wiggenweld|consumable|1|steady_spell|persistent
+@QUEST: QST01|stone_y1|1|stop_quirrell|final_door_ward|active|persistent
+@PLT: PLT01|stone_y1|year-1|stone_not_voldemort|active|persistent
 @USR: USR01|scene_length|spare|persistent
 @USR: USR02|voice|close-second-wonder|persistent
-@SCN: SCN01|The Final Door|You, Harry and Hermione stand before the last protective enchantment between you and the chamber that holds the Stone. Quirrell's voice is a low mutter on the other side. The ward on the door reacts badly to poor wandwork.|You grip your wand. Harry is tense beside you; Hermione's hand hovers near her own. The door is old oak banded with iron, and a faint silver tracery of the locking ward pulses across it. One clean unlocking charm should open it without noise. Fail, and the ward may spark, cry out, or bite the caster. Your Charms is still only 2. The Wiggenweld in your pocket could steady a shaking hand. Hermione would do it perfectly if asked. You have seconds before the servant inside notices something is wrong.|delete_on_settle
+@SCN: SCN01|final_door|warded|delete_on_settle
+@EVT: EVT00|risk|door|charms|bite|persistent
+@COST: CST00|CHR01|potential_mark|hand|persistent
 @EDG: E01|SCN01|set_in|LORE01||persistent
+@EDG: L01|LORE01|risk_if|LORE02||persistent
+@EDG: L02|LORE03|seeks|LORE01||persistent
+@EDG: L03|LORE04|targets|LORE01||persistent
 @EDG: E02|SCN01|features|CHR01||persistent
 @EDG: E03|SCN01|features|CHR02||persistent
 @EDG: E04|SCN01|features|CHR03||persistent
 @EDG: E05|CHR01|governs|RULE01||persistent
 @EDG: E06|SCN01|features|ITM01||persistent
+@EDG: E07|SCN01|features|EVT00||persistent
+@EDG: E08|SCN01|features|CST00||persistent
+@EDG: E09|EVT00|applies_to|CHR01||persistent
+@EDG: E10|CST00|potential_for|CHR01||persistent
 "@
 
 # 3. First read (start of your first pipeline cycle)
