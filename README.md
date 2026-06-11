@@ -6,12 +6,15 @@ MemNet is **scratch memory for the current task**, not a durable knowledge base 
 
 ## The problem it solves
 
-LLMs lose track of entities, state, and rules between tool calls. MemNet gives the agent a small, typed, queryable graph it can:
+LLMs lose track of entities, state, and rules between tool calls. MemNet gives the agent a small, typed, **atomised knowledge graph** it can:
 
+- **atomise** state into many small `@TAG:` rows and `@EDG` links (one idea per row — the most important discipline),
 - add facts, tasks, and relations once; update them when state changes,
 - pull back only the live slice on the next turn (`query warm --anchor`),
 - settle or expire missions so they stop polluting the prompt,
 - keep hard limits and produce machine-readable warnings instead of silent bloat.
+
+The pipe wire format is intentionally **token-efficient**: warm reads inject a connected subgraph, not JSON dumps or prose blobs.
 
 ## Installation
 
@@ -67,11 +70,33 @@ For one-off scripting or tests you can set `MEMNET_TEST_INLINE=1` to run in-proc
 
 **LLM agents:** read `LLM-GUIDE.md` (in this repo) for the full agent playbook, the goldfish loop, settlement pattern, and disciplines. It is written to be consumed by models.
 
+## Atomisation (required)
+
+MemNet is a **knowledge graph**, not a document store. **Atomisation** — breaking state into many small nodes and explicit `@EDG` edges — is the discipline that makes `query warm` token-efficient.
+
+| Do | Don't |
+|----|--------|
+| One fact / entity / task per `@TAG:` row | Paragraphs or merged facts in one field |
+| Wire relations with `@EDG` | "A helps B and also C" in a single row |
+| Short fields: ids, codes, keys, paths | Prose, markdown, full file contents |
+| Batch many lines in one `add --stdin` | One giant row instead of many atoms |
+
+```powershell
+# Good — three atoms + one edge
+memnet add --stdin @"
+@TSK: T01|Clear warehouse|1|in_progress|persistent
+@NPC: N03|helper|labour|1|0|0|active|persistent
+@EDG: E01|N03|helps|T01|labour|persistent
+"@
+```
+
+See `LLM-GUIDE.md` for the full agent playbook. Application notes (novel, SysML, MUD) show domain-specific tag maps — all use the same atomisation rule.
+
 ## The goldfish loop (recommended pattern)
 
 A typical agent turn:
 
-1. `add` new rows or `update` existing ones (`@TAG:` lines, batch via `--stdin` or `--file` is best).
+1. `add` new rows or `update` existing ones — **atomised** `@TAG:` lines (batch via `--stdin` or `--file` is best).
 2. `query warm --anchor <focus>` — returns only active (non-recyclable) rows, always includes LAW.
 3. Paste the wire lines into the prompt, reason, decide on next adds/updates or a mission settle.
 4. On mission complete: **update** the `TSK` (or equivalent) with both `status=settled` **and** `recycle=delete_on_settle`. Mission edges usually use `delete_on_expire` or `delete_on_settle`.
@@ -82,12 +107,13 @@ A typical agent turn:
 
 ## Wire format
 
-One record per line:
+Token-efficient **pipe rows** — one graph atom per line (pair with atomisation above):
 
 ```
 @TAG: field|field|...
 ```
 
+- **One record = one idea** — split compound state into more rows + `@EDG`, not longer fields.
 - Pipe inside a value must be escaped: `note\|extra` (or `\\|` in some shells).
 - Always quote the whole line in PowerShell or bash when it contains special characters.
 - Reserved output tags: `@SESSION`, `@ERR`, `@WRN`, `@STAT`, `@REL`, `@DEL`.

@@ -13,6 +13,20 @@
 **One non-negotiable rule**
 > **Always read with `query warm --anchor <something>` (or `read list --active-only`). Never use bare `query context` for normal turns.**
 
+**Second non-negotiable rule — atomisation**
+> **One idea per row; wire relationships with `@EDG`. Never store paragraphs, prose, or merged facts in a single field.**
+
+MemNet is a **knowledge graph** (nodes + edges), not a notepad. The wire format (`@TAG: field|field|…`) is designed for **token efficiency**: `query warm` returns only the atoms reachable from your anchor. If you cram a whole subsystem into one row, warm reads bloat and the graph stops working.
+
+**Atomisation checklist (every `add` / `update`):**
+- Split compound facts into **more rows**, not longer fields.
+- Put **relations in `@EDG`**, not embedded lists in a field.
+- Fields hold **ids, codes, keys, numbers, short paths** — not sentences.
+- Batch many atoms in one `--stdin` call; still **one record per line**.
+
+Bad: `@NOTE: N01|The warehouse mission involves N03 helping T42 and also the lock on PLR01…|persistent`  
+Good: separate `@TSK`, `@NPC`, `@EDG` rows — see [Relations (EDG)](#relations-edg) and application notes.
+
 **MCP alternative (optional):** If your host supports MCP, install `memnet-llm[mcp]`, run `memnet serve`, then register `memnet-mcp` with `MEMNET_SESSION` set. Use the `query_warm`, `add`, and `update` tools instead of shelling `memnet` — same wire output, structured JSON envelope. Production use requires `memnet serve`; do not rely on `MEMNET_TEST_INLINE`.
 
 ---
@@ -39,10 +53,11 @@ There is no `write` command. Do not upsert implicitly.
 ## The Goldfish Loop (do this every turn)
 
 1. **Think** what you need to remember or act on.
-2. **Mutate** (batch preferred):
+2. **Mutate** (batch preferred — **atomise**, one idea per line):
    ```powershell
    memnet add --stdin @"
    @TSK: T42|Clear the warehouse|2|in_progress|persistent
+   @NPC: N03|helper|labour|1|0|0|active|persistent
    @EDG: E77|N03|helps|T42|labour|persistent
    "@
    ```
@@ -111,7 +126,7 @@ to physically remove them and free cap space. Emit this after settlement when th
 
 ## Reading strategy
 
-Background, rules, world facts, configs and character data are stored as many small rows, not monolithic blobs. Only the pieces the current anchor can reach (directly or via EDG links) appear in `query warm`. This keeps every turn's context small and precise even on long-running tasks.
+Atomisation (above) is what makes this section work. Background, rules, facts, and configs are **many small rows**, not monolithic blobs. Only pieces the current anchor reaches (via `@EDG`) appear in `query warm` — keeping each turn token-efficient.
 
 - **Normal agent turn**: `query warm --anchor <current focus>` (or a PLR / mission id).
   - Always includes all `@LAW:` rows.
@@ -281,4 +296,4 @@ See `application-notes/llm-sysml-v2-modeling.md` for LLM-assisted SysML v2 textu
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.
 
-Stay disciplined with ids, `add` vs `update`, the `recycle` label on settlement, and `query warm`. Everything else follows from that.
+Stay disciplined with **atomisation**, ids, `add` vs `update`, the `recycle` label on settlement, and `query warm`. Everything else follows from that.

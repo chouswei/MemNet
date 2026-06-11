@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.8] — 2026-06-11
+
+### Changed
+- **README.md** and **LLM-GUIDE.md** — emphasise **atomisation** as required discipline (knowledge graph, one idea per row, `@EDG` wiring, token-efficient wire format).
+
 ## [0.2.7] — 2026-06-11
 
 ### Added
