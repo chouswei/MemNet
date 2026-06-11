@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] — 2026-06-11
+
+### Added
+- PyPI distribution as **`memnet-llm`** (`pip install memnet-llm`); CLI entry point remains `memnet`.
+- `LICENSE` (MIT) and `[project.urls]` in package metadata.
+
+### Changed
+- Removed duplicate wheel `force-include` for bundled examples (included via package layout).
+
 ## [0.2.4] — 2026-06-10
 
 ### Changed
@@ -63,7 +72,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/chouswei/MemNet/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/chouswei/MemNet/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/chouswei/MemNet/compare/v0.2.2...v0.2.3
 [0.2.0]: https://github.com/chouswei/MemNet/compare/v0.1.0...v0.2.0

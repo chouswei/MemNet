@@ -16,8 +16,16 @@ LLMs lose track of entities, state, and rules between tool calls. MemNet gives t
 ## Installation
 
 ```powershell
-pip install -e ".[dev]"     # or: pip install memnet
+pip install memnet-llm
 ```
+
+From source (development):
+
+```powershell
+pip install -e ".[dev]"
+```
+
+The CLI command is still **`memnet`**. PyPI package name is **`memnet-llm`** (the name `memnet` on [PyPI](https://pypi.org/project/memnet/) is a different project — memristive neural networks).
 
 Requires Python ≥ 3.11.
 

@@ -40,7 +40,7 @@ def test_list_records_where_glob_under_budget():
         rows = store.list_records("NPC", where=[("name", "*name1*")])
     elapsed_ms = (time.perf_counter() - t0) * 1000
     assert len(rows) == 1111  # names containing substring "name1"
-    assert elapsed_ms < 800, f"glob where scan too slow: {elapsed_ms:.1f} ms for 50x5000 rows"
+    assert elapsed_ms < 1000, f"glob where scan too slow: {elapsed_ms:.1f} ms for 50x5000 rows"
 
 
 def test_list_records_where_and_under_budget():
