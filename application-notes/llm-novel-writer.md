@@ -2,9 +2,9 @@
 
 **Application example (documentation only).** This file is a self-contained *pattern* for one domain — interactive novel-style RPGs — not part of the MemNet engine. It shows how you might combine MemNet primitives (`query warm`, fixed **LAW** / **EDG**, user-defined tags, `add`/`update`, settlement) with an orchestrator and an LLM. Copy or adapt the schema; other projects may use different tags and outputs.
 
-**MemNet (engine)** — always provides `@LAW:` and `@EDG:`, prepends all LAW rows on every warm read, and stores whatever tags you declare in your map.
+**MemNet (engine)** — always provides `@LAW:` and `@EDG:`, prepends all LAW rows on every warm read, and stores whatever tags you declare in your map. Your orchestrator can also keep a tiny `@STEP` row (updated each transition) so the LLM always knows which pipeline step it is on.
 
-**This example (application)** — declares `@LORE`, `@RULE`, `@CHR`, `@ITEM`, `@QUEST`, `@PLT`, `@USR`, `@SCN`, `@CHOICE`. In step 2 the orchestrator injects the warm data rows into the LLM prompt; the LLM converts those data rows into the novel section with selections (reader-facing narrative prose in novel style + the choice/selection description the player sees and picks from) and the orchestrator gives the converted text to the human to read. Structural outcomes (the rows that will feed future conversions — updated character attributes, consumed or gained items, quest progress, companion relationships, new scenes) are recorded in the graph in step 5.
+**This example (application)** — declares `@LORE`, `@RULE`, `@CHR`, `@ITEM`, `@QUEST`, `@PLT`, `@USR`, `@SCN`, `@CHOICE`, `@STEP`, `@EVT`, `@COST`, `@BOND`. In step 2 the orchestrator injects warm data rows into the LLM prompt; the LLM converts them into the **novel section with selections** (immersive prose + numbered options). Structural outcomes are recorded in step 5 as code-only rows and `@EDG` wiring.
 
 The human experiences the game as reading (and choosing inside) a living novel. The prose is rich, immersive, and literary. Underneath, the graph is the single source of truth for the RPG state: your character's attributes and skills, inventory, active quests, companion bonds, and world facts are many small rows. Most state enters warm only when the current scene or choice reaches it via EDG or direct anchor. **All `@LAW:` rows are always prepended**, so the LLM cannot miss the pipeline discipline or project constraints.
 
@@ -12,12 +12,14 @@ No external character sheets, no hidden system prompts, no "the model will remem
 
 **At a glance (for skimming or partial LLM reads)**
 
-- The 6-step pipeline used by the orchestrator + LLM in *this* example, plus the role of LAW rows as the always-prepended machine-readable contract.
+- The 6-step pipeline used by the orchestrator + LLM in *this* example, plus the role of LAW rows as the always-prepended machine-readable contract and an optional `@STEP` row so the model always knows which step it is on.
 - Schema you declare in your map (Part A) and the LAW vs RULE vs USR distinction (do not confuse them).
 - Complete starting seed block (Part B) — copy this after `session open`.
 - What the orchestrator must do (command-level view).
 - Three worked turns showing the full cycle: in step 2 the orchestrator injects the warm data rows; the LLM converts those data rows into the novel section with selections and gives it to the human to read → human responds (selection or steering) → orchestrator records the outcome in the graph (step 5) so future warm reads have the memory. (Harry Potter / Philosopher's Stone era, novel-style RPG.)
 - Snapshot / resume, pipeline-aware pitfalls, copy-paste quick-start, and a Mermaid diagram of the loop.
+
+**Document map:** § Pipeline + LAW/STEP contract → **Part A** schema → **Part B** seed → **Part C** orchestrator commands → **Part D** worked turns (Turn 1 → follow-on cycle → Turn 3) → pitfalls → quick-start → diagram.
 
 ## The 6-Step Pipeline (this example's repeating loop)
 
@@ -49,8 +51,8 @@ The six steps above describe the **orchestrator loop** (CLI calls, user I/O, ing
 
 | Step | LAW support |
 |------|-------------|
-| 1 Read | **LAW02** — ids in warm output are authoritative; never invent ids from chat |
-| 2 Write | Engine prepends **all** LAW rows; orchestrator injects the data rows (warm output) into the LLM prompt. In this example, **in step 2 the LLM converts those data rows into the novel section with selections** and gives it to the human to read. |
+| 1 Read | **LAW02** — ids in warm output are authoritative; **`@STEP.n`** — orchestrator sets `1` before this read |
+| 2 Write | Prepended LAW rows + **`@STEP: …|2|…`** — LLM converts warm rows to novel section; no graph writes |
 | 3 Respond | Orchestrator records steering as rows (e.g. CHOICE); optional domain LAW can require "record human choice as data, not prose only" |
 | 4 Analyse | Additional targeted reads on the captured player input (the chosen CHOICE, affected CHR, relevant RULEs, QUEST, etc.) to determine exactly how the selection interacts with the graph; produce the mutation plan; domain LAWs still apply |
 | 5 Persist | Emit the actual graph mutations (nodes + edges) in wire format; **LAW02** (add vs update), **LAW03** (edge endpoints), **LAW04** (escaping); **LAW-ATOM01** (no sentence in fields — break the sentence into nodes and edges; only ids/keys/codes/phases in row fields); domain LAWs still constrain what is legal to write |
@@ -60,17 +62,52 @@ The six steps above describe the **orchestrator loop** (CLI calls, user I/O, ing
 
 ```text
 @LAW: LAW-PIPE01|SCN|on_turn|read_warm|anchor_scn_or_choice_cite_warm_ids
+@LAW: LAW-PIPE02|STEP|on_turn|obey_n|read_step_row_each_llm_call
 @LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
 ```
 
 Keep LAW rows **short and procedural**. Story voice belongs in **RULE**; operator knobs in **USR**. This note's markdown pipeline is documentation for humans; **LAW is the machine-readable contract the LLM actually receives every turn.**
+
+### Which pipeline step am I on?
+
+Chat history is unreliable — the model forgets whether it already read warm, whether the human has answered, or whether it is allowed to `add` yet. MemNet fixes that with a **persistent `@STEP` row** the orchestrator updates at every transition:
+
+```text
+@STEP: id|n|focus|recycle
+```
+
+| Field | Meaning |
+|-------|---------|
+| `n` | Current pipeline step (`1`–`6`) |
+| `focus` | Id of the live anchor for this step (`SCN01`, `CHOICE01`, …) |
+
+Example: `@STEP: STEP01|2|SCN01|persistent` means *step 2 (write)* with story focus on `SCN01`.
+
+**Orchestrator pattern (recommended):**
+
+1. Before each LLM call, **`update` STEP01** so `n` matches the phase you are about to run.
+2. **`query warm --anchor STEP01 --depth 2`** (with `@EDG: ES01|STEP01|focus|SCN01` wired in the seed) so warm returns the STEP row, the prepended LAW rows, and the focused beat.
+3. Paste that slice into the prompt. The LLM sees both **what** is true (warm rows) and **where** it is in the loop (`@STEP: …|2|…`).
+
+Typical `n` values:
+
+| `n` | Orchestrator just did / LLM should do |
+|-----|----------------------------------------|
+| 1 | Ran `query warm`; LLM may plan reads or hand off to step 2 |
+| 2 | Warm injected; LLM writes novel section + selections (no graph writes) |
+| 3 | Human read prose; LLM/orchestrator records CHOICE / steering |
+| 4 | Choice captured; LLM analyses + plans row mutations (no writes yet) |
+| 5 | Plan ready; orchestrator emits `add`/`update` wire lines |
+| 6 | Persist done; orchestrator sets `n=1` and picks the next anchor |
+
+`LAW-PIPE02|STEP|on_turn|obey_n|read_step_row_each_llm_call` reminds the model that `@STEP.n` overrides chat assumptions. STEP is tiny (three fields); it costs almost nothing next to the always-prepended LAW block.
 
 After heavy settlement, optionally run `housekeep prune recyclable --apply` to physically remove settled rows and free cap space. Reference material (LORE facts, RULE constraints, focused CHR bibles/facets, master PLT, USR prefs) is never settled away.
 
 **Persistent vs transient (quick legend)**
 
 - **Persistent** (survives settlements): LORE, RULE, CHR, PLT, USR, domain LAW rows. Most appear in warm **only when the anchor or EDG reaches them** — except **LAW (all rows), which are always prepended with no EDG required**. Other persistent types typically need EDG (or a direct anchor) to enter warm.
-- **Transient** (settle with `delete_on_settle` when done): SCN, CHOICE, active beat work, and most transient EDGs.
+- **Transient** (settle with `delete_on_settle` when done): SCN, CHOICE, most beat-local EVT rows, and most transient EDGs. **Persistent:** STEP (orchestrator updates `n`/`focus` each transition), LORE, RULE, CHR, PLT, USR, most COST/BOND until explicitly settled.
 
 ## Part A: Schema (the user tag map)
 
@@ -86,12 +123,27 @@ This is the map you feed to `memnet session open --map-file`. It defines only th
 @USR: id|key|value|recycle
 @SCN: id|key|phase|recycle
 @CHOICE: id|resolves|chosen|recycle
+@STEP: id|n|focus|recycle
 @EVT: id|type|actor|focus|code|recycle
 @COST: id|subject|kind|site|recycle
 @BOND: id|left|right|delta|code|recycle
 ```
 
 **Important for token efficiency (this pattern):** Enforced by `LAW-ATOM01` (always prepended): **no sentence in any field, on any tag** — break meaning into more nodes and edges. Every field on every row (`@LAW` constraint codes included) holds only ids, keys, phases, short codes, or numeric attr values. No `text`, `backstory`, or prose blobs. If a fact needs several ideas, split it into multiple `@LORE` / `@RULE` / `@EVT` rows and wire them with `@EDG`. Reader-facing novel text is generated only in step 2 from this skeleton + the prepended LAW codes.
+
+| Tag | Role in this example |
+|-----|----------------------|
+| `LORE` | Atomic world fact (`code` field) |
+| `RULE` | Story constraint (`code`); on demand via EDG |
+| `CHR` | Character sheet: `attr` values + `facet`/`status` codes |
+| `ITEM` / `QUEST` / `PLT` | Inventory, mission, arc keys |
+| `USR` | Operator prefs (not in-universe) |
+| `SCN` | Beat marker: `key` + `phase` only |
+| `CHOICE` | Decision record: `resolves` + `chosen` key |
+| `STEP` | Pipeline position: `n` (1–6) + `focus` id |
+| `EVT` / `COST` / `BOND` | Per-beat outcome atoms + relation targets |
+| `EDG` | Named wiring (fixed tag; always available) |
+| `LAW` | Always-prepended protocol + domain codes (fixed tag) |
 
 ## LAW vs RULE vs USR (do not confuse them)
 
@@ -222,6 +274,9 @@ Copy the block below (or extract it via heredoc) and feed it to `memnet add --st
 @LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
 @LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
 @LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2
+@LAW: LAW-PIPE02|STEP|on_turn|obey_n|read_step_row_each_llm_call
+
+@STEP: STEP01|1|SCN01|persistent
 
 @LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
 @LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
@@ -250,6 +305,7 @@ Copy the block below (or extract it via heredoc) and feed it to `memnet add --st
 @EVT: EVT00|risk|door|charms|bite|persistent
 @COST: CST00|CHR01|potential_mark|hand|persistent
 
+@EDG: ES01|STEP01|focus|SCN01||persistent
 @EDG: E01|SCN01|set_in|LORE01||persistent
 @EDG: L01|LORE01|risk_if|LORE02||persistent
 @EDG: L02|LORE03|seeks|LORE01||persistent
@@ -265,10 +321,15 @@ Copy the block below (or extract it via heredoc) and feed it to `memnet add --st
 @EDG: E10|CST00|potential_for|CHR01||persistent
 ```
 
-## The 6-Step Pipeline (command-level view, this example)
+*MemNet IO: **~676 tok** stdin · 40 rows · one-time seed (not re-sent each LLM turn).*
+
+## Part C: Orchestrator command-level view
+
+**Token estimates** on IO examples below: wire-format size only (not step-2 novel prose). Rule of thumb: **chars / 3.2** for pipe-heavy `@TAG:` lines (±15% by tokenizer). Every `query warm` prepends **~126 tok** of LAW (7 rows). Recompute with `scripts/estimate_novel_io_tokens.py`.
 
 **Orchestrator responsibilities (the harness around the LLM in this novel-style RPG pattern):**
-- Always begin the turn with a read (step 1).
+- Always begin the turn with a read (step 1). Prefer `query warm --anchor STEP01 --depth 2` so the slice includes `@STEP` (current `n`) plus the focused beat via `STEP01|focus|…` EDG.
+- **`update` STEP01** whenever the orchestrator advances the pipeline (`n` = 1–6; `focus` = live SCN/CHOICE id).
 - Inject exactly the warm data rows (plus user steering) as the LLM context (step 2). In this example, **in step 2 the LLM converts the data rows into the novel section with selections** (narrative prose in novel style + choice/selection description) and gives that text to the human to read.
 - Step 5 is where the graph is mutated in graph language: the orchestrator sends the exact node rows (`@CHR:`, `@SCN:`, `@RULE:`, `@ITEM:`, `@QUEST:`, etc.) and edge rows (`@EDG:`) that step 4 decided must exist or change. This is the only place the in-memory graph (nodes + directed named edges) is written to.
 - Capture the human's response after they read the novel section (step 3).
@@ -280,7 +341,7 @@ The LLM never "remembers" ids or facts across turns. It only ever sees what step
 
 ## Part D: Worked Turns (the pipeline in action)
 
-Three compact turns. Each is shown strictly as the six numbered steps. Warm output excerpts include the prepended `@LAW:` rows (core invariants plus any domain constraints). All ids are copied from the warm/context output. Transient rows are settled with `delete_on_settle` when their work is done. One turn demonstrates a legitimate update to a persistent RULE when the story changes the world's "canon." Turn 1 also demonstrates obeying domain LAWs: `LAW-HP01|CHR|…` (cite acting attr in step 2 prose) and `LAW-ATOM01|*|…` (no sentence in any row field — atomic nodes + EDGs). The example is a novel-style RPG: the human reads immersive prose that feels like a book page; the graph holds the character sheet, inventory, quests and relationships as first-class rows.
+Three worked beats: **Turn 1** (door choice — full steps 1–6), a **follow-on cycle** (consequence prose + next selection after Turn 1's persist), and **Turn 3** (RULE canon update + quiet beat). Every step-2 blockquote ends with **What do you do?** and numbered options when the beat stops on a decision. Warm excerpts include prepended `@LAW:` rows. Ids are copied from warm output; transient rows use `delete_on_settle`.
 
 ### Turn 1 — The First Hard Choice
 
@@ -288,10 +349,15 @@ Three compact turns. Each is shown strictly as the six numbered steps. Warm outp
 
 **Step 1 — Read the state**
 ```
-memnet query warm --anchor SCN01 --depth 2 --max-rows 30
+memnet update --stdin @"
+@STEP: STEP01|1|SCN01|persistent
+"@
+memnet query warm --anchor STEP01 --depth 2 --max-rows 30
 ```
 
-**Step 2 — Write the novel section**
+*MemNet IO: **~10 tok** stdin (`update STEP`) · **~586 tok** stdout (`warm`, 34 rows · incl. **~126 tok** LAW).*
+
+**Step 2 — Write the novel section with selections**
 ```
 @LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
 @LAW: LAW02|*|on_add|unique|one_id_add_then_update
@@ -299,6 +365,7 @@ memnet query warm --anchor SCN01 --depth 2 --max-rows 30
 @LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
 @LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges...
 @LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2...
+@STEP: STEP01|2|SCN01|persistent
 @LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
 @LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
 @LORE: LORE03|quirrell|threat|possessed|persistent
@@ -326,6 +393,8 @@ memnet query warm --anchor SCN01 --depth 2 --max-rows 30
 @EDG: E10|CST00|potential_for|CHR01||persistent
 ```
 
+*MemNet IO: **~586 tok** stdout (excerpt abbreviated with `…`; full warm matches step 1 · incl. **~126 tok** LAW).*
+
 **Novel section given to the human (what the reader/player reads right now)**
 
 > You stand with Harry and Hermione before the warded door. The silver tracery pulses like a slow heartbeat. On the other side Quirrell's voice is a cold thread of sound. Your wand feels too light in your hand. You know your Charms is only 2 — under pressure the charm can sputter, the ward can bite, the noise can bring the servant running before you are ready.
@@ -338,25 +407,20 @@ memnet query warm --anchor SCN01 --depth 2 --max-rows 30
 > 2. Ask Hermione to cast it (she will almost certainly succeed cleanly, but it will cost trust — she will remember that you asked her to take the risk for you).
 > 3. Drink the Wiggenweld first to steady your hand and nerves (consume the item; the prose will show the brief steadiness it lends your Charms 2 attempt).
 
-**Remark:** In step 2 the LLM converts the warm data rows shown above (plus the steering) into this novel section with selections. The blockquoted text is what the human is given to read. The data rows are the input (your current Charms 2, the single Wiggenweld, Hermione's relationship state, the active quest, the warded door + its initial EVT/COST risk facts); the readable novel page + choice description is the output the human consumes at this point in the turn. No graph update has happened yet.
+**Remark:** Step 2 sets `@STEP: STEP01|2|SCN01`. Output is prose + selections only — no graph writes in this phase.
 
-**Human selects (step 3 — concrete example)**
+**Step 3 — Capture the response**
 
-"I choose 1."  (or "1. Attempt the unlocking charm yourself..." or the full text)
+"I choose 1." (or the full text of option 1)
 
-The orchestrator captures the human's exact words ("I choose 1.") as the user input. In this turn's step 5 the selection is resolved against the numbered options and stored on the CHOICE node as a minimal record (resolves + chosen index/short label only — no sentences). The mechanical outcome (bite, yield, personal cost, companion note) is recorded as atomic @EVT / @COST / @BOND nodes + many EDGs. The graph mutations (CHR status code, new minimal SCN02, atomic nodes, edges, settlements) are applied in this turn's Step 5 using node and edge rows in the wire format. The consequence novel section the human reads is produced by a step 2 that uses the recorded choice + the new atomic nodes as steering.
-
-**Step 3 — Capture the response (detailed)**
-The human has just read the novel section above. That section was produced in step 2 by the LLM converting the preceding warm data rows into reader-facing novel prose plus the three numbered selection options that respect the RPG state (your Charms 2, the item, the companion relationship).
-
-The orchestrator records the human's exact selection (the number "1", resolved to a short label) as first-class data on the CHOICE node (minimal: resolves SCN + chosen key). No worded prompt or consequence text is stored on the row. The downstream graph mutations (minimal SCN02 + atomic @EVT / @COST / @BOND nodes for the bite/cost/shift + many EDGs + settlements) are applied in this same turn's Step 5. The human's words steer the step 2 that generates the reader-facing consequence prose from the updated structural rows.
+The orchestrator sets `@STEP: STEP01|3|SCN01`, records the pick as data (not prose), and passes it to step 4. The human has read the novel section above; the graph still reflects the pre-choice state until step 5.
 
 **Step 4 — Analyse the turn**
 " Warm (ids + current values copied exactly):
 - CHR01: Courage:3|Wit:4|Charms:2|Stealth:3|...|unhurt
 - ITM01: uses=1 (Wiggenweld)
 - QST01: stage=1, status=active , progress=final_door_ward
-- SCN01 (minimal key/phase), RULE02 (toll on low skill), LAW-HP01 (must cite acting value in generated prose)
+- SCN01 (minimal key/phase), RULE02 (`low_skill_visible_cost`), LAW-HP01 (`cite_chr_attr_step2`)
 - EVT00 / CST00 (door risk facts) via EDGs from SCN01
 - Companions CHR02/03 present via features EDGs.
 
@@ -374,106 +438,113 @@ All ids and short codes copied from warm or generated under LAW discipline (incl
 
 **Step 5 — Persist the outcome (graph update in graph language)**
 
-The human has selected "1. Attempt the unlocking charm yourself (your Charms is 2...)".
-
-Step 4 (additional targeted reads on CHOICE01, CHR01, RULE02, LAW-HP01, the initial EVT/COST, etc.) has determined the exact row mutations licensed by that choice under the current state and LAW-HP01.
-
-Step 5 is where the graph is mutated using node + edge wire format. Per LAW-ATOM01 (always prepended), no sentences or phrases are written into any row. The outcome is expressed purely as typed atomic nodes (EVT/COST/BOND with only short codes) plus many named EDG relations that connect actor, scene, skill reference, bearer, etc.
+Orchestrator sets `@STEP: STEP01|5|SCN01`. Step 4 has determined the row mutations for choice `1|self`. Step 5 emits wire lines only — no prose.
 
 ```
-memnet update --stdin @"
+memnet add --stdin @"
 @CHOICE: CHOICE01|SCN01|1|self|delete_on_settle
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|...|shaken_hand|persistent
+"@
+memnet update --stdin @"
+@STEP: STEP01|6|SCN02|persistent
+@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|shaken_hand|persistent
+@SCN: SCN01|final_door|warded|delete_on_settle
 @SCN: SCN02|threshold|breach|delete_on_settle
 @EVT: EVT01|yield|CHR01|door|charms2_self|delete_on_settle
 @COST: COST01|CHR01|mark|hand|persistent
 @BOND: BOND01|CHR03|CHR01|up|self_risk|persistent
-@EDG: E10|SCN02|set_in|LORE02||persistent
-@EDG: E11|SCN02|features|CHR01||persistent
-@EDG: E12|SCN02|costs|CHR01||persistent
-@EDG: E13|SCN02|caused|EVT01||persistent
-@EDG: E14|EVT01|suffered_by|CHR01||persistent
-@EDG: E15|SCN02|imposed|COST01||persistent
-@EDG: E16|CHR01|carries|COST01||persistent
-@EDG: E17|SCN02|changed|BOND01||persistent
-@EDG: E18|BOND01|between|CHR03|CHR01
-@EDG: E19|EVT01|used|charms2||persistent
+@EDG: E20|SCN02|set_in|LORE02||persistent
+@EDG: E21|SCN02|features|CHR01||persistent
+@EDG: E22|SCN02|costs|CHR01||persistent
+@EDG: E23|SCN02|caused|EVT01||persistent
+@EDG: E24|EVT01|suffered_by|CHR01||persistent
+@EDG: E25|SCN02|imposed|COST01||persistent
+@EDG: E26|CHR01|carries|COST01||persistent
+@EDG: E27|SCN02|changed|BOND01||persistent
+@EDG: E28|BOND01|between|CHR03|CHR01
+@EDG: E29|EVT01|used|charms2||persistent
+@EDG: ES02|STEP01|focus|SCN02||persistent
 "@
 ```
 
-This Step 5 update (in graph language):
-- CHOICE01: minimal selection record (short code only).
-- CHR01: status updated to a pure code (the linked COST01 carries the "what" via relations).
-- SCN02: tiny phase marker (key + phase).
-- EVT01, COST01, BOND01: three new atomic nodes. Their fields are only type codes, actor/focus/subject ids, and short reason codes. No English.
-- A larger number of EDG rows explicitly wire the semantics (caused, suffered_by, imposed, carries, changed, between, used, etc.).
-- Prior transients settled.
+*MemNet IO: **~15 tok** stdin (`add` CHOICE01) · **~262 tok** stdin (`update` batch, 18 rows) · not pasted to LLM.*
 
-The rich literary wording ("shaky blue spark", "thin line of red", "Hermione's mouth tightened", the sting, the earned price) lives only in the novel section the LLM generated in step 2 for the human. Future warm reads see the atomic nodes + the web of EDG names + updated CHR status code; the LLM converts that pure structure back into consistent prose under the governing RULEs and LAW-HP01. This keeps token usage low each round.
+This Step 5 update:
+- CHOICE01: minimal record (`1|self`); SCN01 settled.
+- CHR01: status → `shaken_hand`; STEP01 focus → SCN02 via ES02.
+- SCN02 + EVT01/COST01/BOND01: atomic outcome nodes + EDG web (ids E20–E29 — do not reuse seed E01–E10).
+
+The human has **not** read the consequence prose yet — that is the **follow-on cycle's step 2**, generated from this new skeleton.
 
 **Step 6 — Loop**
-Next turn will start with a fresh `query warm --anchor SCN02 --depth 2`. The new scene is now the live focus. The settled choice and prior door scene are gone (or pruned). CHR01 carries the updated status forward. Future challenges will still be governed by LAW-HP01 (always prepended) and will continue to cite the acting attr/skill value in prose and options.
+Next cycle: `@STEP: STEP01|1|SCN02`, then `query warm --anchor STEP01 --depth 2`. SCN01 and CHOICE01 drop from warm after settlement. CHR01, COST01, and SCN02 carry forward.
 
-The optional EDG from LAW-HP01 to SCN01 (or the new SCN) is only needed if you want to audit which scenes obeyed the "cite the acting value" rule.
+### Follow-on cycle — Consequence prose + next selection
 
-(After this turn the orchestrator may run a settlement/prune pass if other settled rows existed, but here the graph remains small.)
-
-### Follow-on cycle — Consequence prose given to the human
-
-**Context:** The human selected "I choose 1." in the prior turn. The selection was recorded as a minimal chosen key on CHOICE01, and the full graph mutations (CHR status, minimal SCN02 phase marker, small atomic fact LORE rows for the event/cost/shift, EDGs, settlements) were applied in that turn's Step 5 using wire-format nodes and edges. No sentences were stored on any SCN or CHOICE row.
-
-This cycle illustrates the reader-facing consequence prose (generated in its own step 2 from the now-updated small structural rows). The prose the human reads is rich; the graph stays tiny for cheap warm reads.
+**Context:** Turn 1 Step 5 persisted the door choice (`1|self`) and the atomic outcome graph. SCN01 is settled. This cycle's step 2 is where the human **first reads** the narrated consequence and receives the **next** numbered options.
 
 **Step 1 — Read the state**
 ```
-memnet query warm --anchor CHOICE01 --depth 2 --max-rows 30
+memnet update --stdin @"
+@STEP: STEP01|1|SCN02|persistent
+"@
+memnet query warm --anchor STEP01 --depth 2 --max-rows 30
 ```
 
-**Step 2 — Write the novel section**
-Warm now includes the pending CHOICE01 (with the human's prior selection), the still-live SCN01, your CHR01 (Charms 2), the companions, the active QUEST, relevant LORE/RULE, and the prepended LAW rows.
+*MemNet IO: **~10 tok** stdin · **~390 tok** stdout (22 rows · post-breach slice).*
+
+**Step 2 — Write the novel section with selections**
+Orchestrator sets `@STEP: STEP01|2|SCN02` before the LLM call. Warm includes SCN02, CHR01 (`shaken_hand`, Charms 2), EVT/COST/BOND web, companions, QUEST, LORE/RULE, prepended LAWs.
 
 **Novel section given to the human (what the reader/player reads right now)**
 
 > The charm left your wand in a shaky blue spark. The silver tracery on the door flared, bit back, and then — with a sound like a breath held too long — the lock yielded. A thin line of red opened across the back of your wand hand where the ward had kissed you. The door moved a handspan, enough to slip through.
 >
-> Harry slid through first, wand up, and gave you a quick, fierce look. Hermione followed without a word, but her eyes flicked to your hand and away. The chamber on the other side is colder; the air tastes of old stone and something sweeter, like rotting lilies. Your hand stings. The quest has moved one room closer to the Stone, and you carry a small, personal price for having insisted on doing it yourself.
+> Harry slid through first, wand up, and gave you a quick, fierce look. Hermione followed without a word, but her eyes flicked to your hand and away. The chamber on the other side is colder; the air tastes of old stone and something sweeter, like rotting lilies. Your hand stings where Charms 2 barely held. The quest has moved one room closer to the Stone, and you carry a small, personal price for having insisted on doing it yourself.
+>
+> Harry is already angling toward the next arch. Hermione hangs back half a step, watching you.
+>
+> What do you do?
+>
+> 1. Press on with Harry toward the next arch now (your hand will throb; Courage 3 keeps you moving despite the sting).
+> 2. Bind the ward-cut with a basic healing charm before anyone goes deeper (Charms 2 again — steady partial success or a visible fumble under RULE02's lingering toll).
+> 3. Ask Hermione to take point while you recover (she leads cleanly; BOND shifts — she remembers you leaned on her after insisting on the door alone).
 
-**Remark:** In this turn's step 2 the LLM converts the warm data rows (minimal CHOICE01 with chosen key, CHR01 status code, the EVT/COST/BOND nodes reached via the new SCN02 EDGs, RULE02, LAW-HP01, companions, QUEST progress key, etc.) into the above novel section. The blockquoted text is the human's lived experience. The structural record (minimal SCN + atomic nodes + wires + CHR status code) was already written in the prior turn's Step 5 so that this and future warm reads see only the small skeleton. The LLM turns that skeleton into consistent prose.
+**Remark:** In step 2 the orchestrator sets `@STEP: STEP01|2|SCN02`. The LLM converts the warm skeleton into **consequence prose plus numbered selections** — not prose alone. Door-choice graph mutations were already written in Turn 1 Step 5; this beat narrates their outcome and opens the next decision. No sentences on SCN/CHOICE rows.
 
 **Step 3 — Capture the response**
-The human has just read the consequence page above. That page was the output of step 2. The selection itself was already captured in the previous turn (when the CHOICE01 row was first created). This turn the human may add further steering ("make the cost sting more next time", "Hermione is a bit cross", etc.) or simply continue. Any new steering becomes part of the context for step 4/5.
+The human has just read the consequence page and the three numbered options above. Example: `"I choose 2."` The orchestrator records the selection on a new CHOICE row (`resolves=SCN02`, `chosen=2|bind_hand`) as first-class data — no option text on the row. Optional free-form steering ("make Hermione sound less cross") is captured separately for step 4.
 
 **Step 4 — Analyse the turn (row-mutation focused)**
 
-To determine how the player's concrete selection ("1. Attempt the unlocking charm yourself (your Charms is 2...)") interacts with the live graph, the orchestrator issues additional targeted reads now that the choice is known:
+To determine how the player's selection interacts with the live graph, the orchestrator issues additional targeted reads:
 
 ```
-memnet query warm --anchor CHOICE01 --depth 1
+memnet query warm --anchor SCN02 --depth 1
 memnet query warm --anchor CHR01 --depth 1
 memnet query warm --anchor RULE02 --depth 1
 memnet query warm --anchor QST01 --depth 1
-# (these reads surface the exact chosen text, your current attr/status, the toll rule that must be honoured because skill is low, and the quest that may advance or gain a consequence tag)
 ```
+
+*MemNet IO: **~646 tok** stdout total (4 reads · ~146–171 tok each · each incl. **~126 tok** LAW).*
 
 From these reads the interaction is modelled:
 
 "Warm values (from the extra reads + prior context, ids and live fields copied exactly):
-- CHOICE01 carries chosen key '1|self'; transient.
-- CHR01: Charms:2 , status=shaken_hand per RULE02 + self-cast choice.
-- RULE02 (toll), LAW-HP01, QST01 progress key, new minimal SCN02 + its EVT01 / COST01 / BOND01 (and the web of EDG) reachable via anchor/EDG.
-- No ITEM consumed.
+- SCN02 (minimal breach marker), CHR01: Charms:2 , status=shaken_hand , COST01 on hand via EDG.
+- RULE02 (toll), LAW-HP01, QST01 progress key, EVT01/COST01/BOND01 web reachable from SCN02.
+- ITM01 unused unless a later beat consumes it.
 
-Row mutations (already executed in the selection turn's Step 5; this cycle is verification + settle):
-- CHOICE01 and prior SCN01: settle via recycle.
-- (The minimal SCN02, the atomic EVT/COST/BOND nodes, CHR status code, and all the EDG wires were created earlier in graph language.)
+Row mutations (pure atomic nodes + edges; no sentences):
+- CHOICE02: add, resolves=SCN02, chosen=2|bind_hand , recycle=delete_on_settle
+- (Further SCN/EVT/COST updates for the bind-hand attempt land in this turn's Step 5 or the next cycle, depending on orchestrator split.)
 
-The graph holds only the cheap skeleton. The prose the human read came from converting that skeleton in step 2. Ready for settlement or loop."
+Ready for step 5 (graph update in wire format)."
 
-**Step 5 — Persist the outcome (or verify)**
-The mutations (minimal CHOICE01 record, CHR01 status code, minimal SCN02, the atomic EVT/COST/BOND nodes, EDGs, settlements of prior transients) were already sent in graph language in the selection turn's Step 5. This cycle's step 5 can be a settlement pass or no-op. The human experiences the generated consequence prose from step 2.
+**Step 5 — Persist the outcome**
+At minimum: `add` CHOICE02 with the chosen key. Settle SCN02 when the beat closes. Any mechanical outcome of option 2 (second Charms attempt, lingering toll under RULE02) is recorded as atomic EVT/COST nodes + EDGs — same discipline as Turn 1 Step 5.
 
 **Step 6 — Loop**
-Next read (e.g. `query warm --anchor SCN02 --depth 2`) surfaces the tiny SCN02 + its linked EVT/COST/BOND nodes + updated CHR01 status code + active QUEST key + LORE/RULEs (prepended LAWs always) + companion links. Settled transients are absent. Future step 2 converts this small skeleton into the next novel page the human reads. Token cost per round stays low because no sentences live in the graph rows.
+Next read (`query warm --anchor STEP01 --depth 2` with `@STEP: …|1|…`) surfaces SCN02 or its successor, pending CHOICE02 if not yet settled, CHR01 + COST01, and prepended LAWs. Step 2 again emits **prose + selections** when the beat reaches a decision point.
 
 ### Turn 3 — A Canon Touch and a Quiet Cost
 
@@ -481,13 +552,19 @@ Next read (e.g. `query warm --anchor SCN02 --depth 2`) surfaces the tiny SCN02 +
 
 **Step 1 — Read the state**
 ```
+memnet update --stdin @"
+@STEP: STEP01|1|SCN02|persistent
+"@
+memnet query warm --anchor STEP01 --depth 2 --max-rows 20
 memnet query warm --anchor RULE02 --depth 1
-# (direct anchor on the persistent rule; also read current SCN for context)
-memnet query warm --anchor SCN02 --depth 1 --max-rows 20
 ```
 
-**Step 2 — Write the novel section**
-Warm on RULE02 surfaces the current (old) text plus linked LORE/CHR. Warm on SCN02 surfaces the recent scene + its connections. LAW rows are prepended in both.
+*MemNet IO: **~10 tok** stdin · **~390 tok** stdout (depth 2) · **~146 tok** stdout (RULE02 depth 1).*
+
+Operator steering (steeper toll, quiet beat) is injected into the step-2 prompt; it is not stored as a sentence on any row.
+
+**Step 2 — Write the novel section with selections**
+Orchestrator sets `@STEP: STEP01|2|SCN02`. Warm surfaces RULE02 code, SCN02 + outcome web, CHR status, companions, prepended LAWs.
 
 **Novel section given to the human (what the reader/player reads right now)**
 
@@ -496,62 +573,74 @@ Warm on RULE02 surfaces the current (old) text plus linked LORE/CHR. Warm on SCN
 > "You didn't have to do that alone," she says, very low. It is not quite forgiveness, but it is not the closed look she wore at the door. The choice you made — to risk your own shaky skill rather than spend hers — has landed on both of you.
 >
 > The quest has not changed. The Stone is still ahead. But something small and real has shifted between the three of you, and the toll of pushing a low skill under pressure is no longer just a line in a book.
+>
+> Harry pauses at the arch and glances back. The way forward is narrow and unlit.
+>
+> What do you do?
+>
+> 1. Follow Harry into the next arch immediately (Courage 3; keep momentum before Quirrell hears you).
+> 2. Pause to tell Hermione why you tried the door yourself (Wit 4; deepen the softening — step 5 will record BOND02).
+> 3. Check the corridor for traps before anyone moves (Stealth 3; cautious advance — slower, but safer under lingering toll from RULE02).
 
-**Remark:** In step 2 the LLM converts the warm data rows (updated RULE02 + minimal SCN02 + its linked EVT/COST/BOND nodes + CHR status code + companions + prepended LAWs) into this novel section. The blockquoted text is what the human reads. The RULE canon change and the quiet beat's memory (sting, pride, softening) are recorded as atomic nodes + relations so future warm reads (and conversions) stay consistent and cheap. The rich wording is generated, not stored.
+**Remark:** Step 2 output is always **prose + selections** when the beat stops on a decision — not prose alone. The LLM converts warm rows (RULE02, SCN02/SCN03 skeleton, EVT/COST/BOND, CHR status, companions, LAWs) into readable text and numbered options citing attrs from CHR (LAW-HP01). Rich wording stays in step 2; the graph keeps codes only.
 
 **Step 3 — Capture the response**
-The human has just read the new beat. The steering revises a persistent RULE (canon) and asks for a quiet progression beat. The orchestrator will persist the RULE update and, for the beat, a minimal SCN phase marker + atomic EVT/COST/BOND nodes (sting memory, earned pride, softening) wired via many EDGs; no sentences in any row.
+Example: `"I choose 3."` Orchestrator sets `@STEP: STEP01|3|SCN02`. Player pick → `chosen=3|check_traps` (stored in step 5 on CHOICE03).
 
 **Step 4 — Analyse the turn**
 
-After the previous consequence, the user gives new steering that affects canon (the toll rule) and asks for a quiet follow-on beat showing the sting + earned pride + Hermione softening. To decide the exact row interaction, additional reads are performed:
+Additional reads after capture:
 
 ```
 memnet query warm --anchor RULE02 --depth 1
 memnet query warm --anchor SCN02 --depth 1
 memnet query warm --anchor CHR01 --depth 1
 memnet query warm --anchor CHR03 --depth 1
-# (these let us see the current wording of the rule we are about to tighten, the scene that will be settled or continued from, the player's current status after the door, and Hermione's current regard so we can model the small positive shift)
 ```
 
+*MemNet IO: **~620 tok** stdout total (4 depth-1 reads · ~146–171 tok each).*
+
 "Warm (ids + live values copied from the reads above):
-- RULE02 current text (previous toll rule)
-- SCN02 (minimal), CHR01 (shaken_hand, Charms 2), CHR03, QST01, LORE02 + prior EVT/COST/BOND.
+- RULE02 code: `low_skill_visible_cost` (about to tighten)
+- SCN02, CHR01 (`shaken_hand`, Charms 2), CHR03, QST01, LORE02 + prior EVT/COST/BOND
 
 Row mutations (structural only):
-- RULE02: update code `low_skill_visible_cost` → `low_skill_lingering_cost`
-- SCN03: add minimal key=quiet_after , phase=sting_pride_softening , recycle=delete_on_settle
-- EVT02: add, type=quiet_sting , actor=CHR01 , focus=self , code=pride
-- COST02: add, subject=CHR01 , kind=lingering , site=hand
-- BOND02: add, left=CHR03 , right=CHR01 , delta=up , code=soften
-- EDGs: SCN03 set_in LORE02, costs CHR01, features CHR03; EVT02/COST02/BOND02 wired to SCN03 + CHR01/03 (caused, suffered, changed, between, etc.)
+- RULE02: update code → `low_skill_lingering_cost`
+- SCN03: add, key=quiet_after , phase=sting_pride_softening , recycle=delete_on_settle
+- CHOICE03: add, resolves=SCN02, chosen=3|check_traps , recycle=delete_on_settle
+- EVT02, COST02, BOND02: quiet-beat atomic nodes + EDGs (E30+)
 
-Copy ids + current RULE text from warm. Step 5 writes the nodes/edges.
+Ready for step 5."
 
 **Step 5 — Persist the outcome**
-Step 5 sends the node rows and edge rows (graph language). RULE update + minimal SCN phase marker + atomic EVT/COST/BOND for the quiet beat (no sentences anywhere).
+Orchestrator sets `@STEP: STEP01|5|SCN02`.
 
 ```
 memnet update --stdin @"
 @RULE: RULE02|magic_toll|risk|low_skill_lingering_cost|persistent
+@STEP: STEP01|6|SCN03|persistent
 @SCN: SCN03|quiet_after|sting_pride_softening|delete_on_settle
+@CHOICE: CHOICE03|SCN02|3|check_traps|delete_on_settle
 @EVT: EVT02|quiet_sting|CHR01|self|pride|delete_on_settle
 @COST: COST02|CHR01|lingering|hand|persistent
 @BOND: BOND02|CHR03|CHR01|up|soften|persistent
-@EDG: E10|SCN03|set_in|LORE02||persistent
-@EDG: E11|SCN03|costs|CHR01||persistent
-@EDG: E12|SCN03|features|CHR03||persistent
-@EDG: E13|SCN03|caused|EVT02||persistent
-@EDG: E14|SCN03|imposed|COST02||persistent
-@EDG: E15|SCN03|changed|BOND02||persistent
-@EDG: E16|CHR01|carries|COST02||persistent
-@EDG: E17|BOND02|between|CHR03|CHR01
-@EDG: E18|EVT02|suffered_by|CHR01||persistent
+@EDG: E30|SCN03|set_in|LORE02||persistent
+@EDG: E31|SCN03|costs|CHR01||persistent
+@EDG: E32|SCN03|features|CHR03||persistent
+@EDG: E33|SCN03|caused|EVT02||persistent
+@EDG: E34|SCN03|imposed|COST02||persistent
+@EDG: E35|SCN03|changed|BOND02||persistent
+@EDG: E36|CHR01|carries|COST02||persistent
+@EDG: E37|BOND02|between|CHR03|CHR01
+@EDG: E38|EVT02|suffered_by|CHR01||persistent
+@EDG: ES03|STEP01|focus|SCN03||persistent
 "@
 ```
 
+*MemNet IO: **~246 tok** stdin (17 rows · orchestrator only).*
+
 **Step 6 — Loop**
-Next turn begins with `query warm --anchor SCN03`. RULE02 (updated) is reachable when needed. The new minimal SCN03 + its EVT/COST/BOND nodes surface the sting, the small pride, and the softening via the EDG names + CHR status code. Prior SCN02 is absent unless re-anchored. Future step 2 converts the small skeleton into the next prose the human reads.
+Next cycle: `@STEP: STEP01|1|SCN03`, `query warm --anchor STEP01 --depth 2`. Updated RULE02 code reachable when EDG-linked. SCN02 settled when the beat closes.
 
 ## Snapshot (full project state)
 
@@ -584,7 +673,11 @@ The resulting session contains the complete novel project as many small rows. Wa
 - **Anchoring only on a settled transient id** → warm returns mostly LAW and feels "empty." Fix: move the anchor to the new live SCN/CHR/CHOICE after settlement.
 - **Generating "new context" in prose instead of reading rows** → the story drifts from the recorded canon. Fix: the only context that matters is what step 1 + 2 put in the prompt.
 - **Putting sentences in any row field** → warm bloats every round. Fix: `LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges` applies to every tag. Fields = ids/keys/codes only. Split multi-idea facts into more nodes + `@EDG`. Prose lives only in step 2 output for the human.
+- **Reusing seed EDG ids (E01–E10) for new beats** → collisions on `add`. Fix: mint new ids (E20+, E30+, …) for post-seed wiring; copy the pattern from Part D.
 - **Using a prose label in LAW `name`** → `name` must be the **governed tag** (`CHR`, `EDG`, `*`, …), not a topic phrase like `year1_challenges` or `atomic_fields`.
+- **Step 2 without selections** at a decision beat → player has nothing to click/type. Fix: every step-2 blockquote that ends a beat includes **What do you do?** + numbered options citing CHR attrs (LAW-HP01).
+- **Writing consequence prose in Turn 1 step 5** → prose belongs in the **next cycle's step 2** after the graph is updated.
+- **Stale `@STEP.n`** → model writes prose during step 5 or mutates during step 2. Fix: **`update` STEP01** before every LLM call; warm-anchor on `STEP01`.
 
 ## Quick-Start (copy-paste these commands)
 
@@ -606,6 +699,7 @@ memnet serve
 @USR: id|key|value|recycle
 @SCN: id|key|phase|recycle
 @CHOICE: id|resolves|chosen|recycle
+@STEP: id|n|focus|recycle
 @EVT: id|type|actor|focus|code|recycle
 @COST: id|subject|kind|site|recycle
 @BOND: id|left|right|delta|code|recycle
@@ -624,6 +718,8 @@ memnet add --stdin @"
 @LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
 @LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
 @LAW: LAW-HP01|CHR|on_turn|stat_cite|cite_chr_attr_step2
+@LAW: LAW-PIPE02|STEP|on_turn|obey_n|read_step_row_each_llm_call
+@STEP: STEP01|1|SCN01|persistent
 @LORE: LORE01|philosophers_stone|artifact|elixir_source|persistent
 @LORE: LORE02|philosophers_stone|artifact|voldemort_power_y1|persistent
 @LORE: LORE03|quirrell|threat|possessed|persistent
@@ -642,6 +738,7 @@ memnet add --stdin @"
 @SCN: SCN01|final_door|warded|delete_on_settle
 @EVT: EVT00|risk|door|charms|bite|persistent
 @COST: CST00|CHR01|potential_mark|hand|persistent
+@EDG: ES01|STEP01|focus|SCN01||persistent
 @EDG: E01|SCN01|set_in|LORE01||persistent
 @EDG: L01|LORE01|risk_if|LORE02||persistent
 @EDG: L02|LORE03|seeks|LORE01||persistent
@@ -658,14 +755,13 @@ memnet add --stdin @"
 "@
 
 # 3. First read (start of your first pipeline cycle)
-memnet query warm --anchor SCN01 --depth 2 --max-rows 30
+memnet query warm --anchor STEP01 --depth 2 --max-rows 30
 
-# 4. Now follow the 6 steps for real. Example first read of Turn 1:
-# memnet query warm --anchor SCN01 --depth 2 --max-rows 30
-# ... think ...
-# memnet add --allow-new-relation --stdin @" ... @CHOICE ... "@
-# (then wait for user choice, then continue the loop)
+# 4. Follow the 6 steps. Always update STEP01 before each LLM phase; anchor warm on STEP01.
+# Step 2 output = novel prose + "What do you do?" + numbered options (see Part D).
 ```
+
+*MemNet IO: **~676 tok** stdin (seed `add`) · **~586 tok** stdout (first `query warm`, 34 rows).*
 
 Bash users: use `cat <<'EOF' > /tmp/novel.map.txt` and `memnet add --stdin <<'EOF' ... EOF`.
 
@@ -673,30 +769,33 @@ Bash users: use `cat <<'EOF' > /tmp/novel.map.txt` and `memnet add --stdin <<'EO
 
 ```mermaid
 flowchart TD
-  Start([Loop start]) --> Step1["1. Read the state<br/>query warm --anchor focus<br/>(+ direct reads on LORE/RULE/CHR/PLT/USR when background/config required)"]
-  Step1 --> Step2["2. Write the novel section<br/>Warm data rows injected into LLM prompt<br/>LLM converts the data rows into the novel section with selections<br/>and gives the converted text to the human to read"]
+  Start([Loop start]) --> Step1["1. Read state<br/>update STEP01 n=1<br/>query warm --anchor STEP01 --depth 2"]
+  Step1 --> Step2["2. Write novel section + selections<br/>@STEP n=2; LLM prose + numbered options<br/>no graph writes"]
   Step2 --> Step3["3. Capture the response<br/>Orchestrator surfaces pending CHOICE or accepts free-form steering<br/>User response captured as data (add/update)"]
   Step3 --> Step4["4. Analyse the turn<br/>LLM reasons over context (incl. background/config rows)<br/>Decides creates vs evolves; must copy ids from warm"]
   Step4 --> Step5["5. Persist the outcome<br/>add (new) / update (changes + settlements)<br/>Transient work gets recycle=delete_on_settle<br/>Persistent background/config updated in place when canon changes"]
   Step5 --> Step6["6. Loop back to 1<br/>Fresh read on next turn; settled transient rows absent from warm<br/>unless still reachable from new anchor"]
   Step6 --> Step1
 
-  subgraph Persistent["Persistent data in MemNet (LAW always prepended; rest via EDG)"]
-    LAW_TAG[LAW protocol + domain]
+  subgraph Persistent["Persistent (LAW always prepended)"]
+    LAW_TAG[LAW + STEP]
     LORE
     RULE
     CHR_BIBLE
-    PLT_MASTER
-    USR_PREF
+    PLT
+    USR
+  end
+  subgraph Transient["Transient (delete_on_settle)"]
     SCN
     CHOICE
+    EVT_BEAT[beat EVT]
   end
 ```
 
 **Persistent vs transient (legend for the diagram above)**
 
-- **Persistent:** LORE, RULE, CHR, PLT, USR, domain LAW — survive settlement. **LAW (all rows): always prepended.** Other persistent rows: only when anchor/EDG reaches them.
-- **Transient:** SCN, CHOICE, active beat work — settle with `delete_on_settle`.
+- **Persistent:** LORE, RULE, CHR, PLT, USR, STEP, most COST/BOND. **LAW:** always prepended.
+- **Transient:** SCN, CHOICE, most per-beat EVT rows — `delete_on_settle` when done.
 
 ---
 
