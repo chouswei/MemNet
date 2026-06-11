@@ -13,6 +13,8 @@
 **One non-negotiable rule**
 > **Always read with `query warm --anchor <something>` (or `read list --active-only`). Never use bare `query context` for normal turns.**
 
+**MCP alternative (optional):** If your host supports MCP, install `memnet-llm[mcp]`, run `memnet serve`, then register `memnet-mcp` with `MEMNET_SESSION` set. Use the `query_warm`, `add`, and `update` tools instead of shelling `memnet` — same wire output, structured JSON envelope. Production use requires `memnet serve`; do not rely on `MEMNET_TEST_INLINE`.
+
 ---
 
 ## Add vs update — pick the right command

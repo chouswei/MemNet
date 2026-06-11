@@ -304,13 +304,15 @@ def session_resume(session_id: str) -> None:
 
 
 @session_app.command("current")
-def session_current() -> None:
-    env = os.environ.get("MEMNET_SESSION")
-    if not env:
+def session_current(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    sid = session or os.environ.get("MEMNET_SESSION")
+    if not sid:
         emit_session("none", "")
         return
     try:
-        ss = get_session(env, _caps())
+        ss = get_session(sid, _caps())
         from datetime import datetime
 
         expires = datetime.fromisoformat(ss.meta.expires_at.replace("Z", "+00:00"))
@@ -318,7 +320,7 @@ def session_current() -> None:
 
         left = max(0, int((expires - utc_now()).total_seconds() // 60))
         modified = ss.meta.modified_at or "-"
-        emit_session(env, str(left), modified)
+        emit_session(sid, str(left), modified)
     except MemNetError:
         emit_session("none", "")
 
@@ -389,7 +391,10 @@ def _read_ingest_input(
     elif file:
         raw_lines = file.read_bytes().splitlines()
     elif stdin:
-        raw_lines = sys.stdin.buffer.read().splitlines()
+        if hasattr(sys.stdin, "buffer"):
+            raw_lines = sys.stdin.buffer.read().splitlines()
+        else:
+            raw_lines = sys.stdin.read().splitlines()
     else:
         raise MemNetError("no_input", "provide line, --file, or --stdin")
     if len(raw_lines) > caps.max_batch_lines:

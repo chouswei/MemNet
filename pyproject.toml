@@ -39,18 +39,22 @@ dev = [
     "pytest-cov>=6.0",
     "ruff>=0.9",
 ]
+mcp = [
+    "mcp>=1.2,<2",
+]
 
 [project.scripts]
 memnet = "memnet.cli:main"
+memnet-mcp = "memnet_mcp.server:main"
 
 [tool.hatch.version]
 path = "src/memnet/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/memnet"]
+packages = ["src/memnet", "src/memnet_mcp"]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/memnet", "tests", "README.md", "LICENSE", "pyproject.toml"]
+only-include = ["src/memnet", "src/memnet_mcp", "tests", "README.md", "LICENSE", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

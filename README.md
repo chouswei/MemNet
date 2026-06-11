@@ -224,6 +224,41 @@ pytest
 
 Tests run with `MEMNET_TEST_INLINE=1` so they do not require a separate `serve` process.
 
+## MCP (optional)
+
+Install the MCP adapter:
+
+```powershell
+pip install memnet-llm[mcp]
+```
+
+**Prerequisites:** `memnet serve` running in another terminal (same as normal multi-command CLI use).
+
+```powershell
+# Terminal 1
+memnet serve
+
+# Terminal 2 — stdio MCP server for Cursor / other hosts
+memnet-mcp
+```
+
+Set `MEMNET_SESSION` to your open session id. Example Cursor MCP config:
+
+```json
+{
+  "mcpServers": {
+    "memnet": {
+      "command": "memnet-mcp",
+      "env": {
+        "MEMNET_SESSION": "mn_your_session_id"
+      }
+    }
+  }
+}
+```
+
+**Tools (v1):** `serve_status`, `session_open`, `session_current`, `query_warm`, `add`, `update`, `read_get`, `housekeep_stats`. Each returns a JSON envelope with `stdout` / `stderr` wire lines, `exit_code`, `session_id`, and `errors[]` (from `@ERR:` lines). See [LLM-GUIDE.md](LLM-GUIDE.md).
+
 ## Licence
 
 MIT

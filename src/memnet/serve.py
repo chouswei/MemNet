@@ -18,13 +18,22 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     argv = payload.get("args", [])
     if not isinstance(argv, list):
         return {"exit_code": 1, "stdout": "", "stderr": "@ERR: bad_request|args must be a list\n"}
+    stdin_text = payload.get("stdin")
+    if stdin_text is not None and not isinstance(stdin_text, str):
+        return {
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": "@ERR: bad_request|stdin must be a string\n",
+        }
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     from memnet.cli import app
 
     out = io.StringIO()
     err = io.StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
+    old_out, old_err, old_in = sys.stdout, sys.stderr, sys.stdin
     sys.stdout, sys.stderr = out, err
+    if stdin_text:
+        sys.stdin = io.StringIO(stdin_text)
     code = 0
     try:
         app(argv, prog_name="memnet", standalone_mode=False)
@@ -34,7 +43,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         code = 1
         err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
     finally:
-        sys.stdout, sys.stderr = old_out, old_err
+        sys.stdout, sys.stderr, sys.stdin = old_out, old_err, old_in
     return {"exit_code": code, "stdout": out.getvalue(), "stderr": err.getvalue()}
 
 
@@ -80,10 +89,19 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
         server.serve_forever()
 
 
-def send_command(args: list[str], *, host: str | None = None, port: int | None = None) -> dict[str, Any]:
+def send_command(
+    args: list[str],
+    *,
+    stdin: str | None = None,
+    host: str | None = None,
+    port: int | None = None,
+) -> dict[str, Any]:
     host = host or serve_host()
     port = port or serve_port()
-    payload = json.dumps({"args": args}).encode("utf-8")
+    payload_obj: dict[str, Any] = {"args": args}
+    if stdin is not None:
+        payload_obj["stdin"] = stdin
+    payload = json.dumps(payload_obj).encode("utf-8")
     frame = struct.pack(">I", len(payload)) + payload
     with socket.create_connection((host, port), timeout=30.0) as sock:
         sock.sendall(frame)
