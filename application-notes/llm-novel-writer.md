@@ -2,17 +2,17 @@
 
 **Single-file document example.** This file is self-contained. It demonstrates how to drive a long-form, user-steered novel writing session where *every* piece of data lives in MemNet.
 
-Background, rules, characters, constraints and preferences are **not** kept as monolithic bibles or external files. They are broken into many small, independent rows:
+Background, world facts, and story state are **not** kept as monolithic bibles or external files. They are broken into many small, independent rows:
 
-- LORE — individual world facts, places, events, artefacts (one row per focused piece)
-- RULE — single style, tone, mechanical or project constraints (one rule per row)
-- CHR — character bibles and backstories (one character or focused facet per row)
-- PLT — high-level arcs and volume structure (one arc/phase per row)
-- USR — user writing preferences for *this* project (one key per row)
-- LAW — core engine invariants (always prepended) plus domain constraints that act on other nodes, e.g. limiting NPC CHR ids to the N01-N99 range (one invariant per row)
-- SCN / CHOICE — current scenes, beats and in-flight decisions (transient, settled when done)
+- **LORE** — individual world facts, places, events, artefacts (one row per focused piece)
+- **RULE** — **story craft** constraints: voice, magic system, pacing (one narrative rule per row; **on demand** via EDG)
+- **CHR** — character bibles and backstories (one character or focused facet per row)
+- **PLT** — high-level arcs and volume structure (one arc/phase per row)
+- **USR** — **operator preferences** for this project: scene length, POV knobs (key/value; on demand via EDG)
+- **LAW** — **pipeline contract** for the LLM + graph protocol and hard structural constraints (fixed tag; **every** `query warm` prepends all LAW rows)
+- **SCN / CHOICE** — current scenes, beats and in-flight decisions (transient; settled when done)
 
-A given piece of background is only pulled into the LLM's context for a turn when it is needed — either by anchoring directly on it or (more commonly) when an EDG link from the current live focus (scene, choice, etc.) reaches it. The rest stays out of the warm slice.
+Most background is pulled into context **only when needed** — by anchoring or by EDG from the current focus. **Exception: every `@LAW:` row is always prepended** to `query warm`, so id discipline and engine invariants cannot be missed.
 
 No external lore files, no hidden system prompts, no "the model will remember." The graph is the single source of truth. The session can be snapshotted and resumed with `session save` / `session load`.
 
@@ -32,16 +32,45 @@ This is the disciplined loop the orchestrator + LLM follow on every turn. The do
 
 6. **Loop** — return to step 1. The next turn begins with a fresh read. Settled transient rows disappear from `query warm` (unless still connected to the new anchor).
 
+### LAW as the pipeline contract (for the LLM)
+
+The six steps above describe the **orchestrator loop** (CLI calls, user I/O, ingest). **LAW rows** are the complementary piece: the **always-on reasoning contract** the LLM sees in every warm read — procedure and graph discipline encoded in the graph itself, not buried in chat history or a hidden system prompt.
+
+| Role | Who runs it | What it does |
+|------|-------------|--------------|
+| **Orchestrator** | Your script or agent | Executes steps 1–6: `query warm`, surfaces user input, runs `add`/`update`, optional prune |
+| **LAW rows** | MemNet prepends them | Tells the LLM **how** to reason and which wire-line rules to obey when emitting changes |
+| **Warm slice** | MemNet + anchor/EDG | Supplies **what** is true this turn (SCN, LORE, RULE, …) |
+
+**How the core LAWs map to the pipeline:**
+
+| Step | LAW support |
+|------|-------------|
+| 1 Read | **LAW02** — ids in warm output are authoritative; never invent ids from chat |
+| 2 Context | Engine prepends **all** LAW rows automatically (no EDG needed) |
+| 3 User | Orchestrator records steering as rows (e.g. CHOICE); optional domain LAW can require "record human choice as data, not prose only" |
+| 4 Analyse | LLM cites row ids from warm (`per RULE03`, `per LAW-CHRID`); domain LAWs constrain minting before `add` |
+| 5 Update | **LAW02** (`add` vs `update`), **LAW03** (edge endpoints), **LAW04** (escaping); domain LAWs (e.g. id ranges) |
+| 6 Loop | **LAW01** — settled transient EDGs/rows drop from warm unless anchor touches an endpoint |
+
+**Domain LAW rows** extend the same pattern for project-specific procedure that must never be skipped — e.g. `LAW-CHRID` for NPC id ranges. You may add explicit turn-discipline rows if the model drifts off the loop:
+
+```text
+@LAW: LAW-PIPE01|turn_loop|on_turn|read_warm|anchor current SCN or CHOICE; cite only ids from warm output; emit add/update wire lines not prose-only state|persistent
+```
+
+Keep LAW rows **short and procedural**. Story voice belongs in **RULE**; operator knobs in **USR**. This note's markdown pipeline is documentation for humans; **LAW is the machine-readable contract the LLM actually receives every turn.**
+
 After heavy settlement, optionally run `housekeep prune recyclable --apply` to physically remove settled rows and free cap space. Reference material (LORE facts, RULE constraints, focused CHR bibles/facets, master PLT, USR prefs) is never settled away.
 
 **Persistent vs transient (quick legend)**
 
-- Persistent (survives settlements, visible when anchored or reached via EDG links): many small LORE facts, individual RULEs, LAW rows (core + domain constraints on other nodes, e.g. NPC id ranges), focused CHR bibles/facets, PLT/ARC master arcs, USR prefs. Each is its own row and is only injected when the current anchor reaches it.
-- Transient (created/updated during the current writing, settled with `delete_on_settle` once done): SCN (current/draft scenes), CHOICE (pending decisions), active chapter/beat work.
+- **Persistent** (survives settlements): LORE, RULE, CHR, PLT, USR, domain LAW rows. Most appear in warm **only when the anchor or EDG reaches them** — except **LAW (all rows), which are always prepended with no EDG required**. Other persistent types typically need EDG (or a direct anchor) to enter warm.
+- **Transient** (settle with `delete_on_settle` when done): SCN, CHOICE, active beat work, and most transient EDGs.
 
 ## Part A: Schema (the user tag map)
 
-This is the map you feed to `memnet session open --map-file`. It defines only the *user* tags for this domain. Fixed tags (EDG and LAW) are always present and do not appear here. LAW rows carry the four core engine invariants (node uniqueness, edge recycle, endpoint validation, escaping) plus any domain constraints you seed (e.g. id ranges or format rules that govern creation of CHR, SCN and other rows); they are prepended to every warm output and are therefore impossible to ignore when minting or wiring new nodes.
+This is the map you feed to `memnet session open --map-file`. It defines only the *user* tags for this domain. Fixed tags **EDG** and **LAW** are always present and do not appear here. See **LAW vs RULE vs USR** below for how LAW (fixed) differs from RULE (your schema).
 
 ```text
 @LORE: id|name|kind|text|recycle
@@ -53,7 +82,32 @@ This is the map you feed to `memnet session open --map-file`. It defines only th
 @CHOICE: id|scn|prompt|options|chosen|recycle
 ```
 
-EDG relations used in this example (seed a few at start or use `--allow-new-relation` when genuinely new): `set_in`, `features`, `governs`, `continues`, `resolves`, `costs`, `influences`.
+## LAW vs RULE vs USR (do not confuse them)
+
+Both LAW and RULE are “rules” in plain English. In this note they are **different tags with different jobs**.
+
+| | **LAW** (fixed tag) | **RULE** (your schema) | **USR** (your schema) |
+|--|---------------------|------------------------|------------------------|
+| **Governs** | The **graph** and **how rows may exist** (ids, edges, wire format) + **hard project structure** (e.g. NPC id ranges) | The **story**: voice, magic, pacing, world logic | **Your preferences** as the operator: length, POV style |
+| **In every `query warm`?** | **Yes** — engine prepends **all** LAW rows | **No** — only if EDG-linked or you anchor on it | **No** — same as RULE |
+| **Needs EDG to appear in warm?** | **No** — engine prepends all LAW rows | **Yes** — EDG-linked or direct anchor | **Yes** — same as RULE |
+| **Optional EDG (bookkeeping)** | `@EDG: LAW-CHRID\|constrains\|N03` (audit / traverse governed nodes) | `@EDG: CHR01\|governs\|RULE02` | `@EDG: SCN01\|influences\|USR01` |
+| **Engine enforcement** | Partly (e.g. LAW02 duplicate id on `add`) | Prompt discipline only | Prompt discipline only |
+| **Example** | LAW02: one id per row; LAW-CHRID: NPC CHR ids N01–N99 | RULE02: magic always costs something personal | USR01: `scene_length=concise` |
+
+**Decision guide — which tag?**
+
+1. If breaking it would corrupt **ids, EDGs, or ingest** → **LAW** (and consider a domain LAW if the model must see it **every turn** before `add`).
+2. If it is **how the novel should read or how the world works in fiction** → **RULE**, wire with EDG from scenes/characters that need it.
+3. If it is **your steering preference** (not in-universe canon) → **USR**, not RULE.
+
+**Why not put story craft in LAW?** You could, but every LAW row lands in **every** warm read forever — token cost adds up. RULE stays out of context until a linked scene or character needs it.
+
+**Why LAW-CHRID is not a RULE:** id format must be visible **before every mint**; the engine does not validate regex id ranges. LAW guarantees the constraint is never skipped — **no EDG required**.
+
+**LAW rows need no EDG.** The `@LAW:` row alone is enough; every `query warm` prepends it. Optional `constrains` (or similar) EDGs are for **graph bookkeeping** — listing which nodes were minted under a domain LAW, auditing, or traversing from LAW → instances. They do **not** control whether the LAW text appears in context.
+
+EDG relations used in this example (seed a few at start or use `--allow-new-relation` when genuinely new): `set_in`, `features`, `governs`, `constrains`, `continues`, `resolves`, `costs`, `influences`.
 
 **EDG rows — the explicit wiring for selective context**
 
@@ -64,22 +118,22 @@ EDG is a *fixed, built-in tag* (always available; never declared in your map). I
 ```
 
 **Core function in the pipeline:**
-- They are how you declare "this scene is *set_in* this lore", "this character *features* here", "this rule *governs* that character", "this beat *costs* this person".
+- They are how you declare "this scene is *set_in* this lore", "this character *features* here", "this rule *governs* that character", "this beat *costs* this person". Optionally, "this domain LAW *constrains* this NPC" — for audit and traversal only; the LAW row is already in every warm read without that link.
 - `query warm --anchor <focus> --depth N` traverses EDG links to pull in *only* the connected persistent background, bibles and rules the current focus needs. Without the right EDGs, anchoring on a SCN or CHOICE would return almost nothing but the prepended LAW rows (core invariants plus any domain constraints such as id rules) + the anchor itself.
 - LAW01 (`edge_recycle`) keeps the warm slice clean: most transient EDGs (and the rows they point to) are hidden from context unless the anchor is at src or dist.
 - You manage them with the same `add`/`update` discipline as nodes (copy ids from warm; use `--allow-new-relation` only for genuinely new relation verbs). They are first-class data, not implicit "the LLM will remember the connection".
 
 In short: EDG is the mechanism that makes "read only what the anchor can reach" reliable and deterministic for long-running work.
 
-**LAW rows — the always-present constraints that govern other nodes**
+**LAW rows — protocol and structural constraints (always on)**
 
-LAW is a *fixed, built-in tag* (always available; never declared in your map). The engine guarantees that the core LAW rows are prepended to every `query warm` result. Their fields describe invariants the orchestrator and LLM must respect on every add or update:
+LAW is a *fixed, built-in tag* (not in your map). **Every** `query warm` prepends **all** LAW rows before the anchored slice. They are not optional background.
 
 ```
 @LAW: id|name|cycle|mechanism|constraint
 ```
 
-The four core LAWs (seeded at the start of every project) are:
+The four **core** LAWs (MemNet engine — seed in every project):
 
 ```text
 @LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
@@ -90,21 +144,53 @@ The four core LAWs (seeded at the start of every project) are:
 
 **Core function in the pipeline:**
 
+See **LAW as the pipeline contract (for the LLM)** above for the orchestrator vs LAW split and step mapping. In brief:
+
 - LAW02 (`node_id`) is the reason you must read first, copy the exact id, and use `add` only for truly new things (or `update` for existing). It is enforced at ingest.
 - LAW01 (`edge_recycle`) and LAW03 (`edge_endpoints`) work with EDG to keep warm slices clean and wiring sound.
 - LAW04 protects the wire format itself.
 
-**LAW rows as constraints on other nodes (the useful pattern here)**
+**Domain LAW rows (project-specific, still always prepended)**
 
-Beyond the engine invariants, LAW rows are the natural and visible place to declare *domain* constraints that must govern how you create or evolve other rows (CHR, SCN, etc.). Because every warm output begins with the LAW rows, the LLM literally cannot miss them when it reasons about minting a new id or adding a link.
+Beyond LAW01–04, add **domain** LAW rows for constraints that must govern **how you create rows** and must never be missed — e.g. id ranges, required fields, naming patterns. They use the same `@LAW:` tag and appear in **every** warm read, same as the core four.
 
-Example in this note: supporting NPCs are represented by CHR rows whose ids are restricted to the N01-N99 range (main viewpoint characters keep the CHRxx style for clarity). We seed a persistent domain LAW row that states the rule. When the writer needs a new villager, witness or minor figure, the analysis step reads the prepended LAW-CHRID and chooses the next free id in range (e.g. N03). The new CHR is added in the same disciplined batch as any other work for the turn. The constraint row itself stays in the graph (persistent) and will appear at the top of every future warm.
+Example in this note: supporting NPCs are represented by CHR rows whose ids are restricted to the N01-N99 range (main viewpoint characters keep the CHRxx style for clarity). We seed a persistent domain LAW row (`LAW-CHRID`) that states the rule — that alone ensures the constraint is in **every** warm read. When the writer needs a new villager, witness or minor figure, the analysis step reads the prepended LAW-CHRID and chooses the next free id in range (e.g. N03). The new CHR is added in the same disciplined batch as any other work for the turn.
 
-In short: treat LAW rows (core plus your project ones) as the single source of truth for "how nodes of this kind are allowed to exist." EDG wires *which* instances are relevant; LAW tells you the rules for creating and naming the instances in the first place.
+**Optional:** you may also wire a `constrains` EDG from the LAW row to each governed NPC — not for visibility (LAW is already prepended), but so the graph records which instances the constraint applies to:
+
+```
+@EDG: E06|LAW-CHRID|constrains|N03||persistent
+```
+
+(The src is the LAW-CHRID row; dist is the newly minted NPC CHR; the edge is persistent so the link survives settlement.)
+
+If you add these links, they help with:
+- `query warm --anchor LAW-CHRID --depth 1` surfacing governed NPCs from the LAW side
+- Traversing from an NPC (or a scene featuring it) back to the governing LAW for audit
+- Keeping "this LAW applies to these nodes" as first-class graph data rather than only in the LLM's head
+
+Skip the EDG entirely if you only need the rule text every turn and do not care about traversable instance lists.
+
+In short: **LAW** = “how nodes are allowed to exist in the graph” (always visible, no EDG needed). **Optional EDG `constrains`** = which specific nodes were created under a domain LAW.
+
+**RULE rows — story craft (on demand only)**
+
+RULE is a *user tag* from your map. Each row is one **narrative** constraint: voice, magic rules, pacing, tone. RULE rows are **not** prepended globally — they enter warm only when:
+
+- an **EDG** links them from the current anchor (e.g. `CHR01|governs|RULE02`), or
+- you **anchor directly** on the RULE (as Turn 3 does on `RULE02`).
+
+```
+@RULE: id|name|scope|text|recycle
+```
+
+Examples from the seed: grim tone (`voice`), power costs (`magic`), scene economy (`pacing`). **Do not** put operator prefs here — use **USR** (`USR01|scene_length|concise`). **Do not** put id format or graph mechanics here — use **LAW**.
+
+When canon changes (Turn 3), **update** the existing RULE row in place; cite its id from warm output.
 
 **Background is many small pieces, referred only when needed**
 
-Because the persistent material itself is stored as many small rows rather than one giant bible, the warm slice for any turn contains only the fragments the current focus actually needs. In the seed you see separate LORE01/LORE02, four RULE rows, the four core LAWs plus LAW-CHRID (the domain constraint on NPC CHR ids), individual CHR entries, etc. When you later need a specific rule, lore fact or constraint in isolation you can anchor directly on it (as Turn 3 does with RULE02). Most of the time the relevant pieces arrive automatically because earlier turns wired them with EDG from the scenes or choices that depend on them (and the LAW rows are prepended unconditionally). Unrelated background stays out of context and out of the way.
+Because persistent material is many small rows, the warm slice for each turn contains only what the focus needs — **plus all LAW rows**. In the seed you see LORE01/LORE02, three RULE rows, four core LAWs + LAW-CHRID, CHR entries, etc. RULE02 appears in Turn 1 because `CHR01|governs|RULE02` is wired; RULE03 may stay out until a scene links it. Anchor directly on a RULE (Turn 3) when you need to edit canon without traversing from a scene.
 
 ## Part B: Initial Seed (complete starting state)
 
@@ -123,7 +209,6 @@ Copy the block below (or extract it via heredoc) and feed it to `memnet add --st
 @RULE: RULE01|Grim tone|voice|Close third, spare prose, no heroic fanfare. Hope is earned and usually costs.|persistent
 @RULE: RULE02|Power costs|magic|Every working of power demands a personal, lasting price. No clean victories.|persistent
 @RULE: RULE03|Scene economy|pacing|One clear change of state or knowledge per scene. End on consequence or decision.|persistent
-@RULE: RULE04|User prefs|project|Keep scenes concise. Favour internal cost over spectacle. When in doubt, tighten.|persistent
 
 @CHR: CHR01|Kael Voss|protagonist|stoic|scarred ex-warder|Once broke an oath to save a town; the guilt still governs him. Fears becoming the thing he fought.|haunted|persistent
 @CHR: CHR02|Elder Sira|mentor|pragmatic|village elder|Will sacrifice anything to keep the last families alive. Sees Kael as the last usable weapon.|persistent
@@ -154,7 +239,7 @@ The LLM never "remembers" ids or facts across turns. It only ever sees what step
 
 ## Part D: Worked Turns (the pipeline in action)
 
-Three compact turns. Each is shown strictly as the six numbered steps. Warm output excerpts include the prepended `@LAW:` rows (core invariants plus any domain constraints). All ids are copied from the warm/context output. Transient rows are settled with `delete_on_settle` when their work is done. One turn demonstrates a legitimate update to a persistent RULE when the story changes the world's "canon." Turn 1 also demonstrates obeying a domain LAW constraint (LAW-CHRID) when minting a supporting NPC CHR id in the N01-N99 range.
+Three compact turns. Each is shown strictly as the six numbered steps. Warm output excerpts include the prepended `@LAW:` rows (core invariants plus any domain constraints). All ids are copied from the warm/context output. Transient rows are settled with `delete_on_settle` when their work is done. One turn demonstrates a legitimate update to a persistent RULE when the story changes the world's "canon." Turn 1 also demonstrates obeying a domain LAW constraint (LAW-CHRID) when minting a supporting NPC CHR id in the N01-N99 range; it **optionally** adds a `constrains` EDG from LAW-CHRID to N03 for graph bookkeeping (the LAW row itself needs no link to appear in warm).
 
 ### Turn 1 — The First Hard Choice
 
@@ -191,19 +276,22 @@ The user prompt above is the steering. The agent will surface the dilemma as a p
 **Step 4 — Analyse change to the data**
 "Context gives me LORE01/02, RULE02 (power costs), CHR01 (Kael's guilt), and the current SCN01. Per RULE03 we end on a decision. I will not write the choice in the scene text; instead I add a CHOICE row so the human decides. I will copy ids exactly: SCN01, CHR01, RULE02, LORE01. New id for the choice: CHOICE01. Relation `resolves` is new here; I will use `--allow-new-relation` once.
 
-LAW-CHRID is visible (prepended, as all LAW rows are). For the supporting NPC who can speak to the relic's local reputation in the choice prompt I will mint a compliant id: N03 (next in N01-N99). Add CHR N03 (persistent, so the character stays in the world model) and a features EDG from SCN01 (persistent link, same pattern as CHR01/02). New edge id: E05."
+LAW-CHRID is visible (prepended, as all LAW rows are — no EDG needed). For the supporting NPC who can speak to the relic's local reputation in the choice prompt I will mint a compliant id: N03 (next in N01-N99). Add CHR N03 (persistent, so the character stays in the world model) and a features EDG from SCN01 (persistent link, same pattern as CHR01/02). New edge id: E05.
+
+Optionally add a persistent constrains EDG with src=LAW-CHRID and dist=N03 (new edge id: E06) so the graph records that N03 was minted under that domain LAW; this turn includes it as an example."
 
 **Step 5 — Update the data**
 ```
 memnet add --allow-new-relation --stdin @"
 @CHR: N03|Jory|witness|apprentice|soot-stained mill hand|Saw his family taken by the blight last moon; trusts the relic more than any stranger from the Marches.|frightened|persistent
 @EDG: E05|SCN01|features|N03||persistent
+@EDG: E06|LAW-CHRID|constrains|N03||persistent
 @CHOICE: CHOICE01|SCN01|The elder offers the Crown-ash relic. Using it will mark the bearer with an ever-hungrier hunger. Three paths: burn the relic and the village with it; bargain with the Ash directly through the relic; flee with the sick and abandon the rest. What does Kael do?|Burn the relic / Bargain with the Ash / Flee with the sick||delete_on_settle
 "@
 ```
 
 **Step 6 — Loop**
-Next turn will start with a fresh `query warm --anchor CHOICE01` (or SCN01). The choice row is now the live focus. SCN01 remains visible while the choice is unresolved. The new N03 (NPC CHR) and its persistent features link from SCN01 will be reachable from anchors that touch the village scene or that explicitly reach N03; per LAW-CHRID any future supporting NPCs will continue the Nxx sequence.
+Next turn will start with a fresh `query warm --anchor CHOICE01` (or SCN01). The choice row is now the live focus. SCN01 remains visible while the choice is unresolved. N03 is reachable via the persistent `features` link from SCN01; the optional `constrains` link from LAW-CHRID is only needed if you want to traverse LAW → NPC or audit governed instances. Per LAW-CHRID (always prepended), future supporting NPCs continue the Nxx sequence.
 
 (After this turn the orchestrator might optionally prune if other settled rows existed, but here the graph is still small.)
 
@@ -293,16 +381,19 @@ memnet session load --file my-novel.snap
 # or --keep-id if you want the old session id
 ```
 
-The resulting session contains the complete novel project as many small rows. Warm reads surface only the fragments the current anchor (plus its EDG links) can reach — including whichever persistent reference pieces are relevant this turn.
+The resulting session contains the complete novel project as many small rows. Warm reads prepend **all LAW rows**, then surface fragments the current anchor (plus EDG links) can reach.
 
 ## Pipeline-Aware Pitfalls (and how the design helps)
 
 - **Skipping the read (step 1)** and "remembering" that Kael has trait X from earlier chat → you invent a new CHR id or use the wrong status. Fix: every turn starts with `query warm --anchor ...`; copy ids from the output you actually received.
-- **Treating background as external notes or "the model knows"** → LORE/RULE/CHR bibles live only in the graph. If you do not read them this turn, they are not in context. Fix: anchor on them or ensure EDG links when you need them.
+- **Treating background as external notes or "the model knows"** → LORE/RULE/CHR live only in the graph. If warm does not reach them this turn, they are not in context (**LAW rows are the exception** — always prepended). Fix: anchor or EDG when you need a row; never skip step 1.
 - **Using `add` for something that already exists** → `id_exists` (good). Fix: read first, then `update` with the exact id from warm.
 - **Forgetting to settle transient work** → `query warm` keeps showing old scenes and choices. Fix: when a scene or choice is done, `update` it with the appropriate `delete_on_settle` (and usually a status change).
 - **Mutating a RULE or CHR bible without reading it first in the turn** → you may contradict the current text or use a stale version. Fix: read the row (direct warm anchor or via links), then update.
-- **Ignoring a domain LAW constraint when creating nodes** (e.g. minting a new NPC CHR as C17, CHR-foo or reusing N01 for a different villager) → the world model fractures; later slices cannot find the character reliably and traceability via EDG or direct anchor breaks. Fix: LAW rows (core + domain) are prepended at the top of every warm; read LAW-CHRID (or whichever applies), then choose a fresh compliant id and `add`.
+- **Putting story craft or prefs in LAW** → every warm read bloats; use **RULE** (craft) or **USR** (prefs) with EDG instead.
+- **Putting id format in RULE** → model may miss it when minting; use a **domain LAW** (e.g. LAW-CHRID).
+- **Confusing LAW and RULE** → both say “rule” in English; check the tag: `@LAW:` = always on + graph/structure, `@RULE:` = story + on demand.
+- **Thinking LAW needs an EDG to appear** → it does not; only RULE/LORE/CHR/etc. need wiring. Optional `constrains` from LAW is for instance bookkeeping, not visibility.
 - **Anchoring only on a settled transient id** → warm returns mostly LAW and feels "empty." Fix: move the anchor to the new live SCN/CHR/CHOICE after settlement.
 - **Generating "new context" in prose instead of reading rows** → the story drifts from the recorded canon. Fix: the only context that matters is what step 1 + 2 put in the prompt.
 
@@ -343,7 +434,6 @@ memnet add --stdin @"
 @RULE: RULE01|Grim tone|voice|Close third, spare prose, no heroic fanfare. Hope is earned and usually costs.|persistent
 @RULE: RULE02|Power costs|magic|Every working of power demands a personal, lasting price. No clean victories.|persistent
 @RULE: RULE03|Scene economy|pacing|One clear change of state or knowledge per scene. End on consequence or decision.|persistent
-@RULE: RULE04|User prefs|project|Keep scenes concise. Favour internal cost over spectacle. When in doubt, tighten.|persistent
 @CHR: CHR01|Kael Voss|protagonist|stoic|scarred ex-warder|Once broke an oath to save a town; the guilt still governs him. Fears becoming the thing he fought.|haunted|persistent
 @CHR: CHR02|Elder Sira|mentor|pragmatic|village elder|Will sacrifice anything to keep the last families alive. Sees Kael as the last usable weapon.|persistent
 @PLT: PLT01|The Ash Crown|volume-1|Kael must decide what (and who) he is willing to burn to stop the blight from reaching the last safe valley.|active|persistent
@@ -380,7 +470,8 @@ flowchart TD
   Step5 --> Step6["6. Loop back to 1<br/>Fresh read on next turn; settled transient rows absent from warm<br/>unless still reachable from new anchor"]
   Step6 --> Step1
 
-  subgraph Persistent["All data (background + config + bibles + rules + prefs + current story) lives in MemNet"]
+  subgraph Persistent["Persistent data in MemNet (LAW always prepended; rest via EDG)"]
+    LAW_TAG[LAW protocol + domain]
     LORE
     RULE
     CHR_BIBLE
@@ -393,8 +484,8 @@ flowchart TD
 
 **Persistent vs transient (legend for the diagram above)**
 
-- Persistent (stays across settlements, visible when anchored or reached via EDG links): many small LORE facts, individual RULEs, LAW rows (core engine invariants plus domain constraints such as NPC id ranges), focused CHR bibles/facets, PLT/ARC master arcs, USR prefs. Each piece is its own row and appears only when needed.
-- Transient (created/updated during writing, settled with `delete_on_settle` once done): SCN (current scenes), CHOICE (pending decisions), active chapter/beat work.
+- **Persistent:** LORE, RULE, CHR, PLT, USR, domain LAW — survive settlement. **LAW (all rows): always prepended.** Other persistent rows: only when anchor/EDG reaches them.
+- **Transient:** SCN, CHOICE, active beat work — settle with `delete_on_settle`.
 
 ---
 
