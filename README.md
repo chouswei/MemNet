@@ -213,6 +213,8 @@ See [application-notes/llm-novel-writer.md](application-notes/llm-novel-writer.m
 
 See [application-notes/llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) for the second: LLM-assisted SysML v2 textual modeling (6U CubeSat PDU controller) with the same 6-step pipeline, a SysML v2 syntax reference table, a deployable "whole model as rows" block, explicit demonstration that models living in different .sysml files are easily referred to together via @PKG rows + declaredIn / cross-package EDG, and concrete examples of using the graph to help build the system (allocations, ports and connections driving wiring, implementation tasks and deployment), write the system model docs (interconnection views, behaviour specs, traceability matrices generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis, latency and power budgeting). Warm + EDG + settlement still keeps every turn's slice small, granular and on-demand.
 
+See [application-notes/llm-mud.md](application-notes/llm-mud.md) for the third: a multiplayer text MUD pattern (*Alice in Wonderland* sample world) with a **server-side MUD agent** (active rooms, ticks, NPC actions on the shared graph) and **client-side player agents** (LLM generates room prose from `query warm` slices; no descriptions stored on `@ROM` rows). Covers tiered atomisation for large maps, deterministic `go`/`get`, server deltas, and load-test capacity notes via `scripts/load_test_mud.py`.
+
 ## Development
 
 ```powershell
