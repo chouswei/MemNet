@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] — 2026-06-11
+
+### Added
+- `scripts/estimate_novel_io_tokens.py` — recompute wire-format token estimates for novel-writer MemNet IO examples.
+
+### Changed
+- `application-notes/llm-novel-writer.md` — atomized graph rows (`@EVT`, `@COST`, `@BOND`, `@STEP`), per-IO token annotations, follow-on pipeline cycle, STEP anchoring, and pipeline pitfalls.
+
 ## [0.2.5] — 2026-06-11
 
 ### Added
@@ -72,7 +80,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/chouswei/MemNet/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/chouswei/MemNet/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/chouswei/MemNet/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/chouswei/MemNet/compare/v0.2.2...v0.2.3
