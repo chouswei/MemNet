@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] — 2026-06-12
+
+### Added
+- `application-notes/llm-daily-news.md` — daily RSS digest pipeline (session-scoped `@KYWD` hubs, `@CLU`/`@SYN` layers, Python bridge, prompt formatters).
+
+### Changed
+- **README.md** and **LLM-GUIDE.md** — pointer to the daily-news application note.
+
 ## [0.2.8] — 2026-06-11
 
 ### Changed

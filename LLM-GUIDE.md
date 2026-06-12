@@ -292,6 +292,8 @@ memnet query warm --anchor PLR01
 
 See `application-notes/llm-sysml-v2-modeling.md` for LLM-assisted SysML v2 textual modeling (PDU controller on a 6U CubeSat) using the same pipeline, a prominent SysML v2 syntax reference table, a deployable "complete model as rows" block, explicit demonstration that models whose definitions live in different .sysml files are easily referred to together via lightweight @PKG rows + declaredIn / cross-package EDG, and worked examples of using the graph to help build the system (allocations, ports and connections driving implementation tasks, wiring and deployment), write the official system model documentation (interconnection, behaviour and traceability artefacts generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis and budgeting). `query warm --anchor` + EDG + settlement still keeps every turn's injected slice small, granular and on-demand.
 
+See `application-notes/llm-daily-news.md` for a batch RSS digest pipeline where MemNet is **session-scoped working memory** (not a permanent archive): `@KYWD` hub nodes with `edge_num` salience, ENT/THM/KYWD layering, `@CLU`/`@SYN` narrative stacks, Python bridge upserts via `send_command`, and capped prompt formatters instead of raw warm dumps.
+
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.

@@ -241,6 +241,8 @@ See [application-notes/llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-
 
 See [application-notes/llm-mud.md](application-notes/llm-mud.md) for the third: a multiplayer text MUD pattern (*Alice in Wonderland* sample world) with a **server-side MUD agent** (active rooms, ticks, NPC actions on the shared graph) and **client-side player agents** (LLM generates room prose from `query warm` slices; no descriptions stored on `@ROM` rows). Covers tiered atomisation for large maps, deterministic `go`/`get`, server deltas, and load-test capacity notes via `scripts/load_test_mud.py`.
 
+See [application-notes/llm-daily-news.md](application-notes/llm-daily-news.md) for the fourth: a **daily RSS digest pipeline** (~100 articles/day) where MemNet is run-scoped working memory (120-minute TTL sessions). Covers minimal `@KYWD` hub nodes with degree metrics, cross-article linkage via shared tokens, layered `@CLU`/`@SYN` summarisation, prompt formatters as bounded views over `query warm`, batched upserts from Python via `send_command`, and graceful fallback when `memnet serve` is unavailable.
+
 ## Development
 
 ```powershell
