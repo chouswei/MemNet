@@ -16,6 +16,7 @@ except ImportError as exc:
 from memnet.config import serve_host, serve_port
 from memnet.serve import probe
 from memnet_mcp.client import MemNetResponse, run_memnet
+from memnet_mcp.seed import supplement_seed_lines
 
 mcp = FastMCP("memnet")
 
@@ -48,8 +49,14 @@ async def session_open(
     map_lines: list[str] | None = None,
     map_file: str | None = None,
     ttl: int | None = None,
+    seed_lines: list[str] | None = None,
 ) -> str:
-    """Open a new MemNet session with a tag map (map_lines preferred over map_file)."""
+    """Open a new MemNet session with a tag map (map_lines preferred over map_file).
+
+    Optional seed_lines are added via add --stdin immediately after open (e.g. @CFG anchor
+    and domain @LAW rows). Core LAW01–LAW05 are auto-included when missing so every warm
+    read carries engine invariants without relying on chat memory.
+    """
     if map_file:
         argv: list[str] = ["session", "open", "--map-file", map_file]
     elif map_lines:
@@ -68,7 +75,19 @@ async def session_open(
         )
     if ttl is not None:
         argv.extend(["--ttl", str(ttl)])
-    return await _run(argv)
+
+    open_resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv))
+    effective_seed = supplement_seed_lines(seed_lines)
+    if open_resp.exit_code == 0 and open_resp.session_id and effective_seed:
+        seed_resp = await anyio.to_thread.run_sync(
+            lambda: run_memnet(
+                ["add", "--stdin"],
+                stdin="\n".join(effective_seed),
+                session=open_resp.session_id,
+            )
+        )
+        return _json(MemNetResponse.merge(open_resp, seed_resp))
+    return _json(open_resp)
 
 
 @mcp.tool()

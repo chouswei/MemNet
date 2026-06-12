@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.10] — 2026-06-12
+
+### Added
+- MCP **`session_open(seed_lines=…)`** — optional seed rows (`@CFG`, domain `@LAW`, …) via chained `add --stdin` after open.
+- MCP **`session_open`** auto-seeds **LAW01–LAW05** (engine invariants + goldfish read-first rule) when those ids are absent from `seed_lines` (`src/memnet_mcp/seed.py`).
+- **`MemNetResponse.merge()`** — combine open + seed envelopes in the MCP client.
+
+### Changed
+- **README.md**, **LLM-GUIDE.md**, **application-notes/llm-daily-news.md** — MCP session seeding and default LAW behaviour.
+
 ## [0.2.9] — 2026-06-12
 
 ### Added

@@ -63,6 +63,25 @@ class MemNetResponse:
             errors=[_SERVE_REQUIRED],
         )
 
+    @classmethod
+    def merge(cls, primary: MemNetResponse, follow: MemNetResponse) -> MemNetResponse:
+        """Chain responses (e.g. session open then seed add). Keeps primary session_id."""
+        if primary.exit_code != 0:
+            return primary
+        stdout = primary.stdout
+        if follow.stdout:
+            stdout = f"{stdout}{follow.stdout}" if stdout else follow.stdout
+        stderr = primary.stderr
+        if follow.stderr:
+            stderr = f"{stderr}{follow.stderr}" if stderr else follow.stderr
+        return cls(
+            exit_code=follow.exit_code,
+            stdout=stdout,
+            stderr=stderr,
+            session_id=primary.session_id or follow.session_id,
+            errors=primary.errors + follow.errors,
+        )
+
 
 def _append_session(argv: list[str], session: str | None) -> list[str]:
     out = list(argv)

@@ -65,10 +65,11 @@ Configured in `MemNetBridge.ensure_session()`:
 | `memnet.snapshot.txt` | persisted | Same-day snapshot reload |
 
 **Fresh session:** `session open --map-file memnet_schema.txt --ttl 120`  
+**MCP:** `session_open(map_lines=…, ttl=120, seed_lines=[…])` — seed block in one call  
 **Resume:** `session resume <id>` if session day matches today  
 **Reload:** `session load --file memnet.snapshot.txt` as fallback
 
-Seeded on every fresh session:
+Seeded on every fresh session (via `add` or MCP `seed_lines`):
 
 ```
 @CFG: CFG01|daily_news|CFG01|3|knowledge_graph_digest
@@ -280,11 +281,9 @@ Stage 3/4 receive **SYN editorial briefing** (prose-oriented), not the raw keywo
 ## 10. MemNet CLI usage from Python
 
 ```python
-from memnet.serve import probe, send_command
-
-# Wrapped by MemNetBridge._cmd()
+# Wrapped by MemNetBridge._cmd() — or MCP session_open(..., seed_lines=SEED)
 send_command(["session", "open", "--map-file", "memnet_schema.txt", "--ttl", "120"])
-send_command(["add", "--stdin"], stdin="@KYWD: trump|0")
+send_command(["add", "--stdin"], stdin="\n".join(SEED))  # skip if MCP seed_lines used
 send_command(["update", "--stdin"], stdin="@KYWD: trump|11")
 send_command(["query", "warm", "--anchor", "CFG01", "--depth", "3", "--max-rows", "500"])
 send_command(["session", "save", "--file", "data/memnet.snapshot.txt"])

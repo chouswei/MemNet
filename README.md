@@ -285,7 +285,7 @@ Set `MEMNET_SESSION` to your open session id. Example Cursor MCP config:
 }
 ```
 
-**Tools (v1):** `serve_status`, `session_open`, `session_current`, `query_warm`, `add`, `update`, `read_get`, `housekeep_stats`. Each returns a JSON envelope with `stdout` / `stderr` wire lines, `exit_code`, `session_id`, and `errors[]` (from `@ERR:` lines). See [LLM-GUIDE.md](LLM-GUIDE.md).
+**Tools (v1):** `serve_status`, `session_open`, `session_current`, `query_warm`, `add`, `update`, `read_get`, `housekeep_stats`. Each returns a JSON envelope with `stdout` / `stderr` wire lines, `exit_code`, `session_id`, and `errors[]` (from `@ERR:` lines). **`session_open`** auto-seeds **LAW01–LAW05** on every new session (prepended on each `query_warm`); optional **`seed_lines`** adds `@CFG` anchors and domain `@LAW` rows in the same call. See [LLM-GUIDE.md](LLM-GUIDE.md).
 
 ## Licence
 
