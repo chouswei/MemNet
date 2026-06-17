@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.11] — 2026-06-17
+
+### Added
+- MCP **`prose_metrics`** and **`chapter_prose_append`** — Traditional Chinese beat length gates (default 300–600 chars) for interactive novel workflows.
+- **`src/memnet_mcp/zh_text.py`**, **`chapter_io.py`** — zh char counting and chapter file append with validation.
+- Novel examples: **`schema.novel.example.txt`**, **`workflow.novel.example.txt`**, **`application-notes/novel-initial-state.md`**, **`.cursor/rules/novel-writer.mdc`**.
+
 ### Changed
-- **`modified_at`** updates on any session interaction (reads and writes via `_load_session`, `session resume`, `session current`), not only on `add`/`update`. `has_writes` still tracks graph mutations only.
+- **`modified_at`** updates on any session interaction (reads and writes via `_load_session`, `session resume`, `session current`); `has_writes` still tracks graph mutations only.
+- Novel prose minimum beat length **400 → 300** chars (MCP defaults, RULE09 seed, docs, tests).
 
 ## [0.2.10] — 2026-06-12
 
