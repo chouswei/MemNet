@@ -19,7 +19,7 @@ No external character sheets, no hidden system prompts, no "the model will remem
 - Three worked turns showing the full cycle: in step 2 the orchestrator injects the warm data rows; the LLM converts those data rows into the novel section with selections and gives it to the human to read → human responds (selection or steering) → orchestrator records the outcome in the graph (step 5) so future warm reads have the memory. (Harry Potter / Philosopher's Stone era, novel-style RPG.)
 - Snapshot / resume, pipeline-aware pitfalls, copy-paste quick-start, and a Mermaid diagram of the loop.
 
-**Document map:** § Pipeline + LAW/STEP contract → **Part A** schema → **Part B** seed → **Part C** orchestrator commands → **Part D** worked turns (Turn 1 → follow-on cycle → Turn 3) → pitfalls → quick-start → diagram.
+**Document map:** § Pipeline + LAW/STEP contract → **Part A** schema → **Part B** seed → **Part C** orchestrator commands → **Part D** worked turns (Turn 1 → follow-on cycle → Turn 3) → **Play in Cursor chat** → **Chapter merge (LAW-OUT01/02)** → pitfalls → quick-start → diagram.
 
 ## The 6-Step Pipeline (this example's repeating loop)
 
@@ -287,7 +287,7 @@ Copy the block below (or extract it via heredoc) and feed it to `memnet add --st
 @RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
 @RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
 
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR01|You|protagonist|Courage:3 Wit:4 Charms:2 Stealth:3|firstyear_belong|unhurt|persistent
 @CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
 @CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
 
@@ -373,7 +373,7 @@ memnet query warm --anchor STEP01 --depth 2 --max-rows 30
 @RULE: RULE01|choices_wizard|theme|cite_choices_not_ability|persistent
 @RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
 @RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR01|You|protagonist|Courage:3 Wit:4 Charms:2 Stealth:3|firstyear_belong|unhurt|persistent
 @CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
 @CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
 @ITEM: ITM01|wiggenweld|consumable|1|steady_spell|persistent
@@ -678,17 +678,138 @@ The resulting session contains the complete novel project as many small rows. Wa
 - **Step 2 without selections** at a decision beat → player has nothing to click/type. Fix: every step-2 blockquote that ends a beat includes **What do you do?** + numbered options citing CHR attrs (LAW-HP01).
 - **Writing consequence prose in Turn 1 step 5** → prose belongs in the **next cycle's step 2** after the graph is updated.
 - **Stale `@STEP.n`** → model writes prose during step 5 or mutates during step 2. Fix: **`update` STEP01** before every LLM call; warm-anchor on `STEP01`.
+- **Appending chapter prose without `prose_metrics`** → model writes ~150 字 fragments and pads with many small appends until `@CHP.char_total` looks right (e.g. 第001回 with 19 paragraphs of 94–249 字 each). Fix: **LAW-PROSE04** — `prose_metrics` then `chapter_prose_append` only after `ok=true`; one paragraph per turn; use MCP `file_char_total` for `@CHP`.
+
+## Play in Cursor chat — 《晚明財閥傳》
+
+Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Bootstrap and full seed: [`novel-initial-state.md`](novel-initial-state.md). Cursor rule: [`.cursor/rules/novel-writer.mdc`](../.cursor/rules/novel-writer.mdc).
+
+1. Run `memnet serve` in a terminal.
+2. `pip install memnet-llm[mcp]`; copy [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) to `.cursor/mcp.json` and enable MCP.
+3. Select **gpt-5.4-nano** in the Cursor model picker (default). Optionally switch to **kimi-k2.5** if prose or persist quality drops — **do not use gpt-5.4-mini**.
+4. Edit [`novel-initial-state.md`](novel-initial-state.md) before a **new** story if needed.
+5. Chat: @novel-writer or「開始《晚明財閥傳》」→ agent runs `session_open(allow_new_relation=true)` → name gate → SCN01 beats.
+6. Save snapshot (CLI, separate terminal): `memnet session save --file novel.snap` with `$env:MEMNET_SESSION` set.
+
+Each story beat: **400–600 字** prose + **5 options** + HUD in chat; graph updates via MCP step 5 only.
+
+### MCP prose length tools (LAW-PROSE04)
+
+MemNet MCP exposes deterministic length checks — do not guess character counts in chat.
+
+| Tool | Purpose |
+|------|---------|
+| `prose_metrics(prose, min_chars=400, max_chars=600)` | Count 繁體字; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
+| `chapter_prose_append(prose, chapter_dir, chp_num, …)` | Validate length, then append **one** paragraph to `第{chp:03d}回.md`. Returns `file_char_total`, `paragraph_count`, `path`. Fails without writing if too short/long. |
+| `chapter_prose_append(..., replace_last_paragraph=true)` | RULE09 fix — replace the last beat paragraph only. |
+
+**Step 2 sub-flow:** draft prose → `prose_metrics` → expand/trim in same turn if needed (max 2 retries) → `chapter_prose_append` → show player. Step 5 sets `@CHP.char_total` from returned `file_char_total`.
+
+```mermaid
+flowchart TD
+  Draft[Draft prose] --> Metrics[prose_metrics]
+  Metrics -->|ok=false| Expand[Expand or trim same turn]
+  Expand --> Metrics
+  Metrics -->|ok=true| Append[chapter_prose_append]
+  Append --> Show[Prose + options + HUD]
+```
+
+## Chapter merge — LAW-OUT01 / LAW-OUT02
+
+Beats are **not** one file per beat. Multiple beats merge into traditional **章回** files under `novel-output/wanming_caifa_zhuan/chapters/`, filename `第{chp:03d}回.md` (`@CHP.chp_num`, not `@TIME.beat`).
+
+### Word-count basis
+
+| Reference | Scale | Implication for this project |
+|-----------|-------|------------------------------|
+| Jin Yong collected novels (e.g. 射雕 ~120万字 / 40回) | ~**3000 字/回** average | Chapters need a complete mini-arc, not one beat per file |
+| Newspaper serial segments | often **1000–1400 字/期** | Below this feels fragmentary; each beat is already 400–600 字 |
+| Jin Yong on 飛狐外傳 pacing | **8000 字/段** “absolutely bad” | Upper bound per chapter should stay moderate |
+| **This project beat** | **400–600 字/turn** | **Merge 5–7 beats → 2400–4200 字/chapter** |
+
+**Sweet spot:** **2800–3800 字/chapter** (~5–6 beats).
+
+### Two-layer word budget
+
+| Layer | Content | Count |
+|-------|---------|-------|
+| **Beat (step 2)** | Prose only | 400–600 字 |
+| **Chapter file** | Merged prose from many beats | 2400–4200 字 (USR07) |
+
+Options and HUD appear in chat only — **never** written to chapter files (RULE17).
+
+### Merge flow
+
+```mermaid
+flowchart LR
+  Draft[Draft prose] --> Metrics[prose_metrics]
+  Metrics --> Append[chapter_prose_append]
+  Append --> File["第NNN回.md"]
+  Opt["options + HUD"] -.->|"excluded"| File
+  Append --> CHP["file_char_total"]
+  CHP -->|"step 5 update"| Close{"close?"}
+  Close -->|"2400-4200 or cap or SCN settle"| Next["new @CHP open"]
+```
+
+1. **Step 2:** `prose_metrics` → `chapter_prose_append` to the open `@CHP` file (`# 第N回` on first segment; blank line between beat paragraphs). **One paragraph per turn.**
+2. **Step 5:** `update @CHP` — set `char_total` from MCP `file_char_total`; set `start_beat` / `end_beat` as needed.
+3. **Close chapter** when any of:
+   - `char_total` ∈ **[2400, 4200]** and natural paragraph end;
+   - `char_total` ≥ **4500** (hard cap);
+   - focus `@SCN` settles (`delete_on_settle`) **and** `char_total` ≥ **1800**;
+   - do **not** close below **2200** without scene settle (anti-fragment).
+4. On close: `CHP.status=closed`; next beat opens new `@CHP` with `chp_num+1`.
+
+**Exception:** option 5 (`ind_ledger`) — no append, no beat advance (LAW-OPT02 / LAW-TIME01).
+
+**Resume:** continue the open `@CHP` and existing closed files; do not reset `chp_num`.
+
+### Wire tags (chapter export)
+
+```text
+@CHP: id|chp_num|start_beat|end_beat|char_total|status|recycle
+@USR: USR06|chapter_out|novel-output/wanming_caifa_zhuan/chapters|persistent
+@USR: USR07|chapter_target|2400_4200_zh|persistent
+@LAW: LAW-OUT01|*|on_turn|chapter_file|append_prose_only_after_step2
+@LAW: LAW-OUT02|CHP|on_turn|chapter_merge|close_on_target_or_cap_or_scn
+@LAW: LAW-PROSE04|*|on_turn|length_gate|call_prose_metrics_before_append
+@RULE: RULE17|out|chapter|filename_chp3_prose_only_no_options|persistent
+@RULE: RULE18|out|chapter|merge_beats_2400_4200_zh|persistent
+```
+
+Opening seed: `@CHP: CHP01|1|0|0|0|open|persistent` — see [`novel-initial-state.md`](novel-initial-state.md).
 
 ## Quick-Start (copy-paste these commands)
+
+Bundled wire files (same content as Part A / Part B below):
+
+- `src/memnet/examples/schema.novel.example.txt` — tag map
+- `src/memnet/examples/workflow.novel.example.txt` — LAW rows + initial seed
 
 ```powershell
 # Terminal 1
 memnet serve
-# note the MEMNET_SERVE address if it is not the default
 
 # Terminal 2 (client)
-# 1. Extract the schema block (Part A above, the @LORE: ... lines only) to a temp map file.
-# PowerShell example:
+memnet session open --map-file src/memnet/examples/schema.novel.example.txt
+# stderr will print something like: MEMNET_SESSION=mn_3f8a2c1d
+$env:MEMNET_SESSION = "mn_3f8a2c1d"
+
+memnet add --file src/memnet/examples/workflow.novel.example.txt --allow-new-relation
+
+# First read — MemNet is the state machine: @STEP + focus EDG drive the loop
+memnet query warm --anchor STEP01 --depth 2 --max-rows 30
+
+# Follow the 6 steps. Update STEP01 before each LLM phase; anchor warm on STEP01.
+# Step 2 output = novel prose + "What do you do?" + numbered options (see Part D).
+```
+
+*MemNet IO: **~676 tok** stdin (seed `add`) · **~586 tok** stdout (first `query warm`, 34 rows).*
+
+<details>
+<summary>Manual setup (extract schema / seed to temp files)</summary>
+
+```powershell
 @'
 @LORE: id|name|kind|code|recycle
 @RULE: id|name|scope|code|recycle
@@ -727,7 +848,7 @@ memnet add --stdin @"
 @RULE: RULE01|choices_wizard|theme|cite_choices_not_ability|persistent
 @RULE: RULE02|magic_toll|risk|low_skill_visible_cost|persistent
 @RULE: RULE03|one_change|structure|one_state_delta_per_beat|persistent
-@CHR: CHR01|You|protagonist|Courage:3|Wit:4|Charms:2|Stealth:3|firstyear_belong|unhurt|persistent
+@CHR: CHR01|You|protagonist|Courage:3 Wit:4 Charms:2 Stealth:3|firstyear_belong|unhurt|persistent
 @CHR: CHR02|Harry|ally|brave|scarred|boy_who_lived|persistent
 @CHR: CHR03|Hermione|ally|brilliant|loyal|rules_first_help_wary|persistent
 @ITEM: ITM01|wiggenweld|consumable|1|steady_spell|persistent
@@ -756,14 +877,11 @@ memnet add --stdin @"
 
 # 3. First read (start of your first pipeline cycle)
 memnet query warm --anchor STEP01 --depth 2 --max-rows 30
-
-# 4. Follow the 6 steps. Always update STEP01 before each LLM phase; anchor warm on STEP01.
-# Step 2 output = novel prose + "What do you do?" + numbered options (see Part D).
 ```
 
-*MemNet IO: **~676 tok** stdin (seed `add`) · **~586 tok** stdout (first `query warm`, 34 rows).*
-
 Bash users: use `cat <<'EOF' > /tmp/novel.map.txt` and `memnet add --stdin <<'EOF' ... EOF`.
+
+</details>
 
 ## Diagram — The 6-Step Pipeline as a Loop
 

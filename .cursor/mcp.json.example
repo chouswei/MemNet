@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "memnet": {
+      "command": "memnet-mcp",
+      "env": {}
+    }
+  }
+}

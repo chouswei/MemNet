@@ -24,6 +24,9 @@ htmlcov/
 *.db
 .memnet/
 
+# Novel chapter exports (local play output)
+novel-output/
+
 # Environment
 .env
 .env.local
