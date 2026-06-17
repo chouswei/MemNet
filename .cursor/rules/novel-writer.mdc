@@ -24,7 +24,7 @@ alwaysApply: false
 |-----------|--------|
 | `serve_status.running` is false | Stop; tell player to run `memnet serve` |
 | No active novel session | `session_open(map_lines, seed_lines, allow_new_relation=true)`; store `session_id` |
-| `CHR01.name` is `unset` | Ask for 2–4 漢字 name only; **no** 400–600字 SCN01 prose |
+| `CHR01.name` is `unset` | Ask for 2–4 漢字 name only; **no** 300–600字 SCN01 prose |
 | Name received | `update CHR01` name + `USR04`; then normal beats |
 | Mid-story | Pass `session=<id>` on **every** MCP call |
 | Resume vs fresh | Ask once; fresh → `session_open` again |
@@ -38,7 +38,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 | Step | MCP | Output |
 |------|-----|--------|
 | 1 Read | `update STEP01\|1\|<focus>\|persistent`; `query_warm(anchor=STEP01, depth=2, session=id)` | internal |
-| 2 Write | `update STEP01\|2\|<focus>\|persistent`; **prose gate** (below) | 400–600字正文 + 5選項 + HUD; **no** graph `add`/`update` |
+| 2 Write | `update STEP01\|2\|<focus>\|persistent`; **prose gate** (below) | 300–600字正文 + 5選項 + HUD; **no** graph `add`/`update` |
 | 3 Capture | — | wait for player |
 | 4 Analyse | re-read warm as needed | internal |
 | 5 Persist | `add`/`update` batch; `allow_new_relation=true` for novel EDGs | brief confirm (optional) |
@@ -46,7 +46,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 **Step 2 prose gate (LAW-PROSE04 — before player sees output):**
 
 1. Draft beat prose only (do **not** append yet).
-2. `prose_metrics(prose)` — must return `ok=true` (400–600 繁體字).
+2. `prose_metrics(prose)` — must return `ok=true` (300–600 繁體字).
 3. If `ok=false`: expand or trim **in the same turn** (max **2** retries); re-call `prose_metrics`.
 4. `chapter_prose_append(prose, chapter_dir=USR06 path, chp_num=@CHP.chp_num)` — **only** chapter write entry; use returned `file_char_total` for step 5.
 5. Show player: prose + 5 options + HUD.
@@ -63,7 +63,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 ## Step 2 output template (order fixed)
 
 ```text
-〈400～600 字金庸筆調正文，繁體〉
+〈300～600 字金庸筆調正文，繁體〉
 
 你要怎麼做？
 1. …（劇情，~medium）
@@ -76,7 +76,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 （HUD 第二行：LAW-HUD02 條件式 — 開局可省略）
 ```
 
-- Prose only in 400–600 count (RULE09); options/HUD excluded.
+- Prose only in 300–600 count (RULE09); options/HUD excluded.
 - Currency: **文** (RULE16).
 - SCN01 option 4 = 武學路線（甲–丁）; exempt from LAW-TIME03 skip-wait.
 
@@ -106,7 +106,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 | Anti-fragment | do **not** close below **2200** unless scene settle applies |
 
 - On close: `CHP.status=closed`, set `end_beat`; next beat mint new `@CHP` with `chp_num+1`, `status=open`, counters reset.
-- Sweet spot: **2800–3800** 字 (~5–6 beats at 400–600 each).
+- Sweet spot: **2800–3800** 字 (~5–6 beats at 300–600 each).
 
 **Rewrite (RULE09 fix):** `chapter_prose_append(..., replace_last_paragraph=true)` — replace only this beat's paragraph.
 

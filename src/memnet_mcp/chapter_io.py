@@ -59,7 +59,7 @@ def chapter_prose_append(
     chapter_dir: str,
     chp_num: int,
     workspace_root: Path | str | None = None,
-    min_chars: int = 400,
+    min_chars: int = 300,
     max_chars: int = 600,
     replace_last_paragraph: bool = False,
 ) -> dict:

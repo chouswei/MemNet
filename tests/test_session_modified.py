@@ -12,13 +12,18 @@ from memnet.session import get_session, open_session, set_now_override
 runner = CliRunner()
 
 
-def test_modified_at_unset_until_write(memnet_temp, schema_file):
+def test_modified_at_updates_on_read(memnet_temp, schema_file):
+    t0 = datetime(2026, 6, 10, 12, 0, 0, tzinfo=UTC)
+    set_now_override(t0)
     ss = open_session(map_file=str(schema_file))
     assert ss.meta.modified_at is None
 
     stats = runner.invoke(app, ["housekeep", "stats", "--session", ss.session_id])
     assert stats.exit_code == 0
-    assert "@STAT: modified|-|-\n" in stats.stdout
+    ss = get_session(ss.session_id)
+    assert ss.meta.modified_at == "2026-06-10T12:00:00Z"
+    assert ss.meta.has_writes is False
+    set_now_override(None)
 
 
 def test_modified_at_updates_on_mutate(memnet_temp, schema_file, workflow_file):

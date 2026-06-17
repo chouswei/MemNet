@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **`modified_at`** updates on any session interaction (reads and writes via `_load_session`, `session resume`, `session current`), not only on `add`/`update`. `has_writes` still tracks graph mutations only.
+
 ## [0.2.10] — 2026-06-12
 
 ### Added

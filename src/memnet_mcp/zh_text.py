@@ -15,7 +15,7 @@ def count_zh_chars(text: str) -> int:
 def prose_status(
     text: str,
     *,
-    min_chars: int = 400,
+    min_chars: int = 300,
     max_chars: int = 600,
 ) -> dict[str, int | bool | str]:
     count = count_zh_chars(text)

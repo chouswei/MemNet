@@ -72,9 +72,13 @@ class SessionStore:
     def store(self) -> MemStore:
         return self._entry.store
 
+    def touch(self) -> None:
+        """Record last activity time (reads and writes)."""
+        self.meta.modified_at = iso_timestamp()
+
     def mark_written(self) -> None:
         self.meta.has_writes = True
-        self.meta.modified_at = iso_timestamp()
+        self.touch()
 
     @contextmanager
     def lock(self, exclusive: bool) -> Iterator[None]:

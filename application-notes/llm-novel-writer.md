@@ -691,7 +691,7 @@ Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Boo
 5. Chat: @novel-writer or「開始《晚明財閥傳》」→ agent runs `session_open(allow_new_relation=true)` → name gate → SCN01 beats.
 6. Save snapshot (CLI, separate terminal): `memnet session save --file novel.snap` with `$env:MEMNET_SESSION` set.
 
-Each story beat: **400–600 字** prose + **5 options** + HUD in chat; graph updates via MCP step 5 only.
+Each story beat: **300–600 字** prose + **5 options** + HUD in chat; graph updates via MCP step 5 only.
 
 ### MCP prose length tools (LAW-PROSE04)
 
@@ -699,7 +699,7 @@ MemNet MCP exposes deterministic length checks — do not guess character counts
 
 | Tool | Purpose |
 |------|---------|
-| `prose_metrics(prose, min_chars=400, max_chars=600)` | Count 繁體字; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
+| `prose_metrics(prose, min_chars=300, max_chars=600)` | Count 繁體字; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
 | `chapter_prose_append(prose, chapter_dir, chp_num, …)` | Validate length, then append **one** paragraph to `第{chp:03d}回.md`. Returns `file_char_total`, `paragraph_count`, `path`. Fails without writing if too short/long. |
 | `chapter_prose_append(..., replace_last_paragraph=true)` | RULE09 fix — replace the last beat paragraph only. |
 
@@ -723,9 +723,9 @@ Beats are **not** one file per beat. Multiple beats merge into traditional **章
 | Reference | Scale | Implication for this project |
 |-----------|-------|------------------------------|
 | Jin Yong collected novels (e.g. 射雕 ~120万字 / 40回) | ~**3000 字/回** average | Chapters need a complete mini-arc, not one beat per file |
-| Newspaper serial segments | often **1000–1400 字/期** | Below this feels fragmentary; each beat is already 400–600 字 |
+| Newspaper serial segments | often **1000–1400 字/期** | Below this feels fragmentary; each beat is already 300–600 字 |
 | Jin Yong on 飛狐外傳 pacing | **8000 字/段** “absolutely bad” | Upper bound per chapter should stay moderate |
-| **This project beat** | **400–600 字/turn** | **Merge 5–7 beats → 2400–4200 字/chapter** |
+| **This project beat** | **300–600 字/turn** | **Merge 5–7 beats → 2400–4200 字/chapter** |
 
 **Sweet spot:** **2800–3800 字/chapter** (~5–6 beats).
 
@@ -733,7 +733,7 @@ Beats are **not** one file per beat. Multiple beats merge into traditional **章
 
 | Layer | Content | Count |
 |-------|---------|-------|
-| **Beat (step 2)** | Prose only | 400–600 字 |
+| **Beat (step 2)** | Prose only | 300–600 字 |
 | **Chapter file** | Merged prose from many beats | 2400–4200 字 (USR07) |
 
 Options and HUD appear in chat only — **never** written to chapter files (RULE17).

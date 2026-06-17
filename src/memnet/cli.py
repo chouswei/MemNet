@@ -102,6 +102,7 @@ def _load_session(session: str | None, *, exclusive: bool = False):
     except MemNetError as exc:
         _handle_error(exc)
         raise AssertionError("unreachable") from exc
+    ss.touch()
     reset_warn_budget()
     emit_session_warnings(ss, _caps())
     if exclusive:
@@ -297,6 +298,7 @@ def session_resume(session_id: str) -> None:
     purge_expired(_caps())
     try:
         ss = get_session(session_id, _caps())
+        ss.touch()
         emit_session(ss.session_id, ss.meta.expires_at, str(ss.meta.ttl_minutes))
         emit_stderr(f"MEMNET_SESSION={ss.session_id}")
     except MemNetError as exc:
@@ -313,6 +315,7 @@ def session_current(
         return
     try:
         ss = get_session(sid, _caps())
+        ss.touch()
         from datetime import datetime
 
         expires = datetime.fromisoformat(ss.meta.expires_at.replace("Z", "+00:00"))

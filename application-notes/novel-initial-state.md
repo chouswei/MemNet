@@ -39,7 +39,7 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @LAW: LAW-ATOM01|*|on_add|no_sentences|break_to_nodes_edges
 @LAW: LAW-PROSE01|*|on_turn|lang_zh_hant|step2_options_zh_tw_only
 @LAW: LAW-PROSE02|*|on_turn|jinyong_tone|step2_narration_like_jinyong_wuxia
-@LAW: LAW-PROSE03|*|on_turn|immersion|step2_400_600_zh_scene
+@LAW: LAW-PROSE03|*|on_turn|immersion|step2_300_600_zh_scene
 @LAW: LAW-PROSE04|*|on_turn|length_gate|call_prose_metrics_before_append
 @LAW: LAW-LIB01|LIB|on_turn|lib_gate|cite_only_unlocked_lib_tiers
 @LAW: LAW-TEC01|TEC|on_turn|tec_cite|cite_tec_when_in_scene_warm
@@ -106,7 +106,7 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @PRD: PRD02|IND01|horseshoe|goods|0|0|active|persistent
 @PRD: PRD03|IND01|nail_batch|goods|0|0|low|persistent
 
-@RULE: RULE09|prose|length|400_to_600_chars_per_beat|persistent
+@RULE: RULE09|prose|length|300_to_600_chars_per_beat|persistent
 @RULE: RULE10|CHR|name|player_sets_pc_name_once|persistent
 @RULE: RULE11|hud|format|cite_stat_fin_quest_warm_only|persistent
 @RULE: RULE12|biz|silver|update_ind_prd_fin_on_transaction|persistent
@@ -117,7 +117,7 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @RULE: RULE17|out|chapter|filename_chp3_prose_only_no_options|persistent
 @RULE: RULE18|out|chapter|merge_beats_2400_4200_zh|persistent
 
-@USR: USR01|scene_length|400_600_zh|persistent
+@USR: USR01|scene_length|300_600_zh|persistent
 @USR: USR02|voice|jinyong_tone_zh_tw|persistent
 @USR: USR04|pc_name|unset|persistent
 @USR: USR05|options|five_fixed_opt5_ledger|persistent

@@ -213,9 +213,9 @@ def test_prose_metrics_tool():
     assert payload["exit_code"] == 0
     assert payload["count"] == 150
     assert payload["ok"] is False
-    assert payload["short_by"] == 250
+    assert payload["short_by"] == 150
 
-    ok_raw = asyncio.run(prose_metrics("字" * 450))
+    ok_raw = asyncio.run(prose_metrics("字" * 350))
     ok_payload = json.loads(ok_raw)
     assert ok_payload["ok"] is True
 
@@ -242,14 +242,14 @@ def test_chapter_prose_append_tool_valid(tmp_path, monkeypatch):
 
     raw = asyncio.run(
         chapter_prose_append(
-            prose="字" * 400,
+            prose="字" * 300,
             chapter_dir="chapters",
             chp_num=1,
         )
     )
     payload = json.loads(raw)
     assert payload["exit_code"] == 0
-    assert payload["file_char_total"] == 400
+    assert payload["file_char_total"] == 300
     assert (tmp_path / "chapters" / "第001回.md").exists()
 
     raw2 = asyncio.run(
@@ -260,5 +260,5 @@ def test_chapter_prose_append_tool_valid(tmp_path, monkeypatch):
         )
     )
     payload2 = json.loads(raw2)
-    assert payload2["file_char_total"] == 900
+    assert payload2["file_char_total"] == 800
     assert payload2["paragraph_count"] == 2

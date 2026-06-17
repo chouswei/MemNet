@@ -168,7 +168,7 @@ async def housekeep_stats(session: str | None = None) -> str:
 @mcp.tool()
 async def prose_metrics(
     prose: str,
-    min_chars: int = 400,
+    min_chars: int = 300,
     max_chars: int = 600,
 ) -> str:
     """Count Traditional Chinese narrative chars (RULE09). No file I/O.
@@ -186,7 +186,7 @@ async def chapter_prose_append(
     prose: str,
     chapter_dir: str,
     chp_num: int,
-    min_chars: int = 400,
+    min_chars: int = 300,
     max_chars: int = 600,
     workspace_root: str | None = None,
     replace_last_paragraph: bool = False,
