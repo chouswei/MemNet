@@ -31,18 +31,18 @@ MemNet remembers which `@TSK` is active, which `@MOD` files were touched, which 
 
 ```mermaid
 flowchart LR
-  subgraph turn [Each coding turn]
+  subgraph turn_loop [Each coding turn]
     WARM[query_warm TSK]
     VERIFY[grep or LSP]
     EDIT[edit source files]
     DELTA[add/update MOD SYM EDG]
   end
-  subgraph graph [MemNet graph]
-    TSK[@TSK mission]
-    MOD[@MOD files]
-    SYM[@SYM locators]
-    USR[@USR constraints]
-    DEC[@DEC open choices]
+  subgraph memnet_graph [MemNet graph]
+    TSK["@TSK mission"]
+    MOD["@MOD files"]
+    SYM["@SYM locators"]
+    USR["@USR constraints"]
+    DEC["@DEC open choices"]
   end
   WARM --> VERIFY --> EDIT --> DELTA
   TSK -->|owns| MOD
