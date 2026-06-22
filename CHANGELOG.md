@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **application-notes/llm-software-development.md** — multi-turn coding in Cursor; retrospective v0.2.12 `session_load`/`session_save` MCP tools; `@TSK` anchor field; `@USR`/`@DEC` patterns.
+- **src/memnet/examples/schema.coding.example.txt** and **workflow.coding.example.txt** — coding tag map and tutorial seed (~45 rows).
+- **tests/test_tag_map.py** — `test_coding_schema_and_workflow_parse` validates coding example seed against schema.
+
 ## [0.2.13] — 2026-06-22
 
 ### Added

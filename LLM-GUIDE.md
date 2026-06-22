@@ -296,6 +296,8 @@ See `application-notes/llm-daily-news.md` for a batch RSS digest pipeline where 
 
 See `application-notes/llm-tech-docs-decomposition.md` for **technical manual decomposition** (instrument PDFs, SCPI remote control): `@ART/@SEC/@CLM/@CMD` atomisation, R&S RTO rev 29 worked example covering connectivity plus acquisition/trigger/measurement SCPI, procedure layers with `precedes`/`requires`, domain LAW rows (DOC01, SCPI01–04), and two 6-step driver turns. Example map: `src/memnet/examples/schema.techdocs.example.txt`; seed: `workflow.rto-remote.example.txt`.
 
+See `application-notes/llm-software-development.md` for **multi-turn software development in Cursor**: `@CFG/@MOD/@SYM/@TSK/@USR/@DEC` coding schema, domain LAW rows (CODE01–04, project-local MEMNET01), session snapshot discipline, and a retrospective walkthrough of v0.2.12 `session_load`/`session_save` MCP tools (CLI wrap pattern, layer-prefixed symbols, two 6-step turns). Example map: `src/memnet/examples/schema.coding.example.txt`; seed: `workflow.coding.example.txt`.
+
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.

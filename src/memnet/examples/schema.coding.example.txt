@@ -1,0 +1,10 @@
+# Built-in tags (not in user map):
+# @LAW  id|name|cycle|mechanism|constraint  — 5 domain rows in workflow.coding.example.txt
+# @EDG  id|src|relation|dist|attrs|recycle    — 20 edge rows in workflow.coding.example.txt
+# Mnemonic for @EDG in docs: from|rel|to|note
+@CFG: id|repo|anchor|version|notes
+@MOD: id|path|summary|status|recycle
+@SYM: id|name|kind|path|line|signature|status|recycle
+@TSK: id|goal|anchor|status|recycle
+@USR: id|topic|content|status|recycle
+@DEC: id|task|question|options|chosen|recycle

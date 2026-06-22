@@ -245,6 +245,8 @@ See [application-notes/llm-daily-news.md](application-notes/llm-daily-news.md) f
 
 See [application-notes/llm-tech-docs-decomposition.md](application-notes/llm-tech-docs-decomposition.md) for the fifth: **instrument manual / SCPI remote-mode decomposition** (R&S RTO User Manual rev 29) — full **4 584-command** `@CMD` dictionary from the manual *List of commands*, subsystem `@SEC` grouping, procedure layers with `precedes`/`requires`, two 6-step turns, and `scripts/extract_rto_scpi.py` to regenerate from PDF.
 
+See [application-notes/llm-software-development.md](application-notes/llm-software-development.md) for the sixth: **multi-turn coding in Cursor** — agent-maintained `@MOD`/`@SYM`/`@TSK` graph (verified locators, user constraints, open decisions) complementary to grep/LSP/git and Cursor codebase indexing; retrospective v0.2.12 `session_load`/`session_save` MCP tools with two 6-step turns; example map `schema.coding.example.txt` and seed `workflow.coding.example.txt`.
+
 ## Development
 
 ```powershell

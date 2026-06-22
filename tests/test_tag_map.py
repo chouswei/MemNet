@@ -73,3 +73,18 @@ def test_techdocs_schema_and_workflow_parse():
         if not stripped or stripped.startswith("#"):
             continue
         parse_line(stripped, tm)
+
+
+def test_coding_schema_and_workflow_parse():
+    """Coding example map + seed lines parse without field errors."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    schema_path = root / "src" / "memnet" / "examples" / "schema.coding.example.txt"
+    workflow_path = root / "src" / "memnet" / "examples" / "workflow.coding.example.txt"
+    tm = load_map_from_lines(schema_path.read_text(encoding="utf-8").splitlines())
+    for line in workflow_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        parse_line(stripped, tm)
