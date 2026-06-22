@@ -58,3 +58,18 @@ def test_id_conflict_cross_tag(memnet_temp):
         bad = parse_line("@BIZ: N01|x|t|l|0|0|0|persistent", ss.tag_map)
         ss.store.upsert(bad, relations=ss.relations)
     assert exc.value.code == "id_conflict"
+
+
+def test_techdocs_schema_and_workflow_parse():
+    """RTO remote-mode example map + seed lines parse without field errors."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    schema_path = root / "src" / "memnet" / "examples" / "schema.techdocs.example.txt"
+    workflow_path = root / "src" / "memnet" / "examples" / "workflow.rto-remote.example.txt"
+    tm = load_map_from_lines(schema_path.read_text(encoding="utf-8").splitlines())
+    for line in workflow_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        parse_line(stripped, tm)

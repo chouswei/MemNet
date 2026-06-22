@@ -21,6 +21,7 @@ htmlcov/
 .mypy_cache/
 
 # MemNet data (local graph stores)
+data/rto/*.pdf
 *.db
 .memnet/
 

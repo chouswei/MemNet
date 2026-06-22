@@ -243,6 +243,8 @@ See [application-notes/llm-mud.md](application-notes/llm-mud.md) for the third: 
 
 See [application-notes/llm-daily-news.md](application-notes/llm-daily-news.md) for the fourth: a **daily RSS digest pipeline** (~100 articles/day) where MemNet is run-scoped working memory (120-minute TTL sessions). Covers minimal `@KYWD` hub nodes with degree metrics, cross-article linkage via shared tokens, layered `@CLU`/`@SYN` summarisation, prompt formatters as bounded views over `query warm`, batched upserts from Python via `send_command`, and graceful fallback when `memnet serve` is unavailable.
 
+See [application-notes/llm-tech-docs-decomposition.md](application-notes/llm-tech-docs-decomposition.md) for the fifth: **instrument manual / SCPI remote-mode decomposition** (R&S RTO User Manual rev 29) — full **4 584-command** `@CMD` dictionary from the manual *List of commands*, subsystem `@SEC` grouping, procedure layers with `precedes`/`requires`, two 6-step turns, and `scripts/extract_rto_scpi.py` to regenerate from PDF.
+
 ## Development
 
 ```powershell

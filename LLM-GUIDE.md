@@ -294,6 +294,8 @@ See `application-notes/llm-sysml-v2-modeling.md` for LLM-assisted SysML v2 textu
 
 See `application-notes/llm-daily-news.md` for a batch RSS digest pipeline where MemNet is **session-scoped working memory** (not a permanent archive): `@KYWD` hub nodes with `edge_num` salience, ENT/THM/KYWD layering, `@CLU`/`@SYN` narrative stacks, Python bridge upserts via `send_command`, and capped prompt formatters instead of raw warm dumps.
 
+See `application-notes/llm-tech-docs-decomposition.md` for **technical manual decomposition** (instrument PDFs, SCPI remote control): `@ART/@SEC/@CLM/@CMD` atomisation, R&S RTO rev 29 worked example covering connectivity plus acquisition/trigger/measurement SCPI, procedure layers with `precedes`/`requires`, domain LAW rows (DOC01, SCPI01–04), and two 6-step driver turns. Example map: `src/memnet/examples/schema.techdocs.example.txt`; seed: `workflow.rto-remote.example.txt`.
+
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
 When the current schema or examples change, re-run `memnet examples map` and `memnet tagmap show`.

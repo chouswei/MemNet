@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.13] — 2026-06-22
+
+### Added
+- **application-notes/llm-tech-docs-decomposition.md** — instrument manual / SCPI remote-mode decomposition (R&S RTO User Manual rev 29 worked example); `@CMD` user-map tag; two 6-step turns (hello + capture/measure).
+- **src/memnet/examples/schema.techdocs.example.txt** and **workflow.rto-remote.example.txt** — tech-docs tag map and RTO full command dictionary (4 584 `@CMD`, ~1 MB seed).
+- **scripts/extract_rto_scpi.py** — regenerates seed from `data/rto/UserManual_en_29.pdf`.
+- **data/rto/scpi_commands.txt** — tab-separated command index.
+- **tests/test_tag_map.py** — `test_techdocs_schema_and_workflow_parse` validates example seed against schema.
+
 ## [0.2.12] — 2026-06-22
 
 ### Added
@@ -139,7 +148,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/chouswei/MemNet/compare/v0.2.12...v0.2.13
 [0.2.7]: https://github.com/chouswei/MemNet/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/chouswei/MemNet/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/chouswei/MemNet/compare/v0.2.4...v0.2.5

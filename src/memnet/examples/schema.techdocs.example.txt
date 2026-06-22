@@ -1,0 +1,8 @@
+@CFG: id|corpus|anchor|version|notes
+@ART: id|title|source|kind|status|recycle
+@SEC: id|art|heading|numbering|parent|order|status|recycle
+@CLM: id|sec|type|code|status|recycle
+@CMD: id|sec|scpi|role|params_code|status|recycle
+@ENT: id|name|kind|code|recycle
+@TSK: id|goal|anchor|status|recycle
+@USR: id|key|value|recycle
