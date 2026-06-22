@@ -686,32 +686,74 @@ Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Boo
 
 1. Run `memnet serve` in a terminal.
 2. `pip install memnet-llm[mcp]`; copy [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) to `.cursor/mcp.json` and enable MCP.
-3. Select **gpt-5.4-nano** in the Cursor model picker (default). Optionally switch to **kimi-k2.5** if prose or persist quality drops — **do not use gpt-5.4-mini**.
+3. Select **kimi-k2.5** in the Cursor model picker (default). Optionally **gpt-5.4-nano** for cheaper turns if prose quality is acceptable — **do not use gpt-5.4-mini**.
 4. Edit [`novel-initial-state.md`](novel-initial-state.md) before a **new** story if needed.
 5. Chat: @novel-writer or「開始《晚明財閥傳》」→ agent runs `session_open(allow_new_relation=true)` → name gate → SCN01 beats.
 6. Save snapshot (CLI, separate terminal): `memnet session save --file novel.snap` with `$env:MEMNET_SESSION` set.
 
 Each story beat: **300–600 字** prose + **5 options** + HUD in chat; graph updates via MCP step 5 only.
 
-### MCP prose length tools (LAW-PROSE04)
+**Who writes prose:** MemNet holds state; the **orchestrator LLM** (**kimi-k2.5** default in Cursor) writes step-2 prose from **`query warm` wire rows** — all `@LAW:` rows are **always prepended**; `@RULE` / `@CHR` enter when EDG-linked. Style gates (**LAW-PROSE02/04–06**, **RULE08/19–25**) must live in the graph seed, not only in `.cursor/rules/novel-writer.mdc`. **Default register: 白話口語**（晚明鐵匠巷），金庸僅作節奏參考，禁止套句仿寫。
 
-MemNet MCP exposes deterministic length checks — do not guess character counts in chat.
+### MCP servers (graph vs prose)
+
+**MemNet MCP** (`memnet-mcp`) — graph / session only. **Novel-writer MCP** (`novel-mcp`) — chapter files and RULE09 length gates. Enable **both** in Cursor (see [`.cursor/mcp.json.example`](../.cursor/mcp.json.example)).
+
+### Novel-writer MCP tools (LAW-PROSE04)
+
+Do not guess character counts in chat. Use the **novel-writer** server (not memnet):
 
 | Tool | Purpose |
 |------|---------|
-| `prose_metrics(prose, min_chars=300, max_chars=600)` | Count 繁體字; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
-| `chapter_prose_append(prose, chapter_dir, chp_num, …)` | Validate length, then append **one** paragraph to `第{chp:03d}回.md`. Returns `file_char_total`, `paragraph_count`, `path`. Fails without writing if too short/long. |
-| `chapter_prose_append(..., replace_last_paragraph=true)` | RULE09 fix — replace the last beat paragraph only. |
+| **`chapter_prose_gate(prose, chapter_dir, chp_num, …)`** | **Preferred step 2:** metrics + append in **one** call. Returns `ok`, `count`, `file_char_total`, `path`. Fails without writing if too short/long. |
+| `prose_metrics(prose, min_chars=300, max_chars=600)` | Dry-run count only; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
+| `chapter_prose_append(…)` | Alias of `chapter_prose_gate` (backward compatible). |
+| `chapter_prose_gate(..., replace_last_paragraph=true)` | RULE09 fix — replace the last beat block only. |
+| `python scripts/novel_beat.py --prose-file …` | Shell fallback when novel-writer MCP unavailable — **max one** subprocess per beat. |
 
-**Step 2 sub-flow:** draft prose → `prose_metrics` → expand/trim in same turn if needed (max 2 retries) → `chapter_prose_append` → show player. Step 5 sets `@CHP.char_total` from returned `file_char_total`.
+### MemNet MCP (session / graph — step 1 & 5)
+
+| Tool | Purpose |
+|------|---------|
+| `session_load(file, keep_id=true)` | Restore snapshot before `query_warm` when resuming mid-story |
+| `session_save(file, session=id)` | Persist graph after step 5 |
+| `query_warm`, `add`, `update`, … | See MemNet MCP docs |
+
+### Prose register & dialogue (LAW-PROSE02/05/06, RULE08/19–25, LORE18)
+
+| Row | code field | Orchestrator → step-2 LLM |
+|-----|------------|---------------------------|
+| `@LAW: LAW-PROSE02\|*\|on_turn\|register\|step2_colloquial_plain_not_pastiche` | always prepended | **白話口語**，勿仿金庸文白套句 |
+| `@LAW: LAW-PROSE06\|*\|on_turn\|plain\|short_sentences_oral_narration` | always prepended | 短句、口語旁白，能念出聲 |
+| `@LORE: LORE18\|prose\|style\|colloquial_wanli_smithy` | warm via EDG | 萬曆小縣鐵匠巷白描 |
+| `@RULE: RULE08\|prose\|tone\|colloquial_baseline_not_jinyong_copy` | warm via USR02 | 金庸=節奏參考，非文風模板 |
+| `@RULE: RULE24\|prose\|register\|colloquial_plain_ming_town` | warm via LORE18 | 說/看/怕/成不成；少用「竟」「似…一般」 |
+| `@RULE: RULE25\|prose\|ban\|no_ai_pastiche_ops_poetry` | warm via USR02 | 禁 AI 流水帳+假昇華句 |
+
+### Prose dialogue & voice (LAW-PROSE05, RULE19–23, LAW-CHR05, TR01–TR15)
+
+| Row | code field | Orchestrator → step-2 LLM |
+|-----|------------|---------------------------|
+| `@LAW: LAW-PROSE05\|*\|on_turn\|dialogue\|step2_min35pct_speech_not_ops_log` | always prepended | ≥35% 對白+當下自白；窯火/打鐵寫戲劇不寫流水帳 |
+| `@LAW: LAW-CHR05\|CHR\|on_turn\|voice_sheet\|lock_dialogue_to_chr_trait_rule` | always prepended | 有台詞者必對照 warm 語氣表，禁千人一面 |
+| `@RULE: RULE19\|prose\|dialogue\|min35pct_3lines_end_on_speech` | warm via EDG | 姊妹在場 ≥3 句對白；段末落在台詞/選擇/內心一擊 |
+| `@RULE: RULE20\|prose\|voice\|cite_warm_chr_trait_rule_per_speaker` | warm via PLT01 | 每位說話者對照 `@CHR` + `@TRAIT` + RULE21–23 |
+| `@RULE: RULE21\|CHR01\|voice\|short_instruct_soul_inner_forbid_xindao` | warm via CHR01 | 北見肖：短句務實；識海引句；禁「心道/他知道」 |
+| `@RULE: RULE22\|CHR02\|voice\|soft_worry_duty_neighbor_fire_fear` | warm via CHR02 | 鐵蘭：柔軟擔心、責任、鄰里生計、怕走火缺銀 |
+| `@RULE: RULE23\|CHR03\|voice\|exclaim_money_mimic_shy_blurt` | warm via CHR03 | 鐵心：驚嘆數錢、學大人說錯、羞怯後脫口 |
+
+**`@TRAIT` (TR01–TR12):** per-character atomic voice (`speak` / `inner` / `drive` / `taboo` / `tone` / `fear`); reach warm via `CHRxx|has_trait|TRxx`. Full glossary: [`novel-initial-state.md`](novel-initial-state.md) voice sheet table.
+
+Pair with **LAW-CHR02** (`cite_looks_speak_personality_step2`) — `@CHR.speak` and `@CHR.personality` are the summary fields; TRAIT rows are the enforceable breakdown.
+
+**Step 2 sub-flow:** draft **350–450** 字 → `chapter_prose_gate` → expand/trim if needed (max 2 retries) → show player. Step 5 sets `@CHP.char_total` from returned `file_char_total`. Do **not** loop Shell/`python -c` for metrics on Windows.
 
 ```mermaid
 flowchart TD
-  Draft[Draft prose] --> Metrics[prose_metrics]
-  Metrics -->|ok=false| Expand[Expand or trim same turn]
-  Expand --> Metrics
-  Metrics -->|ok=true| Append[chapter_prose_append]
-  Append --> Show[Prose + options + HUD]
+  Draft[Draft prose 350-450] --> Gate[chapter_prose_gate]
+  Gate -->|ok=false| Expand[Expand or trim same turn]
+  Expand --> Gate
+  Gate -->|exit_code=0| Show[Prose + options + HUD]
 ```
 
 ## Chapter merge — LAW-OUT01 / LAW-OUT02
@@ -742,16 +784,15 @@ Options and HUD appear in chat only — **never** written to chapter files (RULE
 
 ```mermaid
 flowchart LR
-  Draft[Draft prose] --> Metrics[prose_metrics]
-  Metrics --> Append[chapter_prose_append]
-  Append --> File["第NNN回.md"]
+  Draft[Draft prose] --> Gate[chapter_prose_gate]
+  Gate --> File["第NNN回.md"]
   Opt["options + HUD"] -.->|"excluded"| File
-  Append --> CHP["file_char_total"]
+  Gate --> CHP["file_char_total"]
   CHP -->|"step 5 update"| Close{"close?"}
   Close -->|"2400-4200 or cap or SCN settle"| Next["new @CHP open"]
 ```
 
-1. **Step 2:** `prose_metrics` → `chapter_prose_append` to the open `@CHP` file (`# 第N回` on first segment; blank line between beat paragraphs). **One paragraph per turn.**
+1. **Step 2:** `chapter_prose_gate` to the open `@CHP` file (`# 第N回` on first segment; blank line between beat paragraphs). **One paragraph per turn.**
 2. **Step 5:** `update @CHP` — set `char_total` from MCP `file_char_total`; set `start_beat` / `end_beat` as needed.
 3. **Close chapter** when any of:
    - `char_total` ∈ **[2400, 4200]** and natural paragraph end;
@@ -773,8 +814,21 @@ flowchart LR
 @LAW: LAW-OUT01|*|on_turn|chapter_file|append_prose_only_after_step2
 @LAW: LAW-OUT02|CHP|on_turn|chapter_merge|close_on_target_or_cap_or_scn
 @LAW: LAW-PROSE04|*|on_turn|length_gate|call_prose_metrics_before_append
+@LAW: LAW-PROSE02|*|on_turn|register|step2_colloquial_plain_not_pastiche
+@LAW: LAW-PROSE05|*|on_turn|dialogue|step2_min35pct_speech_not_ops_log
+@LAW: LAW-PROSE06|*|on_turn|plain|short_sentences_oral_narration
+@LAW: LAW-CHR05|CHR|on_turn|voice_sheet|lock_dialogue_to_chr_trait_rule
+@RULE: RULE08|prose|tone|colloquial_baseline_not_jinyong_copy|persistent
+@RULE: RULE24|prose|register|colloquial_plain_ming_town|persistent
+@RULE: RULE25|prose|ban|no_ai_pastiche_ops_poetry|persistent
 @RULE: RULE17|out|chapter|filename_chp3_prose_only_no_options|persistent
 @RULE: RULE18|out|chapter|merge_beats_2400_4200_zh|persistent
+@RULE: RULE19|prose|dialogue|min35pct_3lines_end_on_speech|persistent
+@RULE: RULE20|prose|voice|cite_warm_chr_trait_rule_per_speaker|persistent
+@RULE: RULE21|CHR01|voice|short_instruct_soul_inner_forbid_xindao|persistent
+@RULE: RULE22|CHR02|voice|soft_worry_duty_neighbor_fire_fear|persistent
+@RULE: RULE23|CHR03|voice|exclaim_money_mimic_shy_blurt|persistent
+@TRAIT: TR01|CHR01|speak|short_instruct_no_flourish|persistent
 ```
 
 Opening seed: `@CHP: CHP01|1|0|0|0|open|persistent` — see [`novel-initial-state.md`](novel-initial-state.md).

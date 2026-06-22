@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
-from memnet_mcp.zh_text import count_zh_chars, prose_status
+from novel_mcp.zh_text import count_zh_chars, prose_status
 
 _DIGITS = "零一二三四五六七八九"
+_PARA_SPLIT = re.compile(r"\n\s*\n")
 
 
 def zh_chapter_label(chp_num: int) -> str:
@@ -34,26 +36,30 @@ def chapter_file_path(workspace_root: Path | str, chapter_dir: str, chp_num: int
 
 
 def _split_chapter_content(text: str) -> tuple[str | None, list[str]]:
-    """Return (heading_line, prose_paragraphs). Heading is first # line if present."""
+    """Return (heading_line, prose_paragraphs). Paragraphs split on blank lines."""
     lines = text.splitlines()
     heading: str | None = None
-    body_lines: list[str] = []
-    for line in lines:
+    body_start = 0
+    for i, line in enumerate(lines):
         stripped = line.strip()
         if not stripped:
             continue
         if stripped.startswith("#") and heading is None:
             heading = stripped
-            continue
-        body_lines.append(stripped)
-    return heading, body_lines
+            body_start = i + 1
+            break
+    body = "\n".join(lines[body_start:]).strip()
+    if not body:
+        return heading, []
+    paragraphs = [p.strip() for p in _PARA_SPLIT.split(body) if p.strip()]
+    return heading, paragraphs
 
 
 def file_char_total(paragraphs: list[str]) -> int:
     return sum(count_zh_chars(p) for p in paragraphs)
 
 
-def chapter_prose_append(
+def chapter_prose_gate(
     prose: str,
     *,
     chapter_dir: str,
@@ -63,6 +69,7 @@ def chapter_prose_append(
     max_chars: int = 600,
     replace_last_paragraph: bool = False,
 ) -> dict:
+    """Validate prose length (RULE09) and append one beat block in a single call."""
     status = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
     root = Path(workspace_root or Path.cwd())
     path = chapter_file_path(root, chapter_dir, chp_num)
@@ -100,7 +107,8 @@ def chapter_prose_append(
 
     out_lines = [heading, ""]
     for para in paragraphs:
-        out_lines.append(para)
+        for line in para.splitlines():
+            out_lines.append(line)
         out_lines.append("")
     while out_lines and out_lines[-1] == "":
         out_lines.pop()
@@ -120,3 +128,25 @@ def chapter_prose_append(
         "replaced_last": replace_last_paragraph,
         **status,
     }
+
+
+def chapter_prose_append(
+    prose: str,
+    *,
+    chapter_dir: str,
+    chp_num: int,
+    workspace_root: Path | str | None = None,
+    min_chars: int = 300,
+    max_chars: int = 600,
+    replace_last_paragraph: bool = False,
+) -> dict:
+    """Alias for chapter_prose_gate (backward compatible)."""
+    return chapter_prose_gate(
+        prose,
+        chapter_dir=chapter_dir,
+        chp_num=chp_num,
+        workspace_root=workspace_root,
+        min_chars=min_chars,
+        max_chars=max_chars,
+        replace_last_paragraph=replace_last_paragraph,
+    )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from memnet_mcp.zh_text import count_zh_chars, prose_status
+from novel_mcp.zh_text import count_zh_chars, prose_status
 
 
 def test_count_zh_chars_empty():

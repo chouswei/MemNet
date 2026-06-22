@@ -9,7 +9,7 @@ alwaysApply: false
 
 **Docs:** [`application-notes/llm-novel-writer.md`](application-notes/llm-novel-writer.md) — Play in Cursor, LAW/RULE index, chapter merge.
 
-**Model (Cursor picker):** default **gpt-5.4-nano**. Optional **kimi-k2.5** if prose or persist quality drops. **Do not use gpt-5.4-mini.**
+**Model (Cursor picker):** default **kimi-k2.5**. Optional **gpt-5.4-nano** only for low-cost turns (prose quality may drop). **Do not use gpt-5.4-mini.**
 
 ## Bootstrap extraction
 
@@ -31,30 +31,66 @@ alwaysApply: false
 
 After `session_open`, pass `session` on all MCP tools (`query_warm`, `add`, `update`, …).
 
+## MCP servers (two — graph vs prose)
+
+| Server | Cursor name | Tools |
+|--------|-------------|-------|
+| **memnet** | `user-memnet` | `serve_status`, `session_load`, `session_save`, `query_warm`, `add`, `update`, `read_get`, … |
+| **novel-writer** | `user-novel-writer` | `chapter_prose_gate`, `prose_metrics`, `chapter_prose_append` |
+
+Install: `pip install -e ".[mcp,novel-mcp]"`. Example config: [`.cursor/mcp.json.example`](.cursor/mcp.json.example).
+
+After code changes: **Settings → MCP → toggle both servers off/on** (Reload Window is not enough).
+
 ## Per-turn pipeline (one player message = one story beat)
 
 Complete steps 1–5 in the **same** turn after the player chooses (except step 3 waits for the **next** message).
 
-| Step | MCP | Output |
-|------|-----|--------|
-| 1 Read | `update STEP01\|1\|<focus>\|persistent`; `query_warm(anchor=STEP01, depth=2, session=id)` | internal |
-| 2 Write | `update STEP01\|2\|<focus>\|persistent`; **prose gate** (below) | 300–600字正文 + 5選項 + HUD; **no** graph `add`/`update` |
-| 3 Capture | — | wait for player |
-| 4 Analyse | re-read warm as needed | internal |
-| 5 Persist | `add`/`update` batch; `allow_new_relation=true` for novel EDGs | brief confirm (optional) |
+| Step | MCP server | Tool |
+|------|------------|------|
+| 1 Read | **memnet** | `session_load` (if resuming); `update STEP01`; `query_warm(anchor=STEP01, session=id)` |
+| 2 Write | **novel-writer** | `chapter_prose_gate(prose, chapter_dir, chp_num)` — prose only; no graph writes |
+| 5 Persist | **memnet** | `add`/`update` batch; `session_save`; `allow_new_relation=true` for novel EDGs |
 
 **Step 2 prose gate (LAW-PROSE04 — before player sees output):**
 
-1. Draft beat prose only (do **not** append yet).
-2. `prose_metrics(prose)` — must return `ok=true` (300–600 繁體字).
-3. If `ok=false`: expand or trim **in the same turn** (max **2** retries); re-call `prose_metrics`.
-4. `chapter_prose_append(prose, chapter_dir=USR06 path, chp_num=@CHP.chp_num)` — **only** chapter write entry; use returned `file_char_total` for step 5.
-5. Show player: prose + 5 options + HUD.
+**SSOT:** Prose style and pipeline constraints live in MemNet `@LAW` / `@RULE` rows. Every `query warm` **prepends all LAW rows** and reaches RULE/CHR via EDG — that wire block is what **Kimi 2.5** (default) sees when writing step 2. This `.mdc` mirrors orchestrator discipline only; **do not** rely on chat memory for codes absent from warm.
+
+1. Draft beat prose **350–450 繁體字** first (avoids short retries).
+2. **`chapter_prose_gate(prose, chapter_dir, chp_num, session=N/A)`** — **one MCP call** validates length and appends; must return `exit_code=0` and `ok=true`.
+3. If `ok=false`: expand or trim **in the same turn** (max **2** retries total); re-call **`chapter_prose_gate`** only — **not** separate `prose_metrics` + append.
+4. Optional dry-run: `prose_metrics(prose)` when tuning length **before** final gate — **never** loop Shell/`python -c` for metrics.
+5. Step 5 `@CHP.char_total` = MCP `file_char_total` — **never** hand-count.
+6. Show player: prose + 5 options + HUD.
+
+**Performance (Windows — avoid 「waiting for command to finish」):**
+
+| Rule | Detail |
+|------|--------|
+| Prefer MCP | **memnet:** `query_warm`, `session_load`, `add`/`update` — **novel-writer:** `chapter_prose_gate` |
+| Max Shell per beat | **1** — only fallback: `python scripts/novel_beat.py --prose-file …` if MCP unavailable |
+| No metric loops | **Forbidden:** `python -c` / subprocess `prose_metrics` retries (each Shell ~20 s on Windows) |
+| Draft length | Target **350–450** 字 on first draft; gate range stays 300–600 |
+| Session | `memnet serve` running; pass `session=<id>` on every graph MCP call |
+
+**Step 2 prose balance (LAW-PROSE02/05/06, RULE08/19–25, LAW-CHR02/05 — from warm, not chat):**
+
+| MemNet code | Meaning (orchestrator interprets for step-2 LLM) |
+|-------------|--------------------------------------------------|
+| **LAW-PROSE02** | **白話口語**，晚明小鐵匠巷；**禁止**刻意仿金庸文白 |
+| **LAW-PROSE06** | 短句、口語旁白，能念出聲；不要 AI 套句 |
+| **LAW-PROSE05** | Dialogue + immediate inner voice **≥ 35%**; drama not ops logs |
+| **RULE08 / RULE24–25** | 金庸只作節奏參考；禁「竟」「似…一般」、禁流水帳+假昇華結尾 |
+| **LORE18** | 場景錨：萬曆鐵匠巷白話寫生計窯火 |
+| **RULE19–23** | 對白比例、語氣表（TR01–15） |
+
+- Limit abstract summary chains（「心道」「他知道」「像…一般」）to **≤1** per beat.
+- If `prose_metrics` passes but dialogue ratio &lt; 35%, **expand with speech** before append (same turn).
 
 **Chapter append rules:**
 
 - **One paragraph per player turn** — never append multiple times to pad length.
-- **RULE09 fix:** `chapter_prose_append(..., replace_last_paragraph=true)` — replace this beat's last paragraph only.
+- **RULE09 fix:** `chapter_prose_gate(..., replace_last_paragraph=true)` — replace this beat's last paragraph only.
 - Step 5 `@CHP.char_total` = MCP `file_char_total` — **never** hand-count.
 - Do **not** manually edit chapter files for beats; use MCP tools only.
 
@@ -63,7 +99,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 ## Step 2 output template (order fixed)
 
 ```text
-〈300～600 字金庸筆調正文，繁體〉
+〈300～600 字**白話**正文，繁體；口語對白 ≥35%，像鐵匠巷裡真人在說話——勿仿金庸套句〉
 
 你要怎麼做？
 1. …（劇情，~medium）
@@ -89,7 +125,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 **Each story step 2 (not `ind_ledger`):**
 
 1. Find `@CHP` with `status=open` in warm (or mint `CHP01|1|0|0|0|open`).
-2. Run **prose gate** (above): `prose_metrics` → `chapter_prose_append` with `@CHP.chp_num` and USR06 `chapter_dir`.
+2. Run **prose gate** (above): `chapter_prose_gate` with `@CHP.chp_num` and USR06 `chapter_dir`.
 3. File contains **prose only** — no options, HUD, or meta (RULE17).
 
 **Step 5 — update `@CHP`:**
@@ -108,7 +144,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 - On close: `CHP.status=closed`, set `end_beat`; next beat mint new `@CHP` with `chp_num+1`, `status=open`, counters reset.
 - Sweet spot: **2800–3800** 字 (~5–6 beats at 300–600 each).
 
-**Rewrite (RULE09 fix):** `chapter_prose_append(..., replace_last_paragraph=true)` — replace only this beat's paragraph.
+**Rewrite (RULE09 fix):** `chapter_prose_gate(..., replace_last_paragraph=true)` — replace only this beat's paragraph.
 
 ## Step 5 discipline
 
@@ -121,7 +157,7 @@ Complete steps 1–5 in the **same** turn after the player chooses (except step 
 
 - No prose during step 5; no graph writes during step 2 (except STEP n update).
 - No manual chapter file append or multi-paragraph padding per turn.
-- No showing player prose before `prose_metrics` passes and `chapter_prose_append` succeeds.
+- No showing player prose before `chapter_prose_gate` returns `exit_code=0`.
 - No meta in prose (`SCN01`, wire field names, raw stats).
 - No inventing IND/PRD/TEC not in warm.
 - No re-reading initial-state doc mid-story.

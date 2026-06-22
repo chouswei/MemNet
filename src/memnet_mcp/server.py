@@ -15,10 +15,8 @@ except ImportError as exc:
 
 from memnet.config import serve_host, serve_port
 from memnet.serve import probe
-from memnet_mcp.chapter_io import chapter_prose_append as do_chapter_prose_append
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.seed import supplement_seed_lines
-from memnet_mcp.zh_text import prose_status
 
 mcp = FastMCP("memnet")
 
@@ -99,6 +97,35 @@ async def session_current(session: str | None = None) -> str:
 
 
 @mcp.tool()
+async def session_load(
+    file: str,
+    keep_id: bool = True,
+    ttl: int | None = None,
+) -> str:
+    """Load a snapshot file into memnet serve (restores graph state).
+
+    Returns session id in stdout/stderr. Does not require an existing session.
+    Use before query_warm / add / update when resuming mid-story.
+    """
+    argv = ["session", "load", "--file", file]
+    if keep_id:
+        argv.append("--keep-id")
+    if ttl is not None:
+        argv.extend(["--ttl", str(ttl)])
+    resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv))
+    return _json(resp)
+
+
+@mcp.tool()
+async def session_save(
+    file: str,
+    session: str | None = None,
+) -> str:
+    """Write the current session graph to a snapshot file."""
+    return await _run(["session", "save", "--file", file], session=session)
+
+
+@mcp.tool()
 async def query_warm(
     anchor: str,
     depth: int = 2,
@@ -163,51 +190,6 @@ async def read_get(id: str, session: str | None = None) -> str:
 async def housekeep_stats(session: str | None = None) -> str:
     """Return row counts and caps for the session."""
     return await _run(["housekeep", "stats"], session=session)
-
-
-@mcp.tool()
-async def prose_metrics(
-    prose: str,
-    min_chars: int = 300,
-    max_chars: int = 600,
-) -> str:
-    """Count Traditional Chinese narrative chars (RULE09). No file I/O.
-
-    Returns count, ok, short_by, long_by, min, max, hint. Use before chapter append.
-    """
-    payload = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
-    payload["exit_code"] = 0
-    payload["errors"] = []
-    return json.dumps(payload, ensure_ascii=False)
-
-
-@mcp.tool()
-async def chapter_prose_append(
-    prose: str,
-    chapter_dir: str,
-    chp_num: int,
-    min_chars: int = 300,
-    max_chars: int = 600,
-    workspace_root: str | None = None,
-    replace_last_paragraph: bool = False,
-) -> str:
-    """Validate prose length and append (or replace last) one paragraph to a chapter file.
-
-    Fails without writing when prose is outside min_chars..max_chars. Returns
-    appended_chars, file_char_total, paragraph_count, path. workspace_root defaults to cwd.
-    """
-    result = await anyio.to_thread.run_sync(
-        lambda: do_chapter_prose_append(
-            prose,
-            chapter_dir=chapter_dir,
-            chp_num=chp_num,
-            workspace_root=workspace_root,
-            min_chars=min_chars,
-            max_chars=max_chars,
-            replace_last_paragraph=replace_last_paragraph,
-        )
-    )
-    return json.dumps(result, ensure_ascii=False)
 
 
 def main() -> None:

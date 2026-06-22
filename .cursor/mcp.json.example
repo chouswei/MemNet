@@ -2,6 +2,13 @@
   "mcpServers": {
     "memnet": {
       "command": "memnet-mcp",
+      "env": {
+        "MEMNET_SERVE_HOST": "127.0.0.1",
+        "MEMNET_SERVE_PORT": "18765"
+      }
+    },
+    "novel-writer": {
+      "command": "novel-mcp",
       "env": {}
     }
   }

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from memnet_mcp.chapter_io import chapter_prose_append, chapter_heading
+from novel_mcp.chapter_io import chapter_prose_append, chapter_heading, _split_chapter_content
 
 
 def _zh(n: int) -> str:
@@ -74,3 +74,10 @@ def test_replace_last_without_paragraph_fails(tmp_path: Path):
     )
     assert result["exit_code"] == 1
     assert "no_paragraph" in result["errors"][0]
+
+
+def test_split_paragraphs_on_blank_lines():
+    text = "# 第六回\n\n第一段落。\n\n第二段落。"
+    heading, paragraphs = _split_chapter_content(text)
+    assert heading == "# 第六回"
+    assert paragraphs == ["第一段落。", "第二段落。"]

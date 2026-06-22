@@ -83,8 +83,19 @@ class MemNetResponse:
         )
 
 
+_NO_SESSION_ARG = frozenset({
+    ("session", "load"),
+    ("session", "open"),
+    ("session", "list"),
+    ("session", "close"),
+})
+
+
 def _append_session(argv: list[str], session: str | None) -> list[str]:
     out = list(argv)
+    key = (argv[0], argv[1]) if len(argv) >= 2 else ()
+    if key in _NO_SESSION_ARG:
+        return out
     if session and "--session" not in out:
         out.extend(["--session", session])
     return out

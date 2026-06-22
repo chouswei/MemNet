@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.12] — 2026-06-22
+
+### Added
+- **`novel_mcp`** package and **`novel-mcp`** MCP server — `prose_metrics`, `chapter_prose_gate`, `chapter_prose_append` (application layer, separate from graph MCP).
+- MemNet MCP **`session_load`** and **`session_save`** tools for snapshot restore/persist without Shell.
+- **`scripts/novel_beat.py`**, **`scripts/bench_novel_turn.py`** — novel beat CLI and turn benchmark helpers.
+
+### Changed
+- **Breaking:** prose/chapter MCP tools removed from **`memnet-mcp`**; use **`novel-mcp`** for step-2 chapter writes.
+- Chapter file reader splits beat blocks on **blank lines** (fixes one-line-per-sentence paragraph inflation).
+- **application-notes/llm-sysml-v2-modeling.md**, novel writer docs, and initial-state note updated.
+
+### Removed
+- `memnet_mcp/chapter_io.py`, `memnet_mcp/zh_text.py` — moved to `novel_mcp/`.
+
 ## [0.2.11] — 2026-06-17
 
 ### Added
