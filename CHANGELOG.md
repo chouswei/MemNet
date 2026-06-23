@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.16] — 2026-06-23
+
+### Fixed
+- **application-notes/llm-tech-docs-decomposition.md** — Mermaid diagram parse error (`@` in node labels; reserved `graph` subgraph id).
+
 ## [0.2.15] — 2026-06-23
 
 ### Added
@@ -169,7 +174,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.15...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.16...HEAD
+[0.2.16]: https://github.com/chouswei/MemNet/compare/v0.2.15...v0.2.16
 [0.2.15]: https://github.com/chouswei/MemNet/compare/v0.2.14...v0.2.15
 [0.2.14]: https://github.com/chouswei/MemNet/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/chouswei/MemNet/compare/v0.2.12...v0.2.13
