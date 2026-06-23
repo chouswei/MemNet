@@ -233,7 +233,7 @@ No JSON on the wire for LLM consumption — only the `@TAG:` lines plus a handfu
 
 ## Application notes
 
-Six self-contained worked examples live under `application-notes/` — each shows a complete MemNet pattern (schema, seed, 6-step loop, domain LAW rows). Ordered by typical adoption path, not release date.
+Seven self-contained worked examples live under `application-notes/` — each shows a complete MemNet pattern (schema, seed, 6-step loop, domain LAW rows). Ordered by typical adoption path, not release date.
 
 | # | Note | Pattern |
 |---|------|---------|
@@ -243,6 +243,7 @@ Six self-contained worked examples live under `application-notes/` — each show
 | 4 | [llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) | **SysML v2 textual modeling** — 6U CubeSat PDU, `@PKG` cross-file refs, allocations/ports/traceability from rows, runtime behaviour budgeting |
 | 5 | [llm-novel-writer.md](application-notes/llm-novel-writer.md) | **Interactive novel / RPG** — 6-step read → context → user-input-as-data → analyse → update → loop; `@LORE`/`@SCN`/`@STEP`, chapter merge |
 | 6 | [llm-mud.md](application-notes/llm-mud.md) | **Multiplayer text MUD** — server-side world agent + client prose agents, *Alice in Wonderland* sample; tiered atomisation, `scripts/load_test_mud.py` |
+| 7 | [llm-build-on-memnet.md](application-notes/llm-build-on-memnet.md) | **Builder guide** — author your own MCP server (`FastMCP` + `run_memnet` bridge, JSON envelope, LAW supplementation) and Cursor skill pack (`SKILL.md` frontmatter, `references/` split, `mcp.json` registration); worked example = `mcp-memnet` skill + `novel-mcp` application split |
 
 Supplement: [novel-initial-state.md](application-notes/novel-initial-state.md) — bootstrap rows for the novel writer MCP pipeline.
 

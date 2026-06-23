@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **application-notes/llm-build-on-memnet.md** — seventh application note; builder guide for writing MCP servers + Cursor skill packs on top of MemNet (FastMCP + `run_memnet` bridge, JSON envelope, LAW supplementation, skill-pack anatomy, `mcp.json` registration); worked example = `mcp-memnet` skill pack with `novel-mcp` split as secondary illustration.
+
+### Changed
+- **README.md**, **LLM-GUIDE.md** — application-notes index extended from 6 to 7 rows.
+
 ## [0.2.14] — 2026-06-23
 
 ### Added

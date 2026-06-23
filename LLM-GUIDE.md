@@ -122,6 +122,8 @@ memnet housekeep prune recyclable --apply
 ```
 to physically remove them and free cap space. Emit this after settlement when the graph is getting noisy.
 
+**`prune stale` vs `prune recyclable`** — both physically remove rows. `prune stale` deletes anything the engine flags as stale (expired TTL, dangling edges, orphans, plus recyclable). `prune recyclable` is the precise variant for rows you settled with `recycle=delete_on_*`. After a settlement batch, `prune recyclable --apply` is the surgical choice; `prune stale --apply` is the bigger broom.
+
 ---
 
 ## Reading strategy
@@ -193,10 +195,12 @@ Treat these as first-class signals. Adjust behaviour (switch anchor, prune, sett
 
 - One task → one session id.
 - `session open --map-file ...` (or `--map` lines) at the very beginning of a big job.
-- `session resume $env:MEMNET_SESSION` on every subsequent turn (or rely on the env var).
+- Subsequent turns auto-bind via the `MEMNET_SESSION` env var; explicit `session resume <id>` is only needed when the env var is unset or pointing elsewhere.
 - `session current` and `session list` to inspect.
 - When the whole job is finished: `session close`.
-- Optional durability: `session save --file my-job.snap` before risky steps or at major milestones. Restore later with `session load --file my-job.snap [--ttl 120]`.
+- **Durability across days:** `session save --file my-job.snap` at milestones; restore with `session load --file my-job.snap --keep-id [--ttl 120]`. The MCP tools `session_save` / `session_load` (added in v0.2.12) expose the same flow without Shell — `session_load` defaults `keep_id=true` so resumed agents reuse the snapshot session id. See `application-notes/llm-software-development.md` (§6 + §9) for the multi-day coding workflow.
+
+**Add vs update on a resumed snapshot:** after `session load`, every saved row is alive again — `add` for those ids will fail `id_exists`. Use `update` for changes; reserve `add` for genuinely new atoms discovered this turn.
 
 Default TTL is 60 minutes. Override with `--ttl` on open/load or the `MEMNET_SESSION_TTL_MINUTES` env var.
 
@@ -276,17 +280,27 @@ memnet query warm --anchor PLR01
 
 ## Quick reference for agents
 
+**CLI:**
+
 - `memnet serve` — must be running (one terminal).
 - `memnet session open --map-file ... [--ttl 90]`
+- `memnet session save --file <snap>` · `memnet session load --file <snap> --keep-id`
 - `memnet add --stdin ...` — new rows only
 - `memnet update --stdin ...` — existing rows only
 - `memnet query warm --anchor <id> [--depth 2]`
-- `memnet housekeep stale`
-- `memnet housekeep prune stale --apply`
+- `memnet housekeep stale` · `memnet housekeep prune stale --apply` (broad) · `memnet housekeep prune recyclable --apply` (settled only)
 - `memnet relations list`
 - `memnet tagmap fields --tag <TAG>`
 - `memnet guide --loose` — short cheat sheet.
 - `memnet examples map|workflow`
+
+**MCP (when `memnet-mcp` is registered):**
+
+- `session_open(map_lines=[...], seed_lines=[...], ttl=...)` — auto-seeds engine LAW01–LAW05
+- `session_save(file=...)` · `session_load(file=..., keep_id=True)`
+- `query_warm(anchor=<id>, depth=2)`
+- `add(wire_lines=[...])` · `update(wire_lines=[...])`
+- `serve_status` first; abort if `running=false`
 
 **Application notes** (under `application-notes/`, ordered by typical adoption path):
 
@@ -298,8 +312,9 @@ memnet query warm --anchor PLR01
 | 4 | `llm-sysml-v2-modeling.md` | **SysML v2 modeling** — PDU controller, cross-package `@PKG` refs, allocations, traceability from rows |
 | 5 | `llm-novel-writer.md` | **Interactive novel / RPG** — 6-step pipeline, persistent bibles/rules, `@STEP` anchoring, chapter merge |
 | 6 | `llm-mud.md` | **Multiplayer MUD** — shared server graph, client prose agents, tiered room atomisation |
+| 7 | `llm-build-on-memnet.md` | **Builder guide** — write your own MCP server + Cursor skill pack on top of MemNet (FastMCP wrapper, JSON envelope, LAW supplementation, `mcp.json` registration) |
 
-See `application-notes/llm-novel-writer.md` for EDG wiring every scene to LORE/CHR/RULE dependencies and transient links settled with `delete_on_settle`.
+Row 5 (novel writer) is the canonical reference for **EDG wiring discipline** — every scene anchored to its LORE/CHR/RULE dependencies, transient links settled with `delete_on_settle`. Read it for an end-to-end demonstration of the goldfish loop on a stateful domain. Row 7 is for **integrators**, not runtime agents.
 
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
