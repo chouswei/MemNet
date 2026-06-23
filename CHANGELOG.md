@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.18] — 2026-06-23
+
+### Changed
+- **memnet.housekeep** — single-pass `_categorise` walker now shared by `stats`, `stale_rows`, `prune_stale`, `dangling_rows`, and `orphan_rows`. Previously `stats` walked the store five times (one each for `row_count_non_law`, edges scan, recyclable, dangling, orphans); now once. Public API unchanged.
+
 ## [0.2.17] — 2026-06-23
 
 ### Fixed
