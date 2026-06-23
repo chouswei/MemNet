@@ -176,6 +176,58 @@ def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
     assert "LAW05" in warm_payload["stdout"]
 
 
+def test_session_open_seed_lines_unknown_relation_aborts(memnet_temp, schema_file, monkeypatch):
+    """Seed batch with a novel @EDG relation must surface the error and roll back."""
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    from memnet_mcp.server import housekeep_stats, session_open
+
+    seed = [
+        "@CFG: CFG01|x|CFG01|1|x|x",
+        "@PLR: PLR01|Hero|1|0|0|0|x",
+        "@PLR: PLR02|Friend|1|0|0|0|x",
+        "@EDG: E1|PLR01|owns|PLR02|tie|persistent",
+    ]
+    open_raw = asyncio.run(
+        session_open(
+            map_lines=schema_file.read_text(encoding="utf-8").strip().splitlines(),
+            seed_lines=seed,
+        )
+    )
+    payload = json.loads(open_raw)
+    assert payload["exit_code"] != 0, "seed batch with unknown relation must fail closed"
+    assert any("unknown_relation" in e for e in payload["errors"]), payload["errors"]
+    sid = payload["session_id"]
+    stats_raw = asyncio.run(housekeep_stats(session=sid))
+    stats_payload = json.loads(stats_raw)
+    assert "rows|0" in stats_payload["stdout"], stats_payload["stdout"]
+
+
+def test_session_open_seed_lines_allow_new_relation(memnet_temp, schema_file, monkeypatch):
+    """Same seed batch succeeds when allow_new_relation=True is passed through."""
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    from memnet_mcp.server import housekeep_stats, session_open
+
+    seed = [
+        "@CFG: CFG01|x|CFG01|1|x|x",
+        "@PLR: PLR01|Hero|1|0|0|0|x",
+        "@PLR: PLR02|Friend|1|0|0|0|x",
+        "@EDG: E1|PLR01|owns|PLR02|tie|persistent",
+    ]
+    open_raw = asyncio.run(
+        session_open(
+            map_lines=schema_file.read_text(encoding="utf-8").strip().splitlines(),
+            seed_lines=seed,
+            allow_new_relation=True,
+        )
+    )
+    payload = json.loads(open_raw)
+    assert payload["exit_code"] == 0, payload
+    sid = payload["session_id"]
+    stats_raw = asyncio.run(housekeep_stats(session=sid))
+    stats_payload = json.loads(stats_raw)
+    assert "rows|4" in stats_payload["stdout"], stats_payload["stdout"]
+
+
 def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
     from memnet_mcp.server import query_warm, session_open

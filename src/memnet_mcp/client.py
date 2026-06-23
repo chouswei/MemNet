@@ -114,7 +114,9 @@ def _run_inline(argv: list[str], *, stdin: str | None) -> dict:
         sys.stdin = io.StringIO(stdin)
     code = 0
     try:
-        app(argv, prog_name="memnet", standalone_mode=False)
+        result = app(argv, prog_name="memnet", standalone_mode=False)
+        if isinstance(result, int) and result != 0:
+            code = result
     except SystemExit as exc:
         code = int(exc.code) if isinstance(exc.code, int) else 1
     except Exception as exc:

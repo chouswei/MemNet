@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.17] — 2026-06-23
+
+### Fixed
+- **memnet_mcp.client._run_inline** — captured `app(..., standalone_mode=False)` return value. Previously `typer.Exit(n)` was converted by click to a return value and silently discarded, so MCP tools (e.g. `add`, `update`) reported `exit_code=0` even when the underlying command failed (e.g. `unknown_relation`). Errors still appeared in `errors[]` but the exit code lied.
+- **memnet_mcp.server.session_open** — exposes `allow_new_relation: bool = False` and pipes it into the seed-add subcall. Lets callers seed `@EDG` rows with novel relations in a single tool invocation; without it the seed batch silently rolls back on the first unknown relation, leaving `rows=0`.
+
+### Tests
+- `tests/test_mcp.py::test_session_open_seed_lines_unknown_relation_aborts` — locks in fail-closed behaviour.
+- `tests/test_mcp.py::test_session_open_seed_lines_allow_new_relation` — verifies the new flag.
+
 ## [0.2.16] — 2026-06-23
 
 ### Fixed

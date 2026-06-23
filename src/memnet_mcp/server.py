@@ -50,12 +50,17 @@ async def session_open(
     map_file: str | None = None,
     ttl: int | None = None,
     seed_lines: list[str] | None = None,
+    allow_new_relation: bool = False,
 ) -> str:
     """Open a new MemNet session with a tag map (map_lines preferred over map_file).
 
     Optional seed_lines are added via add --stdin immediately after open (e.g. @CFG anchor
     and domain @LAW rows). Core LAW01–LAW05 are auto-included when missing so every warm
     read carries engine invariants without relying on chat memory.
+
+    Set allow_new_relation=True when seed_lines include @EDG rows with relations beyond
+    the four built-in (binds/links/produces/seeks_help); otherwise the seed batch will
+    abort on the first unknown relation and roll back, leaving the session empty.
     """
     if map_file:
         argv: list[str] = ["session", "open", "--map-file", map_file]
@@ -79,9 +84,12 @@ async def session_open(
     open_resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv))
     effective_seed = supplement_seed_lines(seed_lines)
     if open_resp.exit_code == 0 and open_resp.session_id and effective_seed:
+        add_argv = ["add", "--stdin"]
+        if allow_new_relation:
+            add_argv.append("--allow-new-relation")
         seed_resp = await anyio.to_thread.run_sync(
             lambda: run_memnet(
-                ["add", "--stdin"],
+                add_argv,
                 stdin="\n".join(effective_seed),
                 session=open_resp.session_id,
             )
