@@ -233,19 +233,18 @@ No JSON on the wire for LLM consumption — only the `@TAG:` lines plus a handfu
 
 ## Application notes
 
-Rich, document-style worked examples live under `application-notes/`. These are self-contained narratives (one `.md` per note) showing complete usage patterns with all data — including background, configurations, bibles, rules, and user preferences — kept inside MemNet.
+Six self-contained worked examples live under `application-notes/` — each shows a complete MemNet pattern (schema, seed, 6-step loop, domain LAW rows). Ordered by typical adoption path, not release date.
 
-See [application-notes/llm-novel-writer.md](application-notes/llm-novel-writer.md) for the first example: an interactive LLM novel writer driven by the explicit 6-step read → context → user-input-as-data → analyse → update → loop pipeline.
+| # | Note | Pattern |
+|---|------|---------|
+| 1 | [llm-software-development.md](application-notes/llm-software-development.md) | **Multi-turn coding in Cursor** — `@MOD`/`@SYM`/`@TSK`/`@USR`/`@DEC`, verified locators, v0.2.12 `session_load`/`session_save` retrospective; complements grep/LSP/git and Cursor codebase indexing |
+| 2 | [llm-daily-news.md](application-notes/llm-daily-news.md) | **Batch RSS digest** (~100 articles/day) — run-scoped working memory (120-min TTL), `@KYWD` hub salience, `@CLU`/`@SYN` layers, Python bridge via `send_command` |
+| 3 | [llm-tech-docs-decomposition.md](application-notes/llm-tech-docs-decomposition.md) | **Instrument manual / SCPI remote mode** — R&S RTO rev 29, 4 584 `@CMD`, procedure layers with `precedes`/`requires`, two driver turns; `scripts/extract_rto_scpi.py` |
+| 4 | [llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) | **SysML v2 textual modeling** — 6U CubeSat PDU, `@PKG` cross-file refs, allocations/ports/traceability from rows, runtime behaviour budgeting |
+| 5 | [llm-novel-writer.md](application-notes/llm-novel-writer.md) | **Interactive novel / RPG** — 6-step read → context → user-input-as-data → analyse → update → loop; `@LORE`/`@SCN`/`@STEP`, chapter merge |
+| 6 | [llm-mud.md](application-notes/llm-mud.md) | **Multiplayer text MUD** — server-side world agent + client prose agents, *Alice in Wonderland* sample; tiered atomisation, `scripts/load_test_mud.py` |
 
-See [application-notes/llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) for the second: LLM-assisted SysML v2 textual modeling (6U CubeSat PDU controller) with the same 6-step pipeline, a SysML v2 syntax reference table, a deployable "whole model as rows" block, explicit demonstration that models living in different .sysml files are easily referred to together via @PKG rows + declaredIn / cross-package EDG, and concrete examples of using the graph to help build the system (allocations, ports and connections driving wiring, implementation tasks and deployment), write the system model docs (interconnection views, behaviour specs, traceability matrices generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis, latency and power budgeting). Warm + EDG + settlement still keeps every turn's slice small, granular and on-demand.
-
-See [application-notes/llm-mud.md](application-notes/llm-mud.md) for the third: a multiplayer text MUD pattern (*Alice in Wonderland* sample world) with a **server-side MUD agent** (active rooms, ticks, NPC actions on the shared graph) and **client-side player agents** (LLM generates room prose from `query warm` slices; no descriptions stored on `@ROM` rows). Covers tiered atomisation for large maps, deterministic `go`/`get`, server deltas, and load-test capacity notes via `scripts/load_test_mud.py`.
-
-See [application-notes/llm-daily-news.md](application-notes/llm-daily-news.md) for the fourth: a **daily RSS digest pipeline** (~100 articles/day) where MemNet is run-scoped working memory (120-minute TTL sessions). Covers minimal `@KYWD` hub nodes with degree metrics, cross-article linkage via shared tokens, layered `@CLU`/`@SYN` summarisation, prompt formatters as bounded views over `query warm`, batched upserts from Python via `send_command`, and graceful fallback when `memnet serve` is unavailable.
-
-See [application-notes/llm-tech-docs-decomposition.md](application-notes/llm-tech-docs-decomposition.md) for the fifth: **instrument manual / SCPI remote-mode decomposition** (R&S RTO User Manual rev 29) — full **4 584-command** `@CMD` dictionary from the manual *List of commands*, subsystem `@SEC` grouping, procedure layers with `precedes`/`requires`, two 6-step turns, and `scripts/extract_rto_scpi.py` to regenerate from PDF.
-
-See [application-notes/llm-software-development.md](application-notes/llm-software-development.md) for the sixth: **multi-turn coding in Cursor** — agent-maintained `@MOD`/`@SYM`/`@TSK` graph (verified locators, user constraints, open decisions) complementary to grep/LSP/git and Cursor codebase indexing; retrospective v0.2.12 `session_load`/`session_save` MCP tools with two 6-step turns; example map `schema.coding.example.txt` and seed `workflow.coding.example.txt`.
+Supplement: [novel-initial-state.md](application-notes/novel-initial-state.md) — bootstrap rows for the novel writer MCP pipeline.
 
 ## Development
 

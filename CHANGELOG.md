@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.14] — 2026-06-23
+
 ### Added
 - **application-notes/llm-software-development.md** — multi-turn coding in Cursor; retrospective v0.2.12 `session_load`/`session_save` MCP tools; `@TSK` anchor field; `@USR`/`@DEC` patterns.
 - **src/memnet/examples/schema.coding.example.txt** and **workflow.coding.example.txt** — coding tag map and tutorial seed (~45 rows).
 - **tests/test_tag_map.py** — `test_coding_schema_and_workflow_parse` validates coding example seed against schema.
+
+### Changed
+- **README.md**, **LLM-GUIDE.md** — application notes reordered by adoption path (coding → batch → manual → SysML → novel → MUD); compact index table replaces chronological "first…sixth" list.
+
+### Fixed
+- **application-notes/llm-software-development.md** — Mermaid diagram parse error (`@` in node labels; reserved `graph` subgraph id).
 
 ## [0.2.13] — 2026-06-22
 
@@ -153,7 +161,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.13...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/chouswei/MemNet/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/chouswei/MemNet/compare/v0.2.12...v0.2.13
 [0.2.7]: https://github.com/chouswei/MemNet/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/chouswei/MemNet/compare/v0.2.5...v0.2.6

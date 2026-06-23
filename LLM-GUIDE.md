@@ -288,15 +288,18 @@ memnet query warm --anchor PLR01
 - `memnet guide --loose` — short cheat sheet.
 - `memnet examples map|workflow`
 
-**Application note:** see `application-notes/llm-novel-writer.md` for a long-running creative writing example that follows the explicit 6-step pipeline (read → context → user input as data → analyse citing rows → add/update with correct recycle → loop) where background, configurations, bibles, rules and user preferences are kept as persistent rows inside the graph.
+**Application notes** (under `application-notes/`, ordered by typical adoption path):
 
-See `application-notes/llm-sysml-v2-modeling.md` for LLM-assisted SysML v2 textual modeling (PDU controller on a 6U CubeSat) using the same pipeline, a prominent SysML v2 syntax reference table, a deployable "complete model as rows" block, explicit demonstration that models whose definitions live in different .sysml files are easily referred to together via lightweight @PKG rows + declaredIn / cross-package EDG, and worked examples of using the graph to help build the system (allocations, ports and connections driving implementation tasks, wiring and deployment), write the official system model documentation (interconnection, behaviour and traceability artefacts generated from the rows), and evaluate runtime behaviour (BEHD + timing/power + allocations for analysis and budgeting). `query warm --anchor` + EDG + settlement still keeps every turn's injected slice small, granular and on-demand.
+| # | Note | Summary |
+|---|------|---------|
+| 1 | `llm-software-development.md` | Multi-turn **coding in Cursor** — `@CFG`/`@MOD`/`@SYM`/`@TSK`/`@USR`/`@DEC`, snapshot discipline, v0.2.12 session MCP retrospective |
+| 2 | `llm-daily-news.md` | **Batch RSS digest** — session-scoped working memory, `@KYWD` hubs, `@CLU`/`@SYN` layers, Python bridge |
+| 3 | `llm-tech-docs-decomposition.md` | **Manual / SCPI decomposition** — RTO rev 29 remote mode, `@CMD` dictionary, procedure layers, driver turns |
+| 4 | `llm-sysml-v2-modeling.md` | **SysML v2 modeling** — PDU controller, cross-package `@PKG` refs, allocations, traceability from rows |
+| 5 | `llm-novel-writer.md` | **Interactive novel / RPG** — 6-step pipeline, persistent bibles/rules, `@STEP` anchoring, chapter merge |
+| 6 | `llm-mud.md` | **Multiplayer MUD** — shared server graph, client prose agents, tiered room atomisation |
 
-See `application-notes/llm-daily-news.md` for a batch RSS digest pipeline where MemNet is **session-scoped working memory** (not a permanent archive): `@KYWD` hub nodes with `edge_num` salience, ENT/THM/KYWD layering, `@CLU`/`@SYN` narrative stacks, Python bridge upserts via `send_command`, and capped prompt formatters instead of raw warm dumps.
-
-See `application-notes/llm-tech-docs-decomposition.md` for **technical manual decomposition** (instrument PDFs, SCPI remote control): `@ART/@SEC/@CLM/@CMD` atomisation, R&S RTO rev 29 worked example covering connectivity plus acquisition/trigger/measurement SCPI, procedure layers with `precedes`/`requires`, domain LAW rows (DOC01, SCPI01–04), and two 6-step driver turns. Example map: `src/memnet/examples/schema.techdocs.example.txt`; seed: `workflow.rto-remote.example.txt`.
-
-See `application-notes/llm-software-development.md` for **multi-turn software development in Cursor**: `@CFG/@MOD/@SYM/@TSK/@USR/@DEC` coding schema, domain LAW rows (CODE01–04, project-local MEMNET01), session snapshot discipline, and a retrospective walkthrough of v0.2.12 `session_load`/`session_save` MCP tools (CLI wrap pattern, layer-prefixed symbols, two 6-step turns). Example map: `src/memnet/examples/schema.coding.example.txt`; seed: `workflow.coding.example.txt`.
+See `application-notes/llm-novel-writer.md` for EDG wiring every scene to LORE/CHR/RULE dependencies and transient links settled with `delete_on_settle`.
 
 **Read this file (`LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
