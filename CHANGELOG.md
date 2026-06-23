@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.15] — 2026-06-23
+
 ### Added
 - **application-notes/llm-build-on-memnet.md** — seventh application note; builder guide for writing MCP servers + Cursor skill packs on top of MemNet (FastMCP + `run_memnet` bridge, JSON envelope, LAW supplementation, skill-pack anatomy, `mcp.json` registration); worked example = `mcp-memnet` skill pack with `novel-mcp` split as secondary illustration.
 
 ### Changed
-- **README.md**, **LLM-GUIDE.md** — application-notes index extended from 6 to 7 rows.
+- **README.md**, **LLM-GUIDE.md** — application-notes index extended from 6 to 7 rows; LLM-GUIDE adds `prune stale` vs `prune recyclable` clarification, session snapshot / MCP `session_save`/`session_load` guidance, CLI + MCP quick-reference subsections.
 
 ## [0.2.14] — 2026-06-23
 
@@ -167,7 +169,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.14...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.15...HEAD
+[0.2.15]: https://github.com/chouswei/MemNet/compare/v0.2.14...v0.2.15
 [0.2.14]: https://github.com/chouswei/MemNet/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/chouswei/MemNet/compare/v0.2.12...v0.2.13
 [0.2.7]: https://github.com/chouswei/MemNet/compare/v0.2.6...v0.2.7
