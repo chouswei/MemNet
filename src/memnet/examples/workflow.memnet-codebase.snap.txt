@@ -1,0 +1,218 @@
+@LAW: LAW-SNAP01|SYM|on_add|verify_first|grep_before_sym_row
+@LAW: LAW-SNAP02|MOD|on_add|one_per_file|one_mod_per_source_file
+@CFG: CFG01|MemNet|MOD_repo_root|0.2.16|memnet_codebase_snap
+@MOD: MOD_repo_root|.|MemNet repo root|active|persistent
+@TSK: TSK_codebase_snap_memnet|Full MemNet src index|MOD_repo_root|in_progress|persistent
+@USR: USR_snap_scope|scope|src key entrypoints light snap|active|persistent
+@MOD: MOD_src_memnet___init___py|src/memnet/__init__.py|__init__.py engine|active|persistent
+@MOD: MOD_src_memnet___main___py|src/memnet/__main__.py|__main__.py engine|active|persistent
+@MOD: MOD_src_memnet_cli_py|src/memnet/cli.py|cli.py engine|active|persistent
+@MOD: MOD_src_memnet_config_py|src/memnet/config.py|config.py engine|active|persistent
+@MOD: MOD_src_memnet_exceptions_py|src/memnet/exceptions.py|exceptions.py engine|active|persistent
+@MOD: MOD_src_memnet_filter_py|src/memnet/filter.py|filter.py engine|active|persistent
+@MOD: MOD_src_memnet_fixed_tags_py|src/memnet/fixed_tags.py|fixed_tags.py engine|active|persistent
+@MOD: MOD_src_memnet_help_text_py|src/memnet/help_text.py|help_text.py engine|active|persistent
+@MOD: MOD_src_memnet_housekeep_py|src/memnet/housekeep.py|housekeep.py engine|active|persistent
+@MOD: MOD_src_memnet_mem_store_py|src/memnet/mem_store.py|mem_store.py engine|active|persistent
+@MOD: MOD_src_memnet_models_py|src/memnet/models.py|models.py engine|active|persistent
+@MOD: MOD_src_memnet_output_py|src/memnet/output.py|output.py engine|active|persistent
+@MOD: MOD_src_memnet_registry_py|src/memnet/registry.py|registry.py engine|active|persistent
+@MOD: MOD_src_memnet_sanitiser_py|src/memnet/sanitiser.py|sanitiser.py engine|active|persistent
+@MOD: MOD_src_memnet_serve_py|src/memnet/serve.py|serve.py engine|active|persistent
+@MOD: MOD_src_memnet_serve_client_py|src/memnet/serve_client.py|serve_client.py engine|active|persistent
+@MOD: MOD_src_memnet_session_py|src/memnet/session.py|session.py engine|active|persistent
+@MOD: MOD_src_memnet_snapshot_py|src/memnet/snapshot.py|snapshot.py engine|active|persistent
+@MOD: MOD_src_memnet_tag_map_py|src/memnet/tag_map.py|tag_map.py engine|active|persistent
+@MOD: MOD_src_memnet_warnings_py|src/memnet/warnings.py|warnings.py engine|active|persistent
+@MOD: MOD_src_memnet_wire_py|src/memnet/wire.py|wire.py engine|active|persistent
+@MOD: MOD_src_memnet_mcp___init___py|src/memnet_mcp/__init__.py|__init__.py mcp|active|persistent
+@MOD: MOD_src_memnet_mcp___main___py|src/memnet_mcp/__main__.py|__main__.py mcp|active|persistent
+@MOD: MOD_src_memnet_mcp_client_py|src/memnet_mcp/client.py|client.py mcp|active|persistent
+@MOD: MOD_src_memnet_mcp_parse_py|src/memnet_mcp/parse.py|parse.py mcp|active|persistent
+@MOD: MOD_src_memnet_mcp_seed_py|src/memnet_mcp/seed.py|seed.py mcp|active|persistent
+@MOD: MOD_src_memnet_mcp_server_py|src/memnet_mcp/server.py|server.py mcp|active|persistent
+@MOD: MOD_src_novel_mcp___init___py|src/novel_mcp/__init__.py|__init__.py mcp|active|persistent
+@MOD: MOD_src_novel_mcp___main___py|src/novel_mcp/__main__.py|__main__.py mcp|active|persistent
+@MOD: MOD_src_novel_mcp_chapter_io_py|src/novel_mcp/chapter_io.py|chapter_io.py mcp|active|persistent
+@MOD: MOD_src_novel_mcp_server_py|src/novel_mcp/server.py|server.py mcp|active|persistent
+@MOD: MOD_src_novel_mcp_zh_text_py|src/novel_mcp/zh_text.py|zh_text.py mcp|active|persistent
+@SYM: SYM_src_memnet_cli_py_session_open|session_open|fn|src/memnet/cli.py|277|def session_open(|active|persistent
+@SYM: SYM_src_memnet_cli_py_session_save|session_save|fn|src/memnet/cli.py|339|def session_save(|active|persistent
+@SYM: SYM_src_memnet_cli_py_session_load|session_load|fn|src/memnet/cli.py|351|def session_load(|active|persistent
+@SYM: SYM_src_memnet_cli_py_add_cmd|add_cmd|fn|src/memnet/cli.py|442|def add_cmd(|active|persistent
+@SYM: SYM_src_memnet_cli_py_update_cmd|update_cmd|fn|src/memnet/cli.py|465|def update_cmd(|active|persistent
+@SYM: SYM_src_memnet_cli_py_query_warm|query_warm|fn|src/memnet/cli.py|630|def query_warm(|active|persistent
+@SYM: SYM_src_memnet_cli_py_housekeep_stats|housekeep_stats|fn|src/memnet/cli.py|649|def housekeep_stats(|active|persistent
+@SYM: SYM_src_memnet_cli_py_main|main|fn|src/memnet/cli.py|796|def main() -> None:|active|persistent
+@SYM: SYM_src_memnet_config_py_Caps|Caps|class|src/memnet/config.py|29|class Caps:|active|persistent
+@SYM: SYM_src_memnet_exceptions_py_MemNetError|MemNetError|class|src/memnet/exceptions.py|6|class MemNetError(Exception):|active|persistent
+@SYM: SYM_src_memnet_filter_py_record_matches|record_matches|fn|src/memnet/filter.py|34|def record_matches(record: Record, where|active|persistent
+@SYM: SYM_src_memnet_fixed_tags_py_fixed_tag_map|fixed_tag_map|fn|src/memnet/fixed_tags.py|16|def fixed_tag_map() -> TagMap:|active|persistent
+@SYM: SYM_src_memnet_help_text_py_guide_text|guide_text|fn|src/memnet/help_text.py|32|def guide_text(*, loose: bool = False) -|active|persistent
+@SYM: SYM_src_memnet_housekeep_py_recyclable_rows|recyclable_rows|fn|src/memnet/housekeep.py|20|def recyclable_rows(store: SessionStore)|active|persistent
+@SYM: SYM_src_memnet_housekeep_py_stale_rows|stale_rows|fn|src/memnet/housekeep.py|58|def stale_rows(store: SessionStore) -> l|active|persistent
+@SYM: SYM_src_memnet_housekeep_py_stats|stats|fn|src/memnet/housekeep.py|69|def stats(store: SessionStore) -> dict[s|active|persistent
+@SYM: SYM_src_memnet_housekeep_py_prune_stale|prune_stale|fn|src/memnet/housekeep.py|94|def prune_stale(store: SessionStore) -> |active|persistent
+@SYM: SYM_src_memnet_mem_store_py_MemStore|MemStore|class|src/memnet/mem_store.py|15|class MemStore:|active|persistent
+@SYM: SYM_src_memnet_models_py_TagDef|TagDef|class|src/memnet/models.py|10|class TagDef(BaseModel):|active|persistent
+@SYM: SYM_src_memnet_models_py_TagMap|TagMap|class|src/memnet/models.py|16|class TagMap(BaseModel):|active|persistent
+@SYM: SYM_src_memnet_models_py_Record|Record|class|src/memnet/models.py|26|class Record(BaseModel):|active|persistent
+@SYM: SYM_src_memnet_models_py_SessionMeta|SessionMeta|class|src/memnet/models.py|48|class SessionMeta(BaseModel):|active|persistent
+@SYM: SYM_src_memnet_output_py_format_err|format_err|fn|src/memnet/output.py|28|def format_err(code: str, message: str, |active|persistent
+@SYM: SYM_src_memnet_output_py_emit_err|emit_err|fn|src/memnet/output.py|46|def emit_err(error: MemNetError) -> None|active|persistent
+@SYM: SYM_src_memnet_output_py_emit_wrn|emit_wrn|fn|src/memnet/output.py|50|def emit_wrn(code: str, message: str, ex|active|persistent
+@SYM: SYM_src_memnet_output_py_emit_session|emit_session|fn|src/memnet/output.py|56|def emit_session(|active|persistent
+@SYM: SYM_src_memnet_output_py_emit_record|emit_record|fn|src/memnet/output.py|75|def emit_record(record: Record, tag_map:|active|persistent
+@SYM: SYM_src_memnet_registry_py_SessionEntry|SessionEntry|class|src/memnet/registry.py|18|class SessionEntry:|active|persistent
+@SYM: SYM_src_memnet_registry_py_register|register|fn|src/memnet/registry.py|26|def register(session_id: str, entry: Ses|active|persistent
+@SYM: SYM_src_memnet_registry_py_get|get|fn|src/memnet/registry.py|31|def get(session_id: str) -> SessionEntry|active|persistent
+@SYM: SYM_src_memnet_registry_py_remove|remove|fn|src/memnet/registry.py|36|def remove(session_id: str) -> bool:|active|persistent
+@SYM: SYM_src_memnet_registry_py_purge_before|purge_before|fn|src/memnet/registry.py|61|def purge_before(now: datetime) -> list[|active|persistent
+@SYM: SYM_src_memnet_sanitiser_py_sanitise_batch|sanitise_batch|fn|src/memnet/sanitiser.py|43|def sanitise_batch(raw_lines: list[str  |active|persistent
+@SYM: SYM_src_memnet_serve_py_run_serve|run_serve|fn|src/memnet/serve.py|84|def run_serve(host: str   None = None, p|active|persistent
+@SYM: SYM_src_memnet_serve_py_send_command|send_command|fn|src/memnet/serve.py|92|def send_command(|active|persistent
+@SYM: SYM_src_memnet_serve_py_probe|probe|fn|src/memnet/serve.py|126|def probe(host: str   None = None, port:|active|persistent
+@SYM: SYM_src_memnet_serve_client_py_dispatch|dispatch|fn|src/memnet/serve_client.py|25|def dispatch(argv: list[str]   None = No|active|persistent
+@SYM: SYM_src_memnet_session_py_SessionStore|SessionStore|class|src/memnet/session.py|46|class SessionStore:|active|persistent
+@SYM: SYM_src_memnet_session_py_purge_expired|purge_expired|fn|src/memnet/session.py|89|def purge_expired(caps: Caps   None = No|active|persistent
+@SYM: SYM_src_memnet_session_py_open_session|open_session|fn|src/memnet/session.py|99|def open_session(|active|persistent
+@SYM: SYM_src_memnet_session_py_get_session|get_session|fn|src/memnet/session.py|141|def get_session(session_id: str, caps: C|active|persistent
+@SYM: SYM_src_memnet_session_py_close_session|close_session|fn|src/memnet/session.py|172|def close_session(session_id: str, caps:|active|persistent
+@SYM: SYM_src_memnet_session_py_resolve_session_id|resolve_session_id|fn|src/memnet/session.py|180|def resolve_session_id(cli_session: str |active|persistent
+@SYM: SYM_src_memnet_snapshot_py_snapshot_text|snapshot_text|fn|src/memnet/snapshot.py|24|def snapshot_text(ss: SessionStore) -> s|active|persistent
+@SYM: SYM_src_memnet_snapshot_py_write_snapshot|write_snapshot|fn|src/memnet/snapshot.py|45|def write_snapshot(ss: SessionStore, pat|active|persistent
+@SYM: SYM_src_memnet_snapshot_py_load_snapshot|load_snapshot|fn|src/memnet/snapshot.py|114|def load_snapshot(|active|persistent
+@SYM: SYM_src_memnet_tag_map_py_load_map_from_lines|load_map_from_lines|fn|src/memnet/tag_map.py|74|def load_map_from_lines(lines: list[str]|active|persistent
+@SYM: SYM_src_memnet_tag_map_py_parse_line|parse_line|fn|src/memnet/tag_map.py|134|def parse_line(line: str, tag_map: TagMa|active|persistent
+@SYM: SYM_src_memnet_warnings_py_emit_cap_warnings|emit_cap_warnings|fn|src/memnet/warnings.py|11|def emit_cap_warnings(store: SessionStor|active|persistent
+@SYM: SYM_src_memnet_warnings_py_emit_session_warnings|emit_session_warnings|fn|src/memnet/warnings.py|55|def emit_session_warnings(store: Session|active|persistent
+@SYM: SYM_src_memnet_wire_py_split_payload|split_payload|fn|src/memnet/wire.py|8|def split_payload(payload: str) -> list[|active|persistent
+@SYM: SYM_src_memnet_wire_py_parse_tag_line|parse_tag_line|fn|src/memnet/wire.py|39|def parse_tag_line(line: str) -> tuple[s|active|persistent
+@SYM: SYM_src_memnet_mcp_client_py_MemNetResponse|MemNetResponse|class|src/memnet_mcp/client.py|18|class MemNetResponse:|active|persistent
+@SYM: SYM_src_memnet_mcp_client_py_run_memnet|run_memnet|fn|src/memnet_mcp/client.py|128|def run_memnet(|active|persistent
+@SYM: SYM_src_memnet_mcp_parse_py_extract_session_id|extract_session_id|fn|src/memnet_mcp/parse.py|12|def extract_session_id(stdout: str, stde|active|persistent
+@SYM: SYM_src_memnet_mcp_parse_py_extract_errors|extract_errors|fn|src/memnet_mcp/parse.py|24|def extract_errors(stderr: str) -> list[|active|persistent
+@SYM: SYM_src_memnet_mcp_seed_py_supplement_seed_lines|supplement_seed_lines|fn|src/memnet_mcp/seed.py|24|def supplement_seed_lines(seed_lines: li|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_serve_status|serve_status|fn|src/memnet_mcp/server.py|36|async def serve_status() -> str:|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_session_open|session_open|fn|src/memnet_mcp/server.py|48|async def session_open(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_session_load|session_load|fn|src/memnet_mcp/server.py|100|async def session_load(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_session_save|session_save|fn|src/memnet_mcp/server.py|120|async def session_save(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_query_warm|query_warm|fn|src/memnet_mcp/server.py|129|async def query_warm(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_add|add|fn|src/memnet_mcp/server.py|150|async def add(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_update|update|fn|src/memnet_mcp/server.py|167|async def update(|active|persistent
+@SYM: SYM_src_memnet_mcp_server_py_main|main|fn|src/memnet_mcp/server.py|195|def main() -> None:|active|persistent
+@SYM: SYM_src_novel_mcp_chapter_io_py_chapter_prose_gate|chapter_prose_gate|fn|src/novel_mcp/chapter_io.py|62|def chapter_prose_gate(|active|persistent
+@SYM: SYM_src_novel_mcp_chapter_io_py_chapter_prose_append|chapter_prose_append|fn|src/novel_mcp/chapter_io.py|133|def chapter_prose_append(|active|persistent
+@SYM: SYM_src_novel_mcp_server_py_prose_metrics|prose_metrics|fn|src/novel_mcp/server.py|22|async def prose_metrics(|active|persistent
+@SYM: SYM_src_novel_mcp_server_py_chapter_prose_gate|chapter_prose_gate|fn|src/novel_mcp/server.py|38|async def chapter_prose_gate(|active|persistent
+@SYM: SYM_src_novel_mcp_server_py_chapter_prose_append|chapter_prose_append|fn|src/novel_mcp/server.py|67|async def chapter_prose_append(|active|persistent
+@SYM: SYM_src_novel_mcp_server_py_main|main|fn|src/novel_mcp/server.py|91|def main() -> None:|active|persistent
+@SYM: SYM_src_novel_mcp_zh_text_py_count_zh_chars|count_zh_chars|fn|src/novel_mcp/zh_text.py|10|def count_zh_chars(text: str) -> int:|active|persistent
+@SYM: SYM_src_novel_mcp_zh_text_py_prose_status|prose_status|fn|src/novel_mcp/zh_text.py|15|def prose_status(|active|persistent
+@EDG: E_tsk_root|TSK_codebase_snap_memnet|owns|MOD_repo_root|scope|persistent
+@EDG: E_tsk_usr|TSK_codebase_snap_memnet|constrained_by|USR_snap_scope|light_snap|persistent
+@EDG: E_own_1|TSK_codebase_snap_memnet|owns|MOD_src_memnet___init___py|scope|persistent
+@EDG: E_own_2|TSK_codebase_snap_memnet|owns|MOD_src_memnet___main___py|scope|persistent
+@EDG: E_own_3|TSK_codebase_snap_memnet|owns|MOD_src_memnet_cli_py|scope|persistent
+@EDG: E_def_4|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_session_open|entry|persistent
+@EDG: E_def_5|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_session_save|entry|persistent
+@EDG: E_def_6|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_session_load|entry|persistent
+@EDG: E_def_7|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_add_cmd|entry|persistent
+@EDG: E_def_8|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_update_cmd|entry|persistent
+@EDG: E_def_9|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_query_warm|entry|persistent
+@EDG: E_def_10|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_housekeep_stats|entry|persistent
+@EDG: E_def_11|MOD_src_memnet_cli_py|defines|SYM_src_memnet_cli_py_main|entry|persistent
+@EDG: E_own_12|TSK_codebase_snap_memnet|owns|MOD_src_memnet_config_py|scope|persistent
+@EDG: E_def_13|MOD_src_memnet_config_py|defines|SYM_src_memnet_config_py_Caps|entry|persistent
+@EDG: E_own_14|TSK_codebase_snap_memnet|owns|MOD_src_memnet_exceptions_py|scope|persistent
+@EDG: E_def_15|MOD_src_memnet_exceptions_py|defines|SYM_src_memnet_exceptions_py_MemNetError|entry|persistent
+@EDG: E_own_16|TSK_codebase_snap_memnet|owns|MOD_src_memnet_filter_py|scope|persistent
+@EDG: E_def_17|MOD_src_memnet_filter_py|defines|SYM_src_memnet_filter_py_record_matches|entry|persistent
+@EDG: E_own_18|TSK_codebase_snap_memnet|owns|MOD_src_memnet_fixed_tags_py|scope|persistent
+@EDG: E_def_19|MOD_src_memnet_fixed_tags_py|defines|SYM_src_memnet_fixed_tags_py_fixed_tag_map|entry|persistent
+@EDG: E_own_20|TSK_codebase_snap_memnet|owns|MOD_src_memnet_help_text_py|scope|persistent
+@EDG: E_def_21|MOD_src_memnet_help_text_py|defines|SYM_src_memnet_help_text_py_guide_text|entry|persistent
+@EDG: E_own_22|TSK_codebase_snap_memnet|owns|MOD_src_memnet_housekeep_py|scope|persistent
+@EDG: E_def_23|MOD_src_memnet_housekeep_py|defines|SYM_src_memnet_housekeep_py_recyclable_rows|entry|persistent
+@EDG: E_def_24|MOD_src_memnet_housekeep_py|defines|SYM_src_memnet_housekeep_py_stale_rows|entry|persistent
+@EDG: E_def_25|MOD_src_memnet_housekeep_py|defines|SYM_src_memnet_housekeep_py_stats|entry|persistent
+@EDG: E_def_26|MOD_src_memnet_housekeep_py|defines|SYM_src_memnet_housekeep_py_prune_stale|entry|persistent
+@EDG: E_own_27|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mem_store_py|scope|persistent
+@EDG: E_def_28|MOD_src_memnet_mem_store_py|defines|SYM_src_memnet_mem_store_py_MemStore|entry|persistent
+@EDG: E_own_29|TSK_codebase_snap_memnet|owns|MOD_src_memnet_models_py|scope|persistent
+@EDG: E_def_30|MOD_src_memnet_models_py|defines|SYM_src_memnet_models_py_TagDef|entry|persistent
+@EDG: E_def_31|MOD_src_memnet_models_py|defines|SYM_src_memnet_models_py_TagMap|entry|persistent
+@EDG: E_def_32|MOD_src_memnet_models_py|defines|SYM_src_memnet_models_py_Record|entry|persistent
+@EDG: E_def_33|MOD_src_memnet_models_py|defines|SYM_src_memnet_models_py_SessionMeta|entry|persistent
+@EDG: E_own_34|TSK_codebase_snap_memnet|owns|MOD_src_memnet_output_py|scope|persistent
+@EDG: E_def_35|MOD_src_memnet_output_py|defines|SYM_src_memnet_output_py_format_err|entry|persistent
+@EDG: E_def_36|MOD_src_memnet_output_py|defines|SYM_src_memnet_output_py_emit_err|entry|persistent
+@EDG: E_def_37|MOD_src_memnet_output_py|defines|SYM_src_memnet_output_py_emit_wrn|entry|persistent
+@EDG: E_def_38|MOD_src_memnet_output_py|defines|SYM_src_memnet_output_py_emit_session|entry|persistent
+@EDG: E_def_39|MOD_src_memnet_output_py|defines|SYM_src_memnet_output_py_emit_record|entry|persistent
+@EDG: E_own_40|TSK_codebase_snap_memnet|owns|MOD_src_memnet_registry_py|scope|persistent
+@EDG: E_def_41|MOD_src_memnet_registry_py|defines|SYM_src_memnet_registry_py_SessionEntry|entry|persistent
+@EDG: E_def_42|MOD_src_memnet_registry_py|defines|SYM_src_memnet_registry_py_register|entry|persistent
+@EDG: E_def_43|MOD_src_memnet_registry_py|defines|SYM_src_memnet_registry_py_get|entry|persistent
+@EDG: E_def_44|MOD_src_memnet_registry_py|defines|SYM_src_memnet_registry_py_remove|entry|persistent
+@EDG: E_def_45|MOD_src_memnet_registry_py|defines|SYM_src_memnet_registry_py_purge_before|entry|persistent
+@EDG: E_own_46|TSK_codebase_snap_memnet|owns|MOD_src_memnet_sanitiser_py|scope|persistent
+@EDG: E_def_47|MOD_src_memnet_sanitiser_py|defines|SYM_src_memnet_sanitiser_py_sanitise_batch|entry|persistent
+@EDG: E_own_48|TSK_codebase_snap_memnet|owns|MOD_src_memnet_serve_py|scope|persistent
+@EDG: E_def_49|MOD_src_memnet_serve_py|defines|SYM_src_memnet_serve_py_run_serve|entry|persistent
+@EDG: E_def_50|MOD_src_memnet_serve_py|defines|SYM_src_memnet_serve_py_send_command|entry|persistent
+@EDG: E_def_51|MOD_src_memnet_serve_py|defines|SYM_src_memnet_serve_py_probe|entry|persistent
+@EDG: E_own_52|TSK_codebase_snap_memnet|owns|MOD_src_memnet_serve_client_py|scope|persistent
+@EDG: E_def_53|MOD_src_memnet_serve_client_py|defines|SYM_src_memnet_serve_client_py_dispatch|entry|persistent
+@EDG: E_own_54|TSK_codebase_snap_memnet|owns|MOD_src_memnet_session_py|scope|persistent
+@EDG: E_def_55|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_SessionStore|entry|persistent
+@EDG: E_def_56|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_purge_expired|entry|persistent
+@EDG: E_def_57|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_open_session|entry|persistent
+@EDG: E_def_58|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_get_session|entry|persistent
+@EDG: E_def_59|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_close_session|entry|persistent
+@EDG: E_def_60|MOD_src_memnet_session_py|defines|SYM_src_memnet_session_py_resolve_session_id|entry|persistent
+@EDG: E_own_61|TSK_codebase_snap_memnet|owns|MOD_src_memnet_snapshot_py|scope|persistent
+@EDG: E_def_62|MOD_src_memnet_snapshot_py|defines|SYM_src_memnet_snapshot_py_snapshot_text|entry|persistent
+@EDG: E_def_63|MOD_src_memnet_snapshot_py|defines|SYM_src_memnet_snapshot_py_write_snapshot|entry|persistent
+@EDG: E_def_64|MOD_src_memnet_snapshot_py|defines|SYM_src_memnet_snapshot_py_load_snapshot|entry|persistent
+@EDG: E_own_65|TSK_codebase_snap_memnet|owns|MOD_src_memnet_tag_map_py|scope|persistent
+@EDG: E_def_66|MOD_src_memnet_tag_map_py|defines|SYM_src_memnet_tag_map_py_load_map_from_lines|entry|persistent
+@EDG: E_def_67|MOD_src_memnet_tag_map_py|defines|SYM_src_memnet_tag_map_py_parse_line|entry|persistent
+@EDG: E_own_68|TSK_codebase_snap_memnet|owns|MOD_src_memnet_warnings_py|scope|persistent
+@EDG: E_def_69|MOD_src_memnet_warnings_py|defines|SYM_src_memnet_warnings_py_emit_cap_warnings|entry|persistent
+@EDG: E_def_70|MOD_src_memnet_warnings_py|defines|SYM_src_memnet_warnings_py_emit_session_warnings|entry|persistent
+@EDG: E_own_71|TSK_codebase_snap_memnet|owns|MOD_src_memnet_wire_py|scope|persistent
+@EDG: E_def_72|MOD_src_memnet_wire_py|defines|SYM_src_memnet_wire_py_split_payload|entry|persistent
+@EDG: E_def_73|MOD_src_memnet_wire_py|defines|SYM_src_memnet_wire_py_parse_tag_line|entry|persistent
+@EDG: E_own_74|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp___init___py|scope|persistent
+@EDG: E_own_75|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp___main___py|scope|persistent
+@EDG: E_own_76|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp_client_py|scope|persistent
+@EDG: E_def_77|MOD_src_memnet_mcp_client_py|defines|SYM_src_memnet_mcp_client_py_MemNetResponse|entry|persistent
+@EDG: E_def_78|MOD_src_memnet_mcp_client_py|defines|SYM_src_memnet_mcp_client_py_run_memnet|entry|persistent
+@EDG: E_own_79|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp_parse_py|scope|persistent
+@EDG: E_def_80|MOD_src_memnet_mcp_parse_py|defines|SYM_src_memnet_mcp_parse_py_extract_session_id|entry|persistent
+@EDG: E_def_81|MOD_src_memnet_mcp_parse_py|defines|SYM_src_memnet_mcp_parse_py_extract_errors|entry|persistent
+@EDG: E_own_82|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp_seed_py|scope|persistent
+@EDG: E_def_83|MOD_src_memnet_mcp_seed_py|defines|SYM_src_memnet_mcp_seed_py_supplement_seed_lines|entry|persistent
+@EDG: E_own_84|TSK_codebase_snap_memnet|owns|MOD_src_memnet_mcp_server_py|scope|persistent
+@EDG: E_def_85|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_serve_status|entry|persistent
+@EDG: E_def_86|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_session_open|entry|persistent
+@EDG: E_def_87|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_session_load|entry|persistent
+@EDG: E_def_88|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_session_save|entry|persistent
+@EDG: E_def_89|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_query_warm|entry|persistent
+@EDG: E_def_90|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_add|entry|persistent
+@EDG: E_def_91|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_update|entry|persistent
+@EDG: E_def_92|MOD_src_memnet_mcp_server_py|defines|SYM_src_memnet_mcp_server_py_main|entry|persistent
+@EDG: E_own_93|TSK_codebase_snap_memnet|owns|MOD_src_novel_mcp___init___py|scope|persistent
+@EDG: E_own_94|TSK_codebase_snap_memnet|owns|MOD_src_novel_mcp___main___py|scope|persistent
+@EDG: E_own_95|TSK_codebase_snap_memnet|owns|MOD_src_novel_mcp_chapter_io_py|scope|persistent
+@EDG: E_def_96|MOD_src_novel_mcp_chapter_io_py|defines|SYM_src_novel_mcp_chapter_io_py_chapter_prose_gate|entry|persistent
+@EDG: E_def_97|MOD_src_novel_mcp_chapter_io_py|defines|SYM_src_novel_mcp_chapter_io_py_chapter_prose_append|entry|persistent
+@EDG: E_own_98|TSK_codebase_snap_memnet|owns|MOD_src_novel_mcp_server_py|scope|persistent
+@EDG: E_def_99|MOD_src_novel_mcp_server_py|defines|SYM_src_novel_mcp_server_py_prose_metrics|entry|persistent
+@EDG: E_def_100|MOD_src_novel_mcp_server_py|defines|SYM_src_novel_mcp_server_py_chapter_prose_gate|entry|persistent
+@EDG: E_def_101|MOD_src_novel_mcp_server_py|defines|SYM_src_novel_mcp_server_py_chapter_prose_append|entry|persistent
+@EDG: E_def_102|MOD_src_novel_mcp_server_py|defines|SYM_src_novel_mcp_server_py_main|entry|persistent
+@EDG: E_own_103|TSK_codebase_snap_memnet|owns|MOD_src_novel_mcp_zh_text_py|scope|persistent
+@EDG: E_def_104|MOD_src_novel_mcp_zh_text_py|defines|SYM_src_novel_mcp_zh_text_py_count_zh_chars|entry|persistent
+@EDG: E_def_105|MOD_src_novel_mcp_zh_text_py|defines|SYM_src_novel_mcp_zh_text_py_prose_status|entry|persistent

@@ -24,6 +24,7 @@ htmlcov/
 data/rto/*.pdf
 *.db
 .memnet/
+memnet-codebase.snap.txt
 
 # Novel chapter exports (local play output)
 novel-output/
