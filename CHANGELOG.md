@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.18] — 2026-06-23
+## [0.2.18] — 2026-06-24
 
 ### Changed
 - **memnet.housekeep** — single-pass `_categorise` walker now shared by `stats`, `stale_rows`, `prune_stale`, `dangling_rows`, and `orphan_rows`. Previously `stats` walked the store five times (one each for `row_count_non_law`, edges scan, recyclable, dangling, orphans); now once. Public API unchanged.
+- **memnet.mem_store** — added `_by_tag: dict[str, set[str]]` secondary index maintained by `upsert`/`delete`/`load_records`. `list_records(tag=...)` now starts from the tag bucket (O(k)) instead of scanning every row in the store (O(N)). `row_count_non_law` and `law_count` also use the index. Measured ~4× speed-up on mixed-tag 10k-row stores; no API change.
+- **memnet.wire.split_payload** — fast path via `payload.split("|")` when no backslash is present (the >95 % case). Falls back to the escape-aware loop only when needed.
 
 ## [0.2.17] — 2026-06-23
 

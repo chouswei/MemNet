@@ -6,6 +6,8 @@ import re
 
 
 def split_payload(payload: str) -> list[str]:
+    if "\\" not in payload:
+        return payload.split("|")
     fields: list[str] = []
     current: list[str] = []
     i = 0

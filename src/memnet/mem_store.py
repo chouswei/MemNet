@@ -20,23 +20,26 @@ class MemStore:
         self.write_order: list[str] = []
         self._edges_by_src: dict[str, set[str]] = {}
         self._edges_by_dist: dict[str, set[str]] = {}
+        self._by_tag: dict[str, set[str]] = {}
 
     def load_records(self, records: list[Record]) -> None:
         self.by_id.clear()
         self.write_order.clear()
         self._edges_by_src.clear()
         self._edges_by_dist.clear()
+        self._by_tag.clear()
         for rec in records:
             self.by_id[rec.id] = rec
             self.write_order.append(rec.id)
+            self._index_tag(rec)
             if rec.tag == "EDG":
                 self._index_edge(rec)
 
     def row_count_non_law(self) -> int:
-        return sum(1 for r in self.by_id.values() if r.tag != "LAW")
+        return sum(len(s) for t, s in self._by_tag.items() if t != "LAW")
 
     def law_count(self) -> int:
-        return sum(1 for r in self.by_id.values() if r.tag == "LAW")
+        return len(self._by_tag.get("LAW", set()))
 
     def upsert(
         self,
@@ -95,6 +98,7 @@ class MemStore:
             self._unindex_edge(existing)
         if not existing:
             self.write_order.append(rid)
+            self._index_tag(record)
         self.by_id[rid] = record
         if record.tag == "EDG":
             self._index_edge(record)
@@ -144,6 +148,7 @@ class MemStore:
             return None
         if existing.tag == "EDG":
             self._unindex_edge(existing)
+        self._unindex_tag(existing)
         rec = self.by_id.pop(record_id, None)
         if rec and record_id in self.write_order:
             self.write_order.remove(record_id)
@@ -159,15 +164,27 @@ class MemStore:
         active_only: bool = False,
         where: list[tuple[str, str]] | None = None,
     ) -> list[Record]:
-        rows = list(self.by_id.values())
         if tag:
-            rows = [r for r in rows if r.tag == tag.upper()]
+            ids = self._by_tag.get(tag.upper(), set())
+            rows = [self.by_id[i] for i in ids if i in self.by_id]
+        else:
+            rows = list(self.by_id.values())
         if active_only:
             rows = [r for r in rows if not r.is_recyclable()]
         if where:
             rows = [r for r in rows if record_matches(r, where)]
         rows.sort(key=lambda r: r.id)
         return rows
+
+    def _index_tag(self, rec: Record) -> None:
+        self._by_tag.setdefault(rec.tag, set()).add(rec.id)
+
+    def _unindex_tag(self, rec: Record) -> None:
+        bucket = self._by_tag.get(rec.tag)
+        if bucket:
+            bucket.discard(rec.id)
+            if not bucket:
+                del self._by_tag[rec.tag]
 
     def _index_edge(self, edge: Record) -> None:
         src = edge.fields.get("src", "")
