@@ -31,8 +31,8 @@ def main() -> None:
     parser.add_argument("--chapter-dir", required=True, help="Relative chapter directory (USR06)")
     parser.add_argument("--chp-num", type=int, required=True, help="Open @CHP.chp_num")
     parser.add_argument("--workspace-root", default=str(ROOT), help="Repo root (default: MemNet)")
-    parser.add_argument("--min-chars", type=int, default=300)
-    parser.add_argument("--max-chars", type=int, default=600)
+    parser.add_argument("--min-chars", type=int, default=None, help="Gate lower bound (with --max-chars)")
+    parser.add_argument("--max-chars", type=int, default=None, help="Gate upper bound (with --min-chars)")
     parser.add_argument(
         "--replace-last",
         action="store_true",

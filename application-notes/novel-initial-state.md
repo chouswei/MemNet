@@ -62,6 +62,10 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @LAW: LAW-TIME01|*|on_turn|time_escalate|advance_beat_each_persist
 @LAW: LAW-TIME02|SCN|on_turn|duration_code|climax_short_else_medium
 @LAW: LAW-TIME03|CHOICE|on_turn|skip_wait|offer_when_wait_skippable
+@LAW: LAW-HUD03|*|on_turn|hud_full|step2_extended_pipe_hud_usr08
+@LAW: LAW-MCP01|STEP|on_turn|mcp_only|memnet_novel_mcp_no_shell_unless_serve_down
+@LAW: LAW-PROSE07|CHR|on_turn|engineer|mee_soul_diag_list_max3_not_lecture
+@LAW: LAW-PIPE03|*|on_turn|beat_label|prefix_one_line_mcp_tool_chain
 
 @STEP: STEP01|1|SCN01|persistent
 @TIME: TIME01|1|calm|medium|required|persistent
@@ -143,6 +147,12 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @RULE: RULE23|CHR03|voice|exclaim_money_mimic_shy_blurt|persistent
 @RULE: RULE24|prose|register|colloquial_plain_ming_town|persistent
 @RULE: RULE25|prose|ban|no_ai_pastiche_ops_poetry|persistent
+@RULE: RULE26|hud|vit|qi_blood_neili_cur_max_slash|persistent
+@RULE: RULE27|hud|age|era_year_minus_chr_born|persistent
+@RULE: RULE28|hud|datetime|lore02_label_plus_time_beat|persistent
+@RULE: RULE29|hud|tech|cite_lib_status_warm_only|persistent
+@RULE: RULE30|prose|engineer|chr01_risk_list_max3_plain|persistent
+@RULE: RULE31|hud|industry|ind_prd_assets_products_brace_format|persistent
 
 @USR: USR01|scene_length|300_600_zh|persistent
 @USR: USR02|voice|colloquial_plain_zh_tw|persistent
@@ -150,6 +160,7 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @USR: USR05|options|five_fixed_opt5_ledger|persistent
 @USR: USR06|chapter_out|novel-output/wanming_caifa_zhuan/chapters|persistent
 @USR: USR07|chapter_target|2400_4200_zh|persistent
+@USR: USR08|hud_pipe|extended_qi_neili_fin_ind_lib|persistent
 
 @CHP: CHP01|1|0|0|0|open|persistent
 
@@ -240,6 +251,16 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 @EDG: E82|CHR03|has_trait|TR15||persistent
 @EDG: E83|LORE18|governs|RULE24||persistent
 @EDG: E84|USR02|governs|RULE25||persistent
+@EDG: E87|USR08|governs|LAW-HUD03||persistent
+@EDG: E88|CHR01|governs|LAW-PROSE07||persistent
+@EDG: E89|CHR01|governs|RULE30||persistent
+@EDG: E90|CHR01|governs|LAW-MCP01||persistent
+@EDG: E91|CHR01|governs|LAW-PIPE03||persistent
+@EDG: E92|USR08|governs|RULE26||persistent
+@EDG: E93|USR08|governs|RULE27||persistent
+@EDG: E94|USR08|governs|RULE28||persistent
+@EDG: E95|USR08|governs|RULE29||persistent
+@EDG: E96|USR08|governs|RULE31||persistent
 @EDG: E47|USR07|governs|RULE18||persistent
 @EDG: E48|CHP01|tracks|PLT01||persistent
 @EDG: E14|CHR02|governs|RULE05||persistent
@@ -279,5 +300,22 @@ Edit this file before starting a **new** story. Load once via MCP `session_open`
 | **RULE25** | `no_ai_pastiche_ops_poetry` | 禁 AI 味：流水帳旁白、武俚+工業術語硬拼、结尾升华句 |
 | **LORE18** | `colloquial_wanli_smithy` | 場景錨：萬曆小縣鐵匠巷，**白話**寫生計與窯火 |
 | **TR13–15** | taboo | 禁「竟未」「若合符節」「搶同一口氣」類假文青句 |
+
+**Extended HUD (warm SSOT — LAW-HUD03 / USR08 / RULE26–29 / RULE31):**
+
+Step-2 尾欄單行，`|` 分隔；數值僅引 warm，禁止手填：
+
+```text
+氣血：{VIT01.cur}/{VIT01.max}｜內力：{VIT02.cur}/{VIT02.max}｜狀態：{CHR01.status_zh}｜年齡：{LORE02−CHR01.born}｜任務：{QST01.goal_zh}｜夥伴（任務）：{CHR02名(QST02)}、{CHR03名(QST03)}｜現金：{FIN01.cash}文｜負債：{FIN01.debt}文｜總月收支：{FIN01.silver_flow}文｜產業清冊：{n}{名稱（負責人）/月收支/資產清單/產品清單}｜{LORE02}·第{TIME.beat}拍｜科技清單：{LIB warm 狀態摘要}
+```
+
+**Narrative engine (LAW-MCP01 / LAW-PIPE03 / LAW-PROSE07 / RULE30):**
+
+| Row | code | Orchestrator 要旨 |
+|-----|------|------------------|
+| **LAW-MCP01** | `memnet_novel_mcp_no_shell_unless_serve_down` | 圖與章節**僅**經 MCP；`serve_status.running=false` 才允許 Shell fallback |
+| **LAW-PIPE03** | `prefix_one_line_mcp_tool_chain` | 每拍回覆首行標工具鏈，例：`MCP: query_warm → chapter_prose_gate → update → session_save` |
+| **LAW-PROSE07** | `mee_soul_diag_list_max3_not_lecture` | 主角工程腦：漏風／散熱／產能等**≤3 項**白話列項；禁工業論文式科普 |
+| **RULE30** | `chr01_risk_list_max3_plain` | 同上；列項須可念出聲，不寫符號堆疊 |
 
 Inventory (`@ITEM`) for later beats (e.g. tools, pills) — not in opening seed.

@@ -65,11 +65,11 @@ def chapter_prose_gate(
     chapter_dir: str,
     chp_num: int,
     workspace_root: Path | str | None = None,
-    min_chars: int = 300,
-    max_chars: int = 600,
+    min_chars: int | None = None,
+    max_chars: int | None = None,
     replace_last_paragraph: bool = False,
 ) -> dict:
-    """Validate prose length (RULE09) and append one beat block in a single call."""
+    """Append one beat block; optional length gate when min_chars and max_chars both set."""
     status = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
     root = Path(workspace_root or Path.cwd())
     path = chapter_file_path(root, chapter_dir, chp_num)
@@ -79,6 +79,9 @@ def chapter_prose_gate(
             "exit_code": 1,
             "errors": [f"@ERR: prose_{status['status']}|{status['hint']}"],
             "path": str(path),
+            "gate_blocked": True,
+            "mcp_retry_forbidden": True,
+            "local_draft_tool": "python scripts/prose_count.py --usr05 <USR05> --prose-file <beat.txt>",
             **status,
         }
 
@@ -121,6 +124,7 @@ def chapter_prose_gate(
     return {
         "exit_code": 0,
         "errors": [],
+        "gate_blocked": False,
         "appended_chars": status["count"],
         "file_char_total": total,
         "paragraph_count": len(paragraphs),
@@ -136,8 +140,8 @@ def chapter_prose_append(
     chapter_dir: str,
     chp_num: int,
     workspace_root: Path | str | None = None,
-    min_chars: int = 300,
-    max_chars: int = 600,
+    min_chars: int | None = None,
+    max_chars: int | None = None,
     replace_last_paragraph: bool = False,
 ) -> dict:
     """Alias for chapter_prose_gate (backward compatible)."""
@@ -150,3 +154,28 @@ def chapter_prose_append(
         max_chars=max_chars,
         replace_last_paragraph=replace_last_paragraph,
     )
+
+
+def beat_prose_finalize(
+    prose: str,
+    *,
+    chapter_dir: str,
+    chp_num: int,
+    min_chars: int,
+    max_chars: int,
+    workspace_root: Path | str | None = None,
+    replace_last_paragraph: bool = False,
+) -> dict:
+    """Single MCP entry per beat: metrics check + chapter append. Requires min/max."""
+    result = chapter_prose_gate(
+        prose,
+        chapter_dir=chapter_dir,
+        chp_num=chp_num,
+        workspace_root=workspace_root,
+        min_chars=min_chars,
+        max_chars=max_chars,
+        replace_last_paragraph=replace_last_paragraph,
+    )
+    result["tool"] = "beat_prose_finalize"
+    result["mcp_budget_per_beat"] = 1
+    return result

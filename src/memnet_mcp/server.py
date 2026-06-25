@@ -17,6 +17,8 @@ from memnet.config import serve_host, serve_port
 from memnet.serve import probe
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.seed import supplement_seed_lines
+from novel_mcp.beat_pipeline import beat_turn_begin as do_beat_turn_begin
+from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 
 mcp = FastMCP("memnet")
 
@@ -198,6 +200,76 @@ async def read_get(id: str, session: str | None = None) -> str:
 async def housekeep_stats(session: str | None = None) -> str:
     """Return row counts and caps for the session."""
     return await _run(["housekeep", "stats"], session=session)
+
+
+@mcp.tool()
+async def beat_turn_begin(
+    session: str | None = None,
+    anchor: str = "STEP01",
+    depth: int = 2,
+    max_rows: int = 55,
+) -> str:
+    """**Novel pipeline — call 1 of 2 per beat.** Warm read + parsed USR05/STEP/OLN/CHP.
+
+    Returns pipeline.min_chars, max_chars, target_chars, step_n, oln_row, and warm_stdout.
+    Draft prose locally with scripts/prose_count.py (0 MCP), then beat_turn_finish.
+    """
+    result = await anyio.to_thread.run_sync(
+        lambda: do_beat_turn_begin(
+            session=session,
+            anchor=anchor,
+            depth=depth,
+            max_rows=max_rows,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def beat_turn_finish(
+    session: str | None = None,
+    prose: str | None = None,
+    chapter_dir: str | None = None,
+    chp_num: int | None = None,
+    min_chars: int | None = None,
+    max_chars: int | None = None,
+    usr05_band: str | None = None,
+    add_lines: list[str] | None = None,
+    update_lines: list[str] | None = None,
+    oln_lines: list[str] | None = None,
+    oln_mode: str = "add",
+    snapshot_file: str | None = None,
+    workspace_root: str | None = None,
+    replace_last_paragraph: bool = False,
+    allow_new_relation: bool = False,
+    prose_only_gate: bool = False,
+) -> str:
+    """**Novel pipeline — call 2 of 2 per beat.** Atomic: OLN → prose gate → chapter → graph → save.
+
+    On gate_blocked, no chapter or graph writes (except oln_lines already applied).
+    Pass min_chars/max_chars from beat_turn_begin.pipeline, or usr05_band (e.g. 650_950_zh).
+    """
+    result = await anyio.to_thread.run_sync(
+        lambda: do_beat_turn_finish(
+            session=session,
+            prose=prose,
+            chapter_dir=chapter_dir,
+            chp_num=chp_num,
+            min_chars=min_chars,
+            max_chars=max_chars,
+            usr05_band=usr05_band,
+            add_lines=add_lines,
+            update_lines=update_lines,
+            oln_lines=oln_lines,
+            oln_mode=oln_mode,
+            snapshot_file=snapshot_file,
+            workspace_root=workspace_root,
+            replace_last_paragraph=replace_last_paragraph,
+            allow_new_relation=allow_new_relation,
+            prose_only_gate=prose_only_gate,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
 
 
 def main() -> None:

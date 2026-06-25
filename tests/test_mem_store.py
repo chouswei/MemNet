@@ -50,6 +50,64 @@ def test_active_only_filters_recyclable():
     assert all(r.id != "N99" for r in rows)
 
 
+def _store_with_linked_laws():
+    tm = load_map_from_lines(
+        [
+            "@LAW: id|name|cycle|mechanism|constraint",
+            "@STEP: id|n|focus|recycle",
+            "@USR: id|key|value|recycle",
+            "@SCN: id|code|beat|recycle",
+            "@PLR: id|identity|wealth|cashflow|monopoly|reputation|inventory",
+        ]
+    )
+    store = MemStore(tm)
+    lines = [
+        "@LAW: LAW06|*|on_context|law_scope|linked_from_anchor",
+        "@LAW: LAW-A|step|1|pipe_a|-",
+        "@LAW: LAW-B|usr|1|pipe_b|-",
+        "@LAW: LAW-C|orphan|1|pipe_c|-",
+        "@LAW: LAW-U|*|1|always|*",
+        "@STEP: STEP01|1|SCN01|persistent",
+        "@USR: USR01|scene|short|persistent",
+        "@SCN: SCN01|door|beat|delete_on_settle",
+        "@PLR: PLR01|hero|0|0|0|0|bag",
+        "@EDG: ES01|STEP01|focus|SCN01||persistent",
+        "@EDG: EG01|STEP01|governs|LAW-A||persistent",
+        "@EDG: EG02|STEP01|governs|USR01||persistent",
+        "@EDG: EG03|USR01|governs|LAW-B||persistent",
+        "@EDG: EG04|SCN01|features|PLR01||delete_on_settle",
+    ]
+    for line in lines:
+        rec = parse_line(line, tm)
+        rel = set()
+        if rec.tag == "EDG":
+            rel = {rec.fields.get("relation", "")}
+        store.upsert(rec, relations=rel)
+    return store
+
+
+def test_linked_law_scope_reduces_warm_laws():
+    store = _store_with_linked_laws()
+    rows = store.context_pack(anchor_id="STEP01", depth=2, active_only=True)
+    law_ids = [r.id for r in rows if r.tag == "LAW"]
+    assert law_ids.count("LAW-A") == 1
+    assert "LAW-A" in law_ids
+    assert "LAW-B" in law_ids
+    assert "LAW-U" in law_ids
+    assert "LAW-C" not in law_ids
+
+
+def test_all_law_scope_without_law06():
+    store, _ = _store_with_plr()
+    law = parse_line(
+        "@LAW: LAW-X|*|1|demo|orphan_rule",
+        load_map_from_lines(["@LAW: id|name|cycle|mechanism|constraint"]),
+    )
+    store.upsert(law, relations=set())
+    rows = store.context_pack(anchor_id="PLR01", active_only=True)
+    assert any(r.id == "LAW-X" for r in rows if r.tag == "LAW")
+
+
 def test_edge_index_maintained_on_update_and_delete():
     store, tm = _store_with_plr()
     assert {e.id for e in store._edges_from("N01")} == {"E01"}

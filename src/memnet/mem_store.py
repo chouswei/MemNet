@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from collections import deque
 
@@ -10,6 +11,10 @@ from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import Record, TagMap
 from memnet.output import emit_wrn
+
+_ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
+_LAW_LINK_RELATIONS = frozenset({"governs", "features", "constrains", "applies_to"})
+_ENGINE_LAW_ID_RE = re.compile(r"^LAW0[1-5]$")
 
 
 class MemStore:
@@ -310,6 +315,98 @@ class MemStore:
                 return rid
         return None
 
+    def _law_scope_mode(self) -> str:
+        """Return ``linked`` when LAW06 requests EDG-scoped warm; else ``all``."""
+        for rid in self._by_tag.get("LAW", set()):
+            rec = self.by_id.get(rid)
+            if rec and rec.fields.get("mechanism") == "law_scope":
+                mode = rec.fields.get("constraint", "all")
+                return "linked" if mode == "linked_from_anchor" else "all"
+        return "all"
+
+    @staticmethod
+    def _is_engine_law_id(law_id: str) -> bool:
+        return law_id in _ENGINE_LAW_IDS or bool(_ENGINE_LAW_ID_RE.match(law_id))
+
+    @staticmethod
+    def _is_universal_law(rec: Record) -> bool:
+        return rec.fields.get("constraint") == "*"
+
+    def _collect_linked_law_ids(
+        self,
+        anchor_id: str | None,
+        context_node_ids: set[str],
+        *,
+        link_depth: int,
+        active_only: bool,
+    ) -> set[str]:
+        law_ids: set[str] = set()
+        for rid in self._by_tag.get("LAW", set()):
+            rec = self.by_id.get(rid)
+            if not rec:
+                continue
+            if self._is_engine_law_id(rid) or self._is_universal_law(rec):
+                law_ids.add(rid)
+
+        seeds = set(context_node_ids)
+        if anchor_id:
+            seeds.add(anchor_id)
+
+        queue: deque[tuple[str, int]] = deque()
+        seen: set[str] = set()
+        for sid in seeds:
+            if sid in self.by_id and sid not in seen:
+                seen.add(sid)
+                queue.append((sid, 0))
+
+        while queue:
+            nid, d = queue.popleft()
+            rec = self.by_id.get(nid)
+            if rec and rec.tag == "LAW":
+                law_ids.add(nid)
+            if d >= link_depth:
+                continue
+            for edge in self._edges_from(nid) + self._edges_to(nid):
+                if active_only and edge.is_recyclable():
+                    continue
+                rel = edge.fields.get("relation", "")
+                if rel not in _LAW_LINK_RELATIONS:
+                    continue
+                src = edge.fields.get("src", "")
+                dist = edge.fields.get("dist", "")
+                other = dist if src == nid else src if dist == nid else None
+                if not other or other not in self.by_id:
+                    continue
+                if other not in seen:
+                    seen.add(other)
+                    queue.append((other, d + 1))
+        return law_ids
+
+    def _law_rows_for_context(
+        self,
+        *,
+        anchor_id: str | None,
+        context_node_ids: set[str],
+        depth: int,
+        active_only: bool,
+    ) -> list[Record]:
+        if self._law_scope_mode() == "linked":
+            link_depth = max(depth + 2, 4)
+            linked = self._collect_linked_law_ids(
+                anchor_id,
+                context_node_ids,
+                link_depth=link_depth,
+                active_only=active_only,
+            )
+            return sorted(
+                (self.by_id[i] for i in linked if i in self.by_id),
+                key=lambda r: r.id,
+            )
+        return sorted(
+            (self.by_id[i] for i in self._by_tag.get("LAW", set()) if i in self.by_id),
+            key=lambda r: r.id,
+        )
+
     def context_pack(
         self,
         *,
@@ -320,13 +417,10 @@ class MemStore:
         stale_warnings: list[tuple[Record, str]] | None = None,
     ) -> list[Record]:
         depth = min(depth, self.caps.max_depth)
-        law_rows = sorted(
-            [r for r in self.by_id.values() if r.tag == "LAW"],
-            key=lambda r: r.id,
-        )
         if anchor_id is None:
             anchor_id = self.default_anchor()
         payload: list[Record] = []
+        context_node_ids: set[str] = set()
         if anchor_id and anchor_id in self.by_id:
             fanout: list[str] = []
             subgraph = self.neighbors(anchor_id, depth, fanout_warnings=fanout)
@@ -342,6 +436,8 @@ class MemStore:
                     continue
                 seen.add(rec.id)
                 payload.append(rec)
+                if rec.kind == "node":
+                    context_node_ids.add(rec.id)
         nodes = [r for r in payload if r.kind == "node"]
         edges = [r for r in payload if r.kind == "edge"]
         combined = nodes + edges
@@ -351,6 +447,15 @@ class MemStore:
             for rec in combined:
                 if rec.is_recyclable():
                     stale_warnings.append((rec, "stale_in_context"))
+        law_rows = self._law_rows_for_context(
+            anchor_id=anchor_id,
+            context_node_ids=context_node_ids,
+            depth=depth,
+            active_only=active_only,
+        )
+        if self._law_scope_mode() == "linked":
+            law_ids = {r.id for r in law_rows}
+            combined = [r for r in combined if r.tag != "LAW" or r.id not in law_ids]
         return law_rows + combined
 
     def to_jsonl_rows(self) -> list[dict]:
