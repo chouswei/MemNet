@@ -25,24 +25,35 @@ def prose_status(
     *,
     min_chars: int | None = None,
     max_chars: int | None = None,
+    advisory_target: int | None = None,
 ) -> dict[str, int | bool | str | None]:
     """Count zh chars; length gate only when both min_chars and max_chars are set."""
     count = count_zh_chars(text)
     if min_chars is None or max_chars is None:
+        hint = ""
+        status = "no_gate"
+        short_by = 0
+        if advisory_target is not None and advisory_target > 0:
+            short_by = max(0, advisory_target - count)
+            if short_by > 0:
+                hint = f"advisory: expand ~{short_by} zh to ~{advisory_target} (USR21)"
+                status = "short_advisory"
         return {
             "count": count,
             "ok": True,
-            "gate_ready": False,
-            "short_by": 0,
+            "gate_ready": True,
+            "short_by": short_by,
             "long_by": 0,
             "min": min_chars,
             "max": max_chars,
-            "target_chars": None,
-            "draft_vs_target": None,
-            "status": "count_only",
-            "hint": "",
-            "next_action": "python scripts/prose_count.py --usr05 <USR05> --prose-file <beat.txt>",
-            "forbidden_until_gate_ready": "prose_metrics;chapter_prose_gate;beat_prose_finalize",
+            "target_chars": advisory_target,
+            "draft_vs_target": (
+                count - advisory_target if advisory_target is not None else None
+            ),
+            "status": status,
+            "hint": hint,
+            "next_action": "beat_turn_finish(prose + persist)",
+            "forbidden_until_gate_ready": "",
         }
     short_by = max(0, min_chars - count)
     long_by = max(0, count - max_chars)

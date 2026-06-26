@@ -17,6 +17,8 @@ def test_append_rejects_short_prose(tmp_path: Path):
         chapter_dir="chapters",
         chp_num=1,
         workspace_root=tmp_path,
+        min_chars=650,
+        max_chars=950,
     )
     assert result["exit_code"] == 1
     assert result["status"] == "short"

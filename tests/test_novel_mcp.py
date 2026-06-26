@@ -6,6 +6,36 @@ import asyncio
 import json
 
 
+def test_beat_turn_begin_tool(monkeypatch):
+    def fake_begin(**kwargs):
+        return {"exit_code": 0, "tool": "beat_turn_begin", "pipeline": {}, "finish_params": {}}
+
+    import novel_mcp.server as srv
+
+    monkeypatch.setattr(srv, "do_beat_turn_begin", fake_begin)
+    raw = asyncio.run(srv.beat_turn_begin(session="mn_test"))
+    payload = json.loads(raw)
+    assert payload["tool"] == "beat_turn_begin"
+
+
+def test_memnet_mcp_has_no_beat_turn_tools():
+    import asyncio
+    import memnet_mcp.server as mem_srv
+
+    names = {t.name for t in asyncio.run(mem_srv.mcp.list_tools())}
+    assert "beat_turn_begin" not in names
+    assert "beat_turn_finish" not in names
+
+
+def test_novel_mcp_has_beat_turn_tools():
+    import asyncio
+    import novel_mcp.server as novel_srv
+
+    names = {t.name for t in asyncio.run(novel_srv.mcp.list_tools())}
+    assert "beat_turn_begin" in names
+    assert "beat_turn_finish" in names
+
+
 def test_prose_metrics_tool_mcp_forbidden():
     from novel_mcp.server import prose_metrics
 
@@ -14,7 +44,7 @@ def test_prose_metrics_tool_mcp_forbidden():
     assert payload["exit_code"] == 1
     assert payload["mcp_forbidden"] is True
     assert payload["count"] == 150
-    assert payload["status"] == "count_only"
+    assert payload["status"] == "no_gate"
     assert "prose_count.py" in payload["errors"][0]
 
 
@@ -38,7 +68,7 @@ def test_prose_metrics_tool_with_gate_mcp_forbidden():
 
 
 def test_chapter_prose_gate_tool_valid_without_gate(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import chapter_prose_gate
 
     raw = asyncio.run(
@@ -46,18 +76,19 @@ def test_chapter_prose_gate_tool_valid_without_gate(tmp_path, monkeypatch):
             prose="字" * 150,
             chapter_dir="chapters",
             chp_num=1,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
     assert payload["exit_code"] == 0
     assert payload["ok"] is True
-    assert payload["status"] == "count_only"
+    assert payload["status"] == "no_gate"
     assert payload["file_char_total"] == 150
     assert (tmp_path / "chapters" / "第001回.md").exists()
 
 
 def test_chapter_prose_gate_tool_valid_with_gate(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import chapter_prose_gate
 
     raw = asyncio.run(
@@ -67,6 +98,7 @@ def test_chapter_prose_gate_tool_valid_with_gate(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
@@ -77,7 +109,7 @@ def test_chapter_prose_gate_tool_valid_with_gate(tmp_path, monkeypatch):
 
 
 def test_chapter_prose_gate_tool_short_rejected(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import chapter_prose_gate
 
     raw = asyncio.run(
@@ -87,6 +119,7 @@ def test_chapter_prose_gate_tool_short_rejected(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
@@ -100,7 +133,7 @@ def test_chapter_prose_gate_tool_short_rejected(tmp_path, monkeypatch):
 
 
 def test_beat_prose_finalize_tool_valid(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import beat_prose_finalize
 
     raw = asyncio.run(
@@ -110,6 +143,7 @@ def test_beat_prose_finalize_tool_valid(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
@@ -120,7 +154,7 @@ def test_beat_prose_finalize_tool_valid(tmp_path, monkeypatch):
 
 
 def test_chapter_prose_append_tool_short_rejected(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import chapter_prose_append
 
     raw = asyncio.run(
@@ -130,6 +164,7 @@ def test_chapter_prose_append_tool_short_rejected(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
@@ -138,7 +173,7 @@ def test_chapter_prose_append_tool_short_rejected(tmp_path, monkeypatch):
 
 
 def test_chapter_prose_append_tool_valid(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
     from novel_mcp.server import chapter_prose_append
 
     raw = asyncio.run(
@@ -148,6 +183,7 @@ def test_chapter_prose_append_tool_valid(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload = json.loads(raw)
@@ -162,6 +198,7 @@ def test_chapter_prose_append_tool_valid(tmp_path, monkeypatch):
             chp_num=1,
             min_chars=300,
             max_chars=600,
+            workspace_root=str(tmp_path),
         )
     )
     payload2 = json.loads(raw2)

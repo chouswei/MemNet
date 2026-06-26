@@ -22,11 +22,12 @@ def test_prose_status_count_only():
     s = prose_status(text)
     assert s["count"] == 150
     assert s["ok"] is True
-    assert s["gate_ready"] is False
-    assert s["status"] == "count_only"
+    assert s["gate_ready"] is True
+    assert s["status"] == "no_gate"
     assert s["min"] is None
     assert s["max"] is None
-    assert "chapter_prose_gate" in s["forbidden_until_gate_ready"]
+    assert s["forbidden_until_gate_ready"] == ""
+    assert "beat_turn_finish" in s["next_action"]
 
 
 def test_prose_status_short():
@@ -67,3 +68,14 @@ def test_prose_status_ok_mid():
     assert s["status"] == "ok"
     assert s["hint"] == ""
     assert s["next_action"] == "beat_prose_finalize once (same min_chars/max_chars)"
+
+
+def test_prose_status_short_advisory():
+    text = "字" * 300
+    s = prose_status(text, advisory_target=800)
+    assert s["count"] == 300
+    assert s["status"] == "short_advisory"
+    assert s["target_chars"] == 800
+    assert s["draft_vs_target"] == -500
+    assert "expand ~500" in s["hint"]
+    assert s["ok"] is True

@@ -36,11 +36,16 @@ def main() -> None:
     finish.add_argument("--update-file", help="Wire lines file for memnet update")
     finish.add_argument("--oln-file")
     finish.add_argument("--oln-mode", default="add", choices=["add", "update"])
+    finish.add_argument("--sbd-file")
+    finish.add_argument("--sbd-mode", default="add", choices=["add", "update"])
+    finish.add_argument("--scr-file")
+    finish.add_argument("--scr-mode", default="add", choices=["add", "update"])
     finish.add_argument("--snapshot-file")
     finish.add_argument("--workspace-root", default=str(ROOT))
     finish.add_argument("--replace-last", action="store_true")
     finish.add_argument("--allow-new-relation", action="store_true")
     finish.add_argument("--prose-only-gate", action="store_true")
+    finish.add_argument("--pipeline-bypass", action="store_true")
 
     args = parser.parse_args()
 
@@ -70,6 +75,16 @@ def main() -> None:
             if args.oln_file
             else None
         )
+        sbd_lines = (
+            [ln for ln in Path(args.sbd_file).read_text(encoding="utf-8").splitlines() if ln.strip()]
+            if args.sbd_file
+            else None
+        )
+        scr_lines = (
+            [ln for ln in Path(args.scr_file).read_text(encoding="utf-8").splitlines() if ln.strip()]
+            if args.scr_file
+            else None
+        )
         result = beat_turn_finish(
             session=args.session,
             prose=prose,
@@ -82,11 +97,16 @@ def main() -> None:
             update_lines=update_lines,
             oln_lines=oln_lines,
             oln_mode=args.oln_mode,
+            sbd_lines=sbd_lines,
+            sbd_mode=args.sbd_mode,
+            scr_lines=scr_lines,
+            scr_mode=args.scr_mode,
             snapshot_file=args.snapshot_file,
             workspace_root=args.workspace_root,
             replace_last_paragraph=args.replace_last,
             allow_new_relation=args.allow_new_relation,
             prose_only_gate=args.prose_only_gate,
+            pipeline_bypass=args.pipeline_bypass,
         )
 
     print(json.dumps(result, ensure_ascii=False))

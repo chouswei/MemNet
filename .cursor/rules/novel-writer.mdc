@@ -1,118 +1,119 @@
----
-description: 《晚明財閥傳》— MemNet MCP bootstrap from novel-initial-state.md, 6-step pipeline, @STEP state machine, chapter merge
-alwaysApply: false
----
-
-# 《晚明財閥傳》— Cursor chat novel (MemNet MCP)
-
-**SSOT:** [`application-notes/novel-initial-state.md`](application-notes/novel-initial-state.md) — tag map + opening seed. **Do not** paste seed into chat; load once via MCP.
-
-**Docs:** [`application-notes/llm-novel-writer.md`](application-notes/llm-novel-writer.md) — Play in Cursor, LAW/RULE index, chapter merge.
-
-**Model (Cursor picker):** default **kimi-k2.5**. Optional **gpt-5.4-nano** only for low-cost turns (prose quality may drop). **Do not use gpt-5.4-mini.**
-
-## Beat pipeline (LAW-PIPE21 — **2 MCP calls per beat**)
-
-Orchestration lives **in code**, not in agent tool loops.
-
-```text
-① beat_turn_begin(session)           → warm + pipeline{min,max,target,oln,step_n}
-② Local draft (0 MCP)                → prose_count.py until gate_ready; target ~800 for 650_950_zh
-③ beat_turn_finish(session, …)       → OLN + prose gate + chapter + add/update + session_save
-```
-
-| Phase | MCP server | Tool | Count |
-|-------|------------|------|------:|
-| Read context | **memnet** | `beat_turn_begin` | 1 |
-| Draft length | — | `python scripts/prose_count.py` | 0 |
-| Commit beat | **memnet** | `beat_turn_finish` | 1 |
-| **Total** | | | **2** |
-
-**Forbidden:** `prose_metrics`, `chapter_prose_gate`, `beat_prose_finalize` loops; separate `query_warm` + `add` + `update` + `session_save` + novel-writer on the same beat.
-
-**Shell fallback** (serve down only): `python scripts/beat_turn.py begin|finish …`
-
-## Bootstrap extraction
-
-1. Read `application-notes/novel-initial-state.md` from disk.
-2. Under `## Tag map`, copy every non-empty line inside the first ` ```text ` fence → `map_lines`.
-3. Under `## Opening seed`, copy every non-empty line inside the first ` ```text ` fence → `seed_lines`.
-4. Copy verbatim — no paraphrase.
-
-## Session handling
-
-| Situation | Action |
-|-----------|--------|
-| `serve_status.running` is false | Stop; tell player to run `memnet serve` |
-| No active novel session | `session_open(map_lines, seed_lines, allow_new_relation=true)`; store `session_id` |
-| `CHR01.name` is `unset` | Ask for 2–4 漢字 name only; **no** opening prose |
-| Name received | `update CHR01` name + `USR04`; then normal beats |
-| Mid-story | Pass `session=<id>` on **every** MCP call |
-| Resume vs fresh | Ask once; fresh → `session_open` again |
-
-After `session_open`, pass `session` on all memnet MCP tools.
-
-## MCP servers
-
-| Server | Cursor name | Beat tools |
-|--------|-------------|------------|
-| **memnet** | `project-0-MemNet-memnet` | **`beat_turn_begin`**, **`beat_turn_finish`**, `session_save`, … |
-| **novel-writer** | `project-0-MemNet-novel-writer` | Legacy only — **do not use** in beat pipeline |
-
-Install: `pip install -e ".[mcp,novel-mcp]"`. After code changes: **Settings → MCP → toggle memnet off/on**.
-
-## Per-turn pipeline (one player message = one story beat)
-
-| Step | Action |
-|------|--------|
-| 1 | `beat_turn_begin(session)` — includes warm LAW/OLN/USR05 |
-| 2 | Write `@OLN` (in-memory); expand to ~`target_chars` prose |
-| 3 | `scripts/prose_count.py --usr05 …` until `gate_ready` |
-| 4 | `beat_turn_finish(prose, oln_lines, add_lines, update_lines, chapter_dir, chp_num, min_chars, max_chars, snapshot_file, allow_new_relation=true)` |
-| 5 | Present 【大綱】+【劇情】+【選項】+ HUD |
-
-**`beat_turn_finish` parameters (from `begin.pipeline`):**
-
-- `min_chars` / `max_chars` — from `pipeline.min_chars` / `pipeline.max_chars`
-- `chapter_dir` / `chp_num` — from warm or session notes (e.g. `novel-output/shenjia_caifa/chapters`)
-- `oln_lines` — `@OLN:` wire line(s); `oln_mode=add|update`
-- `update_lines` — STEP, TIME/SYS, CHP, TRT, SCN, etc.
-- `snapshot_file` — e.g. `novel-output/shenjia_caifa/session_snap.json`
-- `replace_last_paragraph=true` — RULE09 rewrite only
-
-**Gate blocked:** `beat_turn_finish` returns `gate_blocked=true` with **no** chapter/graph write — rewrite full beat, re-run `prose_count.py`, retry **once**.
-
-**`ind_ledger` (option 5):** `beat_turn_finish(add_lines=CHOICE only)` — no prose; no TIME advance.
-
-## Step 2 prose balance (from warm, not chat)
-
-| MemNet code | Meaning |
-|-------------|---------|
-| **LAW-PROSE02** | 白話口語；禁刻意仿金庸文白 |
-| **LAW-PROSE05/06** | 對白+內心 ≥35%；口語節奏 |
-| **LAW-PROSE03** | 禁湊門檻 — 回 `@OLN` 加劇情單元後整段重寫 |
-
-## Step 2 output template
-
-```text
-MCP: beat_turn_begin → prose_count → beat_turn_finish
-
-【第一段：本拍大綱】…
-【第二段：劇情演進】…（USR05 band）
-【第三段：選項】1–5
-**[狀態欄]** …
-```
-
-## Chapter file — LAW-OUT01 / LAW-OUT02
-
-- Path from project USR / session (e.g. `novel-output/…/chapters/`).
-- `file_char_total` from `beat_turn_finish.chapter.file_char_total` — never hand-count.
-- Close chapter per LAW-OUT02 thresholds when updating `@CHP` in `update_lines`.
-
-## Hard bans
-
-- No prose before `beat_turn_finish` returns `exit_code=0`.
-- No looping any gate/metrics tool on the same beat.
-- No manual chapter append.
-- No meta in prose; no inventing IND/PRD not in warm.
-
+---
+description: 《晚明財閥傳》— MemNet MCP bootstrap from novel-initial-state.md, 6-step pipeline, @STEP state machine, chapter merge
+alwaysApply: false
+---
+
+# 《晚明財閥傳》— Cursor chat novel (MemNet MCP)
+
+**SSOT:** [`application-notes/novel-initial-state.md`](application-notes/novel-initial-state.md) — tag map + opening seed. **Do not** paste seed into chat; load once via MCP.
+
+**Docs:** [`application-notes/llm-novel-writer.md`](application-notes/llm-novel-writer.md) — Play in Cursor, LAW/RULE index, chapter merge.
+
+**Model (Cursor picker):** default **kimi-k2.5**. Optional **gpt-5.4-nano** only for low-cost turns (prose quality may drop). **Do not use gpt-5.4-mini.**
+
+## Beat pipeline (LAW-PIPE21 — **2 MCP calls per beat**)
+
+Orchestration lives **in code**, not in agent tool loops.
+
+```text
+① beat_turn_begin(session)           → warm + pipeline{min,max,target,oln,step_n}
+② Local draft (0 MCP)                → prose; no_gate 時略過 prose_count.py
+③ beat_turn_finish(session, …)       → OLN + prose gate + chapter + add/update + session_save
+```
+
+| Phase | MCP server | Tool | Count |
+|-------|------------|------|------:|
+| Read context | **novel-writer** | `beat_turn_begin` | 1 |
+| Draft length | — | *(no_gate: skip)* | 0 |
+| Commit beat | **novel-writer** | `beat_turn_finish` | 1 |
+| **Total** | | | **2** |
+
+**Forbidden:** `prose_metrics`, `chapter_prose_gate`, `beat_prose_finalize` loops; separate `query_warm` + `add` + `update` + `session_save` on the same beat (use `beat_turn_finish` instead).
+
+**Ad-hoc graph:** `query_warm` / `add` / `update` on **memnet** — same `session` id as beat tools.
+
+**Shell fallback** (serve down only): `python scripts/beat_turn.py begin|finish …`
+
+## Bootstrap extraction
+
+1. Read `application-notes/novel-initial-state.md` from disk.
+2. Under `## Tag map`, copy every non-empty line inside the first ` ```text ` fence → `map_lines`.
+3. Under `## Opening seed`, copy every non-empty line inside the first ` ```text ` fence → `seed_lines`.
+4. Copy verbatim — no paraphrase.
+
+## Session handling
+
+| Situation | Action |
+|-----------|--------|
+| `serve_status.running` is false | Stop; tell player to run `memnet serve` |
+| No active novel session | `session_open(map_lines, seed_lines, allow_new_relation=true)`; store `session_id` |
+| `CHR01.name` is `unset` | Ask for 2–4 漢字 name only; **no** opening prose |
+| Name received | `update CHR01` name + `USR04`; then normal beats |
+| Mid-story | Pass `session=<id>` on **every** MCP call |
+| Resume vs fresh | Ask once; fresh → `session_open` again |
+
+After `session_open`, pass `session` on **memnet** and **novel-writer** MCP tools (same session id).
+
+## MCP servers
+
+| Server | Cursor name | Role |
+|--------|-------------|------|
+| **memnet** | `project-0-MemNet-memnet` | Generic graph: `session_*`, `query_warm`, `add`, `update`, … |
+| **novel-writer** | `project-0-MemNet-novel-writer` | Beat pipeline: **`beat_turn_begin`**, **`beat_turn_finish`** (+ legacy chapter tools) |
+
+Install: `pip install -e ".[mcp,novel-mcp]"`. After code changes: **Settings → MCP → toggle memnet and novel-writer off/on**.
+
+## Per-turn pipeline (one player message = one story beat)
+
+| Step | Action |
+|------|--------|
+| 1 | `beat_turn_begin(session)` — includes warm LAW/OLN/USR05 |
+| 2 | Write `@OLN` (in-memory); expand to prose (`pipeline.draft_target_chars` advisory only) |
+| 3 | `beat_turn_finish(...)` — `no_gate` 時不必先跑 `prose_count.py` |
+| 4 | Present 【大綱】+【劇情】+【選項】+ HUD |
+
+**`beat_turn_finish` parameters (from `begin.pipeline`):**
+
+- `min_chars` / `max_chars` — from `pipeline.min_chars` / `pipeline.max_chars`
+- `chapter_dir` / `chp_num` — from warm or session notes (e.g. `novel-output/shenjia_caifa/chapters`)
+- `oln_lines` — `@OLN:` wire line(s); `oln_mode=add|update`
+- `update_lines` — STEP, TIME/SYS, CHP, TRT, SCN, etc.
+- `snapshot_file` — e.g. `novel-output/shenjia_caifa/session_snap.json`
+- `replace_last_paragraph=true` — RULE09 rewrite only
+
+**Gate blocked:** only when `pipeline.prose_gate` is true (min/max set). Rewrite beat and retry **once**; `no_gate` never blocks.
+
+**`ind_ledger` (option 5):** `beat_turn_finish(add_lines=CHOICE only)` — no prose; no TIME advance.
+
+## Step 2 prose balance (from warm, not chat)
+
+| MemNet code | Meaning |
+|-------------|---------|
+| **LAW-PROSE02** | 白話口語；禁刻意仿金庸文白 |
+| **LAW-PROSE05/06** | 對白+內心 ≥35%；口語節奏 |
+| **LAW-PROSE03** | 禁湊門檻 — 回 `@OLN` 加劇情單元後整段重寫 |
+
+## Step 2 output template
+
+```text
+MCP: beat_turn_begin → beat_turn_finish
+
+【第一段：本拍大綱】…
+【第二段：劇情演進】…（USR05 band）
+【第三段：選項】1–5
+**[狀態欄]** …
+```
+
+## Chapter file — LAW-OUT01 / LAW-OUT02
+
+- Path from project USR / session (e.g. `novel-output/…/chapters/`).
+- `file_char_total` from `beat_turn_finish.chapter.file_char_total` — never hand-count.
+- Close chapter per LAW-OUT02 thresholds when updating `@CHP` in `update_lines`.
+
+## Hard bans
+
+- No prose before `beat_turn_finish` returns `exit_code=0`.
+- No looping any gate/metrics tool on the same beat.
+- No manual chapter append.
+- No meta in prose; no inventing IND/PRD not in warm.
+

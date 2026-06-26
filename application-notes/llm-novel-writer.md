@@ -697,7 +697,7 @@ Each story beat: **300–600 字** prose + **5 options** + HUD in chat; graph up
 
 ### MCP servers (graph vs prose)
 
-**MemNet MCP** (`memnet-mcp`) — graph / session only. **Novel-writer MCP** (`novel-mcp`) — chapter files and RULE09 length gates. Enable **both** in Cursor (see [`.cursor/mcp.json.example`](../.cursor/mcp.json.example)).
+**MemNet MCP** (`memnet-mcp`) — generic graph / session. **Novel-writer MCP** (`novel-mcp`) — **`beat_turn_begin` / `beat_turn_finish`** (LAW-PIPE21), chapter files, legacy prose gates. Same `session` id on both. Enable **both** in Cursor (see [`.cursor/mcp.json.example`](../.cursor/mcp.json.example)).
 
 ### Novel-writer MCP tools (LAW-PROSE04)
 

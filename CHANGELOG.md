@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.19] — 2026-06-26
+
+### Added
+- **novel_mcp.beat_pipeline** — LAW-PIPE20 four-stage pipeline: `@OLN` → `@SBD` → `@SCR` → prose; `sbd_lines` / `scr_lines` on `beat_turn_finish`; stage gate + auto `USR23|beat_stage` advance.
+- **novel_mcp** — ISO game-time parsing (`game_time.py`), Chongzhen shichen display (`time_display.py`, `calendars/`), workspace path helper (`paths.py`).
+- **application-notes/novel-shenjia-initial-state.md** — 《工匠傳奇》seed: VIT02/VIT03 (氣血/內力 pools, 昏厥 auto_beat), USR21 prose advisory, integrator notes.
+- **scripts** — `beat_turn.py` SBD/SCR wire files; `shenjia_bootstrap.py`, `reorganize_seed.py`.
+
+### Changed
+- **novel-mcp** — beat tools live only on `novel-writer` MCP (removed duplicate from `memnet-mcp`).
+- **beat_turn_begin** — per-stage `draft_note`; supplemental `USR21` warm; `auto_beat` / `no_options` when 氣血=0.
+- **beat_turn_finish** — `prose_advisory_hint` for short beats; `pipeline_bypass` for legacy paths.
+
+### Tests
+- `tests/test_beat_pipeline.py` — pipeline gate, bundle, stage advance, auto_beat, time regress.
+- `tests/test_game_time.py`, `tests/test_time_display.py` — calendar / ISO time.
+
 ## [0.2.18] — 2026-06-24
 
 ### Changed

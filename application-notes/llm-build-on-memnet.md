@@ -170,36 +170,26 @@ Optional-deps split keeps `pip install memnet-llm` lightweight; only `[mcp]` use
 
 ## 4. Application-layer MCP (`novel-mcp`)
 
-In v0.2.12 the prose / chapter tools were moved out of `memnet-mcp` into their own package:
+In v0.2.12 the prose / chapter tools were moved out of `memnet-mcp` into their own package.
+**Beat orchestration** (`beat_turn_begin` / `beat_turn_finish`) lives on `novel-mcp` too — it calls
+`run_memnet` in-process with the **same session id** as `memnet-mcp` (shared `memnet serve`).
 
 ```text
 src/
-  memnet_mcp/   # graph wrapper (touches memnet serve)
-  novel_mcp/    # domain wrapper (touches local files; no graph)
-```
-
-```python
-# src/novel_mcp/server.py
-mcp = FastMCP("novel-writer")
-
-@mcp.tool()
-async def prose_metrics(prose: str, min_chars: int = 300, max_chars: int = 600) -> str:
-    """Count Traditional Chinese narrative chars (RULE09). No file I/O."""
-    payload = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
-    payload["exit_code"] = 0
-    payload["errors"] = []
-    return json.dumps(payload, ensure_ascii=False)
+  memnet_mcp/   # graph wrapper (touches memnet serve only)
+  novel_mcp/    # beat pipeline + chapter I/O (calls run_memnet for graph writes)
 ```
 
 | Question | `memnet-mcp` answer | `novel-mcp` answer |
 |----------|---------------------|---------------------|
-| Touches `memnet serve`? | Yes (every tool) | No |
-| Domain-specific? | No (any agent) | Yes (Traditional Chinese prose, chapter files) |
+| Touches `memnet serve`? | Yes (every tool) | Yes (via `beat_pipeline` → `run_memnet`) |
+| Domain-specific? | No (any agent) | Yes (novel beat + Traditional Chinese prose) |
 | Separate MCP key in `mcp.json`? | `memnet` | `novel-writer` |
 | Optional-dep group | `mcp` | `novel-mcp` |
-| Used standalone? | Yes — used by any consumer | Only with novel-writer skill |
+| Used standalone? | Yes — any consumer | Novel play + shared session with memnet |
 
-**Rule of thumb:** if your tools mutate the graph, extend `memnet-mcp`. If they do anything else (file I/O, external API, format gates, model-specific helpers), make a new MCP.
+**Rule of thumb:** graph **primitives** (`query_warm`, `add`, `update`, `session_*`) → `memnet-mcp`.
+Domain **orchestration** (multi-step beat, chapter files, prose gates) → `novel-mcp`.
 
 ---
 

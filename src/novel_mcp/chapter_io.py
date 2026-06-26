@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from novel_mcp.paths import workspace_root as resolve_workspace_root
 from novel_mcp.zh_text import count_zh_chars, prose_status
 
 _DIGITS = "零一二三四五六七八九"
@@ -71,7 +72,7 @@ def chapter_prose_gate(
 ) -> dict:
     """Append one beat block; optional length gate when min_chars and max_chars both set."""
     status = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
-    root = Path(workspace_root or Path.cwd())
+    root = resolve_workspace_root(workspace_root)
     path = chapter_file_path(root, chapter_dir, chp_num)
 
     if not status["ok"]:

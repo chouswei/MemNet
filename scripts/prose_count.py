@@ -1,6 +1,6 @@
-"""Local prose length check — same logic as novel-writer prose_metrics, no MCP round-trip.
+"""Local prose length check — optional when USR05 has min/max band (e.g. 650_950_zh).
 
-Use while drafting a beat; call beat_prose_finalize (MCP) once when gate_ready=true.
+Under no_gate / length_advisory, beat_turn_finish counts in-process; this script is not needed.
 """
 
 from __future__ import annotations
@@ -33,17 +33,21 @@ def main() -> None:
         prose = sys.stdin.read()
 
     min_c, max_c = args.min_chars, args.max_chars
-    if args.usr05:
+    if args.usr05 in ("no_gate", "length_advisory"):
+        min_c, max_c = None, None
+    elif args.usr05 and (min_c is None or max_c is None):
         min_c, max_c = parse_scene_band(args.usr05)
 
     result = prose_status(prose, min_chars=min_c, max_chars=max_c)
+    if result.get("status") == "no_gate":
+        result["mcp_hint"] = "no_gate：不必呼叫本腳本；直接 beat_turn_finish。"
+    else:
+        result["mcp_hint"] = (
+            "gate 啟用時本地確認長度；gate_ready 後 beat_turn_finish。"
+        )
     result["exit_code"] = 0
     result["errors"] = []
-    result["mcp_hint"] = (
-        "gate_ready → call beat_prose_finalize once; else rewrite beat, re-run this script (no MCP)"
-    )
     print(json.dumps(result, ensure_ascii=False))
-    sys.exit(0 if result.get("gate_ready") else 1)
 
 
 if __name__ == "__main__":

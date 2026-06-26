@@ -1,4 +1,8 @@
-"""Novel writer MCP server — prose length gates and chapter file I/O (not MemNet graph)."""
+"""Novel writer MCP server — beat orchestration, prose gates, chapter file I/O.
+
+Uses memnet serve via ``run_memnet`` (same session id as memnet-mcp). Graph primitives
+remain on memnet-mcp; per-beat pipeline is here (LAW-PIPE21).
+"""
 
 from __future__ import annotations
 
@@ -12,11 +16,92 @@ except ImportError as exc:
         "novel-mcp requires the mcp package. Install with: pip install memnet-llm[novel-mcp]"
     ) from exc
 
+from novel_mcp.beat_pipeline import beat_turn_begin as do_beat_turn_begin
+from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
 from novel_mcp.zh_text import prose_status
 
 mcp = FastMCP("novel-writer")
+
+
+@mcp.tool()
+async def beat_turn_begin(
+    session: str | None = None,
+    anchor: str = "STEP01",
+    depth: int = 2,
+    max_rows: int = 55,
+) -> str:
+    """**Novel pipeline — call 1 of 2 per beat.** Warm read + parsed USR05/STEP/OLN/CHP.
+
+    Shares MemNet session with memnet-mcp (pass the same session id).
+    Returns pipeline, finish_params, and warm_stdout.
+    """
+    result = await anyio.to_thread.run_sync(
+        lambda: do_beat_turn_begin(
+            session=session,
+            anchor=anchor,
+            depth=depth,
+            max_rows=max_rows,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def beat_turn_finish(
+    session: str | None = None,
+    prose: str | None = None,
+    chapter_dir: str | None = None,
+    chp_num: int | None = None,
+    min_chars: int | None = None,
+    max_chars: int | None = None,
+    usr05_band: str | None = None,
+    add_lines: list[str] | None = None,
+    update_lines: list[str] | None = None,
+    oln_lines: list[str] | None = None,
+    oln_mode: str = "add",
+    sbd_lines: list[str] | None = None,
+    sbd_mode: str = "add",
+    scr_lines: list[str] | None = None,
+    scr_mode: str = "add",
+    snapshot_file: str | None = None,
+    workspace_root: str | None = None,
+    replace_last_paragraph: bool = False,
+    allow_new_relation: bool = False,
+    prose_only_gate: bool = False,
+    pipeline_bypass: bool = False,
+) -> str:
+    """**Novel pipeline — call 2 of 2 per beat.** Atomic: OLN→SBD→SCR→prose (LAW-PIPE20) → chapter → graph → save.
+
+    Shares MemNet session with memnet-mcp. chapter_dir/chp_num/snapshot_file auto-filled from warm when omitted.
+    """
+    result = await anyio.to_thread.run_sync(
+        lambda: do_beat_turn_finish(
+            session=session,
+            prose=prose,
+            chapter_dir=chapter_dir,
+            chp_num=chp_num,
+            min_chars=min_chars,
+            max_chars=max_chars,
+            usr05_band=usr05_band,
+            add_lines=add_lines,
+            update_lines=update_lines,
+            oln_lines=oln_lines,
+            oln_mode=oln_mode,
+            sbd_lines=sbd_lines,
+            sbd_mode=sbd_mode,
+            scr_lines=scr_lines,
+            scr_mode=scr_mode,
+            snapshot_file=snapshot_file,
+            workspace_root=workspace_root,
+            replace_last_paragraph=replace_last_paragraph,
+            allow_new_relation=allow_new_relation,
+            prose_only_gate=prose_only_gate,
+            pipeline_bypass=pipeline_bypass,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
 
 
 @mcp.tool()
