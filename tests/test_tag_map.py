@@ -19,6 +19,15 @@ def test_fixed_tags_present():
     tm = fixed_tag_map()
     assert "EDG" in tm.tags
     assert "LAW" in tm.tags
+    assert tm.tags["EDG"].fields == [
+        "id",
+        "src",
+        "relation",
+        "dist",
+        "at",
+        "attrs",
+        "recycle",
+    ]
 
 
 def test_cannot_redefine_edg():

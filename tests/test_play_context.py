@@ -29,8 +29,24 @@ def test_player_beat_prepare_bad_choice() -> None:
     assert out["exit_code"] == 2
 
 
+def test_script_beat_prepare_blocked_when_setup_incomplete() -> None:
+    gate = {
+        "exit_code": 2,
+        "needs_player_setup": True,
+        "errors": ["player_setup_incomplete"],
+    }
+    with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": False}), patch(
+        "novel_mcp.play_context.player_setup_gate_payload", return_value=gate
+    ):
+        out = script_beat_prepare(session="mn_test", choice=1)
+    assert out["exit_code"] == 2
+    assert out.get("needs_player_setup") is True
+
+
 def test_script_beat_prepare_phase() -> None:
-    with patch("novel_mcp.play_context.read_beat_stage", return_value="oln"), patch(
+    with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": True}), patch(
+        "novel_mcp.play_context.read_beat_stage", return_value="oln"
+    ), patch(
         "novel_mcp.play_context.beat_turn_begin",
         return_value={"pipeline": {}, "finish_params": {}},
     ):
@@ -42,14 +58,18 @@ def test_script_beat_prepare_phase() -> None:
 
 
 def test_prose_beat_prepare_gate() -> None:
-    with patch("novel_mcp.play_context.read_beat_stage", return_value="oln"):
+    with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": True}), patch(
+        "novel_mcp.play_context.read_beat_stage", return_value="oln"
+    ):
         out = prose_beat_prepare(session="mn_test")
     assert out["exit_code"] == 2
     assert "prose" in out["errors"][0]
 
 
 def test_prose_beat_prepare_ok() -> None:
-    with patch("novel_mcp.play_context.read_beat_stage", return_value="prose"), patch(
+    with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": True}), patch(
+        "novel_mcp.play_context.read_beat_stage", return_value="prose"
+    ), patch(
         "novel_mcp.play_context.beat_turn_begin",
         return_value={
             "pipeline": {"scr_row": "@SCR: …", "oln_row": "@OLN: …"},

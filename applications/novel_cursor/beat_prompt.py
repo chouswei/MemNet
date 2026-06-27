@@ -141,3 +141,251 @@ beat_turn_begin → write prose from SCR → beat_turn_finish with prose, 6 opti
 
 Emit only the success JSON block when done.
 """
+
+
+_STAGE_TAG = {"oln": "OLN", "sbd": "SBD", "scr": "SCR"}
+
+_WIRE_GRAMMAR = """## Wire grammar (exact pipe-separated fields — NOT key|value updates)
+
+| Tag | Fields (count) |
+|-----|----------------|
+| `@OLN` | id\\|回合\\|情緒錨\\|情節要點\\|對白骨架\\|尾鉤\\|回收 **(7)** |
+| `@SBD` | id\\|回合\\|鏡頭\\|畫面要點\\|感官細節\\|動作對白骨架\\|氛圍轉場\\|回收 **(8)** |
+| `@SCR` | id\\|回合\\|鏡頭\\|動作描述\\|對白\\|內心旁白\\|音效氛圍\\|回收 **(8)** |
+
+Examples (copy structure, invent content from presentation only):
+- `@OLN: OLN01|1|魂穿驚醒|場景入口感官細節|NPC名：「……？」|尾鉤|delete_on_settle`
+- `@SBD: SBD01|1|1|門楣逆光|環境感官|動作骨架|氛圍轉場|delete_on_settle`
+- `@SCR: SCR01|1|1|睁眼撑地|NPC名：「你醒了？」|內心旁白|環境音效|delete_on_settle`
+
+**WRONG:** `@OLN: SCN01|update|emotion_anchor|…` — never English field names, `update`, or SCN id as OLN id.
+
+LAW-NAME01: `@USR03` 未定時勿寫死主角姓名；NPC 名字僅用 presentation.scene / warm 圖中已有者。禁捏造圖外人物。"""
+
+_STAGE_EXAMPLE = {
+    "oln": "@OLN: OLN01|1|情緒錨|情節要點|對白骨架|尾鉤|delete_on_settle",
+    "sbd": "@SBD: SBD01|1|1|畫面要點|感官細節|動作對白|氛圍|delete_on_settle",
+    "scr": "@SCR: SCR01|1|1|動作描述|對白|內心旁白|音效|delete_on_settle",
+}
+
+
+def _format_cast_block(presentation: dict[str, Any]) -> str:
+    """Human-readable cast ages/traits from presentation.scene (LAW-CHR02/04)."""
+    scene = presentation.get("scene") or {}
+    lines: list[str] = []
+    if scene.get("age_hint"):
+        lines.append(f"歲數（@SYS−出生年）：{scene['age_hint']}")
+    elif scene.get("ages"):
+        lines.append(f"歲數：{scene['ages']}")
+    plr_age = scene.get("plr_age")
+    if plr_age is not None:
+        ident = scene.get("plr_identity") or "主角"
+        lines.append(f"- 主角 {ident}（{scene.get('plr_id', 'P01')}）：{plr_age}歲")
+        if scene.get("plr_body"):
+            lines.append(f"  體征：{scene['plr_body']}")
+    for npc in scene.get("npcs") or []:
+        name = npc.get("name", "?")
+        nid = npc.get("id", "")
+        age = npc.get("age")
+        age_s = f"{age}歲" if age is not None else "歲數見 birth_year"
+        by = npc.get("birth_year")
+        if by is not None and age is None:
+            age_s = f"出生{by}"
+        traits = npc.get("traits") or ""
+        lines.append(f"- {name}（{nid}）：{age_s} — {traits}")
+    if not lines:
+        return ""
+    return "## Cast（年齡／人設 — 對白與身形須遵守）\n" + "\n".join(lines) + "\n\n"
+
+
+def build_script_stage_system(config: NovelAppConfig) -> str:
+    return f"""You are the **{config.title}** script drafter (編劇). Text output only — **no tools**.
+
+This is a **persistent chat thread** (編劇聊天室). Remember prior turns for voice and pipeline rhythm.
+
+**MemNet** `presentation` in each user turn is canonical plot state (記憶加強); chat history does not override the graph.
+
+Draft **one** `@OLN`, `@SBD`, or `@SCR` wire line per request from the presentation envelope.
+
+{_WIRE_GRAMMAR}
+
+Rules:
+1. Output **only** wire line(s) — no prose, no explanation, no markdown fences.
+2. Honour contracts, scene focus from presentation, walk_hops, continuation anchor.
+3. Do not invent plot or NPCs outside given graph context.
+4. Choice 6 (library): encode query in OLN only (LAW-LIB03).
+
+SSOT: `{config.seed_md_rel}`."""
+
+
+def build_script_stage_user(
+    prep: dict[str, Any],
+    begin: dict[str, Any],
+    stage: str,
+    *,
+    prior_error: str | None = None,
+) -> str:
+    import json
+
+    session = prep["memnet_session"]
+    anchor = prep.get("continuation_anchor") or ""
+    player = prep.get("player") or {}
+    presentation = begin.get("presentation") or {}
+    pipeline = begin.get("pipeline") or {}
+    tag = _STAGE_TAG.get(stage, stage.upper())
+
+    if "choice" in player:
+        player_block = f"Player chose option **{player['choice']}**."
+        if player.get("lib_query"):
+            player_block += " Library beat: reflect query in OLN only."
+    elif "steering" in player:
+        player_block = f'Player steering: "{player["steering"]}".'
+    elif player.get("continue_beat"):
+        player_block = "Resume mid-script pipeline."
+    else:
+        player_block = "(continue pipeline)"
+
+    err_block = f"\n\n## Prior finish error (fix)\n{prior_error}" if prior_error else ""
+    example = _STAGE_EXAMPLE.get(stage, "")
+    cast_block = _format_cast_block(presentation)
+    opening = ""
+    if not anchor and stage == "oln":
+        scene = presentation.get("scene") or {}
+        scn = scene.get("id") or scene.get("code") or "opening scene"
+        bits: list[str] = []
+        if scene.get("plr_identity") or scene.get("plr_age") is not None:
+            ident = scene.get("plr_identity") or "主角"
+            age = scene.get("plr_age")
+            bits.append(
+                f"{ident}（{age}歲）" if age is not None else ident
+            )
+        npcs = scene.get("npcs") or []
+        if npcs:
+            npc_s = "、".join(
+                f"{n.get('name', '?')}({n.get('id', '')})" for n in npcs[:8]
+            )
+            bits.append(f"場景 NPC：{npc_s}")
+        if bits:
+            opening = (
+                f"\n## Opening beat ({scn})\n"
+                + "；".join(bits)
+                + "。人物與年齡以 Presentation / Cast 為準；"
+                "若玩家 steering 為姓名，在 OLN 情節要點體現取名。\n"
+            )
+
+    return f"""Session: `{session}`
+Stage: **{stage}** — output `@{tag}:` wire line(s) only.
+
+## Required shape (one line)
+`{example}`
+
+## Continuation anchor
+{anchor or "(opening beat — no prior prose)"}
+{opening}
+## Player
+{player_block}
+
+## Pipeline hint
+{pipeline.get("next_action", "")}
+
+{cast_block}## Presentation (beat_turn_begin)
+```json
+{json.dumps(presentation, ensure_ascii=False, indent=2)}
+```
+
+## Task
+Draft the **{stage}** wire. Reply with line(s) starting with `@{tag}:` only.{err_block}"""
+
+
+def build_prose_system(config: NovelAppConfig) -> str:
+    snap = str(config.snapshot_file.relative_to(config.output_dir.parent.parent)).replace(
+        "\\", "/"
+    )
+    try:
+        from app_config import repo_root
+
+        snap = str(config.snapshot_file.relative_to(repo_root())).replace("\\", "/")
+    except ValueError:
+        pass
+
+    return f"""You are the **{config.title}** prose drafter (作者). **No tools** — JSON output only.
+
+This is a **persistent chat thread** (作者聊天室). Remember prior beats for register and voice.
+
+**MemNet** `presentation` + `@SCR` in each user turn are canonical (記憶加強); chat history does not override the graph.
+
+Expand `@SCR` into player-facing novel text per presentation contracts.
+**Cast block**（`presentation.scene`）：NPC 歲數／特徵為硬性約束（LAW-CHR02/04/18），勿依常識改年齡。
+
+Rules:
+1. Prose: 白話武俠，繁體，~draft_target_chars (advisory). Expand **only** from SCR shots.
+2. Exactly **6** options — each a **single complete sentence** (LAW-PERS02):
+   - Slots 1–4: narrative/trait axis; **no** comma verb chains（禁「去看、去問、再……」）
+   - Slot 5: independent beat (pause / wait / think)
+   - Slot 6: library query (意識圖書館)
+   - End with 。！？；… where natural; ≥8 chars when possible
+3. `hud`: one-line pipe status bar.
+4. `update_lines` (optional): only valid MemNet wires. **Player name/gender/opening arts** are committed via setup MCP (`commit_player_profile` / `commit_opening_pick`) before the first beat — do not rename in beat finish unless steering explicitly retcons.
+5. Emit **only** fenced JSON below.
+
+Snapshot: `{snap}`
+
+```json
+{{
+  "prose": "<正文>",
+  "options": ["…", "…", "…", "…", "…", "…"],
+  "hud": "<狀態欄>",
+  "update_lines": []
+}}
+```"""
+
+
+def _wire_display(tag: str, row: str | None) -> str:
+    if not row:
+        return ""
+    text = row.strip()
+    prefix = f"@{tag}:"
+    if text.startswith(prefix):
+        return text
+    return f"{prefix} {text}"
+
+
+def build_prose_user(prep: dict[str, Any], begin: dict[str, Any]) -> str:
+    import json
+
+    session = prep["memnet_session"]
+    anchor = prep.get("continuation_anchor") or ""
+    pipeline = begin.get("pipeline") or {}
+    presentation = begin.get("presentation") or {}
+    fp = begin.get("finish_params") or prep.get("finish_params") or {}
+
+    oln_raw = pipeline.get("oln_row") or prep.get("oln_row") or ""
+    scr_raw = pipeline.get("scr_row") or prep.get("scr_row") or ""
+    oln = _wire_display("OLN", oln_raw)
+    scr = scr_raw if "\n" in scr_raw or scr_raw.startswith("@SCR:") else _wire_display("SCR", scr_raw)
+    chp_num = fp.get("chp_num") or prep.get("chp_num") or pipeline.get("chp_num") or 1
+    snap = fp.get("snapshot_file") or prep.get("snapshot_file") or ""
+    cast_block = _format_cast_block(presentation)
+
+    return f"""Session: `{session}`
+
+## Continuation anchor
+{anchor or "(none)"}
+
+## Current OLN
+{oln or "(missing — do not invent plot)"}
+
+## Current SCR (expand faithfully — every shot)
+{scr or "(missing — do not invent plot)"}
+
+{cast_block}## finish_params
+chapter_dir: `{fp.get("chapter_dir", prep.get("chapter_dir", ""))}`
+chp_num: {chp_num}
+snapshot_file: `{snap}`
+
+## Presentation
+```json
+{json.dumps(presentation, ensure_ascii=False, indent=2)}
+```
+
+Expand **only** from SCR above; honour **Cast** ages and traits. Emit only the JSON block."""

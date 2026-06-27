@@ -1,5 +1,13 @@
 {
   "app_id": "shenjia_caifa",
   "seed_md": "application-notes/novel-shenjia-initial-state.md",
-  "title": "工匠傳奇"
+  "title": "工匠傳奇",
+  "model_script": "deepseek-v4-flash",
+  "model_prose": "deepseek-v4-flash",
+  "thinking_script": true,
+  "thinking_prose": false,
+  "expand_catalog": true,
+  "expand_catalog_target": 80,
+  "expand_catalog_seed": 42,
+  "catalog_schema": "applications/novel_cursor/catalog_specs/wuxia_jinyong.json"
 }

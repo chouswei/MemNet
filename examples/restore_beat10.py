@@ -9,7 +9,7 @@ from memnet.serve import send_command
 ROOT = Path(__file__).resolve().parents[1]
 MAP = ROOT / "src/memnet/examples/schema.novel.example.txt"
 SEED = ROOT / "src/memnet/examples/workflow.novel.example.txt"
-CH2 = ROOT / "novel-output/wanming_caifa_zhuan/chapters/第002回.md"
+CH2 = ROOT / "novel-output/shenjia_caifa/chapters/第002回.md"
 
 
 def cjk_count(text: str) -> int:

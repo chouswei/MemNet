@@ -1,4 +1,8 @@
-"""Persistent Cursor SDK script / prose agent sessions."""
+"""Persistent Cursor SDK script / prose agent sessions.
+
+DEPRECATED: cursor_beat.py uses beat_orchestrator (local MCP + stateless LLM).
+Kept for reference / manual debugging only.
+"""
 
 from __future__ import annotations
 

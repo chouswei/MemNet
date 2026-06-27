@@ -42,6 +42,26 @@ def test_presentation_rpg_seed_different_contract():
     assert "LAW-HP01" in text
 
 
+def test_scene_snapshot_npc_ages():
+    warm = """\
+@SYS: SYS01|1|1637-09-01T06|0|0|25|fx
+@NPC: N01|沈芯|1625|女、聰慧|0|土法|sk|it|0|需小工|常駐
+@PLR: P01|流民|1627|0|0|魂穿|氣血:6/6
+"""
+    pres = compile_presentation(
+        warm,
+        {
+            "beat_stage": "prose",
+            "character_ages": {"P01": 10, "N01": 12},
+            "age_hint": "P01:10歲；N01:12歲",
+        },
+    )
+    scene = pres["scene"]
+    assert scene["npcs"][0]["age"] == 12
+    assert scene["npcs"][0]["birth_year"] == 1625
+    assert scene["plr_age"] == 10
+
+
 def test_option_contracts_on_prose_stage():
     pres = compile_presentation(
         WUXIA_WARM,

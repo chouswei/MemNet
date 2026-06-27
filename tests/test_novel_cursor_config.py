@@ -18,7 +18,7 @@ def test_result_marker_is_generic() -> None:
     assert RESULT_MARKER == "NOVEL_BEAT_RESULT"
 
 
-def test_load_shenjia_instance() -> None:
+def test_load_instance_config() -> None:
     cfg = load_config(app_id="shenjia_caifa")
     assert cfg.app_id == "shenjia_caifa"
     assert cfg.title == "工匠傳奇"

@@ -1,8 +1,19 @@
 # Novel Cursor beat runner
 
-Dual **persistent** Cursor SDK agents per story: **編劇** (OLN→SBD→SCR) + **作者** (prose).
+Dual **chat threads** (編劇 / 作者) with per-role models; MemNet presentation augments each turn.
 
-Operator guide: [`application-notes/llm-novel-cursor-sdk.md`](../../application-notes/llm-novel-cursor-sdk.md).
+## Models
+
+| Role | Env | Default |
+|------|-----|---------|
+| 編劇 | `LLM_MODEL_SCRIPT` | `deepseek-v4-flash` + **thinking on** |
+| 作者 | `LLM_MODEL_PROSE` | `deepseek-v4-flash` + thinking off |
+
+Instance: `thinking_script` / `thinking_prose` in `instances/<slug>.json`. 編劇可改 `deepseek-v4-pro` 若仍常出 wire 錯。
+
+Operator guide: [`application-notes/llm-novel-cursor-sdk.md`](../../application-notes/llm-novel-cursor-sdk.md). SEED: [`application-notes/novel-seed-spec.md`](../../application-notes/novel-seed-spec.md).
+
+**Session:** one `session_id` on `memnet serve` — shared by memnet-mcp, novel-mcp, and `cursor_beat`. `session_id.txt` is only a pointer.
 
 ## Setup
 
@@ -10,14 +21,16 @@ Operator guide: [`application-notes/llm-novel-cursor-sdk.md`](../../application-
 pip install -e ".[mcp,novel-mcp]"
 pip install -r applications/novel_cursor/requirements.txt
 memnet serve
-$env:CURSOR_API_KEY = "..."
+$env:MOONSHOT_API_KEY = "..."   # preferred for kimi-k2.5 (fast, no repo tools)
+# or: $env:LLM_API_KEY / OPENAI_API_KEY + $env:LLM_BASE_URL
+# fallback: $env:CURSOR_API_KEY (slower Agent.prompt one-shots)
 ```
 
 ## New game
 
 ```powershell
 python scripts/novel_bootstrap.py application-notes/novel-<slug>-initial-state.md
-# write novel-output/<slug>/session_id.txt
+# copy returned session_id → novel-output/<slug>/session_id.txt
 
 python applications/novel_cursor/cursor_beat.py --app <slug> --reset-agents --choice 1
 ```
@@ -39,8 +52,8 @@ python applications/novel_cursor/cursor_beat.py --app shenjia_caifa --continue
 | `--continue` | Resume mid-beat (`sbd`/`scr`/`prose`) |
 | `--script-only` | Script agent only; exit 4 if handoff fails |
 | `--prose-only` | Prose agent only (`USR23` must be `prose`) |
-| `--reset-agents` | Delete `agents/*.txt`; recreate SDK sessions |
-| `--stream` | SDK events to stderr |
+| `--reset-threads` | Clear 編劇 + 作者 chat history |
+| `--stream` | Log LLM provider to stderr |
 
 ## Exit codes
 
@@ -57,14 +70,22 @@ python applications/novel_cursor/cursor_beat.py --app shenjia_caifa --continue
 - Stdout: `NOVEL_BEAT_RESULT\t{json}`
 - File: `novel-output/<slug>/last_beat.json`
 
-## Agent id files
+## Flow
+
+1. `script_beat_prepare` → for each of oln/sbd/scr: `beat_turn_begin` → LLM wire draft → `beat_turn_finish`
+2. `prose_beat_prepare` → `beat_turn_begin` → LLM prose JSON → `beat_turn_finish`
+3. `NOVEL_BEAT_RESULT` + `last_beat.json`
+
+LLM calls are **text-only** (OpenAI-compatible HTTP). MCP begin/finish run **in-process** in Python.
+
+## Agent id files (legacy)
 
 ```text
 novel-output/<slug>/agents/script_agent_id.txt
 novel-output/<slug>/agents/prose_agent_id.txt
 ```
 
-Resumed via `Agent.resume` each beat (not recreated unless missing or `--reset-agents`).
+Unused in orchestrated mode; safe to delete.
 
 ## Legacy shim
 

@@ -1,0 +1,31 @@
+{
+  "wire_columns": ["id", "名稱", "門類", "金庸梯", "係數", "出處", "回收"],
+  "kind_field": "門類",
+  "tier_field": "金庸梯",
+  "coeff_field": "係數",
+  "kind_to_slot": {
+    "內功": "neigong",
+    "綜合": "neigong",
+    "武學": "martial",
+    "輕功": "qinggong",
+    "身法": "qinggong"
+  },
+  "valid_kinds": ["內功", "武學", "輕功", "綜合"],
+  "valid_tiers": ["三流", "二流", "一流", "超一流", "絕頂"],
+  "tier_coeff_bands": {
+    "三流": [0.75, 0.85],
+    "二流": [0.9, 1.05],
+    "一流": [1.05, 1.35],
+    "超一流": [1.4, 1.85],
+    "絕頂": [1.8, 2.0]
+  },
+  "min_slots": { "neigong": 10, "martial": 25, "qinggong": 8 },
+  "universe_label": "金庸武俠宇宙",
+  "content_rules": "僅金庸武俠宇宙武功；禁其他 IP、禁現代格鬥、禁修仙術語",
+  "expand_extra_rules": "出處欄用作品簡稱或門派；tags 用分號分隔",
+  "high_burn_substrings": ["六脈", "神劍"],
+  "burn_usr_key": "art_neili_burn",
+  "burn_usr_id": "USR49",
+  "qinggong_wire_kind": "輕功",
+  "body_stat_labels": { "neigong": "內功", "martial": "武學", "qinggong": "輕功" }
+}

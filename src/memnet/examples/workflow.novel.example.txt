@@ -1,4 +1,4 @@
-﻿@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
+@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor
 @LAW: LAW02|*|on_add|unique|one_id_add_then_update
 @LAW: LAW03|EDG|on_add|validate|src_dist_exist_first
 @LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare
@@ -44,7 +44,7 @@
 @LORE: LORE12|politics|wanli38|kechang_faction_noise|persistent
 @LORE: LORE13|region|town|inland_county_silver_tight|persistent
 @LORE: LORE14|library|canon|jinyong_14_manuals_fulltext|persistent
-@LORE: LORE15|story|title|wanming_caifa_zhuan|persistent
+@LORE: LORE15|story|title|gongjiang_chuanqi|persistent
 @LORE: LORE16|cast|heroine|fl01_tielan|persistent
 @LORE: LORE17|cast|heroine|fl02_tiexin|persistent
 @LORE: LORE18|prose|style|colloquial_wanli_smithy|persistent
@@ -81,7 +81,7 @@
 @QUEST: QST01|smithy_job|1|accept_work_offer|half_food_share|active|persistent
 @QUEST: QST02|keep_smithy|1|guard_forge|food_short|active|persistent
 @QUEST: QST03|gather_fuel|1|stock_charcoal|door_patch|active|persistent
-@PLT: PLT01|wanming_caifa_zhuan|calm|smithy_gate_origin|active|persistent
+@PLT: PLT01|gongjiang_chuanqi|calm|smithy_gate_origin|active|persistent
 
 @VIT: VIT01|CHR01|qi_blood|8|10|persistent
 @VIT: VIT02|CHR01|neili|0|0|persistent
@@ -114,7 +114,7 @@
 @USR: USR02|voice|colloquial_plain_zh_tw|persistent
 @USR: USR04|pc_name|unset|persistent
 @USR: USR05|options|five_fixed_opt5_ledger|persistent
-@USR: USR06|chapter_out|novel-output/wanming_caifa_zhuan/chapters|persistent
+@USR: USR06|chapter_out|novel-output/shenjia_caifa/chapters|persistent
 @USR: USR07|chapter_target|2400_4200_zh|persistent
 
 @CHP: CHP01|1|0|0|0|open|persistent

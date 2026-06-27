@@ -72,6 +72,64 @@ def test_parse_warm_stdout():
     assert p["oln_row"].startswith("OLN06|")
 
 
+def test_beat_turn_begin_uses_enrich_for_scr(monkeypatch):
+    from novel_mcp.beat_pipeline import beat_turn_begin, parse_warm_stdout
+    from memnet_mcp.client import MemNetResponse
+
+    warm_truncated = """\
+@STEP: STEP01|1|SCN01|persistent
+@USR: USR23|beat_stage|prose|persistent
+"""
+
+    def fake_run(argv, stdin=None, session=None):
+        if argv[:2] == ["query", "warm"]:
+            return MemNetResponse(0, warm_truncated, "", session, [])
+        if argv[:3] == ["read", "list", "--tag"]:
+            tag = argv[3]
+            if tag == "OLN":
+                body = "@OLN: OLN01|1|魂穿|匠坊|对白|钩|delete_on_settle"
+            elif tag == "SCR":
+                body = (
+                    "@SCR: SCR01|1|1|动作|对白|内心|音效|delete_on_settle\n"
+                    "@SCR: SCR02|1|2|动作2|对白2|内心2|音效2|delete_on_settle"
+                )
+            else:
+                body = ""
+            return MemNetResponse(0, body, "", session, [])
+        if argv[:2] == ["read", "get"]:
+            return MemNetResponse(0, "@USR: USR23|beat_stage|prose|persistent", "", session, [])
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("memnet_mcp.client.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.play_context.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_warm_walk", lambda **kw: [])
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: None)
+
+    out = beat_turn_begin(session="mn_x")
+    pipeline = out["pipeline"]
+    assert pipeline["oln_row"].startswith("OLN01|1|")
+    assert "@SCR: SCR01|1|1|" in pipeline["scr_row"]
+    assert "@SCR: SCR02|1|2|" in pipeline["scr_row"]
+
+
+def test_parse_warm_stdout_prose_stage_attaches_scr_rows():
+    warm = """\
+@STEP: STEP01|1|SCN01|persistent
+@USR: USR23|beat_stage|prose|persistent
+@OLN: OLN01|1|魂穿驚愕|匠坊門口炭煙|芯問名|尾鉤|delete_on_settle
+@SCR: SCR01|1|1|蜷身撐地|（無語）|這身體……|風箱低鳴|delete_on_settle
+@SCR: SCR02|1|2|沈芯蹲下|芯：「你叫什麼？」|怎麼脫口而出？|炭火啪響|delete_on_settle
+"""
+    p = parse_warm_stdout(warm)
+    assert p["beat_stage"] == "prose"
+    assert p["step_focus"] == "SCN01"
+    assert p["oln_row"].startswith("OLN01|1|")
+    assert "@SCR: SCR01|1|1|" in p["scr_row"]
+    assert "@SCR: SCR02|1|2|" in p["scr_row"]
+
+
 def test_pipeline_next_action():
     assert "beat_turn_finish" in pipeline_next_action(4)
     assert "OLN" in pipeline_next_action(4, "oln", pipeline_no_bundle=True)

@@ -13,6 +13,7 @@ from novel_mcp.session_meta import fetch_session_modified
 from novel_mcp.validators import validate_option_lines
 from novel_mcp.warm_walk import fetch_warm_walk
 from novel_mcp.chapter_io import chapter_prose_gate
+from novel_mcp.edg_time import prepare_edg_add_lines, validate_edg_at_add_lines
 from novel_mcp.game_time import (
     check_sys_time_update,
     parse_game_time,
@@ -22,6 +23,7 @@ from novel_mcp.game_time import (
 from novel_mcp.time_display import format_time_display
 from novel_mcp.paths import workspace_root as resolve_workspace_root
 from novel_mcp.warm_index import index_warm, pipeline_no_bundle
+from novel_mcp.warm_supplement import enrich_warm_stdout
 from novel_mcp.zh_text import parse_scene_band, prose_status
 
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
@@ -218,24 +220,17 @@ _STAGE_HINT_USR: dict[str, str] = {
 }
 
 
-def _wire_lines_from_read(resp: MemNetResponse) -> list[str]:
-    if resp.exit_code != 0 or not resp.stdout:
-        return []
-    return [
-        ln.strip()
-        for ln in resp.stdout.splitlines()
-        if ln.strip().startswith("@")
-    ]
-
-
 def _read_get_body(session: str | None, record_id: str) -> str | None:
     """Return wire body (after @TAG:) for a single record id."""
     if not session:
         return None
     resp = run_memnet(["read", "get", "--id", record_id], session=session)
-    for line in _wire_lines_from_read(resp):
-        if line.startswith("@") and ":" in line:
-            return line.split(":", 1)[1].strip()
+    if resp.exit_code != 0 or not resp.stdout:
+        return None
+    for line in resp.stdout.splitlines():
+        s = line.strip()
+        if s.startswith("@") and ":" in s:
+            return s.split(":", 1)[1].strip()
     return None
 
 
@@ -427,6 +422,29 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
                 if body.startswith(focus + "|"):
                     pipeline["scr_row"] = body
                     break
+
+    # Prose stage: step_focus is usually SCN* — still need latest OLN + all SCR for the beat.
+    if stage == "prose":
+        oln_bodies = rows.get("OLN", [])
+        scr_bodies = rows.get("SCR", [])
+        if oln_bodies and "oln_row" not in pipeline:
+            pipeline["oln_row"] = oln_bodies[-1]
+        if scr_bodies and "scr_row" not in pipeline:
+            round_n = None
+            if oln_bodies:
+                parts = oln_bodies[-1].split("|")
+                if len(parts) >= 2:
+                    round_n = parts[1]
+            if round_n is not None:
+                beat_scr = [
+                    b
+                    for b in scr_bodies
+                    if len(b.split("|")) >= 2 and b.split("|")[1] == round_n
+                ]
+            else:
+                beat_scr = scr_bodies
+            if beat_scr:
+                pipeline["scr_row"] = "\n".join(f"@SCR: {b}" for b in beat_scr)
 
     # Default stage if not set
     if "beat_stage" not in pipeline:
@@ -633,12 +651,19 @@ def beat_turn_begin(
         depth=depth,
         max_rows=max_rows,
     )
-    pipeline = parse_warm_stdout(resp.stdout)
-    _supplement_prose_target(pipeline, session=session, warm_stdout=resp.stdout)
-    fsm_extra = _supplement_pipeline_fsm(
-        pipeline, session=session, warm_stdout=resp.stdout
+    from novel_mcp.play_context import read_beat_stage
+
+    warm_body = enrich_warm_stdout(
+        session,
+        resp.stdout,
+        beat_stage=read_beat_stage(session),
     )
-    warm_for_pres = resp.stdout + ("\n" + fsm_extra if fsm_extra else "")
+    pipeline = parse_warm_stdout(warm_body)
+    _supplement_prose_target(pipeline, session=session, warm_stdout=warm_body)
+    fsm_extra = _supplement_pipeline_fsm(
+        pipeline, session=session, warm_stdout=warm_body
+    )
+    warm_for_pres = warm_body + ("\n" + fsm_extra if fsm_extra else "")
     if pipeline.get("auto_beat"):
         pipeline["next_action"] = (
             "auto_beat: unconscious — no options; write rescue/wake prose → beat_turn_finish"
@@ -885,6 +910,23 @@ def beat_turn_finish(
         result["errors"].extend(time_errors)
         result["time_blocked"] = True
         return result
+
+    if add_lines and warm_for_validate:
+        sys_time = session_pipeline.get("sys_time_raw")
+        add_lines = prepare_edg_add_lines(
+            add_lines,
+            sys_time=sys_time,
+            warm_stdout=warm_for_validate,
+        )
+        edg_at_errors = validate_edg_at_add_lines(
+            add_lines,
+            warm_stdout=warm_for_validate,
+        )
+        if edg_at_errors:
+            result["exit_code"] = 1
+            result["errors"].extend(edg_at_errors)
+            result["edg_at_blocked"] = True
+            return result
 
     for phase, lines, mode in (
         ("oln", oln_lines, oln_mode),

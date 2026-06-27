@@ -25,6 +25,30 @@ def test_script_turn_includes_anchor() -> None:
     assert "mn_x" in text
 
 
+def test_prose_user_includes_cast_block() -> None:
+    from beat_prompt import build_prose_user
+
+    cfg = load_config(app_id="shenjia_caifa")
+    prep = {"memnet_session": "mn_x", "continuation_anchor": ""}
+    begin = {
+        "pipeline": {"scr_row": "@SCR: SCR01|1|1|…"},
+        "presentation": {
+            "scene": {
+                "ages": {"N01": 12, "P01": 10},
+                "age_hint": "P01:10歲；N01:12歲",
+                "npcs": [{"id": "N01", "name": "沈芯", "age": 12, "traits": "女、聰慧"}],
+                "plr_age": 10,
+                "plr_identity": "流民乞丐",
+            }
+        },
+        "finish_params": {},
+    }
+    text = build_prose_user(prep, begin)
+    assert "沈芯" in text
+    assert "12歲" in text
+    assert "## Cast" in text
+
+
 def test_prose_turn_includes_scr() -> None:
     cfg = load_config(app_id="shenjia_caifa")
     prep = {

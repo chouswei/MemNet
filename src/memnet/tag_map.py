@@ -96,7 +96,16 @@ def validate_id(record_id: str) -> None:
         raise MemNetError("invalid_id", f"id {record_id} invalid use A-Za-z0-9_.-")
 
 
+def _coerce_edg_values(values: list[str], nfields: int) -> list[str]:
+    """Legacy 6-field @EDG lines omit empty ``at`` before attrs."""
+    if nfields == 7 and len(values) == 6:
+        return values[:4] + [""] + values[4:]
+    return values
+
+
 def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str, str]:
+    if tag_def.tag == "EDG":
+        values = _coerce_edg_values(values, len(tag_def.fields))
     if len(values) != len(tag_def.fields):
         example = emit_record_line(
             tag_def.tag,
@@ -159,6 +168,7 @@ def example_ingest_line(tag_def: TagDef) -> str:
         "src": "N01",
         "dist": "PLR01",
         "relation": "links",
+        "at": "",
         "attrs": "",
         "recycle": "persistent",
         "name": "Example",

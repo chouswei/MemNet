@@ -8,6 +8,7 @@ from memnet_mcp.client import run_memnet
 from novel_mcp.beat_pipeline import beat_turn_begin
 from novel_mcp.chapter_io import chapter_file_path, last_committed_paragraph
 from novel_mcp.paths import workspace_root
+from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
 from novel_mcp.warm_index import index_warm, usr_value
 
 _SCRIPT_STAGES = frozenset({"oln", "sbd", "scr"})
@@ -71,6 +72,22 @@ def _common_paths(
     }
 
 
+def _play_blocked_by_setup(
+    session: str,
+    *,
+    choice: int | None,
+    steering: str | None,
+    continue_beat: bool,
+    workspace_root_path: str | None = None,
+) -> dict[str, Any] | None:
+    if not (choice is not None or steering or continue_beat):
+        return None
+    setup = read_player_setup(session, workspace_root_path=workspace_root_path)
+    if setup.get("setup_complete"):
+        return None
+    return player_setup_gate_payload(session, workspace_root_path=workspace_root_path)
+
+
 def script_beat_prepare(
     *,
     session: str,
@@ -87,6 +104,16 @@ def script_beat_prepare(
     )
     if err:
         return err
+
+    blocked = _play_blocked_by_setup(
+        session,
+        choice=choice,
+        steering=steering,
+        continue_beat=continue_beat,
+        workspace_root_path=workspace_root_path,
+    )
+    if blocked:
+        return blocked
 
     beat_stage = read_beat_stage(session)
 
@@ -134,6 +161,8 @@ def script_beat_prepare(
 
     start_stage = beat_stage if beat_stage in _SCRIPT_STAGES else "oln"
 
+    player_setup = read_player_setup(session, workspace_root_path=workspace_root_path)
+
     return {
         "exit_code": 0,
         "phase": "script",
@@ -141,6 +170,7 @@ def script_beat_prepare(
         "beat_stage": beat_stage,
         "player": player,
         "begin": begin,
+        "player_setup": player_setup,
         **paths,
         "fsm": {
             "stages": ["oln", "sbd", "scr"],
@@ -158,6 +188,10 @@ def prose_beat_prepare(
     workspace_root_path: str | None = None,
 ) -> dict[str, Any]:
     """Bundle context for prose agent; requires USR23 beat_stage=prose."""
+    setup = read_player_setup(session, workspace_root_path=workspace_root_path)
+    if not setup.get("setup_complete"):
+        return player_setup_gate_payload(session, workspace_root_path=workspace_root_path)
+
     beat_stage = read_beat_stage(session)
     if beat_stage != "prose":
         return {

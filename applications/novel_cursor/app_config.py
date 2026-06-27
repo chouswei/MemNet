@@ -11,6 +11,8 @@ APP_DIR = Path(__file__).resolve().parent
 INSTANCES_DIR = APP_DIR / "instances"
 RESULT_MARKER = "NOVEL_BEAT_RESULT"
 MODEL = "kimi-k2.5"
+MODEL_SCRIPT = "deepseek-v4-flash"
+MODEL_PROSE = "deepseek-v4-flash"
 
 _USR14_RE = re.compile(
     r"@USR:\s*USR14\|chapter_out\|([^|\s]+)",
@@ -36,6 +38,14 @@ class NovelAppConfig:
     session_id_file: Path
     last_beat_file: Path
     agents_dir: Path
+    model_script: str = MODEL_SCRIPT
+    model_prose: str = MODEL_PROSE
+    thinking_script: bool = False
+    thinking_prose: bool = False
+    expand_catalog: bool = False
+    expand_catalog_target: int = 80
+    expand_catalog_seed: int | None = None
+    catalog_schema: Path | None = None
 
     @property
     def script_agent_id_file(self) -> Path:
@@ -44,6 +54,10 @@ class NovelAppConfig:
     @property
     def prose_agent_id_file(self) -> Path:
         return self.agents_dir / "prose_agent_id.txt"
+
+    @property
+    def threads_dir(self) -> Path:
+        return self.output_dir / "threads"
 
     @property
     def seed_md_rel(self) -> str:
@@ -74,6 +88,63 @@ def _parse_paths_from_seed(seed_md: Path) -> tuple[Path, Path, Path, str, str]:
     return out_dir, snap, ch_dir, title, app_id
 
 
+def _models_from_instance(inst: dict | None) -> tuple[str, str, bool, bool]:
+    if not inst:
+        return MODEL_SCRIPT, MODEL_PROSE, False, False
+    script = str(inst.get("model_script") or MODEL_SCRIPT).strip()
+    prose = str(inst.get("model_prose") or MODEL_PROSE).strip()
+    think_script = bool(inst.get("thinking_script", False))
+    think_prose = bool(inst.get("thinking_prose", False))
+    return script, prose, think_script, think_prose
+
+
+def _make_config(
+    *,
+    app_id: str,
+    seed_path: Path,
+    title: str,
+    out_dir: Path,
+    snap: Path,
+    ch_dir: Path,
+    inst: dict | None = None,
+) -> NovelAppConfig:
+    model_script, model_prose, thinking_script, thinking_prose = _models_from_instance(inst)
+    expand = False
+    expand_target = 80
+    expand_seed: int | None = None
+    catalog_schema: Path | None = None
+    if inst:
+        expand = bool(inst.get("expand_catalog", False))
+        expand_target = int(inst.get("expand_catalog_target", 80))
+        raw_seed = inst.get("expand_catalog_seed")
+        expand_seed = int(raw_seed) if raw_seed is not None else None
+        raw_schema = inst.get("catalog_schema")
+        if raw_schema:
+            schema_path = Path(str(raw_schema))
+            if not schema_path.is_absolute():
+                schema_path = repo_root() / schema_path
+            catalog_schema = schema_path
+    return NovelAppConfig(
+        app_id=app_id,
+        seed_md=seed_path,
+        title=title,
+        output_dir=out_dir,
+        chapter_dir=ch_dir,
+        snapshot_file=snap,
+        session_id_file=out_dir / "session_id.txt",
+        last_beat_file=out_dir / "last_beat.json",
+        agents_dir=out_dir / "agents",
+        model_script=model_script,
+        model_prose=model_prose,
+        thinking_script=thinking_script,
+        thinking_prose=thinking_prose,
+        expand_catalog=expand,
+        expand_catalog_target=expand_target,
+        expand_catalog_seed=expand_seed,
+        catalog_schema=catalog_schema,
+    )
+
+
 def _load_instance_json(app_id: str) -> dict | None:
     path = INSTANCES_DIR / f"{app_id}.json"
     if not path.is_file():
@@ -98,16 +169,14 @@ def load_config(
             if not seed_path.is_file():
                 raise FileNotFoundError(f"seed not found: {seed_path}")
             out_dir, snap, ch_dir, parsed_title, slug = _parse_paths_from_seed(seed_path)
-            return NovelAppConfig(
+            return _make_config(
                 app_id=inst.get("app_id", app_id),
-                seed_md=seed_path,
+                seed_path=seed_path,
                 title=title or parsed_title,
-                output_dir=out_dir,
-                chapter_dir=ch_dir,
-                snapshot_file=snap,
-                session_id_file=out_dir / "session_id.txt",
-                last_beat_file=out_dir / "last_beat.json",
-                agents_dir=out_dir / "agents",
+                out_dir=out_dir,
+                snap=snap,
+                ch_dir=ch_dir,
+                inst=inst,
             )
         seed_path = root / "application-notes" / f"novel-{app_id.replace('_', '-')}-initial-state.md"
         if not seed_path.is_file():
@@ -129,14 +198,12 @@ def load_config(
         raise FileNotFoundError(f"seed not found: {seed_path}")
 
     out_dir, snap, ch_dir, title, slug = _parse_paths_from_seed(seed_path)
-    return NovelAppConfig(
+    return _make_config(
         app_id=app_id or slug,
-        seed_md=seed_path,
+        seed_path=seed_path,
         title=title,
-        output_dir=out_dir,
-        chapter_dir=ch_dir,
-        snapshot_file=snap,
-        session_id_file=out_dir / "session_id.txt",
-        last_beat_file=out_dir / "last_beat.json",
-        agents_dir=out_dir / "agents",
+        out_dir=out_dir,
+        snap=snap,
+        ch_dir=ch_dir,
+        inst=_load_instance_json(app_id or slug) if (app_id or slug) else None,
     )

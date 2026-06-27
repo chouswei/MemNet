@@ -177,8 +177,12 @@ EDG relations used in this example (seed a few at start or use `--allow-new-rela
 EDG is a *fixed, built-in tag* (always available; never declared in your map). It models directed, named links between any rows:
 
 ```
-@EDG: E99|SRC_ID|relation|DST_ID|optional_attrs|recycle
+@EDG: E99|SRC_ID|relation|DST_ID|at|optional_attrs|recycle
 ```
+
+| Field | Meaning |
+|-------|---------|
+| `at` | Optional **in-world time** when this link became true (e.g. `1637-09-01T08` per `@SYS` / `LAW-TIME01`). Omit on structural wiring (`governs`, `features`, …). Plot/event relations should set `at` on `add`. |
 
 **Core function in the pipeline:**
 - They are how you declare "this scene is *set_in* this lore", "this character *features* here", "this rule *governs* that character", "this beat *costs* this person". Optionally, "this domain LAW *constrains* this NPC" — for audit and traversal only; the LAW row is already in every warm read without that link.
@@ -680,9 +684,9 @@ The resulting session contains the complete novel project as many small rows. Wa
 - **Stale `@STEP.n`** → model writes prose during step 5 or mutates during step 2. Fix: **`update` STEP01** before every LLM call; warm-anchor on `STEP01`.
 - **Appending chapter prose without `prose_metrics`** → model writes ~150 字 fragments and pads with many small appends until `@CHP.char_total` looks right (e.g. 第001回 with 19 paragraphs of 94–249 字 each). Fix: **LAW-PROSE04** — `prose_metrics` then `chapter_prose_append` only after `ok=true`; one paragraph per turn; use MCP `file_char_total` for `@CHP`.
 
-## Play in Cursor chat — 《晚明財閥傳》
+## Play in Cursor chat — 《工匠傳奇》
 
-Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Bootstrap and full seed: [`novel-initial-state.md`](novel-initial-state.md). Cursor rule: [`.cursor/rules/novel-writer.mdc`](../.cursor/rules/novel-writer.mdc).
+Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Bootstrap and full seed: [`novel-shenjia-initial-state.md`](novel-shenjia-initial-state.md). Cursor rule: [`.cursor/rules/novel-writer.mdc`](../.cursor/rules/novel-writer.mdc).
 
 ### Cursor SDK dual-loop (《工匠傳奇》 / generic instances)
 
@@ -700,8 +704,8 @@ Thin chat shells `applications/novel_cursor/cursor_beat.py --app <slug> --choice
 1. Run `memnet serve` in a terminal.
 2. `pip install memnet-llm[mcp]`; copy [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) to `.cursor/mcp.json` and enable MCP.
 3. Select **kimi-k2.5** in the Cursor model picker (default). Optionally **gpt-5.4-nano** for cheaper turns if prose quality is acceptable — **do not use gpt-5.4-mini**.
-4. Edit [`novel-initial-state.md`](novel-initial-state.md) before a **new** story if needed.
-5. Chat: @novel-writer or「開始《晚明財閥傳》」→ agent runs `session_open(allow_new_relation=true)` → name gate → SCN01 beats.
+4. Edit [`novel-shenjia-initial-state.md`](novel-shenjia-initial-state.md) before a **new** story if needed.
+5. Chat: @novel-writer or「開始《工匠傳奇》」→ agent runs `session_open(allow_new_relation=true)` → name gate → SCN01 beats.
 6. Save snapshot (CLI, separate terminal): `memnet session save --file novel.snap` with `$env:MEMNET_SESSION` set.
 
 Each story beat: **300–600 字** prose + **5 options** + HUD in chat; graph updates via MCP step 5 only.
@@ -756,7 +760,7 @@ Do not guess character counts in chat. Use the **novel-writer** server (not memn
 | `@RULE: RULE22\|CHR02\|voice\|soft_worry_duty_neighbor_fire_fear` | warm via CHR02 | 鐵蘭：柔軟擔心、責任、鄰里生計、怕走火缺銀 |
 | `@RULE: RULE23\|CHR03\|voice\|exclaim_money_mimic_shy_blurt` | warm via CHR03 | 鐵心：驚嘆數錢、學大人說錯、羞怯後脫口 |
 
-**`@TRAIT` (TR01–TR12):** per-character atomic voice (`speak` / `inner` / `drive` / `taboo` / `tone` / `fear`); reach warm via `CHRxx|has_trait|TRxx`. Full glossary: [`novel-initial-state.md`](novel-initial-state.md) voice sheet table.
+**`@TRAIT` (TR01–TR12):** per-character atomic voice (`speak` / `inner` / `drive` / `taboo` / `tone` / `fear`); reach warm via `CHRxx|has_trait|TRxx`. Full glossary: [`novel-shenjia-initial-state.md`](novel-shenjia-initial-state.md) voice sheet table.
 
 Pair with **LAW-CHR02** (`cite_looks_speak_personality_step2`) — `@CHR.speak` and `@CHR.personality` are the summary fields; TRAIT rows are the enforceable breakdown.
 
@@ -772,7 +776,7 @@ flowchart TD
 
 ## Chapter merge — LAW-OUT01 / LAW-OUT02
 
-Beats are **not** one file per beat. Multiple beats merge into traditional **章回** files under `novel-output/wanming_caifa_zhuan/chapters/`, filename `第{chp:03d}回.md` (`@CHP.chp_num`, not `@TIME.beat`).
+Beats are **not** one file per beat. Multiple beats merge into traditional **章回** files under `novel-output/shenjia_caifa/chapters/`, filename `第{chp:03d}回.md` (`@CHP.chp_num`, not `@TIME.beat`).
 
 ### Word-count basis
 
@@ -823,7 +827,7 @@ flowchart LR
 
 ```text
 @CHP: id|chp_num|start_beat|end_beat|char_total|status|recycle
-@USR: USR06|chapter_out|novel-output/wanming_caifa_zhuan/chapters|persistent
+@USR: USR06|chapter_out|novel-output/shenjia_caifa/chapters|persistent
 @USR: USR07|chapter_target|2400_4200_zh|persistent
 @LAW: LAW-OUT01|*|on_turn|chapter_file|append_prose_only_after_step2
 @LAW: LAW-OUT02|CHP|on_turn|chapter_merge|close_on_target_or_cap_or_scn
@@ -845,7 +849,7 @@ flowchart LR
 @TRAIT: TR01|CHR01|speak|short_instruct_no_flourish|persistent
 ```
 
-Opening seed: `@CHP: CHP01|1|0|0|0|open|persistent` — see [`novel-initial-state.md`](novel-initial-state.md).
+Opening seed: `@CHP: CHP01|1|0|0|0|open|persistent` — see [`novel-shenjia-initial-state.md`](novel-shenjia-initial-state.md).
 
 ## Quick-Start (copy-paste these commands)
 

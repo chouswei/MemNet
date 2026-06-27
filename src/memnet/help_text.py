@@ -17,7 +17,7 @@ REFERENCE_FIELDS: dict[str, str] = {
     "TSK": "id|goal|deadline|status|recycle",
     "TEC": "id|name|domain|status|effect",
     "PRD": "id|name|type|cost|price|status",
-    "EDG": "id|src|relation|dist|attrs|recycle",
+    "EDG": "id|src|relation|dist|at|attrs|recycle",
     "LAW": "id|name|cycle|mechanism|constraint",
 }
 

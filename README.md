@@ -245,7 +245,7 @@ Seven self-contained worked examples live under `application-notes/` — each sh
 | 6 | [llm-mud.md](application-notes/llm-mud.md) | **Multiplayer text MUD** — server-side world agent + client prose agents, *Alice in Wonderland* sample; tiered atomisation, `scripts/load_test_mud.py` |
 | 7 | [llm-build-on-memnet.md](application-notes/llm-build-on-memnet.md) | **Builder guide** — author your own MCP server (`FastMCP` + `run_memnet` bridge, JSON envelope, LAW supplementation) and Cursor skill pack (`SKILL.md` frontmatter, `references/` split, `mcp.json` registration); worked example = `mcp-memnet` skill + `novel-mcp` application split |
 
-Supplement: [novel-initial-state.md](application-notes/novel-initial-state.md) — bootstrap rows for the novel writer MCP pipeline.
+Supplement: [novel-shenjia-initial-state.md](application-notes/novel-shenjia-initial-state.md) — 《工匠傳奇》 bootstrap rows for the novel writer MCP pipeline.
 
 ## Development
 

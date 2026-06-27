@@ -30,6 +30,7 @@ _USR_LABELS: dict[str, str] = {
     "scene_length": "Scene length band",
     "prose_target": "Prose length advisory",
     "prose_draft": "Prose length advisory",
+    "opening_scene": "Opening scene (SCN01 until settled)",
 }
 
 
@@ -65,26 +66,70 @@ def _scene_snapshot(index: WarmIndex, pipeline: dict[str, Any]) -> dict[str, Any
         scene["ages"] = pipeline["character_ages"]
     if pipeline.get("age_hint"):
         scene["age_hint"] = pipeline["age_hint"]
+    ages = pipeline.get("character_ages") or {}
     if index.plr_rows:
         parts = index.plr_rows[0]
         if len(parts) >= 7:
             scene["plr_id"] = parts[0]
             scene["plr_identity"] = parts[1]
             scene["plr_body"] = parts[6]
+            pid = parts[0]
+            if pid in ages:
+                scene["plr_age"] = ages[pid]
+            if len(parts) >= 3 and str(parts[2]).isdigit():
+                scene["plr_birth_year"] = int(parts[2])
     npcs = []
     for parts in index.npc_rows[:12]:
         if len(parts) >= 4:
-            npcs.append({"id": parts[0], "name": parts[1], "traits": parts[3]})
+            nid = parts[0]
+            entry: dict[str, Any] = {
+                "id": nid,
+                "name": parts[1],
+                "traits": parts[3],
+            }
+            if len(parts) >= 3 and str(parts[2]).isdigit():
+                entry["birth_year"] = int(parts[2])
+            if nid in ages:
+                entry["age"] = ages[nid]
+            npcs.append(entry)
     if npcs:
         scene["npcs"] = npcs
+    if index.biz_rows:
+        bparts = index.biz_rows[0]
+        if len(bparts) >= 4:
+            scene["biz"] = {
+                "id": bparts[0],
+                "name": bparts[1],
+                "kind": bparts[2],
+                "location": bparts[3],
+            }
+    if index.scn_rows:
+        sparts = index.scn_rows[0]
+        if len(sparts) >= 2:
+            scene["scn_code"] = sparts[1]
     if pipeline.get("oln_row"):
         scene["oln_row"] = pipeline["oln_row"]
+    name = usr_value(index, "pc_name")
+    gender = usr_value(index, "pc_gender")
+    if name:
+        scene["plr_name"] = name
+    if gender:
+        scene["plr_gender"] = gender
+    raw_arts = usr_value(index, "opening_arts")
+    if raw_arts and raw_arts != "未定" and "未定" not in raw_arts:
+        scene["opening_arts"] = [p.strip() for p in raw_arts.split(";") if p.strip()]
     return scene
 
 
 def _usr_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
     bullets: list[str] = []
+    if stage in ("oln", "sbd", "scr"):
+        opening = usr_value(index, "opening_scene")
+        if opening:
+            bullets.append(f"{_USR_LABELS['opening_scene']}: {opening}")
     for key, label in _USR_LABELS.items():
+        if key == "opening_scene":
+            continue
         if key == "prose_warm" and stage not in ("prose",):
             continue
         if key in ("option_style",) and stage != "prose":

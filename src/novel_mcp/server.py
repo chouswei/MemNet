@@ -21,6 +21,15 @@ from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 from novel_mcp.bootstrap import bootstrap_from_md
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
+from novel_mcp.opening_loadout import (
+    commit_opening_loadout as do_commit_opening_loadout,
+    commit_opening_pick as do_commit_opening_pick,
+    read_martial_catalog as do_read_martial_catalog,
+    read_opening_loadout as do_read_opening_loadout,
+)
+from novel_mcp.player_profile import commit_profile as do_commit_profile
+from novel_mcp.player_profile import read_profile as do_read_profile
+from novel_mcp.player_setup import read_player_setup as do_read_player_setup
 from novel_mcp.play_context import player_beat_prepare as do_player_beat_prepare
 from novel_mcp.play_context import prose_beat_prepare as do_prose_beat_prepare
 from novel_mcp.play_context import script_beat_prepare as do_script_beat_prepare
@@ -187,6 +196,103 @@ async def prose_beat_prepare(
             chapter_dir=chapter_dir,
             workspace_root_path=workspace_root,
         )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def read_player_profile(session: str | None = None) -> str:
+    """Read protagonist name/gender setup state (USR03/USR53)."""
+    result = await anyio.to_thread.run_sync(lambda: do_read_profile(session=session))
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def commit_player_profile(
+    session: str | None = None,
+    name: str = "",
+    gender: str = "",
+) -> str:
+    """Commit protagonist name and gender (男/女) to the shared session graph."""
+    def _run() -> dict:
+        setup = do_read_player_setup(session)
+        return do_commit_profile(
+            session,
+            name,
+            gender,
+            setup_complete=bool(setup.get("setup_complete")),
+        )
+
+    result = await anyio.to_thread.run_sync(_run)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def read_martial_catalog(session: str | None = None) -> str:
+    """Read opening martial catalog slots from USR67 catalog md."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_read_martial_catalog(session=session)
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def read_opening_loadout(session: str | None = None) -> str:
+    """Read three-slot opening loadout progress (USR58 + scene hints)."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_read_opening_loadout(session=session)
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def commit_opening_pick(
+    session: str | None = None,
+    slot: str = "",
+    art_id: str = "",
+) -> str:
+    """Commit one opening martial pick; wires MWU/WUX after 3rd slot."""
+    def _run() -> dict:
+        setup = do_read_player_setup(session)
+        return do_commit_opening_pick(
+            session,
+            slot,
+            art_id,
+            setup_complete=bool(setup.get("setup_complete")),
+        )
+
+    result = await anyio.to_thread.run_sync(_run)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def commit_opening_loadout(
+    session: str | None = None,
+    art_ids: str = "",
+) -> str:
+    """Commit all three opening picks (comma-separated or JSON array string)."""
+    def _run() -> dict:
+        raw = (art_ids or "").strip()
+        if raw.startswith("["):
+            ids = json.loads(raw)
+        else:
+            ids = [x.strip() for x in raw.split(",") if x.strip()]
+        setup = do_read_player_setup(session)
+        return do_commit_opening_loadout(
+            session,
+            ids,
+            setup_complete=bool(setup.get("setup_complete")),
+        )
+
+    result = await anyio.to_thread.run_sync(_run)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def read_player_setup(session: str | None = None) -> str:
+    """Full god-realm setup state + setup_guidance.next_action for chat."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_read_player_setup(session=session)
     )
     return json.dumps(result, ensure_ascii=False)
 

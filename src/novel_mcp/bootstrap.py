@@ -30,6 +30,52 @@ def seed_lines_from_md(text: str) -> list[str]:
     return legacy
 
 
+def catalog_lines_from_md(
+    md_path: str | Path,
+    schema: "CatalogSchema | None" = None,
+) -> list[str]:
+    """Extract @ART wire lines from a martial catalog markdown file."""
+    text = Path(md_path).read_text(encoding="utf-8")
+    raw_lines: list[str] = []
+    for fence in re.findall(r"```text\s*\n(.*?)```", text, re.DOTALL):
+        for ln in fence.splitlines():
+            if ln.strip().startswith("@ART:"):
+                raw_lines.append(ln.strip())
+    if raw_lines:
+        return raw_lines
+
+    if schema is None:
+        return []
+
+    from novel_mcp.catalog_schema import art_to_wire
+    from novel_mcp.opening_loadout import parse_catalog_md
+
+    return [art_to_wire(art, schema) for art in parse_catalog_md(text, schema)]
+
+
+def ingest_lines(session: str, lines: list[str]) -> dict:
+    if not lines:
+        return {"exit_code": 0, "lines": 0}
+    resp = run_memnet(
+        ["add", "--stdin", "--allow-new-relation"],
+        stdin="\n".join(lines),
+        session=session,
+    )
+    return {
+        "exit_code": resp.exit_code,
+        "errors": resp.errors,
+        "lines": len(lines),
+    }
+
+
+def catalog_path_from_seed_md(seed_md: Path, root: Path) -> Path | None:
+    text = seed_md.read_text(encoding="utf-8")
+    m = re.search(r"@USR:\s*USR67\|martial_catalog_md\|([^|\s]+)", text)
+    if not m:
+        return None
+    return root / m.group(1).replace("\\", "/")
+
+
 def bootstrap_from_md(md_path: str | Path) -> dict:
     """Open session, ingest tag map + seed fences; return session_id and exit codes."""
     path = Path(md_path)

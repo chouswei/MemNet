@@ -32,6 +32,8 @@ class WarmIndex:
     plr_rows: list[list[str]] = field(default_factory=list)
     npc_rows: list[list[str]] = field(default_factory=list)
     sys_rows: list[list[str]] = field(default_factory=list)
+    biz_rows: list[list[str]] = field(default_factory=list)
+    scn_rows: list[list[str]] = field(default_factory=list)
     raw: str = ""
 
 
@@ -61,6 +63,10 @@ def index_warm(stdout: str) -> WarmIndex:
             idx.npc_rows.append(parts)
         elif tag == "SYS":
             idx.sys_rows.append(parts)
+        elif tag == "BIZ":
+            idx.biz_rows.append(parts)
+        elif tag == "SCN":
+            idx.scn_rows.append(parts)
     return idx
 
 
@@ -101,6 +107,14 @@ def laws_for_stage(index: WarmIndex, stage: str, *, for_options: bool = False) -
             if mech in ("warm_prose",) or "warm_prose" in tokens:
                 continue
             if mech.startswith("opt_"):
+                continue
+            if law.id.startswith("LAW-WX"):
+                continue
+            if law.id.startswith("LAW-LIB"):
+                continue
+            if law.id.startswith("LAW-OPT"):
+                continue
+            if law.id.startswith("LAW-PROSE"):
                 continue
         out.append(law)
     return out

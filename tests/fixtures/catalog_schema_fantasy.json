@@ -1,0 +1,25 @@
+{
+  "wire_columns": ["id", "name", "kind", "tier", "power", "tags", "recycle"],
+  "kind_field": "kind",
+  "tier_field": "tier",
+  "coeff_field": "power",
+  "kind_to_slot": {
+    "arcane": "neigong",
+    "hybrid": "neigong",
+    "martial": "martial",
+    "mobility": "qinggong"
+  },
+  "valid_kinds": ["arcane", "martial", "mobility", "hybrid"],
+  "valid_tiers": ["weak", "common", "strong", "elite", "legendary"],
+  "tier_coeff_bands": {
+    "weak": [0.75, 0.85],
+    "common": [0.9, 1.05],
+    "strong": [1.05, 1.35],
+    "elite": [1.4, 1.85],
+    "legendary": [1.8, 2.0]
+  },
+  "min_slots": { "neigong": 5, "martial": 8, "qinggong": 4 },
+  "universe_label": "generic fantasy",
+  "content_rules": "original fiction abilities only; no branded IP",
+  "burn_usr_key": null
+}

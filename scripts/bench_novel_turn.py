@@ -32,7 +32,7 @@ def main() -> None:
 
         chapter_prose_append(
             prose,
-            chapter_dir="novel-output/wanming_caifa_zhuan/chapters",
+            chapter_dir="novel-output/shenjia_caifa/chapters",
             chp_num=6,
             workspace_root=ROOT,
             replace_last_paragraph=True,

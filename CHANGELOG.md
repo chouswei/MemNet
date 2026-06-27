@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.24] — 2026-06-27
+
+### Added
+- **novel-seed-spec.md** — normative SEED planning principles (§2 layering, three EDG planes, opening scene contract, god-realm vs play).
+- **Player setup pipeline** — `player_profile.py`, `player_setup.py`, `setup_graph.py`, `setup_constants.py`, `opening_loadout.py`; MCP `read_player_setup`, `commit_player_profile`, `commit_opening_pick`.
+- **Generic catalog schema** — `catalog_schema.py`, `martial_catalog_expand.py`, `applications/novel_cursor/catalog_specs/`; instance-driven genre validation (no Jin Yong hardcoding in `novel_mcp` core).
+- **Warm enrich** — `warm_supplement.py` stage-aware merge; `presentation` opening_scene / `biz` / `scn_code`; `warm_index` BIZ/SCN rows.
+- **cursor_beat** — `--setup`, `--name`, `--gender`, `--arts`; `beat_orchestrator.py`, `catalog_expand.py`, `chat_thread.py`, `llm_client.py`, `wire_parse.py`.
+- **Shenjia martial catalog** — `application-notes/novel-shenjia-martial-catalog.md`; seed `USR69`/`USR70` opening contract.
+- **Tests** — opening loadout, player profile, setup guidance, warm supplement, seed LAW budget, martial catalog expand, wire parse, chat thread, edg_time.
+
+### Changed
+- **scripts/novel_bootstrap.py** — generic `--app` bootstrap; optional catalog expand; removed `bootstrap_shenjia.py` / `shenjia_bootstrap.py`.
+- **novel-shenjia-initial-state.md** — Engine/World split maintenance; opening scene domain wiring (`USR70`, `LAW-OLN01` opening_scn); setup USRs 60–67; LAW budget ≤40.
+- **Tag map** — `@ART`, `@WUX`, `@MWU` for martial loadout.
+- **beat_pipeline** — setup gate integration; prose-stage SCR enrich from `read list`.
+
+### Fixed
+- **Setup wire** — USR/PLR 4-field shape; PLR without extra recycle field; EDG add vs update on bootstrap.
+- **catalog_expand** — `complete_messages` API for LLM expand.
+- **test_beat_pipeline** — patch `play_context.run_memnet` for enrich isolation.
+
 ## [0.2.23] — 2026-06-27
 
 ### Added
@@ -269,7 +291,9 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.16...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.24...HEAD
+[0.2.24]: https://github.com/chouswei/MemNet/compare/v0.2.23...v0.2.24
+[0.2.23]: https://github.com/chouswei/MemNet/compare/v0.2.22...v0.2.23
 [0.2.16]: https://github.com/chouswei/MemNet/compare/v0.2.15...v0.2.16
 [0.2.15]: https://github.com/chouswei/MemNet/compare/v0.2.14...v0.2.15
 [0.2.14]: https://github.com/chouswei/MemNet/compare/v0.2.13...v0.2.14

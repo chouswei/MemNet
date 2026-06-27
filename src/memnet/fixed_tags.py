@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from memnet.models import TagDef, TagMap
 
-EDG_FIELDS = ["id", "src", "relation", "dist", "attrs", "recycle"]
+EDG_FIELDS = ["id", "src", "relation", "dist", "at", "attrs", "recycle"]
 LAW_FIELDS = ["id", "name", "cycle", "mechanism", "constraint"]
 
 FIXED_TAGS: dict[str, TagDef] = {
