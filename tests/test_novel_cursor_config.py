@@ -28,6 +28,8 @@ def test_load_shenjia_instance() -> None:
     assert cfg.chapter_dir == repo_root() / "novel-output/shenjia_caifa/chapters"
     assert cfg.session_id_file == repo_root() / "novel-output/shenjia_caifa/session_id.txt"
     assert cfg.last_beat_file == repo_root() / "novel-output/shenjia_caifa/last_beat.json"
+    assert cfg.agents_dir == repo_root() / "novel-output/shenjia_caifa/agents"
+    assert cfg.script_agent_id_file.name == "script_agent_id.txt"
 
 
 def test_load_from_seed_path() -> None:

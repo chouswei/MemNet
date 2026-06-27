@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.23] — 2026-06-27
+
+### Added
+- **Dual-loop Cursor SDK beat agents** — separate persistent script (編劇) and prose (作者) agents per story slug; agent ids under `novel-output/<slug>/agents/`.
+- **applications/novel_cursor/agent_session.py** — create+primer or `Agent.resume`, stale-id recovery, `run_script_turn` / `run_prose_turn`.
+- **src/novel_mcp/play_context.py** — `script_beat_prepare`, `prose_beat_prepare` (handoff gate at `USR23=prose`); `player_beat_prepare` deprecated alias.
+- **novel-writer MCP** — `script_beat_prepare`, `prose_beat_prepare` tools.
+- **src/novel_mcp/chapter_io.py** — `last_committed_paragraph` for `continuation_anchor`.
+- **tests/** — `test_play_context.py`, `test_agent_session_paths.py`, `test_beat_prompts.py`.
+
+### Changed
+- **applications/novel_cursor/cursor_beat.py** — dual-phase orchestrator (script → handoff verify → prose); flags `--script-only`, `--prose-only`, `--reset-agents`, `--continue`; exit codes 0–4.
+- **applications/novel_cursor/beat_prompt.py** — split `build_script_primer/turn`, `build_prose_primer/turn`; removed monolithic `build_beat_prompt`.
+- **applications/novel_cursor/app_config.py** — `script_agent_id_file`, `prose_agent_id_file`.
+- **.cursor/rules/novel-writer.mdc** — thin chat shells `cursor_beat.py` only; dual-agent contract.
+- **application-notes/llm-novel-cursor-sdk.md** — dual-loop operator SSOT.
+- **application-notes/llm-novel-writer.md** — § Cursor SDK dual-loop cross-ref.
+
+### Tests
+- Handoff gates, agent id paths, prompt smoke tests; `test_novel_cursor_config` agents_dir.
+
 ## [0.2.22] — 2026-06-27
 
 ### Added

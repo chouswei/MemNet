@@ -684,6 +684,19 @@ The resulting session contains the complete novel project as many small rows. Wa
 
 Interactive play uses **Cursor chat + MemNet MCP** (no Python orchestrator). Bootstrap and full seed: [`novel-initial-state.md`](novel-initial-state.md). Cursor rule: [`.cursor/rules/novel-writer.mdc`](../.cursor/rules/novel-writer.mdc).
 
+### Cursor SDK dual-loop (《工匠傳奇》 / generic instances)
+
+**Operator SSOT:** [`llm-novel-cursor-sdk.md`](llm-novel-cursor-sdk.md).
+
+| LAW-PIPE20 stage | Agent |
+|------------------|-------|
+| `oln`, `sbd`, `scr` | Script SDK agent (編劇) — graph wires only |
+| `prose` | Prose SDK agent (作者) — player-facing text |
+
+**LAW-G11 (`db_before_prose`):** Prose agent may run only after `USR23|beat_stage|prose|` and committed `@SCR`.
+
+Thin chat shells `applications/novel_cursor/cursor_beat.py --app <slug> --choice N` once per player input. Two Cursor SDK agent ids persist under `novel-output/<slug>/agents/`. Chat does **not** call `beat_turn_*` during play.
+
 1. Run `memnet serve` in a terminal.
 2. `pip install memnet-llm[mcp]`; copy [`.cursor/mcp.json.example`](../.cursor/mcp.json.example) to `.cursor/mcp.json` and enable MCP.
 3. Select **kimi-k2.5** in the Cursor model picker (default). Optionally **gpt-5.4-nano** for cheaper turns if prose quality is acceptable — **do not use gpt-5.4-mini**.
@@ -709,7 +722,8 @@ Do not guess character counts in chat. Use the **novel-writer** server (not memn
 | `prose_metrics(prose, min_chars=300, max_chars=600)` | Dry-run count only; returns `ok`, `short_by`, `long_by`, `hint`. No file I/O. |
 | `chapter_prose_append(…)` | Alias of `chapter_prose_gate` (backward compatible). |
 | `chapter_prose_gate(..., replace_last_paragraph=true)` | RULE09 fix — replace the last beat block only. |
-| `python scripts/novel_beat.py --prose-file …` | Shell fallback when novel-writer MCP unavailable — **max one** subprocess per beat. |
+| `applications/novel_cursor/cursor_beat.py --choice N` | **Interactive play** — dual persistent SDK agents (script + prose). See [`llm-novel-cursor-sdk.md`](llm-novel-cursor-sdk.md). |
+| `python scripts/beat_turn.py begin\|finish` | Shell fallback when MCP unavailable. |
 
 ### MemNet MCP (session / graph — step 1 & 5)
 

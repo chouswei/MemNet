@@ -35,6 +35,15 @@ class NovelAppConfig:
     snapshot_file: Path
     session_id_file: Path
     last_beat_file: Path
+    agents_dir: Path
+
+    @property
+    def script_agent_id_file(self) -> Path:
+        return self.agents_dir / "script_agent_id.txt"
+
+    @property
+    def prose_agent_id_file(self) -> Path:
+        return self.agents_dir / "prose_agent_id.txt"
 
     @property
     def seed_md_rel(self) -> str:
@@ -98,6 +107,7 @@ def load_config(
                 snapshot_file=snap,
                 session_id_file=out_dir / "session_id.txt",
                 last_beat_file=out_dir / "last_beat.json",
+                agents_dir=out_dir / "agents",
             )
         seed_path = root / "application-notes" / f"novel-{app_id.replace('_', '-')}-initial-state.md"
         if not seed_path.is_file():
@@ -128,4 +138,5 @@ def load_config(
         snapshot_file=snap,
         session_id_file=out_dir / "session_id.txt",
         last_beat_file=out_dir / "last_beat.json",
+        agents_dir=out_dir / "agents",
     )

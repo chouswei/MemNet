@@ -1,118 +1,76 @@
 ---
-description: MemNet MCP novel writer — thin Cursor chat UI; beat pipeline runs in applications/novel_cursor/cursor_beat.py via Cursor SDK. SSOT is application-notes/*-initial-state.md per story instance.
+description: MemNet MCP novel writer — thin chat shells cursor_beat.py (dual persistent SDK agents). SSOT application-notes/*-initial-state.md.
 alwaysApply: false
 ---
 
 # MemNet Novel Writer — thin chat
 
-**Generic application:** `applications/novel_cursor/`. **Story instance** (example): `shenjia_caifa` → SSOT [`application-notes/novel-shenjia-initial-state.md`](application-notes/novel-shenjia-initial-state.md). **Do not** paste seed into chat.
+**Story instance** (example): `shenjia_caifa` → SSOT [`application-notes/novel-shenjia-initial-state.md`](application-notes/novel-shenjia-initial-state.md).
 
 **Docs:** [`application-notes/llm-novel-cursor-sdk.md`](application-notes/llm-novel-cursor-sdk.md) · [`application-notes/llm-novel-writer.md`](application-notes/llm-novel-writer.md)
 
-**Model (Cursor picker):** **kimi-k2.5** only. **Do not use gpt-5.4-mini.**
+**Model:** **kimi-k2.5** only.
 
 ## Architecture
 
 | Layer | Role |
 |-------|------|
-| **This chat** | Show 【劇情】+ options + HUD; load/save snapshot; name gate; shell `cursor_beat.py` on input |
-| **`cursor_beat.py`** | One Cursor SDK agent run per choice — full `oln → sbd → scr → prose` via MCP |
-| **MemNet serve** | Graph + chapter persistence (`127.0.0.1:18765`) |
+| **This chat** | Load/save; show 【劇情】+ 選項 + HUD; shell **one** `cursor_beat.py` per player input |
+| **`cursor_beat.py`** | Resumes **two** persistent SDK agents: 編劇 (oln→sbd→scr) then 作者 (prose) |
+| **MemNet serve** | Graph SSOT (`127.0.0.1:18765`) |
 
-**Forbidden in chat during play:** `beat_turn_begin`, `beat_turn_finish`, wire echoes, OLN/SBD/SCR drafts, micro-stage loops.
+**Handoff:** Graph `USR23|beat_stage|prose|` + committed `@SCR` — not agent-to-agent chat.
 
-## Paths (per story)
-
-Resolve from seed `USR14` / `USR15` or instance JSON. Example (`shenjia_caifa`):
+## Paths (`shenjia_caifa` example)
 
 | Item | Path |
 |------|------|
-| Instance config | `applications/novel_cursor/instances/shenjia_caifa.json` |
-| Session id file | `novel-output/shenjia_caifa/session_id.txt` |
-| Snapshot | `novel-output/shenjia_caifa/session_snap.json` |
-| Last beat JSON | `novel-output/shenjia_caifa/last_beat.json` |
-| Chapters | `novel-output/shenjia_caifa/chapters/第*.md` |
+| memnet session | `novel-output/shenjia_caifa/session_id.txt` |
+| script SDK agent id | `novel-output/shenjia_caifa/agents/script_agent_id.txt` |
+| prose SDK agent id | `novel-output/shenjia_caifa/agents/prose_agent_id.txt` |
+| snapshot | `novel-output/shenjia_caifa/session_snap.json` |
+| chapters | `novel-output/shenjia_caifa/chapters/第*.md` |
 
-Set `$env:NOVEL_APP = "shenjia_caifa"` or pass `--app <id>` to `cursor_beat.py`.
+## Play loop
 
-## MCP allowlist (chat)
-
-**Allowed:** `serve_status`, `session_load`, `session_save`, `session_current`, `read_get`, `update` (name gate only), `query_warm` (resume display only — never same turn as `cursor_beat.py`).
-
-**Forbidden:** `beat_turn_begin`, `beat_turn_finish`, `bootstrap_from_seed`, `prose_metrics`, `chapter_prose_gate`, manual `add` on beat path.
-
-MCP servers: **memnet** + **novel-writer** (same `session` id). Install: `pip install -e ".[mcp,novel-mcp]"`. After code changes: reload MCP (`python -m memnet_mcp.server` / `python -m novel_mcp.server`).
-
-## Session lifecycle
-
-### 1. Start — ask once:「新開局還是讀檔？」
-
-| Answer | Action |
-|--------|--------|
-| 讀檔 / 繼續 | `session_load(file="<snapshot from USR15>", keep_id=true)` → write `session_id` to `novel-output/<slug>/session_id.txt` |
-| 新開局 | Shell `python scripts/novel_bootstrap.py application-notes/novel-<slug>-initial-state.md` → parse stdout JSON `session_id` → write `session_id.txt` |
-
-Then `serve_status`; if not running → stop, tell player `memnet serve`.
-
-### 2. Resume display
-
-1. `read_get` `USR03` — if `pc_name` is `未定` → name gate.
-2. Show last committed prose: newest chapter file, last non-empty paragraph (**not** in-progress OLN/SBD/SCR).
-3. `read_get` `USR23` — if `beat_stage` is `sbd`/`scr`/`prose` →「上一拍未完成」→ run `cursor_beat.py --continue` (no `--choice`).
-
-### 3. Name gate
-
-Ask「主角姓名（2–4 漢字）？」→ `memnet` `update` on `USR03` / CHR per seed. **No** opening prose in chat.
-
-### 4. Play loop
-
-On player choice or steering:
+On choice `N` or steering:
 
 ```text
-python applications/novel_cursor/cursor_beat.py --app <slug> --session <id> --choice N
-python applications/novel_cursor/cursor_beat.py --app <slug> --session <id> --steering "..."
+python applications/novel_cursor/cursor_beat.py --app <slug> --choice N
 ```
 
-Parse output (see below). Present **only**:
+Parse `NOVEL_BEAT_RESULT` or `last_beat.json`. Show **only** prose agent output:
 
 ```text
 【劇情】{prose}
-
-【選項】
-1. …
-n. …
-
+【選項】1. …
 **[狀態欄]** {hud}
 ```
 
-(Option count follows seed `LAW-OPT01`; six for 《工匠傳奇》.)
+**Forbidden in player-facing text:** `@OLN`/`@SBD`/`@SCR` wires, tool/meta.
 
-### 5. Snapshot save
+## MCP (lifecycle only)
 
-| Condition | Action |
-|-----------|--------|
-| `last_beat.json` → `"snapshot_saved": true` | Mention path once; **do not** prompt |
-| `"snapshot_saved": false` or player says「存檔」 | Prompt path → `session_save` on confirm |
+**Allowed:** `serve_status`, `session_load`, `session_save`, `read_get`, `update` (name gate), `query_warm` (resume display).
 
-## Parse `cursor_beat.py` output
+**Not for play:** `beat_turn_begin`/`finish` in chat — SDK agents call those.
 
-1. Stdout line starting with `NOVEL_BEAT_RESULT\t` + JSON; or read `novel-output/<slug>/last_beat.json`.
-2. Fields: `prose`, `options`, `hud`, `snapshot_saved`, `snapshot_file`, `beat_stage`, `app_id`.
-3. On non-zero `exit_code`, show `error` if present; do not invent prose.
+## Session start
 
-## Bootstrap extraction (reference)
+1. 新開局 → `python scripts/novel_bootstrap.py <seed.md>` → write `session_id.txt`
+2. 讀檔 → `session_load(snapshot, keep_id=true)` → write `session_id.txt`
+3. 新局建議 → `cursor_beat.py --reset-agents` on first beat
 
-Read `application-notes/*-initial-state.md` → `map_lines` + `seed_lines` from first ` ```text ` fences under `## Tag map` / `## Opening seed`. Normal play uses `scripts/novel_bootstrap.py <seed.md>`.
+## Mid-beat resume
 
-## Beat pipeline (runs inside SDK agent — not in chat)
+| `USR23` | Command |
+|---------|---------|
+| `sbd`/`scr` | `cursor_beat.py --continue` |
+| `prose` | `cursor_beat.py --continue` (prose phase only) |
+| `oln` | `--choice N` (new beat) |
 
-`LAW-PIPE20` `no_bundle`: one wire per `beat_turn_finish`. Session `USR23` FSM: `oln → sbd → scr → prose → oln`.
+## Hard bans
 
-Prose band and option count from seed (`USR05`, `LAW-OPT01`). Snapshot path from seed `USR15`.
-
-## Hard bans (chat)
-
-- No `beat_turn_*` during play.
-- No prose before `cursor_beat.py` returns `exit_code=0`.
-- No manual chapter append.
-- No meta in player-facing text; no inventing rows not in graph.
+- No manual `beat_turn_*` in chat during play
+- No prose before `cursor_beat.py` exits 0
+- No manual chapter append

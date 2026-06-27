@@ -21,6 +21,9 @@ from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 from novel_mcp.bootstrap import bootstrap_from_md
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
+from novel_mcp.play_context import player_beat_prepare as do_player_beat_prepare
+from novel_mcp.play_context import prose_beat_prepare as do_prose_beat_prepare
+from novel_mcp.play_context import script_beat_prepare as do_script_beat_prepare
 from novel_mcp.zh_text import prose_status
 
 mcp = FastMCP("novel-writer")
@@ -114,6 +117,75 @@ async def beat_turn_finish(
             pipeline_bypass=pipeline_bypass,
             option_lines=option_lines,
             since_modified=since_modified,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def player_beat_prepare(
+    session: str,
+    choice: int | None = None,
+    steering: str | None = None,
+    continue_beat: bool = False,
+    snapshot_file: str | None = None,
+    chapter_dir: str | None = None,
+    workspace_root: str | None = None,
+) -> str:
+    """**Deprecated** — use ``script_beat_prepare`` + ``cursor_beat.py`` for full beats."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_player_beat_prepare(
+            session=session,
+            choice=choice,
+            steering=steering,
+            continue_beat=continue_beat,
+            snapshot_file=snapshot_file,
+            chapter_dir=chapter_dir,
+            workspace_root_path=workspace_root,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def script_beat_prepare(
+    session: str,
+    choice: int | None = None,
+    steering: str | None = None,
+    continue_beat: bool = False,
+    snapshot_file: str | None = None,
+    chapter_dir: str | None = None,
+    workspace_root: str | None = None,
+) -> str:
+    """**Script phase** — context for oln→sbd→scr agent (debug / orchestrator)."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_script_beat_prepare(
+            session=session,
+            choice=choice,
+            steering=steering,
+            continue_beat=continue_beat,
+            snapshot_file=snapshot_file,
+            chapter_dir=chapter_dir,
+            workspace_root_path=workspace_root,
+        )
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def prose_beat_prepare(
+    session: str,
+    snapshot_file: str | None = None,
+    chapter_dir: str | None = None,
+    workspace_root: str | None = None,
+) -> str:
+    """**Prose phase** — context after script handoff (USR23=prose)."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_prose_beat_prepare(
+            session=session,
+            snapshot_file=snapshot_file,
+            chapter_dir=chapter_dir,
+            workspace_root_path=workspace_root,
         )
     )
     return json.dumps(result, ensure_ascii=False)

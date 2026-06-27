@@ -56,6 +56,14 @@ def _split_chapter_content(text: str) -> tuple[str | None, list[str]]:
     return heading, paragraphs
 
 
+def last_committed_paragraph(path: Path) -> str:
+    """Last non-empty prose paragraph from a chapter file (committed beats only)."""
+    if not path.is_file():
+        return ""
+    _heading, paragraphs = _split_chapter_content(path.read_text(encoding="utf-8"))
+    return paragraphs[-1] if paragraphs else ""
+
+
 def file_char_total(paragraphs: list[str]) -> int:
     return sum(count_zh_chars(p) for p in paragraphs)
 

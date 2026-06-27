@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run one full novel beat via Cursor SDK + MemNet MCP (thin-chat backend)."""
+"""Run one novel beat via dual persistent Cursor SDK agents + MemNet MCP."""
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import re
@@ -13,14 +14,22 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_root / "src"))
 
+from agent_session import reset_agent_ids, run_dual_beat_async
 from app_config import MODEL, RESULT_MARKER, load_config, repo_root
-from beat_prompt import build_beat_prompt
-from mcp_config import SERVE_HOST, SERVE_PORT, inline_mcp_servers
+from beat_prompt import (
+    build_prose_primer,
+    build_prose_turn,
+    build_script_primer,
+    build_script_turn,
+)
+from mcp_config import SERVE_HOST, SERVE_PORT
+
+from novel_mcp.play_context import prose_beat_prepare, read_beat_stage, script_beat_prepare
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
-
-# Legacy session file (pre-generic layout)
 _LEGACY_SESSION = repo_root() / "applications" / "shenjia_caifa" / "session_id.txt"
 
 
@@ -36,7 +45,6 @@ def _migrate_legacy_session(config) -> None:
 
 
 def _preflight_session(config, session: str) -> tuple[str, int]:
-    """Ensure session is loaded in serve; return USR23 beat_stage."""
     from memnet_mcp.client import run_memnet
 
     snap = config.snapshot_file
@@ -49,20 +57,11 @@ def _preflight_session(config, session: str) -> tuple[str, int]:
             if load.exit_code != 0:
                 print(f"error: session load failed: {load.stderr}", file=sys.stderr)
                 return "oln", 1
-            session = load.session_id or session
         else:
             print("error: no active session and no snapshot", file=sys.stderr)
             return "oln", 1
 
-    r = run_memnet(["read", "get", "--id", "USR23"], session=session)
-    stage = "oln"
-    for line in r.stdout.splitlines():
-        if "|beat_stage|" in line:
-            parts = line.split("|")
-            for i, p in enumerate(parts):
-                if p == "beat_stage" and i + 1 < len(parts):
-                    stage = parts[i + 1]
-    return stage, 0
+    return read_beat_stage(session), 0
 
 
 def _read_session_id(config, explicit: str | None) -> str:
@@ -86,6 +85,10 @@ def _probe_serve() -> bool:
             return True
     except OSError:
         return False
+
+
+def _snap_rel(config) -> str:
+    return str(config.snapshot_file.relative_to(repo_root())).replace("\\", "/")
 
 
 def _parse_result_payload(text: str) -> dict[str, Any] | None:
@@ -115,7 +118,6 @@ def _normalise_result(raw: dict[str, Any], config, session: str) -> dict[str, An
     while len(options) < 6:
         options.append("")
     options = [str(o) for o in options[:6]]
-    snap_rel = str(config.snapshot_file.relative_to(repo_root())).replace("\\", "/")
     return {
         "exit_code": int(raw.get("exit_code", 0)),
         "session": str(raw.get("session") or session),
@@ -124,7 +126,7 @@ def _normalise_result(raw: dict[str, Any], config, session: str) -> dict[str, An
         "options": options,
         "hud": str(raw.get("hud") or ""),
         "snapshot_saved": bool(raw.get("snapshot_saved", False)),
-        "snapshot_file": str(raw.get("snapshot_file") or snap_rel),
+        "snapshot_file": str(raw.get("snapshot_file") or _snap_rel(config)),
         "beat_stage": str(raw.get("beat_stage") or "oln"),
         **({"error": raw["error"]} if raw.get("error") else {}),
     }
@@ -139,100 +141,145 @@ def _write_and_emit(config, result: dict[str, Any]) -> int:
     )
     line = RESULT_MARKER + "\t" + json.dumps(result, ensure_ascii=False)
     print(line)
-    code = int(result.get("exit_code", 0))
-    return 0 if code == 0 else 1
+    return 0 if int(result.get("exit_code", 0)) == 0 else 1
 
 
-async def _run_sdk_async(
+async def _run_beat_async(
+    config,
     session: str,
-    prompt: str,
     *,
+    choice: int | None,
+    steering: str | None,
+    continue_beat: bool,
+    script_only: bool,
+    prose_only: bool,
     stream: bool,
 ) -> tuple[str, int]:
-    api_key = os.environ.get("CURSOR_API_KEY", "").strip()
-    if not api_key:
-        print("error: CURSOR_API_KEY not set", file=sys.stderr)
-        return "", 1
+    snap_rel = _snap_rel(config)
+    ch_dir = str(config.chapter_dir.relative_to(repo_root())).replace("\\", "/")
 
-    try:
-        from cursor_sdk import AgentOptions, AsyncClient, CursorAgentError
-    except ImportError:
-        print(
-            "error: cursor-sdk not installed; pip install -r applications/novel_cursor/requirements.txt",
-            file=sys.stderr,
+    run_script = not prose_only
+    if continue_beat and read_beat_stage(session) == "prose":
+        run_script = False
+
+    script_prep: dict[str, Any] = {}
+    if run_script:
+        script_prep = script_beat_prepare(
+            session=session,
+            choice=choice,
+            steering=steering,
+            continue_beat=continue_beat and not choice and not steering,
+            snapshot_file=snap_rel,
+            chapter_dir=ch_dir,
         )
-        return "", 1
+        if script_prep.get("exit_code", 1) != 0:
+            print(f"error: {script_prep.get('errors')}", file=sys.stderr)
+            return "", int(script_prep.get("exit_code", 2))
 
-    root = repo_root()
-    try:
-        async with await AsyncClient.launch_bridge(workspace=str(root)) as client:
-            opts = AgentOptions(
-                model=MODEL,
-                api_key=api_key,
-                mcp_servers=inline_mcp_servers(session),
+    if script_only:
+        text, code = await run_dual_beat_async(
+            config,
+            session,
+            script_prep,
+            {},
+            build_script_primer(config),
+            build_script_turn(config, script_prep),
+            "",
+            "",
+            stream=stream,
+            script_only=True,
+            prose_only=False,
+        )
+        if code != 0:
+            return text, code
+        if read_beat_stage(session) != "prose":
+            return "", 4
+        return "", 0
+
+    if run_script:
+        text, code = await run_dual_beat_async(
+            config,
+            session,
+            script_prep,
+            {},
+            build_script_primer(config),
+            build_script_turn(config, script_prep),
+            "",
+            "",
+            stream=stream,
+            script_only=True,
+            prose_only=False,
+        )
+        if code != 0:
+            return text, code
+        if read_beat_stage(session) != "prose":
+            text, code = await run_dual_beat_async(
+                config,
+                session,
+                script_prep,
+                {},
+                build_script_primer(config),
+                build_script_turn(config, script_prep) + "\n\n(Retry: handoff failed.)",
+                "",
+                "",
+                stream=stream,
+                script_only=True,
+                prose_only=False,
             )
-            agent = await client.agents.create(opts)
-            async with agent:
-                run = await agent.send(prompt)
-                chunks: list[str] = []
-                async for message in run.messages():
-                    if stream:
-                        print(message, file=sys.stderr)
-                    if getattr(message, "type", None) != "assistant":
-                        continue
-                    inner = getattr(message, "message", None)
-                    if inner is None:
-                        continue
-                    for block in getattr(inner, "content", ()) or ():
-                        if getattr(block, "type", None) == "text":
-                            chunks.append(getattr(block, "text", "") or "")
-                run_result = await run.wait()
-                text = "".join(chunks)
-                if run_result.status == "error":
-                    print(f"error: SDK run failed: {run_result.id}", file=sys.stderr)
-                    return text, 1
-                return text, 0
-    except CursorAgentError as err:
-        print(f"error: SDK startup failed: {err.message}", file=sys.stderr)
-        return "", 1
+            if code != 0 or read_beat_stage(session) != "prose":
+                return text, 4
 
+    prose_prep = prose_beat_prepare(
+        session=session,
+        snapshot_file=snap_rel,
+        chapter_dir=ch_dir,
+    )
+    if prose_prep.get("exit_code", 1) != 0:
+        print(f"error: {prose_prep.get('errors')}", file=sys.stderr)
+        return "", int(prose_prep.get("exit_code", 2))
 
-def _run_sdk(session: str, prompt: str, *, stream: bool) -> tuple[str, int]:
-    import asyncio
-
-    return asyncio.run(_run_sdk_async(session, prompt, stream=stream))
+    return await run_dual_beat_async(
+        config,
+        session,
+        script_prep,
+        prose_prep,
+        build_script_primer(config),
+        "",
+        build_prose_primer(config),
+        build_prose_turn(config, prose_prep),
+        stream=stream,
+        script_only=False,
+        prose_only=True,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Run one novel beat via Cursor SDK + MemNet MCP",
+        description="Run one novel beat (dual script + prose SDK agents)",
     )
-    parser.add_argument(
-        "--app",
-        metavar="ID",
-        help="Story instance id (applications/novel_cursor/instances/<ID>.json)",
-    )
-    parser.add_argument(
-        "--seed",
-        metavar="PATH",
-        help="Seed markdown (application-notes/novel-*-initial-state.md); paths from USR14/USR15",
-    )
-    parser.add_argument("--session", help="MemNet session id (default: novel-output/.../session_id.txt)")
+    parser.add_argument("--app", metavar="ID")
+    parser.add_argument("--seed", metavar="PATH")
+    parser.add_argument("--session")
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--choice", type=int, metavar="N", help="Player choice 1–6")
-    mode.add_argument("--steering", metavar="TEXT", help="Free-text steering")
-    mode.add_argument(
-        "--continue",
-        dest="continue_beat",
-        action="store_true",
-        help="Resume mid-beat from USR23 stage",
-    )
-    parser.add_argument("--stream", action="store_true", help="Stream SDK events to stderr")
+    mode.add_argument("--choice", type=int, metavar="N")
+    mode.add_argument("--steering", metavar="TEXT")
+    mode.add_argument("--continue", dest="continue_beat", action="store_true")
+    parser.add_argument("--script-only", action="store_true")
+    parser.add_argument("--prose-only", action="store_true")
+    parser.add_argument("--reset-agents", action="store_true")
+    parser.add_argument("--stream", action="store_true")
     args = parser.parse_args(argv)
 
     if args.choice is not None and not (1 <= args.choice <= 6):
         print("error: --choice must be 1–6", file=sys.stderr)
         return 2
+    if args.script_only and args.prose_only:
+        print("error: --script-only and --prose-only are mutually exclusive", file=sys.stderr)
+        return 2
+
+    if not os.environ.get("CURSOR_API_KEY", "").strip():
+        print("error: CURSOR_API_KEY not set", file=sys.stderr)
+        return 1
 
     try:
         config = load_config(app_id=args.app, seed_md=args.seed)
@@ -244,36 +291,48 @@ def main(argv: list[str] | None = None) -> int:
 
     if not _probe_serve():
         print(
-            f"error: memnet serve not reachable at {SERVE_HOST}:{SERVE_PORT}; run memnet serve",
+            f"error: memnet serve not reachable at {SERVE_HOST}:{SERVE_PORT}",
             file=sys.stderr,
         )
         return 1
 
-    beat_stage, pf_code = _preflight_session(config, session)
+    _, pf_code = _preflight_session(config, session)
     if pf_code != 0:
         return pf_code
 
-    if args.continue_beat and beat_stage == "oln":
+    if args.reset_agents:
+        reset_agent_ids(config)
+
+    if args.prose_only and read_beat_stage(session) != "prose":
+        print("error: --prose-only requires USR23 beat_stage=prose", file=sys.stderr)
+        return 2
+
+    if args.continue_beat and read_beat_stage(session) == "oln" and not args.prose_only:
         print(
-            "error: --continue but USR23 beat_stage is already oln; use --choice instead",
+            "error: --continue but beat_stage is oln; use --choice",
             file=sys.stderr,
         )
         return 2
 
-    prompt = build_beat_prompt(
-        config,
-        session_id=session,
-        beat_stage=beat_stage,
-        choice=args.choice,
-        steering=args.steering,
-        continue_beat=args.continue_beat,
+    text, code = asyncio.run(
+        _run_beat_async(
+            config,
+            session,
+            choice=args.choice,
+            steering=args.steering,
+            continue_beat=args.continue_beat,
+            script_only=args.script_only,
+            prose_only=args.prose_only,
+            stream=args.stream,
+        )
     )
 
-    text, sdk_code = _run_sdk(session, prompt, stream=args.stream)
-    if sdk_code != 0 and not text:
-        return sdk_code
+    if args.script_only:
+        return code
 
-    snap_rel = str(config.snapshot_file.relative_to(repo_root())).replace("\\", "/")
+    if code != 0 and not text:
+        return code
+
     raw = _parse_result_payload(text)
     if raw is None:
         fail = {
@@ -284,15 +343,15 @@ def main(argv: list[str] | None = None) -> int:
             "options": [""] * 6,
             "hud": "",
             "snapshot_saved": False,
-            "snapshot_file": snap_rel,
+            "snapshot_file": _snap_rel(config),
             "beat_stage": "",
-            "error": "no parseable JSON result from agent",
+            "error": "no parseable JSON result from prose agent",
         }
         return _write_and_emit(config, fail)
 
     result = _normalise_result(raw, config, session)
-    if sdk_code != 0 and result.get("exit_code") == 0:
-        result["exit_code"] = sdk_code
+    if code != 0 and result.get("exit_code") == 0:
+        result["exit_code"] = code
     return _write_and_emit(config, result)
 
 
