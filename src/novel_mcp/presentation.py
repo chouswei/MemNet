@@ -1,0 +1,191 @@
+"""Seed-driven presentation compiler (novel-agnostic)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from novel_mcp.knowledge_graph import format_knowledge_hud, parse_warm_knowledge
+from novel_mcp.library_contracts import compile_library_contracts
+from novel_mcp.warm_index import WarmIndex, index_warm, laws_for_stage, usr_value
+from novel_mcp.warm_walk import curated_walk_lines
+
+_TOKEN_GLOSS: dict[str, str] = {
+    "ban_telegraphic": "no telegraphic / outline style",
+    "no_action_chain": "no verb chains",
+    "full_sentence": "complete readable sentences",
+    "opt_readable_baihua": "readable vernacular options",
+    "length_advisory": "length advisory only",
+    "no_hard_gate": "no hard length gate",
+    "cite_usr51": "see prose_warm USR",
+    "prose_embed": "embed body state in prose",
+    "oln_embed": "embed constraints in OLN",
+    "opt_respect": "options must respect body state",
+    "vit03_suspend": "unconscious: suspend player options",
+    "no_permadeath": "no permadeath",
+}
+
+_USR_LABELS: dict[str, str] = {
+    "prose_warm": "Narrative voice",
+    "option_style": "Option wording",
+    "scene_length": "Scene length band",
+    "prose_target": "Prose length advisory",
+    "prose_draft": "Prose length advisory",
+}
+
+
+def _expand_law(law_id: str, mechanism: str, constraint: str) -> str:
+    tokens = [
+        t.strip()
+        for t in constraint.replace(";", ",").split(",")
+        if t.strip() and t.strip() != "-"
+    ]
+    gloss = [_TOKEN_GLOSS.get(t, t) for t in tokens[:8]]
+    tail = "; ".join(gloss) if gloss else mechanism
+    return f"{law_id} ({mechanism}): {tail}"
+
+
+def _stage_task(index: WarmIndex, stage: str) -> str:
+    hint_key = f"stage_hint_{stage}"
+    hint = usr_value(index, hint_key)
+    if hint:
+        return hint
+    return f"Draft stage: {stage}"
+
+
+def _scene_snapshot(index: WarmIndex, pipeline: dict[str, Any]) -> dict[str, Any]:
+    scene: dict[str, Any] = {
+        "focus": pipeline.get("step_focus"),
+        "beat_stage": pipeline.get("beat_stage", "oln"),
+    }
+    if pipeline.get("time_display"):
+        scene["time"] = pipeline["time_display"]
+    if pipeline.get("game_time"):
+        scene["game_time"] = pipeline["game_time"]
+    if pipeline.get("character_ages"):
+        scene["ages"] = pipeline["character_ages"]
+    if pipeline.get("age_hint"):
+        scene["age_hint"] = pipeline["age_hint"]
+    if index.plr_rows:
+        parts = index.plr_rows[0]
+        if len(parts) >= 7:
+            scene["plr_id"] = parts[0]
+            scene["plr_identity"] = parts[1]
+            scene["plr_body"] = parts[6]
+    npcs = []
+    for parts in index.npc_rows[:12]:
+        if len(parts) >= 4:
+            npcs.append({"id": parts[0], "name": parts[1], "traits": parts[3]})
+    if npcs:
+        scene["npcs"] = npcs
+    if pipeline.get("oln_row"):
+        scene["oln_row"] = pipeline["oln_row"]
+    return scene
+
+
+def _usr_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
+    bullets: list[str] = []
+    for key, label in _USR_LABELS.items():
+        if key == "prose_warm" and stage not in ("prose",):
+            continue
+        if key in ("option_style",) and stage != "prose":
+            continue
+        val = usr_value(index, key)
+        if val:
+            bullets.append(f"{label}: {val}")
+    return bullets
+
+
+def _law_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
+    return [
+        _expand_law(law.id, law.mechanism, law.constraint)
+        for law in laws_for_stage(index, stage, for_options=False)
+    ]
+
+
+def _option_contract_bullets(index: WarmIndex) -> list[str]:
+    bullets = _usr_contract_bullets(index, "prose")
+    opt_style = usr_value(index, "option_style")
+    if opt_style and not any("option_style" in b.lower() for b in bullets):
+        bullets.append(f"Option wording: {opt_style}")
+    for law in laws_for_stage(index, "prose", for_options=True):
+        bullets.append(_expand_law(law.id, law.mechanism, law.constraint))
+    return bullets
+
+
+def _pipeline_extras(pipeline: dict[str, Any]) -> list[str]:
+    bullets: list[str] = []
+    if pipeline.get("auto_beat"):
+        bullets.insert(
+            0,
+            "Unconscious beat: no player options; write rescue/wake narrative then finish.",
+        )
+    if pipeline.get("plr_body") or pipeline.get("body_hint"):
+        body = pipeline.get("plr_body") or pipeline.get("body_hint")
+        bullets.append(f"Body state: {body}")
+    if pipeline.get("pipeline_no_bundle"):
+        bullets.append(
+            "Stage FSM (LAW-PIPE20 no_bundle): one wire type per beat_turn_finish; "
+            f"current beat_stage={pipeline.get('beat_stage', 'oln')}."
+        )
+    target = pipeline.get("draft_target_chars")
+    if target:
+        bullets.append(f"Prose length advisory: ~{target} chars (not a gate).")
+    return bullets
+
+
+def compile_presentation(
+    warm_stdout: str,
+    pipeline: dict[str, Any],
+    *,
+    warm_walk: str | None = None,
+    walk_filter: str = "governs",
+) -> dict[str, Any]:
+    """Build novel-agnostic presentation envelope from warm + pipeline."""
+    index = index_warm(warm_stdout)
+    stage = pipeline.get("beat_stage", "oln")
+
+    contracts: list[str] = [_stage_task(index, stage)]
+    contracts.extend(_pipeline_extras(pipeline))
+    contracts.extend(_usr_contract_bullets(index, stage))
+    contracts.extend(_law_contract_bullets(index, stage))
+
+    option_contracts = _option_contract_bullets(index) if stage == "prose" else []
+
+    lib_query = bool(pipeline.get("lib_query"))
+    library_contracts, library_meta = compile_library_contracts(index, lib_query=lib_query)
+    if lib_query and library_contracts:
+        contracts = library_contracts + contracts
+
+    walk_hops = curated_walk_lines(
+        warm_walk or "",
+        walk_filter=walk_filter,
+        max_rows=12,
+    )
+
+    knowledge_graph = parse_warm_knowledge(warm_stdout)
+    knowledge_hud = format_knowledge_hud(knowledge_graph)
+
+    return {
+        "stage": stage,
+        "contracts": contracts,
+        "option_contracts": option_contracts,
+        "library_contracts": library_contracts,
+        "library_meta": library_meta,
+        "scene": _scene_snapshot(index, pipeline),
+        "walk_hops": walk_hops,
+        "knowledge": {
+            "hud": knowledge_hud,
+            "holdings_count": len(knowledge_graph.get("holdings") or []),
+        },
+    }
+
+
+def compile_writing_contract(
+    warm_stdout: str,
+    pipeline: dict[str, Any],
+    *,
+    warm_walk: str | None = None,
+) -> list[str]:
+    """Deprecated: flat list for backward compatibility."""
+    pres = compile_presentation(warm_stdout, pipeline, warm_walk=warm_walk)
+    return pres["contracts"] + pres.get("option_contracts", [])

@@ -34,6 +34,7 @@ def test_novel_mcp_has_beat_turn_tools():
     names = {t.name for t in asyncio.run(novel_srv.mcp.list_tools())}
     assert "beat_turn_begin" in names
     assert "beat_turn_finish" in names
+    assert "bootstrap_from_seed" in names
 
 
 def test_prose_metrics_tool_mcp_forbidden():

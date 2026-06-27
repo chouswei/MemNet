@@ -18,6 +18,7 @@ except ImportError as exc:
 
 from novel_mcp.beat_pipeline import beat_turn_begin as do_beat_turn_begin
 from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
+from novel_mcp.bootstrap import bootstrap_from_md
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
 from novel_mcp.zh_text import prose_status
@@ -31,11 +32,16 @@ async def beat_turn_begin(
     anchor: str = "STEP01",
     depth: int = 2,
     max_rows: int = 55,
+    include_warm: bool = False,
+    since_modified: str | None = None,
+    walk_filter: str = "law_usr",
+    lib_query: bool = False,
 ) -> str:
-    """**Novel pipeline — call 1 of 2 per beat.** Warm read + parsed USR05/STEP/OLN/CHP.
+    """**Novel pipeline — call 1 of 2 per beat.** Presentation + pipeline (same session as memnet-mcp).
 
-    Shares MemNet session with memnet-mcp (pass the same session id).
-    Returns pipeline, finish_params, and warm_stdout.
+    Prefer ``presentation.contracts`` over raw warm. Set ``include_warm=true`` only for audit.
+    Pass ``since_modified`` from the prior begin/finish to detect stale graph edits via memnet.
+    Set ``lib_query=true`` when player chose option 6 (soul library) — injects ``library_contracts``.
     """
     result = await anyio.to_thread.run_sync(
         lambda: do_beat_turn_begin(
@@ -43,6 +49,10 @@ async def beat_turn_begin(
             anchor=anchor,
             depth=depth,
             max_rows=max_rows,
+            include_warm=include_warm,
+            since_modified=since_modified,
+            walk_filter=walk_filter,
+            lib_query=lib_query,
         )
     )
     return json.dumps(result, ensure_ascii=False)
@@ -71,10 +81,13 @@ async def beat_turn_finish(
     allow_new_relation: bool = False,
     prose_only_gate: bool = False,
     pipeline_bypass: bool = False,
+    option_lines: list[str] | None = None,
+    since_modified: str | None = None,
 ) -> str:
-    """**Novel pipeline — call 2 of 2 per beat.** Atomic: OLN→SBD→SCR→prose (LAW-PIPE20) → chapter → graph → save.
+    """**Novel pipeline — call 2 of 2 per beat.** Atomic commit on the shared memnet session.
 
-    Shares MemNet session with memnet-mcp. chapter_dir/chp_num/snapshot_file auto-filled from warm when omitted.
+    Optional ``option_lines`` (1–6 strings) validated against seed LAW tokens.
+    Pass ``since_modified`` from ``beat_turn_begin.session_modified``.
     """
     result = await anyio.to_thread.run_sync(
         lambda: do_beat_turn_finish(
@@ -99,8 +112,19 @@ async def beat_turn_finish(
             allow_new_relation=allow_new_relation,
             prose_only_gate=prose_only_gate,
             pipeline_bypass=pipeline_bypass,
+            option_lines=option_lines,
+            since_modified=since_modified,
         )
     )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def bootstrap_from_seed(
+    md_path: str,
+) -> str:
+    """Open a memnet session from an application seed markdown (tag map + opening seed fences)."""
+    result = await anyio.to_thread.run_sync(lambda: bootstrap_from_md(md_path))
     return json.dumps(result, ensure_ascii=False)
 
 
@@ -110,23 +134,17 @@ async def prose_metrics(
     min_chars: int | None = None,
     max_chars: int | None = None,
 ) -> str:
-    """DEPRECATED for draft loops — use local scripts/prose_count.py (0 MCP).
-
-    This tool always returns exit_code=1 to block MCP metric loops. Draft with
-    `python scripts/prose_count.py`, then call beat_prose_finalize once.
-    """
+    """DEPRECATED — use local scripts/prose_count.py; prefer beat_turn_begin/finish."""
     status = prose_status(prose, min_chars=min_chars, max_chars=max_chars)
     payload = {
         **status,
         "exit_code": 1,
         "errors": [
-            "@ERR: mcp_draft_forbidden|Use python scripts/prose_count.py locally; "
-            "call beat_prose_finalize once when gate_ready=true"
+            "@ERR: mcp_draft_forbidden|Use beat_turn_begin + beat_turn_finish; "
+            "local scripts/prose_count.py for length checks"
         ],
         "mcp_forbidden": True,
-        "local_draft_tool": "python scripts/prose_count.py --usr05 <USR05> --prose-file <path>",
-        "mcp_budget_per_beat": 1,
-        "allowed_novel_writer_tools_per_beat": ["beat_prose_finalize"],
+        "deprecated": True,
     }
     return json.dumps(payload, ensure_ascii=False)
 
@@ -141,12 +159,7 @@ async def beat_prose_finalize(
     workspace_root: str | None = None,
     replace_last_paragraph: bool = False,
 ) -> str:
-    """**Preferred — one MCP call per beat.** Metrics + chapter append.
-
-    Draft with scripts/prose_count.py until gate_ready=true, then call this once.
-    On gate_blocked, rewrite the full beat and re-run local prose_count — do not retry
-    this tool with minor edits.
-    """
+    """DEPRECATED — use beat_turn_finish (single commit on shared session)."""
     result = await anyio.to_thread.run_sync(
         lambda: do_beat_prose_finalize(
             prose,
@@ -158,7 +171,8 @@ async def beat_prose_finalize(
             replace_last_paragraph=replace_last_paragraph,
         )
     )
-    return json.dumps(result, ensure_ascii=False)
+    out = {**result, "deprecated": True}
+    return json.dumps(out, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -171,12 +185,7 @@ async def chapter_prose_gate(
     workspace_root: str | None = None,
     replace_last_paragraph: bool = False,
 ) -> str:
-    """LEGACY — prefer beat_prose_finalize (one MCP call per beat).
-
-    Call only after local scripts/prose_count.py returns gate_ready=true.
-    On gate_blocked, rewrite the full beat and re-run prose_count locally — do not retry
-    this tool with minor edits (each retry wastes an MCP round-trip).
-    """
+    """DEPRECATED — use beat_turn_finish."""
     result = await anyio.to_thread.run_sync(
         lambda: do_chapter_prose_gate(
             prose,
@@ -188,7 +197,8 @@ async def chapter_prose_gate(
             replace_last_paragraph=replace_last_paragraph,
         )
     )
-    return json.dumps(result, ensure_ascii=False)
+    out = {**result, "deprecated": True}
+    return json.dumps(out, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -201,10 +211,7 @@ async def chapter_prose_append(
     workspace_root: str | None = None,
     replace_last_paragraph: bool = False,
 ) -> str:
-    """Append (or replace last) one beat block to a chapter file.
-
-    Prefer chapter_prose_gate for step 2 (same behaviour, one call).
-    """
+    """DEPRECATED — use beat_turn_finish."""
     return await chapter_prose_gate(
         prose,
         chapter_dir,

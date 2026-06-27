@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Any
 
 from memnet_mcp.client import MemNetResponse, run_memnet
+from novel_mcp.presentation import compile_presentation
+from novel_mcp.session_contract import session_contract_block
+from novel_mcp.session_meta import fetch_session_modified
+from novel_mcp.validators import validate_option_lines
+from novel_mcp.warm_walk import fetch_warm_walk
 from novel_mcp.chapter_io import chapter_prose_gate
 from novel_mcp.game_time import (
     check_sys_time_update,
@@ -16,6 +21,7 @@ from novel_mcp.game_time import (
 )
 from novel_mcp.time_display import format_time_display
 from novel_mcp.paths import workspace_root as resolve_workspace_root
+from novel_mcp.warm_index import index_warm, pipeline_no_bundle
 from novel_mcp.zh_text import parse_scene_band, prose_status
 
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
@@ -34,13 +40,13 @@ _PIPELINE_STAGES = ("oln", "sbd", "scr", "prose")
 _STAGE_NEXT = {"oln": "sbd", "sbd": "scr", "scr": "prose", "prose": "oln"}
 
 _STAGE_DRAFT_NOTES: dict[str, str] = {
-    "oln": (
-        "LAW-PIPE20: draft @OLN→@SBD→@SCR→prose locally; "
-        "beat_turn_finish(oln_lines, sbd_lines, scr_lines, prose=…)"
+    "oln": "LAW-PIPE20: draft @OLN; beat_turn_finish(oln_lines=… only)",
+    "sbd": "LAW-PIPE20: draft @SBD from @OLN; beat_turn_finish(sbd_lines=… only)",
+    "scr": "LAW-PIPE20: draft @SCR from @SBD; beat_turn_finish(scr_lines=… only)",
+    "prose": (
+        "LAW-PIPE20: draft prose from @SCR; "
+        "beat_turn_finish(prose=…, option_lines, STEP/SYS/PLR updates)"
     ),
-    "sbd": "LAW-PIPE20: draft @SBD from @OLN; beat_turn_finish(sbd_lines=…)",
-    "scr": "LAW-PIPE20: draft @SCR from @SBD; beat_turn_finish(scr_lines=…)",
-    "prose": "LAW-PIPE20: draft prose from @SCR; beat_turn_finish(prose=…)",
 }
 
 
@@ -64,6 +70,7 @@ def _validate_pipeline_commits(
     *,
     auto_beat: bool,
     pipeline_bypass: bool,
+    no_bundle: bool = False,
 ) -> list[str]:
     if pipeline_bypass:
         return []
@@ -78,6 +85,13 @@ def _validate_pipeline_commits(
     active = [s for s in _PIPELINE_STAGES if provided[s]]
     if not active:
         return []
+
+    if no_bundle and len(active) > 1:
+        return [
+            "@ERR: pipeline_no_bundle|"
+            f"beat_stage={beat_stage} USR23 FSM: one wire stage per finish "
+            f"(got {','.join(active)})"
+        ]
 
     idx = _PIPELINE_STAGES.index(beat_stage)
     remaining = _PIPELINE_STAGES[idx:]
@@ -101,17 +115,30 @@ def _stage_after_commits(beat_stage: str, provided: dict[str, bool]) -> str:
     return _STAGE_NEXT[last]
 
 
-def _ensure_usr23_stage_update(
+def _ensure_beat_stage_update(
     update_lines: list[str] | None,
     new_stage: str,
+    beat_stage_usr_id: str | None = None,
 ) -> list[str]:
     lines = list(update_lines or [])
-    lines = [
-        ln
-        for ln in lines
-        if not (ln.strip().startswith("@USR:") and "USR23|beat_stage" in ln)
-    ]
-    lines.append(f"@USR: USR23|beat_stage|{new_stage}|persistent")
+    if beat_stage_usr_id:
+        lines = [
+            ln
+            for ln in lines
+            if not (
+                ln.strip().startswith("@USR:")
+                and ln.split("|", 2)[1:2] == [beat_stage_usr_id]
+                and "|beat_stage|" in ln
+            )
+        ]
+        lines.append(f"@USR: {beat_stage_usr_id}|beat_stage|{new_stage}|persistent")
+    else:
+        lines = [
+            ln
+            for ln in lines
+            if not (ln.strip().startswith("@USR:") and "|beat_stage|" in ln)
+        ]
+        lines.append(f"@USR: USR23|beat_stage|{new_stage}|persistent")
     return lines
 
 
@@ -137,20 +164,33 @@ def _supplement_prose_target(
     pipeline: dict[str, Any],
     *,
     session: str | None,
+    warm_stdout: str | None = None,
 ) -> None:
-    """USR21 often falls past warm max_rows; fetch by anchor when missing."""
+    """Fetch prose_target USR when missing from truncated warm."""
     if pipeline.get("draft_target_chars") is not None:
         return
+    if warm_stdout:
+        from novel_mcp.warm_index import index_warm, usr_value
+
+        idx = index_warm(warm_stdout)
+        for key in ("prose_target", "prose_draft"):
+            val = usr_value(idx, key)
+            if val:
+                target = _parse_prose_target_value(val)
+                if target is not None:
+                    pipeline["draft_target_chars"] = target
+                    pipeline["prose_advisory_zh"] = target
+                    return
     resp = run_memnet(
         [
             "query",
             "warm",
             "--anchor",
-            "USR21",
+            "STEP01",
             "--depth",
-            "0",
+            "1",
             "--max-rows",
-            "8",
+            "30",
         ],
         session=session,
     )
@@ -159,6 +199,93 @@ def _supplement_prose_target(
     if target is not None:
         pipeline["draft_target_chars"] = target
         pipeline["prose_advisory_zh"] = target
+
+
+_STAGE_HINT_USR: dict[str, str] = {
+    "oln": "USR54",
+    "sbd": "USR55",
+    "scr": "USR56",
+    "prose": "USR57",
+}
+
+
+def _wire_lines_from_read(resp: MemNetResponse) -> list[str]:
+    if resp.exit_code != 0 or not resp.stdout:
+        return []
+    return [
+        ln.strip()
+        for ln in resp.stdout.splitlines()
+        if ln.strip().startswith("@")
+    ]
+
+
+def _read_get_body(session: str | None, record_id: str) -> str | None:
+    """Return wire body (after @TAG:) for a single record id."""
+    if not session:
+        return None
+    resp = run_memnet(["read", "get", "--id", record_id], session=session)
+    for line in _wire_lines_from_read(resp):
+        if line.startswith("@") and ":" in line:
+            return line.split(":", 1)[1].strip()
+    return None
+
+
+def _apply_authoritative_beat_stage(
+    pipeline: dict[str, Any],
+    *,
+    session: str | None,
+) -> None:
+    """USR23 read_get is authoritative; warm context may be truncated or stale."""
+    body = _read_get_body(session, "USR23")
+    if not body:
+        return
+    parts = body.split("|")
+    if len(parts) >= 3 and parts[0] == "USR23" and parts[1] == "beat_stage":
+        stage = parts[2]
+        if stage in _PIPELINE_STAGES:
+            pipeline["beat_stage"] = stage
+            pipeline["beat_stage_usr_id"] = "USR23"
+
+
+def _supplement_pipeline_fsm(
+    pipeline: dict[str, Any],
+    *,
+    session: str | None,
+    warm_stdout: str,
+) -> str:
+    """Fetch FSM USR/LAW rows from store when warm is truncated or stale."""
+    if not session:
+        return ""
+    from novel_mcp.warm_index import index_warm, pipeline_no_bundle, usr_value
+
+    idx = index_warm(warm_stdout)
+    extras: list[str] = []
+
+    law_body = _read_get_body(session, "LAW-PIPE20")
+    if law_body:
+        extras.append(f"@LAW: {law_body}")
+
+    usr_body = _read_get_body(session, "USR23")
+    if usr_body:
+        extras.append(f"@USR: {usr_body}")
+
+    _apply_authoritative_beat_stage(pipeline, session=session)
+    stage = pipeline.get("beat_stage", "oln")
+
+    hint_key = f"stage_hint_{stage}"
+    if not usr_value(idx, hint_key):
+        uid = _STAGE_HINT_USR.get(stage)
+        if uid:
+            hint_body = _read_get_body(session, uid)
+            if hint_body:
+                extras.append(f"@USR: {hint_body}")
+
+    if not extras:
+        return ""
+
+    merged = warm_stdout + "\n" + "\n".join(extras)
+    pipeline["pipeline_no_bundle"] = pipeline_no_bundle(index_warm(merged))
+    return "\n".join(extras)
 
 
 def _sys_time_field(rows: dict[str, list[str]]) -> str | None:
@@ -226,9 +353,8 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
         if len(parts) < 3:
             continue
         uid, key, value = parts[0], parts[1], parts[2]
-        if uid == "USR05":
+        if key == "scene_length":
             pipeline["usr05_band"] = value
-            # Only enforce count gate if value looks like "650_950_zh" style
             if "_" in value and value.endswith("_zh"):
                 try:
                     mn, mx = parse_scene_band(value)
@@ -238,11 +364,10 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
                 except ValueError:
                     pass
             else:
-                # no_gate or advisory: do not set min/max → no hard gate
                 pipeline["min_chars"] = None
                 pipeline["max_chars"] = None
                 pipeline["target_chars"] = None
-        if uid == "USR21" or key == "prose_target" or key == "prose_draft":
+        if key in ("prose_target", "prose_draft"):
             target = _parse_prose_target_value(value)
             if target is not None:
                 pipeline["draft_target_chars"] = target
@@ -255,8 +380,12 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
             pipeline["local_gate"] = value
         if key == "gate_retry":
             pipeline["gate_retry"] = value
-        if uid == "USR23" or key == "beat_stage":
-            pipeline["beat_stage"] = value  # oln | sbd | scr | prose
+        if key == "beat_stage":
+            # Prefer USR23 when warm carries multiple beat_stage rows.
+            prev_uid = pipeline.get("beat_stage_usr_id")
+            if prev_uid != "USR23" or uid == "USR23":
+                pipeline["beat_stage"] = value
+                pipeline["beat_stage_usr_id"] = uid
 
     for body in rows.get("CHP", []):
         parts = body.split("|")
@@ -318,22 +447,33 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
         pipeline["auto_beat"] = True
         pipeline["no_options"] = True
 
+    for body in rows.get("PLR", []):
+        parts = body.split("|")
+        if len(parts) >= 7:
+            pipeline["plr_body"] = parts[6]
+            break
+
+    pipeline["pipeline_no_bundle"] = pipeline_no_bundle(index_warm(stdout))
+
     return pipeline
 
 
-def pipeline_next_action(step_n: int | str | None, beat_stage: str | None = None) -> str:
+def pipeline_next_action(
+    step_n: int | str | None,
+    beat_stage: str | None = None,
+    *,
+    pipeline_no_bundle: bool = False,
+) -> str:
+    stage = beat_stage if beat_stage in _PIPELINE_STAGES else "oln"
+    if pipeline_no_bundle:
+        return _STAGE_DRAFT_NOTES[stage]
+    if stage in ("sbd", "scr", "prose"):
+        return _STAGE_DRAFT_NOTES[stage]
     if isinstance(step_n, str) and step_n.isdigit():
         step_n = int(step_n)
     if isinstance(step_n, int):
-        base = _PHASE_ACTIONS.get(step_n, "beat_turn_begin → draft → beat_turn_finish")
-        return base
-    if beat_stage == "sbd":
-        return "draft @SBD (分鏡) from @OLN"
-    if beat_stage == "scr":
-        return "draft @SCR (腳本) from @SBD"
-    if beat_stage == "prose":
-        return "draft final novel prose from @SCR"
-    return "beat_turn_begin → draft @OLN (大綱) → 分鏡 → 腳本 → 小說"
+        return _PHASE_ACTIONS.get(step_n, "beat_turn_begin → draft → beat_turn_finish")
+    return _STAGE_DRAFT_NOTES["oln"]
 
 
 def _apply_wire_lines(
@@ -363,6 +503,7 @@ def _warm_pipeline(session: str | None) -> dict[str, Any]:
     )
     pipeline = parse_warm_stdout(resp.stdout)
     _supplement_prose_target(pipeline, session=session)
+    _apply_authoritative_beat_stage(pipeline, session=session)
     return pipeline
 
 
@@ -457,8 +598,13 @@ def beat_turn_begin(
     anchor: str = "STEP01",
     depth: int = 2,
     max_rows: int = 55,
+    include_warm: bool = False,
+    since_modified: str | None = None,
+    walk_filter: str = "law_usr",
+    lib_query: bool = False,
 ) -> dict[str, Any]:
-    """One MCP call: warm read + parsed pipeline envelope (USR05 band, STEP, OLN, CHP)."""
+    """One MCP call: warm read + presentation envelope (novel-agnostic)."""
+    read_modified = fetch_session_modified(session)
     resp = run_memnet(
         [
             "query",
@@ -472,24 +618,52 @@ def beat_turn_begin(
         ],
         session=session,
     )
+    warm_walk = fetch_warm_walk(
+        session=session,
+        anchor=anchor,
+        depth=depth,
+        max_rows=max_rows,
+    )
     pipeline = parse_warm_stdout(resp.stdout)
-    _supplement_prose_target(pipeline, session=session)
+    _supplement_prose_target(pipeline, session=session, warm_stdout=resp.stdout)
+    fsm_extra = _supplement_pipeline_fsm(
+        pipeline, session=session, warm_stdout=resp.stdout
+    )
+    warm_for_pres = resp.stdout + ("\n" + fsm_extra if fsm_extra else "")
     if pipeline.get("auto_beat"):
         pipeline["next_action"] = (
-            "auto_beat (LAW-VIT03): 昏厥中禁六選項 — 直接寫救助／醒復敘事 → beat_turn_finish"
+            "auto_beat: unconscious — no options; write rescue/wake prose → beat_turn_finish"
         )
     else:
         pipeline["next_action"] = pipeline_next_action(
             pipeline.get("step_n"),
             pipeline.get("beat_stage"),
+            pipeline_no_bundle=bool(pipeline.get("pipeline_no_bundle")),
         )
     pipeline["prose_gate"] = _prose_gate_active(pipeline)
+    if lib_query:
+        pipeline["lib_query"] = True
     finish_params = _finish_params_from_pipeline(pipeline)
+    presentation = compile_presentation(
+        warm_for_pres,
+        pipeline,
+        warm_walk=warm_walk or None,
+        walk_filter=walk_filter,
+    )
+    warnings: list[str] = []
+    if since_modified and read_modified and since_modified != read_modified:
+        warnings.append(
+            f"session_stale: graph modified ({read_modified}); "
+            "memnet writes since last begin — call beat_turn_begin again"
+        )
     out: dict[str, Any] = {
         "exit_code": resp.exit_code,
         "errors": list(resp.errors),
-        "session_id": resp.session_id,
-        "warm_stdout": resp.stdout,
+        "session_id": resp.session_id or session,
+        "session_modified": read_modified,
+        "session_contract": session_contract_block(),
+        "presentation": presentation,
+        "writing_contract": presentation["contracts"] + presentation.get("option_contracts", []),
         "pipeline": pipeline,
         "finish_params": finish_params,
         "snapshot_file": pipeline.get("snapshot_file"),
@@ -497,23 +671,27 @@ def beat_turn_begin(
         "mcp_budget_per_beat": {"memnet": 0, "novel_writer": 2},
         "tool": "beat_turn_begin",
     }
+    if include_warm:
+        out["warm_stdout"] = resp.stdout
+        out["warm_walk"] = warm_walk
+    else:
+        out["warm_stdout"] = None
+        out["warm_walk"] = None
+    if warnings:
+        out["warnings"] = warnings
     if pipeline["prose_gate"]:
         out["local_draft"] = (
             f"python scripts/{pipeline.get('local_gate', 'prose_count.py')} --usr05 "
-            f"{pipeline.get('usr05_band', '<USR05>')} --prose-file beat.txt  "
+            f"{pipeline.get('usr05_band', '<scene_length>')} --prose-file beat.txt  "
             f"(stage={pipeline.get('beat_stage', 'oln')})"
         )
     else:
         out["local_draft"] = None
-        stage = pipeline.get("beat_stage", "oln")
-        stage_note = _STAGE_DRAFT_NOTES.get(stage, _STAGE_DRAFT_NOTES["oln"])
-        target = pipeline.get("draft_target_chars")
-        if target and stage == "prose":
-            out["draft_note"] = f"{stage_note}; advisory ~{target} zh (USR21)"
-        elif target and stage == "oln":
-            out["draft_note"] = f"{stage_note}; prose advisory ~{target} zh (USR21)"
-        else:
-            out["draft_note"] = stage_note
+    contracts = presentation["contracts"]
+    if contracts:
+        out["draft_note"] = contracts[0]
+        if pipeline.get("draft_target_chars"):
+            out["draft_note"] += f"; advisory ~{pipeline['draft_target_chars']} chars"
     if pipeline.get("draft_target_chars"):
         out["prose_advisory_zh"] = pipeline["draft_target_chars"]
     return out
@@ -570,11 +748,35 @@ def beat_turn_finish(
     allow_new_relation: bool = False,
     prose_only_gate: bool = False,
     pipeline_bypass: bool = False,
+    option_lines: list[str] | None = None,
+    since_modified: str | None = None,
 ) -> dict[str, Any]:
     """One MCP call: OLN/SBD/SCR (LAW-PIPE20) → prose gate → chapter → graph → session_save."""
+    finish_modified = fetch_session_modified(session)
+    if since_modified and finish_modified and since_modified != finish_modified:
+        return {
+            "exit_code": 1,
+            "errors": [
+                "@ERR: session_stale|graph changed since beat_turn_begin; call beat_turn_begin again"
+            ],
+            "session_id": session,
+            "session_modified": finish_modified,
+            "tool": "beat_turn_finish",
+        }
+
     session_pipeline: dict[str, Any] = {}
+    warm_for_validate = ""
     if session:
-        session_pipeline = _warm_pipeline(session)
+        warm_resp = run_memnet(
+            ["query", "warm", "--anchor", "STEP01", "--depth", "1", "--max-rows", "55"],
+            session=session,
+        )
+        warm_for_validate = warm_resp.stdout
+        session_pipeline = parse_warm_stdout(warm_for_validate)
+        _supplement_prose_target(session_pipeline, session=session, warm_stdout=warm_for_validate)
+        _supplement_pipeline_fsm(
+            session_pipeline, session=session, warm_stdout=warm_for_validate
+        )
 
     params, auto_resolved, warm_used, session_pipeline = _resolve_finish_defaults(
         session=session,
@@ -598,33 +800,50 @@ def beat_turn_finish(
     draft_target_chars = params.get("draft_target_chars")
 
     if usr05_band and (min_chars is None or max_chars is None):
-        min_chars, max_chars = parse_scene_band(usr05_band)
+        if "_" in usr05_band and usr05_band.endswith("_zh"):
+            min_chars, max_chars = parse_scene_band(usr05_band)
 
     result: dict[str, Any] = {
         "exit_code": 0,
         "errors": [],
         "phases": [],
-        "internal_memnet_calls": 0,
+        "internal_memnet_calls": 1 if session else 0,
         "tool": "beat_turn_finish",
+        "session_id": session,
+        "session_contract": session_contract_block(),
         "mcp_budget_per_beat": {"memnet": 0, "novel_writer": 2},
+        "finish_hints": {"warnings": [], "violations": []},
     }
     if auto_resolved:
         result["auto_resolved"] = auto_resolved
     if warm_used:
         result["internal_memnet_calls"] += 1
         result["phases"].append({"phase": "warm_resolve", "exit_code": 0})
-    elif session:
-        result["internal_memnet_calls"] += 1
-        result["phases"].append({"phase": "warm_pipeline", "exit_code": 0})
+
+    if option_lines and warm_for_validate:
+        hints = validate_option_lines(
+            option_lines,
+            warm_stdout=warm_for_validate,
+            auto_beat=session_pipeline.get("auto_beat", False),
+        )
+        result["finish_hints"] = hints
+        if hints["violations"]:
+            result["exit_code"] = 1
+            result["errors"].extend(hints["violations"])
+            result["option_blocked"] = True
+            result["session_modified"] = finish_modified
+            return result
 
     beat_stage = session_pipeline.get("beat_stage", "oln")
     auto_beat = session_pipeline.get("auto_beat", False)
+    no_bundle = bool(session_pipeline.get("pipeline_no_bundle"))
     provided = _pipeline_provided(oln_lines, sbd_lines, scr_lines, prose)
     pipeline_errors = _validate_pipeline_commits(
         beat_stage,
         provided,
         auto_beat=auto_beat,
         pipeline_bypass=pipeline_bypass,
+        no_bundle=no_bundle,
     )
     if pipeline_errors:
         result["exit_code"] = 1
@@ -636,7 +855,11 @@ def beat_turn_finish(
 
     new_beat_stage = _stage_after_commits(beat_stage, provided)
     if new_beat_stage != beat_stage:
-        update_lines = _ensure_usr23_stage_update(update_lines, new_beat_stage)
+        update_lines = _ensure_beat_stage_update(
+            update_lines,
+            new_beat_stage,
+            session_pipeline.get("beat_stage_usr_id"),
+        )
         result["beat_stage"] = new_beat_stage
     else:
         result["beat_stage"] = beat_stage
@@ -744,4 +967,5 @@ def beat_turn_finish(
             result["exit_code"] = save_resp.exit_code
             result["errors"].extend(save_resp.errors)
 
+    result["session_modified"] = fetch_session_modified(session)
     return result

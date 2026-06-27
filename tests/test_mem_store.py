@@ -97,6 +97,15 @@ def test_linked_law_scope_reduces_warm_laws():
     assert "LAW-C" not in law_ids
 
 
+def test_context_walk_hops_from_anchor():
+    store = _store_with_linked_laws()
+    hops = store.context_walk_hops(anchor_id="STEP01", depth=2, active_only=True)
+    hop_set = {(s, r, d) for s, r, d in hops}
+    assert ("STEP01", "governs", "USR01") in hop_set
+    assert ("USR01", "governs", "LAW-B") in hop_set
+    assert ("STEP01", "focus", "SCN01") in hop_set
+
+
 def test_all_law_scope_without_law06():
     store, _ = _store_with_plr()
     law = parse_line(
