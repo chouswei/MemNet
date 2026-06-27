@@ -53,7 +53,6 @@ def test_active_only_filters_recyclable():
 def _store_with_linked_laws():
     tm = load_map_from_lines(
         [
-            "@LAW: id|name|cycle|mechanism|constraint",
             "@STEP: id|n|focus|recycle",
             "@USR: id|key|value|recycle",
             "@SCN: id|code|beat|recycle",
@@ -110,7 +109,7 @@ def test_all_law_scope_without_law06():
     store, _ = _store_with_plr()
     law = parse_line(
         "@LAW: LAW-X|*|1|demo|orphan_rule",
-        load_map_from_lines(["@LAW: id|name|cycle|mechanism|constraint"]),
+        load_map_from_lines(["@PLR: id|identity|wealth|cashflow|monopoly|reputation|inventory"]),
     )
     store.upsert(law, relations=set())
     rows = store.context_pack(anchor_id="PLR01", active_only=True)

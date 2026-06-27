@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.21] — 2026-06-27
+
+### Fixed
+- **tests/test_mem_store.py** — drop `@LAW` from user tag-map fixtures; `LAW` is a fixed tag (`fixed_tags.py`). Restores `test_linked_law_scope_reduces_warm_laws`, `test_context_walk_hops_from_anchor`, and `test_all_law_scope_without_law06` (full suite green).
+
 ## [0.2.20] — 2026-06-27
 
 ### Fixed
