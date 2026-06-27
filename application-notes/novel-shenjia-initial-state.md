@@ -50,7 +50,7 @@
 | **Opening seed — Engine** | 改管線／語風／介面／LAW 時 | `@LAW` `@CFG` `@STEP` `@USR` `@GLO`；`EG*`／`ES*` 接線 |
 | **Opening seed — World** | 改開局劇情／人物／產業／科技樹時 | `@SYS`～`@PTY` `@LIB` 實體；劇情 `@EDG`（`E*` `EP*` `EK*` `EI*` `EL*`） |
 
-`scripts/shenjia_bootstrap.py` 依序合併兩段 fence → `session_open` + `add`。
+`scripts/novel_bootstrap.py` 依序合併兩段 fence → `session_open` + `add`。
 
 ## Opening seed — Engine
 

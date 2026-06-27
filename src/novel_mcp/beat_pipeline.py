@@ -115,6 +115,18 @@ def _stage_after_commits(beat_stage: str, provided: dict[str, bool]) -> str:
     return _STAGE_NEXT[last]
 
 
+def _usr_beat_stage_row(ln: str) -> tuple[str, str] | None:
+    """Return (usr_id, stage) for @USR: UID|beat_stage|STAGE|… wire lines."""
+    stripped = ln.strip()
+    if not stripped.startswith("@USR:"):
+        return None
+    body = stripped.split(":", 1)[1].strip()
+    parts = body.split("|")
+    if len(parts) >= 3 and parts[1] == "beat_stage":
+        return parts[0], parts[2]
+    return None
+
+
 def _ensure_beat_stage_update(
     update_lines: list[str] | None,
     new_stage: str,
@@ -125,11 +137,8 @@ def _ensure_beat_stage_update(
         lines = [
             ln
             for ln in lines
-            if not (
-                ln.strip().startswith("@USR:")
-                and ln.split("|", 2)[1:2] == [beat_stage_usr_id]
-                and "|beat_stage|" in ln
-            )
+            if _usr_beat_stage_row(ln) is None
+            or _usr_beat_stage_row(ln)[0] != beat_stage_usr_id
         ]
         lines.append(f"@USR: {beat_stage_usr_id}|beat_stage|{new_stage}|persistent")
     else:

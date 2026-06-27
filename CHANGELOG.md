@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.22] — 2026-06-27
+
+### Added
+- **applications/novel_cursor/** — generic Cursor SDK beat runner (`cursor_beat.py`, `app_config.py`, instance JSON); `NOVEL_BEAT_RESULT` wire contract; paths from seed `USR14`/`USR15`.
+- **applications/novel_cursor/instances/shenjia_caifa.json** — 《工匠傳奇》 instance config.
+- **application-notes/llm-novel-cursor-sdk.md** — operator guide for thin-chat + SDK beat architecture.
+- **tests/test_novel_cursor_config.py** — instance/seed path resolution.
+
+### Fixed
+- **novel_mcp.beat_pipeline** — `_ensure_beat_stage_update` now matches `@USR: UID|beat_stage|STAGE|…` via `_usr_beat_stage_row` (was splitting on wrong pipe field; USR23 prose→oln persist could fail).
+
+### Changed
+- **.cursor/rules/novel-writer.mdc** — generic novel-writer chat contract (`--app` / `novel-output/<slug>/` paths).
+- **applications/shenjia_caifa/** — thin shim forwarding to `novel_cursor --app shenjia_caifa`.
+- **application-notes/novel-shenjia-initial-state.md** — bootstrap doc points at `scripts/novel_bootstrap.py`.
+
+### Tests
+- `tests/test_beat_pipeline.py` — USR23 beat_stage update regressions.
+
 ## [0.2.21] — 2026-06-27
 
 ### Fixed

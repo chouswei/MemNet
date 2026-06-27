@@ -546,3 +546,130 @@ def test_parse_warm_stdout_pipeline_no_bundle():
 def test_parse_warm_stdout_beat_stage():
     p = parse_warm_stdout("@USR: USR23|beat_stage|scr|persistent\n")
     assert p["beat_stage"] == "scr"
+
+
+def test_ensure_beat_stage_update_replaces_same_usr_id():
+    from novel_mcp.beat_pipeline import _ensure_beat_stage_update
+
+    out = _ensure_beat_stage_update(
+        ["@USR: USR23|beat_stage|prose|persistent", "@STEP: STEP01|5|OLN07|persistent"],
+        "oln",
+        beat_stage_usr_id="USR23",
+    )
+    usr_rows = [ln for ln in out if "USR23|beat_stage" in ln]
+    assert len(usr_rows) == 1
+    assert usr_rows[0] == "@USR: USR23|beat_stage|oln|persistent"
+    assert any("STEP01" in ln for ln in out)
+
+
+def test_prose_finish_advances_usr23_to_oln(tmp_path: Path, monkeypatch):
+    """Prose finish must persist beat_stage|oln (not leave USR23 at prose)."""
+    stage = {"beat_stage": "prose"}
+    updates: list[str] = []
+
+    warm = (
+        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n"
+        "@USR: USR23|beat_stage|prose|persistent\n"
+        "@USR: USR05|scene_length|650_950_zh|persistent\n"
+        "@USR: USR06|chapter_out|novel-output/shenjia_caifa/chapters|persistent\n"
+        "@CHP: CHP01|1|0|1|0|open\n"
+    )
+
+    def fake_run(argv, stdin=None, session=None):
+        from memnet_mcp.client import MemNetResponse
+
+        if argv[:2] == ["read", "get"]:
+            rid = argv[argv.index("--id") + 1] if "--id" in argv else ""
+            if rid == "USR23":
+                return MemNetResponse(
+                    exit_code=0,
+                    stdout=f"@USR: USR23|beat_stage|{stage['beat_stage']}|persistent\n",
+                    stderr="",
+                    session_id=session,
+                    errors=[],
+                )
+            if rid == "LAW-PIPE20":
+                return MemNetResponse(
+                    exit_code=0,
+                    stdout="@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n",
+                    stderr="",
+                    session_id=session,
+                    errors=[],
+                )
+            return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+        if argv[0] == "query":
+            return MemNetResponse(
+                exit_code=0,
+                stdout=warm,
+                stderr="",
+                session_id=session,
+                errors=[],
+            )
+        if argv[0] == "update" and stdin:
+            updates.append(stdin)
+            if "beat_stage|oln" in stdin:
+                stage["beat_stage"] = "oln"
+        return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    monkeypatch.setenv("MEMNET_WORKSPACE_ROOT", str(tmp_path))
+
+    result = beat_turn_finish(
+        session="test",
+        prose="字" * 800,
+        option_lines=["一", "二", "三", "四", "五", "六"],
+    )
+    assert result["exit_code"] == 0
+    assert result["beat_stage"] == "oln"
+    assert stage["beat_stage"] == "oln"
+    assert any("beat_stage|oln" in u for u in updates)
+
+
+def test_beat_turn_begin_next_action_prose_stage_no_bundle(monkeypatch):
+    def fake_run(argv, stdin=None, session=None):
+        from memnet_mcp.client import MemNetResponse
+
+        if argv[:2] == ["read", "get"]:
+            rid = argv[argv.index("--id") + 1] if "--id" in argv else ""
+            if rid == "USR23":
+                return MemNetResponse(
+                    exit_code=0,
+                    stdout="@USR: USR23|beat_stage|prose|persistent\n",
+                    stderr="",
+                    session_id=session,
+                    errors=[],
+                )
+            if rid == "LAW-PIPE20":
+                return MemNetResponse(
+                    exit_code=0,
+                    stdout="@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n",
+                    stderr="",
+                    session_id=session,
+                    errors=[],
+                )
+            if rid == "USR57":
+                return MemNetResponse(
+                    exit_code=0,
+                    stdout="@USR: USR57|stage_hint_prose|draft prose|persistent\n",
+                    stderr="",
+                    session_id=session,
+                    errors=[],
+                )
+            return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+        if argv[0] == "query":
+            return MemNetResponse(
+                exit_code=0,
+                stdout="@USR: USR23|beat_stage|oln|persistent\n@STEP: STEP01|4|OLN06|persistent\n",
+                stderr="",
+                session_id=session,
+                errors=[],
+            )
+        return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_warm_walk", lambda **kwargs: "")
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: "m1")
+    out = beat_turn_begin(session="test")
+    assert out["pipeline"]["beat_stage"] == "prose"
+    assert "prose" in out["pipeline"]["next_action"].lower()
+    assert "beat_turn_finish" in out["pipeline"]["next_action"]
