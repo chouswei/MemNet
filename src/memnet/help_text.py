@@ -39,6 +39,7 @@ def guide_text(*, loose: bool = False) -> str:
             "Resume: memnet session resume <id> — never re-open for same task.",
             "New rows: memnet add --stdin or --file. Changes: memnet update --stdin or --file.",
             "Read turn: memnet query warm --anchor PLR01 (not query context).",
+            "Structure: memnet query walk --anchor PLR01 → @WALK: src -[rel]-> dst hops.",
             "Optional: memnet session save --file snap.txt / session load --file snap.txt.",
             "Reuse ids; never invent new ids for the same entity.",
             "Read LLM-GUIDE.md (in the repo) for the full agent playbook and settlement rules.",
@@ -53,6 +54,7 @@ Quick start:
   memnet session open --map-file schema.example.txt
   memnet add --file workflow.example.txt
   memnet query warm --anchor PLR01
+  memnet query walk --anchor PLR01
 
 Wire format: @TAG: field|field|...
   Pipe in value: a\\|b

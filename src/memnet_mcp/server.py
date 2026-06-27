@@ -155,6 +155,27 @@ async def query_warm(
 
 
 @mcp.tool()
+async def query_walk(
+    anchor: str,
+    depth: int = 2,
+    max_rows: int = 50,
+    session: str | None = None,
+) -> str:
+    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``."""
+    argv = [
+        "query",
+        "walk",
+        "--anchor",
+        anchor,
+        "--depth",
+        str(depth),
+        "--max-rows",
+        str(max_rows),
+    ]
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
 async def add(
     wire_lines: list[str],
     allow_new_relation: bool = False,

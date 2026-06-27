@@ -272,6 +272,58 @@ class MemStore:
             node_results.insert(0, self.by_id[node_id])
         return node_results + edge_results
 
+    def context_walk_hops(
+        self,
+        *,
+        anchor_id: str | None = None,
+        depth: int = DEFAULT_QUERY_DEPTH,
+        max_rows: int = DEFAULT_QUERY_MAX_ROWS,
+        active_only: bool = False,
+    ) -> list[tuple[str, str, str]]:
+        """BFS walk hops from anchor: (src, relation, dst) tuples."""
+        depth = min(depth, self.caps.max_depth)
+        if not anchor_id or anchor_id not in self.by_id:
+            return []
+        hops: list[tuple[str, str, str]] = []
+        seen_edges: set[str] = set()
+        visited: set[str] = {anchor_id}
+        queue: deque[tuple[str, int]] = deque([(anchor_id, 0)])
+        while queue and len(hops) < max_rows:
+            current, d = queue.popleft()
+            if d >= depth:
+                continue
+            out_edges = self._edges_from(current)
+            if len(out_edges) > self.caps.max_fanout:
+                out_edges = out_edges[: self.caps.max_fanout]
+            in_edges = self._edges_to(current)
+            for edge in out_edges + in_edges:
+                if active_only and edge.is_recyclable():
+                    continue
+                if edge.id in seen_edges:
+                    continue
+                seen_edges.add(edge.id)
+                src = edge.fields.get("src", "")
+                dst = edge.fields.get("dist", "")
+                rel = edge.fields.get("relation", "")
+                if not rel or not src or not dst:
+                    continue
+                if src not in self.by_id or dst not in self.by_id:
+                    continue
+                if current not in (src, dst):
+                    continue
+                hops.append((src, rel, dst))
+                if len(hops) >= max_rows:
+                    break
+                for endpoint in (src, dst):
+                    if endpoint in visited:
+                        continue
+                    node = self.by_id.get(endpoint)
+                    if not node or (active_only and node.is_recyclable()):
+                        continue
+                    visited.add(endpoint)
+                    queue.append((endpoint, d + 1))
+        return sorted(hops, key=lambda t: (t[0], t[1], t[2]))
+
     def find_path(self, source_id: str, target_id: str) -> list[Record]:
         if source_id not in self.by_id or target_id not in self.by_id:
             return []

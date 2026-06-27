@@ -1,76 +1,57 @@
-"""Bootstrap 工匠傳奇 session from novel-shenjia-initial-state.md."""
+"""Bootstrap shenjia session from novel-shenjia-initial-state.md."""
 from __future__ import annotations
 
 import json
-import re
+import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from memnet_mcp.client import run_memnet
 from memnet.config import serve_host
+from memnet_mcp.client import run_memnet
 from novel_mcp.beat_pipeline import beat_turn_begin
+from novel_mcp.bootstrap import bootstrap_from_md
+from novel_mcp.warm_index import index_warm, usr_value
 
 ROOT = Path(__file__).resolve().parents[1]
 MD = ROOT / "application-notes" / "novel-shenjia-initial-state.md"
-
-
-def _fence_lines(text: str, heading: str) -> list[str]:
-    # tolerate optional blank lines between heading and opening ```text fence
-    pattern = rf"## {re.escape(heading)}\s*\n(?:\s*\n)*```text\s*\n(.*?)\n```"
-    match = re.search(pattern, text, re.DOTALL)
-    if not match:
-        # broader fallback
-        pattern2 = rf"## {re.escape(heading)}[\s\S]*?```text\s*\n([\s\S]*?)\n```"
-        match = re.search(pattern2, text)
-        if not match:
-            return []
-    return [ln for ln in match.group(1).strip().splitlines() if ln.strip()]
-
-
-def _seed_lines(text: str) -> list[str]:
-    """Engine first, then World; legacy single Opening seed fence still supported."""
-    engine = _fence_lines(text, "Opening seed — Engine")
-    world = _fence_lines(text, "Opening seed — World")
-    if engine or world:
-        return engine + world
-    legacy = _fence_lines(text, "Opening seed")
-    if not legacy:
-        raise SystemExit("no seed fence found (Engine / World / Opening seed)")
-    return legacy
+OUT_DIR = ROOT / "novel-output" / "shenjia_caifa"
+SNAP_PATH = OUT_DIR / "session_snap.json"
+CHAPTERS = OUT_DIR / "chapters"
 
 
 def main() -> None:
-    text = MD.read_text(encoding="utf-8")
-    map_lines = _fence_lines(text, "Tag map")
-    if not map_lines:
-        raise SystemExit("section not found: Tag map")
-    seed_lines = _seed_lines(text)
+    boot = bootstrap_from_md(MD)
+    if boot.get("exit_code", 1) != 0:
+        print(json.dumps(boot, ensure_ascii=False, indent=2), file=sys.stderr)
+        raise SystemExit(boot.get("exit_code", 1))
 
-    argv = ["session", "open"]
-    for line in map_lines:
-        argv.extend(["--map", line])
-    resp = run_memnet(argv)
-    if resp.exit_code != 0:
-        print(resp.stderr, file=sys.stderr)
-        raise SystemExit(resp.exit_code)
+    sid = boot["session_id"]
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    save = run_memnet(["session", "save", "--file", str(SNAP_PATH)], session=sid)
+    if save.exit_code != 0:
+        print(json.dumps({"save": save.errors}, ensure_ascii=False), file=sys.stderr)
+        raise SystemExit(save.exit_code)
 
-    sid = resp.session_id
-    seed_resp = run_memnet(
-        ["add", "--stdin", "--allow-new-relation"],
-        stdin="\n".join(seed_lines),
-        session=sid,
-    )
-    if seed_resp.exit_code != 0:
-        print(seed_resp.stderr, file=sys.stderr)
-        raise SystemExit(seed_resp.exit_code)
+    if CHAPTERS.exists():
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive = OUT_DIR / f"chapters_pre_bootstrap_{stamp}"
+        shutil.move(str(CHAPTERS), str(archive))
 
-    begin = beat_turn_begin(session=sid)
+    begin = beat_turn_begin(session=sid, include_warm=True)
+    warm = begin.get("warm_stdout") or ""
+    idx = index_warm(warm)
     out = {
         "session_id": sid,
         "serve_host": serve_host(),
         "exit_code": begin.get("exit_code"),
         "pipeline": begin.get("pipeline"),
-        "pc_name_unset": "USR03|pc_name|未定" in begin.get("warm_stdout", ""),
+        "presentation": begin.get("presentation"),
+        "session_modified": begin.get("session_modified"),
+        "snapshot": str(SNAP_PATH),
+        "pc_name_unset": usr_value(idx, "pc_name") == "未定",
+        "pipeline_no_bundle": begin.get("pipeline", {}).get("pipeline_no_bundle"),
+        "stage_hint": (begin.get("presentation") or {}).get("contracts", [""])[0],
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
 

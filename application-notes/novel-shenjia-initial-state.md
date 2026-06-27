@@ -74,7 +74,7 @@
 @LAW: LAW06|*|on_context|law_scope|linked_from_anchor
 @LAW: LAW-NAME01|LAW|on_add|no_plr_name|-
 @LAW: LAW-NAME02|NPC|on_add|era_name|wanming_social_rank
-@LAW: LAW-PIPE20|STEP|on_turn|two_phase|-
+@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|beat_stage_usr23;one_wire_per_finish;no_bundle;cite_LAW-OLN02;cite_LAW-SBD02;cite_LAW-SCR02;cite_LAW-PROSE16
 @LAW: LAW-PIPE21|STEP|on_turn|beat_turn|begin_finish_only
 @LAW: LAW-PIPE22|STEP|on_turn|gate_retry|once_per_beat
 @LAW: LAW-PIPE23|STEP|on_turn|auto_beat|vit03_no_opts;prose_finish_only
@@ -88,21 +88,10 @@
 @LAW: LAW-SBD02|SBD|on_turn|sbd_from_oln|expand_to_shots
 @LAW: LAW-SCR01|SCR|on_add|script_fmt|action_dialogue_parenthetical
 @LAW: LAW-SCR02|SCR|on_turn|script_from_sbd|tight_action_lines
+@LAW: LAW-PROSE00|敘事|1|warm_prose|cite_usr51;cite_usr19_20;ban_telegraphic;wuxia_pacing;sensory_embed;chr_interaction;dialogue_flow;env_serve_plot;readable_prose;sentence_rhythm;metaphor_sparing;knowledge_plain;zh_idiom_fit
 @LAW: LAW-PROSE01|敘事|1|優美白話武俠|ref_金庸梁羽生
 @LAW: LAW-PROSE02|敘事|1|對白內心>=35pct|-
 @LAW: LAW-PROSE03|敘事|1|length_advisory|no_hard_gate
-@LAW: LAW-PROSE04|敘事|1|chr_interaction|-
-@LAW: LAW-PROSE05|敘事|1|sensory_embed|-
-@LAW: LAW-PROSE06|敘事|1|dialogue_flow|-
-@LAW: LAW-PROSE07|敘事|1|beat_structure|-
-@LAW: LAW-PROSE08|敘事|1|env_serve_plot|-
-@LAW: LAW-PROSE09|敘事|1|readable_prose|-
-@LAW: LAW-PROSE10|敘事|1|sentence_rhythm|-
-@LAW: LAW-PROSE11|敘事|1|metaphor_sparing|-
-@LAW: LAW-PROSE12|敘事|1|knowledge_plain|-
-@LAW: LAW-PROSE13|敘事|1|zh_idiom_fit|-
-@LAW: LAW-PROSE14|敘事|1|ban_telegraphic|禁縮略語句與梗概體
-@LAW: LAW-PROSE15|敘事|1|wuxia_pacing|起承轉合;白描鋪陳;長短句交錯
 @LAW: LAW-PROSE16|敘事|1|prose_from_script|final_flowing_novel
 @LAW: LAW-PROSE17|PLR|on_turn|inner_voice_modern|台灣白話;意識圖書館;時代落差吐槽
 @LAW: LAW-PROSE18|敘事|1|age_fit_narrative|sys_minus_birth;ban_adult_default;body_addr
@@ -125,7 +114,7 @@
 @LAW: LAW-PERS03|*|on_pick|trait_delta|milestone_only;not_per_opt
 @LAW: LAW-PERS04|*|on_pick|trait_check|trt_prs_wux_age_vs_dc;opt_axis_not_delta
 @LAW: LAW-PERS05|*|on_pick|stat_division|mwx_primary_wx;trt_dc_or_margin;cite_usr42
-@LAW: LAW-PERS02|OPT|on_turn|trait_opts|opt_readable_baihua;cite_usr22
+@LAW: LAW-PERS02|OPT|on_turn|trait_opts|opt_readable_baihua;full_sentence;no_action_chain;cite_usr22
 @LAW: LAW-NPC01|NPC|on_turn|prs_baseline|-
 @LAW: LAW-NPC02|NPC|on_turn|skl_cite|-
 @LAW: LAW-NPC03|NPC|on_turn|itm_cite|-
@@ -136,9 +125,10 @@
 @LAW: LAW-HUD01|介面|1|尾欄HUD單行pipe|-
 @LAW: LAW-OPT01|*|on_turn|six_options|opt1_4_trait;opt5_ind;opt6_lib;cite_law_vit01;vit03_suspend
 @LAW: LAW-OPT02|CHOICE|on_pick|ind_ledger|no_time_advance;reoffer_opts
-@LAW: LAW-OPT03|CHOICE|on_pick|lib_query|cite_lib_tsk_tec;no_time_advance;reoffer_opts
-@LAW: LAW-LIB01|LIB|on_turn|lib_cite|cite_usr31_anchor_warm
+@LAW: LAW-OPT03|CHOICE|on_pick|lib_query|cite_lib_tsk_tec;cite_LAW-LIB03;no_time_advance;reoffer_opts
+@LAW: LAW-LIB01|LIB|on_turn|lib_cite|cite_usr31;cite_LAW-LIB03;cite_glo_vocab_on_overlap
 @LAW: LAW-LIB02|*|on_turn|lib_fmt|consciousness_frame;plain_route_table
+@LAW: LAW-LIB03|LIB|on_pick|lib_context|anchor_last_oln;match_LIB;no_tech_tree_only
 @LAW: LAW-TEC01|NPC|on_turn|npc_tec_vocab|cite_edg_unknows;npc_speaks_glo09
 @LAW: LAW-VIT01|PLR|on_turn|body_in_plot|cite_usr45;oln_embed;prose_embed;opt_respect;finish_delta
 @LAW: LAW-VIT02|PLR|on_context|vit_cap|cite_usr47_48;primary_art;age_wux;clamp_plr
@@ -169,7 +159,7 @@
 @USR: USR19|prose_style|優美白話武俠|persistent
 @USR: USR20|prose_ref|金庸武俠架空;金庸白描;梁羽生情景;忌網文快剪|persistent
 @USR: USR21|prose_target|800_zh_advisory|persistent
-@USR: USR22|opt_copy|可讀白話|persistent
+@USR: USR22|opt_copy|可讀白話完整句;12-28字;禁動詞串;禁梗概體|persistent
 @USR: USR23|beat_stage|oln|persistent
 @USR: USR24|inner_voice|modern_taiwanese_baihua|persistent
 @USR: USR25|age_calc|sys01_minus_birth_year|persistent
@@ -178,7 +168,9 @@
 @USR: USR28|wuxia_ranks|未入門;初学乍練;熟能生巧;略有小成;駕輕就熟;登峰造極|persistent
 @USR: USR29|wuxia_resolve|effective_min_mwu_wux_age_neili|persistent
 @USR: USR30|opt_layout|1-4四維;5產業帳;6圖書館|persistent
-@USR: USR31|lib_topics|升級作坊;焦炭路線;高爐路線;匠藝冶金;晚明考據|persistent
+@USR: USR31|lib_anchor|last_oln_match_LIB;then_TSK;then_TEC;fallback_LIB01|persistent
+@USR: USR31b|lib_match_keys|風箱;皮墊;漏風;聽聲;塊子;炭;帳;武學|persistent
+@USR: USR31c|lib_glo_ids|GLO09|persistent
 @USR: USR32|lib_opt_copy|閉目入殿查閱|persistent
 @USR: USR33|trait_gain|milestone;training;chapter_close|persistent
 @USR: USR34|trait_check|trt_vs_situational_dc;opt1_4_axis_only|persistent
@@ -198,6 +190,12 @@
 @USR: USR48|primary_neigong|P01=ART01|persistent
 @USR: USR49|art_neili_burn|ART01:1;ART02:1;ART03:2;ART04:1;ART10:1;ART14:1;ART15:1|persistent
 @USR: USR50|qi_zero|0=昏厥;no_opts;auto_beat;wake_min=1;wx_ban|persistent
+@USR: USR51|prose_warm|你;旁白優美白話武俠;金庸白描梁羽生情景;內心台灣白話;先環境後人物;感官嵌入;起承轉合;禁梗概禁快剪;十歲肉身|persistent
+@USR: USR52|stage_hint_lib|【靈魂圖書館檢閱】須對準本拍OLN主題；cite匹配LIB；連結GLO09匠話；禁無故全列TEC|persistent
+@USR: USR54|stage_hint_oln|【階1·大綱】寫@OLN：情緒錨、情節要點、對白骨架、尾鉤、體征代價；禁章節正文；finish僅oln_lines|persistent
+@USR: USR55|stage_hint_sbd|【階2·分鏡】讀本拍最新@OLN；拆≥2鏡@SBD；禁正文；finish僅sbd_lines|persistent
+@USR: USR56|stage_hint_scr|【階3·腳本】讀本拍@SBD；逐鏡寫@SCR；禁章節正文；finish僅scr_lines|persistent
+@USR: USR57|stage_hint_prose|【階4·小說】讀本拍@SCR擴寫；~USR21字；finish含prose+OPT+STEP+SYS+PLR；beat_stage→oln|persistent
 
 @GLO: GLO01|力量|S|扛活;忍耐;先動身|persistent
 @GLO: GLO02|智力|T|算計;工藝;問條件|persistent
@@ -221,15 +219,12 @@
 @EDG: EG100|STEP01|governs|LAW-SBD02||persistent
 @EDG: EG101|STEP01|governs|LAW-SCR01||persistent
 @EDG: EG102|STEP01|governs|LAW-SCR02||persistent
-@EDG: EG103|STEP01|governs|LAW-PROSE16||persistent
 @EDG: EG104|STEP01|governs|USR24||persistent
 @EDG: EG105|USR24|governs|LAW-CHR01||persistent
-@EDG: EG106|STEP01|governs|LAW-PROSE17||persistent
 @EDG: EG107|USR24|governs|LAW-PROSE17||persistent
 @EDG: EG108|STEP01|governs|USR25||persistent
 @EDG: EG109|USR25|governs|LAW-CHR04||persistent
 @EDG: EG110|USR25|governs|LAW-PROSE18||persistent
-@EDG: EG111|STEP01|governs|LAW-PROSE18||persistent
 @EDG: EG112|USR25|governs|LAW-CHR01||persistent
 @EDG: EG113|STEP01|governs|USR26||persistent
 @EDG: EG114|USR26|governs|LAW-G04||persistent
@@ -319,7 +314,7 @@
 @EDG: EG198|LAW-VIT01|governs|LAW-WX02||persistent
 @EDG: EG199|LAW-VIT01|governs|LAW-WX06||persistent
 @EDG: EG200|LAW-VIT01|governs|LAW-OPT01||persistent
-@EDG: EG201|LAW-VIT01|governs|LAW-PROSE05||persistent
+@EDG: EG201|LAW-VIT01|governs|LAW-PROSE00||persistent
 @EDG: EG202|STEP01|governs|LAW-WX11||persistent
 @EDG: EG203|USR46|governs|LAW-WX11||persistent
 @EDG: EG204|ART01|governs|LAW-WX11||persistent
@@ -359,34 +354,19 @@
 @EDG: EG23|SYS01|governs|LAW-G03||persistent
 @EDG: EG24|B01|governs|LAW-G10||persistent
 @EDG: EG25|P01|governs|LAW-G05||persistent
-@EDG: EG26|USR05|governs|LAW-PROSE01||persistent
-@EDG: EG27|USR05|governs|LAW-PROSE02||persistent
 @EDG: EG28|USR01|governs|LAW-OUT04||persistent
-@EDG: EG29|USR05|governs|LAW-PROSE03||persistent
 @EDG: EG30|USR06|governs|LAW-CHR04||persistent
 @EDG: EG31|P01|features|LAW-CHR01||persistent
 @EDG: EG32|N01|features|LAW-CHR02||persistent
 @EDG: EG33|N02|features|LAW-CHR03||persistent
-@EDG: EG34|USR05|governs|LAW-PROSE04||persistent
-@EDG: EG35|USR05|governs|LAW-PROSE05||persistent
-@EDG: EG36|USR05|governs|LAW-PROSE06||persistent
-@EDG: EG37|USR05|governs|LAW-PROSE07||persistent
-@EDG: EG38|USR05|governs|LAW-PROSE08||persistent
-@EDG: EG39|USR05|governs|LAW-PROSE09||persistent
 @EDG: EG40|USR01|governs|LAW-OUT05||persistent
 @EDG: EG41|USR07|governs|LAW-DATA01||persistent
-@EDG: EG42|USR05|governs|LAW-PROSE10||persistent
-@EDG: EG43|USR05|governs|LAW-PROSE11||persistent
-@EDG: EG44|USR05|governs|LAW-PROSE12||persistent
-@EDG: EG45|USR04|governs|LAW-PROSE12||persistent
+@EDG: EG45|USR04|governs|LAW-PROSE00||persistent
 @EDG: EG46|USR08|governs|LAW-OUT06||persistent
-@EDG: EG47|USR05|governs|LAW-OLN02||persistent
 @EDG: EG48|USR08|governs|LAW-OLN01||persistent
-@EDG: EG49|USR05|governs|LAW-PROSE13||persistent
 @EDG: EG50|USR09|governs|LAW-OUT07||persistent
 @EDG: EG51|USR10|governs|LAW-PERS02||persistent
 @EDG: EG52|P01|governs|LAW-PERS01||persistent
-@EDG: EG53|USR05|governs|LAW-PERS03||persistent
 @EDG: EG54|STEP01|governs|USR11||persistent
 @EDG: EG55|USR11|governs|LAW-NPC01||persistent
 @EDG: EG56|N01|features|LAW-NPC01||persistent
@@ -418,10 +398,6 @@
 @EDG: EG82|STEP01|governs|USR18||persistent
 @EDG: EG83|STEP01|governs|USR19||persistent
 @EDG: EG84|STEP01|governs|USR20||persistent
-@EDG: EG85|USR05|governs|LAW-PROSE14||persistent
-@EDG: EG86|USR05|governs|LAW-PROSE15||persistent
-@EDG: EG87|STEP01|governs|LAW-PROSE14||persistent
-@EDG: EG88|STEP01|governs|LAW-PROSE15||persistent
 @EDG: EG89|STEP01|governs|USR21||persistent
 @EDG: EG90|USR21|governs|LAW-PROSE03||persistent
 @EDG: EG91|STEP01|governs|USR22||persistent
@@ -433,6 +409,28 @@
 @EDG: EG97|USR23|governs|LAW-SCR02||persistent
 @EDG: EG98|USR23|governs|LAW-PROSE16||persistent
 @EDG: EG99|STEP01|governs|LAW-SBD01||persistent
+@EDG: EG250|STEP01|governs|USR51||persistent
+@EDG: EG251|USR51|governs|LAW-PROSE00||persistent
+@EDG: EG252|USR19|governs|LAW-PROSE01||persistent
+@EDG: EG253|USR20|governs|LAW-PROSE00||persistent
+@EDG: EG254|USR18|governs|LAW-PROSE00||persistent
+@EDG: EG255|USR21|governs|LAW-PROSE02||persistent
+@EDG: EG256|USR23|governs|LAW-OLN02||persistent
+@EDG: EG257|STEP01|governs|LAW-LIB03||persistent
+@EDG: EG258|USR31|governs|LAW-LIB03||persistent
+@EDG: EG259|USR31b|governs|LAW-LIB03||persistent
+@EDG: EG260|LAW-LIB03|governs|LAW-LIB01||persistent
+@EDG: EG261|LAW-LIB03|governs|LAW-OPT03||persistent
+@EDG: EG262|STEP01|governs|USR52||persistent
+@EDG: EG263|USR52|governs|LAW-LIB01||persistent
+@EDG: EG264|USR52|governs|LAW-OPT03||persistent
+@EDG: EG265|STEP01|governs|USR31b||persistent
+@EDG: EG266|USR31c|governs|LAW-LIB01||persistent
+@EDG: EG267|STEP01|governs|USR31c||persistent
+@EDG: EG268|STEP01|governs|USR54||persistent
+@EDG: EG269|STEP01|governs|USR55||persistent
+@EDG: EG270|STEP01|governs|USR56||persistent
+@EDG: EG271|STEP01|governs|USR57||persistent
 @EDG: ES01|STEP01|focus|SCN01||persistent
 ```
 
@@ -456,6 +454,9 @@
 @LIB: LIB01|T01|升級作坊|upgrade_route|可查|常駐
 @LIB: LIB02|TEC01|焦炭製作|coke_step1|鎖定|常駐
 @LIB: LIB03|TEC02|焦炭煉鐵高爐|coke_blast_step2|鎖定|常駐
+@LIB: LIB04|smithy_ops|風箱皮墊|bellows_leather|可查|常駐
+@LIB: LIB05|smithy_ops|聽聲看火|furnace_listen|可查|常駐
+@LIB: LIB06|smithy_ops|炭堆防潮|coal_store|可查|常駐
 
 @PRD: PRD01|焦炭|物資|0|0|未量產;圖內專名
 @PRD: PRD02|工業級生鐵|物資|0|0|未量產;圖內專名
@@ -493,6 +494,12 @@
 @EDG: EL07|T01|features|LIB01||persistent
 @EDG: EL08|TEC01|features|LIB02||persistent
 @EDG: EL09|TEC02|features|LIB03||persistent
+@EDG: EL10|LIB01|cite|LIB04||persistent
+@EDG: EL11|LIB01|cite|LIB05||persistent
+@EDG: EL12|LIB01|cite|LIB06||persistent
+@EDG: EL13|LIB04|cite|GLO09||persistent
+@EDG: EL14|P01|features|LIB04||persistent
+@EDG: EL15|P01|features|LIB05||persistent
 
 @SCN: SCN01|smithy_gate|awakening|delete_on_settle
 
@@ -630,14 +637,14 @@ flowchart LR
 
 | 短碼 | 含義 |
 |------|------|
-| `LAW-PIPE20` | 多階段：大綱(@OLN) → 分鏡(@SBD) → 腳本(@SCR) → 小說正文 |
-| `LAW-PIPE21` | 仍以 begin/finish 為主，內部可多次 add 中間產物 |
+| `LAW-PIPE20` | **USR23 狀態機**：oln→sbd→scr→prose；`no_bundle`＝每 finish 僅一種 wire |
+| `LAW-PIPE21` | begin/finish；嚴格模式下每劇情拍 4 輪 begin/finish（僅 prose 階對玩家呈現） |
 | `LAW-PIPE22` | gate 失敗（僅最終 prose）整段重寫 |
 | `LAW-PIPE23` + `LAW-VIT03` | **昏厥自動拍**：氣血 **0**／`昏厥:是` 時禁六選項，直接敘事 → finish |
 | `LAW-PROSE03` | length_advisory（已取消硬性字數確認） |
 | `USR05` | scene_length|no_gate （不再強制 min/max gate） |
 | `USR21` | prose_target 僅供參考，無 gate |
-| 多階段流程 (USR23) | oln → sbd（分鏡） → scr（腳本） → prose（小說）；每階段可獨立透過 add_lines 前進 |
+| `USR23` + `USR54–57` | **beat_stage FSM** + 各階 `stage_hint_*`；僅 prose 階寫章節／六選項／推 `STEP.n` |
 | `LAW-BAN01–03` | 禁 loop gate／手寫章節／finish 前當作已落盤 |
 | `LAW-G13` + `cite_sys01_wanming` | **新增** NPC／物／技／地須依 `@SYS01` 晚明背景；禁跳時代 |
 | `USR26` + `LAW-G14` | **世界觀**：晚明史實擬真後架空於金庸武俠宇宙（行政經濟遵晚明；武學江湖遵金庸式規則） |
@@ -647,13 +654,16 @@ flowchart LR
 | `USR35–37` + `LAW-WX05–07` | **交手模式**；margin 輸贏帶；對手品級；氣血內力疲勞代價 |
 | `USR33–34` + `LAW-PERS03–05` | **四維不每拍+1**；選1–4＝敘事軸；一般＝TRT vs DC；**禁 TRT 進 eff_idx** |
 | `USR42` + `LAW-PERS05` | **熟練度 vs 四維分工**：MWU 主戰力／過招；TRT 一般 DC 或交手 margin±1；MWU 不進 DC |
-| `USR30–32` + `LAW-OPT01/03` + `LAW-LIB01–02` | **六選項**：槽6圖書館查閱；不推進時間 |
+| `USR30–32` + `LAW-OPT01/03` + `LAW-LIB01–03` | **六選項**：槽6圖書館查閱；不推進時間；**對準最新 @OLN** |
+| `USR31` + `USR31b` + `USR31c` + `LAW-LIB03` | **圖書館錨定**：`last_oln_match_LIB`；`USR31c` 指定匹配的 GLO 列 |
+| `USR52` + `LAW-LIB01–03` | **圖書館 stage hint**；`beat_turn_begin(lib_query=true)` → `presentation.library_contracts` |
 | `@GLO05–07` | 武學三維語意軸（經 `USR27` governs 進 warm） |
 | `@GLO08` | 圖書館槽語意（經 `USR30` governs 進 warm） |
 | `LAW-G04` + `USR26` | 史事人物先擬真考據，再允許劇情架空偏離 |
 | `LAW-NAME02` + `wanming_social_rank` | **新增 NPC 人名**須合晚明身分階層（姓名字排行稱謂宜江南崇禎） |
 | `USR15`/`USR16` | snapshot 路徑、本地 gate 腳本名 |
-| `USR18`/`USR19`/`USR20` | 敘事視角、語體、參照（經 `USR05` governs 進 warm） |
+| `USR18`/`USR19`/`USR20` | 敘事視角、語體、參照（`STEP01`→`USR51`→`LAW-PROSE00`；`USR19`→`LAW-PROSE01`） |
+| `USR51` + `LAW-PROSE00` | **warm 敘事契約**（語風、節奏、感官、禁梗概；匯總原 PROSE04–15） |
 | `USR24` | 主角內心語風（modern_taiwanese_baihua，21世紀台灣白話口語） |
 | `USR25` | 歲數計算（`@SYS01` 年 − `@PLR`/`@NPC` 出生年；進 warm） |
 | `USR43` + `LAW-TIME01` | **遊戲時間軸**：`@SYS.時間` 存種子約定的 **機械欄**（本作 `YYYY-MM-DDTHH`）；HUD 顯示由 `USR43` 註冊的曆法 formatter 衍生 |
@@ -663,7 +673,7 @@ flowchart LR
 | `USR47–49` + `LAW-VIT02` | **氣血／內力上限**：`cur/max` 由主修內功池表＋歲數＋`WUX01`；功法**消耗**見 `USR49`／`@ART.burn` |
 | `USR50` + `LAW-VIT03` + `LAW-PIPE23` | **氣血歸零**：昏厥失能；**禁六選項、自動敘事跳拍**；醒復後回 **≥1** 再恢復選項；**禁**即死結局 |
 | `USR22` + `LAW-PERS02` | **選項文案可讀白話**；禁梗概式連環動詞 |
-| `LAW-PROSE01` + `LAW-PROSE14–15` | **優美白話武俠**；禁縮略梗概體；起承轉合白描鋪陳 |
+| `LAW-PROSE00` + `LAW-PROSE01` | **優美白話武俠**；禁縮略梗概體；起承轉合白描鋪陳 |
 | `LAW-SBD01/02` + `LAW-SCR01/02` + `LAW-PROSE16` | **四階段**：大綱→分鏡→腳本→小說正文 |
 | `LAW-CHR04` + `LAW-PROSE18` | **年齡綁定**：身形、稱謂、對白、力氣描寫須對齊歲數；禁預設成人 |
 | `LAW-CHR01–03` | 主角／NPC 語氣機制（含年齡；內心含USR24；人設見 `@NPC`＋`features`） |
@@ -756,17 +766,18 @@ flowchart LR
   - **匠藝 vs 武學：** `@SKL` 仍管打鐵等生產技能；`@WUX` 只管江湖武學三維，勿混欄位。
   - **HUD（USR02）：** 尾欄可帶氣血、內力、武學三維摘要（不報型號、不逐字複誦圖）。
 - **LAW-NAME02 `era_name`：** 新增 `@NPC.名字` 須合晚明社會背景——流民／匠戶／商賈／士绅／胥吏等宜不同取名習慣；可用排行、小名、字號慣例；禁現代人名、日韓音譯名、網路暱稱；落盤後 **LAW-G09** `exact_names` 維持一致。主角名仍只經 `@USR03`（LAW-NAME01）
-- **多階段流程**（USR23 驅動，建議順序）：
-  1. **大綱 (@OLN)**：情緒錨、情節要點、對白骨架、尾鉤
-  2. **分鏡 (@SBD)**：將大綱拆成鏡頭/段落，寫畫面要點 + 豐富感官細節 + 氛圍
-  3. **腳本 (@SCR)**：把分鏡寫成類似劇本的動作行 + 對白 + 內心旁白 + 音效
-  4. **小說正文**：從 @SCR 擴寫成優美流暢的第二人稱白話武俠（最終 append 到章節）
+- **多階段流程**（`USR23|beat_stage` 驅動，**LAW-PIPE20 `no_bundle`**）：
+  1. **大綱 (@OLN)**：`USR23=oln` → finish **僅** `oln_lines` → `beat_stage=sbd`
+  2. **分鏡 (@SBD)**：finish **僅** `sbd_lines` → `scr`
+  3. **腳本 (@SCR)**：finish **僅** `scr_lines` → `prose`
+  4. **小說正文**：finish `prose` + `@OPT` + `STEP`/`SYS`/`@PLR` → `beat_stage=oln`，`STEP.n+1`
+  - **禁** 同一次 finish 交多種 wire（bundle）；agent 在單一玩家訊息內連跑四輪 begin/finish，僅第 4 輪對玩家呈現劇情。
 - 正文最終以 LAW-PROSE16 為主（從腳本擴寫），而非直接從 @OLN 跳 prose。
 - 16 型（`@PTY`）僅編排；正文／HUD 不報型號
 - 沈芯對白偏魅力／智力基線；沈蘭偏氣運／魅力（見 `@PRS`）
-- `LAW-PROSE06`：間白承載情緒；連續對話可不加動作標籤；禁每句必附神情
-- **正文長度**：已取消硬性字數 gate（USR05=no_gate, LAW-PROSE03=length_advisory）。`beat_turn_finish` 與 `prose_count.py` 不再阻擋。**USR21（800_zh_advisory）** 仍須每拍可見：`beat_turn_begin` 補查 `USR21` → `draft_note`／`prose_advisory_zh`；`beat_turn_finish` 回報 `short_advisory` 與 `prose_advisory_hint`（不擋關，提醒擴寫）。
-- **語風（USR18–20 + USR24 + LAW-PROSE01/14/15/17）：** 第二人稱「你」；**旁白與敘事**為優美白話武俠（金庸白描、梁羽生情景）。**主角內心**走現代台灣白話（詳見下方「魂穿者語音分層」）。**禁**縮略語句、梗概體、網文式快剪（旁白層）。場面先立環境，再入人物與動作；句式長短交錯。
+- `LAW-PROSE00`：間白承載情緒；連續對話可不加動作標籤；禁每句必附神情（併入 warm_prose 契約）
+- **正文長度**：已取消硬性字數 gate（`USR05=no_gate`，`LAW-PROSE03=length_advisory`）。`beat_turn_finish` 與 `prose_count.py` 不再阻擋。**USR21（800_zh_advisory）** 仍須每拍可見：`beat_turn_begin` 補查 `USR21` → `draft_note`／`prose_advisory_zh`；`beat_turn_finish` 回報 `short_advisory` 與 `prose_advisory_hint`（不擋關，提醒擴寫）。
+- **語風（USR51 + USR18–20 + USR24 + LAW-PROSE00/01/17）：** 第二人稱「你」；**旁白與敘事**為優美白話武俠（金庸白描、梁羽生情景）。**主角內心**走現代台灣白話（詳見下方「魂穿者語音分層」）。**禁**縮略語句、梗概體、網文式快剪（旁白層）。場面先立環境，再入人物與動作；句式長短交錯。
 - **角色對白與內心（LAW-CHR01–03 + USR24 + `@NPC`／`@PRS`）：** 沈芯偏沉穩簡約；沈蘭偏潑辣帶笑（寫在 NPC 圖與 persona）。主角內心走現代台灣白話；對外說話以時代為主，偶有現代思維露餡。
 - **身體狀態與劇情（USR45 + LAW-VIT01 + `@PLR.身體狀態`）：** HUD 尾欄與圖上 `@PLR` 第 7 欄（`氣血`／`內力`／`內功`／`武學`／`輕功`／`飽食`／`疲勞` 等）**不是裝飾**，每拍必納入編排與正文。
   - **warm 必讀：** `beat_turn_begin` 後先對照 `@PLR.身體狀態`；與 **LAW-WX02／WX06**（交手）、**LAW-PERS04**（DC）連用，但**即使本拍無打鬥**仍須遵守下列敘事規則。
@@ -865,8 +876,9 @@ flowchart LR
   - **熟練度 vs 四維分工（USR42 + LAW-PERS05，每拍 warm）：** `@MWU`→過招／發招 **eff_idx 主軸**；`@TRT`→一般場面 **vs DC**，過招僅 **margin ±1**；**禁** MWU 進 DC、**禁** TRT 進 eff_idx；選項軸不自動加任一邊。
 - **選項文案（USR22 + USR32 + LAW-PERS02）：** `@OPT.文案` 須**可讀白話完整句**（約 12–28 字），與正文語體一致；**禁**策劃梗概體、連環動詞串。槽位 **1–4** 扣 `@GLO01–04` 四維**語意軸**（非數值加成）；槽位 **5** 產業帳；槽位 **6** 靈魂圖書館（`@GLO08`／`USR32`）。**六選項佈局見 `USR30` + `LAW-OPT01`。**
 - **產業帳（LAW-OPT02）：** 選 **5** → 只展開帳目，**不推進時間**，再呈現 1–6。
-- **圖書館查閱（LAW-OPT03 + LAW-LIB01–02 + LAW-G05）：** 選 **6** → 意識入「知識殿堂」短景＋**【靈魂圖書館檢閱】**；cite `@LIB`／`@TSK`／`@TEC`。**不推進時間**；**不**因查閱自動 +1 智力（知識≠屬性，除非里程碑訓練結算）。
-- **靈魂圖書館（LAW-G05 + LAW-LIB01–02 + `@LIB` + PLR 核心能力 + USR04）**：主角從21世紀穿越攜帶的知識庫，存在意識深處的「知識殿堂」。**每拍選項槽6**可主動查閱（見上）。`@LIB` 為圖書館索引列：`LIB01` 綁 `T01` 升級作坊總路線；`LIB02`／`LIB03` 綁 `TEC01`／`TEC02` 子步驟。查詢須轉化為晚明可實踐步驟；避免現代詞彙入旁白（內心吐槽除外）。
+- **圖書館查閱（LAW-OPT03 + LAW-LIB01–03 + LAW-G05）：** 選 **6** → 意識入「知識殿堂」短景＋**【靈魂圖書館檢閱】**；cite 與**最新 `@OLN` 主題匹配**的 `@LIB`／相關 `@TSK`／`@TEC`。**不推進時間**；**不**因查閱自動 +1 智力。
+- **靈魂圖書館（LAW-G05 + LAW-LIB01–03 + `@LIB` + PLR 核心能力 + USR04）**：`@LIB` 索引：`LIB01` 總路線（`T01`）；`LIB02`／`LIB03` 焦炭科技樹；**`LIB04–06` 匠坊維運**（風箱皮墊、聽聲看火、炭堆防潮）。查閱須**先讀 warm 最新 `@OLN`**，用 `USR31b` 關鍵詞匹配 `@LIB` 主題欄；**禁**無 OLN 依據時只列 `TEC01/02`（`no_tech_tree_only`）。
+- **圖書館對題範例（OLN05「風箱漏風」）：** 必 cite `LIB04`（風箱皮墊）、`LIB01→T01` 支線「供風穩定」、連結 `GLO09`（聽聲、塊子）；可註 `LIB02` 前置「供風穩」；**禁**跳過風箱主題改講焦炭全流程。
 - **魂穿者語音分層（USR18/19 + USR24 + LAW-CHR01 + LAW-PROSE17）**：主角本質是21世紀台灣現代人，語風需分層處理：
   - 旁白與整體敘事（USR19）：維持**優美白話武俠**，第二人稱「你」，參照金庸白描、梁羽生情景。
   - 主角內心獨白、自我吐槽、自言自語（USR24 + LAW-PROSE17）：使用**台灣日常白話口語**（我勒、靠北、這什麼鬼、真的假的、拜託啦、幹、超級、這也太...、有夠...等），可帶強烈時代落差感、現代常識吐槽、黑人問號。內心可直白思考「這在現代根本小case」「靠，現在的鐵不會這樣啊」。

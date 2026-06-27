@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.20] — 2026-06-27
+
+### Fixed
+- **novel_mcp.beat_pipeline** — `beat_stage` desync: `read_get USR23` is now authoritative (instead of relying on potentially stale/truncated `query warm --anchor STEP01`). `_apply_authoritative_beat_stage` and `_read_get_body` added; called from `beat_turn_begin`, `beat_turn_finish`, `_warm_pipeline`.
+- `pipeline_next_action` now respects `pipeline_no_bundle` + current `beat_stage` (no longer overridden by `step_n==4` "finish prose" hint).
+- `parse_warm_stdout` prefers USR23 when multiple `beat_stage` rows present.
+
+### Changed
+- **.cursor/rules/novel-writer.mdc** — made fully generic (title, SSOT, examples, player name handling, contract topics). No longer hard-coded to any specific novel or `CHR01`.
+- Improved stage transition reliability for strict `LAW-PIPE20 no_bundle` 4-micro-cycle pipeline (OLN → SBD → SCR → prose).
+
+### Tests
+- `test_beat_stage_authoritative_over_stale_warm`
+- `test_pipeline_oln_then_sbd_without_bypass`
+- Extended `test_pipeline_next_action` for no_bundle case.
+
 ## [0.2.19] — 2026-06-26
 
 ### Added

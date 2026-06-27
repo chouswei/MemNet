@@ -11,6 +11,7 @@ import typer
 
 from memnet import __version__
 from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, serve_host, serve_port
+from memnet.context_view import format_walk_hop
 from memnet.exceptions import MemNetError
 from memnet.filter import parse_wheres
 from memnet.help_text import (
@@ -643,6 +644,28 @@ def query_warm(
             active_only=True,
             require_anchor=True,
         )
+
+
+@query_app.command("walk")
+def query_walk(
+    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``."""
+    ss, lock = _load_session(session)
+    with lock:
+        if not anchor:
+            _handle_error(MemNetError("no_anchor", "query walk requires --anchor"))
+        hops = ss.store.context_walk_hops(
+            anchor_id=anchor,
+            depth=depth,
+            max_rows=max_rows,
+            active_only=True,
+        )
+        for src, rel, dst in hops:
+            emit_stdout(format_walk_hop(src, rel, dst))
 
 
 @housekeep_app.command("stats")
