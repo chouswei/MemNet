@@ -24,6 +24,7 @@ from novel_mcp.time_display import format_time_display
 from novel_mcp.paths import workspace_root as resolve_workspace_root
 from novel_mcp.warm_index import index_warm, pipeline_no_bundle
 from novel_mcp.warm_supplement import enrich_warm_stdout
+from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
 from novel_mcp.zh_text import parse_scene_band, prose_status
 
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
@@ -201,7 +202,7 @@ def _supplement_prose_target(
             "--depth",
             "1",
             "--max-rows",
-            "30",
+            str(NOVEL_WARM_MAX_ROWS),
         ],
         session=session,
     )
@@ -525,7 +526,16 @@ def _prose_gate_active(pipeline: dict[str, Any]) -> bool:
 def _warm_pipeline(session: str | None) -> dict[str, Any]:
     """Lightweight warm read for USR14/CHP paths (internal to beat_turn_finish)."""
     resp = run_memnet(
-        ["query", "warm", "--anchor", "STEP01", "--depth", "1", "--max-rows", "40"],
+        [
+            "query",
+            "warm",
+            "--anchor",
+            "STEP01",
+            "--depth",
+            "1",
+            "--max-rows",
+            str(NOVEL_WARM_MAX_ROWS),
+        ],
         session=session,
     )
     pipeline = parse_warm_stdout(resp.stdout)
@@ -624,7 +634,7 @@ def beat_turn_begin(
     session: str | None,
     anchor: str = "STEP01",
     depth: int = 2,
-    max_rows: int = 55,
+    max_rows: int = NOVEL_WARM_MAX_ROWS,
     include_warm: bool = False,
     since_modified: str | None = None,
     walk_filter: str = "law_usr",
@@ -802,7 +812,16 @@ def beat_turn_finish(
     warm_for_validate = ""
     if session:
         warm_resp = run_memnet(
-            ["query", "warm", "--anchor", "STEP01", "--depth", "1", "--max-rows", "55"],
+            [
+                "query",
+                "warm",
+                "--anchor",
+                "STEP01",
+                "--depth",
+                "1",
+                "--max-rows",
+                str(NOVEL_WARM_MAX_ROWS),
+            ],
             session=session,
         )
         warm_for_validate = warm_resp.stdout

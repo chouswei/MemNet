@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.25] — 2026-06-28
+
+### Added
+- **`novel_mcp.constants.NOVEL_WARM_MAX_ROWS`** (150) — shared warm row cap so `USR21` prose advisory and mid-sequence `@USR` rows are not truncated at 55.
+
+### Changed
+- **novel-writer warm reads** — `beat_turn_begin`, `_warm_pipeline`, `beat_turn_finish`, and `_supplement_prose_target` use `NOVEL_WARM_MAX_ROWS`; MCP server and `scripts/beat_turn.py` defaults updated.
+- **Operator docs** — `.cursor/rules/novel-writer.mdc`, `llm-novel-cursor-sdk.md`, `novel_cursor/README.md`: production play via `cursor_beat.py` only; MCP beat commit tools reserved for SDK agents and system tests.
+- **novel-shenjia-initial-state.md** — integrator table notes warm `max_rows=150`.
+
+### Tests
+- **`test_beat_turn_begin_uses_novel_warm_max_rows`** — asserts warm CLI passes `150`.
+
 ## [0.2.24] — 2026-06-27
 
 ### Added
@@ -291,7 +304,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.24...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.25...HEAD
+[0.2.25]: https://github.com/chouswei/MemNet/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/chouswei/MemNet/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/chouswei/MemNet/compare/v0.2.22...v0.2.23
 [0.2.16]: https://github.com/chouswei/MemNet/compare/v0.2.15...v0.2.16

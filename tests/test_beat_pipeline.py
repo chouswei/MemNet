@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novel_mcp.beat_pipeline import beat_turn_begin, beat_turn_finish, parse_warm_stdout, pipeline_next_action
+from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
 
 
 WARM_SAMPLE = """\
@@ -339,6 +340,34 @@ def test_beat_turn_begin_advisory_draft_note(monkeypatch):
     assert out.get("session_contract")
     assert out["warm_stdout"] is None
     assert isinstance(out.get("writing_contract"), list)
+
+
+def test_beat_turn_begin_uses_novel_warm_max_rows(monkeypatch):
+    warm_argv: list[str] = []
+
+    def fake_run(argv, stdin=None, session=None):
+        from memnet_mcp.client import MemNetResponse
+
+        if argv[0] == "query" and argv[1] == "warm":
+            warm_argv[:] = argv
+            return MemNetResponse(
+                exit_code=0,
+                stdout="@STEP: STEP01|1|SCN01|persistent\n",
+                stderr="",
+                session_id=session,
+                errors=[],
+            )
+        if argv[0] == "query" and "walk" in argv:
+            return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+        return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_warm_walk", lambda **kwargs: "")
+    monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: None)
+    beat_turn_begin(session="test")
+    assert "--max-rows" in warm_argv
+    assert warm_argv[warm_argv.index("--max-rows") + 1] == str(NOVEL_WARM_MAX_ROWS)
+    assert NOVEL_WARM_MAX_ROWS == 150
 
 
 def test_beat_turn_begin_no_gate_local_draft(monkeypatch):

@@ -113,18 +113,22 @@ python applications/novel_cursor/cursor_beat.py --app <slug> [--session ID] (--c
 NOVEL_BEAT_RESULT	{"exit_code":0,"session":"mn_…","app_id":"…","prose":"…","options":[…],"hud":"…","snapshot_saved":true,"snapshot_file":"…","beat_stage":"oln"}
 ```
 
-## MCP tools (debug)
+## MCP tools (system test / SDK agents only)
+
+Not for operator chat play — use `cursor_beat.py` instead.
 
 | Tool | Phase |
 |------|-------|
-| `script_beat_prepare` | Before script agent |
-| `prose_beat_prepare` | After handoff |
+| `script_beat_prepare` | Before script SDK agent (`cursor_beat` orchestrator) |
+| `prose_beat_prepare` | After script handoff (`cursor_beat` orchestrator) |
 | `player_beat_prepare` | Deprecated alias for script prepare |
-| `beat_turn_begin` / `beat_turn_finish` | Called by SDK agents, not chat |
+| `beat_turn_begin` / `beat_turn_finish` | Called by SDK agents inside `cursor_beat.py`, or CI/system tests |
+
+Warm reads use `max_rows=150` (`NOVEL_WARM_MAX_ROWS`) so truncated warm does not drop `USR21` prose advisory.
 
 ## Chat contract
 
-- Shell **one** `cursor_beat.py` per player input
+- Shell **one** `cursor_beat.py` per player input — **never** hand-commit beats via MCP from chat
 - Display prose agent result only (【劇情】+ 選項 + HUD)
 - Lifecycle on the **shared** session: `serve_status`, `session_load`, `session_save`, `read_get`, `update` (e.g. name gate)
 - `query_warm` only for resume/display — not in the same beat turn as `beat_turn_begin`

@@ -14,6 +14,18 @@ alwaysApply: false
 3. While `setup_complete==false`: **no** `cursor_beat --choice|--steering|--continue`.
 4. Do **not** paste god-realm script from this file — tone/scenes come from graph USR.
 
-## Play (after setup)
+## Play (after setup) — Python pipeline only
 
-5. One `python applications/novel_cursor/cursor_beat.py --app <slug> --choice N` per player input. Show `【劇情】` prose + options + HUD only.
+5. **Production:** one shell invocation per player input:
+
+   `python applications/novel_cursor/cursor_beat.py --app <slug> --choice N`
+
+   (or `--steering TEXT` / `--continue` as documented).
+
+6. Show **only** output from `NOVEL_BEAT_RESULT`: 【劇情】 prose + options + HUD.
+
+7. **Forbidden for chat play:** do **not** manually draft `@OLN`/`@SBD`/`@SCR`/prose and call `beat_turn_finish` from the chat agent. That path is **system testing only**.
+
+8. **MCP beat tools** (`script_beat_prepare`, `prose_beat_prepare`, `beat_turn_begin`, `beat_turn_finish`) are for **`cursor_beat.py` SDK agents** and automated tests — not the operator chat loop.
+
+9. Prerequisites before each beat: `memnet serve` running; `CURSOR_API_KEY` (or configured LLM key); session id in `novel-output/<slug>/session_id.txt`.

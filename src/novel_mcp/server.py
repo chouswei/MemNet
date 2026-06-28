@@ -19,6 +19,7 @@ except ImportError as exc:
 from novel_mcp.beat_pipeline import beat_turn_begin as do_beat_turn_begin
 from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 from novel_mcp.bootstrap import bootstrap_from_md
+from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
 from novel_mcp.opening_loadout import (
@@ -43,13 +44,13 @@ async def beat_turn_begin(
     session: str | None = None,
     anchor: str = "STEP01",
     depth: int = 2,
-    max_rows: int = 55,
+    max_rows: int = NOVEL_WARM_MAX_ROWS,
     include_warm: bool = False,
     since_modified: str | None = None,
     walk_filter: str = "law_usr",
     lib_query: bool = False,
 ) -> str:
-    """**Novel pipeline — call 1 of 2 per beat.** Presentation + pipeline (same session as memnet-mcp).
+    """**Novel pipeline — call 1 of 2 per beat.** For ``cursor_beat.py`` SDK agents and system tests only — not chat play.
 
     Prefer ``presentation.contracts`` over raw warm. Set ``include_warm=true`` only for audit.
     Pass ``since_modified`` from the prior begin/finish to detect stale graph edits via memnet.
@@ -96,7 +97,7 @@ async def beat_turn_finish(
     option_lines: list[str] | None = None,
     since_modified: str | None = None,
 ) -> str:
-    """**Novel pipeline — call 2 of 2 per beat.** Atomic commit on the shared memnet session.
+    """**Atomic beat commit.** For ``cursor_beat.py`` SDK agents and system tests only — not chat play.
 
     Optional ``option_lines`` (1–6 strings) validated against seed LAW tokens.
     Pass ``since_modified`` from ``beat_turn_begin.session_modified``.
@@ -166,7 +167,7 @@ async def script_beat_prepare(
     chapter_dir: str | None = None,
     workspace_root: str | None = None,
 ) -> str:
-    """**Script phase** — context for oln→sbd→scr agent (debug / orchestrator)."""
+    """**Script phase** — ``cursor_beat.py`` orchestrator / system tests only; not chat play."""
     result = await anyio.to_thread.run_sync(
         lambda: do_script_beat_prepare(
             session=session,
@@ -188,7 +189,7 @@ async def prose_beat_prepare(
     chapter_dir: str | None = None,
     workspace_root: str | None = None,
 ) -> str:
-    """**Prose phase** — context after script handoff (USR23=prose)."""
+    """**Prose phase** — ``cursor_beat.py`` orchestrator / system tests only; not chat play."""
     result = await anyio.to_thread.run_sync(
         lambda: do_prose_beat_prepare(
             session=session,

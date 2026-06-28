@@ -37,6 +37,8 @@ python applications/novel_cursor/cursor_beat.py --app <slug> --reset-agents --ch
 
 ## Play
 
+**Operator chat:** run `cursor_beat.py` only — do not commit beats via novel-mcp from the IDE agent (that path is for system tests).
+
 ```powershell
 python applications/novel_cursor/cursor_beat.py --app shenjia_caifa --choice 2
 python applications/novel_cursor/cursor_beat.py --app shenjia_caifa --steering "低聲問芯"
