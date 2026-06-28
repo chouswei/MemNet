@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>工匠傳奇</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1 id="app-title">載入中…</h1>
+    </header>
+    <div id="error-banner" class="hidden" role="alert">
+      <span id="error-text"></span>
+      <button type="button" id="btn-retry">重試</button>
+    </div>
+    <div id="loading-banner" class="hidden">
+      <span id="loading-text">處理中…</span>
+    </div>
+    <main>
+      <section id="narrative-block">
+        <div id="narrative"></div>
+        <div id="narrative-hud"></div>
+      </section>
+      <div id="setup-actions" class="hidden"></div>
+      <nav id="tab-bar" class="hidden" role="tablist">
+        <button type="button" data-tab="items" role="tab" aria-selected="false">物品</button>
+        <button type="button" data-tab="arts" role="tab" aria-selected="false">武學</button>
+        <button type="button" data-tab="production" role="tab" aria-selected="false">產業</button>
+      </nav>
+      <div id="panel-items" class="panel hidden" role="tabpanel"></div>
+      <div id="panel-items-actions" class="sub-actions hidden"></div>
+      <div id="panel-arts" class="panel hidden" role="tabpanel"></div>
+      <div id="panel-arts-actions" class="sub-actions hidden"></div>
+      <div id="panel-production" class="panel hidden" role="tabpanel"></div>
+      <div id="panel-production-actions" class="sub-actions hidden"></div>
+      <section id="panel-text">
+        <textarea id="input-text" rows="3" placeholder="輸入指令…"></textarea>
+        <button type="button" id="btn-submit">送出</button>
+      </section>
+      <section id="panel-choices" class="hidden"></section>
+    </main>
+  </div>
+  <script defer src="/static/app.js"></script>
+  <script defer src="/static/setup.js"></script>
+  <script defer src="/static/play.js"></script>
+  <script defer src="/static/sheet.js"></script>
+</body>
+</html>

@@ -172,8 +172,17 @@
 @USR: USR62|setup_scene_qinggong|身法雲橋;足尖掠風，避劫一念|persistent
 @USR: USR63|setup_tone|god_banter;過勞吐槽;台灣口語;神賤萌;禁肅穆史詩|persistent
 @USR: USR64|setup_god_line_open|再熬夜啊～死了齁？|persistent
-@USR: USR65|setup_god_line_profile|嘖，又一位。報到：姓名、性別。快點，後面還在排。|persistent
+@USR: USR65|setup_god_line_ask_name|報個名——2到4個繁體字，像樣的，別用英文。|persistent
+@USR: USR77|setup_god_line_ask_gender|性別？男或女，快點，後面還在排。|persistent
+@USR: USR78|setup_profile_name_rule|cjk_2_4|persistent
+@USR: USR79|setup_profile_genders|男;女|persistent
 @USR: USR66|setup_god_line_transmigrate|好，穿吧——別又加班死在工位上啊。|persistent
+@USR: USR71|setup_god_line_library|喔，圖書館——你腦子裡那些念頭還在吧？進去翻，三樣帶走，別貪心。|persistent
+@USR: USR72|setup_soul_library|靈魂圖書館;登峰造極;no_pick|persistent
+@USR: USR73|setup_pick_offer_count|5-9|persistent
+@USR: USR74|opening_offer_neigong|_|persistent
+@USR: USR75|opening_offer_martial|_|persistent
+@USR: USR76|opening_offer_qinggong|_|persistent
 @USR: USR67|martial_catalog_md|application-notes/novel-shenjia-martial-catalog.md|persistent
 @USR: USR69|catalog_schema|applications/novel_cursor/catalog_specs/wuxia_jinyong.json|persistent
 @USR: USR70|opening_scene|SCN01=smithy_gate；沈家鐵坊B01門前甦醒；沈芯經營沈蘭協助；匠戶孤女繼承鐵坊非破廟流浪；炭灰=做工打扮；E11待聘小工；負債2兩|persistent
@@ -425,11 +434,24 @@
 @EDG: EG279|STEP01|governs|USR63||persistent
 @EDG: EG280|USR63|governs|USR64||persistent
 @EDG: EG281|USR63|governs|USR65||persistent
-@EDG: EG282|STEP01|governs|USR67||persistent
+@EDG: EG282|STEP01|governs|USR66||persistent
+@EDG: EG282b|STEP01|governs|USR67||persistent
 @EDG: EG283|STEP01|governs|USR69||persistent
 @EDG: EG284|STEP01|governs|USR70||persistent
 @EDG: EG285|STEP01|governs|LAW-OLN01||persistent
 @EDG: EG286|USR70|governs|LAW-OLN01||persistent
+@EDG: EG295|STEP01|governs|USR71||persistent
+@EDG: EG296|STEP01|governs|USR72||persistent
+@EDG: EG298|STEP01|governs|USR73||persistent
+@EDG: EG299|STEP01|governs|USR74||persistent
+@EDG: EG300|STEP01|governs|USR75||persistent
+@EDG: EG301|STEP01|governs|USR76||persistent
+@EDG: EG302|STEP01|governs|USR77||persistent
+@EDG: EG303|USR63|governs|USR77||persistent
+@EDG: EG306|USR63|governs|USR71||persistent
+@EDG: EG304|STEP01|governs|USR78||persistent
+@EDG: EG305|STEP01|governs|USR79||persistent
+@EDG: EG297|USR63|governs|USR66||persistent
 @EDG: EG287|B01|features|LAW-OLN01||persistent
 @EDG: EG288|B01|features|USR70||persistent
 @EDG: EG289|N01|features|LAW-OLN01||persistent
@@ -446,7 +468,7 @@
 ```text
 @SYS: SYS01|1|1637-09-01T06|0|0|25|1兩=825文銅
 
-@PLR: P01|流民乞丐|1627|0|0|靈魂圖書館登峰造極|氣血:6/6；內力:0/4；內功:未入門；武學:未入門；輕功:未入門；飽食:略飽；疲勞:0；魂穿:21世紀台灣工程師;過勞死入神域；性別:未定；靈魂圖書館:意識深處知識殿堂
+@PLR: P01|流民|1627|0|0|靈魂圖書館登峰造極|氣血:6/6；內力:0/4；內功:未入門；武學:未入門；輕功:未入門；飽食:略飽；疲勞:0；魂穿:21世紀台灣工程師;過勞死入神域；性別:未定；靈魂圖書館:意識深處知識殿堂
 
 @BIZ: B01|沈家鐵坊|鐵匠鋪|江南河畔|0|2|0|0|常駐
 

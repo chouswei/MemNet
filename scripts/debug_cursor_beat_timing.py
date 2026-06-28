@@ -56,17 +56,17 @@ def main() -> int:
             f"exit={b.get('exit_code')} lines={len((b.get('warm_stdout') or '').splitlines())}"
         )
 
-    for name in ("MOONSHOT_API_KEY", "LLM_API_KEY", "OPENAI_API_KEY", "CURSOR_API_KEY"):
+    for name in ("DEEPSEEK_API_KEY", "LLM_API_KEY", "LLM_API_KEY_SCRIPT", "LLM_API_KEY_PROSE"):
         if os.environ.get(name, "").strip():
             print(f"{name}: set")
             break
     else:
-        print("LLM API key: missing")
+        print("DEEPSEEK_API_KEY: missing")
 
     print("\nExpected orchestrated beat wall time (rough):")
     print("  local MCP (prepare + 4x begin/finish)     <5s")
-    print("  LLM drafts (4x HTTP: oln,sbd,scr,prose)   ~1-4 min total")
-    print("  CURSOR_API_KEY fallback (Agent.prompt)      slower; avoid if possible")    return 0
+    print("  LLM drafts (4x DeepSeek HTTP)             ~1-4 min total")
+    return 0
 
 
 if __name__ == "__main__":

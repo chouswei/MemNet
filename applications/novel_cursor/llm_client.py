@@ -1,4 +1,4 @@
-"""LLM chat completion (OpenAI-compatible HTTP). Thread-aware, per-role models."""
+"""DeepSeek chat completion (OpenAI-compatible HTTP). Thread-aware, per-role models."""
 
 from __future__ import annotations
 
@@ -9,17 +9,15 @@ import urllib.error
 import urllib.request
 from typing import Any, Literal
 
-from app_config import MODEL, MODEL_PROSE, MODEL_SCRIPT
+from app_config import MODEL_PROSE, MODEL_SCRIPT
 
 Role = Literal["script", "prose"]
 
-_DEFAULT_MOONSHOT_BASE = "https://api.moonshot.cn/v1"
-_DEFAULT_OPENAI_BASE = "https://api.openai.com/v1"
 _DEFAULT_DEEPSEEK_BASE = "https://api.deepseek.com"
 
 _ROLE_KEY_ENV = {
     "script": ("LLM_API_KEY_SCRIPT", "DEEPSEEK_API_KEY"),
-    "prose": ("LLM_API_KEY_PROSE", "MOONSHOT_API_KEY"),
+    "prose": ("LLM_API_KEY_PROSE", "DEEPSEEK_API_KEY"),
 }
 _ROLE_BASE_ENV = {
     "script": "LLM_BASE_URL_SCRIPT",
@@ -46,19 +44,16 @@ def _resolve_api_key(role: Role | None = None) -> str:
             val = os.environ.get(name, "").strip()
             if val:
                 return val
-    for name in ("LLM_API_KEY", "DEEPSEEK_API_KEY", "MOONSHOT_API_KEY", "OPENAI_API_KEY"):
+    for name in ("LLM_API_KEY", "DEEPSEEK_API_KEY"):
         val = os.environ.get(name, "").strip()
         if val:
             return val
-    val = os.environ.get("CURSOR_API_KEY", "").strip()
-    if val:
-        return val
     raise RuntimeError(
-        "Set LLM_API_KEY, DEEPSEEK_API_KEY, MOONSHOT_API_KEY, OPENAI_API_KEY, or CURSOR_API_KEY"
+        "Set DEEPSEEK_API_KEY (or LLM_API_KEY / LLM_API_KEY_SCRIPT / LLM_API_KEY_PROSE)"
     )
 
 
-def _resolve_base_url(api_key: str, role: Role | None = None) -> str:
+def _resolve_base_url(role: Role | None = None) -> str:
     if role:
         explicit = os.environ.get(_ROLE_BASE_ENV[role], "").strip()
         if explicit:
@@ -66,16 +61,7 @@ def _resolve_base_url(api_key: str, role: Role | None = None) -> str:
     explicit = os.environ.get("LLM_BASE_URL", "").strip()
     if explicit:
         return explicit.rstrip("/")
-    if api_key == os.environ.get("DEEPSEEK_API_KEY", "").strip():
-        return _DEFAULT_DEEPSEEK_BASE
-    if api_key == os.environ.get("MOONSHOT_API_KEY", "").strip():
-        return _DEFAULT_MOONSHOT_BASE
-    model = _resolve_model(role)
-    if model.startswith("deepseek"):
-        return _DEFAULT_DEEPSEEK_BASE
-    if model.startswith("kimi") or "moonshot" in model.lower():
-        return _DEFAULT_MOONSHOT_BASE
-    return _DEFAULT_OPENAI_BASE
+    return _DEFAULT_DEEPSEEK_BASE
 
 
 def _resolve_model(role: Role | None = None, *, config: Any = None) -> str:
@@ -92,9 +78,7 @@ def _resolve_model(role: Role | None = None, *, config: Any = None) -> str:
     explicit = os.environ.get("LLM_MODEL", "").strip()
     if explicit:
         return explicit
-    if os.environ.get("DEEPSEEK_API_KEY", "").strip() and role != "prose":
-        return MODEL_SCRIPT
-    return MODEL
+    return MODEL_SCRIPT
 
 
 def _normalize_model(name: str) -> str:
@@ -148,37 +132,13 @@ def complete_messages(
     config: Any = None,
 ) -> str:
     """Chat completion with full message history."""
-    if _has_dedicated_llm_key(role):
-        return _complete_http_messages(
-            messages,
-            stream=stream,
-            role=role,
-            model=model,
-            config=config,
-        )
-    cursor_key = os.environ.get("CURSOR_API_KEY", "").strip()
-    if cursor_key:
-        if stream:
-            print(
-                f"[llm] fallback: Cursor Agent.prompt role={role or 'any'}",
-                file=sys.stderr,
-            )
-        return _complete_cursor_thread(messages, api_key=cursor_key, role=role)
-    raise RuntimeError(
-        "Set LLM_API_KEY / DEEPSEEK_API_KEY / MOONSHOT_API_KEY / OPENAI_API_KEY, "
-        "or CURSOR_API_KEY"
+    return _complete_http_messages(
+        messages,
+        stream=stream,
+        role=role,
+        model=model,
+        config=config,
     )
-
-
-def _has_dedicated_llm_key(role: Role | None = None) -> bool:
-    if role:
-        for name in _ROLE_KEY_ENV[role]:
-            if os.environ.get(name, "").strip():
-                return True
-    for name in ("LLM_API_KEY", "DEEPSEEK_API_KEY", "MOONSHOT_API_KEY", "OPENAI_API_KEY"):
-        if os.environ.get(name, "").strip():
-            return True
-    return False
 
 
 def _complete_http_messages(
@@ -190,7 +150,7 @@ def _complete_http_messages(
     config: Any = None,
 ) -> str:
     api_key = _resolve_api_key(role)
-    base_url = _resolve_base_url(api_key, role)
+    base_url = _resolve_base_url(role)
     resolved_model = _normalize_model(model or _resolve_model(role, config=config))
     thinking = _thinking_enabled(role, config=config)
 
@@ -241,47 +201,3 @@ def _complete_http_messages(
     if not isinstance(content, str) or not content.strip():
         raise RuntimeError("LLM returned empty content")
     return content
-
-
-def _complete_cursor_thread(
-    messages: list[dict[str, str]],
-    *,
-    api_key: str,
-    role: Role | None,
-) -> str:
-    import tempfile
-
-    from cursor_sdk import Agent, AgentOptions, Client, LocalAgentOptions
-
-    tmp = tempfile.mkdtemp(prefix="memnet_beat_")
-    local = LocalAgentOptions(cwd=tmp, setting_sources=[])
-    opts = AgentOptions(
-        model=_resolve_model(role),
-        api_key=api_key,
-        local=local,
-    )
-    parts: list[str] = []
-    for msg in messages:
-        r, c = msg.get("role", ""), msg.get("content", "")
-        if r == "system":
-            parts.append(f"[system]\n{c}")
-        elif r == "user":
-            parts.append(f"[user]\n{c}")
-        elif r == "assistant":
-            parts.append(f"[assistant]\n{c}")
-    parts.append(
-        "\nReply as assistant to the latest [user] only. "
-        "Do NOT use tools or read files."
-    )
-    client = Client.launch_bridge(workspace=tmp, local=local)
-    try:
-        result = Agent.prompt("\n\n".join(parts), opts, client=client)
-    finally:
-        client.close()
-    status = getattr(result.status, "value", result.status)
-    if str(status).lower() not in ("finished", "runstatus.finished"):
-        raise RuntimeError(f"Cursor prompt status: {result.status}")
-    text = (result.result or "").strip()
-    if not text:
-        raise RuntimeError("Cursor prompt returned empty result")
-    return text

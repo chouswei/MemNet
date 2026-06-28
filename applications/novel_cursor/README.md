@@ -21,9 +21,9 @@ Operator guide: [`application-notes/llm-novel-cursor-sdk.md`](../../application-
 pip install -e ".[mcp,novel-mcp]"
 pip install -r applications/novel_cursor/requirements.txt
 memnet serve
-$env:MOONSHOT_API_KEY = "..."   # preferred for kimi-k2.5 (fast, no repo tools)
-# or: $env:LLM_API_KEY / OPENAI_API_KEY + $env:LLM_BASE_URL
-# fallback: $env:CURSOR_API_KEY (slower Agent.prompt one-shots)
+$env:DEEPSEEK_API_KEY = "..."   # https://platform.deepseek.com
+# optional per-role: LLM_API_KEY_SCRIPT / LLM_API_KEY_PROSE
+# optional override: LLM_BASE_URL (default https://api.deepseek.com)
 ```
 
 ## New game

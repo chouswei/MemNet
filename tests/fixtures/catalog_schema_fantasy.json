@@ -21,5 +21,16 @@
   "min_slots": { "neigong": 5, "martial": 8, "qinggong": 4 },
   "universe_label": "generic fantasy",
   "content_rules": "original fiction abilities only; no branded IP",
-  "burn_usr_key": null
+  "burn_usr_key": null,
+  "body_stat_labels": { "neigong": "arcane", "martial": "martial", "qinggong": "mobility" },
+  "loadout": {
+    "slot_order": ["neigong", "martial", "qinggong"],
+    "opening_ranks": {
+      "neigong": "novice",
+      "martial": "novice",
+      "qinggong": "novice"
+    },
+    "proficiency_tag": null,
+    "body_stat_tag": null
+  }
 }

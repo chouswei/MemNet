@@ -1,7 +1,9 @@
-"""Opening martial loadout: catalog, per-slot picks, wire on 3rd pick."""
+"""Opening catalog loadout: per-slot picks and schema-driven graph wiring."""
 
 from __future__ import annotations
 
+import hashlib
+import random
 import re
 from pathlib import Path
 from typing import Any
@@ -9,19 +11,22 @@ from typing import Any
 from novel_mcp.catalog_schema import (
     CatalogSchema,
     art_from_parts,
-    art_to_wire,
+    opening_offer_usr_key,
+    opening_rank,
     read_catalog_schema,
+    setup_scene_usr_key,
     slot_for_kind,
+    slot_label,
+    slot_order,
 )
 from novel_mcp.setup_constants import (
-    MWU_RANK,
+    DEFAULT_PICK_OFFER_MAX,
+    DEFAULT_PICK_OFFER_MIN,
+    OPENING_CATALOG_MD_KEY,
+    OPENING_OFFER_EMPTY,
     SENTINEL,
-    SLOT_LABELS,
-    SLOT_ORDER,
-    SLOT_SCENE_USR,
-    WUX_RANK_MARTIAL,
-    WUX_RANK_NEIGONG,
-    WUX_RANK_QINGGONG,
+    SETUP_PICK_OFFER_COUNT_KEY,
+    SETUP_PICK_OFFER_SEED_KEY,
 )
 from novel_mcp.setup_graph import (
     first_plr_id,
@@ -30,9 +35,9 @@ from novel_mcp.setup_graph import (
     list_tag_data_rows,
     read_get_body,
     read_usr_by_key,
-    read_usr_record,
     resolve_catalog_path,
     setup_commit_errors,
+    usr_id_for_key,
 )
 
 _ART_LINE_RE = re.compile(r"^@ART:\s*(.+)$", re.MULTILINE)
@@ -94,7 +99,7 @@ def _load_catalog_arts(
     *,
     workspace_root_path: str | None = None,
 ) -> tuple[list[dict[str, str]], str | None, list[str]]:
-    rel = read_usr_by_key(session, "martial_catalog_md") if session else None
+    rel = read_usr_by_key(session, OPENING_CATALOG_MD_KEY) if session else None
     graph_arts = arts_from_session(session, schema)
     if graph_arts:
         return graph_arts, rel, []
@@ -111,29 +116,188 @@ def slot_for_art(art: dict[str, str], schema: CatalogSchema) -> str | None:
     return slot_for_kind(art.get(schema.kind_field, ""), schema)
 
 
+def _opening_gift_from_session(
+    session: str | None,
+    usr_key: str | None,
+) -> dict[str, Any] | None:
+    """Parse optional instance gift USR (`name;rank;no_pick` shape)."""
+    if not usr_key or not session:
+        return None
+    raw = read_usr_by_key(session, usr_key)
+    if not raw or raw == SENTINEL:
+        return None
+    parts = [p.strip() for p in raw.split(";")]
+    name = parts[0] if parts else ""
+    rank = parts[1] if len(parts) > 1 else ""
+    selectable = True
+    if len(parts) > 2:
+        selectable = parts[2].lower() not in ("no_pick", "false", "0", "不可選")
+    return {"name": name, "rank": rank, "selectable": selectable}
+
+
 def catalog_slots(arts: list[dict[str, str]], schema: CatalogSchema) -> dict[str, Any]:
-    buckets: dict[str, list[dict[str, str]]] = {
-        "neigong": [],
-        "martial": [],
-        "qinggong": [],
-    }
+    order = slot_order(schema)
+    buckets: dict[str, list[dict[str, str]]] = {s: [] for s in order}
     for art in arts:
         slot = slot_for_art(art, schema)
-        if slot:
+        if slot and slot in buckets:
             buckets[slot].append(art)
-    return {
-        "neigong": {"label": SLOT_LABELS["neigong"], "arts": buckets["neigong"]},
-        "martial": {"label": SLOT_LABELS["martial"], "arts": buckets["martial"]},
-        "qinggong": {
-            "label": SLOT_LABELS["qinggong"],
-            "aliases": [schema.qinggong_wire_kind],
-            "wire_kind": schema.qinggong_wire_kind,
-            "arts": buckets["qinggong"],
-        },
-    }
+    out: dict[str, Any] = {}
+    for s in order:
+        entry: dict[str, Any] = {
+            "label": slot_label(schema, s),
+            "arts": buckets[s],
+        }
+        if s == schema.loadout.mobility_stat_slot:
+            entry["wire_kind"] = schema.qinggong_wire_kind
+        out[s] = entry
+    return out
 
 
-def read_martial_catalog(
+_PICK_OFFER_COUNT_RE = re.compile(r"^(\d+)\s*-\s*(\d+)$")
+
+
+def parse_pick_offer_count(raw: str | None) -> tuple[int, int]:
+    """Parse seed USR `setup_pick_offer_count` (e.g. `5-9`)."""
+    if not raw or raw in (SENTINEL, OPENING_OFFER_EMPTY):
+        return DEFAULT_PICK_OFFER_MIN, DEFAULT_PICK_OFFER_MAX
+    m = _PICK_OFFER_COUNT_RE.match(raw.strip())
+    if not m:
+        return DEFAULT_PICK_OFFER_MIN, DEFAULT_PICK_OFFER_MAX
+    lo, hi = int(m.group(1)), int(m.group(2))
+    if lo > hi:
+        lo, hi = hi, lo
+    return lo, hi
+
+
+def _rng_for_slot(session: str | None, slot: str) -> random.Random:
+    extra = read_usr_by_key(session, SETUP_PICK_OFFER_SEED_KEY) or ""
+    base = f"{session or 'local'}:{slot}:{extra}"
+    digest = hashlib.sha256(base.encode("utf-8")).hexdigest()
+    return random.Random(int(digest[:16], 16))
+
+
+def _read_stored_offer_ids(session: str | None, slot: str) -> list[str] | None:
+    key = opening_offer_usr_key(slot)
+    if not session:
+        return None
+    raw = read_usr_by_key(session, key)
+    if not raw or raw in (SENTINEL, OPENING_OFFER_EMPTY, "-"):
+        return None
+    ids = [p.strip() for p in raw.split(";") if p.strip()]
+    return ids or None
+
+
+def _persist_offer_ids(session: str | None, slot: str, ids: list[str]) -> list[str]:
+    key = opening_offer_usr_key(slot)
+    if not session:
+        return ["missing session for offer persist"]
+    uid = usr_id_for_key(session, key)
+    if not uid:
+        return [f"missing USR row for key {key} (seed opening_offer_* rows)"]
+    value = ";".join(ids) if ids else OPENING_OFFER_EMPTY
+    code, errs = graph_update(
+        session, [f"@USR: {uid}|{key}|{value}|persistent"]
+    )
+    return list(errs or []) if code != 0 else []
+
+
+def roll_slot_offers(
+    session: str | None,
+    slot: str,
+    pool: list[dict[str, str]],
+    *,
+    lo: int,
+    hi: int,
+    rng: random.Random | None = None,
+) -> list[str]:
+    """Sample `lo`–`hi` distinct ART ids from `pool` (capped by pool size)."""
+    if not pool:
+        return []
+    cap = len(pool)
+    n_lo = max(1, min(lo, cap))
+    n_hi = max(n_lo, min(hi, cap))
+    rng = rng or _rng_for_slot(session, slot)
+    count = rng.randint(n_lo, n_hi)
+    picked = rng.sample(pool, count)
+    return [a["id"] for a in picked]
+
+
+def ensure_slot_offers(
+    session: str | None,
+    slot: str,
+    pool: list[dict[str, str]],
+    *,
+    roll: bool = True,
+) -> tuple[list[str], list[str]]:
+    """Return offered ART ids for slot; roll and persist on first access when `roll`."""
+    stored = _read_stored_offer_ids(session, slot)
+    if stored is not None:
+        return stored, []
+    if not roll or not session:
+        return [a["id"] for a in pool], []
+    lo, hi = parse_pick_offer_count(read_usr_by_key(session, SETUP_PICK_OFFER_COUNT_KEY))
+    ids = roll_slot_offers(session, slot, pool, lo=lo, hi=hi)
+    errs = _persist_offer_ids(session, slot, ids)
+    return ids, errs
+
+
+def _arts_by_id(arts: list[dict[str, str]]) -> dict[str, dict[str, str]]:
+    return {a["id"]: a for a in arts}
+
+
+def _parse_opening_arts(raw: str | None, n_slots: int) -> list[str]:
+    if not raw or raw == SENTINEL:
+        return [SENTINEL] * n_slots
+    parts = [p.strip() for p in raw.split(";")]
+    while len(parts) < n_slots:
+        parts.append(SENTINEL)
+    return parts[:n_slots]
+
+
+def _next_slot(picks: list[str], order: tuple[str, ...]) -> str | None:
+    for slot, pick in zip(order, picks, strict=True):
+        if pick == SENTINEL:
+            return slot
+    return None
+
+
+def _apply_offers_to_slots(
+    session: str | None,
+    slots: dict[str, Any],
+    schema: CatalogSchema,
+    *,
+    roll_slot: str | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Replace each slot's `arts` with offered subset; roll current pick slot if needed."""
+    errors: list[str] = []
+    order = slot_order(schema)
+    next_slot = roll_slot
+    if next_slot is None and session:
+        n = len(order)
+        raw = read_usr_by_key(session, "opening_arts")
+        next_slot = _next_slot(_parse_opening_arts(raw, n), order)
+
+    out: dict[str, Any] = {}
+    for slot in order:
+        bucket = dict(slots.get(slot, {}))
+        pool = list(bucket.get("arts") or [])
+        should_roll = slot == next_slot
+        offer_ids, errs = ensure_slot_offers(
+            session, slot, pool, roll=should_roll
+        )
+        errors.extend(errs)
+        by_id = _arts_by_id(pool)
+        offered = [by_id[aid] for aid in offer_ids if aid in by_id]
+        bucket["arts"] = offered
+        bucket["offer_ids"] = offer_ids
+        bucket["offer_count"] = len(offer_ids)
+        bucket["pool_count"] = len(pool)
+        out[slot] = bucket
+    return out, errors
+
+
+def read_opening_catalog(
     session: str | None,
     *,
     workspace_root_path: str | None = None,
@@ -160,42 +324,41 @@ def read_martial_catalog(
             "source": "none",
         }
     on_graph = bool(session and arts_from_session(session, schema))
+    raw_slots = catalog_slots(arts, schema)
+    slots, offer_errs = _apply_offers_to_slots(session, raw_slots, schema)
+    lo, hi = parse_pick_offer_count(
+        read_usr_by_key(session, SETUP_PICK_OFFER_COUNT_KEY) if session else None
+    )
+    if offer_errs:
+        return {
+            "exit_code": 2,
+            "errors": offer_errs,
+            "catalog_path": rel,
+            "slots": slots,
+            "source": "graph" if on_graph else "md",
+        }
     return {
         "exit_code": 0,
         "catalog_path": rel,
-        "slots": catalog_slots(arts, schema),
+        "slots": slots,
         "art_count": len(arts),
+        "pick_offer_count": {"min": lo, "max": hi},
         "source": "graph" if on_graph else "md",
         "errors": [],
     }
 
 
-def _parse_opening_arts(raw: str | None) -> list[str]:
-    if not raw or raw == SENTINEL:
-        return [SENTINEL, SENTINEL, SENTINEL]
-    parts = [p.strip() for p in raw.split(";")]
-    while len(parts) < 3:
-        parts.append(SENTINEL)
-    return parts[:3]
-
-
-def _next_slot(picks: list[str]) -> str | None:
-    for slot, pick in zip(SLOT_ORDER, picks, strict=True):
-        if pick == SENTINEL:
-            return slot
-    return None
+read_martial_catalog = read_opening_catalog
 
 
 def _scene_for_slot(session: str | None, slot: str) -> dict[str, str]:
-    uid = SLOT_SCENE_USR.get(slot, "")
-    rec = read_usr_record(session, uid) if uid else None
-    if rec and len(rec) >= 3:
-        value = rec[2]
-        if ";" in value:
-            title, hint = value.split(";", 1)
-            return {"title": title, "hint": hint}
-        return {"title": value, "hint": ""}
-    return {"title": "", "hint": ""}
+    raw = read_usr_by_key(session, setup_scene_usr_key(slot)) if session else None
+    if not raw or raw == SENTINEL:
+        return {"title": "", "hint": ""}
+    if ";" in raw:
+        title, hint = raw.split(";", 1)
+        return {"title": title, "hint": hint}
+    return {"title": raw, "hint": ""}
 
 
 def _art_by_id(catalog: list[dict[str, str]]) -> dict[str, dict[str, str]]:
@@ -214,7 +377,7 @@ def validate_slot_pick(
     actual = slot_for_art(arts[art_id], schema)
     if actual != slot:
         kind = arts[art_id].get(schema.kind_field, "")
-        return [f"slot_{slot}: {art_id} is {kind}, not {SLOT_LABELS.get(slot, slot)}"]
+        return [f"slot_{slot}: {art_id} is {kind}, not {slot_label(schema, slot)}"]
     return []
 
 
@@ -223,12 +386,14 @@ def validate_opening_picks(
     catalog: list[dict[str, str]],
     schema: CatalogSchema,
 ) -> list[str]:
-    if len(art_ids) != 3:
-        return ["opening_arts: must have exactly 3 ids"]
-    if len(set(art_ids)) != 3:
+    order = slot_order(schema)
+    n = len(order)
+    if len(art_ids) != n:
+        return [f"opening_arts: must have exactly {n} ids"]
+    if len(set(art_ids)) != n:
         return ["opening_arts: ids must be distinct"]
     errors: list[str] = []
-    for slot, art_id in zip(SLOT_ORDER, art_ids, strict=True):
+    for slot, art_id in zip(order, art_ids, strict=True):
         errors.extend(validate_slot_pick(slot, art_id, catalog, schema))
     return errors
 
@@ -238,109 +403,187 @@ def read_opening_loadout(
     *,
     workspace_root_path: str | None = None,
 ) -> dict[str, Any]:
+    schema, schema_err = _require_schema(session, workspace_root_path=workspace_root_path)
+    order = slot_order(schema) if schema else ()
+    n = len(order) if order else 3
     raw = read_usr_by_key(session, "opening_arts")
-    picks = _parse_opening_arts(raw)
+    picks = _parse_opening_arts(raw, n)
     slots_out: dict[str, Any] = {}
-    for slot, pick in zip(SLOT_ORDER, picks, strict=True):
+    for slot, pick in zip(order, picks, strict=True):
         slots_out[slot] = {
-            "label": SLOT_LABELS[slot],
+            "label": slot_label(schema, slot) if schema else slot,
             "pick": None if pick == SENTINEL else pick,
             "scene": _scene_for_slot(session, slot),
         }
-    next_slot = _next_slot(picks)
+    next_slot = _next_slot(picks, order) if order else None
     complete = next_slot is None
-    errors: list[str] = []
-    if complete:
-        cat_resp = read_martial_catalog(session, workspace_root_path=workspace_root_path)
-        if cat_resp.get("exit_code") == 0:
-            schema, _ = _require_schema(session, workspace_root_path=workspace_root_path)
-            all_arts: list[dict[str, str]] = []
-            for bucket in cat_resp.get("slots", {}).values():
-                all_arts.extend(bucket.get("arts", []))
-            if schema:
-                errors = validate_opening_picks(
-                    [p for p in picks if p != SENTINEL],
-                    all_arts,
-                    schema,
-                )
+    errors: list[str] = list(schema_err or [])
+    if next_slot and session and schema:
+        arts_full, _, load_err = _load_catalog_arts(
+            session, schema, workspace_root_path=workspace_root_path
+        )
+        if load_err:
+            errors.extend(load_err)
+        else:
+            pool = [a for a in arts_full if slot_for_art(a, schema) == next_slot]
+            offer_ids, offer_errs = ensure_slot_offers(
+                session, next_slot, pool, roll=True
+            )
+            errors.extend(offer_errs)
+            by_id = _arts_by_id(pool)
+            slots_out[next_slot]["offers"] = [
+                by_id[aid] for aid in offer_ids if aid in by_id
+            ]
+            slots_out[next_slot]["offer_count"] = len(offer_ids)
+    if complete and schema:
+        arts_full, _, load_err = _load_catalog_arts(
+            session, schema, workspace_root_path=workspace_root_path
+        )
+        if load_err:
+            errors.extend(load_err)
+        elif arts_full:
+            errors = validate_opening_picks(
+                [p for p in picks if p != SENTINEL],
+                arts_full,
+                schema,
+            )
     return {
         "exit_code": 0,
-        "soul_library": {
-            "name": "靈魂圖書館",
-            "rank": "登峰造極",
-            "selectable": False,
-        },
         "slots": slots_out,
         "next_slot": next_slot,
         "complete": complete and not errors,
         "errors": errors,
+        **(
+            {
+                "opening_gift": _opening_gift_from_session(
+                    session,
+                    schema.loadout.opening_gift_usr_key if schema else None,
+                )
+            }
+            if schema and schema.loadout.opening_gift_usr_key
+            else {}
+        ),
     }
 
 
-def _mwu_id(plr_id: str, index: int) -> str:
+def _proficiency_id(plr_id: str, index: int, schema: CatalogSchema) -> str:
+    lc = schema.loadout
+    tpl = lc.proficiency_id_template or f"PROF{plr_id}{index}"
     suffix = plr_id.replace("P", "")
-    return f"MWU{suffix}0{index}"
+    return tpl.replace("{plr_suffix}", suffix).replace("{index}", str(index))
+
+
+def _wire_template_context(
+    plr_id: str,
+    art_ids: tuple[str, ...],
+    names: list[str],
+    schema: CatalogSchema,
+) -> dict[str, str]:
+    ctx: dict[str, str] = {"plr": plr_id}
+    for i, aid in enumerate(art_ids):
+        ctx[f"art{i}"] = aid
+        ctx[f"name{i}"] = names[i]
+        ctx[f"prof{i + 1}"] = _proficiency_id(plr_id, i + 1, schema)
+    return ctx
+
+
+def _format_wire_line(template: str, ctx: dict[str, str]) -> str:
+    line = template
+    for key, val in ctx.items():
+        line = line.replace("{" + key + "}", val)
+    return line
+
+
+def _build_skills_line(
+    session: str | None,
+    names: list[str],
+    ranks: list[str],
+    schema: CatalogSchema,
+) -> str:
+    lc = schema.loadout
+    parts: list[str] = []
+    gift_key = lc.opening_gift_usr_key
+    if gift_key:
+        gift = _opening_gift_from_session(session, gift_key)
+        if gift and gift.get("name"):
+            rank = gift.get("rank") or ""
+            label = gift["name"]
+            parts.append(f"{label}{rank}" if rank else label)
+    existing = read_usr_by_key(session, "skills") if session else None
+    if existing and existing != SENTINEL and existing not in parts:
+        parts.append(existing)
+    for name, rank in zip(names, ranks, strict=True):
+        parts.append(f"{name}{rank}")
+    return lc.skills_separator.join(parts)
 
 
 def _wire_opening_loadout(
     session: str | None,
     plr_id: str,
-    art_ids: tuple[str, str, str],
+    art_ids: tuple[str, ...],
     catalog: list[dict[str, str]],
     schema: CatalogSchema,
 ) -> list[str]:
+    lc = schema.loadout
+    order = slot_order(schema)
     arts = _art_by_id(catalog)
     name_key = schema.wire_columns[1] if len(schema.wire_columns) > 1 else "name"
     names = [arts[aid][name_key] for aid in art_ids]
+    ranks = [opening_rank(schema, slot) for slot in order]
     lines: list[str] = []
 
-    for i, art_id in enumerate(art_ids, start=1):
-        ea_id = f"EA{plr_id}{i}"
-        mwu_id = _mwu_id(plr_id, i)
-        lines.append(f"@EDG: {ea_id}|{plr_id}|soul_knows|{art_id}||persistent")
-        lines.append(
-            f"@MWU: {mwu_id}|{plr_id}|{art_id}|{MWU_RANK}|1|常駐"
-        )
-        lines.append(f"@EDG: EM{plr_id}{i}|{plr_id}|has_mwu|{mwu_id}||persistent")
-        lines.append(f"@EDG: EM{plr_id}{i}a|{mwu_id}|for_art|{art_id}||persistent")
+    if lc.proficiency_tag:
+        for i, art_id in enumerate(art_ids, start=1):
+            ea_id = f"EA{plr_id}{i}"
+            prof_id = _proficiency_id(plr_id, i, schema)
+            lines.append(
+                f"@EDG: {ea_id}|{plr_id}|{lc.knows_relation}|{art_id}||persistent"
+            )
+            lines.append(
+                f"@{lc.proficiency_tag}: {prof_id}|{plr_id}|{art_id}|"
+                f"{lc.proficiency_rank}|{lc.proficiency_mastery}|常駐"
+            )
+            lines.append(
+                f"@EDG: EM{plr_id}{i}|{plr_id}|{lc.has_proficiency_relation}|"
+                f"{prof_id}||persistent"
+            )
+            lines.append(
+                f"@EDG: EM{plr_id}{i}a|{prof_id}|{lc.for_art_relation}|"
+                f"{art_id}||persistent"
+            )
 
-    lines.append(
-        f"@WUX: WUX01|{plr_id}|{schema.body_stat_labels['neigong']}|{WUX_RANK_NEIGONG}|0|常駐"
-    )
-    lines.append(
-        f"@WUX: WUX02|{plr_id}|{schema.body_stat_labels['martial']}|{WUX_RANK_MARTIAL}|1|常駐"
-    )
-    lines.append(f"@WUX: WUX03|{plr_id}|{schema.qinggong_wire_kind}|{WUX_RANK_QINGGONG}|1|常駐")
+    if lc.body_stat_tag:
+        for i, slot in enumerate(order):
+            stat_id = (
+                lc.body_stat_ids[i]
+                if i < len(lc.body_stat_ids)
+                else f"{lc.body_stat_tag}{i + 1:02d}"
+            )
+            label = schema.body_stat_labels.get(slot, slot)
+            if slot == lc.mobility_stat_slot:
+                label = schema.qinggong_wire_kind
+            rank = opening_rank(schema, slot)
+            mastery = lc.body_stat_mastery.get(slot, lc.proficiency_mastery)
+            lines.append(
+                f"@{lc.body_stat_tag}: {stat_id}|{plr_id}|{label}|{rank}|{mastery}|常駐"
+            )
 
-    neigong_art = art_ids[0]
-    lines.append(f"@USR: USR48|primary_neigong|{plr_id}={neigong_art}|persistent")
-    lines.append(
-        f"@EDG: EP50|{plr_id}|primary_neigong|{neigong_art}|{names[0]}主修|persistent"
-    )
+    ctx = _wire_template_context(plr_id, art_ids, names, schema)
+    for template in lc.extra_wire_lines:
+        lines.append(_format_wire_line(template, ctx))
 
-    mwu_nei = _mwu_id(plr_id, 1)
-    lines.append(
-        f"@USR: USR46|neigong_recover|{neigong_art};{mwu_nei};WUX01;半時辰一輪|persistent"
-    )
-
-    skills = (
-        f"靈魂圖書館登峰造極、{names[0]}{MWU_RANK}、"
-        f"{names[1]}{WUX_RANK_MARTIAL}、{names[2]}{WUX_RANK_QINGGONG}"
-    )
-    lines.append(f"@USR: USR04|skills|{skills}|persistent")
+    skills = _build_skills_line(session, names, ranks, schema)
+    skills_uid = usr_id_for_key(session, "skills") if session else None
+    if skills_uid:
+        lines.append(f"@USR: {skills_uid}|skills|{skills}|persistent")
 
     plr_body = read_get_body(session, plr_id)
     if plr_body:
         parts = plr_body.split("|")
         if len(parts) >= 7:
             body = parts[6]
-            labels = schema.body_stat_labels
-            for slot_key, rank in (
-                ("neigong", WUX_RANK_NEIGONG),
-                ("martial", WUX_RANK_MARTIAL),
-                ("qinggong", WUX_RANK_QINGGONG),
-            ):
-                label = labels.get(slot_key, slot_key)
+            for slot_key, rank in zip(order, ranks, strict=True):
+                label = schema.body_stat_labels.get(slot_key, slot_key)
                 token = f"{label}:{rank}"
                 if f"{label}:" in body:
                     body = re.sub(rf"{label}:[^；;]+", token, body, count=1)
@@ -372,50 +615,60 @@ def commit_opening_pick(
     if block:
         return {"exit_code": 2, "errors": block}
 
-    if slot not in SLOT_ORDER:
-        return {"exit_code": 2, "errors": [f"invalid slot: {slot}"]}
-
-    cat_resp = read_martial_catalog(session, workspace_root_path=workspace_root_path)
-    if cat_resp.get("exit_code") != 0:
-        return {"exit_code": 2, "errors": cat_resp.get("errors", ["catalog error"])}
-
     schema, schema_err = _require_schema(session, workspace_root_path=workspace_root_path)
     if schema_err or schema is None:
         return {"exit_code": 2, "errors": schema_err or ["missing catalog_schema"]}
 
-    all_arts: list[dict[str, str]] = []
-    for bucket in cat_resp.get("slots", {}).values():
-        all_arts.extend(bucket.get("arts", []))
+    order = slot_order(schema)
+    if slot not in order:
+        return {"exit_code": 2, "errors": [f"invalid slot: {slot}"]}
 
-    val_err = validate_slot_pick(slot, art_id, all_arts, schema)
+    cat_resp = read_opening_catalog(session, workspace_root_path=workspace_root_path)
+    if cat_resp.get("exit_code") != 0:
+        return {"exit_code": 2, "errors": cat_resp.get("errors", ["catalog error"])}
+
+    arts_full, _, load_err = _load_catalog_arts(
+        session, schema, workspace_root_path=workspace_root_path
+    )
+    if load_err:
+        return {"exit_code": 2, "errors": load_err}
+
+    val_err = validate_slot_pick(slot, art_id, arts_full, schema)
     if val_err:
         return {"exit_code": 2, "errors": val_err}
 
+    offer_ids = (cat_resp.get("slots", {}).get(slot) or {}).get("offer_ids") or []
+    if offer_ids and art_id not in offer_ids:
+        return {
+            "exit_code": 2,
+            "errors": [f"{art_id} not in offered picks for {slot}"],
+        }
+
     raw = read_usr_by_key(session, "opening_arts")
-    picks = _parse_opening_arts(raw)
-    expected = _next_slot(picks)
+    picks = _parse_opening_arts(raw, len(order))
+    expected = _next_slot(picks, order)
     if expected != slot:
         return {
             "exit_code": 2,
             "errors": [f"expected slot {expected}, got {slot}"],
         }
 
-    idx = SLOT_ORDER.index(slot)
+    idx = order.index(slot)
     picks[idx] = art_id
     lines = [_set_usr58(picks)]
 
-    if _next_slot(picks) is None:
+    if _next_slot(picks, order) is None:
         pid = plr_id or first_plr_id(session)
         if not pid:
             return {"exit_code": 2, "errors": ["no PLR row in graph"]}
-        pick_err = validate_opening_picks(picks, all_arts, schema)
+        pick_err = validate_opening_picks(picks, arts_full, schema)
         if pick_err:
             return {"exit_code": 2, "errors": pick_err}
         lines.extend(
-            _wire_opening_loadout(session, pid, tuple(picks), all_arts, schema)
+            _wire_opening_loadout(session, pid, tuple(picks), arts_full, schema)
         )
 
-    apply_fn = graph_apply_setup_lines if _next_slot(picks) is None else graph_update
+    apply_fn = graph_apply_setup_lines if _next_slot(picks, order) is None else graph_update
     code, upd_err = apply_fn(session, lines)
     if code != 0:
         return {"exit_code": 2, "errors": upd_err or ["update failed"]}
@@ -433,10 +686,18 @@ def commit_opening_loadout(
 ) -> dict[str, Any]:
     from novel_mcp.player_setup import read_player_setup
 
-    if len(art_ids) != 3:
-        return {"exit_code": 2, "errors": ["art_ids must have length 3"]}
+    schema, schema_err = _require_schema(session, workspace_root_path=workspace_root_path)
+    if schema_err or schema is None:
+        return {"exit_code": 2, "errors": schema_err or ["missing catalog_schema"]}
 
-    for slot, art_id in zip(SLOT_ORDER, art_ids, strict=True):
+    order = slot_order(schema)
+    if len(art_ids) != len(order):
+        return {
+            "exit_code": 2,
+            "errors": [f"art_ids must have length {len(order)}"],
+        }
+
+    for slot, art_id in zip(order, art_ids, strict=True):
         result = commit_opening_pick(
             session,
             slot,
@@ -452,11 +713,25 @@ def commit_opening_loadout(
     return read_player_setup(session, workspace_root_path=workspace_root_path)
 
 
-def has_mwu_edges(session: str | None, plr_id: str | None = None) -> bool:
+def has_proficiency_edges(
+    session: str | None,
+    plr_id: str | None = None,
+    *,
+    workspace_root_path: str | None = None,
+) -> bool:
     pid = plr_id or first_plr_id(session)
     if not pid or not session:
         return False
+    schema = read_catalog_schema(session, workspace_root_path=workspace_root_path)
+    relation = (
+        schema.loadout.has_proficiency_relation
+        if schema
+        else "has_proficiency"
+    )
     for row in list_tag_data_rows(session, "EDG"):
-        if len(row) >= 4 and row[1] == pid and row[2] == "has_mwu":
+        if len(row) >= 4 and row[1] == pid and row[2] == relation:
             return True
     return False
+
+
+has_mwu_edges = has_proficiency_edges

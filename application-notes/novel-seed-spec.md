@@ -63,10 +63,10 @@ Use this **design order** before filling fences. Integrator notes come **last**;
 | If the fact is… | Put it in… | Must also… |
 |-----------------|------------|------------|
 | Opening location / cast / industry hook | `@SCN` + `@USR\|opening_scene\|` + domain `@LAW` | Wire cast to SCN; wire BIZ/NPC to that LAW/USR via `features` |
-| Protagonist display name | `@USR03\|pc_name\|` only | Never only in `@PLR` body or integrator prose |
+| Protagonist display name | `@USR03\|pc_name\|` only | `@PLR` 身份欄用**中性 placeholder**（如 `流民`、`待定`），勿預填玩家將輸入的姓名；`commit_player_profile` 寫 `pc_name` |
 | NPC identity + voice hints | `@NPC` traits + `@PRS`/`@PTY` | `SCN\|features\|NPC`; age via birth year + `USR25` |
 | Industry state (debt, hiring) | `@BIZ` row + plot `@EDG` (`hiring`, `manages`) | `SCN\|features\|BIZ` if in opening beat |
-| Genre-specific validation (e.g. martial tiers) | `instances/*.json` → `catalog_schema` path + `@USR\|catalog_schema\|` | **Not** hard-coded in `novel_mcp` |
+| Genre-specific validation (e.g. martial tiers) | `@USR\|catalog_schema\|` → `catalog_specs/*.json` | **Not** hard-coded in `novel_mcp`; loadout/slots in json `loadout` block |
 | How script should write OLN | `@LAW` + `stage_hint_oln` USR | Cite the USR/LAW ids in constraint tokens |
 | Long balance tables / examples | Integrator notes only | Duplicate **codes** into wire if LLM must obey |
 
@@ -90,7 +90,7 @@ flowchart TB
   end
   subgraph domain [Domain wiring — Engine fence]
     USR70[USR70 opening_scene]
-    LAWO[LAW-OLN03 opening_scn]
+    LAWO[LAW-OLN0x opening_scn]
     STEP -->|governs| USR70
     STEP -->|governs| LAWO
     BIZ -->|features| USR70
@@ -120,9 +120,9 @@ For any game with a fixed beat-0 location:
 
 1. `@SCN: SCN01|<ascii_code>|awakening|delete_on_settle` — `code` is machine key (e.g. `smithy_gate`).
 2. `@USR: USR70|opening_scene|<one-line facts; 禁語 list>|persistent` — human + LLM readable; pipe-safe inside value.
-3. `@LAW: LAW-OLN03|OLN|on_turn|opening_scn|cite_usr70;…|persistent` — hard constraints for OLN stage.
-4. `EG*: STEP01|governs|USR70` and `STEP01|governs|LAW-OLN03`.
-5. `EG*: {B01,N01,N02,SCN01}|features|{USR70,LAW-OLN03}` — **domain plane** (required when BIZ/NPC define the opening).
+3. `@LAW: LAW-OLN0x|OLN|on_add|opening_scn|cite_usr70;…|persistent` — hard constraints for OLN stage (**row id is instance-specific**; 沈家 uses `LAW-OLN01`).
+4. `EG*: STEP01|governs|USR70` and `STEP01|governs|LAW-OLN0x` (your opening OLN LAW id).
+5. `EG*: {B01,N01,N02,SCN01}|features|{USR70,LAW-OLN0x}` — **domain plane** (required when BIZ/NPC define the opening).
 6. World: `E*: SCN01|features|*` for every entity in the scene; plot edges (`hiring`, `manages`, …) as needed.
 
 Until `SCN01` settles (`delete_on_settle`), every OLN/SBD/SCR must stay consistent with `opening_scene`.
@@ -133,38 +133,84 @@ Until `SCN01` settles (`delete_on_settle`), every OLN/SBD/SCR must stay consiste
 - If a tag has **no** `回收` column in the map (e.g. `@PLR: id|…|身體狀態` only), updates must **not** append `|persistent`.
 - `@USR` is always `id|key|value|recycle` (4 fields). Multi-part content uses `;` **inside** `value`.
 
-### 2.5 God-realm vs play (two phases)
+### 2.5 God-realm setup dialogue (player vs seed)
+
+**Principle:** Opening chat content is **story-specific**. `novel_mcp` only runs the FSM (`next_action`), validation, and graph commits. **Do not** hard-code dialogue, scenes, tone, or world labels in Python prompts or `.mdc` rules.
+
+| Source | What | Examples |
+|--------|------|----------|
+| **Player input** | Values only | `pc_name` / `pc_gender` committed via `commit_player_profile` (may be one field per call) |
+| **Player choice** | Picks from seed catalog | `commit_opening_pick` → `opening_arts` (USR58); ART ids from `@ART` + `catalog_schema` |
+| **Seed `@USR`** | All narrated setup content | See table below |
+| **Instance json** | Shell paths, models, expand flags | `catalog_schema` path (bootstrap); genre loadout lives in **catalog_specs** json |
+| **novel_mcp** | Generic FSM only | `narrate_open` → `narrate_ask_name` → `narrate_ask_gender` → optional `narrate_pre_pick` → `pick_*` → `narrate_transmigration` → `start_play` |
+
+**Required setup USR keys** (per instance — ids are project convention; keys are normative):
+
+| USR `key` | Phase | Value shape |
+|-----------|-------|-------------|
+| `setup_tone` | all setup | `god_banter;…tokens…;禁…` — voice + ban list for 【神域】chat |
+| `setup_format_god` | optional | Section label, e.g. `【神域】` (fallback in code if absent) |
+| `setup_format_play` | optional | Section label, e.g. `【劇情】` |
+| `setup_god_line_open` | `narrate_open` | God's opening line |
+| `setup_god_line_ask_name` | `narrate_ask_name` | Ask protagonist name (after open) |
+| `setup_god_line_ask_gender` | `narrate_ask_gender` | Ask gender (after name committed) |
+| `setup_profile_name_rule` | `commit_player_profile` | `cjk_2_4` or `regex:…` |
+| `setup_profile_genders` | `commit_player_profile` | `男;女` (semicolon list) |
+| `setup_god_line_profile` | legacy | Combined name+gender prompt; use ask_name/ask_gender instead |
+| `setup_god_line_library` | optional `narrate_pre_pick` | Instance-only (e.g. 神家); wired via `catalog_specs.loadout.pre_pick_line_usr_key` |
+| `setup_god_line_transmigrate` | `narrate_transmigration` | Closing line before world SCN |
+| `setup_scene_{slot}` | `pick_{slot}` | `title;hint` — one row per `catalog_specs.loadout.slot_order` entry (e.g. 武俠: `setup_scene_neigong`) |
+| `setup_soul_library` or any gift key | optional opening gift | Instance-only; `name;rank;no_pick` — wired via `loadout.opening_gift_usr_key` |
+| `setup_pick_offer_count` | `pick_*` | Per-slot random offer size, e.g. `5-9` (from full `@ART` pool for that slot) |
+| `opening_offer_{slot}` | runtime | Rolled ART ids (`;`-sep); seed `_` until first pick phase |
+| `martial_catalog_md` (or renamed key) | picks | Path to expandable `@ART` fence md |
+| `catalog_schema` | picks | Path to `catalog_specs/*.json` |
+
+**Slot keys:** Internal slot names (`neigong`, `martial`, `arcane`, …) come from `catalog_specs/*.json` → `loadout.slot_order`. Seed USR **keys** follow `setup_scene_{slot}` and `opening_offer_{slot}`; story labels live in seed values or `body_stat_labels` in json — not in `novel_mcp`.
+
+Wire each setup USR with `STEP01|governs|USR*` (and `setup_tone` USR — e.g. `USR63` — `|governs|` every `setup_god_line_*` it should colour, including optional `narrate_pre_pick`). Chat agent reads `read_player_setup` → `setup_guidance.suggested_lines` / `scene` / `tone` — **never** invent copy from integrator notes or shell docs.
+
+**Anti-pattern:** Shenjia god-banter in `beat_prompt.py` or `novel-writer.mdc`; another story's shrine awakening in shared Python.
+
+### 2.6 God-realm vs play (two phases)
 
 | Phase | Graph keys | Chat `next_action` | MCP tools |
 |-------|------------|--------------------|-----------|
-| **Setup** | `USR03/53/58`, setup USR60–66, `catalog_schema` | `narrate_open` → … → `start_play` | `read_player_setup`, `commit_player_profile`, `commit_opening_pick` |
+| **Setup** | `USR03/53/58`, setup USRs above | `narrate_open` → … → `start_play` | `read_player_setup`, `commit_player_profile`, `commit_opening_pick` |
 | **Play** | `USR23` FSM, per-beat OLN/SCR | `cursor_beat --choice` | `beat_turn_begin` / `finish` |
 
-Setup USRs and opening_scene are **play gates**, not substitutes for `SCN`/`BIZ` world rows.
+Setup USRs and `opening_scene` are **play gates**, not substitutes for `SCN`/`BIZ` world rows.
 
-### 2.6 LAW budget and warm reachability
+### 2.7 LAW budget and warm reachability
 
 - Every `@LAW` row prepends to warm → keep domain LAWs **short** (codes in `constraint`).
 - **Reachability checklist** for beat 0 (after bootstrap, before first `--choice`):
   - `presentation.scene.focus` = opening SCN id
   - `presentation.scene.npcs` populated (enrich or warm)
   - `presentation.scene.biz` / `scn_code` if industry opening
-  - `presentation.contracts` includes `opening_scene` USR and `LAW-OLN03`
+  - `presentation.contracts` includes `opening_scene` USR and your opening OLN LAW (e.g. `LAW-OLN01`)
   - No `@OLN` rows in seed (script creates them)
 
-### 2.7 Instance json vs seed md
+### 2.8 Instance json vs seed md vs catalog_specs
 
-| Item | seed md | instance json |
-|------|---------|---------------|
-| Tag map, world graph, LAW/USR | yes | no |
-| `catalog_schema` path, `expand_catalog*` | USR pointer optional | yes (bootstrap source) |
-| Model ids, output slug | via USR14/15 paths | yes |
-| `session_id.txt` | no | runtime pointer only |
+| Item | seed md | instance json | catalog_specs/*.json |
+|------|---------|---------------|----------------------|
+| Tag map, world graph, LAW/USR | yes | no | no |
+| `catalog_schema` path | `@USR` pointer (`catalog_schema`) | bootstrap default | file is the schema |
+| `expand_catalog*` | — | yes | — |
+| **Loadout machinery** | USR keys for **story copy** only | — | `loadout.slot_order`, `pre_pick_line_usr_key`, `opening_gift_usr_key`, proficiency/body tags, `extra_wire_lines` |
+| Model ids, output slug | via USR14/15 paths | yes | — |
+| `session_id.txt` | no | runtime pointer | — |
 
-### 2.8 Authoring workflow (ordered)
+**Pre-pick narration:** If `loadout.pre_pick_line_usr_key` is set (神家: `setup_god_line_library`), FSM emits `narrate_pre_pick` before the first catalog slot. Omit both keys for stories with no god-realm interlude.
+
+**Bootstrap:** `catalog_schema` USR in seed is SSOT for graph pointer; instance json may duplicate for `novel_bootstrap.py --app` convenience — keep paths identical.
+
+### 2.9 Authoring workflow (ordered)
 
 1. **Scope** — tags needed; opening SCN code; cast list.
-2. **Opening contract** — USR70 + LAW-OLN03 + three EDG planes (§2.2–2.3).
+2. **Opening contract** — USR70 + opening OLN LAW (`LAW-OLN0x`) + three EDG planes (§2.2–2.3).
 3. **Tag map** — declare tags; match column counts to rows you will write.
 4. **Engine fence** — pipeline LAWs, USR FSM, governs/features EDGs.
 5. **World fence** — SYS, PLR, SCN subgraph, BIZ, NPC, plot EDGs.
@@ -261,10 +307,10 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 | `CFG01` | `@CFG` | Work title, anchor id, version note |
 | `USR03` | `@USR` | `pc_name` — use `未定` until `commit_player_profile` |
 | `USR53` | `@USR` | `pc_gender` — `男`/`女`/`未定` |
-| `USR58` | `@USR` | `opening_arts` — `內功ART;武學ART;身法ART` or `未定;未定;未定` |
-| `USR67` | `@USR` | `martial_catalog_md` — repo-relative path to catalog fence md |
-| `USR69` | `@USR` | `catalog_schema` — repo-relative path to `catalog_specs/*.json` (instance may also set at bootstrap) |
-| `USR70` | `@USR` | `opening_scene` — beat-0 facts + ban list; cite from `LAW-OLN03` |
+| `USR58` | `@USR` | `opening_arts` — `;`-separated ART ids, count = `loadout.slot_order` length; use `未定` per slot until picks |
+| `USR67` | `@USR` | opening catalog md path (convention key `martial_catalog_md`) |
+| `USR69` | `@USR` | `catalog_schema` — repo-relative path to `catalog_specs/*.json` |
+| `USR70` | `@USR` | `opening_scene` — beat-0 facts + ban list; cite from opening OLN LAW |
 | `USR14` | `@USR` | `chapter_out` — relative path to chapter dir |
 | `USR15` | `@USR` | `snapshot` — relative path to `session_snap.json` |
 | `USR23` | `@USR` | `beat_stage` — initial `oln` |
@@ -291,7 +337,7 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 | Id / pattern | Tag | Purpose |
 |--------------|-----|---------|
 | `SYS01` | `@SYS` | Calendar time in agreed mechanical format |
-| `P01` (or project id) | `@PLR` | Identity, birth year, body state, abilities summary |
+| `P01` (or project id) | `@PLR` | Birth year, body state, abilities; **身份欄 = social placeholder** (`流民`), not `pc_name` |
 | Opening `SCN*` | `@SCN` | `delete_on_settle`; code + beat phase |
 | `E*` scene wiring | `@EDG` | `SCN|features|PLR/NPC/BIZ/…` for everyone in opening beat |
 | `E*` | `@EDG` | `SCN|set_in|SYS01` |
@@ -329,8 +375,9 @@ If the seed introduces **new `@EDG.relation` verbs** (e.g. `unknows`, `speaks`, 
 
 | What | Where |
 |------|-------|
-| Protagonist display name | `@USR03|pc_name|…` only |
-| NPC names | `@NPC` rows + `SCN|features` edges |
+| Protagonist display name | `@USR03\|pc_name\|` only — `未定` until `commit_player_profile` |
+| PLR 身份欄 | Neutral role placeholder (e.g. `流民`); **not** the player-chosen name |
+| NPC names | `@NPC` rows + `SCN\|features` edges |
 | LAW text | **Never** embed specific character names or ids |
 | Prompt shells (`beat_prompt.py`) | **Never** hard-code story NPCs; read `presentation.scene` |
 
@@ -365,7 +412,7 @@ If the seed introduces **new `@EDG.relation` verbs** (e.g. `unknows`, `speaks`, 
 | `stage_hint_*` | Per-stage task text for presentation |
 | `opening_scene` | Beat-0 location/cast contract (`USR70` pattern) |
 | `catalog_schema` | Path to genre validation json |
-| `martial_catalog_md` | Path to expandable catalog md |
+| `martial_catalog_md` | Path to expandable catalog md (key name may differ per instance) |
 
 Projects may add USRs; wire each with `STEP01|governs|USRxx` or they will not enter warm.
 
@@ -473,7 +520,8 @@ Before first `cursor_beat.py` beat:
 | Novel logic in `mem_store.context_pack` | Couples engine to one app | `novel_mcp/warm_supplement` |
 | 80+ LAW rows with duplicate prose rules | Truncates warm; drops NPC/SYS | Split lore to world tags; dedupe LAW |
 | `STEP.focus = OLN01` at opening | Parser confusion; SCN cast lost | `focus = SCN*` |
-| Protagonist name only in integrator notes | Author invents wrong age/voice | `@USR03` + PLR row |
+| Protagonist name only in integrator notes | Author invents wrong age/voice | `@USR03` + PLR placeholder identity |
+| Protagonist name in `@PLR` 身份欄 | Drift vs `pc_name` after setup | Placeholder role; name in `USR03` only |
 | Missing `features` edges to SCN | Empty cast block | Wire PLR/NPC/BIZ to opening SCN |
 | BIZ/NPC not wired to `opening_scene` LAW/USR | Script invents orphan shrine / wrong setting | Domain plane: `{BIZ,NPC,SCN}|features|USR70` + LAW |
 | English `relation` with Chinese story grammar in field | `session_load` / add reject | ASCII relation + Chinese attrs |

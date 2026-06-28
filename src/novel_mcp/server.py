@@ -230,7 +230,16 @@ async def commit_player_profile(
 
 @mcp.tool()
 async def read_martial_catalog(session: str | None = None) -> str:
-    """Read opening martial catalog slots from USR67 catalog md."""
+    """Read opening catalog slots (schema-driven; alias of read_opening_catalog)."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_read_martial_catalog(session=session)
+    )
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def read_opening_catalog(session: str | None = None) -> str:
+    """Read opening catalog slots and per-slot random offers from instance catalog."""
     result = await anyio.to_thread.run_sync(
         lambda: do_read_martial_catalog(session=session)
     )
@@ -239,7 +248,7 @@ async def read_martial_catalog(session: str | None = None) -> str:
 
 @mcp.tool()
 async def read_opening_loadout(session: str | None = None) -> str:
-    """Read three-slot opening loadout progress (USR58 + scene hints)."""
+    """Read per-slot opening pick progress (opening_arts + setup_scene_* hints)."""
     result = await anyio.to_thread.run_sync(
         lambda: do_read_opening_loadout(session=session)
     )

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from app_config import MODEL, NovelAppConfig
+from app_config import NovelAppConfig
 
 
 def build_script_primer(config: NovelAppConfig) -> str:
-    return f"""You are the **{config.title}** script agent (編劇). Model: {MODEL}.
+    return f"""You are the **{config.title}** script agent (編劇). Model: {config.model_script}.
 
 Role: run LAW-PIPE20 **script stages only** — `oln → sbd → scr`. **No** player-facing novel prose.
 
@@ -80,7 +80,7 @@ def build_prose_primer(config: NovelAppConfig) -> str:
     except ValueError:
         pass
 
-    return f"""You are the **{config.title}** prose agent (作者). Model: {MODEL}.
+    return f"""You are the **{config.title}** prose agent (作者). Model: {config.model_prose}.
 
 Role: **prose stage only** — expand committed `@SCR` into novel text per LAW-PROSE16.
 

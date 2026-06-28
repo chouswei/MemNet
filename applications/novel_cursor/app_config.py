@@ -10,7 +10,6 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parent
 INSTANCES_DIR = APP_DIR / "instances"
 RESULT_MARKER = "NOVEL_BEAT_RESULT"
-MODEL = "kimi-k2.5"
 MODEL_SCRIPT = "deepseek-v4-flash"
 MODEL_PROSE = "deepseek-v4-flash"
 

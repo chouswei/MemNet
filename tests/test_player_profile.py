@@ -8,16 +8,16 @@ from novel_mcp.player_profile import commit_profile, read_profile, validate_prof
 
 
 def test_validate_profile_ok() -> None:
-    assert validate_profile("北見硝", "男") == []
+    assert validate_profile(None, "北見硝", "男") == []
 
 
 def test_validate_profile_bad_name() -> None:
-    errs = validate_profile("A", "男")
+    errs = validate_profile(None, "A", "男")
     assert any("name" in e for e in errs)
 
 
 def test_validate_profile_bad_gender() -> None:
-    errs = validate_profile("北見硝", "M")
+    errs = validate_profile(None, "北見硝", "M")
     assert any("gender" in e for e in errs)
 
 
@@ -25,7 +25,7 @@ def test_read_profile_unset() -> None:
     with patch("novel_mcp.player_profile.read_usr_by_key", side_effect=lambda _s, k: "未定"):
         out = read_profile("mn_x")
     assert out["complete"] is False
-    assert out["name"] == "未定"
+    assert out["name_set"] is False
 
 
 def test_commit_profile_updates_plr_gender() -> None:
@@ -38,7 +38,9 @@ def test_commit_profile_updates_plr_gender() -> None:
 
     with patch("novel_mcp.player_profile.read_usr_by_key", return_value="未定"), patch(
         "novel_mcp.player_profile.first_plr_id", return_value="P01"
-    ), patch("novel_mcp.player_profile.read_get_body", side_effect=fake_read_get), patch(
+    ), patch("novel_mcp.player_profile.usr_id_for_key", side_effect=lambda _s, k: {"pc_name": "USR03", "pc_gender": "USR53"}.get(k)), patch(
+        "novel_mcp.player_profile.read_get_body", side_effect=fake_read_get
+    ), patch(
         "novel_mcp.player_profile.graph_update", return_value=(0, [])
     ), patch(
         "novel_mcp.player_profile.read_profile",

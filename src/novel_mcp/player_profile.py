@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from novel_mcp.setup_constants import PROFILE_GENDERS, PROFILE_NAME_RE, SENTINEL
+from novel_mcp.setup_constants import SENTINEL
 from novel_mcp.setup_graph import (
     first_plr_id,
     graph_update,
@@ -12,27 +12,53 @@ from novel_mcp.setup_graph import (
     read_usr_by_key,
     read_get_body,
     setup_commit_errors,
+    usr_id_for_key,
 )
+from novel_mcp.setup_profile_rules import validate_profile_fields
 
 
-def validate_profile(name: str, gender: str) -> list[str]:
-    errors: list[str] = []
-    if not PROFILE_NAME_RE.match(name.strip()):
-        errors.append("name: must be 2-4 CJK characters")
-    if gender not in PROFILE_GENDERS:
-        errors.append("gender: must be 男 or 女")
-    return errors
+def _is_set(value: str | None) -> bool:
+    return bool(value) and value != SENTINEL
+
+
+def validate_profile(
+    session: str | None,
+    name: str,
+    gender: str,
+    *,
+    require_name: bool = True,
+    require_gender: bool = True,
+) -> list[str]:
+    return validate_profile_fields(
+        session,
+        name,
+        gender,
+        require_name=require_name,
+        require_gender=require_gender,
+    )
 
 
 def read_profile(session: str | None) -> dict[str, Any]:
     name = read_usr_by_key(session, "pc_name") or SENTINEL
     gender = read_usr_by_key(session, "pc_gender") or SENTINEL
-    errors = validate_profile(name, gender) if name != SENTINEL and gender != SENTINEL else []
-    complete = name != SENTINEL and gender != SENTINEL and not errors
+    name_set = _is_set(name)
+    gender_set = _is_set(gender)
+    errors: list[str] = []
+    if name_set:
+        errors.extend(
+            validate_profile(session, name, gender, require_name=True, require_gender=False)
+        )
+    if gender_set:
+        errors.extend(
+            validate_profile(session, name, gender, require_name=False, require_gender=True)
+        )
+    complete = name_set and gender_set and not errors
     return {
         "exit_code": 0,
         "name": name,
         "gender": gender,
+        "name_set": name_set,
+        "gender_set": gender_set,
         "complete": complete,
         "errors": errors,
     }
@@ -56,7 +82,32 @@ def commit_profile(
             "complete": False,
         }
 
-    errors = validate_profile(name, gender)
+    current = read_profile(session)
+    new_name = name.strip() if name and name.strip() else ""
+    new_gender = gender.strip() if gender and gender.strip() else ""
+    final_name = new_name if new_name else (current["name"] if current["name_set"] else SENTINEL)
+    final_gender = (
+        new_gender if new_gender else (current["gender"] if current["gender_set"] else SENTINEL)
+    )
+
+    if not new_name and not new_gender:
+        return {
+            "exit_code": 2,
+            "errors": ["provide name and/or gender"],
+            "name": None,
+            "gender": None,
+            "complete": False,
+        }
+
+    require_name = bool(new_name) or final_name != SENTINEL
+    require_gender = bool(new_gender) or final_gender != SENTINEL
+    errors = validate_profile(
+        session,
+        final_name,
+        final_gender,
+        require_name=require_name and _is_set(final_name),
+        require_gender=require_gender and _is_set(final_gender),
+    )
     if errors:
         return {
             "exit_code": 2,
@@ -66,42 +117,74 @@ def commit_profile(
             "complete": False,
         }
 
-    pid = plr_id or first_plr_id(session)
-    if not pid:
+    lines: list[str] = []
+    if new_name:
+        uid = usr_id_for_key(session, "pc_name")
+        if not uid:
+            return {
+                "exit_code": 2,
+                "errors": ["missing USR row for pc_name"],
+                "name": None,
+                "gender": None,
+                "complete": False,
+            }
+        lines.append(f"@USR: {uid}|pc_name|{final_name}|persistent")
+
+    if new_gender:
+        uid = usr_id_for_key(session, "pc_gender")
+        if not uid:
+            return {
+                "exit_code": 2,
+                "errors": ["missing USR row for pc_gender"],
+                "name": None,
+                "gender": None,
+                "complete": False,
+            }
+        lines.append(f"@USR: {uid}|pc_gender|{final_gender}|persistent")
+
+    if new_gender:
+        pid = plr_id or first_plr_id(session)
+        if not pid:
+            return {
+                "exit_code": 2,
+                "errors": ["no PLR row in graph"],
+                "name": None,
+                "gender": None,
+                "complete": False,
+            }
+        plr_body = read_get_body(session, pid)
+        if not plr_body:
+            return {
+                "exit_code": 2,
+                "errors": [f"PLR {pid} not found"],
+                "name": None,
+                "gender": None,
+                "complete": False,
+            }
+        parts = plr_body.split("|")
+        if len(parts) < 7:
+            return {
+                "exit_code": 2,
+                "errors": [f"PLR {pid} has fewer than 7 fields"],
+                "name": None,
+                "gender": None,
+                "complete": False,
+            }
+        merged_body = merge_plr_gender(parts[6], final_gender)
+        lines.append(
+            f"@PLR: {parts[0]}|{parts[1]}|{parts[2]}|{parts[3]}|"
+            f"{parts[4]}|{parts[5]}|{merged_body}"
+        )
+
+    if not lines:
         return {
             "exit_code": 2,
-            "errors": ["no PLR row in graph"],
+            "errors": ["nothing to commit"],
             "name": None,
             "gender": None,
             "complete": False,
         }
 
-    plr_body = read_get_body(session, pid)
-    if not plr_body:
-        return {
-            "exit_code": 2,
-            "errors": [f"PLR {pid} not found"],
-            "name": None,
-            "gender": None,
-            "complete": False,
-        }
-
-    parts = plr_body.split("|")
-    if len(parts) < 7:
-        return {
-            "exit_code": 2,
-            "errors": [f"PLR {pid} has fewer than 7 fields"],
-            "name": None,
-            "gender": None,
-            "complete": False,
-        }
-
-    merged_body = merge_plr_gender(parts[6], gender)
-    lines = [
-        f"@USR: USR03|pc_name|{name}|persistent",
-        f"@USR: USR53|pc_gender|{gender}|persistent",
-        f"@PLR: {parts[0]}|{parts[1]}|{parts[2]}|{parts[3]}|{parts[4]}|{parts[5]}|{merged_body}",
-    ]
     code, upd_err = graph_update(session, lines)
     if code != 0:
         return {

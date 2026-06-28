@@ -37,7 +37,7 @@ def _pipeline_kwargs(**overrides):
 def test_parse_warm_stdout_character_ages():
     warm = """\
 @SYS: SYS01|1|崇禎十年(1637)秋|0|0|25|1兩=825文銅
-@PLR: P01|流民乞丐|1627|0|0|技能|狀態
+@PLR: P01|流民|1627|0|0|技能|狀態
 @NPC: N01|沈芯|1625|女|0|土法|技能|物品|0|需小工|常駐
 @NPC: N02|沈蘭|1627|女|0|土法|技能|物品|0|需小工|常駐
 """

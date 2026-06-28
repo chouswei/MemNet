@@ -28,4 +28,4 @@ alwaysApply: false
 
 8. **MCP beat tools** (`script_beat_prepare`, `prose_beat_prepare`, `beat_turn_begin`, `beat_turn_finish`) are for **`cursor_beat.py` SDK agents** and automated tests — not the operator chat loop.
 
-9. Prerequisites before each beat: `memnet serve` running; `CURSOR_API_KEY` (or configured LLM key); session id in `novel-output/<slug>/session_id.txt`.
+9. Prerequisites before each beat: `memnet serve` running; `DEEPSEEK_API_KEY`; session id in `novel-output/<slug>/session_id.txt`.

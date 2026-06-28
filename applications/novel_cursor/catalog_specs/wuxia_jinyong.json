@@ -27,5 +27,84 @@
   "burn_usr_key": "art_neili_burn",
   "burn_usr_id": "USR49",
   "qinggong_wire_kind": "輕功",
-  "body_stat_labels": { "neigong": "內功", "martial": "武學", "qinggong": "輕功" }
+  "body_stat_labels": { "neigong": "內功", "martial": "武學", "qinggong": "輕功" },
+  "loadout": {
+    "slot_order": ["neigong", "martial", "qinggong"],
+    "opening_ranks": {
+      "neigong": "未入門",
+      "martial": "初学乍練",
+      "qinggong": "初学乍練"
+    },
+    "proficiency_rank": "初学乍練",
+    "proficiency_tag": "MWU",
+    "body_stat_tag": "WUX",
+    "proficiency_mastery": "1",
+    "body_stat_mastery": { "neigong": "0", "martial": "1", "qinggong": "1" },
+    "knows_relation": "soul_knows",
+    "has_proficiency_relation": "has_mwu",
+    "for_art_relation": "for_art",
+    "mobility_stat_slot": "qinggong",
+    "body_stat_ids": ["WUX01", "WUX02", "WUX03"],
+    "proficiency_id_template": "MWU{plr_suffix}0{index}",
+    "pre_pick_line_usr_key": "setup_god_line_library",
+    "opening_gift_usr_key": "setup_soul_library",
+    "extra_wire_lines": [
+      "@USR: USR48|primary_neigong|{plr}={art0}|persistent",
+      "@EDG: EP50|{plr}|primary_neigong|{art0}|{name0}主修|persistent",
+      "@USR: USR46|neigong_recover|{art0};{prof1};WUX01;半時辰一輪|persistent"
+    ]
+  },
+  "item_actions": {
+    "kind_source": ["name_rules", "prd"],
+    "name_rules": [
+      { "match": "書", "kind": "書籍" },
+      { "match": "藥", "kind": "藥品" },
+      { "match": "經", "kind": "秘笈" }
+    ],
+    "by_kind": {
+      "書籍": [{ "id": "read", "label": "閱讀", "template": "閱讀{name}" }],
+      "秘笈": [{ "id": "read", "label": "閱讀", "template": "研讀{name}" }],
+      "藥品": [{ "id": "use", "label": "使用", "template": "服用{name}" }]
+    },
+    "default": [{ "id": "use", "label": "使用", "template": "使用{name}" }]
+  },
+  "martial_actions": {
+    "default": [
+      { "id": "practice", "label": "修練", "template": "修練{name}" },
+      { "id": "use_scene", "label": "於當前場景使用", "template": "在當前場景使用{name}" }
+    ]
+  },
+  "production": {
+    "tec_tag": "TEC",
+    "prd_tag": "PRD",
+    "capacity_usr_key": "tec_lines_{tec_id}",
+    "relations": {
+      "produce": "produce",
+      "develop": "develop",
+      "belongs": "belongs",
+      "requires": "requires"
+    },
+    "installed_usr_key": "tec_installed_{tec_id}",
+    "asset_mode_by_tec": { "TEC01": "builtin" },
+    "prd_asset_links": {
+      "PRD03": { "tec_id": "TEC03", "itm_names": ["车床"] }
+    },
+    "status_locked": ["鎖定", "locked"],
+    "status_unlocked": ["已解鎖", "解鎖", "unlocked"],
+    "expandable_when_unlocked": true,
+    "action_templates": {
+      "build": { "label": "建造{name}", "template": "建造{name}" },
+      "produce": { "label": "生產{product}", "template": "生產{product}" },
+      "expand": { "label": "再蓋一座{asset}", "template": "再蓋一座{asset}" },
+      "upgrade": { "label": "建造{name}", "template": "建造{name}" },
+      "install": { "label": "安裝到產線", "template": "將{name}安裝到產線" }
+    },
+    "tec_overrides": {
+      "TEC01": {
+        "asset_label": "焦炭窯",
+        "build": { "label": "蓋焦炭窯", "template": "蓋焦炭窯" },
+        "expand": { "label": "再蓋一座焦炭窯", "template": "再蓋一座焦炭窯" }
+      }
+    }
+  }
 }

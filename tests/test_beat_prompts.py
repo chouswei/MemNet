@@ -38,7 +38,7 @@ def test_prose_user_includes_cast_block() -> None:
                 "age_hint": "P01:10歲；N01:12歲",
                 "npcs": [{"id": "N01", "name": "沈芯", "age": 12, "traits": "女、聰慧"}],
                 "plr_age": 10,
-                "plr_identity": "流民乞丐",
+                "plr_identity": "流民",
             }
         },
         "finish_params": {},

@@ -45,17 +45,26 @@ mcp = [
 novel-mcp = [
     "mcp>=1.2,<2",
 ]
+novel-mobile = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "mcp>=1.2,<2",
+]
 
 [project.scripts]
 memnet = "memnet.cli:main"
 memnet-mcp = "memnet_mcp.server:main"
 novel-mcp = "novel_mcp.server:main"
+novel-mobile = "novel_mobile.server:main"
 
 [tool.hatch.version]
 path = "src/memnet/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/memnet", "src/memnet_mcp", "src/novel_mcp"]
+packages = ["src/memnet", "src/memnet_mcp", "src/novel_mcp", "applications/novel_mobile"]
+
+[tool.hatch.build.targets.wheel.sources]
+"applications/novel_mobile" = "novel_mobile"
 
 [tool.hatch.build.targets.sdist]
 only-include = ["src/memnet", "src/memnet_mcp", "src/novel_mcp", "tests", "README.md", "LICENSE", "pyproject.toml"]

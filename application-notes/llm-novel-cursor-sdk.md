@@ -61,8 +61,8 @@ sequenceDiagram
 1. `pip install -e ".[mcp,novel-mcp]"`
 2. `pip install -r applications/novel_cursor/requirements.txt`
 3. `memnet serve` (`127.0.0.1:18765`)
-4. `$env:CURSOR_API_KEY`
-5. Cursor model: **kimi-k2.5**
+4. `$env:DEEPSEEK_API_KEY` ([DeepSeek platform](https://platform.deepseek.com))
+5. Models: `deepseek-v4-flash` (編劇 thinking on / 作者 off) — override via `instances/<slug>.json` or `LLM_MODEL_SCRIPT` / `LLM_MODEL_PROSE`
 
 ## Persistent SDK sessions
 
@@ -149,10 +149,12 @@ Do **not** repair old snapshots. Do **not** open a second MemNet session for the
 
 | `next_action` | Chat |
 |---------------|------|
-| `narrate_open` | 【神域】開場（USR64 例句） |
-| `commit_player_profile` | 玩家已給名+性別 → MCP commit |
-| `narrate_library` | 靈魂圖書館帶過（不可選） |
-| `pick_neigong` / `pick_martial` / `pick_qinggong` | 神域三幕 + catalog 選項 |
+| `narrate_open` | 【神域】開場（`setup_god_line_open`） |
+| `narrate_ask_name` | 詢問姓名（`setup_god_line_ask_name`）→ `commit_player_profile(name=…)` |
+| `narrate_ask_gender` | 詢問性別（`setup_god_line_ask_gender`）→ `commit_player_profile(gender=…)` |
+| `commit_player_profile` | 寫入 `pc_name`／`pc_gender`（可分批；規則見 `setup_profile_*`） |
+| `narrate_pre_pick` | 可選首槽前過場（實例 `loadout.pre_pick_line_usr_key` + 對應 seed USR，如神家 `setup_god_line_library`） |
+| `pick_neigong` / `pick_martial` / `pick_qinggong` | 神域三幕（`setup_scene_*`）+ **該槽隨機 5–9 項**（`setup_pick_offer_count` + `read_martial_catalog`） |
 | `commit_opening_pick` | 玩家選 ART → MCP commit |
 | `narrate_transmigration` | 魂穿收束 |
 | `start_play` | `--choice 1` 進匠坊【劇情】 |
@@ -166,7 +168,7 @@ Do **not** repair old snapshots. Do **not** open a second MemNet session for the
 | Plot drift | Script turn must honour `continuation_anchor` from chapter file |
 | Two sessions / desync | One bootstrap id everywhere; reload snapshot with `keep_id=true` |
 | Slow | Two SDK resumes per beat (~bridge startup); agents avoid full recreate |
-| `CURSOR_API_KEY` missing | Cursor dashboard → Integrations |
+| `DEEPSEEK_API_KEY` missing | Set env var from [DeepSeek platform](https://platform.deepseek.com) |
 
 ## Related
 

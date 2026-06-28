@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from typing import Any
 
 from app_config import NovelAppConfig, repo_root
@@ -135,6 +136,7 @@ def run_script_phase(
     prep: dict[str, Any],
     *,
     stream: bool = False,
+    on_phase: Callable[[str], None] | None = None,
 ) -> tuple[int, list[str]]:
     """oln → sbd → scr until USR23=prose (script chat thread)."""
     stage = read_beat_stage(session)
@@ -148,6 +150,8 @@ def run_script_phase(
     for st in _SCRIPT_STAGES[start:]:
         if read_beat_stage(session) == "prose":
             break
+        if on_phase and st in ("oln", "sbd", "scr"):
+            on_phase(st)
         code, errors = run_script_stage(
             config,
             session,
@@ -172,10 +176,14 @@ def run_prose_phase(
     prep: dict[str, Any],
     *,
     stream: bool = False,
+    on_phase: Callable[[str], None] | None = None,
 ) -> tuple[dict[str, Any] | None, int, list[str]]:
     """prose begin → threaded LLM JSON → finish (prose chat thread)."""
     if read_beat_stage(session) != "prose":
         return None, 2, ["beat_stage must be prose"]
+
+    if on_phase:
+        on_phase("prose")
 
     thread = _prose_thread(config)
     begin = prep.get("begin") or beat_turn_begin(session=session, include_warm=True)

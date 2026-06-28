@@ -53,6 +53,25 @@ def read_usr_by_key(session: str | None, key: str) -> str | None:
     return None
 
 
+def usr_id_for_key(session: str | None, key: str) -> str | None:
+    """Return @USR row id for a logical key (e.g. opening_offer_neigong)."""
+    if not session:
+        return None
+    resp = run_memnet(["read", "list", "--tag", "USR"], session=session)
+    if resp.exit_code != 0:
+        return None
+    for line in resp.stdout.splitlines():
+        parsed = _parse_wire_line(line)
+        if not parsed or parsed[0] != "USR":
+            continue
+        parts = parsed[1]
+        if _TAG_MAP_RE.match(line.strip()):
+            continue
+        if len(parts) >= 3 and parts[1] == key:
+            return parts[0]
+    return None
+
+
 def read_usr_record(session: str | None, usr_id: str) -> list[str] | None:
     body = read_get_body(session, usr_id)
     if not body:

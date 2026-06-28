@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.26] — 2026-06-29
+
+### Added
+- **`novel-mobile`** — LAN FastAPI + static SPA (`applications/novel_mobile/`): setup FSM, beat job polling, items/martial/production tabs; CLI `novel-mobile --app <id>`.
+- **`play_service.py`** — shared session preflight and `run_beat` for `cursor_beat` and HTTP server; `on_phase` hooks for job status.
+- **`player_sheet.py`** — generic inventory, martial stats, and production nodes from graph + `catalog_specs`.
+- **`setup_profile_rules.py`** — instance-driven profile validation rules.
+- **`catalog_specs`** — `item_actions`, `martial_actions`, `production` blocks in `wuxia_jinyong.json`.
+- **Tests** — `test_play_service`, `test_player_sheet`, `test_novel_mobile_api`, `test_setup_profile_rules`.
+
+### Changed
+- **`cursor_beat.py`** — thin wrapper over `play_service`; removed duplicate orchestration.
+- **`llm_client.py`** — DeepSeek-only chat completions (dropped multi-provider routing).
+- **`opening_loadout` / `player_setup` / `player_profile`** — generic catalog-driven setup; improved guidance and pick flow.
+- **`pyproject.toml`** — `[novel-mobile]` extra (`fastapi`, `uvicorn`); `novel-mobile` entry point.
+
+### Removed
+- **`agent_session.py`** — superseded by orchestrated `cursor_beat` pipeline.
+
 ## [0.2.25] — 2026-06-28
 
 ### Added
@@ -304,7 +323,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.25...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.26...HEAD
+[0.2.26]: https://github.com/chouswei/MemNet/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/chouswei/MemNet/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/chouswei/MemNet/compare/v0.2.23...v0.2.24
 [0.2.23]: https://github.com/chouswei/MemNet/compare/v0.2.22...v0.2.23
