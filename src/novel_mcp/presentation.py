@@ -4,7 +4,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from novel_mcp.knowledge_graph import format_knowledge_hud, parse_warm_knowledge
+from novel_mcp.character_gender import (
+    PLR_IDX_BODY,
+    PLR_IDX_GENDER,
+    normalise_npc_parts,
+    normalise_plr_parts,
+    npc_presentation_entry,
+    plr_gender,
+)
+from novel_mcp.entity_knowledge import (
+    build_knowledge_view,
+    format_knowledge_hud,
+    knowledge_meta,
+    merge_knowledge_index,
+    resolve_biz_display,
+    resolve_npc_display_name,
+)
 from novel_mcp.library_contracts import compile_library_contracts
 from novel_mcp.warm_index import WarmIndex, index_warm, laws_for_stage, usr_value
 from novel_mcp.warm_walk import curated_walk_lines
@@ -22,6 +37,10 @@ _TOKEN_GLOSS: dict[str, str] = {
     "opt_respect": "options must respect body state",
     "vit03_suspend": "unconscious: suspend player options",
     "no_permadeath": "no permadeath",
+    "inner_voice_modern": "「我」僅限內心獨白／自言自語；旁白禁句句「我」起首",
+    "sentence_rhythm": "句式起首多樣；禁連續三句同主語（尤其「我」「你」）起首",
+    "prose_from_script": "expand SCR shots only; no invented plot",
+    "readable_prose": "complete sentences; not outline bullets",
 }
 
 _USR_LABELS: dict[str, str] = {
@@ -53,7 +72,12 @@ def _stage_task(index: WarmIndex, stage: str) -> str:
     return f"Draft stage: {stage}"
 
 
-def _scene_snapshot(index: WarmIndex, pipeline: dict[str, Any]) -> dict[str, Any]:
+def _scene_snapshot(
+    index: WarmIndex,
+    pipeline: dict[str, Any],
+    *,
+    session: str | None = None,
+) -> dict[str, Any]:
     scene: dict[str, Any] = {
         "focus": pipeline.get("step_focus"),
         "beat_stage": pipeline.get("beat_stage", "oln"),
@@ -67,42 +91,44 @@ def _scene_snapshot(index: WarmIndex, pipeline: dict[str, Any]) -> dict[str, Any
     if pipeline.get("age_hint"):
         scene["age_hint"] = pipeline["age_hint"]
     ages = pipeline.get("character_ages") or {}
+    plr_id: str | None = None
+    know_idx = merge_knowledge_index(session) if session else {}
     if index.plr_rows:
-        parts = index.plr_rows[0]
+        parts = normalise_plr_parts(index.plr_rows[0])
         if len(parts) >= 7:
-            scene["plr_id"] = parts[0]
+            plr_id = parts[0]
+            scene["plr_id"] = plr_id
             scene["plr_identity"] = parts[1]
-            scene["plr_body"] = parts[6]
+            scene["plr_body"] = parts[PLR_IDX_BODY] if len(parts) > PLR_IDX_BODY else parts[6]
             pid = parts[0]
             if pid in ages:
                 scene["plr_age"] = ages[pid]
             if len(parts) >= 3 and str(parts[2]).isdigit():
                 scene["plr_birth_year"] = int(parts[2])
+            g = plr_gender(parts, usr_gender=usr_value(index, "pc_gender"))
+            if g and g != "未定":
+                scene["plr_gender"] = g
     npcs = []
-    for parts in index.npc_rows[:12]:
+    for raw in index.npc_rows[:12]:
+        parts = normalise_npc_parts(raw)
         if len(parts) >= 4:
-            nid = parts[0]
-            entry: dict[str, Any] = {
-                "id": nid,
-                "name": parts[1],
-                "traits": parts[3],
-            }
+            entry = npc_presentation_entry(raw)
+            nid = entry["id"]
             if len(parts) >= 3 and str(parts[2]).isdigit():
                 entry["birth_year"] = int(parts[2])
             if nid in ages:
                 entry["age"] = ages[nid]
+            entry["name"] = resolve_npc_display_name(
+                session, plr_id, parts, index=know_idx
+            )
+            entry.update(knowledge_meta(session, plr_id, nid, index=know_idx))
             npcs.append(entry)
     if npcs:
         scene["npcs"] = npcs
     if index.biz_rows:
         bparts = index.biz_rows[0]
         if len(bparts) >= 4:
-            scene["biz"] = {
-                "id": bparts[0],
-                "name": bparts[1],
-                "kind": bparts[2],
-                "location": bparts[3],
-            }
+            scene["biz"] = resolve_biz_display(session, plr_id, bparts, index=know_idx)
     if index.scn_rows:
         sparts = index.scn_rows[0]
         if len(sparts) >= 2:
@@ -184,6 +210,7 @@ def compile_presentation(
     *,
     warm_walk: str | None = None,
     walk_filter: str = "governs",
+    session: str | None = None,
 ) -> dict[str, Any]:
     """Build novel-agnostic presentation envelope from warm + pipeline."""
     index = index_warm(warm_stdout)
@@ -207,7 +234,7 @@ def compile_presentation(
         max_rows=12,
     )
 
-    knowledge_graph = parse_warm_knowledge(warm_stdout)
+    knowledge_graph = build_knowledge_view(warm_stdout, session=session)
     knowledge_hud = format_knowledge_hud(knowledge_graph)
 
     return {
@@ -216,7 +243,7 @@ def compile_presentation(
         "option_contracts": option_contracts,
         "library_contracts": library_contracts,
         "library_meta": library_meta,
-        "scene": _scene_snapshot(index, pipeline),
+        "scene": _scene_snapshot(index, pipeline, session=session),
         "walk_hops": walk_hops,
         "knowledge": {
             "hud": knowledge_hud,

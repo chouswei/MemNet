@@ -23,7 +23,22 @@ SETUP_PROFILE_NAME_RULE_KEY = "setup_profile_name_rule"
 SETUP_PROFILE_GENDERS_KEY = "setup_profile_genders"
 SETUP_PICK_OFFER_COUNT_KEY = "setup_pick_offer_count"
 SETUP_PICK_OFFER_SEED_KEY = "setup_pick_offer_seed"
-OPENING_CATALOG_MD_KEY = "martial_catalog_md"  # graph USR key; instance may rename in seed
+# Prefer skill_catalog_* in new seeds; martial_catalog_* = legacy 武俠 instances (沈家).
+SKILL_CATALOG_MD_KEY = "skill_catalog_md"
+SKILL_CATALOG_SESSION_KEY = "skill_catalog_session"
+OPENING_CATALOG_MD_KEY = "martial_catalog_md"  # legacy alias
+MARTIAL_CATALOG_SESSION_KEY = "martial_catalog_session"  # legacy alias
 OPENING_OFFER_EMPTY = "_"
 DEFAULT_PICK_OFFER_MIN = 5
 DEFAULT_PICK_OFFER_MAX = 9
+
+# Party panel — author/script sets via beat_turn_finish USR updates.
+PARTY_ROSTER_KEY = "party_roster"
+PARTY_UI_KEY = "party_ui"
+PARTY_UI_NOTE_KEY = "party_ui_note"
+
+# Directed affinity: `@EDG` with relation `aff_to`; scores in `attrs` (not a separate node tag).
+AFF_EDG_RELATION = "aff_to"
+AFF_DIMENSION_LABELS = ("親密度", "信任度", "敬重")
+AFF_SCORE_MIN = -100
+AFF_SCORE_MAX = 100

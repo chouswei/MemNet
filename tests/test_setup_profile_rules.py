@@ -51,7 +51,7 @@ def test_commit_profile_name_then_gender() -> None:
                     state[parts[1]] = parts[2]
         return 0, []
 
-    plr_body = "P01|流民|1627|0|0|靈魂圖書館登峰造極|氣血:6/6；性別:未定"
+    plr_body = "P01|流民|1627|未定|0|0|靈魂圖書館登峰造極|氣血:6/6"
 
     with (
         patch("novel_mcp.player_profile.read_usr_by_key", side_effect=read_usr),
@@ -68,3 +68,6 @@ def test_commit_profile_name_then_gender() -> None:
     assert out1["name_set"] is True
     assert out2["complete"] is True
     assert out2["gender_set"] is True
+    plr_updates = [ln for batch in updates for ln in batch if ln.startswith("@PLR:")]
+    assert plr_updates
+    assert "|男|" in plr_updates[-1]

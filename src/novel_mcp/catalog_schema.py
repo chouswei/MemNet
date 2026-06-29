@@ -321,7 +321,9 @@ class CatalogSchema:
             high_burn=str(data.get("high_burn", "2")),
             loadout=LoadoutConfig.from_dict(data.get("loadout")),
             item_actions=ItemActionsConfig.from_dict(data.get("item_actions")),
-            martial_actions=MartialActionsConfig.from_dict(data.get("martial_actions")),
+            martial_actions=MartialActionsConfig.from_dict(
+                data.get("martial_actions") or data.get("skill_actions")
+            ),
             production=ProductionConfig.from_dict(data.get("production")),
             business=BusinessConfig.from_dict(data.get("business")),
             ui=UiConfig.from_dict(data.get("ui")),

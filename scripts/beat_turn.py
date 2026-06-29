@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from novel_mcp.beat_pipeline import beat_turn_begin, beat_turn_finish
-from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
+from novel_mcp.constants import NOVEL_WARM_DEPTH, NOVEL_WARM_MAX_ROWS
 
 
 def main() -> None:
@@ -21,7 +21,7 @@ def main() -> None:
     begin = sub.add_parser("begin", help="Warm read + pipeline envelope")
     begin.add_argument("--session")
     begin.add_argument("--anchor", default="STEP01")
-    begin.add_argument("--depth", type=int, default=2)
+    begin.add_argument("--depth", type=int, default=NOVEL_WARM_DEPTH)
     begin.add_argument("--max-rows", type=int, default=NOVEL_WARM_MAX_ROWS)
 
     finish = sub.add_parser("finish", help="Atomic OLN + prose + persist + save")

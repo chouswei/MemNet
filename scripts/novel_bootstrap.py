@@ -71,6 +71,7 @@ def main() -> None:
                 "seed_lines": out.get("seed_lines"),
                 "catalog_lines": out.get("catalog_lines", 0),
                 "catalog_art_count": out.get("catalog_art_count"),
+                "catalog_session_id": out.get("catalog_session_id"),
                 "catalog_expand": out.get("catalog_expand"),
             },
             ensure_ascii=False,

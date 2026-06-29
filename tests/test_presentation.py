@@ -10,7 +10,7 @@ WUXIA_WARM = """\
 @USR: USR51|prose_warm|second person; wuxia voice|persistent
 @USR: USR23|beat_stage|oln|persistent
 @USR: USR99|stage_hint_oln|Draft OLN: mood, beats, dialogue skeleton|persistent
-@PLR: P01|vagrant|1627|0|0|skills|qi:6/6
+@PLR: P01|vagrant|1627|未定|0|0|skills|qi:6/6
 """
 
 RPG_WARM = """\
@@ -18,7 +18,7 @@ RPG_WARM = """\
 @USR: U01|beat_stage|scr|persistent
 @USR: U02|stage_hint_scr|Draft script from storyboard|persistent
 @USR: U03|prose_warm|third person limited|persistent
-@PLR: H01|student|2010|0|0|bag|tired
+@PLR: H01|student|2010|女|0|0|bag|tired
 """
 
 
@@ -45,8 +45,8 @@ def test_presentation_rpg_seed_different_contract():
 def test_scene_snapshot_npc_ages():
     warm = """\
 @SYS: SYS01|1|1637-09-01T06|0|0|25|fx
-@NPC: N01|沈芯|1625|女、聰慧|0|土法|sk|it|0|需小工|常駐
-@PLR: P01|流民|1627|0|0|魂穿|氣血:6/6
+@NPC: N01|沈芯|1625|女|美貌、滿臉炭灰|聰慧|沉穩簡約|匠戶孤女|0|土法|sk|it|0|需小工|常駐
+@PLR: P01|流民|1627|未定|0|0|魂穿|氣血:6/6
 """
     pres = compile_presentation(
         warm,
@@ -59,6 +59,9 @@ def test_scene_snapshot_npc_ages():
     scene = pres["scene"]
     assert scene["npcs"][0]["age"] == 12
     assert scene["npcs"][0]["birth_year"] == 1625
+    assert scene["npcs"][0]["appearance"] == "美貌、滿臉炭灰"
+    assert scene["npcs"][0]["voice"] == "沉穩簡約"
+    assert scene["npcs"][0]["traits"] == "匠戶孤女"
     assert scene["plr_age"] == 10
 
 

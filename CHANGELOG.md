@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.27] — 2026-06-29
+
+### Added
+- **`entity_knowledge`** — `@EDG` SSOT for holder acquaintance (`knows` / `knows_via` / `soul_knows`); depth-gated POV name masking (`name_visible`, `knowledge_depth`).
+- **`party_sheet`** — roster panel with EDG-gated NPC display names.
+- **`catalog_session`**, **`affinity_edges`**, **`character_gender`**, **`skill_catalog_keys`** — catalog merge, affinity edges, gender normalisation, martial key helpers.
+- **novel-mobile multi-world** — `world_registry`, `world_slot`, optional `auth`; split sheet modules; `scripts/novel_mobile_e2e.py`.
+- **Tests** — `test_entity_knowledge`, `test_party_sheet`, `test_catalog_session`, `test_world_slot`, `test_novel_mobile_auth`, `test_novel_mobile_ui`, and related coverage.
+
+### Changed
+- **`knowledge_graph`** — EDG-based view; legacy `@KNH` path deprecated (shim only).
+- **`presentation` / `beat_prompt`** — acquaintance masking in scene snapshot; prose POV layering (旁白「你」、內心才「我」); `LAW-NAME01` for EDG name reveal.
+- **`player_sheet` / `player_profile`** — `pc_name` display; catalog-session skill names.
+- **`novel_mobile` server** — per-world sessions, beat jobs, `expand_catalog` on world create; mobile UX fixes.
+- **`warm_supplement`** — stage-aware USR enrichment; opening loadout improvements.
+
 ## [0.2.26] — 2026-06-29
 
 ### Added
@@ -323,7 +339,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.26...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.27...HEAD
+[0.2.27]: https://github.com/chouswei/MemNet/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/chouswei/MemNet/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/chouswei/MemNet/compare/v0.2.24...v0.2.25
 [0.2.24]: https://github.com/chouswei/MemNet/compare/v0.2.23...v0.2.24

@@ -160,7 +160,7 @@ Examples (copy structure, invent content from presentation only):
 
 **WRONG:** `@OLN: SCN01|update|emotion_anchor|…` — never English field names, `update`, or SCN id as OLN id.
 
-LAW-NAME01: `@USR03` 未定時勿寫死主角姓名；NPC 名字僅用 presentation.scene / warm 圖中已有者。禁捏造圖外人物。"""
+LAW-NAME01: 敘事視角僅用 `presentation.scene` 中 `name_visible:true` 實體的 canonical 名。認識一律 `@EDG`：`holder|knows|entity`（直接）或 `knows_via`（間接）或 `soul_knows`；深度寫 attrs（未知→耳聞→初識→粗識→能述→能作→熟識）。無接線不得寫真名。初識後 `beat_turn_finish` 加邊。`unknows` 表否定能力。禁捏造圖外實體。"""
 
 _STAGE_EXAMPLE = {
     "oln": "@OLN: OLN01|1|情緒錨|情節要點|對白骨架|尾鉤|delete_on_settle",
@@ -318,15 +318,19 @@ Expand `@SCR` into player-facing novel text per presentation contracts.
 **Cast block**（`presentation.scene`）：NPC 歲數／特徵為硬性約束（LAW-CHR02/04/18），勿依常識改年齡。
 
 Rules:
-1. Prose: 白話武俠，繁體，~draft_target_chars (advisory). Expand **only** from SCR shots.
-2. Exactly **6** options — each a **single complete sentence** (LAW-PERS02):
+1. **POV（魂穿者語音分層 — 硬性）**
+   - **旁白／敘事／動作／環境**：第二人稱「**你**」（對應 `prose_warm` USR51）。**禁**把全文改成第一人稱。
+   - **內心獨白**（僅 SCR「內心旁白」欄位展開處）：可用「我」、台灣口語吐槽（USR24）；宜短、穿插其間，**不可**句句起首「我」。
+   - **句式**：起首多樣（環境／聲音／他人動作／「你」的感官）；**禁**連續三句以上同以「我」或「你」開頭（`sentence_rhythm`）。
+2. Prose: 白話武俠，繁體，~draft_target_chars (advisory). Expand **only** from SCR shots.
+3. Exactly **6** options — each a **single complete sentence** (LAW-PERS02):
    - Slots 1–4: narrative/trait axis; **no** comma verb chains（禁「去看、去問、再……」）
    - Slot 5: independent beat (pause / wait / think)
    - Slot 6: library query (意識圖書館)
    - End with 。！？；… where natural; ≥8 chars when possible
-3. `hud`: one-line pipe status bar.
-4. `update_lines` (optional): only valid MemNet wires. **Player name/gender/opening arts** are committed via setup MCP (`commit_player_profile` / `commit_opening_pick`) before the first beat — do not rename in beat finish unless steering explicitly retcons.
-5. Emit **only** fenced JSON below.
+4. `hud`: one-line pipe status bar.
+5. `update_lines` (optional): only valid MemNet wires. **Player name/gender/opening arts** are committed via setup MCP (`commit_player_profile` / `commit_opening_pick`) before the first beat — do not rename in beat finish unless steering explicitly retcons.
+6. Emit **only** fenced JSON below.
 
 Snapshot: `{snap}`
 

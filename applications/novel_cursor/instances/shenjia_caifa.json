@@ -4,7 +4,7 @@
   "title": "工匠傳奇",
   "model_script": "deepseek-v4-flash",
   "model_prose": "deepseek-v4-flash",
-  "thinking_script": true,
+  "thinking_script": false,
   "thinking_prose": false,
   "expand_catalog": true,
   "expand_catalog_target": 80,

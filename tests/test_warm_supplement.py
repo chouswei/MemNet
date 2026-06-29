@@ -86,3 +86,45 @@ def test_enrich_fetches_when_only_tag_map_def_present(monkeypatch) -> None:
     out = enrich_warm_stdout("mn_x", warm)
     assert "OLN" in calls
     assert "@OLN: OLN01|1|" in out
+
+
+def test_enrich_adds_aff_to_for_cast_in_warm(monkeypatch) -> None:
+    aff_line = "@EDG: EAFF01|P01|aff_to|N01||親密度:35;信任度:60;敬重:50;備註:姐弟|常駐"
+    other_edg = "@EDG: E99|B01|hiring|P01|待聘|失效刪"
+
+    def fake_run(argv, stdin=None, session=None):
+        if argv[:3] == ["read", "list", "--tag"]:
+            tag = argv[3]
+            if tag == "EDG":
+                return MemNetResponse(0, aff_line + "\n" + other_edg, "", session, [])
+            return MemNetResponse(0, "", "", session, [])
+        return MemNetResponse(2, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
+    warm = "@PLR: P01|流民|1627|0|0||\n@NPC: N01|沈芯|1625|聰慧|0||||0|常駐\n"
+    out = enrich_warm_stdout("mn_x", warm, beat_stage="prose")
+    assert aff_line in out
+    assert other_edg not in out
+
+
+def test_enrich_skips_aff_to_when_no_cast_ids(monkeypatch) -> None:
+    edg_calls = 0
+
+    def fake_run(argv, stdin=None, session=None):
+        nonlocal edg_calls
+        if argv[:3] == ["read", "list", "--tag"] and argv[3] == "EDG":
+            edg_calls += 1
+            return MemNetResponse(
+                0,
+                "@EDG: EAFF01|P01|aff_to|N01||親密度:35|常駐",
+                "",
+                session,
+                [],
+            )
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
+    warm = "@STEP: STEP01|1|SCN01|persistent\n"
+    out = enrich_warm_stdout("mn_x", warm)
+    assert edg_calls == 0
+    assert "aff_to" not in out

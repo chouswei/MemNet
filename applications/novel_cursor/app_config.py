@@ -47,6 +47,22 @@ class NovelAppConfig:
     catalog_schema: Path | None = None
 
     @property
+    def catalog_store_dir(self) -> Path | None:
+        if not self.catalog_schema:
+            return None
+        return repo_root() / "novel-output" / "catalogs" / self.catalog_schema.stem
+
+    @property
+    def catalog_session_id_file(self) -> Path | None:
+        store = self.catalog_store_dir
+        return store / "catalog_session_id.txt" if store else None
+
+    @property
+    def catalog_snapshot_file(self) -> Path | None:
+        store = self.catalog_store_dir
+        return store / "catalog_snap.json" if store else None
+
+    @property
     def script_agent_id_file(self) -> Path:
         return self.agents_dir / "script_agent_id.txt"
 

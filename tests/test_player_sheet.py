@@ -62,6 +62,42 @@ def test_read_player_sheet_items_and_arts(monkeypatch):
     assert sheet["body_stats"][0].get("actions")
 
 
+def test_read_skills_resolves_art_name_from_catalog_session(monkeypatch):
+    schema = _minimal_schema()
+    story_rows = {
+        "MWU": [["MWU01", "P01", "ART10", "初学乍練", "1"]],
+        "WUX": [],
+        "ART": [],
+    }
+    catalog_rows = {
+        "ART": [["ART10", "九陽神功", "內功", "絕頂", "2.00", "倚天", "回收"]],
+    }
+
+    def fake_list(session, tag):
+        if session == "mn_story":
+            return story_rows.get(tag, [])
+        if session == "mn_catalog":
+            return catalog_rows.get(tag, [])
+        return []
+
+    monkeypatch.setattr("novel_mcp.player_sheet.list_tag_data_rows", fake_list)
+    monkeypatch.setattr(
+        "novel_mcp.player_sheet.resolve_catalog_session_id",
+        lambda story, sch, **kw: "mn_catalog" if story == "mn_story" else None,
+    )
+    monkeypatch.setattr(
+        "novel_mcp.player_sheet._schema_path_for_session",
+        lambda session, **kw: None,
+    )
+
+    from novel_mcp.player_sheet import read_skills_for_owner
+
+    arts, _ = read_skills_for_owner("mn_story", "P01", schema)
+    assert len(arts) == 1
+    assert arts[0]["name"] == "九陽神功"
+    assert arts[0]["art_id"] == "ART10"
+
+
 def test_tec_status_not_unlocked_is_locked():
     from novel_mcp.player_sheet import _tec_status
 

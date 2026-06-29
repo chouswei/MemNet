@@ -49,6 +49,8 @@ novel-mobile = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "mcp>=1.2,<2",
+    "google-auth>=2.0",
+    "PyJWT>=2.8",
 ]
 
 [project.scripts]
@@ -72,6 +74,7 @@ only-include = ["src/memnet", "src/memnet_mcp", "src/novel_mcp", "tests", "READM
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+pythonpath = ["src", "applications", "applications/novel_cursor"]
 markers = [
     "scheme(id): integration scheme identifier from plan S01-S115",
 ]

@@ -8,9 +8,19 @@
 </head>
 <body>
   <div id="app">
+    <div id="auth-overlay" class="auth-overlay hidden" aria-hidden="true">
+      <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <h2 id="auth-title">登入</h2>
+        <p id="auth-subtitle">使用 Google 帳號登入以開始遊戲</p>
+        <div id="google-signin-btn"></div>
+        <p id="auth-error" class="auth-error hidden" role="alert"></p>
+      </div>
+    </div>
     <header>
-      <h1 id="app-title">載入中…</h1>
-      <button type="button" id="btn-restart-session" class="header-btn">重開 session</button>
+      <h1 id="app-title">工匠傳奇</h1>
+      <select id="world-select" class="header-btn hidden" aria-label="選擇世界"></select>
+      <button type="button" id="btn-new-world" class="header-btn hidden">新開世界</button>
+      <button type="button" id="btn-restart-session" class="header-btn">重開世界</button>
     </header>
     <div id="error-banner" class="hidden" role="alert">
       <span id="error-text"></span>
@@ -19,33 +29,78 @@
     <div id="loading-banner" class="hidden">
       <span id="loading-text">處理中…</span>
     </div>
-    <main>
-      <section id="narrative-block">
-        <div id="narrative"></div>
-        <div id="narrative-hud"></div>
+    <main id="app-main">
+      <section id="narrative-pane" aria-label="劇情">
+        <div id="narrative-block">
+          <div id="narrative"></div>
+          <div id="narrative-hud"></div>
+          <div id="narrative-options" class="hidden" aria-label="選項說明"></div>
+          <div id="narrative-party" class="hidden" aria-label="隊伍"></div>
+        </div>
       </section>
-      <div id="setup-actions" class="hidden"></div>
-      <nav id="tab-bar" class="hidden" role="tablist">
-        <button type="button" data-tab="items" role="tab" aria-selected="false">物品</button>
-        <button type="button" data-tab="arts" role="tab" aria-selected="false">武學</button>
-        <button type="button" data-tab="production" role="tab" aria-selected="false">產業</button>
-      </nav>
-      <div id="panel-items" class="panel hidden" role="tabpanel"></div>
-      <div id="panel-items-actions" class="sub-actions hidden"></div>
-      <div id="panel-arts" class="panel hidden" role="tabpanel"></div>
-      <div id="panel-arts-actions" class="sub-actions hidden"></div>
-      <div id="panel-production" class="panel hidden" role="tabpanel"></div>
-      <div id="panel-production-actions" class="sub-actions hidden"></div>
-      <section id="panel-text">
-        <textarea id="input-text" rows="3" placeholder="輸入指令…"></textarea>
-        <button type="button" id="btn-submit">送出</button>
+      <section id="system-pane" aria-label="操作">
+        <div id="setup-actions" class="hidden"></div>
+        <nav id="tab-bar" class="hidden" role="tablist" aria-label="開啟面板">
+          <button type="button" data-tab="items" role="tab" aria-selected="false">物品</button>
+          <button type="button" data-tab="skills" role="tab" aria-selected="false">技能</button>
+          <button type="button" data-tab="production" role="tab" aria-selected="false">產業</button>
+          <button type="button" data-tab="party" role="tab" aria-selected="false">隊伍</button>
+        </nav>
+        <section id="panel-choices" class="hidden"></section>
+        <section id="panel-text">
+          <textarea id="input-text" rows="2" placeholder="輸入指令…"></textarea>
+          <button type="button" id="btn-submit">送出</button>
+        </section>
       </section>
-      <section id="panel-choices" class="hidden"></section>
     </main>
+    <div id="items-overlay" class="sheet-overlay hidden" aria-hidden="true">
+      <button type="button" id="items-sheet-backdrop" class="sheet-backdrop" aria-label="關閉物品"></button>
+      <div class="sheet-window" role="dialog" aria-modal="true" aria-labelledby="items-sheet-title">
+        <header class="sheet-window-header">
+          <h2 id="items-sheet-title">物品</h2>
+          <button type="button" id="items-sheet-close" class="sheet-close-btn" aria-label="關閉">✕</button>
+        </header>
+        <div id="items-sheet-body" class="sheet-window-body">
+          <div id="items-panel" class="panel"></div>
+          <div id="items-actions" class="sub-actions hidden"></div>
+        </div>
+      </div>
+    </div>
+    <div id="skills-overlay" class="sheet-overlay hidden" aria-hidden="true">
+      <button type="button" id="skills-sheet-backdrop" class="sheet-backdrop" aria-label="關閉技能"></button>
+      <div class="sheet-window" role="dialog" aria-modal="true" aria-labelledby="skills-sheet-title">
+        <header class="sheet-window-header">
+          <h2 id="skills-sheet-title">技能</h2>
+          <button type="button" id="skills-sheet-close" class="sheet-close-btn" aria-label="關閉">✕</button>
+        </header>
+        <div id="skills-sheet-body" class="sheet-window-body">
+          <div id="skills-panel" class="panel"></div>
+          <div id="skills-actions" class="sub-actions hidden"></div>
+        </div>
+      </div>
+    </div>
+    <div id="production-overlay" class="sheet-overlay hidden" aria-hidden="true">
+      <button type="button" id="production-sheet-backdrop" class="sheet-backdrop" aria-label="關閉產業"></button>
+      <div class="sheet-window" role="dialog" aria-modal="true" aria-labelledby="production-sheet-title">
+        <header class="sheet-window-header">
+          <h2 id="production-sheet-title">產業</h2>
+          <button type="button" id="production-sheet-close" class="sheet-close-btn" aria-label="關閉">✕</button>
+        </header>
+        <div id="production-sheet-body" class="sheet-window-body">
+          <div id="production-panel" class="panel"></div>
+          <div id="production-actions" class="sub-actions hidden"></div>
+        </div>
+      </div>
+    </div>
   </div>
   <script defer src="/static/app.js"></script>
   <script defer src="/static/setup.js"></script>
   <script defer src="/static/play.js"></script>
+  <script defer src="/static/sheet_common.js"></script>
+  <script defer src="/static/sheet_items.js"></script>
+  <script defer src="/static/sheet_skills.js"></script>
+  <script defer src="/static/sheet_production.js"></script>
+  <script defer src="/static/sheet_party.js"></script>
   <script defer src="/static/sheet.js"></script>
 </body>
 </html>

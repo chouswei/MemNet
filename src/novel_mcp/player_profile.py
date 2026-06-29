@@ -5,10 +5,17 @@ from __future__ import annotations
 from typing import Any
 
 from novel_mcp.setup_constants import SENTINEL
+from novel_mcp.character_gender import (
+    PLR_FIELD_COUNT,
+    PLR_IDX_BODY,
+    PLR_IDX_GENDER,
+    format_plr_wire,
+    normalise_plr_parts,
+    strip_gender_from_body,
+)
 from novel_mcp.setup_graph import (
     first_plr_id,
     graph_update,
-    merge_plr_gender,
     read_usr_by_key,
     read_get_body,
     setup_commit_errors,
@@ -19,6 +26,14 @@ from novel_mcp.setup_profile_rules import validate_profile_fields
 
 def _is_set(value: str | None) -> bool:
     return bool(value) and value != SENTINEL
+
+
+def read_pc_display_name(session: str | None) -> str | None:
+    """Player-chosen name from USR pc_name; None when unset."""
+    name = read_usr_by_key(session, "pc_name")
+    if not _is_set(name):
+        return None
+    return str(name).strip()
 
 
 def validate_profile(
@@ -161,20 +176,18 @@ def commit_profile(
                 "gender": None,
                 "complete": False,
             }
-        parts = plr_body.split("|")
-        if len(parts) < 7:
+        parts = normalise_plr_parts(plr_body.split("|"))
+        if len(parts) < PLR_FIELD_COUNT:
             return {
                 "exit_code": 2,
-                "errors": [f"PLR {pid} has fewer than 7 fields"],
+                "errors": [f"PLR {pid} has fewer than {PLR_FIELD_COUNT} fields"],
                 "name": None,
                 "gender": None,
                 "complete": False,
             }
-        merged_body = merge_plr_gender(parts[6], final_gender)
-        lines.append(
-            f"@PLR: {parts[0]}|{parts[1]}|{parts[2]}|{parts[3]}|"
-            f"{parts[4]}|{parts[5]}|{merged_body}"
-        )
+        parts[PLR_IDX_GENDER] = final_gender
+        parts[PLR_IDX_BODY] = strip_gender_from_body(parts[PLR_IDX_BODY])
+        lines.append(format_plr_wire(parts))
 
     if not lines:
         return {

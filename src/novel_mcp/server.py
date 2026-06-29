@@ -19,7 +19,7 @@ except ImportError as exc:
 from novel_mcp.beat_pipeline import beat_turn_begin as do_beat_turn_begin
 from novel_mcp.beat_pipeline import beat_turn_finish as do_beat_turn_finish
 from novel_mcp.bootstrap import bootstrap_from_md
-from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
+from novel_mcp.constants import NOVEL_WARM_DEPTH, NOVEL_WARM_MAX_ROWS
 from novel_mcp.chapter_io import beat_prose_finalize as do_beat_prose_finalize
 from novel_mcp.chapter_io import chapter_prose_gate as do_chapter_prose_gate
 from novel_mcp.opening_loadout import (
@@ -44,7 +44,7 @@ mcp = FastMCP("novel-writer")
 async def beat_turn_begin(
     session: str | None = None,
     anchor: str = "STEP01",
-    depth: int = 2,
+    depth: int = NOVEL_WARM_DEPTH,
     max_rows: int = NOVEL_WARM_MAX_ROWS,
     include_warm: bool = False,
     since_modified: str | None = None,
@@ -231,7 +231,7 @@ async def commit_player_profile(
 
 @mcp.tool()
 async def read_martial_catalog(session: str | None = None) -> str:
-    """Read opening catalog slots (schema-driven; alias of read_opening_catalog)."""
+    """Read skill-catalog opening slots (武學／魔法等; schema-driven). Legacy name; prefer read_opening_catalog."""
     result = await anyio.to_thread.run_sync(
         lambda: do_read_martial_catalog(session=session)
     )
@@ -240,7 +240,7 @@ async def read_martial_catalog(session: str | None = None) -> str:
 
 @mcp.tool()
 async def read_opening_catalog(session: str | None = None) -> str:
-    """Read opening catalog slots and per-slot random offers from instance catalog."""
+    """Read skill-catalog opening slots and per-slot random offers (generic; sub-types from catalog_schema + seed)."""
     result = await anyio.to_thread.run_sync(
         lambda: do_read_martial_catalog(session=session)
     )

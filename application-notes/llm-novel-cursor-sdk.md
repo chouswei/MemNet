@@ -124,7 +124,7 @@ Not for operator chat play — use `cursor_beat.py` instead.
 | `player_beat_prepare` | Deprecated alias for script prepare |
 | `beat_turn_begin` / `beat_turn_finish` | Called by SDK agents inside `cursor_beat.py`, or CI/system tests |
 
-Warm reads use `max_rows=150` (`NOVEL_WARM_MAX_ROWS`) so truncated warm does not drop `USR21` prose advisory.
+Warm reads use `depth=3` (`NOVEL_WARM_DEPTH`) and `max_rows=150` (`NOVEL_WARM_MAX_ROWS`) so cast `aff_to` edges and mid-sequence `@USR` rows (e.g. `USR21` prose advisory) are not dropped.
 
 ## Chat contract
 
@@ -154,7 +154,9 @@ Do **not** repair old snapshots. Do **not** open a second MemNet session for the
 | `narrate_ask_gender` | 詢問性別（`setup_god_line_ask_gender`）→ `commit_player_profile(gender=…)` |
 | `commit_player_profile` | 寫入 `pc_name`／`pc_gender`（可分批；規則見 `setup_profile_*`） |
 | `narrate_pre_pick` | 可選首槽前過場（實例 `loadout.pre_pick_line_usr_key` + 對應 seed USR，如神家 `setup_god_line_library`） |
-| `pick_neigong` / `pick_martial` / `pick_qinggong` | 神域三幕（`setup_scene_*`）+ **該槽隨機 5–9 項**（`setup_pick_offer_count` + `read_martial_catalog`） |
+| `pick_neigong` / `pick_martial` / `pick_qinggong` | 神域三幕（`setup_scene_*`）+ **該槽隨機 5–9 項**（`setup_pick_offer_count` + `read_opening_catalog`；legacy MCP名 `read_martial_catalog`） |
+
+**Skill catalog (generic):** `@ART` rows live in a **catalog MemNet session** (`skill_catalog_session` USR; legacy `martial_catalog_session`). Sub-types (內功／武學／輕功 vs arcane／mobility) come from instance `catalog_specs/*.json`, not hard-coded Python. See `novel-seed-spec.md` §2.5.1.
 | `commit_opening_pick` | 玩家選 ART → MCP commit |
 | `narrate_transmigration` | 魂穿收束 |
 | `start_play` | `--choice 1` 進匠坊【劇情】 |

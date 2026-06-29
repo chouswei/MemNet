@@ -30,6 +30,8 @@ def test_load_instance_config() -> None:
     assert cfg.last_beat_file == repo_root() / "novel-output/shenjia_caifa/last_beat.json"
     assert cfg.agents_dir == repo_root() / "novel-output/shenjia_caifa/agents"
     assert cfg.script_agent_id_file.name == "script_agent_id.txt"
+    assert cfg.catalog_store_dir == repo_root() / "novel-output/catalogs/wuxia_jinyong"
+    assert cfg.catalog_session_id_file == cfg.catalog_store_dir / "catalog_session_id.txt"
 
 
 def test_load_from_seed_path() -> None:

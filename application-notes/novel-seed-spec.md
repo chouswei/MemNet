@@ -65,6 +65,7 @@ Use this **design order** before filling fences. Integrator notes come **last**;
 | Opening location / cast / industry hook | `@SCN` + `@USR\|opening_scene\|` + domain `@LAW` | Wire cast to SCN; wire BIZ/NPC to that LAW/USR via `features` |
 | Protagonist display name | `@USR03\|pc_name\|` only | `@PLR` 身份欄用**中性 placeholder**（如 `流民`、`待定`），勿預填玩家將輸入的姓名；`commit_player_profile` 寫 `pc_name` |
 | NPC identity + voice hints | `@NPC` traits + `@PRS`/`@PTY` | `SCN\|features\|NPC`; age via birth year + `USR25` |
+| Pairwise intimacy / trust / respect | `@EDG` `aff_to` (directed; scores in `attrs`) | Register `aff_to` in snapshot `# relations`; warm via graph from cast |
 | Industry state (debt, hiring) | `@BIZ` row + plot `@EDG` (`hiring`, `manages`) | `SCN\|features\|BIZ` if in opening beat |
 | Genre-specific validation (e.g. martial tiers) | `@USR\|catalog_schema\|` → `catalog_specs/*.json` | **Not** hard-coded in `novel_mcp`; loadout/slots in json `loadout` block |
 | How script should write OLN | `@LAW` + `stage_hint_oln` USR | Cite the USR/LAW ids in constraint tokens |
@@ -140,7 +141,7 @@ Until `SCN01` settles (`delete_on_settle`), every OLN/SBD/SCR must stay consiste
 | Source | What | Examples |
 |--------|------|----------|
 | **Player input** | Values only | `pc_name` / `pc_gender` committed via `commit_player_profile` (may be one field per call) |
-| **Player choice** | Picks from seed catalog | `commit_opening_pick` → `opening_arts` (USR58); ART ids from `@ART` + `catalog_schema` |
+| **Player choice** | Picks from seed skill catalog | `commit_opening_pick` → `opening_arts` (USR58); `@ART` ids from **catalog session** + `catalog_schema` |
 | **Seed `@USR`** | All narrated setup content | See table below |
 | **Instance json** | Shell paths, models, expand flags | `catalog_schema` path (bootstrap); genre loadout lives in **catalog_specs** json |
 | **novel_mcp** | Generic FSM only | `narrate_open` → `narrate_ask_name` → `narrate_ask_gender` → optional `narrate_pre_pick` → `pick_*` → `narrate_transmigration` → `start_play` |
@@ -164,14 +165,90 @@ Until `SCN01` settles (`delete_on_settle`), every OLN/SBD/SCR must stay consiste
 | `setup_soul_library` or any gift key | optional opening gift | Instance-only; `name;rank;no_pick` — wired via `loadout.opening_gift_usr_key` |
 | `setup_pick_offer_count` | `pick_*` | Per-slot random offer size, e.g. `5-9` (from full `@ART` pool for that slot) |
 | `opening_offer_{slot}` | runtime | Rolled ART ids (`;`-sep); seed `_` until first pick phase |
-| `martial_catalog_md` (or renamed key) | picks | Path to expandable `@ART` fence md |
-| `catalog_schema` | picks | Path to `catalog_specs/*.json` |
+| `skill_catalog_md` | picks | Path to expandable skill-catalog seed md (`@ART` fence). **Legacy key:** `martial_catalog_md` (沈家) |
+| `skill_catalog_session` | runtime | `mn_…` background catalog session id (bootstrap writes). **Legacy:** `martial_catalog_session` |
+| `party_roster` | runtime | `;`-sep character ids (`P01;N01`); default = protagonist only |
+| `party_ui` | runtime | Comma sections for party overlay: `items`, `skills`, `attrs`, `summary`, `relations` (author/script via `beat_turn_finish`) |
+| `party_ui_note` | runtime | Free text shown atop party panel |
 
-**Slot keys:** Internal slot names (`neigong`, `martial`, `arcane`, …) come from `catalog_specs/*.json` → `loadout.slot_order`. Seed USR **keys** follow `setup_scene_{slot}` and `opening_offer_{slot}`; story labels live in seed values or `body_stat_labels` in json — not in `novel_mcp`.
+**Slot keys:** Internal slot ids (`neigong`, `martial`, `arcane`, `mobility`, …) come from `catalog_specs/*.json` → `loadout.slot_order`. Seed USR **keys** follow `setup_scene_{slot}` and `opening_offer_{slot}`; **player-facing labels** live in seed values or `body_stat_labels` in json — not in `novel_mcp`.
+
+### 2.5.1 Skill catalog (generic — 武學／魔法／異能)
+
+**Principle:** `novel_mcp` treats one `@ART` row as one **skill** entry. Genre flavour (金庸武學、奇幻魔法、科幻異能) is **not** hard-coded in Python — it comes from:
+
+| Layer | Owns |
+|-------|------|
+| **`catalog_specs/*.json`** | Wire columns, `valid_kinds`, `kind_to_slot`, `slot_order`, `body_stat_labels`, `min_slots`, expand rules |
+| **Skill-catalog seed md** | `@ART` rows (background data); ingested into a **dedicated catalog MemNet session** |
+| **Story seed md** | `setup_scene_{slot}` copy, `opening_scene`, plot — **not** the full skill table |
+| **Story session graph** | Player picks (`opening_arts`), proficiency edges (`MWU` / schema `proficiency_tag`), body stats (`WUX` / `body_stat_tag`) |
+
+```mermaid
+flowchart LR
+  subgraph catalog_sess [Catalog session mn_cat]
+    ART["@ART skill rows"]
+  end
+  subgraph story_sess [Story session mn_story]
+    PICK[opening_arts / MWU / EDG]
+    PLAY[SCN NPC beat FSM]
+  end
+  SPEC[catalog_schema.json] --> catalog_sess
+  SPEC --> story_sess
+  catalog_sess -->|read list / get| PickUI[setup pick / sheet / lib_query]
+  PickUI --> PICK
+```
+
+**沈家 instance (武俠):** `wuxia_jinyong.json` maps 內功→`neigong` slot, 武學→`martial`, 輕功→`qinggong`; seed `setup_scene_neigong` 等 holds 【神域】場景文案. **Fantasy instance:** same machinery with `arcane`/`mobility` kinds and English labels — see `tests/fixtures/catalog_schema_fantasy.json`.
+
+**Bootstrap:** `ensure_catalog_session` → `novel-output/catalogs/<schema_stem>/catalog_session_id.txt` (shared per schema); story bootstrap links `skill_catalog_session` USR. Do **not** ingest the full `@ART` table into the story session.
+
+**Anti-pattern:** Python or prompts that say「內功／武學／輕功」unconditionally; slot count loops hard-coded to wuxia triple — use `slot_order(schema)` and `catalog_slots`.
 
 Wire each setup USR with `STEP01|governs|USR*` (and `setup_tone` USR — e.g. `USR63` — `|governs|` every `setup_god_line_*` it should colour, including optional `narrate_pre_pick`). Chat agent reads `read_player_setup` → `setup_guidance.suggested_lines` / `scene` / `tone` — **never** invent copy from integrator notes or shell docs.
 
 **Anti-pattern:** Shenjia god-banter in `beat_prompt.py` or `novel-writer.mdc`; another story's shrine awakening in shared Python.
+
+### 2.5.2 Character affinity (`aff_to` on `@EDG`)
+
+**Principle:** Node-to-node feelings are **`@EDG`**, not a fake node tag with `甲|乙` columns (violates MemNet graph discipline: relations belong on `@EDG`, not duplicated in node fields). **`@TRT` / `@PRS`** stay per-character nodes linked by `has_trait` / `persona`. **Directed** scores (親密度、信任度、敬重…) live on edges:
+
+```text
+@EDG: EAFF01|P01|aff_to|N01||親密度:35;信任度:60;敬重:50;備註:姐弟日久|常駐
+@EDG: EAFF04|N01|aff_to|P01||親密度:40;信任度:70;敬重:55;備註:依賴姐姐|常駐
+@EDG: EAFF10|P01|aff_to|N99||親密度:-40;信任度:-80;敬重:-60;備註:世仇未解|常駐
+@EDG: EAFF11|N99|aff_to|P01||親密度:15;信任度:25;敬重:0;備註:不識此人|常駐
+```
+
+| Layer | Owns |
+|-------|------|
+| **Snapshot `# relations`** | Register ASCII relation `aff_to` (display 親和 in narrative) |
+| **Seed `@EDG` rows** | `src|aff_to|dist` + `attrs` kv (`親密度` / `信任度` / `敬重` / `備註`) |
+| **Instance USR / LAW** | Dimension names, scale −100…+100, when updates allowed |
+| **`novel_mcp`** | `read_directed_affinity()` parses `attrs`; party UI |
+| **Script / author** | `beat_turn_finish` → `update @EDG` on the one directed edge |
+
+**Asymmetric (directed) pairs — required discipline:**
+
+- One `@EDG` = **one direction** (`甲|aff_to|乙`). Reverse direction is a **second edge** with its own `attrs`.
+- **Never** mirror or infer reverse scores. A 敵視 B does **not** imply B 敵視 A.
+- Updates patch **one edge's `attrs`**; other direction untouched unless explicitly updated.
+
+**Scale:** Signed integers in `attrs` (default **−100…+100** per dimension).
+
+| Sign | 親密度 | 信任度 | 敬重 |
+|------|--------|--------|------|
+| **+** | 親近、好感 | 信賴 | 敬重 |
+| **0** | 陌生／無感 | 中立 | 無特別態度 |
+| **−** | 厭惡、敵意 | 猜疑、不信 | 輕蔑、不屑 |
+
+**Warm:** `STEP01 → SCN → cast` then **one more hop** for `aff_to` attrs — use **`NOVEL_WARM_DEPTH=3`** in `beat_turn_begin`. If LAW/`governs` flood truncates warm, **`novel_mcp` `enrich_warm_stdout`** merges missing `aff_to` edges whose `src` or `dist` is a `@PLR`/`@NPC` id already in warm. No `STEP01|governs|AFF*` — that was the wrong pattern.
+
+**Party UI:** When `party_ui` includes `relations`, panel shows **two independent directed blocks**: `plr`→member and member→`plr`.
+
+**Not `@BOND`:** Beat-level `@BOND` atoms are per-beat deltas; persistent scores stay on `aff_to` edges.
+
+**Anti-pattern:** `@AFF` node rows duplicating `src|dst` — use `@EDG` only.
 
 ### 2.6 God-realm vs play (two phases)
 
@@ -185,11 +262,13 @@ Setup USRs and `opening_scene` are **play gates**, not substitutes for `SCN`/`BI
 ### 2.7 LAW budget and warm reachability
 
 - Every `@LAW` row prepends to warm → keep domain LAWs **short** (codes in `constraint`).
+- **`beat_turn_begin`** uses `depth=3` (`NOVEL_WARM_DEPTH`) so `STEP01 → SCN → PLR/NPC → aff_to` fits in one BFS pass.
 - **Reachability checklist** for beat 0 (after bootstrap, before first `--choice`):
   - `presentation.scene.focus` = opening SCN id
   - `presentation.scene.npcs` populated (enrich or warm)
   - `presentation.scene.biz` / `scn_code` if industry opening
   - `presentation.contracts` includes `opening_scene` USR and your opening OLN LAW (e.g. `LAW-OLN01`)
+  - Warm or enrich includes `aff_to` `@EDG` rows for opening cast (audit: `aff_to` in `warm_stdout`)
   - No `@OLN` rows in seed (script creates them)
 
 ### 2.8 Instance json vs seed md vs catalog_specs
@@ -261,7 +340,8 @@ flowchart LR
 
 **Seed / instance implications:**
 
-1. **One story instance → one session** — bootstrap once per new game (`session open` + seed `add`). Do not open a second session for “novel layer” vs “memnet layer”.
+1. **One story instance → one play session** — bootstrap once per new game (`session open` + seed `add`).
+1b. **One catalog schema → one catalog session** (optional, shared) — skill background `@ART` for lookup; link via `skill_catalog_session` USR.
 2. **Tag map is session-scoped** — set at `session open`. Two different seeds with incompatible tag maps must **not** share one session.
 3. **Paths in graph** — `@USR14` / `@USR15` live in the session; any consumer with the session id resolves the same chapter dir and snapshot.
 4. **Multiple apps on one serve** — different stories = different session ids on the **same** `memnet serve` process (e.g. `mn_abc` vs `mn_def`). Same serve, many sessions.
@@ -308,7 +388,7 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 | `USR03` | `@USR` | `pc_name` — use `未定` until `commit_player_profile` |
 | `USR53` | `@USR` | `pc_gender` — `男`/`女`/`未定` |
 | `USR58` | `@USR` | `opening_arts` — `;`-separated ART ids, count = `loadout.slot_order` length; use `未定` per slot until picks |
-| `USR67` | `@USR` | opening catalog md path (convention key `martial_catalog_md`) |
+| `USR67` | `@USR` | `skill_catalog_md` — path to skill-catalog seed md (**legacy:** `martial_catalog_md`) |
 | `USR69` | `@USR` | `catalog_schema` — repo-relative path to `catalog_specs/*.json` |
 | `USR70` | `@USR` | `opening_scene` — beat-0 facts + ban list; cite from opening OLN LAW |
 | `USR14` | `@USR` | `chapter_out` — relative path to chapter dir |
@@ -342,6 +422,7 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 | `E*` scene wiring | `@EDG` | `SCN|features|PLR/NPC/BIZ/…` for everyone in opening beat |
 | `E*` | `@EDG` | `SCN|set_in|SYS01` |
 | Opening NPCs | `@NPC` | Names, birth years, traits — **SSOT for cast** |
+| Key `aff_to` edges | `@EDG` | Directed intimacy/trust between cast (`attrs` kv) |
 
 **Do not seed at opening:** `@OLN`, `@SBD`, `@SCR`, `@OPT` (created per beat by script agent + finish).
 
@@ -361,6 +442,18 @@ If the seed introduces **new `@EDG.relation` verbs** (e.g. `unknows`, `speaks`, 
 - Long lore → multiple `@LORE` / `@NPC.特徵` / `@GLO` rows + `@EDG`, not one blob.
 - Player-facing prose is generated at **prose stage** from `@SCR`, not stored in seed fields.
 
+### 6.1.1 Owner column vs `@EDG` (denormalized index)
+
+Tags such as `@ITM` (`角色`), `@SKL`/`@MWU` (`角色`), `@PRS` (`角色`) may carry an owner id **for list/read convenience**. **Authoritative graph links** are `@EDG` (`carries`, `has_skill`, `has_mwu`, `persona`, …). On `beat_turn_finish`, update **both** the edge and the owner field, or drop the field and rely on edges only.
+
+`@NPC.技能` / `@NPC.物品` are **HUD summaries** for warm readability — mechanical SSOT remains `SKL`+`has_skill`, `ITM`+`carries`. Do not change summary text without updating the atom rows.
+
+### 6.1.2 Kinship vs affect
+
+- **Plot / kinship** edges (`sibling`, `manages`, …) = structural facts.
+- **`aff_to`** = directed affective scores (may be asymmetric and signed). Do not encode the same story only in one of the two.
+- **`aff_to` 備註** = emotional context only (e.g. 主雇、初識). **Do not** put kinship terms (姐弟/妹妹) that assume player gender — use `@EDG sibling` + `@PLR`/`@NPC.性別` for称呼/structure.
+
 ### 6.2 Recycle (persistence)
 
 | Value | Meaning | Seed usage |
@@ -378,6 +471,9 @@ If the seed introduces **new `@EDG.relation` verbs** (e.g. `unknows`, `speaks`, 
 | Protagonist display name | `@USR03\|pc_name\|` only — `未定` until `commit_player_profile` |
 | PLR 身份欄 | Neutral role placeholder (e.g. `流民`); **not** the player-chosen name |
 | NPC names | `@NPC` rows + `SCN\|features` edges |
+| **Protagonist gender** | `@PLR.性別` (field 4) + `@USR53\|pc_gender\|` — setup writes both; `身體狀態` must **not** embed `性別:` |
+| **NPC gender** | `@NPC.性別` (field 4 after `出生年`) — `男`/`女` |
+| **NPC persona** | `@NPC.外觀` / `.性格` / `.語氣` / `.特徵` — appearance, personality, speech tone, identity/social tags (fields 5–8); `@PRS`/`@PTY` remain mechanical baselines |
 | LAW text | **Never** embed specific character names or ids |
 | Prompt shells (`beat_prompt.py`) | **Never** hard-code story NPCs; read `presentation.scene` |
 
@@ -411,8 +507,9 @@ If the seed introduces **new `@EDG.relation` verbs** (e.g. `unknows`, `speaks`, 
 | `scene_length` | Prose band or `no_gate` |
 | `stage_hint_*` | Per-stage task text for presentation |
 | `opening_scene` | Beat-0 location/cast contract (`USR70` pattern) |
-| `catalog_schema` | Path to genre validation json |
-| `martial_catalog_md` | Path to expandable catalog md (key name may differ per instance) |
+| `catalog_schema` | Path to genre validation json (skill sub-types) |
+| `skill_catalog_md` | Path to expandable skill-catalog md (`@ART`). Legacy: `martial_catalog_md` |
+| `skill_catalog_session` | Linked catalog MemNet session id. Legacy: `martial_catalog_session` |
 
 Projects may add USRs; wire each with `STEP01|governs|USRxx` or they will not enter warm.
 
@@ -506,6 +603,7 @@ Before first `cursor_beat.py` beat:
 - [ ] New relations registered for snapshot load
 - [ ] `python scripts/novel_bootstrap.py <seed.md>` exit 0
 - [ ] `beat_turn_begin` presentation has `scene.npcs` ages if CHR LAWs require it
+- [ ] `warm_stdout` (or enrich) contains `aff_to` for opening cast — depth 3 default
 - [ ] `setup_complete` via `read_player_setup` before first `--choice`
 - [ ] Same `session_id` used for memnet-mcp + novel-mcp + `cursor_beat` (no parallel session for “novel only”)
 - [ ] Snapshot `# relations` complete if using custom EDG verbs (portable `session_load`)
@@ -529,6 +627,8 @@ Before first `cursor_beat.py` beat:
 | Second `session open` for novel play | Forked graph; chat vs beat desync | One bootstrap session; pass id everywhere |
 | `query warm` + `beat_turn_begin` same turn | Stale / double read | Use `beat_turn_begin` only for beat read |
 | `session_id.txt` treated as graph | Resume fails; wrong SSOT | Load snapshot into **serve**; txt is pointer only |
+| Only `@NPC` skill/item summary changed | Drift vs `SKL`/`ITM` graph | Update atom rows + `has_skill`/`carries` EDGs |
+| `aff_to` missing from warm at depth 2 | Script invents relationship tone | Use depth 3 + `enrich_warm_stdout` aff_to merge |
 
 ---
 

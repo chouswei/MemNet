@@ -1,25 +1,26 @@
-"""Tests for NPC/PLR knowledge graph parsing."""
+"""Tests for EDG-based knowledge view (replaces legacy @KNH)."""
 
 from __future__ import annotations
 
-from novel_mcp.knowledge_graph import (
+from novel_mcp.entity_knowledge import (
+    build_knowledge_view,
     can_speak_about,
+    entity_refs_missing_from_warm,
     format_knowledge_hud,
-    knw_refs_missing_from_warm,
     knowledge_gate_hint,
-    merge_warm_knw_lines,
+    merge_warm_catalog_lines,
     parse_warm_knowledge,
 )
 
 WARM = """\
 @KNW: KNW01|焦炭製作|冶金|1637|常駐
 @KNW: KNW03|欠債結繩賒炭|坊務|any|常駐
-@KNH: KNH10|P01|KNW01|耳聞|7|圖書館|常駐
-@KNH: KNH11|P01|KNW03|能述|6|親歷|常駐
-@KNH: KNH01|N01|KNW03|能述|0|親歷|常駐
-@KNH: KNH07|N02|KNW06|耳聞|0|聽聞|常駐
-@PLR: P01|北見硝|1627|0|0|靈魂圖書館登峰|氣血:7/10
-@NPC: N01|沈芯|1625|女、聰慧|0|土法|打鐵:略有小成|鐵鉗:1|0|需小工|常駐
+@EDG: EK10|P01|knows_via|KNW01||耳聞|圖書館|persistent
+@EDG: EK11|P01|knows|KNW03||能述|親歷|persistent
+@EDG: EK01|N01|knows|KNW03||能述|親歷|persistent
+@EDG: EK07|N02|knows_via|KNW06||耳聞|聽聞|persistent
+@PLR: P01|北見硝|1627|男|0|0|靈魂圖書館登峰|氣血:7/10
+@NPC: N01|沈芯|1625|女|美貌|聰慧|沉穩簡約|匠戶孤女|0|土法|打鐵:略有小成|鐵鉗:1|0|需小工|常駐
 """
 
 
@@ -29,6 +30,7 @@ def test_parse_warm_knowledge():
     assert "P01" in g["by_holder"]
     assert g["by_holder"]["P01"][0]["名稱"] == "焦炭製作"
     assert g["by_holder"]["P01"][0]["深度"] == "耳聞"
+    assert g["by_holder"]["P01"][0]["relation"] == "knows_via"
 
 
 def test_can_speak_about():
@@ -43,24 +45,24 @@ def test_knowledge_gate_hint():
     assert knowledge_gate_hint("N01", "欠債結繩賒炭", g) is None
 
 
-def test_knw_refs_missing_from_warm():
+def test_entity_refs_missing_from_warm():
     warm = """\
-@KNH: KNH01|N01|KNW04|能作|0|親歷|常駐
+@EDG: EK01|N01|knows|KNW04||能作|親歷|persistent
 @KNW: KNW03|欠債|坊務|any|—|常駐
 """
-    assert knw_refs_missing_from_warm(warm) == ["KNW04"]
+    assert entity_refs_missing_from_warm(warm) == ["KNW04"]
 
 
-def test_merge_warm_knw_lines():
-    warm = "@KNH: KNH01|N01|KNW04|能作|0|親歷|常駐\n"
+def test_merge_warm_catalog_lines():
+    warm = "@EDG: EK01|N01|knows|KNW04||能作|親歷|persistent\n"
     extra = "@KNW: KNW04|西堆防潮|工藝|any|常駐\n"
-    merged = merge_warm_knw_lines(warm, extra)
+    merged = merge_warm_catalog_lines(warm, extra)
     g = parse_warm_knowledge(merged)
     assert g["by_holder"]["N01"][0]["名稱"] == "西堆防潮"
 
 
 def test_format_knowledge_hud():
-    g = parse_warm_knowledge(WARM)
+    g = build_knowledge_view(WARM)
     hud = format_knowledge_hud(g, holders=["P01", "N01", "N02"])
     assert "北見硝" in hud
     assert "焦炭製作" not in hud  # 耳聞 < 粗識 default

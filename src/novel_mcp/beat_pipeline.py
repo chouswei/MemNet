@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from memnet_mcp.client import MemNetResponse, run_memnet
+from novel_mcp.character_gender import normalise_plr_parts, plr_body_index
 from novel_mcp.presentation import compile_presentation
 from novel_mcp.session_contract import session_contract_block
 from novel_mcp.session_meta import fetch_session_modified
@@ -24,7 +25,7 @@ from novel_mcp.time_display import format_time_display
 from novel_mcp.paths import workspace_root as resolve_workspace_root
 from novel_mcp.warm_index import index_warm, pipeline_no_bundle
 from novel_mcp.warm_supplement import enrich_warm_stdout
-from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
+from novel_mcp.constants import NOVEL_WARM_DEPTH, NOVEL_WARM_MAX_ROWS
 from novel_mcp.zh_text import parse_scene_band, prose_status
 
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
@@ -311,10 +312,10 @@ def _sys_year_from_rows(rows: dict[str, list[str]]) -> int | None:
 def _plr_qi_zero_collapsed(rows: dict[str, list[str]]) -> bool:
     """True when PLR body state is unconscious (LAW-VIT03 auto_beat, no options)."""
     for body in rows.get("PLR", []):
-        parts = body.split("|")
+        parts = normalise_plr_parts(body.split("|"))
         if len(parts) < 7:
             continue
-        state = parts[6]
+        state = parts[plr_body_index(parts)]
         if "昏厥:是" in state or _QI_ZERO_RE.search(state):
             return True
     return False
@@ -476,9 +477,9 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
         pipeline["no_options"] = True
 
     for body in rows.get("PLR", []):
-        parts = body.split("|")
+        parts = normalise_plr_parts(body.split("|"))
         if len(parts) >= 7:
-            pipeline["plr_body"] = parts[6]
+            pipeline["plr_body"] = parts[plr_body_index(parts)]
             break
 
     pipeline["pipeline_no_bundle"] = pipeline_no_bundle(index_warm(stdout))
@@ -633,7 +634,7 @@ def beat_turn_begin(
     *,
     session: str | None,
     anchor: str = "STEP01",
-    depth: int = 2,
+    depth: int = NOVEL_WARM_DEPTH,
     max_rows: int = NOVEL_WARM_MAX_ROWS,
     include_warm: bool = False,
     since_modified: str | None = None,
@@ -693,6 +694,7 @@ def beat_turn_begin(
         pipeline,
         warm_walk=warm_walk or None,
         walk_filter=walk_filter,
+        session=session,
     )
     warnings: list[str] = []
     if since_modified and read_modified and since_modified != read_modified:

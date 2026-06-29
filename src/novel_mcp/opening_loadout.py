@@ -20,6 +20,16 @@ from novel_mcp.catalog_schema import (
     slot_label,
     slot_order,
 )
+from novel_mcp.catalog_session import resolve_catalog_session_id
+from novel_mcp.character_gender import (
+    PLR_FIELD_COUNT,
+    PLR_IDX_BODY,
+    PLR_IDX_CORE,
+    format_plr_wire,
+    normalise_plr_parts,
+)
+from novel_mcp.paths import workspace_root
+from novel_mcp.skill_catalog_keys import read_skill_catalog_md_rel
 from novel_mcp.setup_constants import (
     DEFAULT_PICK_OFFER_MAX,
     DEFAULT_PICK_OFFER_MIN,
@@ -95,13 +105,40 @@ def arts_from_session(
     return arts
 
 
+def _schema_path_for_session(
+    session: str | None,
+    *,
+    workspace_root_path: str | None = None,
+) -> Path | None:
+    if not session:
+        return None
+    rel = read_usr_by_key(session, "catalog_schema")
+    if not rel or rel in (SENTINEL, "_"):
+        return None
+    root = workspace_root(workspace_root_path)
+    path = root / rel.replace("\\", "/")
+    return path if path.is_file() else None
+
+
 def _load_catalog_arts(
     session: str | None,
     schema: CatalogSchema,
     *,
     workspace_root_path: str | None = None,
 ) -> tuple[list[dict[str, str]], str | None, list[str]]:
-    rel = read_usr_by_key(session, OPENING_CATALOG_MD_KEY) if session else None
+    rel = read_skill_catalog_md_rel(session) if session else None
+    schema_path = _schema_path_for_session(session, workspace_root_path=workspace_root_path)
+    catalog_sid = resolve_catalog_session_id(
+        session,
+        schema,
+        schema_path=schema_path,
+        workspace_root_path=workspace_root_path,
+    )
+    if catalog_sid:
+        catalog_arts = arts_from_session(catalog_sid, schema)
+        if catalog_arts:
+            return catalog_arts, rel, []
+
     graph_arts = arts_from_session(session, schema)
     if graph_arts:
         return graph_arts, rel, []
@@ -430,7 +467,19 @@ def read_opening_catalog(
             "slots": {},
             "source": "none",
         }
-    on_graph = bool(session and arts_from_session(session, schema))
+    schema_path = _schema_path_for_session(session, workspace_root_path=workspace_root_path)
+    catalog_sid = resolve_catalog_session_id(
+        session,
+        schema,
+        schema_path=schema_path,
+        workspace_root_path=workspace_root_path,
+    )
+    if catalog_sid and arts_from_session(catalog_sid, schema):
+        source = "catalog_session"
+    elif session and arts_from_session(session, schema):
+        source = "story_graph"
+    else:
+        source = "md"
     raw_slots = catalog_slots(arts, schema)
     slots, offer_errs = _apply_offers_to_slots(session, raw_slots, schema)
     lo, hi = parse_pick_offer_count(
@@ -442,19 +491,21 @@ def read_opening_catalog(
             "errors": offer_errs,
             "catalog_path": rel,
             "slots": slots,
-            "source": "graph" if on_graph else "md",
+            "source": source,
         }
     return {
         "exit_code": 0,
         "catalog_path": rel,
+        "catalog_session": catalog_sid,
         "slots": slots,
         "art_count": len(arts),
         "pick_offer_count": {"min": lo, "max": hi},
-        "source": "graph" if on_graph else "md",
+        "source": source,
         "errors": [],
     }
 
 
+# Legacy alias — skill catalog (武學／魔法等); MCP tool name kept for 沈家 instances.
 read_martial_catalog = read_opening_catalog
 
 
@@ -694,19 +745,17 @@ def _wire_opening_loadout(
 
     plr_body = read_get_body(session, plr_id)
     if plr_body:
-        parts = plr_body.split("|")
-        if len(parts) >= 7:
-            body = parts[6]
+        parts = normalise_plr_parts(plr_body.split("|"))
+        if len(parts) >= PLR_FIELD_COUNT:
+            body = parts[PLR_IDX_BODY]
             for slot_key, rank in zip(order, ranks, strict=True):
                 label = schema.body_stat_labels.get(slot_key, slot_key)
                 token = f"{label}:{rank}"
                 if f"{label}:" in body:
                     body = re.sub(rf"{label}:[^；;]+", token, body, count=1)
-            parts[6] = body
-            lines.append(
-                f"@PLR: {parts[0]}|{parts[1]}|{parts[2]}|{parts[3]}|"
-                f"{parts[4]}|{skills}|{parts[6]}"
-            )
+            parts[PLR_IDX_BODY] = body
+            parts[PLR_IDX_CORE] = skills
+            lines.append(format_plr_wire(parts))
 
     return lines
 

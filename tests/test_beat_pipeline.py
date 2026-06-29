@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from novel_mcp.beat_pipeline import beat_turn_begin, beat_turn_finish, parse_warm_stdout, pipeline_next_action
-from novel_mcp.constants import NOVEL_WARM_MAX_ROWS
+from novel_mcp.constants import NOVEL_WARM_DEPTH, NOVEL_WARM_MAX_ROWS
 
 
 WARM_SAMPLE = """\
@@ -37,9 +37,9 @@ def _pipeline_kwargs(**overrides):
 def test_parse_warm_stdout_character_ages():
     warm = """\
 @SYS: SYS01|1|崇禎十年(1637)秋|0|0|25|1兩=825文銅
-@PLR: P01|流民|1627|0|0|技能|狀態
-@NPC: N01|沈芯|1625|女|0|土法|技能|物品|0|需小工|常駐
-@NPC: N02|沈蘭|1627|女|0|土法|技能|物品|0|需小工|常駐
+@PLR: P01|流民|1627|未定|0|0|技能|狀態
+@NPC: N01|沈芯|1625|女|聰慧|0|土法|技能|物品|0|需小工|常駐
+@NPC: N02|沈蘭|1627|女|活潑|0|土法|技能|物品|0|需小工|常駐
 """
     p = parse_warm_stdout(warm)
     assert p["sys_year"] == 1637
@@ -51,7 +51,7 @@ def test_parse_warm_stdout_iso_game_time():
     warm = """\
 @SYS: SYS01|10|1637-09-15T05|0|0|25|1兩=825文銅
 @USR: USR43|game_time|axis=iso;display=chongzhen_shichen;era_base=1628;era_name=崇禎|persistent
-@PLR: P01|鐵坊小工|1627|0|0|技能|狀態
+@PLR: P01|鐵坊小工|1627|男|0|0|技能|狀態
 """
     p = parse_warm_stdout(warm)
     assert p["game_time"] == "1637-09-15T05"
@@ -248,7 +248,7 @@ def test_pipeline_oln_then_sbd_without_bypass(monkeypatch):
 
 def test_parse_warm_stdout_qi_zero_auto_beat():
     warm = """\
-@PLR: P01|鐵坊小工|1627|0|0|技能|氣血:0/7；內力:1/6；昏厥:是；疲勞:8
+@PLR: P01|鐵坊小工|1627|男|0|0|技能|氣血:0/7；內力:1/6；昏厥:是；疲勞:8
 @STEP: STEP01|1|SCN01|persistent
 """
     p = parse_warm_stdout(warm)
@@ -271,7 +271,7 @@ def test_beat_turn_begin_auto_beat_next_action(monkeypatch):
         return MemNetResponse(
             exit_code=0,
             stdout=(
-                "@PLR: P01|鐵坊小工|1627|0|0|技能|"
+                "@PLR: P01|鐵坊小工|1627|男|0|0|技能|"
                 "氣血:0/7；昏厥:是\n@STEP: STEP01|1|SCN01|persistent\n"
             ),
             stderr="",
@@ -343,13 +343,13 @@ def test_beat_turn_begin_advisory_draft_note(monkeypatch):
 
 
 def test_beat_turn_begin_uses_novel_warm_max_rows(monkeypatch):
-    warm_argv: list[str] = []
+    warm_calls: list[list[str]] = []
 
     def fake_run(argv, stdin=None, session=None):
         from memnet_mcp.client import MemNetResponse
 
         if argv[0] == "query" and argv[1] == "warm":
-            warm_argv[:] = argv
+            warm_calls.append(list(argv))
             return MemNetResponse(
                 exit_code=0,
                 stdout="@STEP: STEP01|1|SCN01|persistent\n",
@@ -365,9 +365,13 @@ def test_beat_turn_begin_uses_novel_warm_max_rows(monkeypatch):
     monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_warm_walk", lambda **kwargs: "")
     monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: None)
     beat_turn_begin(session="test")
-    assert "--max-rows" in warm_argv
-    assert warm_argv[warm_argv.index("--max-rows") + 1] == str(NOVEL_WARM_MAX_ROWS)
+    assert warm_calls
+    main_warm = warm_calls[0]
+    assert "--max-rows" in main_warm
+    assert main_warm[main_warm.index("--max-rows") + 1] == str(NOVEL_WARM_MAX_ROWS)
+    assert main_warm[main_warm.index("--depth") + 1] == str(NOVEL_WARM_DEPTH)
     assert NOVEL_WARM_MAX_ROWS == 150
+    assert NOVEL_WARM_DEPTH == 3
 
 
 def test_beat_turn_begin_no_gate_local_draft(monkeypatch):

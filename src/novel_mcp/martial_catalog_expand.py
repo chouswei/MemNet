@@ -1,4 +1,4 @@
-"""Validate, merge, and ingest LLM-generated @ART rows (schema-driven)."""
+"""Validate, merge, and ingest LLM-generated @ART skill rows (schema-driven; 武學／魔法等)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from novel_mcp.catalog_schema import (
     art_to_wire,
     default_burn_for_art,
     slot_for_kind,
+    slot_order,
 )
 from novel_mcp.opening_loadout import (
     arts_from_session,
@@ -93,7 +94,8 @@ def merge_arts(
 
 def slot_counts(arts: list[dict[str, str]], schema: CatalogSchema) -> dict[str, int]:
     slots = catalog_slots(arts, schema)
-    return {k: len(slots[k]["arts"]) for k in ("neigong", "martial", "qinggong")}
+    order = slot_order(schema)
+    return {k: len(slots[k]["arts"]) for k in order}
 
 
 def build_usr_burn_update(
@@ -122,19 +124,22 @@ def build_usr_burn_update(
 
 
 def sync_art_neili_burn(
-    session: str,
+    story_session: str,
     schema: CatalogSchema,
+    *,
+    art_session: str | None = None,
 ) -> dict[str, Any]:
-    """Merge all graph @ART rows into USR49 (preserves existing overrides)."""
+    """Merge @ART rows from catalog (or story) into story USR49 burn table."""
     if not schema.burn_usr_key:
         return {"exit_code": 0, "skipped": True, "reason": "no_burn_usr_key"}
-    arts = arts_from_session(session, schema)
+    source = art_session or story_session
+    arts = arts_from_session(source, schema)
     if not arts:
         return {"exit_code": 0, "skipped": True, "reason": "no_arts_on_graph"}
-    line = build_usr_burn_update(session, arts, schema)
+    line = build_usr_burn_update(story_session, arts, schema)
     if not line:
         return {"exit_code": 2, "errors": [f"missing {schema.burn_usr_key} on graph"]}
-    code, errs = graph_update(session, [line])
+    code, errs = graph_update(story_session, [line])
     if code != 0 or errs:
         return {"exit_code": 2, "errors": errs or ["burn sync failed"]}
     return {"exit_code": 0, "art_count": len(arts)}
@@ -274,6 +279,9 @@ def expand_martial_catalog(
         "validation_warnings": val_errors[:20],
         "skipped": False,
     }
+
+
+expand_skill_catalog = expand_martial_catalog
 
 
 def parse_llm_catalog_text(text: str, schema: CatalogSchema) -> list[dict[str, str]]:

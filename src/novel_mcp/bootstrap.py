@@ -70,10 +70,13 @@ def ingest_lines(session: str, lines: list[str]) -> dict:
 
 def catalog_path_from_seed_md(seed_md: Path, root: Path) -> Path | None:
     text = seed_md.read_text(encoding="utf-8")
-    m = re.search(r"@USR:\s*USR67\|martial_catalog_md\|([^|\s]+)", text)
+    m = re.search(
+        r"@USR:\s*USR\d+\|(skill_catalog_md|martial_catalog_md)\|([^|\s]+)",
+        text,
+    )
     if not m:
         return None
-    return root / m.group(1).replace("\\", "/")
+    return root / m.group(2).replace("\\", "/")
 
 
 def bootstrap_from_md(md_path: str | Path) -> dict:

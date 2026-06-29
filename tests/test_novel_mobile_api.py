@@ -130,17 +130,93 @@ def test_session_rebootstrap_409_when_job_active(tmp_path, monkeypatch):
     cfg = _config(tmp_path)
     monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
     monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
-    from novel_mobile.jobs import BeatJob, BeatJobStore
+    from novel_mobile.jobs import BeatJob, BeatJobStore, world_job_slot
     import time
 
     store = BeatJobStore()
-    job = BeatJob("jid", "running", time.time(), time.time())
+    job = BeatJob("jid", "running", time.time(), time.time(), world_id=world_job_slot(None))
     store._jobs[job.job_id] = job
     monkeypatch.setattr("novel_mobile.server._job_store", store)
     app = create_app(cfg)
     tc = TestClient(app)
     r = tc.post("/api/session/rebootstrap", json={})
     assert r.status_code == 409
+
+
+def test_multi_world_independent_health(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
+
+    def fake_read(session, **kw):
+        if session == "mn_a":
+            return {"exit_code": 0, "setup_complete": True}
+        return {"exit_code": 0, "setup_complete": False, "setup_guidance": {"next_action": "narrate_open"}}
+
+    monkeypatch.setattr("novel_mobile.server.read_player_setup", fake_read)
+
+    from novel_mobile.world_registry import create_world_record
+    from novel_mobile.world_slot import world_root
+
+    user = "user-aaaa1111"
+    create_world_record(cfg, user, world_id="world-aaaa1111", title="甲")
+    create_world_record(cfg, user, world_id="world-bbbb2222", title="乙")
+    wa = world_root(cfg, "world-aaaa1111")
+    wb = world_root(cfg, "world-bbbb2222")
+    wa.session_id_file.write_text("mn_a\n", encoding="utf-8")
+    wb.session_id_file.write_text("mn_b\n", encoding="utf-8")
+
+    headers = {"X-Novel-User-Id": user}
+    app = create_app(cfg)
+    tc = TestClient(app)
+    ha = tc.get(
+        "/api/health",
+        headers={**headers, "X-Novel-World-Id": "world-aaaa1111"},
+    )
+    hb = tc.get(
+        "/api/health",
+        headers={**headers, "X-Novel-World-Id": "world-bbbb2222"},
+    )
+    assert ha.json()["session"] == "mn_a"
+    assert hb.json()["session"] == "mn_b"
+    assert ha.json()["world_id"] == "world-aaaa1111"
+    assert hb.json()["world_id"] == "world-bbbb2222"
+    assert ha.json()["setup_complete"] is True
+    assert hb.json()["setup_complete"] is False
+
+
+def test_health_agent_threads_per_world(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
+    monkeypatch.setattr("novel_mobile.server.read_player_setup", lambda _s: {"exit_code": 0})
+
+    from chat_thread import ChatThread
+    from novel_mobile.world_registry import create_world_record
+    from novel_mobile.world_slot import world_root
+
+    user = "user-aaaa1111"
+    create_world_record(cfg, user, world_id="world-aaaa1111")
+    create_world_record(cfg, user, world_id="world-bbbb2222")
+    wa = world_root(cfg, "world-aaaa1111")
+    wb = world_root(cfg, "world-bbbb2222")
+    wa.session_id_file.write_text("mn_a\n", encoding="utf-8")
+    wb.session_id_file.write_text("mn_b\n", encoding="utf-8")
+    ChatThread.load(wa, "script", model="m").save()
+
+    headers = {"X-Novel-User-Id": user}
+    app = create_app(cfg)
+    tc = TestClient(app)
+    ha = tc.get(
+        "/api/health",
+        headers={**headers, "X-Novel-World-Id": "world-aaaa1111"},
+    )
+    hb = tc.get(
+        "/api/health",
+        headers={**headers, "X-Novel-World-Id": "world-bbbb2222"},
+    )
+    assert ha.json()["agent_threads"] == {"script": True, "prose": False}
+    assert hb.json()["agent_threads"] == {"script": False, "prose": False}
 
 
 def test_beat_invalid_choice(tmp_path, monkeypatch):
@@ -165,11 +241,11 @@ def test_beat_409_when_job_active(tmp_path, monkeypatch):
         "novel_mobile.server.read_player_setup",
         lambda session, **kw: {"exit_code": 0, "setup_complete": True},
     )
-    from novel_mobile.jobs import BeatJob, BeatJobStore
+    from novel_mobile.jobs import BeatJob, BeatJobStore, world_job_slot
     import time
 
     store = BeatJobStore()
-    job = BeatJob("jid", "running", time.time(), time.time())
+    job = BeatJob("jid", "running", time.time(), time.time(), world_id=world_job_slot(None))
     store._jobs[job.job_id] = job
     monkeypatch.setattr("novel_mobile.server._job_store", store)
 
@@ -208,3 +284,23 @@ def test_player_sheet_route(tmp_path, monkeypatch):
     r = tc.get("/api/player/sheet")
     assert r.status_code == 200
     assert "items" in r.json()
+
+
+def test_party_panel_route(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
+    monkeypatch.setattr(
+        "novel_mobile.server.read_party_panel",
+        lambda session, **kw: {
+            "exit_code": 0,
+            "ui_sections": ["items", "skills"],
+            "ui_note": "",
+            "members": [{"id": "P01", "name": "主角", "role": "plr", "sections": ["items"]}],
+        },
+    )
+    app = create_app(cfg)
+    tc = TestClient(app)
+    r = tc.get("/api/party/panel")
+    assert r.status_code == 200
+    assert r.json()["members"][0]["name"] == "主角"

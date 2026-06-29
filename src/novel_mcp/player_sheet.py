@@ -9,11 +9,15 @@ from novel_mcp.catalog_schema import (
     BusinessConfig,
     CatalogSchema,
     ProductionConfig,
+    art_display_name,
+    art_from_parts,
     read_catalog_schema,
     resolve_item_actions,
     resolve_item_kind,
     resolve_martial_actions,
 )
+from novel_mcp.catalog_session import resolve_catalog_session_id
+from novel_mcp.opening_loadout import _schema_path_for_session
 from novel_mcp.setup_graph import (
     first_plr_id,
     list_tag_data_rows,
@@ -480,25 +484,21 @@ def read_business_industries(
     return industries
 
 
-def read_player_sheet(
+def read_items_for_owner(
     session: str | None,
+    owner_id: str,
+    schema: CatalogSchema | None,
     *,
     workspace_root_path: str | None = None,
-) -> dict[str, Any]:
+) -> list[dict[str, Any]]:
     if not session:
-        return {"exit_code": 2, "errors": ["missing session"], "items": [], "arts": [], "body_stats": []}
-
-    schema = read_catalog_schema(session, workspace_root_path=workspace_root_path)
-    plr_id = first_plr_id(session)
-    if not plr_id:
-        return {"exit_code": 2, "errors": ["no PLR row"], "items": [], "arts": [], "body_stats": []}
-
+        return []
     prd_rows = _prd_map(session, schema.production) if schema and schema.production else {}
     prod_links = schema.production.prd_asset_links if schema and schema.production else {}
 
     items: list[dict[str, Any]] = []
     for parts in list_tag_data_rows(session, "ITM"):
-        if len(parts) < 4 or parts[1] != plr_id:
+        if len(parts) < 4 or parts[1] != owner_id:
             continue
         item_id, name, qty = parts[0], parts[2], parts[3]
         kind = resolve_item_kind(schema, item_name=name, prd_rows=prd_rows) if schema else "default"
@@ -537,20 +537,73 @@ def read_player_sheet(
                             entry["actions"] = actions
                 break
         items.append(entry)
+    return items
 
-    art_rows = {row[0]: row for row in list_tag_data_rows(session, "ART")}
+
+def _art_rows_for_session(
+    session: str | None,
+    schema: CatalogSchema | None,
+    *,
+    workspace_root_path: str | None = None,
+) -> dict[str, list[str]]:
+    """ART wire rows: story graph first, then catalog session for missing ids."""
+    rows: dict[str, list[str]] = {}
+    if not session:
+        return rows
+    for parts in list_tag_data_rows(session, "ART"):
+        if parts and parts[0]:
+            rows[parts[0]] = parts
+    if not schema:
+        return rows
+    schema_path = _schema_path_for_session(session, workspace_root_path=workspace_root_path)
+    catalog_sid = resolve_catalog_session_id(
+        session,
+        schema,
+        schema_path=schema_path,
+        workspace_root_path=workspace_root_path,
+    )
+    if catalog_sid:
+        for parts in list_tag_data_rows(catalog_sid, "ART"):
+            if parts and parts[0] and parts[0] not in rows:
+                rows[parts[0]] = parts
+    return rows
+
+
+def _art_name(
+    art_id: str,
+    art_parts: list[str] | None,
+    schema: CatalogSchema | None,
+) -> str:
+    if art_parts and schema:
+        return art_display_name(art_from_parts(art_parts, schema), schema)
+    if art_parts and len(art_parts) > 1:
+        return art_parts[1]
+    return art_id
+
+
+def read_skills_for_owner(
+    session: str | None,
+    owner_id: str,
+    schema: CatalogSchema | None,
+    *,
+    workspace_root_path: str | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if not session:
+        return [], []
+
+    art_rows = _art_rows_for_session(
+        session, schema, workspace_root_path=workspace_root_path
+    )
     arts: list[dict[str, Any]] = []
-    sep = schema.loadout.skills_separator if schema else "、"
-    skill_names: list[str] = []
     for parts in list_tag_data_rows(session, "MWU"):
-        if len(parts) < 4 or parts[1] != plr_id:
+        if len(parts) < 4 or parts[1] != owner_id:
             continue
         mwu_id = parts[0]
         art_id = parts[2]
         rank = parts[3] if len(parts) > 3 else ""
         mastery = parts[4] if len(parts) > 4 else ""
         art_parts = art_rows.get(art_id)
-        art_name = art_parts[1] if art_parts and len(art_parts) > 1 else art_id
+        art_name = _art_name(art_id, art_parts, schema)
         martial_actions = (
             resolve_martial_actions(schema, name=art_name) if schema else []
         )
@@ -564,12 +617,11 @@ def read_player_sheet(
                 "actions": martial_actions,
             }
         )
-        skill_names.append(f"{art_name}{rank}")
 
     body_stats: list[dict[str, Any]] = []
     labels = schema.body_stat_labels if schema else {}
     for parts in list_tag_data_rows(session, "WUX"):
-        if len(parts) < 4 or parts[1] != plr_id:
+        if len(parts) < 4 or parts[1] != owner_id:
             continue
         slot = parts[2]
         kind = labels.get(slot, slot)
@@ -585,6 +637,31 @@ def read_player_sheet(
                 "actions": martial_actions,
             }
         )
+    return arts, body_stats
+
+
+def read_player_sheet(
+    session: str | None,
+    *,
+    workspace_root_path: str | None = None,
+) -> dict[str, Any]:
+    if not session:
+        return {"exit_code": 2, "errors": ["missing session"], "items": [], "arts": [], "body_stats": []}
+
+    schema = read_catalog_schema(session, workspace_root_path=workspace_root_path)
+    plr_id = first_plr_id(session)
+    if not plr_id:
+        return {"exit_code": 2, "errors": ["no PLR row"], "items": [], "arts": [], "body_stats": []}
+
+    items = read_items_for_owner(session, plr_id, schema, workspace_root_path=workspace_root_path)
+    arts, body_stats = read_skills_for_owner(
+        session, plr_id, schema, workspace_root_path=workspace_root_path
+    )
+
+    sep = schema.loadout.skills_separator if schema else "、"
+    skill_names: list[str] = []
+    for art in arts:
+        skill_names.append(f"{art['name']}{art.get('rank', '')}")
 
     production_nodes = read_production_nodes(session, schema, workspace_root_path=workspace_root_path) if schema else []
     industries = read_business_industries(session, plr_id, schema)

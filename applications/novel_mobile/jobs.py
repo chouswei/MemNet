@@ -1,16 +1,25 @@
-"""In-memory beat job store (single active job)."""
+"""In-memory beat job store (one active job per world)."""
 
 from __future__ import annotations
 
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal
 
 JobStatus = Literal["queued", "running", "done", "error"]
 
 _RETENTION_SEC = 30 * 60
+_DEFAULT_WORLD = "__legacy__"
+
+
+def world_job_slot(world_id: str | None) -> str:
+    return world_id or _DEFAULT_WORLD
+
+
+# Legacy alias
+player_job_slot = world_job_slot
 
 
 @dataclass
@@ -19,15 +28,28 @@ class BeatJob:
     status: JobStatus
     created_at: float
     updated_at: float
+    world_id: str = _DEFAULT_WORLD
     phase: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+
+    @property
+    def player_id(self) -> str:
+        return self.world_id
+
+    @player_id.setter
+    def player_id(self, value: str) -> None:
+        self.world_id = value
 
 
 class BeatJobStore:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._jobs: dict[str, BeatJob] = {}
+
+    @staticmethod
+    def _slot(world_id: str | None) -> str:
+        return world_job_slot(world_id)
 
     def _prune_old(self) -> None:
         now = time.time()
@@ -39,18 +61,26 @@ class BeatJobStore:
         for jid in stale:
             del self._jobs[jid]
 
-    def has_active(self) -> bool:
+    def has_active(self, world_id: str | None = None) -> bool:
+        slot = self._slot(world_id)
         with self._lock:
-            return any(j.status in ("queued", "running") for j in self._jobs.values())
+            return any(
+                j.world_id == slot and j.status in ("queued", "running")
+                for j in self._jobs.values()
+            )
 
     def get(self, job_id: str) -> BeatJob | None:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def create(self) -> BeatJob | None:
+    def create(self, world_id: str | None = None) -> BeatJob | None:
+        slot = self._slot(world_id)
         with self._lock:
             self._prune_old()
-            if any(j.status in ("queued", "running") for j in self._jobs.values()):
+            if any(
+                j.world_id == slot and j.status in ("queued", "running")
+                for j in self._jobs.values()
+            ):
                 return None
             now = time.time()
             job = BeatJob(
@@ -58,6 +88,7 @@ class BeatJobStore:
                 status="queued",
                 created_at=now,
                 updated_at=now,
+                world_id=slot,
             )
             self._jobs[job.job_id] = job
             return job

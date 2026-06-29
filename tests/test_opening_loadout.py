@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -48,6 +49,18 @@ def test_validate_opening_picks(wuxia_schema: CatalogSchema) -> None:
     assert validate_opening_picks(["ART02", "ART02", "ART04"], arts, wuxia_schema)
 
 
+def test_slot_counts_uses_schema_slots(wuxia_schema, fantasy_schema) -> None:
+    from novel_mcp.martial_catalog_expand import slot_counts
+    from novel_mcp.opening_loadout import catalog_slots
+
+    arts = [{"id": "ART01", wuxia_schema.kind_field: "內功", wuxia_schema.tier_field: "一流", wuxia_schema.coeff_field: "1.0"}]
+    arts[0][wuxia_schema.wire_columns[1]] = "測試"
+    counts = slot_counts(arts, wuxia_schema)
+    assert set(counts.keys()) == set(catalog_slots([], wuxia_schema).keys())
+    fantasy_counts = slot_counts([], fantasy_schema)
+    assert set(fantasy_counts.keys()) == {"neigong", "martial", "qinggong"}
+
+
 def test_parse_pick_offer_count() -> None:
     assert parse_pick_offer_count("5-9") == (5, 9)
     assert parse_pick_offer_count("9-5") == (5, 9)
@@ -84,9 +97,8 @@ def _offer_uid_map():
     }
 
 
+@contextmanager
 def _patch_catalog(cat: Path, schema: CatalogSchema):
-    rel = "catalog.md"
-    schema_rel = "applications/novel_cursor/catalog_specs/wuxia_jinyong.json"
     usr_map = _offer_usr_map()
 
     def read_usr(_s, key):
@@ -95,15 +107,16 @@ def _patch_catalog(cat: Path, schema: CatalogSchema):
     def uid_for_key(_s, key):
         return _offer_uid_map().get(key)
 
-    return patch(
-        "novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr
-    ), patch(
-        "novel_mcp.opening_loadout.usr_id_for_key", side_effect=uid_for_key
-    ), patch(
-        "novel_mcp.opening_loadout.read_catalog_schema", return_value=schema
-    ), patch(
-        "novel_mcp.opening_loadout.resolve_catalog_path", return_value=cat
-    ), patch("novel_mcp.opening_loadout.setup_commit_errors", return_value=[])
+    with (
+        patch("novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr),
+        patch("novel_mcp.opening_loadout.usr_id_for_key", side_effect=uid_for_key),
+        patch("novel_mcp.opening_loadout.read_catalog_schema", return_value=schema),
+        patch("novel_mcp.opening_loadout.resolve_catalog_path", return_value=cat),
+        patch("novel_mcp.opening_loadout.setup_commit_errors", return_value=[]),
+        patch("novel_mcp.opening_loadout.list_tag_data_rows", return_value=[]),
+        patch("novel_mcp.opening_loadout.resolve_catalog_session_id", return_value=None),
+    ):
+        yield
 
 
 def test_commit_opening_pick_wrong_slot_order(
@@ -112,8 +125,7 @@ def test_commit_opening_pick_wrong_slot_order(
     cat = tmp_path / "catalog.md"
     cat.write_text(_CATALOG, encoding="utf-8")
 
-    patches = _patch_catalog(cat, wuxia_schema)
-    with patches[0], patches[1], patches[2], patches[3], patches[4]:
+    with _patch_catalog(cat, wuxia_schema):
         out = commit_opening_pick("mn_x", "martial", "ART02")
     assert out["exit_code"] == 2
 
@@ -137,13 +149,8 @@ def test_commit_neigong_no_wire_until_third(
         "setup_guidance": {"next_action": "pick_martial"},
     }
 
-    patches = _patch_catalog(cat, wuxia_schema)
     with (
-        patches[0],
-        patches[1],
-        patches[2],
-        patches[3],
-        patches[4],
+        _patch_catalog(cat, wuxia_schema),
         patch("novel_mcp.opening_loadout.graph_update", side_effect=fake_update),
         patch("novel_mcp.player_setup.read_player_setup", return_value=setup_after),
     ):
@@ -169,13 +176,8 @@ def test_read_martial_catalog_random_offers(
     def read_usr(_s, key):
         return usr_map.get(key)
 
-    patches = _patch_catalog(cat, wuxia_schema)
     with (
-        patches[0],
-        patches[1],
-        patches[2],
-        patches[3],
-        patches[4],
+        _patch_catalog(cat, wuxia_schema),
         patch("novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr),
         patch("novel_mcp.opening_loadout.graph_update", return_value=(0, [])),
     ):
@@ -229,13 +231,8 @@ def test_reroll_opening_offers_changes_pool(
         "setup_guidance": {"next_action": "pick_neigong"},
     }
 
-    patches = _patch_catalog(cat, wuxia_schema)
     with (
-        patches[0],
-        patches[1],
-        patches[2],
-        patches[3],
-        patches[4],
+        _patch_catalog(cat, wuxia_schema),
         patch("novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr),
         patch("novel_mcp.opening_loadout.graph_update", side_effect=fake_update),
         patch("novel_mcp.player_setup.read_player_setup", return_value=setup_pick),

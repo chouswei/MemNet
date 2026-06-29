@@ -6,7 +6,7 @@ Dual **chat threads** (編劇 / 作者) with per-role models; MemNet presentatio
 
 | Role | Env | Default |
 |------|-----|---------|
-| 編劇 | `LLM_MODEL_SCRIPT` | `deepseek-v4-flash` + **thinking on** |
+| 編劇 | `LLM_MODEL_SCRIPT` | `deepseek-v4-flash` + thinking off |
 | 作者 | `LLM_MODEL_PROSE` | `deepseek-v4-flash` + thinking off |
 
 Instance: `thinking_script` / `thinking_prose` in `instances/<slug>.json`. 編劇可改 `deepseek-v4-pro` 若仍常出 wire 錯。
@@ -29,10 +29,9 @@ $env:DEEPSEEK_API_KEY = "..."   # https://platform.deepseek.com
 ## New game
 
 ```powershell
-python scripts/novel_bootstrap.py application-notes/novel-<slug>-initial-state.md
-# copy returned session_id → novel-output/<slug>/session_id.txt
-
-python applications/novel_cursor/cursor_beat.py --app <slug> --reset-agents --choice 1
+python scripts/novel_bootstrap.py --app <slug>
+# story session_id → novel-output/<slug>/session_id.txt
+# catalog session_id → novel-output/catalogs/<schema>/catalog_session_id.txt (shared per genre)
 ```
 
 ## Play

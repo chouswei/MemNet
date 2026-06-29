@@ -39,13 +39,35 @@ from novel_mcp.opening_loadout import (
     read_opening_catalog,
     reroll_opening_offers,
 )
+from novel_mcp.party_sheet import read_party_panel
 from novel_mcp.player_profile import commit_profile
 from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
 from novel_mcp.player_sheet import read_player_sheet
 from novel_mcp.play_context import read_beat_stage
 from novel_mcp.setup_ack import VALID_SETUP_ACK_STEPS, commit_setup_ack
 
-from novel_mobile.jobs import BeatJob, BeatJobStore
+from novel_mobile.auth import (
+    AuthConfig,
+    AuthContext,
+    authenticate_request,
+    exchange_google_login,
+    load_auth_config,
+    resolve_user_id,
+)
+from novel_mobile.jobs import BeatJob, BeatJobStore, world_job_slot
+from novel_mobile.world_registry import (
+    create_world_record,
+    list_worlds_for_owner,
+    require_world_owner,
+    update_meta_session,
+)
+from novel_mobile.world_slot import (
+    USER_ID_HEADER,
+    WORLD_ID_HEADER,
+    normalise_world_id,
+    resolve_config,
+)
+from chat_thread import thread_path
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -74,9 +96,18 @@ class BeatBody(BaseModel):
     continue_beat: bool = False
 
 
+class GoogleLoginBody(BaseModel):
+    credential: str
+
+
+class WorldCreateBody(BaseModel):
+    title: str | None = None
+    expand_catalog: bool | None = None
+
+
 _app_config: NovelAppConfig | None = None
 _job_store = BeatJobStore()
-_auth_token: str | None = None
+_auth_config: AuthConfig = AuthConfig(mode="open")
 
 
 def _llm_configured() -> bool:
@@ -92,19 +123,102 @@ def get_config() -> NovelAppConfig:
     return _app_config
 
 
-def _require_auth(authorization: str | None = Header(default=None)) -> None:
-    if not _auth_token:
-        return
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail={"error": "unauthorized"})
-    token = authorization[7:].strip()
-    if token != _auth_token:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized"})
-
-
-def _session_or_raise(config: NovelAppConfig) -> str:
+def _authenticate(authorization: str | None) -> AuthContext:
     try:
-        return read_session_id(config)
+        return authenticate_request(_auth_config, authorization)
+    except PermissionError as err:
+        raise HTTPException(status_code=401, detail={"error": "unauthorized"}) from err
+    except ValueError as err:
+        raise HTTPException(status_code=401, detail={"error": "unauthorized"}) from err
+
+
+def _user_from_request(
+    authorization: str | None,
+    x_novel_user_id: str | None,
+) -> tuple[AuthContext, str]:
+    ctx = _authenticate(authorization)
+    try:
+        user_id = resolve_user_id(
+            ctx,
+            x_novel_user_id,
+            auth_mode=_auth_config.mode,
+        )
+    except ValueError as err:
+        msg = str(err)
+        if msg == "user_id_mismatch":
+            raise HTTPException(
+                status_code=403,
+                detail={"errors": ["user_id_mismatch"]},
+            ) from err
+        raise HTTPException(
+            status_code=400,
+            detail={"errors": ["invalid_user_id"]},
+        ) from err
+    if not user_id:
+        raise HTTPException(status_code=400, detail={"errors": ["missing_user_id"]})
+    return ctx, user_id
+
+
+def _world_context(
+    authorization: str | None,
+    x_novel_world_id: str | None,
+    x_novel_user_id: str | None,
+    *,
+    require_world: bool = False,
+) -> tuple[AuthContext, str | None, str | None]:
+    ctx = _authenticate(authorization)
+    try:
+        user_id = resolve_user_id(
+            ctx,
+            x_novel_user_id,
+            auth_mode=_auth_config.mode,
+        )
+    except ValueError as err:
+        msg = str(err)
+        if msg == "user_id_mismatch":
+            raise HTTPException(
+                status_code=403,
+                detail={"errors": ["user_id_mismatch"]},
+            ) from err
+        raise HTTPException(
+            status_code=400,
+            detail={"errors": ["invalid_user_id"]},
+        ) from err
+
+    try:
+        world_id = normalise_world_id(x_novel_world_id)
+    except ValueError as err:
+        raise HTTPException(
+            status_code=400,
+            detail={"errors": ["invalid_world_id"]},
+        ) from err
+
+    if require_world and not world_id:
+        raise HTTPException(status_code=400, detail={"errors": ["missing_world_id"]})
+
+    if world_id:
+        if not user_id:
+            raise HTTPException(status_code=400, detail={"errors": ["missing_user_id"]})
+        try:
+            require_world_owner(get_config(), world_id, user_id)
+        except FileNotFoundError as err:
+            raise HTTPException(status_code=404, detail={"error": "world_not_found"}) from err
+        except PermissionError as err:
+            raise HTTPException(
+                status_code=403,
+                detail={"errors": ["world_owner_mismatch"]},
+            ) from err
+
+    return ctx, user_id, world_id
+
+
+def _wcfg(config: NovelAppConfig, world_id: str | None) -> NovelAppConfig:
+    return resolve_config(config, world_id)
+
+
+def _session_or_raise(config: NovelAppConfig, world_id: str | None = None) -> str:
+    try:
+        return read_session_id(_wcfg(config, world_id))
     except FileNotFoundError:
         raise HTTPException(
             status_code=503,
@@ -112,10 +226,18 @@ def _session_or_raise(config: NovelAppConfig) -> str:
         ) from None
 
 
-def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> FastAPI:
-    global _app_config, _auth_token
+def create_app(
+    config: NovelAppConfig,
+    *,
+    auth_token: str | None = None,
+    auth_config: AuthConfig | None = None,
+) -> FastAPI:
+    global _app_config, _auth_config
     _app_config = config
-    _auth_token = auth_token.strip() if auth_token else os.environ.get("NOVEL_MOBILE_TOKEN", "").strip() or None
+    if auth_config is not None:
+        _auth_config = auth_config
+    else:
+        _auth_config = load_auth_config(shared_token=auth_token)
 
     app = FastAPI(title=config.title)
     app.add_middleware(
@@ -131,10 +253,87 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    @app.get("/api/health")
-    async def health(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
+    @app.get("/api/auth/config")
+    async def api_auth_config():
+        return {
+            "auth_mode": _auth_config.mode,
+            "google_client_id": _auth_config.google_client_id,
+            "auth_required": _auth_config.mode != "open",
+        }
+
+    @app.post("/api/auth/google")
+    async def api_auth_google(payload: GoogleLoginBody):
+        if _auth_config.mode != "google":
+            raise HTTPException(status_code=404, detail={"error": "google_auth_disabled"})
+        credential = payload.credential.strip()
+        if not credential:
+            raise HTTPException(status_code=400, detail={"errors": ["missing_credential"]})
+        try:
+            return exchange_google_login(_auth_config, credential)
+        except PermissionError as err:
+            raise HTTPException(status_code=403, detail={"error": "email_not_allowed"}) from err
+        except ValueError as err:
+            raise HTTPException(status_code=401, detail={"error": "invalid_google_token"}) from err
+
+    @app.get("/api/worlds")
+    async def api_worlds_list(
+        authorization: str | None = Header(default=None),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, user_id = _user_from_request(authorization, x_novel_user_id)
+        return {"worlds": list_worlds_for_owner(get_config(), user_id)}
+
+    @app.post("/api/worlds")
+    async def api_worlds_create(
+        payload: WorldCreateBody,
+        authorization: str | None = Header(default=None),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        ctx, user_id = _user_from_request(authorization, x_novel_user_id)
+        if not probe_serve():
+            raise HTTPException(
+                status_code=503,
+                detail={"errors": ["serve_unreachable"]},
+            )
         cfg = get_config()
+        meta = create_world_record(cfg, user_id, title=payload.title)
+        wcfg = _wcfg(cfg, meta.world_id)
+        if _job_store.has_active(meta.world_id):
+            raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})
+
+        def _run() -> dict[str, Any]:
+            return rebootstrap_session(
+                wcfg,
+                expand_catalog=payload.expand_catalog,
+            )
+
+        result = await anyio.to_thread.run_sync(_run)
+        if result.get("exit_code", 0) != 0:
+            raise HTTPException(
+                status_code=500,
+                detail={"errors": result.get("errors", ["rebootstrap_failed"])},
+            )
+        update_meta_session(cfg, meta.world_id, str(result.get("session_id") or ""))
+        return {
+            "world_id": meta.world_id,
+            "title": meta.title,
+            "owner_id": meta.owner_id,
+            "user_id": user_id,
+            "email": ctx.email,
+            **result,
+        }
+
+    @app.get("/api/health")
+    async def health(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        ctx, user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id
+        )
+        cfg = get_config()
+        wcfg = _wcfg(cfg, world_id)
         issues: list[str] = []
         serve_ok = probe_serve()
         if not serve_ok:
@@ -145,7 +344,7 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         session: str | None = None
         setup_complete = False
         try:
-            session = read_session_id(cfg)
+            session = read_session_id(wcfg)
             setup = read_player_setup(session)
             setup_complete = bool(setup.get("setup_complete"))
         except FileNotFoundError:
@@ -156,17 +355,30 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
             "llm_configured": llm_ok,
             "app_id": cfg.app_id,
             "title": cfg.title,
+            "user_id": user_id,
+            "world_id": world_id,
+            "email": ctx.email,
             "session": session,
             "setup_complete": setup_complete,
-            "auth_required": bool(_auth_token),
+            "auth_mode": _auth_config.mode,
+            "auth_required": _auth_config.mode != "open",
+            "agent_threads": {
+                "script": thread_path(wcfg, "script").is_file(),
+                "prose": thread_path(wcfg, "prose").is_file(),
+            },
             "issues": issues if issues else None,
         }
 
     @app.get("/api/setup")
-    async def api_setup(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+    async def api_setup(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("exit_code", 0) != 0:
             raise HTTPException(status_code=502, detail=setup)
@@ -176,10 +388,13 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     async def api_setup_profile(
         payload: ProfileBody,
         authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
     ):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
@@ -194,10 +409,13 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     async def api_setup_ack(
         payload: AckBody,
         authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
     ):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
@@ -217,10 +435,15 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         return read_player_setup(session)
 
     @app.get("/api/catalog")
-    async def api_catalog(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+    async def api_catalog(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
@@ -240,10 +463,13 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     async def api_setup_pick(
         payload: PickBody,
         authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
     ):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
@@ -263,10 +489,13 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     async def api_setup_reroll(
         payload: RerollBody,
         authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
     ):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
@@ -284,22 +513,28 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         return result
 
     @app.post("/api/session/rebootstrap")
-    async def api_session_rebootstrap(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
+    async def api_session_rebootstrap(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
         if not probe_serve():
             raise HTTPException(
                 status_code=503,
                 detail={"errors": ["serve_unreachable"]},
             )
-        if _job_store.has_active():
+        if _job_store.has_active(world_id):
             raise HTTPException(
                 status_code=409,
                 detail={"errors": ["beat_job_active"]},
             )
-        cfg = get_config()
+        cfg = _wcfg(get_config(), world_id)
 
         def _run() -> dict[str, Any]:
-            return rebootstrap_session(cfg, expand_catalog=False)
+            return rebootstrap_session(cfg)
 
         result = await anyio.to_thread.run_sync(_run)
         if result.get("exit_code", 0) != 0:
@@ -307,6 +542,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
                 status_code=500,
                 detail={"errors": result.get("errors", ["rebootstrap_failed"])},
             )
+        if world_id:
+            update_meta_session(get_config(), world_id, str(result.get("session_id") or ""))
         return result
 
     def _run_beat_job(job: BeatJob, cfg: NovelAppConfig, session: str, beat: BeatBody) -> None:
@@ -347,10 +584,14 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     async def api_beat(
         request: Request,
         authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
     ):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        cfg = _wcfg(get_config(), world_id)
+        session = _session_or_raise(get_config(), world_id)
 
         raw = await request.json()
         if not isinstance(raw, dict):
@@ -393,10 +634,10 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
                 detail={"errors": ["continue_requires_prose_stage"]},
             )
 
-        if _job_store.has_active():
+        if _job_store.has_active(world_id):
             raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})
 
-        job = _job_store.create()
+        job = _job_store.create(world_id)
         if job is None:
             raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})
 
@@ -415,10 +656,20 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         return {"job_id": job.job_id}
 
     @app.get("/api/beat/jobs/{job_id}")
-    async def api_beat_job(job_id: str, authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
+    async def api_beat_job(
+        job_id: str,
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
         job = _job_store.get(job_id)
         if not job:
+            raise HTTPException(status_code=404, detail={"error": "job_not_found"})
+        slot = world_job_slot(world_id)
+        if job.world_id != slot:
             raise HTTPException(status_code=404, detail={"error": "job_not_found"})
         return {
             "job_id": job.job_id,
@@ -431,23 +682,49 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         }
 
     @app.get("/api/beat/last")
-    async def api_beat_last(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
-        cfg = get_config()
+    async def api_beat_last(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        cfg = _wcfg(get_config(), world_id)
         result = read_last_beat(cfg)
         if result is None:
             raise HTTPException(status_code=404, detail={"error": "no_last_beat"})
         return result
 
     @app.get("/api/player/sheet")
-    async def api_player_sheet(authorization: str | None = Header(default=None)):
-        _require_auth(authorization)
-        cfg = get_config()
-        session = _session_or_raise(cfg)
+    async def api_player_sheet(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
         sheet = read_player_sheet(session)
         if sheet.get("exit_code", 0) != 0:
             raise HTTPException(status_code=502, detail=sheet)
         return sheet
+
+    @app.get("/api/party/panel")
+    async def api_party_panel(
+        authorization: str | None = Header(default=None),
+        x_novel_world_id: str | None = Header(default=None, alias=WORLD_ID_HEADER),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, _user_id, world_id = _world_context(
+            authorization, x_novel_world_id, x_novel_user_id, require_world=False
+        )
+        session = _session_or_raise(get_config(), world_id)
+        panel = read_party_panel(session)
+        if panel.get("exit_code", 0) != 0:
+            raise HTTPException(status_code=502, detail=panel)
+        return panel
 
     return app
 
@@ -467,8 +744,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {err}", file=sys.stderr)
         return 2
 
-    token = args.token or os.environ.get("NOVEL_MOBILE_TOKEN", "").strip() or None
-    app = create_app(config, auth_token=token)
+    try:
+        auth_cfg = load_auth_config(shared_token=args.token)
+    except ValueError as err:
+        print(f"error: {err}", file=sys.stderr)
+        return 2
+
+    app = create_app(config, auth_config=auth_cfg)
 
     import uvicorn
 

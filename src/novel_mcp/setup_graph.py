@@ -7,6 +7,7 @@ from pathlib import Path
 
 from memnet_mcp.client import run_memnet
 from novel_mcp.bootstrap import ingest_lines
+from novel_mcp.character_gender import strip_gender_from_body
 from novel_mcp.paths import workspace_root
 from novel_mcp.setup_constants import SENTINEL
 
@@ -195,16 +196,16 @@ def setup_commit_errors(session: str | None, *, setup_complete: bool) -> list[st
 
 
 def resolve_catalog_path(session: str | None, workspace_root_path: str | None = None) -> Path:
-    rel = read_usr_by_key(session, "martial_catalog_md")
-    if not rel or rel == SENTINEL:
-        raise ValueError("missing_usr67_martial_catalog_md")
+    from novel_mcp.skill_catalog_keys import read_skill_catalog_md_rel
+
+    rel = read_skill_catalog_md_rel(session)
+    if not rel:
+        raise ValueError("missing skill_catalog_md or martial_catalog_md on graph")
     root = workspace_root(workspace_root_path)
     return root / rel.replace("\\", "/")
 
 
 def merge_plr_gender(body_state: str, gender: str) -> str:
-    key = f"性別:{gender}"
-    if "性別:" in body_state:
-        return re.sub(r"性別:[^；;]+", key, body_state, count=1)
-    sep = "；" if "；" in body_state else ";"
-    return f"{body_state}{sep}{key}" if body_state else key
+    """Deprecated: gender lives on @PLR.性別; strips legacy ``性別:`` from body only."""
+    _ = gender
+    return strip_gender_from_body(body_state)

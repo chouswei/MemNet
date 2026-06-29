@@ -29,7 +29,7 @@ def test_read_profile_unset() -> None:
 
 
 def test_commit_profile_updates_plr_gender() -> None:
-    plr_body = "P01|流民|1627|0|0|靈魂圖書館登峰造極|氣血:6/6；性別:未定"
+    plr_body = "P01|流民|1627|未定|0|0|靈魂圖書館登峰造極|氣血:6/6"
 
     def fake_read_get(session, record_id):
         if record_id == "P01":
