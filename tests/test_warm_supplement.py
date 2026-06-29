@@ -157,6 +157,35 @@ def test_enrich_supplements_hud_usr_config(monkeypatch) -> None:
     assert pipeline.get("time_display")
 
 
+def test_enrich_usr_tag_map_does_not_skip_hud_supplement(monkeypatch) -> None:
+    """Schema @USR: id|key|… lines must not count as body_plot present in warm."""
+    calls: list[str] = []
+
+    def fake_run(argv, stdin=None, session=None):
+        if argv[:3] == ["read", "list", "--tag"]:
+            tag = argv[3]
+            calls.append(tag)
+            if tag == "USR":
+                return MemNetResponse(
+                    0,
+                    "@USR: USR45|body_plot|氣血;內力;飽食;oln;prose|persistent\n",
+                    "",
+                    session,
+                    [],
+                )
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
+    warm = (
+        "@STEP: STEP01|1|SCN01|persistent\n"
+        "@USR: id|key|value|recycle\n"
+        "@USR: USR23|beat_stage|prose|persistent\n"
+    )
+    out = enrich_warm_stdout("mn_x", warm, beat_stage="prose")
+    assert "USR" in calls
+    assert "body_plot|氣血" in out
+
+
 def test_enrich_skips_aff_to_when_no_cast_ids(monkeypatch) -> None:
     edg_calls = 0
 

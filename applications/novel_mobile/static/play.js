@@ -29,7 +29,7 @@ window.NovelPlay = (function () {
   function renderEmptyPlay() {
     narrativeEl().textContent =
       "歡迎進入。點「開始劇情」生成第一回，或在下方輸入指令。";
-    hudEl().style.display = "none";
+    showHud("");
     clearOptions();
     const btnEl = choicesEl();
     btnEl.classList.remove("hidden");
@@ -39,10 +39,30 @@ window.NovelPlay = (function () {
     btn.textContent = "開始劇情";
     btn.addEventListener("click", () => {
       if (window.NovelApp.activeJobId) return;
-      window.NovelApp.postBeat({ start: true });
+      const h = window.NovelApp.health || {};
+      const body =
+        h.beat_stage === "prose" && !h.has_last_beat
+          ? { continue: true }
+          : { start: true };
+      window.NovelApp.postBeat(body);
     });
     btnEl.appendChild(btn);
     scrollNarrativeTop();
+  }
+
+  function showHud(text) {
+    const el = hudEl();
+    if (!el) return;
+    const hud = (text || "").trim();
+    if (hud) {
+      el.textContent = hud;
+      el.classList.remove("hidden");
+      el.style.display = "";
+    } else {
+      el.textContent = "";
+      el.classList.add("hidden");
+      el.style.display = "none";
+    }
   }
 
   function renderBeat(beat) {
@@ -59,13 +79,7 @@ window.NovelPlay = (function () {
         ? `（第${beat.beat_index}拍）`
         : "";
     narrativeEl().textContent = fmt + beatTag + "\n" + (beat.prose || "");
-    const hud = (beat.hud || "").trim();
-    if (hud) {
-      hudEl().style.display = "";
-      hudEl().textContent = hud;
-    } else {
-      hudEl().style.display = "none";
-    }
+    showHud(beat.hud);
     renderChoices(beat.options || []);
     scrollNarrativeTop();
   }

@@ -44,9 +44,10 @@ novel-mobile --app shenjia_caifa --host 0.0.0.0 --port 8765
 
 | 模式 | 環境變數 | 說明 |
 |------|----------|------|
-| **open**（預設） | 無 | LAN 開發；瀏覽器 UUID 作 `user_id` |
+| **open**（无 JWT） | 无 | 仅开发；`X-Novel-User-Id` 可被伪造，**勿用于多人** |
+| **guest**（默认推荐 LAN） | `NOVEL_MOBILE_JWT_SECRET` | 每浏览器自动签发 JWT；存档按 `owner_id` 隔离 |
 | **token** | `NOVEL_MOBILE_TOKEN` | 共用 Bearer |
-| **google** | `GOOGLE_CLIENT_ID` + `NOVEL_MOBILE_JWT_SECRET` | Google 登入；JWT 只含 `user_id` |
+| **google** | `GOOGLE_CLIENT_ID` + `NOVEL_MOBILE_JWT_SECRET` | Google 登录 |
 
 ### Google 登入設定
 

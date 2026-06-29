@@ -104,11 +104,10 @@ def resolve_world_config(default_base: NovelAppConfig, world_id: str | None) -> 
 def _world_summary(app_cfg: NovelAppConfig, meta: WorldMeta) -> dict[str, Any]:
     wcfg = world_root(app_cfg, meta.world_id)
     has_session = wcfg.session_id_file.is_file()
-    session: str | None = None
     if has_session:
         line = wcfg.session_id_file.read_text(encoding="utf-8").strip().splitlines()
-        if line and line[0].startswith("mn_"):
-            session = line[0].strip()
+        if not (line and line[0].startswith("mn_")):
+            has_session = False
     return {
         "world_id": meta.world_id,
         "title": meta.title,
@@ -116,7 +115,6 @@ def _world_summary(app_cfg: NovelAppConfig, meta: WorldMeta) -> dict[str, Any]:
         "story_title": app_cfg.title,
         "created_at": meta.created_at,
         "has_session": has_session,
-        "memnet_session": session,
     }
 
 

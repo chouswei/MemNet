@@ -21,8 +21,10 @@ window.NovelSetup = (function () {
       opts.innerHTML = "";
       opts.classList.add("hidden");
     }
-    hudEl().style.display = "none";
-    hudEl().textContent = "";
+    const hud = hudEl();
+    hud.textContent = "";
+    hud.classList.add("hidden");
+    hud.style.display = "none";
   }
 
   function setBusy(on) {
@@ -141,7 +143,9 @@ window.NovelSetup = (function () {
       if (sceneLine) lines = [sceneLine, ...lines];
     }
     narrativeEl().textContent = formatBlock(guidance, lines);
-    hudEl().style.display = "none";
+    const hud = hudEl();
+    hud.classList.add("hidden");
+    hud.style.display = "none";
     const pane = document.getElementById("narrative-pane");
     if (pane) pane.scrollTop = 0;
 

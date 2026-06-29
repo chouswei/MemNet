@@ -78,7 +78,12 @@ window.NovelApp = (function () {
   }
 
   function userHeaders() {
-    if (authConfig && authConfig.auth_mode === "google") return {};
+    if (
+      authConfig &&
+      (authConfig.auth_mode === "google" || authConfig.auth_mode === "guest")
+    ) {
+      return {};
+    }
     return { "X-Novel-User-Id": ensureAnonUserId() };
   }
 
@@ -513,13 +518,58 @@ window.NovelApp = (function () {
     });
   }
 
+  async function ensureGuestToken() {
+    if (localStorage.getItem(ACCESS_TOKEN_KEY)) return true;
+    const res = await fetch("/api/auth/guest", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showAuthError(data?.error || "無法建立玩家身份");
+      return false;
+    }
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+    localStorage.removeItem(USER_KEY);
+    return true;
+  }
+
   async function ensureAuthenticated() {
     authConfig = await fetchAuthConfig();
+    if (authConfig.auth_mode === "guest") {
+      return ensureGuestToken();
+    }
     if (authConfig.auth_mode !== "google") return true;
     if (localStorage.getItem(ACCESS_TOKEN_KEY)) return true;
     showAuthOverlay();
     await loadGoogleSignIn(authConfig.google_client_id);
     return false;
+  }
+
+  function formatApiError(err) {
+    const body = err.body;
+    if (body) {
+      if (Array.isArray(body.errors) && body.errors.length) {
+        return body.errors.join(" ");
+      }
+      const detail = body.detail ?? body;
+      if (typeof detail === "string" && detail.trim()) {
+        return detail;
+      }
+      if (detail && Array.isArray(detail.errors) && detail.errors.length) {
+        return detail.errors.join(" ");
+      }
+      if (detail && typeof detail.error === "string" && detail.error.trim()) {
+        return detail.error;
+      }
+    }
+    if (err.message && err.message !== "Bad Gateway") {
+      return err.message;
+    }
+    if (err.status === 502) {
+      return "後端讀取遊戲圖失敗（session 可能未 bootstrap）。請重開 session 或新開世界。";
+    }
+    if (err.status === 503) {
+      return "MemNet 或 session 不可用。請確認 memnet serve 已啟動，並重開 session。";
+    }
+    return err.message || "請求失敗";
   }
 
   async function api(path, opts = {}) {
@@ -555,7 +605,7 @@ window.NovelApp = (function () {
           });
         }
       }
-      const err = new Error(data?.detail?.error || data?.error || res.statusText);
+      const err = new Error(formatApiError({ body: data?.detail || data, status: res.status, message: res.statusText }));
       err.status = res.status;
       err.body = data?.detail || data;
       throw err;
@@ -675,12 +725,7 @@ window.NovelApp = (function () {
       await pollJob(res.job_id);
     } catch (e) {
       setBeatBusy(false);
-      const msg =
-        e.body?.errors?.join(" ") ||
-        e.body?.detail?.errors?.join(" ") ||
-        e.message ||
-        "beat 請求失敗";
-      showError(msg);
+      showError(formatApiError(e) || "beat 請求失敗");
     }
   }
 
@@ -767,7 +812,12 @@ window.NovelApp = (function () {
   }
 
   async function refreshSetup() {
-    setupData = await api("/api/setup");
+    try {
+      setupData = await api("/api/setup");
+    } catch (e) {
+      showError(formatApiError(e));
+      throw e;
+    }
     if (setupData.setup_complete) {
       await enterPlay();
       return;
@@ -777,6 +827,7 @@ window.NovelApp = (function () {
 
   async function enterPlay() {
     mode = "play";
+    await loadHealth();
     formatPlay =
       (setupData && setupData.setup_guidance && setupData.setup_guidance.format_play) ||
       formatPlay;

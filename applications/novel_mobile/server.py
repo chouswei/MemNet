@@ -51,6 +51,7 @@ from novel_mobile.auth import (
     AuthContext,
     authenticate_request,
     exchange_google_login,
+    exchange_guest_login,
     load_auth_config,
     resolve_user_id,
 )
@@ -266,6 +267,12 @@ def create_app(
             "auth_required": _auth_config.mode != "open",
         }
 
+    @app.post("/api/auth/guest")
+    async def api_auth_guest():
+        if _auth_config.mode != "guest":
+            raise HTTPException(status_code=404, detail={"error": "guest_auth_disabled"})
+        return exchange_guest_login(_auth_config)
+
     @app.post("/api/auth/google")
     async def api_auth_google(payload: GoogleLoginBody):
         if _auth_config.mode != "google":
@@ -395,10 +402,16 @@ def create_app(
             issues.append("llm_not_configured")
         session: str | None = None
         setup_complete = False
+        beat_stage: str | None = None
+        has_last_beat = False
         try:
             session = read_session_id(wcfg)
             setup = read_player_setup(session)
             setup_complete = bool(setup.get("setup_complete"))
+            from novel_mcp.beat_stage import normalize_beat_stage
+
+            beat_stage = normalize_beat_stage(read_beat_stage(session))
+            has_last_beat = read_last_beat(wcfg) is not None
         except FileNotFoundError:
             issues.append("no_session")
         return {
@@ -412,6 +425,8 @@ def create_app(
             "email": ctx.email,
             "session": session,
             "setup_complete": setup_complete,
+            "beat_stage": beat_stage,
+            "has_last_beat": has_last_beat,
             "auth_mode": _auth_config.mode,
             "auth_required": _auth_config.mode != "open",
             "agent_threads": {
@@ -684,16 +699,23 @@ def create_app(
 
         from novel_mcp.beat_stage import SCRIPT_STAGES, normalize_beat_stage
 
-        if continue_beat and normalize_beat_stage(read_beat_stage(session)) in SCRIPT_STAGES:
+        beat_stage = normalize_beat_stage(read_beat_stage(session))
+
+        if continue_beat and beat_stage in SCRIPT_STAGES:
             raise HTTPException(
                 status_code=400,
                 detail={"errors": ["continue_requires_prose_stage"]},
             )
-        if start_beat and read_beat_stage(session) == "prose":
-            raise HTTPException(
-                status_code=400,
-                detail={"errors": ["start_requires_script_stage"]},
-            )
+        if start_beat and beat_stage == "prose":
+            # Script already finished (e.g. prior job failed during prose) but no last_beat yet.
+            if read_last_beat(cfg) is None:
+                start_beat = False
+                continue_beat = True
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"errors": ["start_requires_script_stage"]},
+                )
 
         if _job_store.has_active(world_id):
             raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})

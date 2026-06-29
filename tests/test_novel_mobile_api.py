@@ -273,6 +273,64 @@ def test_health_agent_threads_per_world(tmp_path, monkeypatch):
     assert hb.json()["agent_threads"] == {"script": False, "prose": False}
 
 
+def test_beat_start_prose_without_last_beat_continues(tmp_path, monkeypatch):
+    """Opening play when script finished but prose never committed → continue prose."""
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
+    monkeypatch.setattr(
+        "novel_mobile.server.read_player_setup",
+        lambda session, **kw: {"exit_code": 0, "setup_complete": True},
+    )
+    monkeypatch.setattr("novel_mobile.server.read_beat_stage", lambda session: "prose")
+    monkeypatch.setattr("novel_mobile.server.read_last_beat", lambda config: None)
+
+    captured: dict = {}
+
+    class _ImmediateThread:
+        def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+            self._target = target
+            self._args = args
+
+        def start(self):
+            self._target(*self._args)
+
+    def fake_run_beat(config, session, *, choice=None, steering=None, continue_beat=False, on_phase=None):
+        captured["continue_beat"] = continue_beat
+        return {"exit_code": 0, "prose": "ok", "hud": "", "options": [""] * 6}, 0
+
+    monkeypatch.setattr("novel_mobile.server.threading.Thread", _ImmediateThread)
+    monkeypatch.setattr("novel_mobile.server.run_beat", fake_run_beat)
+    monkeypatch.setattr("novel_mobile.server.preflight_session", lambda cfg, session: ({}, 0))
+
+    app = create_app(cfg)
+    tc = TestClient(app)
+    r = tc.post("/api/beat", json={"start": True})
+    assert r.status_code == 202
+    assert captured.get("continue_beat") is True
+
+
+def test_beat_start_prose_with_last_beat_rejected(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    monkeypatch.setattr("novel_mobile.server._llm_configured", lambda: True)
+    monkeypatch.setattr(
+        "novel_mobile.server.read_player_setup",
+        lambda session, **kw: {"exit_code": 0, "setup_complete": True},
+    )
+    monkeypatch.setattr("novel_mobile.server.read_beat_stage", lambda session: "prose")
+    monkeypatch.setattr(
+        "novel_mobile.server.read_last_beat",
+        lambda config: {"prose": "x", "hud": "", "options": []},
+    )
+
+    app = create_app(cfg)
+    tc = TestClient(app)
+    r = tc.post("/api/beat", json={"start": True})
+    assert r.status_code == 400
+    assert "start_requires_script_stage" in str(r.json())
+
+
 def test_beat_invalid_choice(tmp_path, monkeypatch):
     cfg = _config(tmp_path)
     monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)

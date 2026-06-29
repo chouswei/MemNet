@@ -11,7 +11,7 @@ import jwt
 
 from novel_mobile.world_slot import normalise_user_id
 
-AuthMode = Literal["open", "token", "google"]
+AuthMode = Literal["open", "token", "google", "guest"]
 _DEFAULT_JWT_TTL = 7 * 24 * 3600
 
 
@@ -59,6 +59,12 @@ def load_auth_config(
             jwt_secret=secret,
             jwt_ttl_seconds=ttl,
             allowed_emails=allowed,
+        )
+    if secret:
+        return AuthConfig(
+            mode="guest",
+            jwt_secret=secret,
+            jwt_ttl_seconds=ttl,
         )
     if shared:
         return AuthConfig(mode="token", shared_token=shared)
@@ -140,7 +146,9 @@ def authenticate_request(
         if token != config.shared_token:
             raise PermissionError("unauthorized")
         return AuthContext()
-    return verify_app_token(config, token)
+    if config.mode in ("google", "guest"):
+        return verify_app_token(config, token)
+    return AuthContext()
 
 
 def resolve_user_id(
@@ -154,9 +162,37 @@ def resolve_user_id(
         if header_id and header_id != auth_ctx.user_id:
             raise ValueError("user_id_mismatch")
         return auth_ctx.user_id
-    if auth_mode == "google":
+    if auth_mode in ("google", "guest"):
         return None
     return normalise_user_id(x_novel_user_id)
+
+
+def new_guest_user_id() -> str:
+    import uuid
+
+    uid = f"guest_{uuid.uuid4().hex[:16]}"
+    normalise_user_id(uid)
+    return uid
+
+
+def exchange_guest_login(config: AuthConfig) -> dict[str, Any]:
+    """Issue a signed per-device player id (LAN open mode without Google)."""
+    if config.mode != "guest" or not config.jwt_secret:
+        raise RuntimeError("guest auth not configured")
+    user_id = new_guest_user_id()
+    access_token, expires_in = issue_app_token(
+        config,
+        user_id=user_id,
+        email=None,
+        google_sub="guest",
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": expires_in,
+        "user_id": user_id,
+        "email": None,
+    }
 
 
 def exchange_google_login(
