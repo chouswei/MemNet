@@ -23,7 +23,7 @@ window.NovelPlay = (function () {
       choicesEl().innerHTML = "";
       return;
     }
-    const fmt = "【劇情】";
+    const fmt = beat.format_play || window.NovelApp.formatPlay || "【劇情】";
     narrativeEl().textContent = fmt + "\n" + (beat.prose || "");
     const hud = (beat.hud || "").trim();
     if (hud) {
@@ -45,8 +45,7 @@ window.NovelPlay = (function () {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "choice-btn";
-      const label = text.length > 16 ? text.slice(0, 16) + "…" : text;
-      btn.textContent = n + ". " + label;
+      btn.textContent = n + ". " + text;
       btn.addEventListener("click", () => {
         if (window.NovelApp.activeJobId) return;
         window.NovelApp.postBeat({ choice: n });

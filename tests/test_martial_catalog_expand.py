@@ -57,6 +57,20 @@ def test_merge_arts_rejects_duplicate_name(wuxia_schema: CatalogSchema) -> None:
     assert any("duplicate name" in e for e in errs)
 
 
+def test_default_burn_from_tag(wuxia_schema: CatalogSchema) -> None:
+    from novel_mcp.catalog_schema import default_burn_for_art
+
+    art = {
+        "id": "ART99",
+        "名稱": "測試功",
+        "門類": "武學",
+        "金庸梯": "一流",
+        "係數": "1.2",
+        "出處": "作品;pool薄;burn2;sustain3",
+    }
+    assert default_burn_for_art(art, wuxia_schema) == "2"
+
+
 def test_expand_martial_catalog_mock_llm(wuxia_schema: CatalogSchema) -> None:
     from unittest.mock import patch
 

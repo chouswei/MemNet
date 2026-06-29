@@ -14,6 +14,8 @@ window.NovelApp = (function () {
   let pollTimer = null;
   let pollStarted = 0;
 
+  let formatPlay = "【劇情】";
+
   const phaseLabels = {
     prepare_script: "準備劇本…",
     oln: "寫大綱…",
@@ -158,8 +160,19 @@ window.NovelApp = (function () {
 
   async function postBeat(body) {
     hideError();
-    const res = await api("/api/beat", { method: "POST", body: JSON.stringify(body) });
-    await pollJob(res.job_id);
+    setBeatBusy(true);
+    try {
+      const res = await api("/api/beat", { method: "POST", body: JSON.stringify(body) });
+      await pollJob(res.job_id);
+    } catch (e) {
+      setBeatBusy(false);
+      const msg =
+        e.body?.errors?.join(" ") ||
+        e.body?.detail?.errors?.join(" ") ||
+        e.message ||
+        "beat 請求失敗";
+      showError(msg);
+    }
   }
 
   async function refreshSheet() {
@@ -181,6 +194,47 @@ window.NovelApp = (function () {
     return health;
   }
 
+  async function restartSession() {
+    const msg =
+      "確定重開 session？\n\n將建立新局：圖狀態、開局進度、編劇／作者對話與上一拍快取都會清除。";
+    if (!window.confirm(msg)) return;
+    clearPoll();
+    localStorage.removeItem(JOB_KEY);
+    activeJobId = null;
+    hideError();
+    setLoading(true, "重開 session…");
+    setBeatBusy(true);
+    try {
+      const res = await api("/api/session/rebootstrap", {
+        method: "POST",
+        body: "{}",
+      });
+      mode = "setup";
+      setupData = res.player_setup || null;
+      lastBeat = null;
+      sheet = null;
+      if (window.NovelSetup) window.NovelSetup.hidePlayChrome();
+      await loadHealth();
+      if (setupData && setupData.setup_complete) {
+        await enterPlay();
+      } else if (setupData && window.NovelSetup) {
+        window.NovelSetup.render(setupData);
+      } else {
+        await refreshSetup();
+      }
+    } catch (e) {
+      const errMsg =
+        e.body?.errors?.join(" ") ||
+        e.body?.detail?.errors?.join(" ") ||
+        e.message ||
+        "重開 session 失敗";
+      showError(errMsg);
+    } finally {
+      setLoading(false);
+      setBeatBusy(false);
+    }
+  }
+
   async function refreshSetup() {
     setupData = await api("/api/setup");
     if (setupData.setup_complete) {
@@ -192,6 +246,9 @@ window.NovelApp = (function () {
 
   async function enterPlay() {
     mode = "play";
+    formatPlay =
+      (setupData && setupData.setup_guidance && setupData.setup_guidance.format_play) ||
+      formatPlay;
     document.getElementById("setup-actions").classList.add("hidden");
     document.getElementById("panel-text").classList.remove("hidden");
     document.getElementById("tab-bar").classList.remove("hidden");
@@ -209,6 +266,13 @@ window.NovelApp = (function () {
     document.getElementById("btn-retry").addEventListener("click", () => {
       hideError();
       if (mode === "setup") refreshSetup();
+    });
+    document.getElementById("btn-restart-session").addEventListener("click", () => {
+      if (activeJobId) {
+        showError("劇情處理中，請稍候再重開");
+        return;
+      }
+      restartSession();
     });
     document.getElementById("btn-submit").addEventListener("click", () => {
       const text = document.getElementById("input-text").value.trim();
@@ -229,8 +293,10 @@ window.NovelApp = (function () {
 
     await loadHealth();
     await refreshSetup();
-    const jid = localStorage.getItem(JOB_KEY);
-    if (jid) pollJob(jid);
+    if (mode === "play") {
+      const jid = localStorage.getItem(JOB_KEY);
+      if (jid) pollJob(jid);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
@@ -239,6 +305,7 @@ window.NovelApp = (function () {
     api,
     postBeat,
     refreshSetup,
+    restartSession,
     refreshSheet,
     enterPlay,
     get mode() { return mode; },
@@ -251,5 +318,6 @@ window.NovelApp = (function () {
     setBeatBusy,
     pollJob,
     get activeJobId() { return activeJobId; },
+    get formatPlay() { return formatPlay; },
   };
 })();

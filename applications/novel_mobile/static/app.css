@@ -27,11 +27,32 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0.75rem);
 }
 
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 header h1 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 0.75rem;
-  text-align: center;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.header-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.55rem;
+  min-height: 2rem;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+  background: var(--surface);
+  color: var(--muted);
 }
 
 .hidden { display: none !important; }
@@ -174,4 +195,30 @@ button:disabled {
   color: var(--muted);
   font-size: 0.85rem;
   padding: 0.5rem;
+}
+
+.sheet-section-title {
+  width: 100%;
+  flex-basis: 100%;
+  margin: 0.35rem 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.industry-card {
+  width: 100%;
+  flex-basis: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: auto;
+  padding: 0.55rem 0.65rem;
+}
+
+.industry-title {
+  font-weight: 600;
+  font-size: 0.92rem;
 }

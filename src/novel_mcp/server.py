@@ -27,6 +27,7 @@ from novel_mcp.opening_loadout import (
     commit_opening_pick as do_commit_opening_pick,
     read_martial_catalog as do_read_martial_catalog,
     read_opening_loadout as do_read_opening_loadout,
+    reroll_opening_offers as do_reroll_opening_offers,
 )
 from novel_mcp.player_profile import commit_profile as do_commit_profile
 from novel_mcp.player_profile import read_profile as do_read_profile
@@ -272,6 +273,18 @@ async def commit_opening_pick(
         )
 
     result = await anyio.to_thread.run_sync(_run)
+    return json.dumps(result, ensure_ascii=False)
+
+
+@mcp.tool()
+async def reroll_opening_offers(
+    session: str | None = None,
+    slot: str = "",
+) -> str:
+    """Re-roll random ART offers for the current opening pick slot (before commit)."""
+    result = await anyio.to_thread.run_sync(
+        lambda: do_reroll_opening_offers(session, slot.strip())
+    )
     return json.dumps(result, ensure_ascii=False)
 
 

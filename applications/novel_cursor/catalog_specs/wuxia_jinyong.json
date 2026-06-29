@@ -23,7 +23,7 @@
   "universe_label": "金庸武俠宇宙",
   "content_rules": "僅金庸武俠宇宙武功；禁其他 IP、禁現代格鬥、禁修仙術語",
   "expand_extra_rules": "出處欄用作品簡稱或門派；tags 用分號分隔",
-  "high_burn_substrings": ["六脈", "神劍"],
+  "high_burn_substrings": ["六脈", "神劍", "葵花"],
   "burn_usr_key": "art_neili_burn",
   "burn_usr_id": "USR49",
   "qinggong_wire_kind": "輕功",
@@ -106,5 +106,17 @@
         "expand": { "label": "再蓋一座焦炭窯", "template": "再蓋一座焦炭窯" }
       }
     }
+  },
+  "business": {
+    "wire_columns": ["id", "名稱", "類型", "地點", "現金", "負債", "收入", "支出"],
+    "relations": {
+      "manager": "manages",
+      "assists": "assists",
+      "hiring": "hiring",
+      "upgrade": "upgrades",
+      "cite": "cite",
+      "produce": "produce"
+    },
+    "plr_relations": ["owns", "manages"]
   }
 }

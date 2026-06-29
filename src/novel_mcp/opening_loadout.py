@@ -11,6 +11,7 @@ from typing import Any
 from novel_mcp.catalog_schema import (
     CatalogSchema,
     art_from_parts,
+    opening_offer_roll_usr_key,
     opening_offer_usr_key,
     opening_rank,
     read_catalog_schema,
@@ -30,6 +31,7 @@ from novel_mcp.setup_constants import (
 )
 from novel_mcp.setup_graph import (
     first_plr_id,
+    ensure_usr_row,
     graph_apply_setup_lines,
     graph_update,
     list_tag_data_rows,
@@ -172,7 +174,8 @@ def parse_pick_offer_count(raw: str | None) -> tuple[int, int]:
 
 def _rng_for_slot(session: str | None, slot: str) -> random.Random:
     extra = read_usr_by_key(session, SETUP_PICK_OFFER_SEED_KEY) or ""
-    base = f"{session or 'local'}:{slot}:{extra}"
+    roll_n = read_usr_by_key(session, opening_offer_roll_usr_key(slot)) or "0"
+    base = f"{session or 'local'}:{slot}:{extra}:{roll_n}"
     digest = hashlib.sha256(base.encode("utf-8")).hexdigest()
     return random.Random(int(digest[:16], 16))
 
@@ -188,18 +191,122 @@ def _read_stored_offer_ids(session: str | None, slot: str) -> list[str] | None:
     return ids or None
 
 
+def _preferred_offer_usr_id(key: str) -> str | None:
+    return {
+        "opening_offer_neigong": "USR74",
+        "opening_offer_martial": "USR75",
+        "opening_offer_qinggong": "USR76",
+    }.get(key)
+
+
 def _persist_offer_ids(session: str | None, slot: str, ids: list[str]) -> list[str]:
     key = opening_offer_usr_key(slot)
     if not session:
         return ["missing session for offer persist"]
-    uid = usr_id_for_key(session, key)
+    pref = _preferred_offer_usr_id(key)
+    preferred = (pref,) if pref else ()
+    uid = ensure_usr_row(
+        session, key, initial=OPENING_OFFER_EMPTY, preferred_ids=preferred
+    )
     if not uid:
         return [f"missing USR row for key {key} (seed opening_offer_* rows)"]
     value = ";".join(ids) if ids else OPENING_OFFER_EMPTY
     code, errs = graph_update(
         session, [f"@USR: {uid}|{key}|{value}|persistent"]
     )
-    return list(errs or []) if code != 0 else []
+    if code != 0 or errs:
+        return errs or ["offer persist failed"]
+    return []
+
+
+def _bump_offer_roll(session: str | None, slot: str) -> list[str]:
+    if not session:
+        return ["missing session for offer reroll"]
+    roll_key = opening_offer_roll_usr_key(slot)
+    raw = read_usr_by_key(session, roll_key) or "0"
+    try:
+        n = int(raw.strip()) + 1
+    except ValueError:
+        n = 1
+    uid = ensure_usr_row(session, roll_key, initial="0")
+    if not uid:
+        return [f"missing USR row for key {roll_key}"]
+    code, errs = graph_update(
+        session, [f"@USR: {uid}|{roll_key}|{n}|persistent"]
+    )
+    if code != 0 or errs:
+        return errs or ["offer roll bump failed"]
+    return []
+
+
+def reroll_opening_offers(
+    session: str | None,
+    slot: str,
+    *,
+    workspace_root_path: str | None = None,
+) -> dict[str, Any]:
+    """Re-roll offered ART ids for the current pick slot (before commit)."""
+    from novel_mcp.player_setup import read_player_setup
+
+    block = setup_commit_errors(session, setup_complete=False)
+    if block:
+        return {"exit_code": 2, "errors": block}
+
+    schema, schema_err = _require_schema(session, workspace_root_path=workspace_root_path)
+    if schema_err or schema is None:
+        return {"exit_code": 2, "errors": schema_err or ["missing catalog_schema"]}
+
+    order = slot_order(schema)
+    if slot not in order:
+        return {"exit_code": 2, "errors": [f"invalid slot: {slot}"]}
+
+    raw = read_usr_by_key(session, "opening_arts")
+    picks = _parse_opening_arts(raw, len(order))
+    expected = _next_slot(picks, order)
+    if expected != slot:
+        return {
+            "exit_code": 2,
+            "errors": [f"expected slot {expected}, got {slot}"],
+        }
+
+    setup = read_player_setup(session, workspace_root_path=workspace_root_path)
+    next_action = (setup.get("setup_guidance") or {}).get("next_action", "")
+    if next_action != f"pick_{slot}":
+        return {
+            "exit_code": 2,
+            "errors": [f"next_action is {next_action!r}, not pick_{slot}"],
+        }
+
+    arts_full, _, load_err = _load_catalog_arts(
+        session, schema, workspace_root_path=workspace_root_path
+    )
+    if load_err:
+        return {"exit_code": 2, "errors": load_err}
+
+    pool = [a for a in arts_full if slot_for_art(a, schema) == slot]
+    if not pool:
+        return {"exit_code": 2, "errors": [f"empty pool for slot {slot}"]}
+
+    bump_errs = _bump_offer_roll(session, slot)
+    if bump_errs:
+        return {"exit_code": 2, "errors": bump_errs}
+
+    lo, hi = parse_pick_offer_count(read_usr_by_key(session, SETUP_PICK_OFFER_COUNT_KEY))
+    ids = roll_slot_offers(session, slot, pool, lo=lo, hi=hi)
+    persist_errs = _persist_offer_ids(session, slot, ids)
+    if persist_errs:
+        return {"exit_code": 2, "errors": persist_errs}
+
+    cat = read_opening_catalog(session, workspace_root_path=workspace_root_path)
+    slot_data = (cat.get("slots") or {}).get(slot) or {}
+    return {
+        "exit_code": cat.get("exit_code", 0),
+        "slot": slot,
+        "offer_ids": slot_data.get("offer_ids") or ids,
+        "offer_count": len(ids),
+        "slots": cat.get("slots") or {},
+        "errors": cat.get("errors") or [],
+    }
 
 
 def roll_slot_offers(
@@ -404,8 +511,16 @@ def read_opening_loadout(
     workspace_root_path: str | None = None,
 ) -> dict[str, Any]:
     schema, schema_err = _require_schema(session, workspace_root_path=workspace_root_path)
-    order = slot_order(schema) if schema else ()
-    n = len(order) if order else 3
+    if not schema:
+        return {
+            "exit_code": 0,
+            "slots": {},
+            "next_slot": None,
+            "complete": False,
+            "errors": list(schema_err or []),
+        }
+    order = slot_order(schema)
+    n = len(order)
     raw = read_usr_by_key(session, "opening_arts")
     picks = _parse_opening_arts(raw, n)
     slots_out: dict[str, Any] = {}
@@ -415,7 +530,7 @@ def read_opening_loadout(
             "pick": None if pick == SENTINEL else pick,
             "scene": _scene_for_slot(session, slot),
         }
-    next_slot = _next_slot(picks, order) if order else None
+    next_slot = _next_slot(picks, order)
     complete = next_slot is None
     errors: list[str] = list(schema_err or [])
     if next_slot and session and schema:

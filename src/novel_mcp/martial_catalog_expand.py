@@ -121,6 +121,25 @@ def build_usr_burn_update(
     return f"@USR: {schema.burn_usr_id}|{schema.burn_usr_key}|{';'.join(pairs)}|persistent"
 
 
+def sync_art_neili_burn(
+    session: str,
+    schema: CatalogSchema,
+) -> dict[str, Any]:
+    """Merge all graph @ART rows into USR49 (preserves existing overrides)."""
+    if not schema.burn_usr_key:
+        return {"exit_code": 0, "skipped": True, "reason": "no_burn_usr_key"}
+    arts = arts_from_session(session, schema)
+    if not arts:
+        return {"exit_code": 0, "skipped": True, "reason": "no_arts_on_graph"}
+    line = build_usr_burn_update(session, arts, schema)
+    if not line:
+        return {"exit_code": 2, "errors": [f"missing {schema.burn_usr_key} on graph"]}
+    code, errs = graph_update(session, [line])
+    if code != 0 or errs:
+        return {"exit_code": 2, "errors": errs or ["burn sync failed"]}
+    return {"exit_code": 0, "art_count": len(arts)}
+
+
 def _max_art_num(base: list[dict[str, str]], schema: CatalogSchema) -> int:
     nums: list[int] = []
     plen = len(schema.id_prefix)

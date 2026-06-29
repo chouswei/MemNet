@@ -18,8 +18,10 @@ from novel_mcp.setup_constants import (
     SETUP_GOD_LINE_OPEN,
     SETUP_GOD_LINE_PROFILE,
     SETUP_GOD_LINE_TRANSMIGRATE,
+    SETUP_PROFILE_GENDERS_KEY,
     SENTINEL,
 )
+from novel_mcp.setup_ack import is_setup_acked
 from novel_mcp.setup_graph import read_usr_by_key, read_usr_record
 
 
@@ -70,6 +72,13 @@ def _setup_line(session: str | None, key: str) -> str | None:
     return None
 
 
+def _profile_genders(session: str | None) -> list[str]:
+    raw = read_usr_by_key(session, SETUP_PROFILE_GENDERS_KEY)
+    if not raw or raw == SENTINEL:
+        return ["男", "女"]
+    return [p.strip() for p in raw.split(";") if p.strip()]
+
+
 def _build_setup_guidance(
     session: str | None,
     *,
@@ -82,6 +91,24 @@ def _build_setup_guidance(
     tone = _parse_tone(tone_rec)
     fmt_god = _read_format(session, SETUP_FORMAT_GOD_KEY, FORMAT_GOD_REALM)
     fmt_play = _read_format(session, SETUP_FORMAT_PLAY_KEY, FORMAT_PLAY_BEAT)
+
+    if (
+        bool(profile.get("complete"))
+        and bool(loadout.get("complete"))
+        and not is_setup_acked(session, "narrate_transmigration")
+    ):
+        return {
+            "phase": "transmigrate",
+            "next_action": "narrate_transmigration",
+            "format_god": fmt_god,
+            "format_play": fmt_play,
+            "tone": tone,
+            "suggested_lines": _suggested_lines(
+                session, (SETUP_GOD_LINE_TRANSMIGRATE,)
+            ),
+            "scene": None,
+            "follow_up_action": "start_play",
+        }
 
     if setup_complete:
         return {
@@ -98,18 +125,34 @@ def _build_setup_guidance(
         name_set = bool(profile.get("name_set"))
         gender_set = bool(profile.get("gender_set"))
         if not name_set and not gender_set:
+            if not is_setup_acked(session, "narrate_open"):
+                ask = _ask_name_line(session)
+                follow_up: list[str] = [ask] if ask and ask != SENTINEL else []
+                return {
+                    "phase": "open",
+                    "next_action": "narrate_open",
+                    "format_god": fmt_god,
+                    "format_play": fmt_play,
+                    "tone": tone,
+                    "suggested_lines": _suggested_lines(
+                        session, (SETUP_GOD_LINE_OPEN,)
+                    ),
+                    "scene": None,
+                    "follow_up_action": "narrate_ask_name",
+                    "follow_up_lines": follow_up,
+                }
             ask = _ask_name_line(session)
-            follow_up: list[str] = [ask] if ask and ask != SENTINEL else []
+            open_lines = _suggested_lines(session, (SETUP_GOD_LINE_OPEN,))
+            ask_lines = [ask] if ask and ask != SENTINEL else []
             return {
-                "phase": "open",
-                "next_action": "narrate_open",
+                "phase": "ask_name",
+                "next_action": "narrate_ask_name",
                 "format_god": fmt_god,
                 "format_play": fmt_play,
                 "tone": tone,
-                "suggested_lines": _suggested_lines(session, (SETUP_GOD_LINE_OPEN,)),
+                "suggested_lines": open_lines + ask_lines,
                 "scene": None,
-                "follow_up_action": "narrate_ask_name",
-                "follow_up_lines": follow_up,
+                "follow_up_action": "commit_player_profile",
             }
         if not name_set:
             ask = _ask_name_line(session)
@@ -134,6 +177,7 @@ def _build_setup_guidance(
                     session, (SETUP_GOD_LINE_ASK_GENDER,)
                 ),
                 "scene": None,
+                "genders": _profile_genders(session),
                 "follow_up_action": "commit_player_profile",
             }
         return {
@@ -147,19 +191,6 @@ def _build_setup_guidance(
             "profile_errors": profile.get("errors", []),
         }
 
-    if loadout.get("complete"):
-        return {
-            "phase": "transmigrate",
-            "next_action": "narrate_transmigration",
-            "format_god": fmt_god,
-            "format_play": fmt_play,
-            "tone": tone,
-            "suggested_lines": _suggested_lines(
-                session, (SETUP_GOD_LINE_TRANSMIGRATE,)
-            ),
-            "scene": None,
-        }
-
     next_slot = loadout.get("next_slot")
     schema = read_catalog_schema(session, workspace_root_path=workspace_root_path)
     order = slot_order(schema) if schema else ()
@@ -168,7 +199,13 @@ def _build_setup_guidance(
     pre_pick_key = schema.loadout.pre_pick_line_usr_key if schema else None
     pre_pick_line = _setup_line(session, pre_pick_key) if pre_pick_key else None
 
-    if next_slot and first_slot and next_slot == first_slot and pre_pick_line:
+    if (
+        next_slot
+        and first_slot
+        and next_slot == first_slot
+        and pre_pick_line
+        and not is_setup_acked(session, "narrate_pre_pick")
+    ):
         scene = loadout.get("slots", {}).get(first_slot, {}).get("scene")
         return {
             "phase": "pre_pick",
@@ -222,7 +259,11 @@ def read_player_setup(
             "setup_guidance": {},
         }
 
-    setup_complete = bool(profile.get("complete")) and bool(loadout.get("complete"))
+    setup_complete = (
+        bool(profile.get("complete"))
+        and bool(loadout.get("complete"))
+        and is_setup_acked(session, "narrate_transmigration")
+    )
     guidance = _build_setup_guidance(
         session,
         profile=profile,

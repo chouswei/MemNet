@@ -26,6 +26,12 @@ def reset_threads(config: NovelAppConfig) -> None:
     root.mkdir(parents=True, exist_ok=True)
 
 
+def reset_role_thread(config: NovelAppConfig, role: Role) -> None:
+    path = thread_path(config, role)
+    if path.is_file():
+        path.unlink()
+
+
 class ChatThread:
     """OpenAI-style message list persisted per role."""
 

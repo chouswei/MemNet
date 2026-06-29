@@ -189,3 +189,60 @@ def test_read_martial_catalog_random_offers(
 def test_has_mwu_edges_false() -> None:
     with patch("novel_mcp.opening_loadout.list_tag_data_rows", return_value=[]):
         assert has_mwu_edges("mn_x", "P01") is False
+
+
+def test_reroll_opening_offers_changes_pool(
+    tmp_path: Path, wuxia_schema: CatalogSchema
+) -> None:
+    from novel_mcp.opening_loadout import reroll_opening_offers
+
+    lines = ["@ART: ART01|太玄經|綜合|超一流|1.75|俠客行|常駐"]
+    for i in range(10, 30):
+        lines.append(f"@ART: ART{i:02d}|內功{i}|內功|二流|1.0|作品|常駐")
+    cat = tmp_path / "catalog.md"
+    cat.write_text("```text\n" + "\n".join(lines) + "\n```", encoding="utf-8")
+
+    state = {
+        "opening_offer_neigong": "ART10;ART11;ART12;ART13;ART14",
+        "opening_offer_roll_neigong": "0",
+    }
+    usr_map = _offer_usr_map()
+    usr_map["setup_pick_offer_count"] = "5-5"
+
+    def read_usr(_s, key):
+        if key in state:
+            return state[key]
+        return usr_map.get(key)
+
+    def fake_update(_s, lines):
+        for ln in lines:
+            parts = ln.split("|")
+            if len(parts) >= 3 and parts[1] == "opening_offer_neigong":
+                state["opening_offer_neigong"] = parts[2]
+            if len(parts) >= 3 and parts[1] == "opening_offer_roll_neigong":
+                state["opening_offer_roll_neigong"] = parts[2]
+        return 0, []
+
+    setup_pick = {
+        "exit_code": 0,
+        "setup_complete": False,
+        "setup_guidance": {"next_action": "pick_neigong"},
+    }
+
+    patches = _patch_catalog(cat, wuxia_schema)
+    with (
+        patches[0],
+        patches[1],
+        patches[2],
+        patches[3],
+        patches[4],
+        patch("novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr),
+        patch("novel_mcp.opening_loadout.graph_update", side_effect=fake_update),
+        patch("novel_mcp.player_setup.read_player_setup", return_value=setup_pick),
+    ):
+        before = state["opening_offer_neigong"]
+        out = reroll_opening_offers("mn_x", "neigong")
+        after = state["opening_offer_neigong"]
+    assert out["exit_code"] == 0
+    assert state["opening_offer_roll_neigong"] == "1"
+    assert before != after or len(set(after.split(";"))) == 5

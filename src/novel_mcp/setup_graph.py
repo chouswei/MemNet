@@ -103,6 +103,38 @@ def first_plr_id(session: str | None) -> str | None:
     return rows[0][0]
 
 
+def ensure_usr_row(
+    session: str | None,
+    key: str,
+    *,
+    initial: str = SENTINEL,
+    preferred_ids: tuple[str, ...] = (),
+) -> str | None:
+    """Return USR row id for logical key; add row when seed omitted it."""
+    if not session:
+        return None
+    uid = usr_id_for_key(session, key)
+    if uid:
+        return uid
+    existing = {row[0] for row in list_tag_data_rows(session, "USR")}
+    seed_val = initial if initial not in (SENTINEL, "") else "_"
+    candidates: list[str] = []
+    for cid in preferred_ids:
+        if cid and cid not in candidates:
+            candidates.append(cid)
+    for n in range(74, 100):
+        cid = f"USR{n}"
+        if cid not in candidates:
+            candidates.append(cid)
+    for cid in candidates:
+        if cid in existing:
+            continue
+        ing = ingest_lines(session, [f"@USR: {cid}|{key}|{seed_val}|persistent"])
+        if ing.get("exit_code") == 0:
+            return cid
+    return None
+
+
 def graph_update(session: str | None, lines: list[str]) -> tuple[int, list[str]]:
     if not session or not lines:
         return 2, ["missing session or update lines"]
@@ -111,7 +143,11 @@ def graph_update(session: str | None, lines: list[str]) -> tuple[int, list[str]]
         stdin="\n".join(lines),
         session=session,
     )
-    return resp.exit_code, list(resp.errors or [])
+    errors = list(resp.errors or [])
+    code = resp.exit_code
+    if code == 0 and errors:
+        code = 2
+    return code, errors
 
 
 def graph_apply_setup_lines(session: str | None, lines: list[str]) -> tuple[int, list[str]]:

@@ -15,6 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 _root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_root / "src"))
 
+from env_load import load_dotenv
+
+load_dotenv()
+
 from app_config import RESULT_MARKER, load_config
 from chat_thread import reset_threads
 from play_service import (
@@ -32,6 +36,7 @@ from novel_mcp.opening_loadout import commit_opening_loadout
 from novel_mcp.player_profile import commit_profile
 from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
 from novel_mcp.play_context import read_beat_stage
+from novel_mcp.setup_ack import seed_cli_setup_acks
 
 _PHASE_T0 = 0.0
 
@@ -64,6 +69,8 @@ def _run_setup(
     if loadout.get("exit_code") != 0:
         print(f"error: {loadout.get('errors')}", file=sys.stderr)
         return int(loadout.get("exit_code", 2))
+    seed_cli_setup_acks(session)
+    setup = read_player_setup(session)
     save = run_memnet(["session", "save", "--file", str(config.snapshot_file)], session=session)
     if save.exit_code != 0:
         print(f"error: session save failed: {save.stderr}", file=sys.stderr)
@@ -72,8 +79,8 @@ def _run_setup(
         "exit_code": 0,
         "session": session,
         "app_id": config.app_id,
-        "setup_complete": loadout.get("setup_complete"),
-        "player_setup": loadout,
+        "setup_complete": setup.get("setup_complete"),
+        "player_setup": setup,
     }
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0

@@ -13,7 +13,7 @@ from beat_prompt import (
     build_script_stage_system,
     build_script_stage_user,
 )
-from chat_thread import ChatThread
+from chat_thread import ChatThread, reset_role_thread
 from llm_client import complete_messages, model_for_role
 from wire_parse import extract_wire_lines, normalise_options, parse_prose_payload
 
@@ -145,6 +145,7 @@ def run_script_phase(
     if stage not in _SCRIPT_STAGES:
         stage = "oln"
 
+    reset_role_thread(config, "script")
     thread = _script_thread(config)
     start = _SCRIPT_STAGES.index(stage)
     for st in _SCRIPT_STAGES[start:]:

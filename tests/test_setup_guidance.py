@@ -9,12 +9,13 @@ from novel_mcp.player_setup import read_player_setup
 
 
 @contextmanager
-def _patch_setup(*, name="未定", gender="未定", opening="未定;未定;未定"):
+def _patch_setup(*, name="未定", gender="未定", opening="未定;未定;未定", setup_ack=""):
     def read_usr(session, key):
         return {
             "pc_name": name,
             "pc_gender": gender,
             "opening_arts": opening,
+            "setup_god_ack": setup_ack,
             "martial_catalog_md": "application-notes/novel-shenjia-martial-catalog.md",
             "catalog_schema": "applications/novel_cursor/catalog_specs/wuxia_jinyong.json",
             "setup_pick_offer_count": "1-3",
@@ -41,6 +42,8 @@ def _patch_setup(*, name="未定", gender="未定", opening="未定;未定;未�
     with patch("novel_mcp.player_profile.read_usr_by_key", side_effect=read_usr), patch(
         "novel_mcp.opening_loadout.read_usr_by_key", side_effect=read_usr
     ), patch("novel_mcp.player_setup.read_usr_by_key", side_effect=read_usr), patch(
+        "novel_mcp.setup_ack.read_usr_by_key", side_effect=read_usr
+    ), patch(
         "novel_mcp.setup_profile_rules.read_usr_by_key", side_effect=read_usr
     ), patch(
         "novel_mcp.opening_loadout.usr_id_for_key",
@@ -87,6 +90,15 @@ def test_next_action_narrate_open() -> None:
     assert g["follow_up_lines"] == ["報個名"]
 
 
+def test_next_action_ask_name_after_open_ack() -> None:
+    with _patch_setup(setup_ack="narrate_open"):
+        out = read_player_setup("mn_x")
+    g = out["setup_guidance"]
+    assert g["next_action"] == "narrate_ask_name"
+    assert "再熬夜" in g["suggested_lines"][0]
+    assert "報個名" in g["suggested_lines"][-1]
+
+
 def test_next_action_ask_gender_after_name() -> None:
     with _patch_setup(name="北見硝", gender="未定"):
         out = read_player_setup("mn_x")
@@ -100,8 +112,20 @@ def test_next_action_after_profile() -> None:
     assert out["setup_guidance"]["next_action"] == "narrate_pre_pick"
 
 
-def test_start_play() -> None:
+def test_narrate_transmigration_before_start_play() -> None:
     with _patch_setup(name="北見硝", gender="男", opening="ART01;ART02;ART04"):
+        out = read_player_setup("mn_x")
+    assert out["setup_complete"] is False
+    assert out["setup_guidance"]["next_action"] == "narrate_transmigration"
+
+
+def test_start_play() -> None:
+    with _patch_setup(
+        name="北見硝",
+        gender="男",
+        opening="ART01;ART02;ART04",
+        setup_ack="narrate_open;narrate_pre_pick;narrate_transmigration",
+    ):
         out = read_player_setup("mn_x")
     assert out["setup_complete"] is True
     assert out["setup_guidance"]["next_action"] == "start_play"

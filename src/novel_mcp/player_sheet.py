@@ -6,6 +6,7 @@ from typing import Any
 
 from novel_mcp.catalog_schema import (
     ActionTemplate,
+    BusinessConfig,
     CatalogSchema,
     ProductionConfig,
     read_catalog_schema,
@@ -32,12 +33,14 @@ def _usr_int(session: str | None, key: str, default: int = 0) -> int:
 
 def _tec_status(parts: list[str], prod: ProductionConfig) -> tuple[str, bool]:
     status_field = parts[3] if len(parts) > 3 else ""
-    for token in prod.status_unlocked:
-        if token in status_field:
-            return "已解鎖", True
+    if "未解鎖" in status_field:
+        return "鎖定", False
     for token in prod.status_locked:
         if token in status_field:
             return "鎖定", False
+    for token in prod.status_unlocked:
+        if token in status_field:
+            return "已解鎖", True
     return "鎖定", False
 
 
@@ -153,13 +156,6 @@ def read_production_nodes(
     rel_produce = prod.relations.get("produce", "produce")
     rel_develop = prod.relations.get("develop", "develop")
     rel_requires = prod.relations.get("requires", "requires")
-
-    tec_status: dict[str, bool] = {}
-    for parts in list_tag_data_rows(session, prod.tec_tag):
-        if not parts:
-            continue
-        _, unlocked = _tec_status(parts, prod)
-        tec_status[parts[0]] = unlocked
 
     nodes: list[dict[str, Any]] = []
     for parts in list_tag_data_rows(session, prod.tec_tag):
@@ -297,6 +293,193 @@ def read_production_nodes(
     return nodes
 
 
+def _biz_col(biz: BusinessConfig, name: str, fallback: int) -> int:
+    try:
+        return biz.wire_columns.index(name)
+    except ValueError:
+        return fallback
+
+
+def _plr_biz_affiliations(
+    edges: list[list[str]],
+    plr_id: str,
+    plr_relations: tuple[str, ...],
+) -> dict[str, str]:
+    """Map biz_id -> relation (owns/manages) for industries the protagonist belongs to."""
+    out: dict[str, str] = {}
+    allowed = set(plr_relations)
+    for ep in edges:
+        if len(ep) < 4 or ep[1] != plr_id or ep[2] not in allowed:
+            continue
+        out[ep[3]] = ep[2]
+    return out
+
+
+def _npc_names(session: str | None, biz: BusinessConfig) -> dict[str, str]:
+    return {
+        row[0]: row[1]
+        for row in list_tag_data_rows(session, biz.npc_tag)
+        if len(row) >= 2
+    }
+
+
+def _related_libs(
+    edges: list[list[str]],
+    biz_id: str,
+    *,
+    rel_upgrade: str,
+    rel_cite: str,
+    lib_prefix: str = "LIB",
+) -> set[str]:
+    upgrade_targets: set[str] = set()
+    for ep in edges:
+        if len(ep) >= 4 and ep[1] == biz_id and ep[2] == rel_upgrade:
+            upgrade_targets.add(ep[3])
+        if len(ep) >= 4 and ep[1] == biz_id and ep[2] == "features" and ep[3].startswith(lib_prefix):
+            upgrade_targets.add(ep[3])
+
+    libs: set[str] = {t for t in upgrade_targets if t.startswith(lib_prefix)}
+    for ep in edges:
+        if len(ep) < 4:
+            continue
+        if ep[2] == rel_cite and ep[3] in upgrade_targets and ep[1].startswith(lib_prefix):
+            libs.add(ep[1])
+        if ep[1] in upgrade_targets and ep[2] == "features" and ep[3].startswith(lib_prefix):
+            libs.add(ep[3])
+
+    changed = True
+    while changed:
+        changed = False
+        for ep in edges:
+            if len(ep) < 4 or ep[1] not in libs or ep[2] != rel_cite:
+                continue
+            cited = ep[3]
+            if cited.startswith(lib_prefix) and cited not in libs:
+                libs.add(cited)
+                changed = True
+    return libs
+
+
+def _products_for_biz(
+    edges: list[list[str]],
+    libs: set[str],
+    prd_rows: dict[str, list[str]],
+    *,
+    rel_cite: str,
+    rel_produce: str,
+) -> list[dict[str, str]]:
+    tecs: set[str] = set()
+    for ep in edges:
+        if len(ep) >= 4 and ep[1] in libs and ep[2] == rel_cite and ep[3].startswith("TEC"):
+            tecs.add(ep[3])
+    products: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for ep in edges:
+        if len(ep) < 4 or ep[1] not in tecs or ep[2] != rel_produce:
+            continue
+        prd_id = ep[3]
+        if prd_id in seen:
+            continue
+        seen.add(prd_id)
+        parts = prd_rows.get(prd_id, [prd_id])
+        products.append(
+            {
+                "id": prd_id,
+                "name": parts[1] if len(parts) > 1 else prd_id,
+                "status": parts[5] if len(parts) > 5 else "",
+            }
+        )
+    return products
+
+
+def read_business_industries(
+    session: str | None,
+    plr_id: str,
+    schema: CatalogSchema | None,
+) -> list[dict[str, Any]]:
+    """Industries (@BIZ) linked to the protagonist — not TEC production lines."""
+    biz_cfg = schema.business if schema else None
+    if not session or not biz_cfg:
+        return []
+
+    rel = biz_cfg.relations
+    edges = _edges(session)
+    affiliations = _plr_biz_affiliations(edges, plr_id, biz_cfg.plr_relations)
+    if not affiliations:
+        return []
+
+    npc_map = _npc_names(session, biz_cfg)
+    prd_rows = _prd_map(session, schema.production) if schema and schema.production else {}
+    biz_rows = {row[0]: row for row in list_tag_data_rows(session, biz_cfg.tag)}
+
+    ix_name = _biz_col(biz_cfg, "名稱", 1)
+    ix_kind = _biz_col(biz_cfg, "類型", 2)
+    ix_loc = _biz_col(biz_cfg, "地點", 3)
+    ix_cash = _biz_col(biz_cfg, "現金", 4)
+    ix_debt = _biz_col(biz_cfg, "負債", 5)
+    ix_in = _biz_col(biz_cfg, "收入", 6)
+    ix_out = _biz_col(biz_cfg, "支出", 7)
+
+    rel_mgr = rel.get("manager", "manages")
+    rel_ast = rel.get("assists", "assists")
+    rel_up = rel.get("upgrade", "upgrades")
+    rel_cite = rel.get("cite", "cite")
+    rel_prod = rel.get("produce", "produce")
+
+    industries: list[dict[str, Any]] = []
+    for biz_id in sorted(affiliations):
+        parts = biz_rows.get(biz_id)
+        if not parts:
+            continue
+
+        manager = ""
+        assistants: list[str] = []
+        for ep in edges:
+            if len(ep) < 4:
+                continue
+            if ep[2] == rel_mgr and ep[3] == biz_id:
+                if ep[1] == plr_id:
+                    continue
+                if ep[1] in npc_map:
+                    manager = npc_map[ep[1]]
+                elif not manager:
+                    manager = ep[1]
+            if ep[2] == rel_ast and ep[3] == biz_id:
+                assistants.append(npc_map.get(ep[1], ep[1]))
+
+        libs = _related_libs(edges, biz_id, rel_upgrade=rel_up, rel_cite=rel_cite)
+        products = _products_for_biz(
+            edges, libs, prd_rows, rel_cite=rel_cite, rel_produce=rel_prod
+        )
+
+        def _num(idx: int) -> int:
+            if len(parts) <= idx:
+                return 0
+            try:
+                return int(str(parts[idx]).strip())
+            except ValueError:
+                return 0
+
+        industries.append(
+            {
+                "id": biz_id,
+                "name": parts[ix_name] if len(parts) > ix_name else biz_id,
+                "kind": parts[ix_kind] if len(parts) > ix_kind else "",
+                "location": parts[ix_loc] if len(parts) > ix_loc else "",
+                "cash": _num(ix_cash),
+                "debt": _num(ix_debt),
+                "income": _num(ix_in),
+                "expense": _num(ix_out),
+                "plr_role": affiliations[biz_id],
+                "manager": manager,
+                "assistants": assistants,
+                "products": products,
+                "actions": [],
+            }
+        )
+    return industries
+
+
 def read_player_sheet(
     session: str | None,
     *,
@@ -331,7 +514,11 @@ def read_player_sheet(
             if name in (link.get("itm_names") or []):
                 tec_id = link.get("tec_id")
                 if tec_id and schema and schema.production:
-                    key = schema.production.installed_usr_key.format(tec_id=tec_id)
+                    prod = schema.production
+                    asset_mode = prod.asset_mode_by_tec.get(tec_id, "installable")
+                    if asset_mode != "installable":
+                        break
+                    key = prod.installed_usr_key.format(tec_id=tec_id)
                     installed = _usr_int(session, key, 0)
                     entry["prd_id"] = prd_id
                     entry["linked_tec"] = tec_id
@@ -364,6 +551,9 @@ def read_player_sheet(
         mastery = parts[4] if len(parts) > 4 else ""
         art_parts = art_rows.get(art_id)
         art_name = art_parts[1] if art_parts and len(art_parts) > 1 else art_id
+        martial_actions = (
+            resolve_martial_actions(schema, name=art_name) if schema else []
+        )
         arts.append(
             {
                 "id": mwu_id,
@@ -371,6 +561,7 @@ def read_player_sheet(
                 "name": art_name,
                 "rank": rank,
                 "mastery": mastery,
+                "actions": martial_actions,
             }
         )
         skill_names.append(f"{art_name}{rank}")
@@ -382,16 +573,21 @@ def read_player_sheet(
             continue
         slot = parts[2]
         kind = labels.get(slot, slot)
+        martial_actions = (
+            resolve_martial_actions(schema, name=kind) if schema else []
+        )
         body_stats.append(
             {
                 "id": parts[0],
                 "kind": kind,
                 "rank": parts[3] if len(parts) > 3 else "",
                 "mastery": parts[4] if len(parts) > 4 else "",
+                "actions": martial_actions,
             }
         )
 
     production_nodes = read_production_nodes(session, schema, workspace_root_path=workspace_root_path) if schema else []
+    industries = read_business_industries(session, plr_id, schema)
 
     return {
         "exit_code": 0,
@@ -400,6 +596,6 @@ def read_player_sheet(
         "items": items,
         "arts": arts,
         "body_stats": body_stats,
-        "production": {"nodes": production_nodes},
+        "production": {"industries": industries, "nodes": production_nodes},
         "errors": [],
     }

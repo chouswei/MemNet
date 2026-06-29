@@ -176,6 +176,7 @@
 @USR: USR77|setup_god_line_ask_gender|性別？男或女，快點，後面還在排。|persistent
 @USR: USR78|setup_profile_name_rule|cjk_2_4|persistent
 @USR: USR79|setup_profile_genders|男;女|persistent
+@USR: USR98|setup_god_ack|_|persistent
 @USR: USR66|setup_god_line_transmigrate|好，穿吧——別又加班死在工位上啊。|persistent
 @USR: USR71|setup_god_line_library|喔，圖書館——你腦子裡那些念頭還在吧？進去翻，三樣帶走，別貪心。|persistent
 @USR: USR72|setup_soul_library|靈魂圖書館;登峰造極;no_pick|persistent

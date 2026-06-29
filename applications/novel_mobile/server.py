@@ -14,13 +14,16 @@ _cursor = _root / "applications" / "novel_cursor"
 sys.path.insert(0, str(_cursor))
 sys.path.insert(0, str(_root / "src"))
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
+import anyio
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app_config import NovelAppConfig, load_config
+from env_load import load_dotenv
+from session_bootstrap import rebootstrap_session
 from play_service import (
     fail_result,
     preflight_session,
@@ -31,15 +34,45 @@ from play_service import (
     write_last_beat,
 )
 
-from novel_mcp.opening_loadout import commit_opening_pick, read_opening_catalog
+from novel_mcp.opening_loadout import (
+    commit_opening_pick,
+    read_opening_catalog,
+    reroll_opening_offers,
+)
 from novel_mcp.player_profile import commit_profile
 from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
 from novel_mcp.player_sheet import read_player_sheet
 from novel_mcp.play_context import read_beat_stage
+from novel_mcp.setup_ack import VALID_SETUP_ACK_STEPS, commit_setup_ack
 
 from novel_mobile.jobs import BeatJob, BeatJobStore
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+class ProfileBody(BaseModel):
+    name: str | None = None
+    gender: str | None = None
+
+
+class PickBody(BaseModel):
+    slot: str
+    art_id: str
+
+
+class RerollBody(BaseModel):
+    slot: str
+
+
+class AckBody(BaseModel):
+    step: str
+
+
+class BeatBody(BaseModel):
+    choice: int | None = None
+    steering: str | None = None
+    continue_beat: bool = False
+
 
 _app_config: NovelAppConfig | None = None
 _job_store = BeatJobStore()
@@ -99,7 +132,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @app.get("/api/health")
-    async def health(_: None = Depends(_require_auth)):
+    async def health(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         cfg = get_config()
         issues: list[str] = []
         serve_ok = probe_serve()
@@ -129,7 +163,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         }
 
     @app.get("/api/setup")
-    async def api_setup(_: None = Depends(_require_auth)):
+    async def api_setup(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
         setup = read_player_setup(session)
@@ -137,26 +172,53 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
             raise HTTPException(status_code=502, detail=setup)
         return setup
 
-    class ProfileBody(BaseModel):
-        name: str | None = None
-        gender: str | None = None
-
     @app.post("/api/setup/profile")
-    async def api_setup_profile(body: ProfileBody, _: None = Depends(_require_auth)):
+    async def api_setup_profile(
+        payload: ProfileBody,
+        authorization: str | None = Header(default=None),
+    ):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
         setup = read_player_setup(session)
         if setup.get("setup_complete"):
             raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
-        if not body.name and not body.gender:
+        if not payload.name and not payload.gender:
             raise HTTPException(status_code=400, detail={"errors": ["provide name and/or gender"]})
-        prof = commit_profile(session, body.name or "", body.gender or "")
+        prof = commit_profile(session, payload.name or "", payload.gender or "")
         if prof.get("exit_code") != 0:
             raise HTTPException(status_code=400, detail={"errors": prof.get("errors", [])})
         return read_player_setup(session)
 
+    @app.post("/api/setup/ack")
+    async def api_setup_ack(
+        payload: AckBody,
+        authorization: str | None = Header(default=None),
+    ):
+        _require_auth(authorization)
+        cfg = get_config()
+        session = _session_or_raise(cfg)
+        setup = read_player_setup(session)
+        if setup.get("setup_complete"):
+            raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
+        guidance = setup.get("setup_guidance") or {}
+        expected = guidance.get("next_action")
+        step = payload.step.strip()
+        if step not in VALID_SETUP_ACK_STEPS:
+            raise HTTPException(status_code=400, detail={"errors": [f"invalid ack step: {step}"]})
+        if step != expected:
+            raise HTTPException(
+                status_code=409,
+                detail={"errors": [f"ack step {step} does not match next_action {expected}"]},
+            )
+        ack = commit_setup_ack(session, step)
+        if ack.get("exit_code", 0) != 0:
+            raise HTTPException(status_code=400, detail={"errors": ack.get("errors", [])})
+        return read_player_setup(session)
+
     @app.get("/api/catalog")
-    async def api_catalog(_: None = Depends(_require_auth)):
+    async def api_catalog(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
         setup = read_player_setup(session)
@@ -174,25 +236,80 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
             raise HTTPException(status_code=502, detail=cat)
         return cat
 
-    class PickBody(BaseModel):
-        slot: str
-        art_id: str
-
     @app.post("/api/setup/pick")
-    async def api_setup_pick(body: PickBody, _: None = Depends(_require_auth)):
+    async def api_setup_pick(
+        payload: PickBody,
+        authorization: str | None = Header(default=None),
+    ):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
-        result = commit_opening_pick(session, body.slot, body.art_id)
+        setup = read_player_setup(session)
+        if setup.get("setup_complete"):
+            raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
+        guidance = setup.get("setup_guidance") or {}
+        next_action = guidance.get("next_action", "")
+        if not next_action.startswith("pick_"):
+            raise HTTPException(
+                status_code=409,
+                detail={"errors": ["not_in_pick_phase"]},
+            )
+        result = commit_opening_pick(session, payload.slot, payload.art_id)
         if result.get("exit_code", 0) != 0:
             raise HTTPException(status_code=400, detail={"errors": result.get("errors", [])})
         return read_player_setup(session)
 
-    class BeatBody(BaseModel):
-        choice: int | None = None
-        steering: str | None = None
-        continue_beat: bool = False
+    @app.post("/api/setup/reroll")
+    async def api_setup_reroll(
+        payload: RerollBody,
+        authorization: str | None = Header(default=None),
+    ):
+        _require_auth(authorization)
+        cfg = get_config()
+        session = _session_or_raise(cfg)
+        setup = read_player_setup(session)
+        if setup.get("setup_complete"):
+            raise HTTPException(status_code=409, detail={"errors": ["setup_already_complete"]})
+        guidance = setup.get("setup_guidance") or {}
+        next_action = guidance.get("next_action", "")
+        expected = f"pick_{payload.slot.strip()}"
+        if next_action != expected:
+            raise HTTPException(
+                status_code=409,
+                detail={"errors": [f"next_action {next_action} does not match slot {payload.slot}"]},
+            )
+        result = reroll_opening_offers(session, payload.slot.strip())
+        if result.get("exit_code", 0) != 0:
+            raise HTTPException(status_code=400, detail={"errors": result.get("errors", [])})
+        return result
 
-    def _run_beat_job(job: BeatJob, cfg: NovelAppConfig, session: str, body: BeatBody) -> None:
+    @app.post("/api/session/rebootstrap")
+    async def api_session_rebootstrap(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
+        if not probe_serve():
+            raise HTTPException(
+                status_code=503,
+                detail={"errors": ["serve_unreachable"]},
+            )
+        if _job_store.has_active():
+            raise HTTPException(
+                status_code=409,
+                detail={"errors": ["beat_job_active"]},
+            )
+        cfg = get_config()
+
+        def _run() -> dict[str, Any]:
+            return rebootstrap_session(cfg, expand_catalog=False)
+
+        result = await anyio.to_thread.run_sync(_run)
+        if result.get("exit_code", 0) != 0:
+            raise HTTPException(
+                status_code=500,
+                detail={"errors": result.get("errors", ["rebootstrap_failed"])},
+            )
+        return result
+
+    def _run_beat_job(job: BeatJob, cfg: NovelAppConfig, session: str, beat: BeatBody) -> None:
         _job_store.set_running(job.job_id)
 
         def on_phase(phase: str) -> None:
@@ -208,22 +325,30 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
             result, code = run_beat(
                 cfg,
                 session,
-                choice=body.choice,
-                steering=body.steering,
-                continue_beat=body.continue_beat,
+                choice=beat.choice,
+                steering=beat.steering,
+                continue_beat=beat.continue_beat,
                 on_phase=on_phase,
             )
             if result is None:
                 result = fail_result(cfg, session, code, "beat returned no result")
             if int(result.get("exit_code", 0)) == 0:
                 write_last_beat(cfg, result)
+            else:
+                err = str(result.get("error") or "beat failed")
+                _job_store.finish(job.job_id, result, error=err)
+                return
             _job_store.finish(job.job_id, result)
         except Exception as err:  # noqa: BLE001 — background job must not crash thread
             result = fail_result(cfg, session, 1, str(err))
             _job_store.finish(job.job_id, result, error=str(err))
 
     @app.post("/api/beat", status_code=202)
-    async def api_beat(request: Request, _: None = Depends(_require_auth)):
+    async def api_beat(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
 
@@ -243,8 +368,20 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         )
         if modes != 1:
             raise HTTPException(status_code=400, detail={"errors": ["mutually_exclusive"]})
-        if choice is not None and not (1 <= int(choice) <= 6):
-            raise HTTPException(status_code=400, detail={"errors": ["choice_out_of_range"]})
+        choice_int: int | None = None
+        if choice is not None:
+            try:
+                choice_int = int(choice)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail={"errors": ["invalid_choice"]}) from None
+            if not (1 <= choice_int <= 6):
+                raise HTTPException(status_code=400, detail={"errors": ["choice_out_of_range"]})
+
+        if not probe_serve() or not _llm_configured():
+            raise HTTPException(
+                status_code=503,
+                detail={"errors": ["serve_or_llm_unavailable"]},
+            )
 
         setup = read_player_setup(session)
         if not setup.get("setup_complete"):
@@ -265,7 +402,7 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
 
         steering_text = str(steering).strip() if steering else None
         beat_body = BeatBody(
-            choice=int(choice) if choice is not None else None,
+            choice=choice_int,
             steering=steering_text,
             continue_beat=continue_beat,
         )
@@ -278,7 +415,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         return {"job_id": job.job_id}
 
     @app.get("/api/beat/jobs/{job_id}")
-    async def api_beat_job(job_id: str, _: None = Depends(_require_auth)):
+    async def api_beat_job(job_id: str, authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         job = _job_store.get(job_id)
         if not job:
             raise HTTPException(status_code=404, detail={"error": "job_not_found"})
@@ -293,7 +431,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         }
 
     @app.get("/api/beat/last")
-    async def api_beat_last(_: None = Depends(_require_auth)):
+    async def api_beat_last(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         cfg = get_config()
         result = read_last_beat(cfg)
         if result is None:
@@ -301,7 +440,8 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
         return result
 
     @app.get("/api/player/sheet")
-    async def api_player_sheet(_: None = Depends(_require_auth)):
+    async def api_player_sheet(authorization: str | None = Header(default=None)):
+        _require_auth(authorization)
         cfg = get_config()
         session = _session_or_raise(cfg)
         sheet = read_player_sheet(session)
@@ -313,6 +453,7 @@ def create_app(config: NovelAppConfig, *, auth_token: str | None = None) -> Fast
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Novel mobile LAN UI")
     parser.add_argument("--app", default="shenjia_caifa", metavar="ID")
     parser.add_argument("--host", default="0.0.0.0")

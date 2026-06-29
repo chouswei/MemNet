@@ -85,7 +85,7 @@ def preflight_session(config: NovelAppConfig, session: str) -> tuple[str, int]:
         else:
             return session, 1
 
-    return read_beat_stage(session), 0
+    return session, 0
 
 
 def _snap_rel(config: NovelAppConfig) -> str:
@@ -105,7 +105,10 @@ def read_last_beat(config: NovelAppConfig) -> dict[str, Any] | None:
     path = config.last_beat_file
     if not path.is_file():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
 
 
 def fail_result(

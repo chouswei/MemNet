@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -85,7 +86,7 @@ class ProductionConfig:
     )
     asset_mode_by_tec: dict[str, str] = field(default_factory=dict)
     prd_asset_links: dict[str, dict[str, Any]] = field(default_factory=dict)
-    status_locked: tuple[str, ...] = ("鎖定", "locked")
+    status_locked: tuple[str, ...] = ("未解鎖", "鎖定", "locked")
     status_unlocked: tuple[str, ...] = ("已解鎖", "解鎖", "unlocked")
     expandable_when_unlocked: bool = True
     action_templates: dict[str, ActionTemplate] = field(default_factory=dict)
@@ -100,19 +101,92 @@ class ProductionConfig:
             entry = dict(tpl)
             entry.setdefault("id", key)
             templates[key] = ActionTemplate.from_dict(entry)
+        default_relations = {
+            "produce": "produce",
+            "develop": "develop",
+            "belongs": "belongs",
+            "requires": "requires",
+        }
+        relations = {**default_relations, **(data.get("relations") or {})}
         return cls(
             tec_tag=str(data.get("tec_tag", "TEC")),
             prd_tag=str(data.get("prd_tag", "PRD")),
             capacity_usr_key=str(data.get("capacity_usr_key", "tec_lines_{tec_id}")),
             installed_usr_key=str(data.get("installed_usr_key", "tec_installed_{tec_id}")),
-            relations=dict(data.get("relations") or {}),
+            relations=relations,
             asset_mode_by_tec=dict(data.get("asset_mode_by_tec") or {}),
             prd_asset_links=dict(data.get("prd_asset_links") or {}),
-            status_locked=tuple(data.get("status_locked") or ("鎖定", "locked")),
+            status_locked=tuple(data.get("status_locked") or ("未解鎖", "鎖定", "locked")),
             status_unlocked=tuple(data.get("status_unlocked") or ("已解鎖", "解鎖", "unlocked")),
             expandable_when_unlocked=bool(data.get("expandable_when_unlocked", True)),
             action_templates=templates,
             tec_overrides=dict(data.get("tec_overrides") or {}),
+        )
+
+
+@dataclass(frozen=True)
+class BusinessConfig:
+    """@BIZ industry sheet columns and EDG relation names."""
+
+    tag: str = "BIZ"
+    wire_columns: tuple[str, ...] = (
+        "id",
+        "名稱",
+        "類型",
+        "地點",
+        "現金",
+        "負債",
+        "收入",
+        "支出",
+    )
+    relations: dict[str, str] = field(
+        default_factory=lambda: {
+            "manager": "manages",
+            "assists": "assists",
+            "hiring": "hiring",
+            "upgrade": "upgrades",
+            "cite": "cite",
+            "produce": "produce",
+        }
+    )
+    npc_tag: str = "NPC"
+    prd_tag: str = "PRD"
+    lib_tag: str = "LIB"
+    plr_relations: tuple[str, ...] = ("owns", "manages")
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> BusinessConfig | None:
+        if not data:
+            return None
+        default_relations = {
+            "manager": "manages",
+            "assists": "assists",
+            "hiring": "hiring",
+            "upgrade": "upgrades",
+            "cite": "cite",
+            "produce": "produce",
+        }
+        relations = {**default_relations, **(data.get("relations") or {})}
+        return cls(
+            tag=str(data.get("tag", "BIZ")),
+            wire_columns=tuple(
+                data.get("wire_columns")
+                or (
+                    "id",
+                    "名稱",
+                    "類型",
+                    "地點",
+                    "現金",
+                    "負債",
+                    "收入",
+                    "支出",
+                )
+            ),
+            relations=relations,
+            npc_tag=str(data.get("npc_tag", "NPC")),
+            prd_tag=str(data.get("prd_tag", "PRD")),
+            lib_tag=str(data.get("lib_tag", "LIB")),
+            plr_relations=tuple(data.get("plr_relations") or ("owns", "manages")),
         )
 
 
@@ -213,6 +287,7 @@ class CatalogSchema:
     item_actions: ItemActionsConfig | None = None
     martial_actions: MartialActionsConfig | None = None
     production: ProductionConfig | None = None
+    business: BusinessConfig | None = None
     ui: UiConfig | None = None
 
     @classmethod
@@ -248,6 +323,7 @@ class CatalogSchema:
             item_actions=ItemActionsConfig.from_dict(data.get("item_actions")),
             martial_actions=MartialActionsConfig.from_dict(data.get("martial_actions")),
             production=ProductionConfig.from_dict(data.get("production")),
+            business=BusinessConfig.from_dict(data.get("business")),
             ui=UiConfig.from_dict(data.get("ui")),
         )
 
@@ -297,8 +373,22 @@ def slot_for_kind(kind: str, schema: CatalogSchema) -> str | None:
     return schema.kind_to_slot.get(kind)
 
 
+def art_display_name(art: dict[str, str], schema: CatalogSchema) -> str:
+    if len(schema.wire_columns) > 1:
+        col = schema.wire_columns[1]
+        val = art.get(col, "").strip()
+        if val:
+            return val
+    return art.get("id", "")
+
+
 def default_burn_for_art(art: dict[str, str], schema: CatalogSchema) -> str:
-    name = art.get(schema.wire_columns[1] if len(schema.wire_columns) > 1 else "name", "")
+    for col in schema.wire_columns:
+        val = art.get(col, "")
+        m = re.search(r"burn(\d+)", val)
+        if m:
+            return m.group(1)
+    name = art_display_name(art, schema)
     for sub in schema.high_burn_substrings:
         if sub in name:
             return schema.high_burn
@@ -322,6 +412,10 @@ def setup_scene_usr_key(slot: str) -> str:
 
 def opening_offer_usr_key(slot: str) -> str:
     return f"opening_offer_{slot}"
+
+
+def opening_offer_roll_usr_key(slot: str) -> str:
+    return f"opening_offer_roll_{slot}"
 
 
 def slot_label(schema: CatalogSchema, slot: str) -> str:

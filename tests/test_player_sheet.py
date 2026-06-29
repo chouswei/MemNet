@@ -57,7 +57,20 @@ def test_read_player_sheet_items_and_arts(monkeypatch):
     assert len(sheet["items"]) == 1
     assert sheet["items"][0]["kind"] == "藥品"
     assert len(sheet["arts"]) == 1
+    assert sheet["arts"][0].get("actions")
     assert len(sheet["body_stats"]) == 1
+    assert sheet["body_stats"][0].get("actions")
+
+
+def test_tec_status_not_unlocked_is_locked():
+    from novel_mcp.player_sheet import _tec_status
+
+    schema = _minimal_schema()
+    prod = schema.production
+    assert prod is not None
+    status, unlocked = _tec_status(["TEC99", "測試", "域", "未解鎖"], prod)
+    assert unlocked is False
+    assert status == "鎖定"
 
 
 def test_read_production_nodes_builtin_expand(monkeypatch):
