@@ -107,6 +107,56 @@ def test_enrich_adds_aff_to_for_cast_in_warm(monkeypatch) -> None:
     assert other_edg not in out
 
 
+def test_enrich_supplements_hud_usr_config(monkeypatch) -> None:
+    def fake_run(argv, stdin=None, session=None):
+        if argv[:3] == ["read", "list", "--tag"]:
+            tag = argv[3]
+            if tag == "USR":
+                return MemNetResponse(
+                    0,
+                    "@USR: USR45|body_plot|氣血;內力;飽食;oln;prose|persistent\n"
+                    "@USR: USR02|hud_pipe|qi_neili_wux_datetime|persistent\n"
+                    "@USR: USR43|game_time|axis=iso;display=chongzhen_shichen|persistent\n",
+                    "",
+                    session,
+                    [],
+                )
+            if tag == "PLR":
+                return MemNetResponse(
+                    0,
+                    "@PLR: P01|流民|1627|未定|0|0|bag|氣血:6/6|內力:6/6|飽食:略飽",
+                    "",
+                    session,
+                    [],
+                )
+            if tag == "SYS":
+                return MemNetResponse(
+                    0,
+                    "@SYS: SYS01|1|1628-01-01T06|0|0|25|fx",
+                    "",
+                    session,
+                    [],
+                )
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
+    warm = "@STEP: STEP01|1|SCN01|persistent\n@USR: USR23|beat_stage|prose|persistent\n"
+    out = enrich_warm_stdout("mn_x", warm, beat_stage="prose")
+    assert "body_plot|氣血" in out
+    assert "hud_pipe|qi_neili" in out
+    assert "game_time|axis=iso" in out
+
+    from novel_mcp.beat_pipeline import parse_warm_stdout
+    from novel_mcp.presentation import compile_presentation
+
+    pipeline = parse_warm_stdout(out)
+    pres = compile_presentation(out, pipeline, session="mn_x")
+    assert pres["body_plot_keys"] == ["氣血", "內力", "飽食"]
+    assert pres["hud_pipe"]
+    assert pres["scene"].get("plr_body")
+    assert pipeline.get("time_display")
+
+
 def test_enrich_skips_aff_to_when_no_cast_ids(monkeypatch) -> None:
     edg_calls = 0
 

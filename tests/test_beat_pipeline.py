@@ -406,7 +406,7 @@ def test_beat_turn_begin_uses_novel_warm_max_rows(monkeypatch):
     assert "--max-rows" in main_warm
     assert main_warm[main_warm.index("--max-rows") + 1] == str(NOVEL_WARM_MAX_ROWS)
     assert main_warm[main_warm.index("--depth") + 1] == str(NOVEL_WARM_DEPTH)
-    assert NOVEL_WARM_MAX_ROWS == 150
+    assert NOVEL_WARM_MAX_ROWS == 500
     assert NOVEL_WARM_DEPTH == 3
 
 

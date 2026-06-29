@@ -21,6 +21,8 @@ window.NovelApp = (function () {
   let pollStarted = 0;
 
   let formatPlay = "【劇情】";
+  let storySeeds = [];
+  let worldList = [];
 
   const phaseLabels = {
     prepare_script: "準備劇本…",
@@ -90,6 +92,12 @@ window.NovelApp = (function () {
     return { ...userHeaders(), ...worldHeaders() };
   }
 
+  function worldLabel(w) {
+    const story = w.story_title || "";
+    const title = w.title || w.world_id;
+    return story && story !== title ? `${story} · ${title}` : title;
+  }
+
   function renderWorldSelect(worlds) {
     const sel = document.getElementById("world-select");
     if (!sel) return;
@@ -98,77 +106,307 @@ window.NovelApp = (function () {
     (worlds || []).forEach((w) => {
       const opt = document.createElement("option");
       opt.value = w.world_id;
-      opt.textContent = w.title || w.world_id;
+      opt.textContent = worldLabel(w);
       if (w.world_id === wid) opt.selected = true;
       sel.appendChild(opt);
     });
     sel.classList.toggle("hidden", !(worlds && worlds.length));
-    const btnNew = document.getElementById("btn-new-world");
-    if (btnNew) btnNew.classList.remove("hidden");
+    const btnDelete = document.getElementById("btn-delete-world");
+    if (btnDelete) btnDelete.classList.toggle("hidden", !(worlds && worlds.length));
+    setHeaderWorldControls();
   }
 
-  async function ensureWorld() {
-    setLoading(true, "載入世界…");
+  function closeWorldDirectory() {
+    if (mode === "world_pick") return;
+    const overlay = document.getElementById("world-dir-overlay");
+    if (!overlay) return;
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  function setHeaderWorldControls() {
+    const pick = mode === "world_pick";
+    const hasWorld = Boolean(localStorage.getItem(WORLD_KEY));
+    const restart = document.getElementById("btn-restart-session");
+    const del = document.getElementById("btn-delete-world");
+    const sel = document.getElementById("world-select");
+    const dir = document.getElementById("btn-world-dir");
+    if (restart) restart.disabled = pick || !hasWorld;
+    if (del) del.classList.toggle("hidden", pick || !hasWorld || !worldList.length);
+    if (sel) sel.classList.toggle("hidden", pick || !worldList.length);
+    if (dir) dir.textContent = pick ? "世界" : "世界目錄";
+  }
+
+  function setWorldPickChrome(active) {
+    document.getElementById("app-main").classList.toggle("world-pick-dimmed", active);
+    document.body.classList.toggle("world-pick-active", active);
+    const closeBtn = document.getElementById("world-dir-close");
+    if (closeBtn) closeBtn.classList.toggle("hidden", active);
+    const input = document.getElementById("input-text");
+    const submit = document.getElementById("btn-submit");
+    if (input) input.disabled = active;
+    if (submit) submit.disabled = active;
+    setHeaderWorldControls();
+  }
+
+  async function loadWorldList() {
+    const data = await api("/api/worlds");
+    worldList = data.worlds || [];
+    await loadStorySeeds();
+    renderWorldSelect(worldList);
+    return worldList;
+  }
+
+  function hasValidWorldSelection() {
+    const wid = localStorage.getItem(WORLD_KEY);
+    return Boolean(wid && worldList.some((w) => w.world_id === wid));
+  }
+
+  async function showWorldPickGate() {
+    mode = "world_pick";
+    setWorldPickChrome(true);
+    hideError();
+    if (window.NovelSetup) window.NovelSetup.hidePlayChrome();
+    const narrative = document.getElementById("narrative");
+    if (narrative) narrative.textContent = "";
+    const title = document.getElementById("world-dir-title");
+    if (title) title.textContent = "選擇世界";
+    renderWorldDirectory(storySeeds, worldList);
+    const overlay = document.getElementById("world-dir-overlay");
+    overlay.classList.remove("hidden");
+    overlay.setAttribute("aria-hidden", "false");
+  }
+
+  async function enterSelectedWorld(worldId) {
+    if (!worldId) return;
+    localStorage.setItem(WORLD_KEY, worldId);
+    mode = "setup";
+    setWorldPickChrome(false);
+    closeWorldDirectory();
+    const title = document.getElementById("world-dir-title");
+    if (title) title.textContent = "世界目錄";
+    hideError();
+    setupData = null;
+    lastBeat = null;
+    sheet = null;
+    if (window.NovelSetup) window.NovelSetup.hidePlayChrome();
+    await loadHealth();
+    await refreshSetup();
+    if (mode === "play") {
+      const jid = localStorage.getItem(JOB_KEY);
+      if (jid) pollJob(jid);
+    }
+  }
+
+  function renderWorldDirectory(seeds, worlds) {
+    const body = document.getElementById("world-dir-body");
+    if (!body) return;
+    body.innerHTML = "";
+    const current = localStorage.getItem(WORLD_KEY);
+
+    const seedSec = document.createElement("section");
+    seedSec.className = "world-dir-section";
+    const seedH = document.createElement("h3");
+    seedH.textContent = "劇本（SEED）";
+    seedSec.appendChild(seedH);
+    (seeds || []).forEach((s) => {
+      const row = document.createElement("div");
+      row.className = "world-dir-seed";
+      const title = document.createElement("div");
+      title.className = "world-dir-seed-title";
+      title.textContent = s.title || s.app_id;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "header-btn";
+      btn.textContent = "新開";
+      btn.addEventListener("click", () => {
+        closeWorldDirectory();
+        createNewWorld(s.app_id);
+      });
+      row.appendChild(title);
+      row.appendChild(btn);
+      seedSec.appendChild(row);
+    });
+    body.appendChild(seedSec);
+
+    const worldsSec = document.createElement("section");
+    worldsSec.className = "world-dir-section";
+    const worldsH = document.createElement("h3");
+    worldsH.textContent = mode === "world_pick" ? "選擇存檔或從上方新開" : "我的存檔";
+    worldsSec.appendChild(worldsH);
+    if (!worlds || !worlds.length) {
+      const empty = document.createElement("p");
+      empty.className = "world-dir-row-meta";
+      empty.textContent = "尚無存檔，請從上方劇本新開世界。";
+      worldsSec.appendChild(empty);
+    } else {
+      (worlds || []).forEach((w) => {
+        const row = document.createElement("div");
+        row.className = "world-dir-row" + (w.world_id === current ? " active" : "");
+        const main = document.createElement("button");
+        main.type = "button";
+        main.className = "world-dir-row-main";
+        const t = document.createElement("div");
+        t.className = "world-dir-row-title";
+        t.textContent = w.title || w.world_id;
+        const meta = document.createElement("div");
+        meta.className = "world-dir-row-meta";
+        meta.textContent = (w.story_title || w.app_id || "") + (w.has_session ? " · 已開局" : "");
+        main.appendChild(t);
+        main.appendChild(meta);
+        main.addEventListener("click", async () => {
+          closeWorldDirectory();
+          await enterSelectedWorld(w.world_id);
+        });
+        const actions = document.createElement("div");
+        actions.className = "world-dir-row-actions";
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "header-btn header-btn-danger";
+        del.textContent = "刪";
+        del.addEventListener("click", async (ev) => {
+          ev.stopPropagation();
+          closeWorldDirectory();
+          localStorage.setItem(WORLD_KEY, w.world_id);
+          await deleteCurrentWorld();
+        });
+        actions.appendChild(del);
+        row.appendChild(main);
+        row.appendChild(actions);
+        worldsSec.appendChild(row);
+      });
+    }
+    body.appendChild(worldsSec);
+  }
+
+  async function openWorldDirectory() {
+    if (activeJobId) {
+      showError("劇情處理中，請稍候再開世界目錄");
+      return;
+    }
+    setLoading(true, "載入世界目錄…");
     try {
-      const data = await api("/api/worlds");
-      const worlds = data.worlds || [];
-      let wid = localStorage.getItem(WORLD_KEY);
-      const known = worlds.some((w) => w.world_id === wid);
-      if (!wid || !known) {
-        if (worlds.length > 0) {
-          wid = worlds[0].world_id;
-        } else {
-          setLoading(true, "建立世界…");
-          const created = await api("/api/worlds", {
-            method: "POST",
-            body: JSON.stringify({ title: "", expand_catalog: false }),
-          });
-          wid = created.world_id;
-          worlds.unshift({
-            world_id: wid,
-            title: created.title || wid,
-          });
-        }
-        localStorage.setItem(WORLD_KEY, wid);
-      }
-      renderWorldSelect(worlds);
-      return wid;
+      const [seedData, worldData] = await Promise.all([
+        api("/api/seeds"),
+        api("/api/worlds"),
+      ]);
+      storySeeds = seedData.seeds || [];
+      worldList = worldData.worlds || [];
+      renderWorldDirectory(storySeeds, worldList);
+      renderWorldSelect(worldList);
+      const overlay = document.getElementById("world-dir-overlay");
+      overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
+    } catch (e) {
+      showError(e.message || "無法載入世界目錄");
     } finally {
       setLoading(false);
     }
   }
 
+  async function loadStorySeeds() {
+    try {
+      const data = await api("/api/seeds");
+      storySeeds = data.seeds || [];
+    } catch {
+      storySeeds = [];
+    }
+  }
+
+  async function ensureWorld() {
+    await loadWorldList();
+    return localStorage.getItem(WORLD_KEY);
+  }
+
   async function switchWorld(worldId) {
-    if (!worldId || worldId === localStorage.getItem(WORLD_KEY)) return;
+    if (!worldId) return;
+    if (worldId === localStorage.getItem(WORLD_KEY) && mode !== "world_pick") return;
     clearPoll();
     localStorage.removeItem(JOB_KEY);
     activeJobId = null;
-    localStorage.setItem(WORLD_KEY, worldId);
-    mode = "setup";
-    setupData = null;
-    lastBeat = null;
-    sheet = null;
-    hideError();
-    if (window.NovelSetup) window.NovelSetup.hidePlayChrome();
-    await loadHealth();
-    await refreshSetup();
+    await enterSelectedWorld(worldId);
   }
 
-  async function createNewWorld() {
+  async function deleteCurrentWorld() {
+    if (activeJobId) {
+      showError("劇情處理中，請稍候再刪除");
+      return;
+    }
+    const wid = localStorage.getItem(WORLD_KEY);
+    if (!wid) return;
+    const sel = document.getElementById("world-select");
+    const title =
+      (sel && sel.selectedOptions && sel.selectedOptions[0] && sel.selectedOptions[0].textContent) ||
+      wid;
+    const msg =
+      `確定刪除「${title}」？\n\n` +
+      "此操作無法復原：章節正文、圖狀態、編劇／作者對話與進度檔案都會永久刪除。";
+    if (!window.confirm(msg)) return;
+    clearPoll();
+    localStorage.removeItem(JOB_KEY);
+    activeJobId = null;
+    hideError();
+    setLoading(true, "刪除世界…");
+    setBeatBusy(true);
+    try {
+      await api("/api/worlds/" + encodeURIComponent(wid), { method: "DELETE" });
+      localStorage.removeItem(WORLD_KEY);
+      mode = "world_pick";
+      setupData = null;
+      lastBeat = null;
+      sheet = null;
+      if (window.NovelSetup) window.NovelSetup.hidePlayChrome();
+      await loadWorldList();
+      await showWorldPickGate();
+    } catch (e) {
+      const errMsg =
+        e.body?.errors?.join(" ") ||
+        e.body?.detail?.errors?.join(" ") ||
+        e.message ||
+        "刪除世界失敗";
+      showError(errMsg);
+    } finally {
+      setLoading(false);
+      setBeatBusy(false);
+    }
+  }
+
+  async function createNewWorld(appId) {
     if (activeJobId) {
       showError("劇情處理中，請稍候再開新世界");
       return;
     }
-    const title = window.prompt("新世界名稱（可留空）", "");
+    if (!appId && storySeeds.length === 1) {
+      appId = storySeeds[0].app_id;
+    }
+    if (!appId && storySeeds.length > 1) {
+      await openWorldDirectory();
+      return;
+    }
+    const seed = storySeeds.find((s) => s.app_id === appId);
+    const seedTitle = seed ? seed.title : "";
+    const title = window.prompt(
+      seedTitle ? `「${seedTitle}」存檔名稱（可留空）` : "新世界名稱（可留空）",
+      ""
+    );
     if (title === null) return;
     setLoading(true, "建立世界…");
     try {
+      const body = { title: title.trim(), expand_catalog: false };
+      if (appId) body.app_id = appId;
       const created = await api("/api/worlds", {
         method: "POST",
-        body: JSON.stringify({ title: title.trim(), expand_catalog: false }),
+        body: JSON.stringify(body),
       });
       localStorage.setItem(WORLD_KEY, created.world_id);
-      await switchWorld(created.world_id);
+      worldList.unshift({
+        world_id: created.world_id,
+        title: created.title || created.world_id,
+        app_id: created.app_id,
+        story_title: created.story_title,
+      });
+      renderWorldSelect(worldList);
+      await enterSelectedWorld(created.world_id);
     } catch (e) {
       showError(e.message || "建立世界失敗");
     } finally {
@@ -464,11 +702,16 @@ window.NovelApp = (function () {
   async function ensureSession() {
     health = await api("/api/health");
     setTitle(health.title || "Novel");
-    if (health.issues && health.issues.includes("no_session")) {
+    const wid = localStorage.getItem(WORLD_KEY);
+    if (
+      wid &&
+      health.issues &&
+      health.issues.includes("no_session")
+    ) {
       await api("/api/session/rebootstrap", { method: "POST", body: "{}" });
       health = await api("/api/health");
     }
-    if (!health.ok && health.issues) {
+    if (!health.ok && health.issues && wid) {
       showError("啟動檢查：" + health.issues.join(", "));
     }
     return health;
@@ -479,6 +722,10 @@ window.NovelApp = (function () {
   }
 
   async function restartSession() {
+    if (mode === "world_pick" || !localStorage.getItem(WORLD_KEY)) {
+      showError("請先選擇或新開世界");
+      return;
+    }
     const msg =
       "確定重開 session？\n\n將建立新局：圖狀態、開局進度、編劇／作者對話與上一拍快取都會清除。";
     if (!window.confirm(msg)) return;
@@ -549,7 +796,11 @@ window.NovelApp = (function () {
   async function startApp() {
     document.getElementById("btn-retry").addEventListener("click", () => {
       hideError();
-      if (mode === "setup") refreshSetup();
+      if (mode === "world_pick") {
+        loadWorldList().then(() => showWorldPickGate());
+      } else if (mode === "setup") {
+        refreshSetup();
+      }
     });
     document.getElementById("btn-restart-session").addEventListener("click", () => {
       if (activeJobId) {
@@ -562,13 +813,21 @@ window.NovelApp = (function () {
     if (worldSel) {
       worldSel.addEventListener("change", () => switchWorld(worldSel.value));
     }
-    const btnNewWorld = document.getElementById("btn-new-world");
-    if (btnNewWorld) {
-      btnNewWorld.addEventListener("click", () => createNewWorld());
+    const btnWorldDir = document.getElementById("btn-world-dir");
+    if (btnWorldDir) {
+      btnWorldDir.addEventListener("click", () => openWorldDirectory());
+    }
+    const worldDirClose = document.getElementById("world-dir-close");
+    const worldDirBackdrop = document.getElementById("world-dir-backdrop");
+    if (worldDirClose) worldDirClose.addEventListener("click", closeWorldDirectory);
+    if (worldDirBackdrop) worldDirBackdrop.addEventListener("click", closeWorldDirectory);
+    const btnDeleteWorld = document.getElementById("btn-delete-world");
+    if (btnDeleteWorld) {
+      btnDeleteWorld.addEventListener("click", () => deleteCurrentWorld());
     }
     document.getElementById("btn-submit").addEventListener("click", () => {
       const text = document.getElementById("input-text").value.trim();
-      if (!text || activeJobId) return;
+      if (!text || activeJobId || mode === "world_pick") return;
       if (mode === "setup" && window.NovelSetup) {
         window.NovelSetup.onSubmit(text);
       } else if (mode === "play") {
@@ -583,12 +842,21 @@ window.NovelApp = (function () {
       if (jid && !activeJobId) pollJob(jid);
     });
 
-    await ensureWorld();
-    await loadHealth();
-    await refreshSetup();
-    if (mode === "play") {
-      const jid = localStorage.getItem(JOB_KEY);
-      if (jid) pollJob(jid);
+    await loadWorldList();
+    if (!hasValidWorldSelection()) {
+      setLoading(true, "載入世界…");
+      try {
+        await showWorldPickGate();
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    setLoading(true, "載入世界…");
+    try {
+      await enterSelectedWorld(localStorage.getItem(WORLD_KEY));
+    } finally {
+      setLoading(false);
     }
   }
 

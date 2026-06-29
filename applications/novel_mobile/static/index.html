@@ -18,9 +18,12 @@
     </div>
     <header>
       <h1 id="app-title">工匠傳奇</h1>
-      <select id="world-select" class="header-btn hidden" aria-label="選擇世界"></select>
-      <button type="button" id="btn-new-world" class="header-btn hidden">新開世界</button>
-      <button type="button" id="btn-restart-session" class="header-btn">重開世界</button>
+      <div class="header-toolbar">
+        <select id="world-select" class="header-btn header-world-select hidden" aria-label="選擇世界"></select>
+        <button type="button" id="btn-world-dir" class="header-btn">世界目錄</button>
+        <button type="button" id="btn-delete-world" class="header-btn header-btn-danger hidden">刪除</button>
+        <button type="button" id="btn-restart-session" class="header-btn">重開</button>
+      </div>
     </header>
     <div id="error-banner" class="hidden" role="alert">
       <span id="error-text"></span>
@@ -90,6 +93,16 @@
           <div id="production-panel" class="panel"></div>
           <div id="production-actions" class="sub-actions hidden"></div>
         </div>
+      </div>
+    </div>
+    <div id="world-dir-overlay" class="sheet-overlay hidden" aria-hidden="true">
+      <button type="button" id="world-dir-backdrop" class="sheet-backdrop" aria-label="關閉世界目錄"></button>
+      <div class="sheet-window" role="dialog" aria-modal="true" aria-labelledby="world-dir-title">
+        <header class="sheet-window-header">
+          <h2 id="world-dir-title">世界目錄</h2>
+          <button type="button" id="world-dir-close" class="sheet-close-btn" aria-label="關閉">✕</button>
+        </header>
+        <div id="world-dir-body" class="sheet-window-body"></div>
       </div>
     </div>
   </div>

@@ -34,6 +34,17 @@ def test_load_instance_config() -> None:
     assert cfg.catalog_session_id_file == cfg.catalog_store_dir / "catalog_session_id.txt"
 
 
+def test_list_story_instances_includes_shenjia() -> None:
+    from app_config import list_story_instances
+
+    seeds = list_story_instances()
+    ids = {s["app_id"] for s in seeds}
+    assert "shenjia_caifa" in ids
+    shenjia = next(s for s in seeds if s["app_id"] == "shenjia_caifa")
+    assert shenjia["title"] == "工匠傳奇"
+    assert shenjia["seed_md"].endswith("novel-shenjia-initial-state.md")
+
+
 def test_load_from_seed_path() -> None:
     seed = "application-notes/novel-shenjia-initial-state.md"
     cfg = load_config(seed_md=seed)

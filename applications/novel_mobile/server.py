@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app_config import NovelAppConfig, load_config
+from app_config import NovelAppConfig, load_config, list_story_instances
 from env_load import load_dotenv
 from session_bootstrap import rebootstrap_session
 from play_service import (
@@ -57,15 +57,17 @@ from novel_mobile.auth import (
 from novel_mobile.jobs import BeatJob, BeatJobStore, world_job_slot
 from novel_mobile.world_registry import (
     create_world_record,
+    delete_world_record,
+    locate_world,
     list_worlds_for_owner,
     require_world_owner,
+    resolve_world_config,
     update_meta_session,
 )
 from novel_mobile.world_slot import (
     USER_ID_HEADER,
     WORLD_ID_HEADER,
     normalise_world_id,
-    resolve_config,
 )
 from chat_thread import thread_path
 
@@ -102,6 +104,7 @@ class GoogleLoginBody(BaseModel):
 
 class WorldCreateBody(BaseModel):
     title: str | None = None
+    app_id: str | None = None
     expand_catalog: bool | None = None
 
 
@@ -213,7 +216,9 @@ def _world_context(
 
 
 def _wcfg(config: NovelAppConfig, world_id: str | None) -> NovelAppConfig:
-    return resolve_config(config, world_id)
+    if world_id:
+        return resolve_world_config(config, world_id)
+    return config
 
 
 def _session_or_raise(config: NovelAppConfig, world_id: str | None = None) -> str:
@@ -275,6 +280,14 @@ def create_app(
         except ValueError as err:
             raise HTTPException(status_code=401, detail={"error": "invalid_google_token"}) from err
 
+    @app.get("/api/seeds")
+    async def api_seeds_list(
+        authorization: str | None = Header(default=None),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _authenticate(authorization)
+        return {"seeds": list_story_instances()}
+
     @app.get("/api/worlds")
     async def api_worlds_list(
         authorization: str | None = Header(default=None),
@@ -296,7 +309,17 @@ def create_app(
                 detail={"errors": ["serve_unreachable"]},
             )
         cfg = get_config()
-        meta = create_world_record(cfg, user_id, title=payload.title)
+        app_id = (payload.app_id or cfg.app_id).strip()
+        try:
+            app_cfg = load_config(app_id=app_id) if app_id != cfg.app_id else cfg
+        except (FileNotFoundError, ValueError) as err:
+            raise HTTPException(status_code=400, detail={"errors": ["invalid_app_id"]}) from err
+        if not probe_serve():
+            raise HTTPException(
+                status_code=503,
+                detail={"errors": ["serve_unreachable"]},
+            )
+        meta = create_world_record(app_cfg, user_id, title=payload.title)
         wcfg = _wcfg(cfg, meta.world_id)
         if _job_store.has_active(meta.world_id):
             raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})
@@ -316,12 +339,35 @@ def create_app(
         update_meta_session(cfg, meta.world_id, str(result.get("session_id") or ""))
         return {
             "world_id": meta.world_id,
+            "app_id": meta.app_id or app_cfg.app_id,
+            "story_title": app_cfg.title,
             "title": meta.title,
             "owner_id": meta.owner_id,
             "user_id": user_id,
             "email": ctx.email,
             **result,
         }
+
+    @app.delete("/api/worlds/{world_id}")
+    async def api_worlds_delete(
+        world_id: str,
+        authorization: str | None = Header(default=None),
+        x_novel_user_id: str | None = Header(default=None, alias=USER_ID_HEADER),
+    ):
+        _, user_id = _user_from_request(authorization, x_novel_user_id)
+        try:
+            normalise_world_id(world_id)
+        except ValueError as err:
+            raise HTTPException(status_code=400, detail={"errors": ["invalid_world_id"]}) from err
+        if _job_store.has_active(world_id):
+            raise HTTPException(status_code=409, detail={"errors": ["beat_job_active"]})
+        try:
+            delete_world_record(get_config(), world_id, user_id)
+        except FileNotFoundError as err:
+            raise HTTPException(status_code=404, detail={"errors": ["world_not_found"]}) from err
+        except PermissionError as err:
+            raise HTTPException(status_code=403, detail={"errors": ["world_owner_mismatch"]}) from err
+        return {"deleted": world_id}
 
     @app.get("/api/health")
     async def health(
@@ -334,6 +380,12 @@ def create_app(
         )
         cfg = get_config()
         wcfg = _wcfg(cfg, world_id)
+        app_cfg = cfg
+        if world_id:
+            try:
+                app_cfg, _meta = locate_world(cfg, world_id)
+            except FileNotFoundError:
+                app_cfg = cfg
         issues: list[str] = []
         serve_ok = probe_serve()
         if not serve_ok:
@@ -353,8 +405,8 @@ def create_app(
             "ok": serve_ok and llm_ok and session is not None,
             "serve_reachable": serve_ok,
             "llm_configured": llm_ok,
-            "app_id": cfg.app_id,
-            "title": cfg.title,
+            "app_id": app_cfg.app_id,
+            "title": app_cfg.title,
             "user_id": user_id,
             "world_id": world_id,
             "email": ctx.email,

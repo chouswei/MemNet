@@ -12,7 +12,11 @@ import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
+SCAN_ROOTS = (
+    ROOT / "src",
+    ROOT / "applications" / "novel_cursor",
+    ROOT / "applications" / "novel_mobile",
+)
 OUT = ROOT / "src" / "memnet" / "examples" / "workflow.memnet-codebase.snap.txt"
 
 
@@ -22,7 +26,26 @@ def mod_id(path: Path) -> str:
 
 
 def role_for(rel: str) -> str:
-    return "mcp" if "_mcp" in rel else "engine"
+    if "novel_mobile" in rel:
+        return "mobile"
+    if "novel_cursor" in rel or "_mcp" in rel:
+        return "mcp"
+    return "engine"
+
+
+def iter_python_files() -> list[Path]:
+    seen: set[Path] = set()
+    out: list[Path] = []
+    for root in SCAN_ROOTS:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            resolved = path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            out.append(path)
+    return out
 
 
 def collect_symbols(path: Path) -> list[tuple[str, str, int, str]]:
@@ -57,7 +80,7 @@ def main() -> None:
         "@CFG: CFG01|MemNet|MOD_repo_root|0.2.16|memnet_codebase_snap",
         "@MOD: MOD_repo_root|.|MemNet repo root|active|persistent",
         "@TSK: TSK_codebase_snap_memnet|Full MemNet src index|MOD_repo_root|in_progress|persistent",
-        "@USR: USR_snap_scope|scope|src public top-level defs only|active|persistent",
+        "@USR: USR_snap_scope|scope|src+applications public top-level defs|active|persistent",
     ]
     mods: list[str] = []
     syms: list[str] = []
@@ -66,7 +89,8 @@ def main() -> None:
         "@EDG: E_tsk_usr|TSK_codebase_snap_memnet|constrained_by|USR_snap_scope|light_snap|persistent",
     ]
     n = 1
-    for path in sorted(SRC.rglob("*.py")):
+    used_sym: set[str] = set()
+    for path in iter_python_files():
         rel = path.relative_to(ROOT).as_posix()
         mid = mod_id(path)
         role = role_for(rel)
@@ -74,7 +98,11 @@ def main() -> None:
         edges.append(f"@EDG: E_own_{n}|TSK_codebase_snap_memnet|owns|{mid}|scope|persistent")
         n += 1
         for name, kind, lineno, sig in collect_symbols(path):
-            sid = f"SYM_{mid[4:]}_{name}"[:60]
+            sid_base = f"SYM_{mid[4:]}_{name}"
+            sid = sid_base[:60]
+            if sid in used_sym:
+                sid = f"{sid_base[:52]}_{n}"[:60]
+            used_sym.add(sid)
             syms.append(f"@SYM: {sid}|{name}|{kind}|{rel}|{lineno}|{sig}|active|persistent")
             edges.append(f"@EDG: E_def_{n}|{mid}|defines|{sid}|entry|persistent")
             n += 1

@@ -7,5 +7,5 @@ from __future__ import annotations
 NOVEL_WARM_DEPTH = 3
 
 # STEP01 warm must include all @USR rows (70+ in shenjia seed).
-# 55 truncated USR21 (prose_target) and other mid-sequence USRs.
-NOVEL_WARM_MAX_ROWS = 150
+# 150 truncated mid-sequence USRs and script wires as the graph grows.
+NOVEL_WARM_MAX_ROWS = 500

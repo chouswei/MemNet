@@ -43,6 +43,52 @@ _OPENING_EDG_IDS = frozenset(
 
 _CAST_TAGS = frozenset({"PLR", "NPC"})
 
+# Persistent USR config — often dropped from truncated warm; required for HUD / time.
+_HUD_USR_KEYS = frozenset({"body_plot", "hud_pipe", "game_time"})
+
+
+def _usr_keys_in_warm(warm_stdout: str) -> set[str]:
+    found: set[str] = set()
+    for line in warm_stdout.splitlines():
+        parsed = _parse_wire_row(line)
+        if not parsed:
+            continue
+        tag, parts = parsed
+        if tag == "USR" and len(parts) >= 3:
+            found.add(parts[1])
+    return found
+
+
+def _supplement_usr_config_rows(
+    session: str,
+    warm_stdout: str,
+    *,
+    existing: set[str],
+) -> list[str]:
+    """Fetch HUD/time USR rows when truncated warm omitted them."""
+    missing = set(_HUD_USR_KEYS - _usr_keys_in_warm(warm_stdout))
+    if not missing:
+        return []
+    resp = run_memnet(["read", "list", "--tag", "USR"], session=session)
+    if resp.exit_code != 0 or not resp.stdout:
+        return []
+    extras: list[str] = []
+    for raw in resp.stdout.splitlines():
+        ln = raw.strip()
+        if not ln or ln in existing or not ln.startswith("@USR:"):
+            continue
+        parsed = _parse_wire_row(ln)
+        if not parsed:
+            continue
+        _, parts = parsed
+        if len(parts) >= 3 and parts[1] in missing:
+            extras.append(ln)
+            existing.add(ln)
+            missing.discard(parts[1])
+            if not missing:
+                break
+    return extras
+
 
 def _tags_for_stage(beat_stage: str) -> tuple[str, ...]:
     stage = normalize_beat_stage(beat_stage)
@@ -175,6 +221,7 @@ def enrich_warm_stdout(
     extras: list[str] = []
     stage = normalize_beat_stage(beat_stage)
     extras.extend(_supplement_tag_rows(session, warm_stdout, beat_stage=stage, existing=existing))
+    extras.extend(_supplement_usr_config_rows(session, warm_stdout, existing=existing))
 
     if stage in ("script_draft", "script_review"):
         extras.extend(_supplement_opening_plot_edges(session, existing))

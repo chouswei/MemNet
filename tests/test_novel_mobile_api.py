@@ -143,6 +143,60 @@ def test_session_rebootstrap_409_when_job_active(tmp_path, monkeypatch):
     assert r.status_code == 409
 
 
+def test_seeds_list(client):
+    r = client.get("/api/seeds", headers={"X-Novel-User-Id": "user-aaaa1111"})
+    assert r.status_code == 200
+    seeds = r.json()["seeds"]
+    assert isinstance(seeds, list)
+    assert any(s.get("app_id") == "shenjia_caifa" for s in seeds)
+
+
+def test_worlds_delete(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)
+    from novel_mobile.world_registry import create_world_record
+    from novel_mobile.world_slot import world_root
+
+    user = "user-aaaa1111"
+    create_world_record(cfg, user, world_id="world-aaaa1111", title="甲")
+    create_world_record(cfg, user, world_id="world-bbbb2222", title="乙")
+    wdir = world_root(cfg, "world-aaaa1111").output_dir
+    assert wdir.is_dir()
+
+    headers = {"X-Novel-User-Id": user}
+    app = create_app(cfg)
+    tc = TestClient(app)
+    r = tc.delete("/api/worlds/world-aaaa1111", headers=headers)
+    assert r.status_code == 200
+    assert r.json()["deleted"] == "world-aaaa1111"
+    assert not wdir.is_dir()
+    worlds = tc.get("/api/worlds", headers=headers).json()["worlds"]
+    assert len(worlds) == 1
+    assert worlds[0]["world_id"] == "world-bbbb2222"
+
+
+def test_worlds_delete_409_when_job_active(tmp_path, monkeypatch):
+    cfg = _config(tmp_path)
+    from novel_mobile.jobs import BeatJob, BeatJobStore
+    from novel_mobile.world_registry import create_world_record
+    import time
+
+    user = "user-aaaa1111"
+    create_world_record(cfg, user, world_id="world-aaaa1111", title="甲")
+    store = BeatJobStore()
+    job = BeatJob("jid", "running", time.time(), time.time(), world_id="world-aaaa1111")
+    store._jobs[job.job_id] = job
+    monkeypatch.setattr("novel_mobile.server._job_store", store)
+
+    app = create_app(cfg)
+    tc = TestClient(app)
+    r = tc.delete(
+        "/api/worlds/world-aaaa1111",
+        headers={"X-Novel-User-Id": user},
+    )
+    assert r.status_code == 409
+
+
 def test_multi_world_independent_health(tmp_path, monkeypatch):
     cfg = _config(tmp_path)
     monkeypatch.setattr("novel_mobile.server.probe_serve", lambda: True)

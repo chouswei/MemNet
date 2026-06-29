@@ -44,20 +44,32 @@ body {
 header {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.35rem;
   margin-bottom: 0.35rem;
-  min-height: var(--header-h);
 }
 
 header h1 {
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0;
-  flex: 1;
   min-width: 0;
   text-align: left;
+}
+
+.header-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.header-world-select {
+  flex: 1 1 8rem;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 .header-btn {
@@ -69,6 +81,11 @@ header h1 {
   border: 1px solid var(--muted);
   background: var(--surface);
   color: var(--muted);
+}
+
+.header-btn-danger {
+  border-color: #8b3a3a;
+  color: #c96;
 }
 
 .hidden { display: none !important; }
@@ -509,4 +526,97 @@ button:disabled {
 
 .auth-error.hidden {
   display: none;
+}
+
+.world-dir-section {
+  margin-bottom: 1rem;
+}
+
+.world-dir-section h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.world-dir-seed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.35rem;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.world-dir-seed-title {
+  font-size: 0.92rem;
+}
+
+.world-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  margin-bottom: 0.25rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.world-dir-row.active {
+  border: 1px solid var(--accent, #6a8);
+}
+
+.world-dir-row-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0.15rem 0;
+}
+
+.world-dir-row-title {
+  font-size: 0.9rem;
+}
+
+.world-dir-row-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.1rem;
+}
+
+.world-dir-row-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.world-dir-row-actions button {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.45rem;
+  min-height: 1.75rem;
+}
+
+.world-pick-dimmed {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body.world-pick-active #world-dir-backdrop {
+  display: none;
+}
+
+body.world-pick-active #world-dir-overlay .sheet-window {
+  max-height: min(88vh, 680px);
+  border-radius: 12px;
+  margin: auto 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+}
+
+body.world-pick-active #world-dir-overlay:not(.hidden) {
+  justify-content: center;
 }

@@ -6,6 +6,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 APP_DIR = Path(__file__).resolve().parent
 INSTANCES_DIR = APP_DIR / "instances"
@@ -165,6 +166,29 @@ def _load_instance_json(app_id: str) -> dict | None:
     if not path.is_file():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def list_story_instances() -> list[dict[str, Any]]:
+    """Discover playable story seeds from instances/*.json."""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for path in sorted(INSTANCES_DIR.glob("*.json")):
+        app_id = path.stem
+        if app_id in seen:
+            continue
+        try:
+            cfg = load_config(app_id=app_id)
+        except (FileNotFoundError, ValueError):
+            continue
+        seen.add(app_id)
+        out.append(
+            {
+                "app_id": cfg.app_id,
+                "title": cfg.title,
+                "seed_md": cfg.seed_md_rel,
+            }
+        )
+    return out
 
 
 def load_config(

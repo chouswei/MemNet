@@ -36,13 +36,22 @@ def main() -> int:
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
     print(f"session={sid}")
 
-    r2 = runner.invoke(
-        app,
-        ["add", "--file", str(SEED), "--allow-new-relation", "--session", sid],
-    )
-    if r2.exit_code != 0:
-        print(r2.stdout, r2.stderr, file=sys.stderr)
-        return r2.exit_code
+    seed_lines = [
+        ln
+        for ln in SEED.read_text(encoding="utf-8").splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    chunk_size = 400
+    for i in range(0, len(seed_lines), chunk_size):
+        chunk = "\n".join(seed_lines[i : i + chunk_size])
+        r2 = runner.invoke(
+            app,
+            ["add", "--stdin", "--allow-new-relation", "--session", sid],
+            input=chunk + "\n",
+        )
+        if r2.exit_code != 0:
+            print(r2.stdout, r2.stderr, file=sys.stderr)
+            return r2.exit_code
 
     r3 = runner.invoke(app, ["session", "save", "--file", str(OUT), "--session", sid])
     if r3.exit_code != 0:

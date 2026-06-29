@@ -662,7 +662,7 @@ flowchart LR
 | 層 | 職責 | 範例 |
 |----|------|------|
 | **圖（thin）** | 每拍 `query_warm(STEP01)` 可執行契約 | `@LAW` 短碼、`@USR` 路徑、`@GLO` 四維語意、`@STEP` |
-| **程式（thick）** | 機械強制、不可只靠 LLM 記憶 | `beat_pipeline` 2 MCP；`no_gate` 時略過 `prose_count.py`；warm `depth=3`（`NOVEL_WARM_DEPTH`）、`max_rows=150`（`NOVEL_WARM_MAX_ROWS`）；`enrich_warm_stdout` 補 `aff_to` |
+| **程式（thick）** | 機械強制、不可只靠 LLM 記憶 | `beat_pipeline` 2 MCP；`no_gate` 時略過 `prose_count.py`；warm `depth=3`（`NOVEL_WARM_DEPTH`）、`max_rows=500`（`NOVEL_WARM_MAX_ROWS`）；`enrich_warm_stdout` 補 `aff_to` |
 | **本 md（integrator）** | 開局 `session_open`、維護 seed | Tag map + Opening seed；下方 Integrator notes |
 
 **每拍編排（全在 seed，經 `STEP01` governs 進 warm）：**

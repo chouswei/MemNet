@@ -124,7 +124,7 @@ Not for operator chat play — use `cursor_beat.py` instead.
 | `player_beat_prepare` | Deprecated alias for script prepare |
 | `beat_turn_begin` / `beat_turn_finish` | Called by SDK agents inside `cursor_beat.py`, or CI/system tests |
 
-Warm reads use `depth=3` (`NOVEL_WARM_DEPTH`) and `max_rows=150` (`NOVEL_WARM_MAX_ROWS`) so cast `aff_to` edges and mid-sequence `@USR` rows (e.g. `USR21` prose advisory) are not dropped.
+Warm reads use `depth=3` (`NOVEL_WARM_DEPTH`) and `max_rows=500` (`NOVEL_WARM_MAX_ROWS`) so cast `aff_to` edges, script wires, and mid-sequence `@USR` rows are not dropped as the graph grows.
 
 ## Chat contract
 
