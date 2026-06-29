@@ -599,12 +599,14 @@ def create_app(
         choice = raw.get("choice")
         steering = raw.get("steering")
         continue_beat = bool(raw.get("continue", False))
+        start_beat = bool(raw.get("start", False))
 
         modes = sum(
             [
                 choice is not None,
                 bool(steering and str(steering).strip()),
                 continue_beat,
+                start_beat,
             ]
         )
         if modes != 1:
@@ -632,6 +634,11 @@ def create_app(
             raise HTTPException(
                 status_code=400,
                 detail={"errors": ["continue_requires_prose_stage"]},
+            )
+        if start_beat and read_beat_stage(session) == "prose":
+            raise HTTPException(
+                status_code=400,
+                detail={"errors": ["start_requires_script_stage"]},
             )
 
         if _job_store.has_active(world_id):

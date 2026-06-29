@@ -146,7 +146,7 @@
 @USR: USR31|lib_anchor|last_oln_match_LIB;then_TSK;then_TEC;fallback_LIB01|persistent
 @USR: USR31b|lib_match_keys|風箱;皮墊;漏風;聽聲;塊子;炭;帳;武學|persistent
 @USR: USR31c|lib_glo_ids|GLO09|persistent
-@USR: USR32|lib_opt_copy|閉目入殿查閱|persistent
+@USR: USR32|lib_opt_copy|閉目入殿，於靈魂圖書館查閱|persistent
 @USR: USR33|trait_gain|milestone;training;chapter_close|persistent
 @USR: USR34|trait_check|trt_vs_situational_dc;opt1_4_axis_only|persistent
 @USR: USR35|combat_mode|試招;過招;實戰;追殺;群戰|persistent

@@ -110,6 +110,7 @@ def _scene_snapshot(
             scene["plr_id"] = plr_id
             scene["plr_identity"] = parts[1]
             scene["plr_body"] = parts[PLR_IDX_BODY] if len(parts) > PLR_IDX_BODY else parts[6]
+            scene["plr_parts"] = parts
             pid = parts[0]
             if pid in ages:
                 scene["plr_age"] = ages[pid]

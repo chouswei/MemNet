@@ -39,7 +39,7 @@ window.NovelPlay = (function () {
     btn.textContent = "開始劇情";
     btn.addEventListener("click", () => {
       if (window.NovelApp.activeJobId) return;
-      window.NovelApp.postBeat({ choice: 1 });
+      window.NovelApp.postBeat({ start: true });
     });
     btnEl.appendChild(btn);
     scrollNarrativeTop();

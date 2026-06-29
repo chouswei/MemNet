@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from novel_mcp.body_state import (
+    effective_plr_body,
     format_beat_hud,
     hud_keys_from_body_plot,
     parse_body_fields,
+    plr_update_downgrade_satiety,
     resolve_beat_hud,
     vitality_satiety_conflict,
 )
@@ -92,3 +94,38 @@ def test_vitality_satiety_conflict_ok_hungry() -> None:
         body_plot_keys=["飽食"],
     )
     assert err is None
+
+
+def test_effective_plr_body_from_update() -> None:
+    begin = "氣血:6/6；飽食:略飽；疲勞:0"
+    updates = ["@PLR: P01|流民|1627|男|0|0|技能|氣血:5/6；飽食:略餓；疲勞:1"]
+    assert "略餓" in effective_plr_body(begin, updates)
+
+
+def test_vitality_ok_when_update_lowers_satiety() -> None:
+    body = "氣血:6/6；飽食:略飽；疲勞:0"
+    updates = ["@PLR: P01|流民|1627|男|0|0|技能|氣血:5/6；飽食:略餓；疲勞:1"]
+    err = vitality_satiety_conflict(
+        "腹中微微空鳴，你略覺餓意。",
+        body,
+        body_plot_keys=["飽食"],
+        update_lines=updates,
+    )
+    assert err is None
+
+
+def test_plr_update_downgrade_satiety() -> None:
+    parts = [
+        "P01",
+        "流民",
+        "1627",
+        "男",
+        "0",
+        "0",
+        "靈魂圖書館登峰造極",
+        "氣血:6/6；飽食:略飽；疲勞:0",
+    ]
+    wire = plr_update_downgrade_satiety(parts)
+    assert wire is not None
+    assert "飽食:略餓" in wire
+    assert wire.startswith("@PLR:")

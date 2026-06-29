@@ -116,8 +116,10 @@ def fail_result(
     config: NovelAppConfig,
     session: str,
     code: int,
-    error: str,
+    error: str | list[str],
 ) -> dict[str, Any]:
+    if isinstance(error, list):
+        error = "; ".join(str(e) for e in error if e)
     return {
         "exit_code": code,
         "session": session,
@@ -165,8 +167,9 @@ def run_beat(
 
     finish_chapter = {"chapter_dir": ch_dir, "chp_num": 1, "snapshot_file": snap_rel}
 
-    run_script = not prose_only
-    if continue_beat and read_beat_stage(session) == "prose":
+    beat_stage = read_beat_stage(session)
+    run_script = not prose_only and beat_stage != "prose"
+    if continue_beat and beat_stage == "prose":
         run_script = False
 
     script_prep: dict[str, Any] = {}
@@ -182,7 +185,12 @@ def run_beat(
         )
         script_prep.update(finish_chapter)
         if script_prep.get("exit_code", 1) != 0:
-            return None, int(script_prep.get("exit_code", 2))
+            return fail_result(
+                config,
+                session,
+                int(script_prep.get("exit_code", 2)),
+                script_prep.get("errors") or ["script_beat_prepare failed"],
+            ), int(script_prep.get("exit_code", 2))
         if choice is not None:
             last = read_last_beat(config)
             if last:
@@ -209,7 +217,7 @@ def run_beat(
             on_phase=on_phase,
         )
         if code != 0:
-            return None, code
+            return fail_result(config, session, code, errors or ["script phase failed"]), code
 
     if script_only:
         return None, 0
@@ -225,7 +233,12 @@ def run_beat(
     if script_prep.get("continuation_anchor"):
         prose_prep["continuation_anchor"] = script_prep["continuation_anchor"]
     if prose_prep.get("exit_code", 1) != 0:
-        return None, int(prose_prep.get("exit_code", 2))
+        return fail_result(
+            config,
+            session,
+            int(prose_prep.get("exit_code", 2)),
+            prose_prep.get("errors") or ["prose_beat_prepare failed"],
+        ), int(prose_prep.get("exit_code", 2))
     _emit_phase(on_phase, "prepare_prose")
 
     result, code, errors = run_prose_phase(
@@ -237,9 +250,11 @@ def run_beat(
     )
     if code != 0:
         if result is None:
-            return None, code
+            return fail_result(
+                config, session, code, errors or ["prose phase failed"]
+            ), code
         result["exit_code"] = code
-        result["error"] = "; ".join(errors)
+        result["error"] = "; ".join(errors) if errors else str(result.get("error") or "prose failed")
     elif result is not None:
         from novel_mcp.player_setup import read_player_setup
 

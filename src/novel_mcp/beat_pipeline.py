@@ -824,7 +824,7 @@ def beat_turn_finish(
                 "--anchor",
                 "STEP01",
                 "--depth",
-                "1",
+                str(NOVEL_WARM_DEPTH),
                 "--max-rows",
                 str(NOVEL_WARM_MAX_ROWS),
             ],

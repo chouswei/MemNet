@@ -81,7 +81,7 @@ def test_voice_usr_keys_surface_on_prose_stage():
 @USR: USR24|inner_voice|modern_taiwanese_baihua|persistent
 @USR: USR30|opt_layout|1-4四維;5產業帳;6圖書館|persistent
 @USR: USR22|opt_copy|可讀白話完整句|persistent
-@USR: USR32|lib_opt_copy|閉目入殿查閱|persistent
+@USR: USR32|lib_opt_copy|閉目入殿，於靈魂圖書館查閱|persistent
 @USR: USR23|beat_stage|prose|persistent
 """
     pres = compile_presentation(warm, {"beat_stage": "prose"})
@@ -90,4 +90,4 @@ def test_voice_usr_keys_surface_on_prose_stage():
     assert "優美白話武俠" in text
     assert "modern_taiwanese" in text
     assert "6圖書館" in text
-    assert "閉目入殿查閱" in text
+    assert "閉目入殿" in text

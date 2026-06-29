@@ -18,6 +18,7 @@ from llm_client import complete_messages, model_for_role
 from wire_parse import extract_wire_lines, normalise_options, parse_prose_payload
 from novel_mcp.body_state import (
     hud_config_from_presentation,
+    plr_update_downgrade_satiety,
     resolve_beat_hud,
     vitality_satiety_conflict,
 )
@@ -192,15 +193,16 @@ def run_prose_phase(
         on_phase("prose")
 
     thread = _prose_thread(config)
-    begin = prep.get("begin") or beat_turn_begin(session=session, include_warm=True)
+    begin = beat_turn_begin(session=session, include_warm=True)
     if begin.get("exit_code", 1) != 0:
         return None, int(begin.get("exit_code", 1)), begin.get("errors") or []
 
     base_finish = _finish_kwargs_from_begin(begin, prep)
     since = begin.get("session_modified")
     prior_error: str | None = None
+    _PROSE_ATTEMPTS = 5
 
-    for attempt in range(3):
+    for attempt in range(_PROSE_ATTEMPTS):
         user = build_prose_user(prep, begin)
         if prior_error:
             user += f"\n\n## Prior finish error (fix)\n{prior_error}"
@@ -246,21 +248,29 @@ def run_prose_phase(
         hud_keys, hud_pipe = hud_config_from_presentation(presentation)
         llm_hud = str(payload.get("hud") or "").strip()
         vit_err = vitality_satiety_conflict(
-            prose, plr_body, body_plot_keys=hud_keys or None
+            prose,
+            plr_body,
+            body_plot_keys=hud_keys or None,
+            update_lines=update_lines,
         )
+        if vit_err:
+            plr_parts = scene.get("plr_parts")
+            if plr_parts:
+                auto = plr_update_downgrade_satiety(plr_parts)
+                if auto and auto not in update_lines:
+                    trial = list(update_lines) + [auto]
+                    vit_err = vitality_satiety_conflict(
+                        prose,
+                        plr_body,
+                        body_plot_keys=hud_keys or None,
+                        update_lines=trial,
+                    )
+                    if not vit_err:
+                        update_lines = trial
         if vit_err:
             thread.drop_last_user()
             prior_error = vit_err
             continue
-
-        hud = resolve_beat_hud(
-            plr_body=plr_body,
-            update_lines=update_lines,
-            hud_keys=hud_keys or None,
-            hud_pipe=hud_pipe,
-            time_display=scene.get("time") or pipeline.get("time_display"),
-            llm_fallback=llm_hud,
-        )
 
         finish = beat_turn_finish(
             session=session,
@@ -271,6 +281,14 @@ def run_prose_phase(
             **base_finish,
         )
         if finish.get("exit_code", 1) == 0:
+            hud = resolve_beat_hud(
+                plr_body=plr_body,
+                update_lines=update_lines,
+                hud_keys=hud_keys or None,
+                hud_pipe=hud_pipe,
+                time_display=scene.get("time") or pipeline.get("time_display"),
+                llm_fallback=llm_hud,
+            )
             thread.append_assistant(text)
             thread.save()
             snap = base_finish.get("snapshot_file") or prep.get("snapshot_file") or ""

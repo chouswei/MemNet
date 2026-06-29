@@ -19,6 +19,8 @@ _SATIETY_RANK: dict[str, int] = {
     "飽腹": 4,
 }
 
+_SATIETY_DOWN: dict[str, str] = {"略飽": "略餓", "飽": "略飽", "飽腹": "略飽"}
+
 _STRONG_HUNGER = re.compile(
     r"餓得發慌|餓極|非常餓|很餓|飢餓難耐|飢腸轆轆|腹中空鳴|肚子餓得|餓昏|餓到|餓得慌"
 )
@@ -55,7 +57,7 @@ def parse_body_fields(body: str) -> dict[str, str]:
 def satiety_guidance(satiety: str) -> str:
     """Author-facing hint when USR45 lists 飽食 (LAW-VIT01)."""
     guides = {
-        "略飽": "腹中尚可；禁空鳴、很餓、飢腸轆轆等強烈飢餓描寫",
+        "略飽": "腹中尚可；禁空鳴、很餓、飢腸轆轆等強烈飢餓描寫；若劇情需耗損須 update_lines 降檔",
         "飽": "不餓；禁饑餓描寫",
         "略餓": "可寫輕微空腹、腹鳴",
         "飢餓": "須寫明顯飢餓感",
@@ -150,17 +152,46 @@ def resolve_beat_hud(
     )
 
 
+def effective_plr_body(plr_body: str, update_lines: list[str] | None = None) -> str:
+    """Body column after optional finish_delta @PLR wires (pre-commit preview)."""
+    return plr_body_from_update_lines(update_lines or []) or plr_body
+
+
+def satiety_downgrade_body(body: str) -> str | None:
+    """One-step lower 飽食 in a body column, or None if not applicable."""
+    fields = parse_body_fields(body)
+    sat = fields.get("飽食")
+    if not sat or sat not in _SATIETY_DOWN:
+        return None
+    fields["飽食"] = _SATIETY_DOWN[sat]
+    return "；".join(f"{k}:{v}" for k, v in fields.items())
+
+
+def plr_update_downgrade_satiety(plr_parts: list[str]) -> str | None:
+    """Build @PLR wire lowering 飽食 one step (server remediation when prose costs hunger)."""
+    parts = normalise_plr_parts(list(plr_parts))
+    if len(parts) <= PLR_IDX_BODY:
+        return None
+    new_body = satiety_downgrade_body(parts[PLR_IDX_BODY])
+    if not new_body:
+        return None
+    parts[PLR_IDX_BODY] = new_body
+    return f"@PLR: {'|'.join(parts)}"
+
+
 def vitality_satiety_conflict(
     prose: str,
     plr_body: str,
     *,
     body_plot_keys: list[str] | None = None,
+    update_lines: list[str] | None = None,
 ) -> str | None:
     """LAW-VIT01 check — only when seed body_plot includes 飽食."""
     keys = body_plot_keys or []
     if keys and "飽食" not in keys:
         return None
-    satiety = parse_body_fields(plr_body).get("飽食")
+    body = effective_plr_body(plr_body, update_lines)
+    satiety = parse_body_fields(body).get("飽食")
     if not satiety:
         return None
     rank = _SATIETY_RANK.get(satiety)
@@ -168,10 +199,15 @@ def vitality_satiety_conflict(
         return None
     if rank >= 3:
         if _STRONG_HUNGER.search(prose):
-            return (
+            msg = (
                 f"LAW-VIT01: @PLR 飽食為「{satiety}」，正文禁寫強烈飢餓"
-                f"（{satiety_guidance(satiety)}）。若本拍確實耗損，須在 update_lines 落盤 @PLR。"
+                f"（{satiety_guidance(satiety)}）。"
             )
+            if not update_lines:
+                msg += " 須在 update_lines 落盤 @PLR 並將飽食降一檔，或改寫正文避開強烈飢餓描寫。"
+            else:
+                msg += " 若本拍確實耗損，須在 update_lines 將飽食降檔。"
+            return msg
         if _MILD_HUNGER.search(prose):
             return (
                 f"LAW-VIT01: @PLR 飽食為「{satiety}」，正文不宜寫空腹／腹鳴。"
@@ -193,6 +229,11 @@ def vitality_block(plr_body: str, *, body_plot_keys: list[str] | None = None) ->
     lines = [f"Graph body (match at beat start): `{plr_body}`"]
     if guide:
         lines.append(f"飽食「{satiety}」: {guide}")
+    if satiety in ("略飽", "飽", "飽腹") and "飽食" in keys:
+        lines.append(
+            "If prose shows hunger/exertion cost: lower 飽食 one step in `update_lines` "
+            "(`@PLR` body column). Else avoid: 很餓、腹中空鳴、飢腸轆轆、餓得發慌."
+        )
     return "## Body state\n" + "\n".join(lines) + "\n\n"
 
 

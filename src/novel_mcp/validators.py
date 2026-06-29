@@ -34,7 +34,7 @@ def _option_length_bounds(index: WarmIndex) -> tuple[int | None, int | None]:
                     hi = int(tok.split(":", 1)[1])
                 except ValueError:
                     pass
-    style = usr_value(index, "option_style") or ""
+    style = usr_value(index, "option_style") or usr_value(index, "opt_copy") or ""
     for part in style.replace(";", ",").split(","):
         part = part.strip()
         if part.endswith("字") and part[:-1].isdigit():
@@ -76,6 +76,7 @@ def validate_option_lines(
 
     index = index_warm(warm_stdout)
     lo, hi = _option_length_bounds(index)
+    lib_copy = (usr_value(index, "lib_opt_copy") or "").strip()
     need_full = _law_requires(index, "full_sentence") or _law_requires(index, "opt_readable_baihua")
     need_no_chain = _law_requires(index, "no_action_chain")
 
@@ -85,8 +86,11 @@ def validate_option_lines(
             violations.append(f"@ERR: option_empty|slot {i}")
             continue
         n = len(t)
-        if lo is not None and n < lo:
-            violations.append(f"@ERR: option_short|slot {i}|{n}<{lo}")
+        slot_lo = lo
+        if i == 6 and lib_copy and lo is not None and len(lib_copy) < lo:
+            slot_lo = len(lib_copy)
+        if slot_lo is not None and n < slot_lo:
+            violations.append(f"@ERR: option_short|slot {i}|{n}<{slot_lo}")
         if hi is not None and n > hi:
             warnings.append(f"option_long: slot {i} ({n}>{hi})")
         if need_no_chain and _ACTION_CHAIN_RE.search(t):

@@ -25,3 +25,12 @@ def test_validate_options_auto_beat():
         auto_beat=True,
     )
     assert any("auto_beat" in v for v in hints["violations"])
+
+
+def test_validate_options_slot6_lib_template_shorter_than_min():
+    warm = WARM + "@USR: U2|lib_opt_copy|閉目入殿查閱|persistent\n"
+    hints = validate_option_lines(
+        ["", "", "", "", "", "閉目入殿查閱"],
+        warm_stdout=warm,
+    )
+    assert not any("option_short" in v and "slot 6" in v for v in hints["violations"])

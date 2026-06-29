@@ -5,8 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import beat_orchestrator as beat_orchestrator_mod
 from app_config import NovelAppConfig, repo_root
-from play_service import ensure_slot_graph_paths
+from play_service import ensure_slot_graph_paths, run_beat
+
+
+def test_beat_orchestrator_imports_wire_parse() -> None:
+    """Regression: run_script_phase calls extract_wire_lines — must be imported."""
+    assert "extract_wire_lines" in beat_orchestrator_mod.__dict__
 
 
 def _world_config(tmp_path: Path) -> NovelAppConfig:
@@ -53,3 +59,29 @@ def test_ensure_slot_graph_paths_skips_legacy_app(tmp_path: Path) -> None:
     with patch("play_service.graph_sync_output_paths") as sync:
         ensure_slot_graph_paths(cfg, "mn_test")
     sync.assert_not_called()
+
+
+def test_run_beat_at_prose_skips_script(tmp_path: Path) -> None:
+    cfg = _world_config(tmp_path)
+    with (
+        patch("play_service.ensure_slot_graph_paths"),
+        patch("play_service.read_beat_stage", return_value="prose"),
+        patch("play_service.run_script_phase") as script,
+        patch(
+            "play_service.prose_beat_prepare",
+            return_value={"exit_code": 0, "memnet_session": "mn_x"},
+        ),
+        patch(
+            "play_service.run_prose_phase",
+            return_value=({"exit_code": 0, "prose": "正文", "options": [""] * 6}, 0, []),
+        ),
+        patch(
+            "novel_mcp.player_setup.read_player_setup",
+            return_value={"setup_complete": True, "setup_guidance": {}},
+        ),
+    ):
+        result, code = run_beat(cfg, "mn_x", choice=2)
+    script.assert_not_called()
+    assert code == 0
+    assert result is not None
+    assert result.get("prose") == "正文"

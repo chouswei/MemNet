@@ -23,6 +23,7 @@ from play_service import (  # noqa: E402
     run_beat,
     write_last_beat,
 )
+from novel_mcp.play_context import read_beat_stage
 from novel_mcp.player_setup import read_player_setup  # noqa: E402
 
 
@@ -51,9 +52,14 @@ def main() -> int:
     failures = 0
     t0 = time.perf_counter()
     for i in range(1, n + 1):
-        choice = rng.randint(1, 6)
         beat_t0 = time.perf_counter()
-        result, code = run_beat(config, session, choice=choice)
+        stage = read_beat_stage(session)
+        if stage == "prose":
+            result, code = run_beat(config, session, continue_beat=True)
+            choice = None
+        else:
+            choice = rng.randint(1, 6)
+            result, code = run_beat(config, session, choice=choice)
         elapsed = time.perf_counter() - beat_t0
         entry = {
             "beat": i,

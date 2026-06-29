@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.29] — 2026-06-29
+
+### Added
+- **`effective_plr_body`** — preview post-`finish_delta` body from `update_lines` for LAW-VIT01 and HUD.
+
+### Changed
+- **HUD** — built after successful `beat_turn_finish` (post-commit semantics).
+- **Prose retries** — up to 5 attempts when finish or VIT01 validation fails.
+
+### Fixed
+- **`play_service.run_beat`** — skip script when `beat_stage=prose`; propagate real errors instead of `None`.
+- **`beat_orchestrator`** — fresh `beat_turn_begin` each prose phase; VIT01 honours `update_lines`; auto `飽食` downgrade when prose costs hunger.
+- **`beat_turn_finish` warm** — use `NOVEL_WARM_DEPTH` (not depth 1) so option validation sees `lib_opt_copy`.
+- **`validators`** — slot 6 min length follows `lib_opt_copy` when shorter than global `opt_copy` min.
+- **novel-mobile `play.js`** — opening beat sends `{ start: true }`; `continue` only when resuming prose stage.
+- **Seed USR32** — library option template lengthened to meet `12-28字`.
+
 ## [0.2.28] — 2026-06-29
 
 ### Added
