@@ -393,16 +393,16 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 | `USR70` | `@USR` | `opening_scene` — beat-0 facts + ban list; cite from opening OLN LAW |
 | `USR14` | `@USR` | `chapter_out` — relative path to chapter dir |
 | `USR15` | `@USR` | `snapshot` — relative path to `session_snap.json` |
-| `USR23` | `@USR` | `beat_stage` — initial `oln` |
+| `USR23` | `@USR` | `beat_stage` — initial `script_draft` |
 | `USR05` | `@USR` | `scene_length` — band or `no_gate` |
 | `LAW06` | `@LAW` | `law_scope|linked_from_anchor` (or document `*` scope choice) |
-| `LAW-PIPE20` | `@LAW` | Stage FSM: oln→sbd→scr→prose; `no_bundle` |
+| `LAW-PIPE20` | `@LAW` | Stage FSM: script_draft→script_review→prose; `script_draft_bundle` |
 | `LAW-PIPE21` | `@LAW` | `begin_finish_only` |
 | `LAW-MCP01` or equivalent | `@LAW` | Commits via MCP finish, not chat |
 | `ES01` | `@EDG` | `STEP01|focus|<opening SCN id>` |
 | `EG*` | `@EDG` | `STEP01|governs|USR*` for every USR that must appear in warm |
 | `EG*` | `@EDG` | `STEP01|governs|LAW-*` for pipeline / prose LAWs |
-| Stage hints | `@USR` | `USR54`–`USR57` → `stage_hint_oln|sbd|scr|prose` (or project convention) |
+| Stage hints | `@USR` | `USR55`–`USR57` → `stage_hint_script_draft|script_review|prose` |
 
 **Strongly recommended** (generic RPG UX):
 
@@ -410,7 +410,8 @@ Legacy single fence `## Opening seed` is supported but deprecated for new work.
 - `LAW-OUT04`–`05` — hide wires in player UI
 - `LAW-OPT01` + six-option `USR` keys if using standard option model
 - `LAW-CHR04` + `USR25` — age from `@SYS` year − birth year
-- `LAW-NAME01` — no hard-coded protagonist name in LAW text
+- `LAW-NAME01` — POV name visibility via `@EDG` + `presentation.scene`; no wire ids in prose
+- `LAW-KNW00` — knowledge depth ladder + 人/物/地 tables (`USR80–84`, `GLO10–16`)
 
 ### 5.3 World fence — mandatory rows
 
@@ -477,6 +478,36 @@ Tags such as `@ITM` (`角色`), `@SKL`/`@MWU` (`角色`), `@PRS` (`角色`) may 
 | LAW text | **Never** embed specific character names or ids |
 | Prompt shells (`beat_prompt.py`) | **Never** hard-code story NPCs; read `presentation.scene` |
 
+### 6.3.1 Knowledge depth (acquaintance)
+
+Seven stages (ordinal in `entity_knowledge.DEPTH_RANK`):
+
+`未知(0) → 耳聞(1) → 初識(2) → 粗識(3) → 能述(4) → 能作(5) → 熟識(6)`
+
+| What | Where |
+|------|-------|
+| SSOT | `@EDG`: `holder\|knows\|entity`, `knows_via`, `soul_knows`; depth token in `attrs` |
+| Negative | `unknows` — explicit “cannot name/use”; **not** acquaintance |
+| Not knowledge | `aff_to` intimacy scores — do not grant canonical names |
+| Runtime | `presentation.scene` → `name_visible`, `knowledge_depth`, `knowledge_depth_rank` |
+| Seed pattern | `LAW-KNW00`, `LAW-NAME01`, `USR80` (ladder), `USR81–83` (人/物/地 tables), `USR84` (edge rules), `GLO10–16` |
+| Prose gate | Only use canonical names when `name_visible: true`; ban wire ids (`N01`) in player text |
+| Plot unlock | After NPC self-intro, `beat_turn_finish` adds e.g. `P01\|knows\|N01\|…\|初識` |
+
+**Category prose allowances** (seed integrator table; must match code):
+
+| Depth | 人 (NPC) | 物 (TEC/PRD/…) | 地 (LOC/BIZ) |
+|-------|----------|----------------|--------------|
+| 未知 | stranger / trait label | no proper name | vague “somewhere” |
+| 耳聞 | still no name via `knows_via` until 粗識 | category gist | vicinity |
+| 初識 | name via direct `knows` | proper name | place name |
+| 粗識 | name via `knows_via`; habits | specs / use | precise location |
+| 能述+ | dialogue detail | explain | give directions |
+| 能作+ | joint action in prose | hands-on | lead inside |
+| 熟識 | insider traits | tricks / limits | familiar routes |
+
+Code thresholds: `knows` ≥初識 → name; `knows_via` NPC ≥粗識, non-NPC ≥耳聞; `soul_knows` → always name.
+
 ### 6.4 Time
 
 - `@SYS.時間` is the mechanical clock (e.g. `YYYY-MM-DDTHH`).
@@ -501,7 +532,7 @@ Tags such as `@ITM` (`角色`), `@SKL`/`@MWU` (`角色`), `@PRS` (`角色`) may 
 | Key | Role |
 |-----|------|
 | `pc_name` | Protagonist name gate |
-| `beat_stage` | FSM: oln / sbd / scr / prose |
+| `beat_stage` | FSM: script_draft / script_review / prose |
 | `chapter_out` | Chapter directory path |
 | `snapshot` | Snapshot file path |
 | `scene_length` | Prose band or `no_gate` |
@@ -562,7 +593,7 @@ sequenceDiagram
 **Seed obligations for this pipeline:**
 
 1. `STEP01.focus` points at opening `SCN` id (not OLN id).
-2. `USR23` starts at `oln` for new games.
+2. `USR23` starts at `script_draft` for new games.
 3. NPC/PLR/SYS rows exist and are reachable for presentation (directly in warm or via enrich list).
 4. Engine LAWs cite the correct USR ids your finish pipeline updates (time, body, traits, etc.).
 

@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from novel_mcp.beat_stage import is_script_law_stage, normalize_beat_stage
+
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
 
 
@@ -89,8 +91,13 @@ def law_constraint_tokens(index: WarmIndex, law_id: str) -> list[str]:
 
 
 def pipeline_no_bundle(index: WarmIndex) -> bool:
-    """True when LAW-PIPE20 constraint includes no_bundle (strict stage FSM)."""
-    return "no_bundle" in law_constraint_tokens(index, "LAW-PIPE20")
+    """True when LAW-PIPE20 enforces one wire per finish (except script_draft bundle)."""
+    tokens = law_constraint_tokens(index, "LAW-PIPE20")
+    return (
+        "one_wire_per_finish_except_draft" in tokens
+        or "script_draft_bundle" in tokens
+        or "no_bundle" in tokens
+    )
 
 
 def laws_for_stage(index: WarmIndex, stage: str, *, for_options: bool = False) -> list[LawRow]:
@@ -103,7 +110,7 @@ def laws_for_stage(index: WarmIndex, stage: str, *, for_options: bool = False) -
             if "opt_" in mech or "opt_" in tokens or "full_sentence" in tokens:
                 out.append(law)
             continue
-        if stage in ("oln", "sbd", "scr"):
+        if is_script_law_stage(normalize_beat_stage(stage)):
             if mech in ("warm_prose",) or "warm_prose" in tokens:
                 continue
             if mech.startswith("opt_"):

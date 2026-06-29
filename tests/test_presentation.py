@@ -8,15 +8,15 @@ WUXIA_WARM = """\
 @LAW: LAW-PROSE00|敘事|1|warm_prose|ban_telegraphic
 @LAW: LAW-PERS02|選項|1|opt_readable_baihua|full_sentence;no_action_chain
 @USR: USR51|prose_warm|second person; wuxia voice|persistent
-@USR: USR23|beat_stage|oln|persistent
-@USR: USR99|stage_hint_oln|Draft OLN: mood, beats, dialogue skeleton|persistent
+@USR: USR23|beat_stage|script_draft|persistent
+@USR: USR99|stage_hint_script_draft|Draft script bundle: OLN+SBD+SCR|persistent
 @PLR: P01|vagrant|1627|未定|0|0|skills|qi:6/6
 """
 
 RPG_WARM = """\
 @LAW: LAW-HP01|CHR|1|cite_chr_attr|no_invent_stats
-@USR: U01|beat_stage|scr|persistent
-@USR: U02|stage_hint_scr|Draft script from storyboard|persistent
+@USR: U01|beat_stage|script_review|persistent
+@USR: U02|stage_hint_script_review|Draft script review|persistent
 @USR: U03|prose_warm|third person limited|persistent
 @PLR: H01|student|2010|女|0|0|bag|tired
 """
@@ -25,11 +25,11 @@ RPG_WARM = """\
 def test_presentation_wuxia_seed():
     pres = compile_presentation(
         WUXIA_WARM,
-        {"beat_stage": "oln", "draft_target_chars": 800, "age_hint": "P01:10"},
+        {"beat_stage": "script_draft", "draft_target_chars": 800, "age_hint": "P01:10"},
         warm_walk="@WALK: STEP01 -[governs]-> USR51\n",
     )
     text = "\n".join(pres["contracts"])
-    assert "Draft OLN" in text
+    assert "Draft script bundle" in text
     assert "second person" not in text
     assert pres["option_contracts"] == []
     assert pres["walk_hops"]
@@ -65,7 +65,19 @@ def test_scene_snapshot_npc_ages():
     assert scene["plr_age"] == 10
 
 
-def test_option_contracts_on_prose_stage():
+def test_legacy_no_bundle_script_draft_clarifies_bundle():
+    """Old graphs with no_bundle must not tell the LLM one-wire-only at script_draft."""
+    warm = """\
+@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|beat_stage_usr23;one_wire_per_finish;no_bundle|persistent
+@USR: USR23|beat_stage|script_draft|persistent
+@USR: USR55|stage_hint_script_draft|Draft bundle OLN+SBD+SCR|persistent
+"""
+    pres = compile_presentation(warm, {"beat_stage": "script_draft", "pipeline_no_bundle": True})
+    text = "\n".join(pres["contracts"])
+    assert "one wire type per beat_turn_finish" not in text
+    assert "bundle" in text.lower()
+
+
     pres = compile_presentation(
         WUXIA_WARM,
         {"beat_stage": "prose"},

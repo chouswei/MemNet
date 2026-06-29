@@ -16,7 +16,7 @@ def test_enrich_oln_stage_skips_sbd_scr(monkeypatch) -> None:
 
     monkeypatch.setattr("novel_mcp.warm_supplement.run_memnet", fake_run)
     warm = "@STEP: STEP01|1|SCN01|persistent\n"
-    enrich_warm_stdout("mn_x", warm, beat_stage="oln")
+    enrich_warm_stdout("mn_x", warm, beat_stage="script_draft")
     assert "SBD" not in calls
     assert "SCR" not in calls
 

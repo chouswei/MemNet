@@ -11,8 +11,9 @@ from play_service import ensure_slot_graph_paths, run_beat
 
 
 def test_beat_orchestrator_imports_wire_parse() -> None:
-    """Regression: run_script_phase calls extract_wire_lines — must be imported."""
-    assert "extract_wire_lines" in beat_orchestrator_mod.__dict__
+    """Regression: run_script_stage calls extract_draft_bundle / extract_scr_lines."""
+    assert "extract_draft_bundle" in beat_orchestrator_mod.__dict__
+    assert "extract_scr_lines" in beat_orchestrator_mod.__dict__
 
 
 def _world_config(tmp_path: Path) -> NovelAppConfig:

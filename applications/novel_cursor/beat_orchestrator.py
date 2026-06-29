@@ -15,7 +15,7 @@ from beat_prompt import (
 )
 from chat_thread import ChatThread, reset_role_thread
 from llm_client import complete_messages, model_for_role
-from wire_parse import extract_wire_lines, normalise_options, parse_prose_payload
+from wire_parse import extract_draft_bundle, extract_scr_lines, normalise_options, parse_prose_payload
 from novel_mcp.body_state import (
     hud_config_from_presentation,
     plr_update_downgrade_satiety,
@@ -26,7 +26,7 @@ from novel_mcp.body_state import (
 from novel_mcp.beat_pipeline import beat_turn_begin, beat_turn_finish
 from novel_mcp.play_context import read_beat_stage
 
-_SCRIPT_STAGES = ("oln", "sbd", "scr")
+_SCRIPT_STAGES = ("script_draft", "script_review")
 
 
 def _lib_query(prep: dict[str, Any]) -> bool:
@@ -109,13 +109,36 @@ def run_script_stage(
             thread.drop_last_user()
             return 1, [str(err)]
 
-        lines = extract_wire_lines(text, stage)
-        if not lines:
+        if stage == "script_draft":
+            oln_lines, sbd_lines, scr_lines = extract_draft_bundle(text)
+            if not oln_lines or not sbd_lines or not scr_lines:
+                thread.drop_last_user()
+                missing = []
+                if not oln_lines:
+                    missing.append("@OLN")
+                if not sbd_lines:
+                    missing.append("@SBD")
+                if not scr_lines:
+                    missing.append("@SCR")
+                prior_error = f"Draft bundle missing: {', '.join(missing)}."
+                _log(f"[orchestrator:script] {stage} retry: {prior_error}")
+                continue
+            finish_kw = {
+                "oln_lines": oln_lines,
+                "sbd_lines": sbd_lines,
+                "scr_lines": scr_lines,
+            }
+        elif stage == "script_review":
+            scr_lines = extract_scr_lines(text)
+            if not scr_lines:
+                thread.drop_last_user()
+                prior_error = "No @SCR: line in model output."
+                _log(f"[orchestrator:script] {stage} retry: {prior_error}")
+                continue
+            finish_kw = {"scr_lines": scr_lines}
+        else:
             thread.drop_last_user()
-            prior_error = f"No @{stage.upper()}: line in model output."
-            continue
-
-        finish_kw: dict[str, Any] = {f"{stage}_lines": lines}
+            return 1, [f"Unknown script stage: {stage}"]
         finish = beat_turn_finish(
             session=session,
             since_modified=since,
@@ -129,6 +152,7 @@ def run_script_stage(
 
         thread.drop_last_user()
         prior_error = "; ".join(finish.get("errors") or ["beat_turn_finish failed"])
+        _log(f"[orchestrator:script] {stage} finish rejected: {prior_error}")
         since = finish.get("session_modified") or since
         begin = beat_turn_begin(session=session, include_warm=True, lib_query=_lib_query(prep))
         base_finish = _finish_kwargs_from_begin(begin, prep)
@@ -144,12 +168,12 @@ def run_script_phase(
     stream: bool = False,
     on_phase: Callable[[str], None] | None = None,
 ) -> tuple[int, list[str]]:
-    """oln → sbd → scr until USR23=prose (script chat thread)."""
+    """script_draft → script_review until USR23=prose (script chat thread)."""
     stage = read_beat_stage(session)
     if stage == "prose":
         return 0, []
     if stage not in _SCRIPT_STAGES:
-        stage = "oln"
+        stage = "script_draft"
 
     reset_role_thread(config, "script")
     thread = _script_thread(config)
@@ -157,7 +181,7 @@ def run_script_phase(
     for st in _SCRIPT_STAGES[start:]:
         if read_beat_stage(session) == "prose":
             break
-        if on_phase and st in ("oln", "sbd", "scr"):
+        if on_phase and st in _SCRIPT_STAGES:
             on_phase(st)
         code, errors = run_script_stage(
             config,

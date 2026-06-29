@@ -23,6 +23,17 @@ from novel_mcp.game_time import (
 )
 from novel_mcp.time_display import format_time_display
 from novel_mcp.paths import workspace_root as resolve_workspace_root
+from novel_mcp.beat_stage import (
+    PIPELINE_STAGES,
+    STAGE_HINT_USR,
+    STAGE_NEXT,
+    normalize_beat_stage,
+)
+from novel_mcp.stage_wire_validate import (
+    collect_audit_findings,
+    validate_script_draft_bundle,
+    validate_stage_wires,
+)
 from novel_mcp.warm_index import index_warm, pipeline_no_bundle
 from novel_mcp.warm_supplement import enrich_warm_stdout
 from novel_mcp.constants import NOVEL_WARM_DEPTH, NOVEL_WARM_MAX_ROWS
@@ -30,6 +41,8 @@ from novel_mcp.zh_text import parse_scene_band, prose_status
 
 _ROW_RE = re.compile(r"^@(\w+):\s*(.+)$")
 _QI_ZERO_RE = re.compile(r"氣血:0(?:/|;|$)")
+
+_WIRE_KEYS = ("oln", "sbd", "scr", "prose")
 
 _PHASE_ACTIONS: dict[int, str] = {
     1: "draft @OLN (大綱) → advance to 分鏡",
@@ -40,13 +53,17 @@ _PHASE_ACTIONS: dict[int, str] = {
     6: "present + options (no MCP)",
 }
 
-_PIPELINE_STAGES = ("oln", "sbd", "scr", "prose")
-_STAGE_NEXT = {"oln": "sbd", "sbd": "scr", "scr": "prose", "prose": "oln"}
+_PIPELINE_STAGES = PIPELINE_STAGES
+_STAGE_NEXT = STAGE_NEXT
 
 _STAGE_DRAFT_NOTES: dict[str, str] = {
-    "oln": "LAW-PIPE20: draft @OLN; beat_turn_finish(oln_lines=… only)",
-    "sbd": "LAW-PIPE20: draft @SBD from @OLN; beat_turn_finish(sbd_lines=… only)",
-    "scr": "LAW-PIPE20: draft @SCR from @SBD; beat_turn_finish(scr_lines=… only)",
+    "script_draft": (
+        "LAW-PIPE20: draft @OLN+@SBD+@SCR bundle; "
+        "beat_turn_finish(oln_lines, sbd_lines, scr_lines together)"
+    ),
+    "script_review": (
+        "LAW-PIPE20: review @SCR; beat_turn_finish(scr_lines only)"
+    ),
     "prose": (
         "LAW-PIPE20: draft prose from @SCR; "
         "beat_turn_finish(prose=…, option_lines, STEP/SYS/PLR updates)"
@@ -75,19 +92,50 @@ def _validate_pipeline_commits(
     auto_beat: bool,
     pipeline_bypass: bool,
     no_bundle: bool = False,
+    oln_lines: list[str] | None = None,
+    sbd_lines: list[str] | None = None,
+    scr_lines: list[str] | None = None,
 ) -> list[str]:
     if pipeline_bypass:
         return []
-    if beat_stage not in _PIPELINE_STAGES:
-        beat_stage = "oln"
+    beat_stage = normalize_beat_stage(beat_stage)
 
     if auto_beat:
         if provided["oln"] or provided["sbd"] or provided["scr"]:
             return ["@ERR: auto_beat_pipeline|昏厥拍禁 OLN/SBD/SCR；僅 prose + PLR update"]
         return []
 
-    active = [s for s in _PIPELINE_STAGES if provided[s]]
+    active = [k for k in _WIRE_KEYS if provided[k]]
     if not active:
+        return []
+
+    if beat_stage == "script_draft":
+        expected = {"oln": True, "sbd": True, "scr": True, "prose": False}
+        if provided != expected:
+            got = ",".join(k for k, v in provided.items() if v) or "none"
+            return [
+                "@ERR: script_draft_bundle|"
+                f"need oln+sbd+scr together (got {got})"
+            ]
+        return validate_script_draft_bundle(oln_lines, sbd_lines, scr_lines)
+
+    if beat_stage == "script_review":
+        if provided != {"oln": False, "sbd": False, "scr": True, "prose": False}:
+            got = ",".join(k for k, v in provided.items() if v) or "none"
+            return [
+                "@ERR: pipeline_stage_mismatch|"
+                f"stage=script_review got={got} expected scr only"
+            ]
+        return []
+
+    if beat_stage == "prose":
+        if provided["oln"] or provided["sbd"] or provided["scr"]:
+            return [
+                "@ERR: pipeline_stage_mismatch|"
+                f"stage=prose got script wires; prose finish only"
+            ]
+        if not provided["prose"]:
+            return ["@ERR: pipeline_stage_mismatch|stage=prose expected prose commit"]
         return []
 
     if no_bundle and len(active) > 1:
@@ -96,27 +144,26 @@ def _validate_pipeline_commits(
             f"beat_stage={beat_stage} USR23 FSM: one wire stage per finish "
             f"(got {','.join(active)})"
         ]
-
-    idx = _PIPELINE_STAGES.index(beat_stage)
-    remaining = _PIPELINE_STAGES[idx:]
-    expected = list(remaining[: len(active)])
-    if active != expected:
-        return [
-            "@ERR: pipeline_stage_mismatch|"
-            f"stage={beat_stage} got={','.join(active)} "
-            f"expected contiguous from {beat_stage} as {','.join(remaining)}"
-        ]
     return []
 
 
 def _stage_after_commits(beat_stage: str, provided: dict[str, bool]) -> str:
-    active = [s for s in _PIPELINE_STAGES if provided[s]]
+    beat_stage = normalize_beat_stage(beat_stage)
+    active = [k for k in _WIRE_KEYS if provided[k]]
     if not active:
         return beat_stage
-    last = active[-1]
-    if last == "prose":
-        return "oln"
-    return _STAGE_NEXT[last]
+    if beat_stage == "script_draft" and provided == {
+        "oln": True,
+        "sbd": True,
+        "scr": True,
+        "prose": False,
+    }:
+        return "script_review"
+    if beat_stage == "script_review" and provided.get("scr"):
+        return "prose"
+    if beat_stage == "prose" and provided.get("prose"):
+        return "script_draft"
+    return beat_stage
 
 
 def _usr_beat_stage_row(ln: str) -> tuple[str, str] | None:
@@ -214,12 +261,41 @@ def _supplement_prose_target(
         pipeline["prose_advisory_zh"] = target
 
 
-_STAGE_HINT_USR: dict[str, str] = {
-    "oln": "USR54",
-    "sbd": "USR55",
-    "scr": "USR56",
-    "prose": "USR57",
-}
+_STAGE_HINT_USR = STAGE_HINT_USR
+
+
+def _attach_beat_script_rows(
+    pipeline: dict[str, Any],
+    rows: dict[str, list[str]],
+    *,
+    stage: str,
+) -> None:
+    """Attach OLN/SBD/SCR rows for script_review and prose stages."""
+    if stage not in ("script_review", "prose"):
+        return
+    oln_bodies = rows.get("OLN", [])
+    sbd_bodies = rows.get("SBD", [])
+    scr_bodies = rows.get("SCR", [])
+    if oln_bodies and "oln_row" not in pipeline:
+        pipeline["oln_row"] = oln_bodies[-1]
+    round_n: str | None = None
+    if oln_bodies:
+        parts = oln_bodies[-1].split("|")
+        if len(parts) >= 2:
+            round_n = parts[1]
+    if round_n is not None:
+        beat_sbd = [
+            b for b in sbd_bodies if len(b.split("|")) >= 2 and b.split("|")[1] == round_n
+        ]
+        beat_scr = [
+            b for b in scr_bodies if len(b.split("|")) >= 2 and b.split("|")[1] == round_n
+        ]
+    else:
+        beat_sbd, beat_scr = sbd_bodies, scr_bodies
+    if beat_sbd and "sbd_rows" not in pipeline:
+        pipeline["sbd_rows"] = "\n".join(f"@SBD: {b}" for b in beat_sbd)
+    if beat_scr and "scr_row" not in pipeline:
+        pipeline["scr_row"] = "\n".join(f"@SCR: {b}" for b in beat_scr)
 
 
 def _read_get_body(session: str | None, record_id: str) -> str | None:
@@ -247,10 +323,8 @@ def _apply_authoritative_beat_stage(
         return
     parts = body.split("|")
     if len(parts) >= 3 and parts[0] == "USR23" and parts[1] == "beat_stage":
-        stage = parts[2]
-        if stage in _PIPELINE_STAGES:
-            pipeline["beat_stage"] = stage
-            pipeline["beat_stage_usr_id"] = "USR23"
+        pipeline["beat_stage"] = normalize_beat_stage(parts[2])
+        pipeline["beat_stage_usr_id"] = "USR23"
 
 
 def _supplement_pipeline_fsm(
@@ -276,11 +350,11 @@ def _supplement_pipeline_fsm(
         extras.append(f"@USR: {usr_body}")
 
     _apply_authoritative_beat_stage(pipeline, session=session)
-    stage = pipeline.get("beat_stage", "oln")
+    stage = normalize_beat_stage(pipeline.get("beat_stage", "script_draft"))
 
     hint_key = f"stage_hint_{stage}"
     if not usr_value(idx, hint_key):
-        uid = _STAGE_HINT_USR.get(stage)
+        uid = STAGE_HINT_USR.get(stage)
         if uid:
             hint_body = _read_get_body(session, uid)
             if hint_body:
@@ -401,10 +475,8 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
     if "draft_target_chars" not in pipeline and "target_chars" in pipeline:
         pipeline["draft_target_chars"] = pipeline["target_chars"]
 
-    # Normalize stage
-    stage = pipeline.get("beat_stage", "oln")
-    if stage not in ("oln", "sbd", "scr", "prose"):
-        stage = "oln"
+    # Normalise FSM stage (legacy oln/sbd/scr → script_draft/script_review)
+    stage = normalize_beat_stage(pipeline.get("beat_stage", "script_draft"))
     pipeline["beat_stage"] = stage
 
     focus = pipeline.get("step_focus")
@@ -448,12 +520,11 @@ def parse_warm_stdout(stdout: str) -> dict[str, Any]:
             if beat_scr:
                 pipeline["scr_row"] = "\n".join(f"@SCR: {b}" for b in beat_scr)
 
+    _attach_beat_script_rows(pipeline, rows, stage=stage)
+
     # Default stage if not set
     if "beat_stage" not in pipeline:
-        if "oln_row" in pipeline:
-            pipeline["beat_stage"] = "oln"
-        else:
-            pipeline["beat_stage"] = "oln"  # start with 大綱
+        pipeline["beat_stage"] = "script_draft"
 
     ages = _character_ages_from_rows(rows)
     if ages:
@@ -493,16 +564,14 @@ def pipeline_next_action(
     *,
     pipeline_no_bundle: bool = False,
 ) -> str:
-    stage = beat_stage if beat_stage in _PIPELINE_STAGES else "oln"
-    if pipeline_no_bundle:
-        return _STAGE_DRAFT_NOTES[stage]
-    if stage in ("sbd", "scr", "prose"):
-        return _STAGE_DRAFT_NOTES[stage]
+    stage = normalize_beat_stage(beat_stage)
+    if pipeline_no_bundle or stage in _PIPELINE_STAGES:
+        return _STAGE_DRAFT_NOTES.get(stage, _STAGE_DRAFT_NOTES["script_draft"])
     if isinstance(step_n, str) and step_n.isdigit():
         step_n = int(step_n)
     if isinstance(step_n, int):
         return _PHASE_ACTIONS.get(step_n, "beat_turn_begin → draft → beat_turn_finish")
-    return _STAGE_DRAFT_NOTES["oln"]
+    return _STAGE_DRAFT_NOTES["script_draft"]
 
 
 def _apply_wire_lines(
@@ -700,6 +769,13 @@ def beat_turn_begin(
         walk_filter=walk_filter,
         session=session,
     )
+    if normalize_beat_stage(pipeline.get("beat_stage")) == "script_review":
+        pipeline["audit_findings"] = collect_audit_findings(
+            warm_for_pres,
+            presentation=presentation,
+        )
+    else:
+        pipeline["audit_findings"] = []
     warnings: list[str] = []
     if since_modified and read_modified and since_modified != read_modified:
         warnings.append(
@@ -733,7 +809,7 @@ def beat_turn_begin(
         out["local_draft"] = (
             f"python scripts/{pipeline.get('local_gate', 'prose_count.py')} --usr05 "
             f"{pipeline.get('usr05_band', '<scene_length>')} --prose-file beat.txt  "
-            f"(stage={pipeline.get('beat_stage', 'oln')})"
+            f"(stage={pipeline.get('beat_stage', 'script_draft')})"
         )
     else:
         out["local_draft"] = None
@@ -893,7 +969,7 @@ def beat_turn_finish(
             result["session_modified"] = finish_modified
             return result
 
-    beat_stage = session_pipeline.get("beat_stage", "oln")
+    beat_stage = normalize_beat_stage(session_pipeline.get("beat_stage", "script_draft"))
     auto_beat = session_pipeline.get("auto_beat", False)
     no_bundle = bool(session_pipeline.get("pipeline_no_bundle"))
     provided = _pipeline_provided(oln_lines, sbd_lines, scr_lines, prose)
@@ -903,14 +979,28 @@ def beat_turn_finish(
         auto_beat=auto_beat,
         pipeline_bypass=pipeline_bypass,
         no_bundle=no_bundle,
+        oln_lines=oln_lines,
+        sbd_lines=sbd_lines,
+        scr_lines=scr_lines,
     )
     if pipeline_errors:
         result["exit_code"] = 1
         result["errors"].extend(pipeline_errors)
         result["pipeline_blocked"] = True
         result["beat_stage"] = beat_stage
-        result["next_action"] = _STAGE_DRAFT_NOTES.get(beat_stage, _STAGE_DRAFT_NOTES["oln"])
+        result["next_action"] = _STAGE_DRAFT_NOTES.get(
+            beat_stage, _STAGE_DRAFT_NOTES["script_draft"]
+        )
         return result
+
+    script_wire_lines: list[str] = []
+    for batch in (oln_lines, sbd_lines, scr_lines):
+        if batch:
+            script_wire_lines.extend(batch)
+    if script_wire_lines and not pipeline_bypass:
+        wire_hints = validate_stage_wires(script_wire_lines)
+        result["finish_hints"]["violations"].extend(wire_hints["violations"])
+        result["finish_hints"]["warnings"].extend(wire_hints["warnings"])
 
     new_beat_stage = _stage_after_commits(beat_stage, provided)
     if new_beat_stage != beat_stage:

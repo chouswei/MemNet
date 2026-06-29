@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.30] — 2026-06-30
+
+### Added
+- **Two-step script pipeline** — `script_draft` (OLN+SBD+SCR bundle) → `script_review` (SCR only) → `prose`; `beat_stage.py`, `stage_wire_validate.py` (mechanical bundle checks only).
+- **Prose author context** — `build_prose_user` includes **SBD** storyboard; Cast lists graph ids (`N01`, `P01`, …).
+- **novel-mobile** — phase labels for `script_draft` / `script_review`; orchestrator logs finish retry errors to stderr.
+- **Tests** — `test_stage_wire_validate`, prose SBD attachment, legacy `no_bundle` presentation clarification.
+
+### Changed
+- **Seed / LAW-PIPE20** — `script_draft_bundle`; USR55–57 stage hints; FSM `script_draft → script_review → prose → script_draft`.
+- **`beat_orchestrator` / `wire_parse`** — bundle extract at draft; LLM review at review (no programmatic wire-id / canonical-name blocking on finish).
+- **`presentation`** — legacy graphs with `no_bundle` no longer tell the LLM one-wire-only at `script_draft`.
+- **`prose_beat_prepare`** — surfaces `sbd_rows` alongside `scr_row` / `oln_row`.
+- **`warm_supplement`** — stage keys aligned to v2 FSM.
+- **Codebase snap** — regenerated `workflow.memnet-codebase.snap.txt` (novel_mcp pipeline modules indexed).
+
+### Fixed
+- **novel-mobile `server.py`** — `continue` gate uses v2 script stages (not legacy `oln`).
+- **Stuck `script_draft`** — conflicting LAW/presentation hints on old worlds; rebootstrap recommended.
+
 ## [0.2.29] — 2026-06-29
 
 ### Added
@@ -373,7 +393,9 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.28...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.30...HEAD
+[0.2.30]: https://github.com/chouswei/MemNet/compare/v0.2.29...v0.2.30
+[0.2.29]: https://github.com/chouswei/MemNet/compare/v0.2.28...v0.2.29
 [0.2.28]: https://github.com/chouswei/MemNet/compare/v0.2.27...v0.2.28
 [0.2.27]: https://github.com/chouswei/MemNet/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/chouswei/MemNet/compare/v0.2.25...v0.2.26

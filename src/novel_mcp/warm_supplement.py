@@ -9,11 +9,12 @@ from __future__ import annotations
 from memnet_mcp.client import run_memnet
 from novel_mcp.setup_constants import AFF_EDG_RELATION
 
+from novel_mcp.beat_stage import normalize_beat_stage
+
 # Novel RPG stage wires + scene cast — not MemNet engine concepts.
 _STAGE_SUPPLEMENT_TAGS: dict[str, tuple[str, ...]] = {
-    "oln": ("PLR", "NPC", "SYS", "BIZ", "SCN"),
-    "sbd": ("OLN", "PLR", "NPC", "SYS"),
-    "scr": ("OLN", "SBD", "PLR", "NPC", "SYS"),
+    "script_draft": ("PLR", "NPC", "SYS", "BIZ", "SCN"),
+    "script_review": ("OLN", "SBD", "SCR", "PLR", "NPC", "SYS"),
     "prose": ("OLN", "SBD", "SCR", "PLR", "NPC", "SYS"),
 }
 _DEFAULT_STAGE = "prose"
@@ -44,7 +45,8 @@ _CAST_TAGS = frozenset({"PLR", "NPC"})
 
 
 def _tags_for_stage(beat_stage: str) -> tuple[str, ...]:
-    return _STAGE_SUPPLEMENT_TAGS.get(beat_stage, _STAGE_SUPPLEMENT_TAGS[_DEFAULT_STAGE])
+    stage = normalize_beat_stage(beat_stage)
+    return _STAGE_SUPPLEMENT_TAGS.get(stage, _STAGE_SUPPLEMENT_TAGS[_DEFAULT_STAGE])
 
 
 def _is_tag_map_def_line(line: str) -> bool:
@@ -171,9 +173,10 @@ def enrich_warm_stdout(
 
     existing = {ln.strip() for ln in warm_stdout.splitlines() if ln.strip()}
     extras: list[str] = []
-    extras.extend(_supplement_tag_rows(session, warm_stdout, beat_stage=beat_stage, existing=existing))
+    stage = normalize_beat_stage(beat_stage)
+    extras.extend(_supplement_tag_rows(session, warm_stdout, beat_stage=stage, existing=existing))
 
-    if beat_stage in ("oln", "sbd", "scr"):
+    if stage in ("script_draft", "script_review"):
         extras.extend(_supplement_opening_plot_edges(session, existing))
 
     merged_text = warm_stdout.rstrip()

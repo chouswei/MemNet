@@ -630,7 +630,9 @@ def create_app(
         if not setup.get("setup_complete"):
             raise HTTPException(status_code=403, detail=player_setup_gate_payload(session))
 
-        if continue_beat and read_beat_stage(session) == "oln":
+        from novel_mcp.beat_stage import SCRIPT_STAGES, normalize_beat_stage
+
+        if continue_beat and normalize_beat_stage(read_beat_stage(session)) in SCRIPT_STAGES:
             raise HTTPException(
                 status_code=400,
                 detail={"errors": ["continue_requires_prose_stage"]},

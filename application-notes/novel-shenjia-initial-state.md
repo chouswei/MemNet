@@ -85,7 +85,9 @@
 @LAW: LAW-DATA01|*|on_add|zh_hant_kv|-
 @LAW: LAW06|*|on_context|law_scope|linked_from_anchor
 @LAW: LAW-NAME00|LAW|on_add|no_plr_name|no_plr_name;era_name;wanming_social_rank
-@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|beat_stage_usr23;one_wire_per_finish;no_bundle;cite_LAW-OLN02;cite_LAW-SBD02;cite_LAW-SCR02;cite_LAW-PROSE00
+@LAW: LAW-KNW00|*|on_turn|know_ssot|cite_usr80;cite_usr81_83;cite_usr84;edg_only;depth_in_attrs;cite_presentation
+@LAW: LAW-NAME01|*|on_turn|pov_name|ban_wire_id;cite_presentation_name;no_name_until_intro;cite_LAW-KNW00
+@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|beat_stage_usr23;script_draft_bundle;one_wire_per_finish_except_draft;cite_LAW-OLN02;cite_LAW-SBD02;cite_LAW-SCR02;cite_LAW-PROSE00
 @LAW: LAW-PIPE21|STEP|on_turn|beat_turn|begin_finish_only
 @LAW: LAW-PIPE22|STEP|on_turn|gate_retry|once_per_beat
 @LAW: LAW-PIPE23|STEP|on_turn|auto_beat|vit03_no_opts;prose_finish_only
@@ -96,7 +98,7 @@
 @LAW: LAW-SBD01|SBD|on_add|sbd_fmt|visual_sensory_beat
 @LAW: LAW-SBD02|SBD|on_turn|sbd_from_oln|expand_to_shots
 @LAW: LAW-SCR01|SCR|on_add|script_fmt|action_dialogue_parenthetical
-@LAW: LAW-SCR02|SCR|on_turn|script_from_sbd|tight_action_lines
+@LAW: LAW-SCR02|SCR|on_turn|script_from_oln|tight_action_lines
 @LAW: LAW-PROSE00|敘事|1|warm_prose|cite_usr51;usr19_20;usr24;usr25;prose_from_script;inner_voice_modern;age_fit_narrative;ref_金庸梁羽生;length_advisory;ban_telegraphic;wuxia_pacing;sensory_embed;chr_interaction;dialogue_flow;env_serve_plot;readable_prose;sentence_rhythm;metaphor_sparing;knowledge_plain;zh_idiom_fit
 @LAW: LAW-WX00|*|on_turn|wuxia_cite|wuxia_cite;martial_resolve;exchange_resolve;neili_toll;opp_wux_rank;art_coeff;art_toll;mwx_gain;neigong_recover;soul_body_cap;cite_usr27-42;usr46-49
 @LAW: LAW-CHR00|*|on_turn|plr_voice|plr_voice;npc_voice;npc_dialogue;trait_age_bind;prs_baseline;skl_cite;itm_cite;cite_usr18_usr19_usr24_usr25;cite_npc_traits_prs_pty;sys_minus_birth;no_tagline_no_clip;age_fit_addr;cite_law_tec01
@@ -135,7 +137,7 @@
 @USR: USR20|prose_ref|金庸武俠架空;金庸白描;梁羽生情景;忌網文快剪|persistent
 @USR: USR21|prose_target|800_zh_advisory|persistent
 @USR: USR22|opt_copy|可讀白話完整句;12-28字;禁動詞串;禁梗概體|persistent
-@USR: USR23|beat_stage|oln|persistent
+@USR: USR23|beat_stage|script_draft|persistent
 @USR: USR24|inner_voice|modern_taiwanese_baihua|persistent
 @USR: USR25|age_calc|sys01_minus_birth_year|persistent
 @USR: USR26|world_layer|wanming_hist_jinyong_wuxia_au|persistent
@@ -177,6 +179,11 @@
 @USR: USR77|setup_god_line_ask_gender|性別？男或女，快點，後面還在排。|persistent
 @USR: USR78|setup_profile_name_rule|cjk_2_4|persistent
 @USR: USR79|setup_profile_genders|男;女|persistent
+@USR: USR80|know_depth|未知0;耳聞1;初識2;粗識3;能述4;能作5;熟識6|persistent
+@USR: USR81|know_table_person|未知=陌生人/外觀標籤;耳聞=仍禁真名(knows_via人需粗識);初識=真名(knows);粗識=稱謂習慣;能述=可對白述說;能作=可寫同行動;熟識=內幕習性|persistent
+@USR: USR82|know_table_thing|未知=不知專名;耳聞=類別梗概(knows_via);初識=專名(knows);粗識=用途規格;能述=可解說;能作=可動手;熟識=窍门局限;unknows禁專名|persistent
+@USR: USR83|know_table_place|未知=某處;耳聞=一帶/附近(knows_via≥耳聞);初識=地名;粗識=方位街區;能述=可指路;能作=可帶路入內;熟識=熟門熟路|persistent
+@USR: USR84|know_edg|knows≥初識真名;knows_via人≥粗識真名;knows_via物地≥耳聞;soul_knows全名;aff_to≠認識;unknows否定;cite_presentation_name_visible|persistent
 @USR: USR98|setup_god_ack|_|persistent
 @USR: USR66|setup_god_line_transmigrate|好，穿吧——別又加班死在工位上啊。|persistent
 @USR: USR71|setup_god_line_library|喔，圖書館——你腦子裡那些念頭還在吧？進去翻，三樣帶走，別貪心。|persistent
@@ -187,12 +194,12 @@
 @USR: USR76|opening_offer_qinggong|_|persistent
 @USR: USR67|martial_catalog_md|application-notes/novel-shenjia-martial-catalog.md|persistent
 @USR: USR69|catalog_schema|applications/novel_cursor/catalog_specs/wuxia_jinyong.json|persistent
-@USR: USR70|opening_scene|SCN01=smithy_gate；沈家鐵坊B01門前甦醒；沈芯經營沈蘭協助；匠戶孤女繼承鐵坊非破廟流浪；炭灰=做工打扮；E11待聘小工；負債2兩|persistent
+@USR: USR70|opening_scene|SCN01=smithy_gate；沈家鐵坊B01門前甦醒；姊妹經營協助匠戶孤女鐵坊非破廟流浪；P01未自介禁NPC真名；炭灰=做工打扮；E11待聘小工；負債2兩|persistent
 @USR: USR52|stage_hint_lib|【靈魂圖書館檢閱】須對準本拍OLN主題；cite匹配LIB；連結GLO09匠話；禁無故全列TEC|persistent
-@USR: USR54|stage_hint_oln|【階1·大綱】寫@OLN：情緒錨、情節要點、對白骨架、尾鉤、體征代價；cite_USR70開局；SCN01未結算禁破廟孤女討生活；禁章節正文；finish僅oln_lines|persistent
-@USR: USR55|stage_hint_sbd|【階2·分鏡】讀本拍最新@OLN；拆≥2鏡@SBD；禁正文；finish僅sbd_lines|persistent
-@USR: USR56|stage_hint_scr|【階3·腳本】讀本拍@SBD；逐鏡寫@SCR；禁章節正文；finish僅scr_lines|persistent
-@USR: USR57|stage_hint_prose|【階4·小說】讀本拍@SCR擴寫；~USR21字；finish含prose+OPT+STEP+SYS+PLR；beat_stage→oln|persistent
+@USR: USR54|stage_hint_oln|deprecated|persistent
+@USR: USR55|stage_hint_script_draft|【階1·編劇初稿】一次輸出≥1×@OLN+≥2×@SBD+≥2×@SCR（同回合、鏡號1..N對齊）；cite_USR70開局；SCN01未結算禁破廟孤女討生活；禁章節正文；禁wire id／隱藏真名；finish交oln+sbd+scr bundle|persistent
+@USR: USR56|stage_hint_script_review|【階2·腳本審核】讀本拍OLN/SBD/SCR與audit_findings；修正違規；輸出@SCR only；checklist：wire id、name_visible、鏡號對齊|persistent
+@USR: USR57|stage_hint_prose|【階3·小說】讀本拍@SCR擴寫；~USR21字；cite_LAW-NAME01;presentation_name_visible;禁線id;finish含prose+OPT+STEP+SYS+PLR；beat_stage→script_draft|persistent
 
 @GLO: GLO01|力量|S|扛活;忍耐;先動身|persistent
 @GLO: GLO02|智力|T|算計;工藝;問條件|persistent
@@ -203,6 +210,13 @@
 @GLO: GLO07|輕功|N+S|身法;躍避;追趕|persistent
 @GLO: GLO08|圖書館|T|查閱;解析;路線|persistent
 @GLO: GLO09|匠話|土法炭火|堅炭;燒透;塊子;成料;聽聲;塊煤;悶火;煙色;磚縫|persistent
+@GLO: GLO10|認識|未知|無接線;禁真名;人=陌生人;物=不知名;地=某處|persistent
+@GLO: GLO11|認識|耳聞|knows_via;物地可類別;人仍禁真名|persistent
+@GLO: GLO12|認識|初識|knows直識;人/物/地專名|persistent
+@GLO: GLO13|認識|粗識|對白≥粗識;人knows_via真名;地精確方位|persistent
+@GLO: GLO14|認識|能述|可對白述說細節|persistent
+@GLO: GLO15|認識|能作|可寫動手/實操|persistent
+@GLO: GLO16|認識|熟識|內幕/習性/窍门|persistent
 
 @EDG: EG01|STEP01|governs|USR01||persistent
 @EDG: EG02|STEP01|governs|USR02||persistent
@@ -453,6 +467,20 @@
 @EDG: EG306|USR63|governs|USR71||persistent
 @EDG: EG304|STEP01|governs|USR78||persistent
 @EDG: EG305|STEP01|governs|USR79||persistent
+@EDG: EG307|STEP01|governs|USR80||persistent
+@EDG: EG308|STEP01|governs|USR81||persistent
+@EDG: EG309|STEP01|governs|USR82||persistent
+@EDG: EG310|STEP01|governs|USR83||persistent
+@EDG: EG311|STEP01|governs|USR84||persistent
+@EDG: EG312|STEP01|governs|LAW-KNW00||persistent
+@EDG: EG313|STEP01|governs|LAW-NAME01||persistent
+@EDG: EG314|USR80|governs|GLO10||persistent
+@EDG: EG315|USR80|governs|GLO11||persistent
+@EDG: EG316|USR80|governs|GLO12||persistent
+@EDG: EG317|USR80|governs|GLO13||persistent
+@EDG: EG318|USR80|governs|GLO14||persistent
+@EDG: EG319|USR80|governs|GLO15||persistent
+@EDG: EG320|USR80|governs|GLO16||persistent
 @EDG: EG297|USR63|governs|USR66||persistent
 @EDG: EG287|B01|features|LAW-OLN01||persistent
 @EDG: EG288|B01|features|USR70||persistent
@@ -564,11 +592,11 @@
 @PRS: PRS23|N02|魅力|3|常駐
 @PRS: PRS24|N02|氣運|4|常駐
 
-@EDG: EAFF01|P01|aff_to|N01||親密度:35;信任度:60;敬重:50;備註:鐵坊主雇;相處漸熟|常駐
-@EDG: EAFF02|P01|aff_to|N02||親密度:45;信任度:55;敬重:30;備註:好奇的活潑妹|常駐
+@EDG: EAFF01|P01|aff_to|N01||親密度:35;信任度:60;敬重:50;備註:雇主;相處漸熟|常駐
+@EDG: EAFF02|P01|aff_to|N02||親密度:45;信任度:55;敬重:30;備註:活潑好奇|常駐
 @EDG: EAFF03|N01|aff_to|N02||親密度:70;信任度:80;敬重:40;備註:同胞姊妹|常駐
-@EDG: EAFF04|N01|aff_to|P01||親密度:40;信任度:70;敬重:55;備註:倚重新小工|常駐
-@EDG: EAFF05|N02|aff_to|P01||親密度:50;信任度:50;敬重:25;備註:好奇新來小工|常駐
+@EDG: EAFF04|N01|aff_to|P01||親密度:40;信任度:70;敬重:55;備註:倚重小工|常駐
+@EDG: EAFF05|N02|aff_to|P01||親密度:50;信任度:50;敬重:25;備註:好奇小工|常駐
 @EDG: EAFF06|N02|aff_to|N01||親密度:65;信任度:75;敬重:45;備註:聽姐姐話|常駐
 
 @EDG: EP01|N01|persona|PTY01||persistent
@@ -641,14 +669,14 @@ flowchart LR
 
 | 短碼 | 含義 |
 |------|------|
-| `LAW-PIPE20` | **USR23 狀態機**：oln→sbd→scr→prose；`no_bundle`＝每 finish 僅一種 wire |
+| `LAW-PIPE20` | **USR23 狀態機**：script_draft→script_review→prose→script_draft；draft 允許 oln+sbd+scr bundle |
 | `LAW-PIPE21` | begin/finish；嚴格模式下每劇情拍 4 輪 begin/finish（僅 prose 階對玩家呈現） |
 | `LAW-PIPE22` | gate 失敗（僅最終 prose）整段重寫 |
 | `LAW-PIPE23` + `LAW-VIT03` | **昏厥自動拍**：氣血 **0**／`昏厥:是` 時禁六選項，直接敘事 → finish |
 | `LAW-PROSE00` | length_advisory（已取消硬性字數確認） |
 | `USR05` | scene_length|no_gate （不再強制 min/max gate） |
 | `USR21` | prose_target 僅供參考，無 gate |
-| `USR23` + `USR54–57` | **beat_stage FSM** + 各階 `stage_hint_*`；僅 prose 階寫章節／六選項／推 `STEP.n` |
+| `USR23` + `USR55–57` | **beat_stage FSM** + 各階 `stage_hint_*`；僅 prose 階寫章節／六選項／推 `STEP.n` |
 | `LAW-BAN00–03` | 禁 loop gate／手寫章節／finish 前當作已落盤 |
 | `LAW-G13` + `cite_sys01_wanming` | **新增** NPC／物／技／地須依 `@SYS01` 晚明背景；禁跳時代 |
 | `USR26` + `LAW-G14` | **世界觀**：晚明史實擬真後架空於金庸武俠宇宙（行政經濟遵晚明；武學江湖遵金庸式規則） |
@@ -665,6 +693,7 @@ flowchart LR
 | `@GLO08` | 圖書館槽語意（經 `USR30` governs 進 warm） |
 | `LAW-G04` + `USR26` | 史事人物先擬真考據，再允許劇情架空偏離 |
 | `LAW-NAME00` + `wanming_social_rank` | **新增 NPC 人名**須合晚明身分階層（姓名字排行稱謂宜江南崇禎） |
+| `LAW-KNW00` + `LAW-NAME01` + `USR80–84` + `GLO10–16` | **認識深度 SSOT**：七階；人/物/地對照；`presentation.name_visible` |
 | `USR15`/`USR16` | snapshot 路徑、本地 gate 腳本名 |
 | `USR18`/`USR19`/`USR20` | 敘事視角、語體、參照（`STEP01`→`USR51`→`LAW-PROSE00`；`USR19`→`LAW-PROSE00`） |
 | `USR51` + `LAW-PROSE00` | **warm 敘事契約**（語風、節奏、感官、禁梗概；匯總原 PROSE04–15） |
@@ -696,7 +725,23 @@ flowchart LR
 
 **維護對照：** 改管線／語風／LAW／USR → **Opening seed — Engine**；改開局人物／產業／科技／場景 → **Opening seed — World**。`USR04`（主角技能清單）在 Engine 區但屬本作背景值，換題材時一併改。
 
-- **`aff_to`（人物間親和／敵對）：** 用 **`@EDG`**（`甲|aff_to|乙`），分數在 **`attrs`**。`beat_turn_begin` **depth=3** 使 `STEP01→SCN→cast→aff_to` 進 warm；截斷時 `enrich_warm_stdout` 依 warm 內 PLR/NPC id 補齊 `aff_to` 邊。
+- **`aff_to`（人物間親和／敵對）：** 用 **`@EDG`**（`甲|aff_to|乙`），分數在 **`attrs`**。`beat_turn_begin` **depth=3** 使 `STEP01→SCN→cast→aff_to` 進 warm；截斷時 `enrich_warm_stdout` 依 warm 內 PLR/NPC id 補齊 `aff_to` 邊。**`aff_to` 分數≠認識**；不得因親密度高而寫 `@NPC` 真名（見 **`LAW-NAME01`**）。
+
+- **認識深度（`entity_knowledge` + `LAW-KNW00`）：** 七階 **`未知(0)→耳聞(1)→初識(2)→粗識(3)→能述(4)→能作(5)→熟識(6)`**（`USR80`／`GLO10–16`）。接線 SSOT：`holder|knows|entity`（直接）、`knows_via`（間接）、`soul_knows`（意識／圖書館）；深度寫 **`attrs`**（如 `初識`）。`unknows`＝明確否定（如不知 TEC 專名），**不**算認識。程式依深度算 `presentation.scene` 的 `name_visible`／`knowledge_depth`；正文禁寫線 id（`N01` 等）。
+
+  **人／物／地對照（敘事允許度）：**
+
+  | 深度 | 人（`@NPC`／`@PLR`） | 物（`@TEC`／`@PRD`／`@ART` 等） | 地（`@LOC`／`@BIZ` 位置） |
+  |------|------------------------|----------------------------------|---------------------------|
+  | **未知** | 無接線；陌生人或 `@NPC.特徵` 外觀標籤 | 不知專名 | 某處、模糊 |
+  | **耳聞** | `knows_via` 仍禁真名（人需 ≥粗識才露名） | 類別梗概（如「鐵坊」類） | 一帶／附近 |
+  | **初識** | `knows` 直識 → 真名 | 專名可寫 | 地名可寫 |
+  | **粗識** | `knows_via` 人亦真名；稱謂習慣 | 用途、規格 | 方位、街區（`can_show_precise_location`） |
+  | **能述** | 對白可述說其人細節 | 對白可解說 | 對白可指路 |
+  | **能作** | 正文可寫與其同行動 | 正文可寫動手操作 | 可帶路入內 |
+  | **熟識** | 內幕、習性 | 窍门、局限 | 熟門熟路 |
+
+  **接線門檻（程式）：** `knows` ≥初識 → 真名；`knows_via` 人 ≥粗識、物／地 ≥耳聞 → 真名或類別名；`soul_knows` → 一律真名。**開局** P01 對 N01／N02 **無** `knows` 邊 → 第二人稱正文用外觀稱呼；NPC 自介後 `beat_turn_finish` 加 `P01|knows|Nxx|初識|…`。
 
 ### 引擎（Engine）
 
@@ -773,12 +818,11 @@ flowchart LR
   - **匠藝 vs 武學：** `@SKL` 仍管打鐵等生產技能；`@WUX` 只管江湖武學三維，勿混欄位。
   - **HUD（USR02）：** 尾欄可帶氣血、內力、武學三維摘要（不報型號、不逐字複誦圖）。
 - **LAW-NAME00 `era_name`：** 新增 `@NPC.名字` 須合晚明社會背景——流民／匠戶／商賈／士绅／胥吏等宜不同取名習慣；可用排行、小名、字號慣例；禁現代人名、日韓音譯名、網路暱稱；落盤後 **LAW-G09** `exact_names` 維持一致。主角名仍只經 `@USR03`（LAW-NAME00）
-- **多階段流程**（`USR23|beat_stage` 驅動，**LAW-PIPE20 `no_bundle`**）：
-  1. **大綱 (@OLN)**：`USR23=oln` → finish **僅** `oln_lines` → `beat_stage=sbd`
-  2. **分鏡 (@SBD)**：finish **僅** `sbd_lines` → `scr`
-  3. **腳本 (@SCR)**：finish **僅** `scr_lines` → `prose`
-  4. **小說正文**：finish `prose` + `@OPT` + `STEP`/`SYS`/`@PLR` → `beat_stage=oln`，`STEP.n+1`
-  - **禁** 同一次 finish 交多種 wire（bundle）；agent 在單一玩家訊息內連跑四輪 begin/finish，僅第 4 輪對玩家呈現劇情。
+- **多階段流程**（`USR23|beat_stage` 驅動，**LAW-PIPE20**）：
+  1. **編劇初稿 (`script_draft`)**：finish **同時** `oln_lines` + `sbd_lines` + `scr_lines`（bundle）→ `beat_stage=script_review`
+  2. **腳本審核 (`script_review`)**：finish **僅** `scr_lines` → `prose`
+  3. **小說正文 (`prose`)**：finish `prose` + `@OPT` + `STEP`/`SYS`/`@PLR` → `beat_stage=script_draft`，`STEP.n+1`
+  - **編劇 thread** 2× LLM（draft + review）；**作者 thread** 1× LLM（prose）。
 - 正文最終以 LAW-PROSE00 為主（從腳本擴寫），而非直接從 @OLN 跳 prose。
 - 16 型（`@PTY`）僅編排；正文／HUD 不報型號
 - 沈芯對白偏魅力／智力基線；沈蘭偏氣運／魅力（見 `@PRS`）
@@ -904,11 +948,11 @@ flowchart LR
 
 - **時代與架空（USR26／SYS01／CFG01）：** 崇禎十年（1637）江南為**晚明史實面**；江湖武學為**金庸武俠架空面**。史有名人物若出場，宜先依史實身分與行事邏輯推演，再因主角介入而偏離；虛構人物仍須貼晚明社會。武林事件、內力修為、門派設定不與正史對表，但不得與晚明行政經濟常識硬衝（如崇禎朝無電報卻有幫會火並可）。打鬥、身法、運氣須走 **LAW-WX** 判定；**過招須走 LAW-WX00 輸贏帶**，不得無成本滿級發招。
 - **開局歲數（崇禎十年＝1637，算法見 USR25）：** 北見硝 **10**（1627）、沈芯 **12**（1625）、沈蘭 **10**（1627）。兩姊妹是**孩童匠戶孤女**經營鐵坊，不是成年掌櫃帶丫鬟。對硝宜用「你」「小子」「這位小兄弟」等，禁當作二十歲壯漢；搬鐵可寫吃力、袖管卷起的手臂仍細，武學底子僅略超常。沈芯對白可早熟穩重但仍帶童音；沈蘭可潑辣稚氣。
-- **開局場景 SCN01 `smithy_gate`：** 沈家鐵坊門前甦醒；姊妹求聘小工；`E11` 待聘、`E01` 求助待解鎖。編劇須 cite **`USR70|opening_scene`**；禁寫破廟流浪孤女討生活（`LAW-OLN01` opening_scn）。**接線：** `E20–E23` SCN01 features 全場；`E09/E10` 姊妹經營／協助 `B01`；`EG287–EG292` B01／N01／N02 features `LAW-OLN01`／`USR70`；`EG293–EG294` SCN01 features。
+- **開局場景 SCN01 `smithy_gate`：** 沈家鐵坊門前甦醒；姊妹求聘小工；`E11` 待聘、`E01` 求助待解鎖。編劇須 cite **`USR70|opening_scene`**；禁寫破廟流浪孤女討生活（`LAW-OLN01` opening_scn）。**P01 視角未自介前禁寫 N01／N02 真名**（`LAW-NAME01`；見認識深度表）。**接線：** `E20–E23` SCN01 features 全場；`E09/E10` 姊妹經營／協助 `B01`；`EG287–EG292` B01／N01／N02 features `LAW-OLN01`／`USR70`；`EG293–EG294` SCN01 features。
 - **產業帳：** 鐵坊負債 2 兩；焦炭／高爐科技樹鎖定，綁 `T01` 升級作坊任務。
 - **科技詞彙邊界（USR44 + LAW-TEC01 + GLO09 + `EN*` 接線，每拍 warm）：**
   - **圖內專名**（`@TEC`／`@PRD` 列名）＝玩家／圖書館／已解鎖科技可用；**鎖定時 NPC 對白禁用**。
   - **劇情 `@EDG`：** `N01|speaks|GLO09`（匠話）；`N01|unknows|TEC01`／`PRD01`（不知煉焦專名）；`P01|knows_via|LIB02`（對照）。
   - **NPC 匠話**（`GLO09`）：堅炭、燒透、塊子、成料、聽聲……**不等於**懂煉焦工藝。
-  - **TEC01 解鎖：** 刪 `EN10`／`EN11`，改 `@TEC` 為已解鎖，可加 `N01|knows|TEC01|沈芯認可`。
+  - **TEC01 解鎖：** 刪 `EN10`／`EN11`，改 `@TEC` 為已解鎖，可加 `P01|knows|TEC01|初識|…`（或 `N01|knows|TEC01|…` 視劇情）。
 - **沈芯／沈蘭：** 人設與 `@PRS`／`@PTY`／`@SKL`／`@ITM` 見 World 區；對白基線見下方角色對白條目。

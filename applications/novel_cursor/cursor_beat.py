@@ -199,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         print("error: --prose-only requires USR23 beat_stage=prose", file=sys.stderr)
         return 2
 
-    if args.continue_beat and read_beat_stage(session) == "oln" and not args.prose_only:
+    if args.continue_beat and read_beat_stage(session) in ("oln", "script_draft", "script_review") and not args.prose_only:
         print(
             "error: --continue but beat_stage is oln; use --choice",
             file=sys.stderr,

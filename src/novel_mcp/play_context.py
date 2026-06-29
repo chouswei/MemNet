@@ -6,12 +6,26 @@ from pathlib import Path
 from typing import Any
 
 from memnet_mcp.client import run_memnet
+from novel_mcp.beat_stage import SCRIPT_STAGES, normalize_beat_stage
 from novel_mcp.beat_pipeline import beat_turn_begin
 from novel_mcp.chapter_io import chapter_file_path, last_committed_paragraph
 from novel_mcp.paths import workspace_root
 from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
 
-_SCRIPT_STAGES = frozenset({"oln", "sbd", "scr"})
+_SCRIPT_STAGES = SCRIPT_STAGES
+
+
+def read_beat_stage(session: str | None) -> str:
+    """Return normalised USR23 beat_stage (script_draft|script_review|prose)."""
+    resp = run_memnet(["read", "get", "--id", "USR23"], session=session)
+    for line in resp.stdout.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("@USR:"):
+            continue
+        parts = stripped.split(":", 1)[1].strip().split("|")
+        if len(parts) >= 3 and parts[1] == "beat_stage":
+            return normalize_beat_stage(parts[2])
+    return "script_draft"
 
 
 def best_continuation_anchor(
@@ -30,19 +44,6 @@ def best_continuation_anchor(
         if anchor:
             return anchor
     return ""
-
-
-def read_beat_stage(session: str | None) -> str:
-    """Return USR23 beat_stage (oln|sbd|scr|prose)."""
-    resp = run_memnet(["read", "get", "--id", "USR23"], session=session)
-    for line in resp.stdout.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("@USR:"):
-            continue
-        parts = stripped.split(":", 1)[1].strip().split("|")
-        if len(parts) >= 3 and parts[1] == "beat_stage":
-            return parts[2]
-    return "oln"
 
 
 def _validate_player_input(
@@ -122,7 +123,7 @@ def script_beat_prepare(
     chapter_dir: str | None = None,
     workspace_root_path: str | None = None,
 ) -> dict[str, Any]:
-    """Bundle context for script agent (oln → sbd → scr)."""
+    """Bundle context for script agent (script_draft → script_review)."""
     err = _validate_player_input(
         choice=choice, steering=steering, continue_beat=continue_beat
     )
@@ -141,11 +142,10 @@ def script_beat_prepare(
 
     beat_stage = read_beat_stage(session)
 
-    if continue_beat and beat_stage == "oln":
-        return {
-            "exit_code": 2,
-            "errors": ["beat_stage already oln; pass choice instead of continue_beat"],
-        }
+    if continue_beat and beat_stage == "script_draft":
+        pass  # retry draft from mid-bundle crash
+    if continue_beat and beat_stage == "script_review":
+        pass  # retry review
     if continue_beat and beat_stage == "prose":
         return {
             "exit_code": 2,
@@ -183,7 +183,7 @@ def script_beat_prepare(
     elif continue_beat:
         player["continue_beat"] = True
 
-    start_stage = beat_stage if beat_stage in _SCRIPT_STAGES else "oln"
+    start_stage = beat_stage if beat_stage in _SCRIPT_STAGES else "script_draft"
 
     player_setup = read_player_setup(session, workspace_root_path=workspace_root_path)
 
@@ -197,8 +197,8 @@ def script_beat_prepare(
         "player_setup": player_setup,
         **paths,
         "fsm": {
-            "stages": ["oln", "sbd", "scr"],
-            "max_pairs": 3,
+            "stages": ["script_draft", "script_review"],
+            "max_pairs": 2,
             "start_stage": start_stage,
         },
     }
@@ -238,8 +238,9 @@ def prose_beat_prepare(
         "phase": "prose",
         "memnet_session": session,
         "beat_stage": "prose",
-        "scr_row": pipeline.get("scr_row"),
         "oln_row": pipeline.get("oln_row"),
+        "sbd_rows": pipeline.get("sbd_rows"),
+        "scr_row": pipeline.get("scr_row"),
         "begin": begin,
         **paths,
         "fsm": {

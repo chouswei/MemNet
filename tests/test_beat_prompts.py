@@ -9,7 +9,82 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "applications" / "novel_cursor"))
 
 from app_config import load_config  # noqa: E402
-from beat_prompt import build_prose_turn, build_script_turn  # noqa: E402
+from beat_prompt import (
+    build_prose_turn,
+    build_script_stage_user,
+    build_script_turn,
+)
+
+
+def test_cast_block_includes_graph_id() -> None:
+    from beat_prompt import _format_cast_block
+
+    pres = {
+        "scene": {
+            "npcs": [
+                {
+                    "id": "N01",
+                    "name": "匠戶孤女",
+                    "name_visible": False,
+                    "knowledge_depth": "初識",
+                    "traits": "聰慧",
+                }
+            ]
+        }
+    }
+    text = _format_cast_block(pres)
+    assert "N01" in text
+    assert "visible=false" in text
+    assert "匠戶孤女" in text
+
+
+def test_draft_user_includes_bundle_task() -> None:
+    cfg = load_config(app_id="shenjia_caifa")
+    prep = {"memnet_session": "mn_x", "continuation_anchor": "", "player": {"choice": 1}}
+    begin = {
+        "pipeline": {"next_action": "draft bundle"},
+        "presentation": {"scene": {"npcs": []}, "contracts": []},
+    }
+    text = build_script_stage_user(prep, begin, "script_draft")
+    assert "≥1 `@OLN`" in text
+    assert "≥2 `@SBD`" in text
+
+
+def test_review_user_includes_checklist_and_wires() -> None:
+    cfg = load_config(app_id="shenjia_caifa")
+    prep = {"memnet_session": "mn_x", "continuation_anchor": "", "player": {}}
+    begin = {
+        "pipeline": {
+            "oln_row": "OLN01|1|test",
+            "sbd_rows": "@SBD: SBD01|1|1|…",
+            "scr_row": "@SCR: SCR01|1|1|…",
+        },
+        "presentation": {"scene": {}, "contracts": []},
+    }
+    text = build_script_stage_user(prep, begin, "script_review")
+    assert "## Review checklist" in text
+    assert "## Current SBD" in text
+    assert "corrected `@SCR:`" in text
+
+
+def test_prose_user_includes_sbd() -> None:
+    from beat_prompt import build_prose_user
+
+    cfg = load_config(app_id="shenjia_caifa")
+    prep = {"memnet_session": "mn_x", "continuation_anchor": ""}
+    begin = {
+        "pipeline": {
+            "oln_row": "@OLN: OLN01|1|…",
+            "sbd_rows": "@SBD: SBD01|1|1|畫面|…",
+            "scr_row": "@SCR: SCR01|1|1|…",
+        },
+        "presentation": {"scene": {}, "contracts": []},
+        "finish_params": {},
+    }
+    text = build_prose_user(prep, begin)
+    assert "## Current SBD" in text
+    assert "@SBD: SBD01" in text
+
 
 
 def test_script_turn_includes_choice_text() -> None:
@@ -58,8 +133,8 @@ def test_prose_user_includes_cast_block() -> None:
     }
     text = build_prose_user(prep, begin)
     assert "沈芯" in text
-    assert "12歲" in text
     assert "## Cast" in text
+    assert "visible=" in text
 
 
 def test_prose_turn_includes_scr() -> None:

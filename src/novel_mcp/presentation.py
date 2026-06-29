@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from novel_mcp.beat_stage import is_script_law_stage, normalize_beat_stage
 from novel_mcp.character_gender import (
     PLR_IDX_BODY,
     PLR_IDX_GENDER,
@@ -90,7 +91,7 @@ def _scene_snapshot(
 ) -> dict[str, Any]:
     scene: dict[str, Any] = {
         "focus": pipeline.get("step_focus"),
-        "beat_stage": pipeline.get("beat_stage", "oln"),
+        "beat_stage": normalize_beat_stage(pipeline.get("beat_stage", "script_draft")),
     }
     if pipeline.get("time_display"):
         scene["time"] = pipeline["time_display"]
@@ -129,6 +130,8 @@ def _scene_snapshot(
                 entry["birth_year"] = int(parts[2])
             if nid in ages:
                 entry["age"] = ages[nid]
+            if len(parts) > 1:
+                entry["canonical_name"] = parts[1]
             entry["name"] = resolve_npc_display_name(
                 session, plr_id, parts, index=know_idx
             )
@@ -139,7 +142,10 @@ def _scene_snapshot(
     if index.biz_rows:
         bparts = index.biz_rows[0]
         if len(bparts) >= 4:
-            scene["biz"] = resolve_biz_display(session, plr_id, bparts, index=know_idx)
+            biz = resolve_biz_display(session, plr_id, bparts, index=know_idx)
+            if len(bparts) > 1:
+                biz["graph_name"] = bparts[1]
+            scene["biz"] = biz
     if index.scn_rows:
         sparts = index.scn_rows[0]
         if len(sparts) >= 2:
@@ -160,7 +166,7 @@ def _scene_snapshot(
 
 def _usr_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
     bullets: list[str] = []
-    if stage in ("oln", "sbd", "scr"):
+    if is_script_law_stage(normalize_beat_stage(stage)):
         opening = usr_value(index, "opening_scene")
         if opening:
             bullets.append(f"{_USR_LABELS['opening_scene']}: {opening}")
@@ -208,10 +214,16 @@ def _pipeline_extras(pipeline: dict[str, Any]) -> list[str]:
     if pipeline.get("plr_body") or pipeline.get("body_hint"):
         body = pipeline.get("plr_body") or pipeline.get("body_hint")
         bullets.append(f"Body state: {body}")
-    if pipeline.get("pipeline_no_bundle"):
+    stage = normalize_beat_stage(pipeline.get("beat_stage", "script_draft"))
+    if pipeline.get("pipeline_no_bundle") and stage != "script_draft":
         bullets.append(
             "Stage FSM (LAW-PIPE20 no_bundle): one wire type per beat_turn_finish; "
-            f"current beat_stage={pipeline.get('beat_stage', 'oln')}."
+            f"current beat_stage={stage}."
+        )
+    elif pipeline.get("pipeline_no_bundle") and stage == "script_draft":
+        bullets.append(
+            "script_draft: output ≥1 @OLN + ≥2 @SBD + ≥2 @SCR in **one reply** (bundle); "
+            "ignore legacy one-wire LAW-PIPE20 for this stage."
         )
     target = pipeline.get("draft_target_chars")
     if target:
@@ -229,7 +241,7 @@ def compile_presentation(
 ) -> dict[str, Any]:
     """Build novel-agnostic presentation envelope from warm + pipeline."""
     index = index_warm(warm_stdout)
-    stage = pipeline.get("beat_stage", "oln")
+    stage = normalize_beat_stage(pipeline.get("beat_stage", "script_draft"))
 
     contracts: list[str] = [_stage_task(index, stage)]
     contracts.extend(_pipeline_extras(pipeline))

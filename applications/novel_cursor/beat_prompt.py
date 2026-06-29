@@ -8,21 +8,24 @@ from __future__ import annotations
 
 from typing import Any
 
+from app_config import NovelAppConfig
 from novel_mcp.body_state import vitality_block
 
 
 def build_script_primer(config: NovelAppConfig) -> str:
     return f"""You are the **{config.title}** script agent (編劇). Model: {config.model_script}.
 
-Role: run LAW-PIPE20 **script stages only** — `oln → sbd → scr`. **No** player-facing novel prose.
+Role: run LAW-PIPE20 **script stages only** — `script_draft → script_review`. **No** player-facing novel prose.
 
 Rules:
 1. Always pass `session` on every `beat_turn_begin` / `beat_turn_finish`.
-2. One wire type per finish (`no_bundle`): oln_lines, sbd_lines, or scr_lines only.
-3. Max 6 novel-writer calls (3 begin+finish pairs) per turn.
-4. Honour `continuation_anchor` and warm context; do not invent unrelated plot (no 錦衣衛/滅門 unless in graph).
-5. Choice 6 (library): encode query in **OLN only** per LAW-LIB03 — same scene, consciousness frame.
-6. Never output `@TAG:` wires to the player.
+2. **script_draft**: one finish with oln_lines + sbd_lines + scr_lines together (bundle).
+3. **script_review**: one finish with scr_lines only.
+4. Max 4 novel-writer calls (2 script begin+finish pairs) per turn.
+5. Honour `continuation_anchor` and warm context; do not invent unrelated plot (no 錦衣衛/滅門 unless in graph).
+6. Choice 6 (library): encode query in **OLN** field per LAW-LIB03 — same scene, consciousness frame.
+7. Never output `@TAG:` wires to the player.
+8. Cast lists graph ids (N01, P01, …) for SBD/SCR reference; player-facing prose is the author stage.
 
 SSOT seed: `{config.seed_md_rel}`.
 
@@ -34,7 +37,7 @@ def build_script_turn(config: NovelAppConfig, prep: dict[str, Any]) -> str:
     session = prep["memnet_session"]
     anchor = prep.get("continuation_anchor") or ""
     player = prep.get("player") or {}
-    start = prep.get("fsm", {}).get("start_stage", "oln")
+    start = prep.get("fsm", {}).get("start_stage", "script_draft")
 
     if "choice" in player:
         choice_text = (player.get("choice_text") or "").strip()
@@ -69,7 +72,8 @@ def build_script_turn(config: NovelAppConfig, prep: dict[str, Any]) -> str:
 ## Task
 {player_block}
 
-Run beat_turn_begin → draft current stage only → beat_turn_finish (one wire).
+Run beat_turn_begin → draft current stage → beat_turn_finish.
+**script_draft**: finish oln+sbd+scr bundle. **script_review**: finish scr only.
 Repeat until `USR23|beat_stage|prose`.
 
 Do not write novel prose. Do not call prose finish.
@@ -111,7 +115,7 @@ JSON schema:
   "hud": "<狀態欄>",
   "snapshot_saved": true,
   "snapshot_file": "{snap}",
-  "beat_stage": "oln"
+  "beat_stage": "script_draft"
 }}
 ```
 
@@ -195,33 +199,45 @@ def _format_contracts_block(presentation: dict[str, Any]) -> str:
     return "\n\n".join(sections) + "\n\n"
 
 
+def _depth_label(npc: dict[str, Any]) -> str:
+    depth = npc.get("knowledge_depth")
+    return depth if depth else "—"
+
+
 def _format_cast_block(presentation: dict[str, Any]) -> str:
-    """Human-readable cast ages/traits from presentation.scene (LAW-CHR02/04)."""
+    """Human-readable cast from presentation.scene (LAW-CHR02/04, LAW-NAME01)."""
     scene = presentation.get("scene") or {}
     lines: list[str] = []
     if scene.get("age_hint"):
         lines.append(f"歲數（@SYS−出生年）：{scene['age_hint']}")
     elif scene.get("ages"):
         lines.append(f"歲數：{scene['ages']}")
+    plr_id = scene.get("plr_id") or "P01"
     plr_age = scene.get("plr_age")
     if plr_age is not None:
-        ident = scene.get("plr_identity") or "主角"
-        lines.append(f"- 主角 {ident}（{scene.get('plr_id', 'P01')}）：{plr_age}歲")
+        ident = scene.get("plr_identity") or scene.get("plr_name") or "主角"
+        visible = scene.get("plr_name") is not None
+        lines.append(
+            f"- {plr_id} | {ident} | visible={str(visible).lower()} | depth=— | 主角"
+        )
         if scene.get("plr_body"):
             lines.append(f"  體征：{scene['plr_body']}")
     for npc in scene.get("npcs") or []:
+        npc_id = npc.get("id") or "?"
         name = npc.get("name", "?")
-        nid = npc.get("id", "")
-        age = npc.get("age")
-        age_s = f"{age}歲" if age is not None else "歲數見 birth_year"
-        by = npc.get("birth_year")
-        if by is not None and age is None:
-            age_s = f"出生{by}"
-        traits = npc.get("traits") or ""
-        lines.append(f"- {name}（{nid}）：{age_s} — {traits}")
+        visible = npc.get("name_visible", False)
+        depth = _depth_label(npc)
+        traits = npc.get("traits") or npc.get("appearance") or ""
+        lines.append(
+            f"- {npc_id} | {name} | visible={str(visible).lower()} | depth={depth} | {traits}"
+        )
     if not lines:
         return ""
-    return "## Cast（年齡／人設 — 對白與身形須遵守）\n" + "\n".join(lines) + "\n\n"
+    return (
+        "## Cast（graph id｜顯示名｜name_visible — SBD/SCR 內容欄可引用 id）\n"
+        + "\n".join(lines)
+        + "\n\n"
+    )
 
 
 def build_script_stage_system(config: NovelAppConfig) -> str:
@@ -231,15 +247,17 @@ This is a **persistent chat thread** (編劇聊天室). Remember prior turns for
 
 **MemNet** `presentation` in each user turn is canonical plot state (記憶加強); chat history does not override the graph.
 
-Draft **one** `@OLN`, `@SBD`, or `@SCR` wire line per request from the presentation envelope.
+Draft **script_draft → script_review** wires only; **no** prose.
 
 {_WIRE_GRAMMAR}
 
 Rules:
-1. Output **only** wire line(s) — no prose, no explanation, no markdown fences.
-2. Honour contracts, scene focus from presentation, walk_hops, continuation anchor.
-3. Do not invent plot or NPCs outside given graph context.
-4. Choice 6 (library): encode query in OLN only (LAW-LIB03).
+1. **script_draft**: output ≥1 `@OLN`, ≥2 `@SBD`, ≥2 `@SCR` with matching round + shot numbers 1..N.
+2. **script_review**: read committed OLN/SBD/SCR + Cast; output corrected `@SCR:` lines only.
+3. Honour contracts, scene focus, walk_hops, continuation anchor.
+4. Do not invent plot or NPCs outside given graph context.
+5. Choice 6 (library): encode query in OLN plot field (LAW-LIB03).
+6. **SBD/SCR content fields** may use graph ids (N01, P01, …) for shot planning; player-facing naming is the prose author’s job.
 
 SSOT: `{config.seed_md_rel}`."""
 
@@ -258,7 +276,9 @@ def build_script_stage_user(
     player = prep.get("player") or {}
     presentation = begin.get("presentation") or {}
     pipeline = begin.get("pipeline") or {}
-    tag = _STAGE_TAG.get(stage, stage.upper())
+    oln_raw = pipeline.get("oln_row") or ""
+    sbd_raw = pipeline.get("sbd_rows") or ""
+    scr_raw = pipeline.get("scr_row") or ""
 
     if "choice" in player:
         choice_text = (player.get("choice_text") or "").strip()
@@ -277,11 +297,10 @@ def build_script_stage_user(
         player_block = "(continue pipeline)"
 
     err_block = f"\n\n## Prior finish error (fix)\n{prior_error}" if prior_error else ""
-    example = _STAGE_EXAMPLE.get(stage, "")
     cast_block = _format_cast_block(presentation)
     contracts_block = _format_contracts_block(presentation)
     opening = ""
-    if not anchor and stage == "oln" and "choice" not in player:
+    if not anchor and stage == "script_draft" and "choice" not in player:
         scene = presentation.get("scene") or {}
         scn = scene.get("id") or scene.get("code") or "opening scene"
         bits: list[str] = []
@@ -293,9 +312,7 @@ def build_script_stage_user(
             )
         npcs = scene.get("npcs") or []
         if npcs:
-            npc_s = "、".join(
-                f"{n.get('name', '?')}({n.get('id', '')})" for n in npcs[:8]
-            )
+            npc_s = "、".join(n.get("name", "?") for n in npcs[:8])
             bits.append(f"場景 NPC：{npc_s}")
         if bits:
             opening = (
@@ -304,18 +321,53 @@ def build_script_stage_user(
                 + "。人物與年齡以 Presentation / Cast 為準；"
                 "若玩家 steering 為姓名，在 OLN 情節要點體現取名。\n"
             )
-    elif not anchor and stage == "oln" and "choice" in player:
+    elif not anchor and stage == "script_draft" and "choice" in player:
         opening = (
             "\n## Mid-story choice (no prose anchor on disk)\n"
             "Player already chose an option — advance from graph @OLN/@SCR; "
             "**do not** reopen the opening beat.\n"
         )
 
-    return f"""Session: `{session}`
-Stage: **{stage}** — output `@{tag}:` wire line(s) only.
+    if stage == "script_draft":
+        task = (
+            "## Task\n"
+            "Draft **one bundle**: ≥1 `@OLN`, ≥2 `@SBD`, ≥2 `@SCR` (same round; shots 1..N matching). "
+            "Reply with wire lines only — no prose, no markdown fences."
+        )
+        shape = f"""## Required shape
+- `{_STAGE_EXAMPLE["oln"]}`
+- `{_STAGE_EXAMPLE["sbd"]}`
+- `{_STAGE_EXAMPLE["scr"]}` (repeat for each shot)"""
+    else:
+        audit = pipeline.get("audit_findings") or []
+        audit_block = (
+            "## Review notes\n" + "\n".join(f"- {a}" for a in audit) + "\n\n"
+            if audit
+            else (
+                "## Review checklist\n"
+                "- OLN/SBD/SCR round + shot alignment\n"
+                "- Plot matches graph + Cast name_visible\n"
+                "- SBD/SCR may keep graph ids; fix player-facing wording in SCR if needed\n\n"
+            )
+        )
+        wires = ""
+        if oln_raw:
+            wires += f"## Current OLN\n{_wire_display('OLN', oln_raw)}\n\n"
+        if sbd_raw:
+            wires += f"## Current SBD\n{sbd_raw}\n\n"
+        if scr_raw:
+            wires += f"## Current SCR\n{scr_raw}\n\n"
+        task = (
+            f"{audit_block}{wires}"
+            "## Task\n"
+            "Review committed wires against graph + Cast; output **corrected `@SCR:` lines only**."
+        )
+        shape = f"## Required shape\n`{_STAGE_EXAMPLE['scr']}`"
 
-## Required shape (one line)
-`{example}`
+    return f"""Session: `{session}`
+Stage: **{stage}**
+
+{shape}
 
 ## Continuation anchor
 {anchor or "(opening beat — no prior prose)"}
@@ -331,8 +383,7 @@ Stage: **{stage}** — output `@{tag}:` wire line(s) only.
 {json.dumps(presentation, ensure_ascii=False, indent=2)}
 ```
 
-## Task
-Draft the **{stage}** wire. Reply with line(s) starting with `@{tag}:` only.{err_block}"""
+{task}{err_block}"""
 
 
 def build_prose_system(config: NovelAppConfig) -> str:
@@ -396,8 +447,10 @@ def build_prose_user(prep: dict[str, Any], begin: dict[str, Any]) -> str:
     fp = begin.get("finish_params") or prep.get("finish_params") or {}
 
     oln_raw = pipeline.get("oln_row") or prep.get("oln_row") or ""
+    sbd_raw = pipeline.get("sbd_rows") or prep.get("sbd_rows") or ""
     scr_raw = pipeline.get("scr_row") or prep.get("scr_row") or ""
     oln = _wire_display("OLN", oln_raw)
+    sbd = sbd_raw if sbd_raw.strip() else "(missing — do not invent shots)"
     scr = scr_raw if "\n" in scr_raw or scr_raw.startswith("@SCR:") else _wire_display("SCR", scr_raw)
     chp_num = fp.get("chp_num") or prep.get("chp_num") or pipeline.get("chp_num") or 1
     snap = fp.get("snapshot_file") or prep.get("snapshot_file") or ""
@@ -433,6 +486,9 @@ def build_prose_user(prep: dict[str, Any], begin: dict[str, Any]) -> str:
 ## Current OLN
 {oln or "(missing — do not invent plot)"}
 
+## Current SBD (storyboard — shot structure)
+{sbd}
+
 ## Current SCR (expand faithfully — every shot)
 {scr or "(missing — do not invent plot)"}
 
@@ -446,4 +502,4 @@ snapshot_file: `{snap}`
 {json.dumps(presentation, ensure_ascii=False, indent=2)}
 ```
 
-Expand **only** from SCR above; honour **Cast** ages and traits. Emit only the JSON block."""
+Expand **only** from SCR above; use SBD for shot pacing; honour **Cast** ages and traits. Emit only the JSON block."""

@@ -13,15 +13,21 @@ WARM_SAMPLE = """\
 @STEP: STEP01|4|OLN06|persistent
 @USR: USR05|scene_length|650_950_zh|persistent
 @USR: USR21|prose_draft|800_zh|persistent
-@USR: USR23|beat_stage|oln|persistent
+@USR: USR23|beat_stage|script_draft|persistent
 @USR: USR06|chapter_out|novel-output/shenjia_caifa/chapters|persistent
 @CHP: CHP01|1|3925|1|0|open
 @OLN: OLN06|6|心算夜賬|躺著心算欠債炭價|芯：…|明日寅時|delete_on_settle
 """
 
 OLN_WIRE = ["@OLN: OLN99|1|test|要点|对白|钩子|persistent"]
-SBD_WIRE = ["@SBD: SBD99|1|1|画面|感官|氛围|persistent"]
-SCR_WIRE = ["@SCR: SCR99|1|动作|对白|内心|音效|persistent"]
+SBD_WIRE = [
+    "@SBD: SBD99|1|1|画面|感官|动作|氛围|persistent",
+    "@SBD: SBD98|1|2|画面2|感官2|动作2|氛围2|persistent",
+]
+SCR_WIRE = [
+    "@SCR: SCR99|1|1|动作|对白|内心|音效|persistent",
+    "@SCR: SCR98|1|2|动作2|对白2|内心2|音效2|persistent",
+]
 
 
 def _pipeline_kwargs(**overrides):
@@ -133,14 +139,14 @@ def test_parse_warm_stdout_prose_stage_attaches_scr_rows():
 
 def test_pipeline_next_action():
     assert "beat_turn_finish" in pipeline_next_action(4)
-    assert "OLN" in pipeline_next_action(4, "oln", pipeline_no_bundle=True)
-    assert "SBD" in pipeline_next_action(4, "sbd", pipeline_no_bundle=True)
+    assert "OLN" in pipeline_next_action(4, "script_draft", pipeline_no_bundle=True)
+    assert "SCR" in pipeline_next_action(4, "script_review", pipeline_no_bundle=True)
 
 
 def test_beat_stage_authoritative_over_stale_warm(monkeypatch):
     stale_warm = (
-        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n"
-        "@USR: USR23|beat_stage|oln|persistent\n"
+        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|persistent\n"
+        "@USR: USR23|beat_stage|script_draft|persistent\n"
         "@STEP: STEP01|4|OLN03|persistent\n"
     )
 
@@ -160,7 +166,7 @@ def test_beat_stage_authoritative_over_stale_warm(monkeypatch):
             if rid == "LAW-PIPE20":
                 return MemNetResponse(
                     exit_code=0,
-                    stdout="@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n",
+                    stdout="@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|persistent\n",
                     stderr="",
                     session_id=session,
                     errors=[],
@@ -168,7 +174,7 @@ def test_beat_stage_authoritative_over_stale_warm(monkeypatch):
             if rid == "USR55":
                 return MemNetResponse(
                     exit_code=0,
-                    stdout="@USR: USR55|stage_hint_sbd|draft SBD|persistent\n",
+                    stdout="@USR: USR55|stage_hint_script_draft|draft bundle|persistent\n",
                     stderr="",
                     session_id=session,
                     errors=[],
@@ -188,15 +194,15 @@ def test_beat_stage_authoritative_over_stale_warm(monkeypatch):
     monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_warm_walk", lambda **kwargs: "")
     monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: "m1")
     out = beat_turn_begin(session="test")
-    assert out["pipeline"]["beat_stage"] == "sbd"
+    assert out["pipeline"]["beat_stage"] == "script_draft"
     assert out["pipeline"]["pipeline_no_bundle"] is True
-    assert "SBD" in out["pipeline"]["next_action"]
-    assert out["presentation"]["stage"] == "sbd"
+    assert "OLN" in out["pipeline"]["next_action"]
+    assert out["presentation"]["stage"] == "script_draft"
 
 
-def test_pipeline_oln_then_sbd_without_bypass(monkeypatch):
-    """OLN finish advances stage; SBD finish accepts when warm still shows oln."""
-    stage = {"beat_stage": "oln"}
+def test_script_draft_bundle_advances_to_review(monkeypatch):
+    """script_draft finish with oln+sbd+scr bundle advances to script_review."""
+    stage = {"beat_stage": "script_draft"}
 
     def fake_run(argv, stdin=None, session=None):
         from memnet_mcp.client import MemNetResponse
@@ -211,39 +217,69 @@ def test_pipeline_oln_then_sbd_without_bypass(monkeypatch):
                     session_id=session,
                     errors=[],
                 )
-            if rid == "LAW-PIPE20":
-                return MemNetResponse(
-                    exit_code=0,
-                    stdout="@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n",
-                    stderr="",
-                    session_id=session,
-                    errors=[],
-                )
             return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
         if argv[0] == "query":
             return MemNetResponse(
                 exit_code=0,
-                stdout="@USR: USR23|beat_stage|oln|persistent\n",
+                stdout="@USR: USR23|beat_stage|script_draft|persistent\n",
                 stderr="",
                 session_id=session,
                 errors=[],
             )
-        if argv[0] == "update" and stdin and "beat_stage|sbd" in stdin:
-            stage["beat_stage"] = "sbd"
+        if argv[0] == "update" and stdin and "beat_stage|script_review" in stdin:
+            stage["beat_stage"] = "script_review"
         return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
 
     monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
     monkeypatch.setattr("novel_mcp.beat_pipeline.fetch_session_modified", lambda s: "m1")
 
-    r1 = beat_turn_finish(session="test", oln_lines=OLN_WIRE)
+    r1 = beat_turn_finish(
+        session="test",
+        oln_lines=OLN_WIRE,
+        sbd_lines=SBD_WIRE,
+        scr_lines=SCR_WIRE,
+    )
     assert r1["exit_code"] == 0
-    assert r1["beat_stage"] == "sbd"
-    stage["beat_stage"] = "sbd"
+    assert r1["beat_stage"] == "script_review"
+    stage["beat_stage"] = "script_review"
 
-    r2 = beat_turn_finish(session="test", sbd_lines=SBD_WIRE)
+    r2 = beat_turn_finish(session="test", scr_lines=SCR_WIRE)
     assert r2["exit_code"] == 0
-    assert r2["beat_stage"] == "scr"
+    assert r2["beat_stage"] == "prose"
     assert not r2.get("pipeline_blocked")
+
+
+def test_script_draft_scr_only_blocked(monkeypatch):
+    warm = "@USR: USR23|beat_stage|script_draft|persistent\n"
+
+    def fake_run(argv, stdin=None, session=None):
+        from memnet_mcp.client import MemNetResponse
+
+        if argv[0] == "query":
+            return MemNetResponse(0, warm, "", session, [])
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    result = beat_turn_finish(session="test", scr_lines=SCR_WIRE)
+    assert result["exit_code"] == 1
+    assert result.get("pipeline_blocked") is True
+    assert any("script_draft_bundle" in e for e in result["errors"])
+
+
+def test_legacy_sbd_normalizes_to_script_draft(monkeypatch):
+    warm = "@USR: USR23|beat_stage|sbd|persistent\n"
+
+    def fake_run(argv, stdin=None, session=None):
+        from memnet_mcp.client import MemNetResponse
+
+        if argv[0] == "query":
+            return MemNetResponse(0, warm, "", session, [])
+        return MemNetResponse(0, "", "", session, [])
+
+    monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
+    result = beat_turn_finish(session="test", scr_lines=SCR_WIRE)
+    assert result.get("pipeline_blocked") is True
+    assert any("script_draft_bundle" in e for e in result["errors"])
 
 
 def test_parse_warm_stdout_qi_zero_auto_beat():
@@ -316,7 +352,7 @@ def test_beat_turn_begin_advisory_draft_note(monkeypatch):
             stdout=(
                 "@USR: USR21|prose_target|800_zh_advisory|persistent\n"
                 "@USR: USR05|scene_length|no_gate|persistent\n"
-                "@USR: USR23|beat_stage|oln|persistent\n"
+                "@USR: USR23|beat_stage|script_draft|persistent\n"
                 "@STEP: STEP01|1|SCN01|persistent\n"
             ),
             stderr="",
@@ -438,13 +474,15 @@ def test_beat_turn_begin_finish_params():
 
 
 def test_beat_turn_finish_auto_chapter_from_warm(tmp_path: Path, monkeypatch):
+    prose_warm = WARM_SAMPLE.replace("script_draft", "prose")
+
     def fake_run(argv, stdin=None, session=None):
         from memnet_mcp.client import MemNetResponse
 
         if argv[0] == "query":
             return MemNetResponse(
                 exit_code=0,
-                stdout=WARM_SAMPLE,
+                stdout=prose_warm,
                 stderr="",
                 session_id=session,
                 errors=[],
@@ -457,7 +495,6 @@ def test_beat_turn_finish_auto_chapter_from_warm(tmp_path: Path, monkeypatch):
     result = beat_turn_finish(
         session="test",
         prose="字" * 800,
-        **_pipeline_kwargs(),
     )
     assert result["exit_code"] == 0
     assert result["auto_resolved"]["chapter_dir"] == "novel-output/shenjia_caifa/chapters"
@@ -471,7 +508,7 @@ def test_beat_turn_finish_time_regress_blocked(tmp_path: Path, monkeypatch):
     warm = """\
 @SYS: SYS01|10|1637-09-16T04|0|0|25|1兩=825文銅
 @USR: USR05|scene_length|no_gate|persistent
-@USR: USR23|beat_stage|oln|persistent
+@USR: USR23|beat_stage|prose|persistent
 @CHP: CHP01|1|100|1|0|open
 @USR: USR14|chapter_out|chapters|persistent
 """
@@ -496,7 +533,6 @@ def test_beat_turn_finish_time_regress_blocked(tmp_path: Path, monkeypatch):
         session="test",
         prose="字" * 100,
         update_lines=["@SYS: SYS01|11|1637-09-15T04|0|0|25|1兩=825文銅"],
-        **_pipeline_kwargs(),
     )
     assert result["exit_code"] == 1
     assert result.get("time_blocked") is True
@@ -537,12 +573,15 @@ def test_pipeline_blocks_prose_only(tmp_path: Path):
     )
     assert result["exit_code"] == 1
     assert result.get("pipeline_blocked") is True
-    assert any("pipeline_stage_mismatch" in e for e in result["errors"])
+    assert any(
+        "pipeline_stage_mismatch" in e or "script_draft_bundle" in e
+        for e in result["errors"]
+    )
     assert not (tmp_path / "chapters" / "第001回.md").exists()
 
 
 def test_pipeline_full_bundle_advances_stage(tmp_path: Path, monkeypatch):
-    warm = "@USR: USR23|beat_stage|oln|persistent\n"
+    warm = "@USR: USR23|beat_stage|script_draft|persistent\n"
 
     def fake_run(argv, stdin=None, session=None):
         from memnet_mcp.client import MemNetResponse
@@ -560,48 +599,41 @@ def test_pipeline_full_bundle_advances_stage(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
     result = beat_turn_finish(
         session="test",
-        prose="字" * 100,
-        chapter_dir="chapters",
-        chp_num=1,
-        workspace_root=tmp_path,
         pipeline_bypass=False,
         **_pipeline_kwargs(),
     )
     assert result["exit_code"] == 0
-    assert result["beat_stage"] == "oln"
+    assert result["beat_stage"] == "script_review"
     phases = [p["phase"] for p in result["phases"]]
     assert phases.count("oln") == 1
     assert phases.count("sbd") == 1
     assert phases.count("scr") == 1
 
 
-def test_pipeline_single_oln_advances_to_sbd(monkeypatch):
-    warm = "@USR: USR23|beat_stage|oln|persistent\n"
+def test_script_draft_missing_scr_blocked(monkeypatch):
+    warm = "@USR: USR23|beat_stage|script_draft|persistent\n"
 
     def fake_run(argv, stdin=None, session=None):
         from memnet_mcp.client import MemNetResponse
 
         if argv[0] == "query":
-            return MemNetResponse(
-                exit_code=0,
-                stdout=warm,
-                stderr="",
-                session_id=session,
-                errors=[],
-            )
-        return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
+            return MemNetResponse(0, warm, "", session, [])
+        return MemNetResponse(0, "", "", session, [])
 
     monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
-    result = beat_turn_finish(session="test", oln_lines=OLN_WIRE)
-    assert result["exit_code"] == 0
-    assert result["beat_stage"] == "sbd"
-    assert any(p["phase"] == "update" for p in result["phases"])
+    result = beat_turn_finish(
+        session="test",
+        oln_lines=OLN_WIRE,
+        sbd_lines=SBD_WIRE,
+    )
+    assert result["exit_code"] == 1
+    assert any("script_draft_bundle" in e for e in result["errors"])
 
 
-def test_pipeline_no_bundle_blocks_multi_wire(monkeypatch):
+def test_pipeline_prose_plus_bundle_blocked_at_draft(monkeypatch):
     warm = (
-        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n"
-        "@USR: USR23|beat_stage|oln|persistent\n"
+        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|persistent\n"
+        "@USR: USR23|beat_stage|script_draft|persistent\n"
     )
 
     def fake_run(argv, stdin=None, session=None):
@@ -626,11 +658,11 @@ def test_pipeline_no_bundle_blocks_multi_wire(monkeypatch):
     )
     assert result["exit_code"] == 1
     assert result.get("pipeline_blocked") is True
-    assert any("pipeline_no_bundle" in e for e in result["errors"])
+    assert any("script_draft_bundle" in e for e in result["errors"])
 
 
 def test_parse_warm_stdout_pipeline_no_bundle():
-    warm = "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n"
+    warm = "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|persistent\n"
     p = parse_warm_stdout(warm)
     assert p["pipeline_no_bundle"] is True
     p2 = parse_warm_stdout(WARM_SAMPLE)
@@ -639,7 +671,22 @@ def test_parse_warm_stdout_pipeline_no_bundle():
 
 def test_parse_warm_stdout_beat_stage():
     p = parse_warm_stdout("@USR: USR23|beat_stage|scr|persistent\n")
-    assert p["beat_stage"] == "scr"
+    assert p["beat_stage"] == "script_review"
+
+
+def test_parse_warm_stdout_prose_includes_sbd_and_scr():
+    warm = (
+        "@USR: USR23|beat_stage|prose|persistent\n"
+        "@OLN: OLN01|1|m|plot|dlg|hook|delete\n"
+        "@SBD: SBD01|1|1|shot1|s|l|m|delete\n"
+        "@SBD: SBD02|1|2|shot2|s|l|m|delete\n"
+        "@SCR: SCR01|1|1|act|dlg|inner|sfx|delete\n"
+        "@SCR: SCR02|1|2|act|dlg|inner|sfx|delete\n"
+    )
+    p = parse_warm_stdout(warm)
+    assert p["beat_stage"] == "prose"
+    assert "SBD01" in (p.get("sbd_rows") or "")
+    assert "SCR01" in (p.get("scr_row") or "")
 
 
 def test_ensure_beat_stage_update_replaces_same_usr_id():
@@ -647,22 +694,22 @@ def test_ensure_beat_stage_update_replaces_same_usr_id():
 
     out = _ensure_beat_stage_update(
         ["@USR: USR23|beat_stage|prose|persistent", "@STEP: STEP01|5|OLN07|persistent"],
-        "oln",
+        "script_draft",
         beat_stage_usr_id="USR23",
     )
     usr_rows = [ln for ln in out if "USR23|beat_stage" in ln]
     assert len(usr_rows) == 1
-    assert usr_rows[0] == "@USR: USR23|beat_stage|oln|persistent"
+    assert usr_rows[0] == "@USR: USR23|beat_stage|script_draft|persistent"
     assert any("STEP01" in ln for ln in out)
 
 
-def test_prose_finish_advances_usr23_to_oln(tmp_path: Path, monkeypatch):
-    """Prose finish must persist beat_stage|oln (not leave USR23 at prose)."""
+def test_prose_finish_advances_usr23_to_script_draft(tmp_path: Path, monkeypatch):
+    """Prose finish must persist beat_stage|script_draft (not leave USR23 at prose)."""
     stage = {"beat_stage": "prose"}
     updates: list[str] = []
 
     warm = (
-        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle|persistent\n"
+        "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|persistent\n"
         "@USR: USR23|beat_stage|prose|persistent\n"
         "@USR: USR05|scene_length|650_950_zh|persistent\n"
         "@USR: USR06|chapter_out|novel-output/shenjia_caifa/chapters|persistent\n"
@@ -701,8 +748,8 @@ def test_prose_finish_advances_usr23_to_oln(tmp_path: Path, monkeypatch):
             )
         if argv[0] == "update" and stdin:
             updates.append(stdin)
-            if "beat_stage|oln" in stdin:
-                stage["beat_stage"] = "oln"
+            if "beat_stage|script_draft" in stdin:
+                stage["beat_stage"] = "script_draft"
         return MemNetResponse(exit_code=0, stdout="", stderr="", session_id=session, errors=[])
 
     monkeypatch.setattr("novel_mcp.beat_pipeline.run_memnet", fake_run)
@@ -714,9 +761,9 @@ def test_prose_finish_advances_usr23_to_oln(tmp_path: Path, monkeypatch):
         option_lines=["一", "二", "三", "四", "五", "六"],
     )
     assert result["exit_code"] == 0
-    assert result["beat_stage"] == "oln"
-    assert stage["beat_stage"] == "oln"
-    assert any("beat_stage|oln" in u for u in updates)
+    assert result["beat_stage"] == "script_draft"
+    assert stage["beat_stage"] == "script_draft"
+    assert any("beat_stage|script_draft" in u for u in updates)
 
 
 def test_beat_turn_begin_next_action_prose_stage_no_bundle(monkeypatch):
@@ -753,7 +800,7 @@ def test_beat_turn_begin_next_action_prose_stage_no_bundle(monkeypatch):
         if argv[0] == "query":
             return MemNetResponse(
                 exit_code=0,
-                stdout="@USR: USR23|beat_stage|oln|persistent\n@STEP: STEP01|4|OLN06|persistent\n",
+                stdout="@USR: USR23|beat_stage|script_draft|persistent\n@STEP: STEP01|4|OLN06|persistent\n",
                 stderr="",
                 session_id=session,
                 errors=[],

@@ -24,6 +24,8 @@ window.NovelApp = (function () {
 
   const phaseLabels = {
     prepare_script: "準備劇本…",
+    script_draft: "編劇初稿…",
+    script_review: "編劇審稿…",
     oln: "寫大綱…",
     sbd: "寫分鏡…",
     scr: "寫腳本…",

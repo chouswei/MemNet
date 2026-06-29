@@ -7,14 +7,10 @@ import re
 from typing import Any
 
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
-_STAGE_TAGS = {"oln": "OLN", "sbd": "SBD", "scr": "SCR"}
+_STAGE_TAGS = ("OLN", "SBD", "SCR")
 
 
-def extract_wire_lines(text: str, stage: str) -> list[str]:
-    """Return @OLN/@SBD/@SCR lines for the given stage."""
-    tag = _STAGE_TAGS.get(stage.lower())
-    if not tag:
-        return []
+def _extract_tag_lines(text: str, tag: str) -> list[str]:
     prefix = f"@{tag}:"
     lines: list[str] = []
     for raw in text.splitlines():
@@ -22,6 +18,35 @@ def extract_wire_lines(text: str, stage: str) -> list[str]:
         if line.startswith(prefix):
             lines.append(line)
     return lines
+
+
+def extract_draft_bundle(text: str) -> tuple[list[str], list[str], list[str]]:
+    """Return (oln_lines, sbd_lines, scr_lines) — each line starts with @TAG:"""
+    return (
+        _extract_tag_lines(text, "OLN"),
+        _extract_tag_lines(text, "SBD"),
+        _extract_tag_lines(text, "SCR"),
+    )
+
+
+def extract_scr_lines(text: str) -> list[str]:
+    """script_review: extract @SCR lines only."""
+    return _extract_tag_lines(text, "SCR")
+
+
+def extract_wire_lines(text: str, stage: str) -> list[str]:
+    """Return wire lines for a script stage (legacy helper)."""
+    stage = stage.lower()
+    if stage == "script_draft":
+        oln, sbd, scr = extract_draft_bundle(text)
+        return oln + sbd + scr
+    if stage == "script_review":
+        return extract_scr_lines(text)
+    tag_map = {"oln": "OLN", "sbd": "SBD", "scr": "SCR"}
+    tag = tag_map.get(stage)
+    if not tag:
+        return []
+    return _extract_tag_lines(text, tag)
 
 
 def parse_prose_payload(text: str) -> dict[str, Any] | None:

@@ -76,7 +76,7 @@ def test_script_beat_prepare_blocked_when_setup_incomplete() -> None:
 
 def test_script_beat_prepare_phase() -> None:
     with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": True}), patch(
-        "novel_mcp.play_context.read_beat_stage", return_value="oln"
+        "novel_mcp.play_context.read_beat_stage", return_value="script_draft"
     ), patch(
         "novel_mcp.play_context.beat_turn_begin",
         return_value={"pipeline": {}, "finish_params": {}},
@@ -85,12 +85,12 @@ def test_script_beat_prepare_phase() -> None:
     assert out["exit_code"] == 0
     assert out["phase"] == "script"
     assert out["player"]["lib_query"] is True
-    assert out["fsm"]["stages"] == ["oln", "sbd", "scr"]
+    assert out["fsm"]["stages"] == ["script_draft", "script_review"]
 
 
 def test_prose_beat_prepare_gate() -> None:
     with patch("novel_mcp.play_context.read_player_setup", return_value={"setup_complete": True}), patch(
-        "novel_mcp.play_context.read_beat_stage", return_value="oln"
+        "novel_mcp.play_context.read_beat_stage", return_value="script_draft"
     ):
         out = prose_beat_prepare(session="mn_test")
     assert out["exit_code"] == 2

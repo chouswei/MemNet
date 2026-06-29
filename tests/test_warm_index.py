@@ -22,6 +22,6 @@ def test_usr_by_key():
 
 
 def test_pipeline_no_bundle_from_law():
-    warm = "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|no_bundle;one_wire|persistent\n"
+    warm = "@LAW: LAW-PIPE20|STEP|on_turn|stage_fsm|one_wire_per_finish_except_draft|script_draft_bundle|persistent\n"
     assert pipeline_no_bundle(index_warm(warm)) is True
     assert pipeline_no_bundle(index_warm(WARM)) is False

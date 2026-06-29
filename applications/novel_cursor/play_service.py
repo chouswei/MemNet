@@ -19,7 +19,7 @@ from novel_mcp.setup_graph import graph_sync_output_paths, read_usr_by_key
 _LEGACY_SESSION = repo_root() / "applications" / "shenjia_caifa" / "session_id.txt"
 
 _PHASE_HOOKS = frozenset(
-    {"prepare_script", "oln", "sbd", "scr", "prepare_prose", "prose"}
+    {"prepare_script", "script_draft", "script_review", "prepare_prose", "prose"}
 )
 
 
