@@ -10,6 +10,10 @@
   --header-h: 2.75rem;
 }
 
+html {
+  font-size: 18px;
+}
+
 * { box-sizing: border-box; }
 
 html, body {

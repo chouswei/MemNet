@@ -549,7 +549,7 @@ def _finish_params_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
     root = resolve_workspace_root()
     return {
         "chapter_dir": pipeline.get("chapter_dir"),
-        "chp_num": pipeline.get("chp_num"),
+        "chp_num": pipeline.get("chp_num", 1),
         "snapshot_file": pipeline.get("snapshot_file"),
         "workspace_root": str(root),
         "min_chars": pipeline.get("min_chars"),
@@ -612,6 +612,10 @@ def _resolve_finish_defaults(
                 resolved["usr05_band"] = band
         if draft_target_chars is None:
             draft_target_chars = pipeline.get("draft_target_chars")
+
+    if prose is not None and chp_num is None:
+        chp_num = 1
+        resolved["chp_num"] = 1
 
     return (
         {
@@ -920,10 +924,12 @@ def beat_turn_finish(
         result["beat_stage"] = beat_stage
 
     if prose is not None and (chapter_dir is None or chp_num is None):
+        result["exit_code"] = 1
         result["errors"].append(
             "@ERR: chapter_path_missing|set USR14 chapter_out + open CHP in seed, "
             "or pass chapter_dir/chp_num on beat_turn_finish"
         )
+        return result
 
     time_errors = _validate_sys_time_updates(session, update_lines)
     if time_errors:

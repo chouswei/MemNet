@@ -1,10 +1,14 @@
-"""Prompts for dual-loop script + prose Cursor SDK agents."""
+"""Prompts for dual-loop script + prose Cursor SDK agents.
+
+World voice (魂穿、圖書館、文風等) lives in seed USR/LAW only — prompts inject
+``presentation.contracts`` / ``option_contracts`` per turn; do not hardcode genre lore here.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from app_config import NovelAppConfig
+from novel_mcp.body_state import vitality_block
 
 
 def build_script_primer(config: NovelAppConfig) -> str:
@@ -33,9 +37,12 @@ def build_script_turn(config: NovelAppConfig, prep: dict[str, Any]) -> str:
     start = prep.get("fsm", {}).get("start_stage", "oln")
 
     if "choice" in player:
+        choice_text = (player.get("choice_text") or "").strip()
         player_block = (
-            f"Player chose option **{player['choice']}**. "
-            f"Start from stage `{start}`; run until USR23 beat_stage becomes **prose**."
+            f"Player chose option **{player['choice']}**."
+            + (f' Text: "{choice_text}".' if choice_text else "")
+            + f" Start from stage `{start}`; run until USR23 beat_stage becomes **prose**."
+            + " Advance from continuation anchor — do **not** restart the opening beat."
         )
         if player.get("lib_query"):
             player_block += " Library query: reflect in OLN only (LAW-LIB03)."
@@ -145,7 +152,13 @@ Emit only the success JSON block when done.
 
 _STAGE_TAG = {"oln": "OLN", "sbd": "SBD", "scr": "SCR"}
 
-_WIRE_GRAMMAR = """## Wire grammar (exact pipe-separated fields — NOT key|value updates)
+_STAGE_EXAMPLE = {
+    "oln": "@OLN: OLN01|1|情緒錨|情節要點|對白骨架|尾鉤|delete_on_settle",
+    "sbd": "@SBD: SBD01|1|1|畫面要點|感官細節|動作對白|氛圍|delete_on_settle",
+    "scr": "@SCR: SCR01|1|1|動作描述|對白|內心旁白|音效|delete_on_settle",
+}
+
+_WIRE_GRAMMAR = f"""## Wire grammar (exact pipe-separated fields — NOT key|value updates)
 
 | Tag | Fields (count) |
 |-----|----------------|
@@ -154,19 +167,32 @@ _WIRE_GRAMMAR = """## Wire grammar (exact pipe-separated fields — NOT key|valu
 | `@SCR` | id\\|回合\\|鏡頭\\|動作描述\\|對白\\|內心旁白\\|音效氛圍\\|回收 **(8)** |
 
 Examples (copy structure, invent content from presentation only):
-- `@OLN: OLN01|1|魂穿驚醒|場景入口感官細節|NPC名：「……？」|尾鉤|delete_on_settle`
-- `@SBD: SBD01|1|1|門楣逆光|環境感官|動作骨架|氛圍轉場|delete_on_settle`
-- `@SCR: SCR01|1|1|睁眼撑地|NPC名：「你醒了？」|內心旁白|環境音效|delete_on_settle`
+- `{_STAGE_EXAMPLE["oln"]}`
+- `{_STAGE_EXAMPLE["sbd"]}`
+- `{_STAGE_EXAMPLE["scr"]}`
 
 **WRONG:** `@OLN: SCN01|update|emotion_anchor|…` — never English field names, `update`, or SCN id as OLN id.
 
 LAW-NAME01: 敘事視角僅用 `presentation.scene` 中 `name_visible:true` 實體的 canonical 名。認識一律 `@EDG`：`holder|knows|entity`（直接）或 `knows_via`（間接）或 `soul_knows`；深度寫 attrs（未知→耳聞→初識→粗識→能述→能作→熟識）。無接線不得寫真名。初識後 `beat_turn_finish` 加邊。`unknows` 表否定能力。禁捏造圖外實體。"""
 
-_STAGE_EXAMPLE = {
-    "oln": "@OLN: OLN01|1|情緒錨|情節要點|對白骨架|尾鉤|delete_on_settle",
-    "sbd": "@SBD: SBD01|1|1|畫面要點|感官細節|動作對白|氛圍|delete_on_settle",
-    "scr": "@SCR: SCR01|1|1|動作描述|對白|內心旁白|音效|delete_on_settle",
-}
+
+def _format_contracts_block(presentation: dict[str, Any]) -> str:
+    """Seed-driven voice/style/options — never duplicate genre lore in prompt code."""
+    sections: list[str] = []
+    contracts = presentation.get("contracts") or []
+    if contracts:
+        sections.append(
+            "## Seed contracts (binding)\n"
+            + "\n".join(f"- {c}" for c in contracts)
+        )
+    opt = presentation.get("option_contracts") or []
+    if opt:
+        sections.append(
+            "## Option contracts\n" + "\n".join(f"- {c}" for c in opt)
+        )
+    if not sections:
+        return ""
+    return "\n\n".join(sections) + "\n\n"
 
 
 def _format_cast_block(presentation: dict[str, Any]) -> str:
@@ -235,7 +261,12 @@ def build_script_stage_user(
     tag = _STAGE_TAG.get(stage, stage.upper())
 
     if "choice" in player:
-        player_block = f"Player chose option **{player['choice']}**."
+        choice_text = (player.get("choice_text") or "").strip()
+        player_block = (
+            f"Player chose option **{player['choice']}**."
+            + (f' Text: "{choice_text}".' if choice_text else "")
+            + " Continue from anchor; do **not** reopen opening scene."
+        )
         if player.get("lib_query"):
             player_block += " Library beat: reflect query in OLN only."
     elif "steering" in player:
@@ -248,8 +279,9 @@ def build_script_stage_user(
     err_block = f"\n\n## Prior finish error (fix)\n{prior_error}" if prior_error else ""
     example = _STAGE_EXAMPLE.get(stage, "")
     cast_block = _format_cast_block(presentation)
+    contracts_block = _format_contracts_block(presentation)
     opening = ""
-    if not anchor and stage == "oln":
+    if not anchor and stage == "oln" and "choice" not in player:
         scene = presentation.get("scene") or {}
         scn = scene.get("id") or scene.get("code") or "opening scene"
         bits: list[str] = []
@@ -272,6 +304,12 @@ def build_script_stage_user(
                 + "。人物與年齡以 Presentation / Cast 為準；"
                 "若玩家 steering 為姓名，在 OLN 情節要點體現取名。\n"
             )
+    elif not anchor and stage == "oln" and "choice" in player:
+        opening = (
+            "\n## Mid-story choice (no prose anchor on disk)\n"
+            "Player already chose an option — advance from graph @OLN/@SCR; "
+            "**do not** reopen the opening beat.\n"
+        )
 
     return f"""Session: `{session}`
 Stage: **{stage}** — output `@{tag}:` wire line(s) only.
@@ -288,7 +326,7 @@ Stage: **{stage}** — output `@{tag}:` wire line(s) only.
 ## Pipeline hint
 {pipeline.get("next_action", "")}
 
-{cast_block}## Presentation (beat_turn_begin)
+{contracts_block}{cast_block}## Presentation (beat_turn_begin)
 ```json
 {json.dumps(presentation, ensure_ascii=False, indent=2)}
 ```
@@ -318,19 +356,13 @@ Expand `@SCR` into player-facing novel text per presentation contracts.
 **Cast block**（`presentation.scene`）：NPC 歲數／特徵為硬性約束（LAW-CHR02/04/18），勿依常識改年齡。
 
 Rules:
-1. **POV（魂穿者語音分層 — 硬性）**
-   - **旁白／敘事／動作／環境**：第二人稱「**你**」（對應 `prose_warm` USR51）。**禁**把全文改成第一人稱。
-   - **內心獨白**（僅 SCR「內心旁白」欄位展開處）：可用「我」、台灣口語吐槽（USR24）；宜短、穿插其間，**不可**句句起首「我」。
-   - **句式**：起首多樣（環境／聲音／他人動作／「你」的感官）；**禁**連續三句以上同以「我」或「你」開頭（`sentence_rhythm`）。
-2. Prose: 白話武俠，繁體，~draft_target_chars (advisory). Expand **only** from SCR shots.
-3. Exactly **6** options — each a **single complete sentence** (LAW-PERS02):
-   - Slots 1–4: narrative/trait axis; **no** comma verb chains（禁「去看、去問、再……」）
-   - Slot 5: independent beat (pause / wait / think)
-   - Slot 6: library query (意識圖書館)
-   - End with 。！？；… where natural; ≥8 chars when possible
-4. `hud`: one-line pipe status bar.
-5. `update_lines` (optional): only valid MemNet wires. **Player name/gender/opening arts** are committed via setup MCP (`commit_player_profile` / `commit_opening_pick`) before the first beat — do not rename in beat finish unless steering explicitly retcons.
-6. Emit **only** fenced JSON below.
+1. **Voice, POV, diction, option slots:** follow `presentation.contracts` and `option_contracts` each turn (seed SSOT). Do **not** assume genre-specific lore unless contracts say so.
+2. Expand **only** from SCR shots — no invented plot (`prose_from_script`).
+3. Exactly **6** `options` unless contracts specify otherwise; honour seed `opt_layout` / option contracts.
+4. `hud`: when seed `body_plot_keys` is set, server may build HUD — you may omit. Otherwise emit a one-line status bar per `hud_pipe` / contracts.
+5. **Body-in-plot:** match `@PLR` vitals at beat start when `body_plot` / LAW-VIT01 contracts apply; use `update_lines` when activity changes vitals.
+6. `update_lines` (optional): only valid MemNet wires. Player name/gender/opening picks are committed via setup MCP before the first beat.
+7. Emit **only** fenced JSON below.
 
 Snapshot: `{snap}`
 
@@ -370,6 +402,28 @@ def build_prose_user(prep: dict[str, Any], begin: dict[str, Any]) -> str:
     chp_num = fp.get("chp_num") or prep.get("chp_num") or pipeline.get("chp_num") or 1
     snap = fp.get("snapshot_file") or prep.get("snapshot_file") or ""
     cast_block = _format_cast_block(presentation)
+    contracts_block = _format_contracts_block(presentation)
+    scene = presentation.get("scene") or {}
+    plr_body = scene.get("plr_body") or pipeline.get("plr_body") or ""
+    body_block = vitality_block(
+        plr_body, body_plot_keys=presentation.get("body_plot_keys")
+    )
+
+    player = prep.get("player") or {}
+    player_lines: list[str] = []
+    if "choice" in player:
+        choice_text = (player.get("choice_text") or "").strip()
+        line = f"Player chose option **{player['choice']}**."
+        if choice_text:
+            line += f' Text: "{choice_text}".'
+        line += " Expand SCR to settle this choice; do **not** restart the opening beat."
+        player_lines.append(line)
+    elif "steering" in player:
+        player_lines.append(f'Player steering: "{player["steering"]}".')
+
+    player_block = ""
+    if player_lines:
+        player_block = "## Player\n" + "\n".join(player_lines) + "\n\n"
 
     return f"""Session: `{session}`
 
@@ -382,7 +436,7 @@ def build_prose_user(prep: dict[str, Any], begin: dict[str, Any]) -> str:
 ## Current SCR (expand faithfully — every shot)
 {scr or "(missing — do not invent plot)"}
 
-{cast_block}## finish_params
+{player_block}{contracts_block}{cast_block}{body_block}## finish_params
 chapter_dir: `{fp.get("chapter_dir", prep.get("chapter_dir", ""))}`
 chp_num: {chp_num}
 snapshot_file: `{snap}`

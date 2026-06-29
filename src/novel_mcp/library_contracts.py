@@ -1,4 +1,4 @@
-"""Compile soul-library cite lines from seed USR31 / LIB rows + latest @OLN (Phase C)."""
+"""Compile library-slot cite lines from seed USR31 / LIB rows + latest @OLN (Phase C)."""
 
 from __future__ import annotations
 

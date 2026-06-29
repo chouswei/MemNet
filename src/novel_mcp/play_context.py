@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from memnet_mcp.client import run_memnet
@@ -9,9 +10,26 @@ from novel_mcp.beat_pipeline import beat_turn_begin
 from novel_mcp.chapter_io import chapter_file_path, last_committed_paragraph
 from novel_mcp.paths import workspace_root
 from novel_mcp.player_setup import player_setup_gate_payload, read_player_setup
-from novel_mcp.warm_index import index_warm, usr_value
 
 _SCRIPT_STAGES = frozenset({"oln", "sbd", "scr"})
+
+
+def best_continuation_anchor(
+    root: Path,
+    chp_num: int,
+    primary_dir: str | None,
+    *fallback_dirs: str | None,
+) -> str:
+    """Last committed paragraph: prefer primary (world slot) dir, then graph USR14."""
+    seen: set[str] = set()
+    for raw in (primary_dir, *fallback_dirs):
+        if not raw or raw in seen:
+            continue
+        seen.add(raw)
+        anchor = last_committed_paragraph(chapter_file_path(root, raw, chp_num))
+        if anchor:
+            return anchor
+    return ""
 
 
 def read_beat_stage(session: str | None) -> str:
@@ -56,13 +74,19 @@ def _common_paths(
     pipeline = begin.get("pipeline") or {}
     finish_params = begin.get("finish_params") or {}
     root = workspace_root(workspace_root_path)
-    ch_dir = chapter_dir or pipeline.get("chapter_dir") or finish_params.get("chapter_dir")
+    graph_dir = pipeline.get("chapter_dir") or finish_params.get("chapter_dir")
+    ch_dir = chapter_dir or graph_dir
     chp_num = pipeline.get("chp_num") or finish_params.get("chp_num") or 1
     snap = snapshot_file or pipeline.get("snapshot_file") or finish_params.get("snapshot_file")
-    anchor = ""
-    if ch_dir and chp_num:
-        path = chapter_file_path(root, ch_dir, int(chp_num))
-        anchor = last_committed_paragraph(path)
+    fallbacks: list[str | None] = []
+    if graph_dir and graph_dir != chapter_dir:
+        fallbacks.append(graph_dir)
+    anchor = best_continuation_anchor(
+        root,
+        int(chp_num),
+        chapter_dir,
+        *fallbacks,
+    )
     return {
         "chapter_dir": ch_dir,
         "chp_num": chp_num,

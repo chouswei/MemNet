@@ -561,6 +561,9 @@ def test_pipeline_full_bundle_advances_stage(tmp_path: Path, monkeypatch):
     result = beat_turn_finish(
         session="test",
         prose="字" * 100,
+        chapter_dir="chapters",
+        chp_num=1,
+        workspace_root=tmp_path,
         pipeline_bypass=False,
         **_pipeline_kwargs(),
     )

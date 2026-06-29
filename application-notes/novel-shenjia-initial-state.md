@@ -35,6 +35,7 @@
 @PRS: id|角色|維度|基線|回收
 @PTY: id|角色|代碼|標籤|回收
 @OPT: id|序|文案|維度|變化|回收
+@CHP: id|chp_num|start_beat|end_beat|char_total|status|recycle
 @LIB: id|錨點|主題|短碼|狀態|回收
 @LOC: id|名稱|區域|回收
 @STEP: id|n|focus|recycle
@@ -468,6 +469,8 @@
 
 ```text
 @SYS: SYS01|1|1637-09-01T06|0|0|25|1兩=825文銅
+
+@CHP: CHP01|1|0|0|0|open|persistent
 
 @PLR: P01|流民|1627|未定|0|0|靈魂圖書館登峰造極|氣血:6/6；內力:0/4；內功:未入門；武學:未入門；輕功:未入門；飽食:略飽；疲勞:0；魂穿:21世紀台灣工程師;過勞死入神域；靈魂圖書館:意識深處知識殿堂
 

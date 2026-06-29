@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.27] — 2026-06-29
+## [0.2.28] — 2026-06-29
+
+### Added
+- **`body_state`** — seed-driven HUD from `USR45` `body_plot` + `USR02` `hud_pipe`; vitality vs satiety conflict check.
+- **`graph_sync_output_paths`** — align USR14/USR15 with per-world chapter/snapshot dirs on rebootstrap and each beat.
+- **Tests** — `test_body_state`, `test_play_service_paths`; beat anchor, prompt, and presentation coverage.
+
+### Changed
+- **Beat progression** — world-dir continuation anchor; choice text in script + prose; hard fail when prose does not write chapter file; default `chp_num=1`.
+- **`beat_prompt`** — world lore (魂穿、圖書館、文風) from seed `presentation.contracts` only; no genre hardcoding in prompts.
+- **`presentation`** — voice/option USR keys (`narration`, `prose_style`, `inner_voice`, `opt_layout`, etc.) compiled into contracts.
+- **Seed** — `@CHP` in tag map + opening row (fixes bootstrap seed ingest).
+- **Martial catalog** — full-art name validation; renamed borderline `ART` rows; catalog expand tests.
+- **novel-mobile** — beat index in UI (`play.js`); slightly larger root font (`app.css`).
+
+### Fixed
+- Rebootstrap/bootstrap no longer silently loads empty graph when `@CHP` was missing from tag map.
+
 
 ### Added
 - **`entity_knowledge`** — `@EDG` SSOT for holder acquaintance (`knows` / `knows_via` / `soul_knows`); depth-gated POV name masking (`name_visible`, `knowledge_depth`).
@@ -339,7 +356,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.27...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.28...HEAD
+[0.2.28]: https://github.com/chouswei/MemNet/compare/v0.2.27...v0.2.28
 [0.2.27]: https://github.com/chouswei/MemNet/compare/v0.2.26...v0.2.27
 [0.2.26]: https://github.com/chouswei/MemNet/compare/v0.2.25...v0.2.26
 [0.2.25]: https://github.com/chouswei/MemNet/compare/v0.2.24...v0.2.25

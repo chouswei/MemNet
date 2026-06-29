@@ -136,6 +136,22 @@ def ensure_usr_row(
     return None
 
 
+def graph_sync_output_paths(
+    session: str | None,
+    *,
+    chapter_out: str,
+    snapshot: str,
+) -> tuple[int, list[str]]:
+    """Align USR14/USR15 with on-disk chapter dir and snapshot for this slot."""
+    return graph_update(
+        session,
+        [
+            f"@USR: USR14|chapter_out|{chapter_out}|persistent",
+            f"@USR: USR15|snapshot|{snapshot}|persistent",
+        ],
+    )
+
+
 def graph_update(session: str | None, lines: list[str]) -> tuple[int, list[str]]:
     if not session or not lines:
         return 2, ["missing session or update lines"]

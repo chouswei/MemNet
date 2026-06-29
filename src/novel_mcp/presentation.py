@@ -20,6 +20,7 @@ from novel_mcp.entity_knowledge import (
     resolve_biz_display,
     resolve_npc_display_name,
 )
+from novel_mcp.body_state import hud_keys_from_body_plot
 from novel_mcp.library_contracts import compile_library_contracts
 from novel_mcp.warm_index import WarmIndex, index_warm, laws_for_stage, usr_value
 from novel_mcp.warm_walk import curated_walk_lines
@@ -45,12 +46,21 @@ _TOKEN_GLOSS: dict[str, str] = {
 
 _USR_LABELS: dict[str, str] = {
     "prose_warm": "Narrative voice",
+    "narration": "Narration POV",
+    "prose_style": "Prose register",
+    "inner_voice": "Inner voice",
     "option_style": "Option wording",
+    "opt_copy": "Option copy rules",
+    "opt_layout": "Option slot layout",
+    "lib_opt_copy": "Library slot (6) wording",
     "scene_length": "Scene length band",
     "prose_target": "Prose length advisory",
     "prose_draft": "Prose length advisory",
     "opening_scene": "Opening scene (SCN01 until settled)",
 }
+
+_VOICE_USR_KEYS = ("narration", "prose_style", "inner_voice", "prose_warm")
+_OPTION_USR_KEYS = ("opt_copy", "option_style", "opt_layout", "lib_opt_copy")
 
 
 def _expand_law(law_id: str, mechanism: str, constraint: str) -> str:
@@ -153,12 +163,15 @@ def _usr_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
         opening = usr_value(index, "opening_scene")
         if opening:
             bullets.append(f"{_USR_LABELS['opening_scene']}: {opening}")
+    skip = {"opening_scene", *_OPTION_USR_KEYS}
+    for key in _VOICE_USR_KEYS:
+        if stage != "prose":
+            continue
+        val = usr_value(index, key)
+        if val:
+            bullets.append(f"{_USR_LABELS[key]}: {val}")
     for key, label in _USR_LABELS.items():
-        if key == "opening_scene":
-            continue
-        if key == "prose_warm" and stage not in ("prose",):
-            continue
-        if key in ("option_style",) and stage != "prose":
+        if key in skip or key in _VOICE_USR_KEYS:
             continue
         val = usr_value(index, key)
         if val:
@@ -174,10 +187,11 @@ def _law_contract_bullets(index: WarmIndex, stage: str) -> list[str]:
 
 
 def _option_contract_bullets(index: WarmIndex) -> list[str]:
-    bullets = _usr_contract_bullets(index, "prose")
-    opt_style = usr_value(index, "option_style")
-    if opt_style and not any("option_style" in b.lower() for b in bullets):
-        bullets.append(f"Option wording: {opt_style}")
+    bullets: list[str] = []
+    for key in _OPTION_USR_KEYS:
+        val = usr_value(index, key)
+        if val:
+            bullets.append(f"{_USR_LABELS[key]}: {val}")
     for law in laws_for_stage(index, "prose", for_options=True):
         bullets.append(_expand_law(law.id, law.mechanism, law.constraint))
     return bullets
@@ -237,6 +251,10 @@ def compile_presentation(
     knowledge_graph = build_knowledge_view(warm_stdout, session=session)
     knowledge_hud = format_knowledge_hud(knowledge_graph)
 
+    body_plot_raw = usr_value(index, "body_plot")
+    body_plot_keys = hud_keys_from_body_plot(body_plot_raw)
+    hud_pipe = usr_value(index, "hud_pipe")
+
     return {
         "stage": stage,
         "contracts": contracts,
@@ -245,6 +263,9 @@ def compile_presentation(
         "library_meta": library_meta,
         "scene": _scene_snapshot(index, pipeline, session=session),
         "walk_hops": walk_hops,
+        "body_plot": body_plot_raw,
+        "body_plot_keys": body_plot_keys,
+        "hud_pipe": hud_pipe,
         "knowledge": {
             "hud": knowledge_hud,
             "holdings_count": len(knowledge_graph.get("holdings") or []),

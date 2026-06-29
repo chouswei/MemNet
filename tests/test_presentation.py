@@ -72,3 +72,22 @@ def test_option_contracts_on_prose_stage():
     )
     assert pres["option_contracts"]
     assert any("opt_" in c.lower() or "PERS02" in c for c in pres["option_contracts"])
+
+
+def test_voice_usr_keys_surface_on_prose_stage():
+    warm = """\
+@USR: USR18|narration|第二人稱你|persistent
+@USR: USR19|prose_style|優美白話武俠|persistent
+@USR: USR24|inner_voice|modern_taiwanese_baihua|persistent
+@USR: USR30|opt_layout|1-4四維;5產業帳;6圖書館|persistent
+@USR: USR22|opt_copy|可讀白話完整句|persistent
+@USR: USR32|lib_opt_copy|閉目入殿查閱|persistent
+@USR: USR23|beat_stage|prose|persistent
+"""
+    pres = compile_presentation(warm, {"beat_stage": "prose"})
+    text = "\n".join(pres["contracts"] + pres["option_contracts"])
+    assert "第二人稱你" in text
+    assert "優美白話武俠" in text
+    assert "modern_taiwanese" in text
+    assert "6圖書館" in text
+    assert "閉目入殿查閱" in text

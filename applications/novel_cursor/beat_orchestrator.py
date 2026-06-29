@@ -16,6 +16,11 @@ from beat_prompt import (
 from chat_thread import ChatThread, reset_role_thread
 from llm_client import complete_messages, model_for_role
 from wire_parse import extract_wire_lines, normalise_options, parse_prose_payload
+from novel_mcp.body_state import (
+    hud_config_from_presentation,
+    resolve_beat_hud,
+    vitality_satiety_conflict,
+)
 
 from novel_mcp.beat_pipeline import beat_turn_begin, beat_turn_finish
 from novel_mcp.play_context import read_beat_stage
@@ -225,11 +230,37 @@ def run_prose_phase(
 
         prose = str(payload.get("prose") or "").strip()
         options = normalise_options(payload.get("options"))
-        hud = str(payload.get("hud") or "")
         update_lines = payload.get("update_lines") or []
         if not isinstance(update_lines, list):
             update_lines = []
         update_lines = [str(ln) for ln in update_lines if str(ln).strip()]
+
+        presentation = begin.get("presentation") or {}
+        scene = presentation.get("scene") or {}
+        pipeline = begin.get("pipeline") or {}
+        plr_body = (
+            scene.get("plr_body")
+            or pipeline.get("plr_body")
+            or ""
+        )
+        hud_keys, hud_pipe = hud_config_from_presentation(presentation)
+        llm_hud = str(payload.get("hud") or "").strip()
+        vit_err = vitality_satiety_conflict(
+            prose, plr_body, body_plot_keys=hud_keys or None
+        )
+        if vit_err:
+            thread.drop_last_user()
+            prior_error = vit_err
+            continue
+
+        hud = resolve_beat_hud(
+            plr_body=plr_body,
+            update_lines=update_lines,
+            hud_keys=hud_keys or None,
+            hud_pipe=hud_pipe,
+            time_display=scene.get("time") or pipeline.get("time_display"),
+            llm_fallback=llm_hud,
+        )
 
         finish = beat_turn_finish(
             session=session,
@@ -247,6 +278,7 @@ def run_prose_phase(
                 p.get("phase") == "session_save" and p.get("exit_code") == 0
                 for p in finish.get("phases") or []
             )
+            chapter = finish.get("chapter") or {}
             result = {
                 "exit_code": 0,
                 "session": session,
@@ -257,7 +289,15 @@ def run_prose_phase(
                 "snapshot_saved": saved,
                 "snapshot_file": snap,
                 "beat_stage": finish.get("beat_stage") or read_beat_stage(session),
+                "beat_index": chapter.get("paragraph_count"),
+                "chapter_path": chapter.get("path"),
             }
+            if prose and not chapter.get("path"):
+                result["exit_code"] = 1
+                result["error"] = "prose committed but chapter file not written"
+                thread.drop_last_user()
+                prior_error = result["error"]
+                continue
             return result, 0, []
 
         thread.drop_last_user()

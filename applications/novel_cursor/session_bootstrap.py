@@ -20,7 +20,7 @@ from novel_mcp.catalog_session import (
 from novel_mcp.martial_catalog_expand import sync_art_neili_burn
 from novel_mcp.opening_loadout import arts_from_session
 from novel_mcp.player_setup import read_player_setup
-from novel_mcp.setup_graph import graph_update
+from novel_mcp.setup_graph import graph_sync_output_paths, graph_update
 
 
 def rebootstrap_session(
@@ -134,6 +134,19 @@ def rebootstrap_session(
                 ["session", "save", "--file", str(config.catalog_snapshot_file)],
                 session=catalog_session_id,
             )
+
+    if "worlds" in config.output_dir.parts:
+        root = repo_root()
+        ch_rel = str(config.chapter_dir.relative_to(root)).replace("\\", "/")
+        snap_rel = str(config.snapshot_file.relative_to(root)).replace("\\", "/")
+        code, errs = graph_sync_output_paths(
+            sid, chapter_out=ch_rel, snapshot=snap_rel
+        )
+        if code != 0:
+            return {
+                "exit_code": code,
+                "errors": errs or ["graph_sync_output_paths failed"],
+            }
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     config.session_id_file.write_text(sid + "\n", encoding="utf-8")

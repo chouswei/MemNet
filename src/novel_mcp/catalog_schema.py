@@ -270,6 +270,9 @@ class CatalogSchema:
     universe_label: str = "story universe"
     content_rules: str = ""
     expand_extra_rules: str = ""
+    kind_hints: dict[str, str] = field(default_factory=dict)
+    art_name_suffixes: tuple[str, ...] = ()
+    forbidden_art_names: tuple[str, ...] = ()
     high_burn_substrings: tuple[str, ...] = ()
     burn_usr_key: str | None = "art_neili_burn"
     burn_usr_id: str = "USR49"
@@ -309,6 +312,9 @@ class CatalogSchema:
             universe_label=str(data.get("universe_label", "story universe")),
             content_rules=str(data.get("content_rules", "")),
             expand_extra_rules=str(data.get("expand_extra_rules", "")),
+            kind_hints=dict(data.get("kind_hints") or {}),
+            art_name_suffixes=tuple(data.get("art_name_suffixes") or ()),
+            forbidden_art_names=tuple(data.get("forbidden_art_names") or ()),
             high_burn_substrings=tuple(data.get("high_burn_substrings") or ()),
             burn_usr_key=data.get("burn_usr_key"),
             burn_usr_id=str(data.get("burn_usr_id", "USR49")),

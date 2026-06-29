@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from novel_mcp.chapter_io import last_committed_paragraph
+from novel_mcp.play_context import best_continuation_anchor
 from novel_mcp.play_context import (
     player_beat_prepare,
     prose_beat_prepare,
@@ -22,6 +23,36 @@ def test_last_committed_paragraph(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert last_committed_paragraph(ch) == "第二段結尾。"
+
+
+def test_best_continuation_anchor_prefers_primary(tmp_path: Path) -> None:
+    legacy = tmp_path / "legacy"
+    world = tmp_path / "world" / "chapters"
+    legacy.mkdir(parents=True)
+    world.mkdir(parents=True)
+    (legacy / "第001回.md").write_text(
+        "# 第一回\n\n舊路徑：很長很長很長的風箱在旁呼哧作響。",
+        encoding="utf-8",
+    )
+    (world / "第001回.md").write_text(
+        "# 第一回\n\n新路徑：你踏出一步。",
+        encoding="utf-8",
+    )
+    anchor = best_continuation_anchor(tmp_path, 1, "world/chapters", "legacy")
+    assert anchor == "新路徑：你踏出一步。"
+
+
+def test_best_continuation_anchor_falls_back_when_primary_empty(tmp_path: Path) -> None:
+    legacy = tmp_path / "legacy"
+    world = tmp_path / "world" / "chapters"
+    legacy.mkdir(parents=True)
+    world.mkdir(parents=True)
+    (legacy / "第001回.md").write_text(
+        "# 第一回\n\n舊路徑：風箱在旁呼哧作響。",
+        encoding="utf-8",
+    )
+    anchor = best_continuation_anchor(tmp_path, 1, "world/chapters", "legacy")
+    assert anchor == "舊路徑：風箱在旁呼哧作響。"
 
 
 def test_player_beat_prepare_bad_choice() -> None:

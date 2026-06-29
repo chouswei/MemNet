@@ -14,6 +14,7 @@ from mcp_config import SERVE_HOST, SERVE_PORT
 from memnet_mcp.client import run_memnet
 
 from novel_mcp.play_context import prose_beat_prepare, read_beat_stage, script_beat_prepare
+from novel_mcp.setup_graph import graph_sync_output_paths, read_usr_by_key
 
 _LEGACY_SESSION = repo_root() / "applications" / "shenjia_caifa" / "session_id.txt"
 
@@ -131,6 +132,20 @@ def fail_result(
     }
 
 
+def ensure_slot_graph_paths(config: NovelAppConfig, session: str) -> None:
+    """Align USR14/USR15 with world slot dirs when graph still points at legacy paths."""
+    if "worlds" not in config.output_dir.parts:
+        return
+    root = repo_root()
+    ch_rel = str(config.chapter_dir.relative_to(root)).replace("\\", "/")
+    snap_rel = str(config.snapshot_file.relative_to(root)).replace("\\", "/")
+    cur_ch = read_usr_by_key(session, "chapter_out")
+    cur_snap = read_usr_by_key(session, "snapshot")
+    if cur_ch == ch_rel and cur_snap == snap_rel:
+        return
+    graph_sync_output_paths(session, chapter_out=ch_rel, snapshot=snap_rel)
+
+
 def run_beat(
     config: NovelAppConfig,
     session: str,
@@ -146,11 +161,16 @@ def run_beat(
     snap_rel = _snap_rel(config)
     ch_dir = str(config.chapter_dir.relative_to(repo_root())).replace("\\", "/")
 
+    ensure_slot_graph_paths(config, session)
+
+    finish_chapter = {"chapter_dir": ch_dir, "chp_num": 1, "snapshot_file": snap_rel}
+
     run_script = not prose_only
     if continue_beat and read_beat_stage(session) == "prose":
         run_script = False
 
     script_prep: dict[str, Any] = {}
+    player_carry: dict[str, Any] = {}
     if run_script:
         script_prep = script_beat_prepare(
             session=session,
@@ -160,8 +180,24 @@ def run_beat(
             snapshot_file=snap_rel,
             chapter_dir=ch_dir,
         )
+        script_prep.update(finish_chapter)
         if script_prep.get("exit_code", 1) != 0:
             return None, int(script_prep.get("exit_code", 2))
+        if choice is not None:
+            last = read_last_beat(config)
+            if last:
+                opts = last.get("options") or []
+                idx = choice - 1
+                if 0 <= idx < len(opts):
+                    text = str(opts[idx] or "").strip()
+                    if text:
+                        script_prep.setdefault("player", {})["choice_text"] = text
+            player_carry = {
+                "choice": choice,
+                "choice_text": script_prep.get("player", {}).get("choice_text", ""),
+            }
+        elif steering:
+            player_carry = {"steering": steering}
         _emit_phase(on_phase, "prepare_script")
 
     if run_script:
@@ -183,6 +219,11 @@ def run_beat(
         snapshot_file=snap_rel,
         chapter_dir=ch_dir,
     )
+    prose_prep.update(finish_chapter)
+    if player_carry:
+        prose_prep["player"] = player_carry
+    if script_prep.get("continuation_anchor"):
+        prose_prep["continuation_anchor"] = script_prep["continuation_anchor"]
     if prose_prep.get("exit_code", 1) != 0:
         return None, int(prose_prep.get("exit_code", 2))
     _emit_phase(on_phase, "prepare_prose")
@@ -199,4 +240,14 @@ def run_beat(
             return None, code
         result["exit_code"] = code
         result["error"] = "; ".join(errors)
+    elif result is not None:
+        from novel_mcp.player_setup import read_player_setup
+
+        setup = read_player_setup(session)
+        guidance = setup.get("setup_guidance") or {}
+        result.setdefault("format_play", guidance.get("format_play") or "【劇情】")
+        if choice is not None:
+            result["player_choice"] = choice
+            if player_carry.get("choice_text"):
+                result["player_choice_text"] = player_carry["choice_text"]
     return result, code

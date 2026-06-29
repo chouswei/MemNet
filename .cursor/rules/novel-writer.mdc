@@ -27,6 +27,7 @@ Docs: [`application-notes/llm-novel-cursor-sdk.md`](application-notes/llm-novel-
 - Show `NOVEL_BEAT_RESULT` only when reproducing CLI output
 - **Forbidden:** hand-draft `@OLN`/`@SBD`/`@SCR`/prose and call `beat_turn_finish` from chat (system tests only)
 - `beat_turn_*` / `script_beat_prepare` / `prose_beat_prepare` — orchestrator internals; not operator play
+- **World lore in seed only:** 魂穿、靈魂圖書館、文風、選項槽語意等 → seed `@USR`/`@LAW`/`@GLO`；`presentation.contracts` 注入 prompt。禁在 `beat_prompt.py` 等應用層 hardcode 世界設定。
 
 ## Prerequisites
 

@@ -36,6 +36,20 @@ def _name_field(schema: CatalogSchema) -> str:
     return "name"
 
 
+def validate_art_name(name: str, schema: CatalogSchema) -> list[str]:
+    """Reject single-move labels and generic idioms when schema configures rules."""
+    errors: list[str] = []
+    nm = (name or "").strip()
+    if not nm:
+        return ["name empty"]
+    if nm in schema.forbidden_art_names:
+        errors.append(f"{nm}: forbidden single-move or idiom name")
+    suffixes = schema.art_name_suffixes
+    if suffixes and not any(nm.endswith(s) for s in suffixes):
+        errors.append(f"{nm}: name must end with one of {','.join(suffixes[:8])}… (full art)")
+    return errors
+
+
 def validate_art_dict(art: dict[str, str], schema: CatalogSchema) -> list[str]:
     errors: list[str] = []
     aid = art.get("id", "")
@@ -46,6 +60,7 @@ def validate_art_dict(art: dict[str, str], schema: CatalogSchema) -> list[str]:
     name = art.get(name_key, "").strip()
     if not name or len(name) > schema.name_max_len:
         errors.append(f"{aid}: name must be 1-{schema.name_max_len} chars")
+    errors.extend(f"{aid}: {e}" for e in validate_art_name(name, schema))
     kind = art.get(schema.kind_field, "")
     if kind not in schema.valid_kinds:
         errors.append(f"{aid}: {schema.kind_field} not in allowed kinds")
@@ -186,6 +201,11 @@ def build_expand_prompt(
     slot_rules = "; ".join(
         f"{k}→{v}" for k, v in sorted(schema.kind_to_slot.items())
     )
+    kind_hints = ""
+    if schema.kind_hints:
+        kind_hints = "\n".join(
+            f"- {k}：{v}" for k, v in sorted(schema.kind_hints.items())
+        )
     system = f"""你是「{schema.universe_label}」的功法／能力譜資料生成器（僅資料列，非正文）。
 規則：
 - 只輸出 @ART: 開頭的 wire 列，每行一項；禁 markdown、禁解釋、禁 JSON
@@ -193,8 +213,10 @@ def build_expand_prompt(
 - {schema.kind_field} ∈ {{{kinds}}}；{schema.tier_field} ∈ {{{tiers}}}
 - {schema.coeff_field} 須落在對應梯帶：{"；".join(band_lines)}
 - {schema.content_rules}
-- 槽位：{slot_rules}
-- 新 id 勿與既有重複；名稱勿重複"""
+- 槽位：{slot_rules}"""
+    if kind_hints:
+        system += f"\n- 門類含義：\n{kind_hints}"
+    system += "\n- 新 id 勿與既有重複；名稱勿重複"
     if schema.expand_extra_rules:
         system += f"\n- {schema.expand_extra_rules}"
     user = f"""既有 id：{existing_ids}

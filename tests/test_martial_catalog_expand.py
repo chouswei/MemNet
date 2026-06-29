@@ -7,6 +7,7 @@ from novel_mcp.martial_catalog_expand import (
     merge_arts,
     parse_llm_catalog_text,
     validate_art_dict,
+    validate_art_name,
 )
 
 
@@ -21,7 +22,7 @@ def _sample_art(
     name_key = schema.wire_columns[1]
     return {
         "id": f"ART{n:02d}",
-        name_key: f"測試武功{n}",
+        name_key: f"測試{n:02d}拳法",
         schema.kind_field: kind,
         schema.tier_field: tier,
         schema.coeff_field: k,
@@ -30,6 +31,14 @@ def _sample_art(
 
 def test_validate_art_dict_ok(wuxia_schema: CatalogSchema) -> None:
     assert validate_art_dict(_sample_art(25, wuxia_schema), wuxia_schema) == []
+
+
+def test_validate_art_name_rejects_single_move(wuxia_schema: CatalogSchema) -> None:
+    assert any("forbidden" in e for e in validate_art_name("劈空掌", wuxia_schema))
+
+
+def test_validate_art_name_requires_art_suffix(wuxia_schema: CatalogSchema) -> None:
+    assert any("full art" in e for e in validate_art_name("一躍十丈", wuxia_schema))
 
 
 def test_validate_art_dict_bad_coeff(wuxia_schema: CatalogSchema) -> None:
@@ -78,7 +87,7 @@ def test_expand_martial_catalog_mock_llm(wuxia_schema: CatalogSchema) -> None:
 
     base = [_sample_art(i, wuxia_schema, kind="武學") for i in range(1, 16)]
     llm_block = "\n".join(
-        f"@ART: ART{i:02d}|測試武功{i}|武學|二流|0.95|金庸|常駐"
+        f"@ART: ART{i:02d}|青城{i:02d}劍法|武學|二流|0.95|金庸|常駐"
         for i in range(16, 25)
     )
 

@@ -54,7 +54,11 @@ window.NovelPlay = (function () {
       return;
     }
     const fmt = beat.format_play || window.NovelApp.formatPlay || "【劇情】";
-    narrativeEl().textContent = fmt + "\n" + (beat.prose || "");
+    const beatTag =
+      beat.beat_index && beat.beat_index >= 1
+        ? `（第${beat.beat_index}拍）`
+        : "";
+    narrativeEl().textContent = fmt + beatTag + "\n" + (beat.prose || "");
     const hud = (beat.hud || "").trim();
     if (hud) {
       hudEl().style.display = "";
