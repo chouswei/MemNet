@@ -149,6 +149,10 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
         remove_entry(session_id)
         purge_expired(caps)
         raise MemNetError("session_expired", session_id, exit_code=2)
+    # Sliding TTL: extend lifetime on any successful access (prevents silent expiry for long-lived sessions)
+    original_ttl = entry.meta.ttl_minutes
+    new_expires = utc_now() + timedelta(minutes=original_ttl)
+    entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
     purge_expired(caps)
     return SessionStore(session_id, caps)
 
