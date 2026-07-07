@@ -150,10 +150,16 @@ def _ingest_lines(
             emit_stdout(emit_record(rec, ss.tag_map))
         emit_stderr_summary(len(parsed), 0)
         return 0
-    backup = ss.store.to_jsonl_rows()
+    # Incremental rollback journal (O(batch) instead of O(store))
+    added: list[str] = []
+    replaced: list[Record] = []
     try:
         for line, rec in parsed:
             old = ss.store.get(rec.id)
+            if old is None:
+                added.append(rec.id)
+            else:
+                replaced.append(old)
             old_status = old.fields.get("status") if old and old.tag == "TSK" else None
             apply = ss.store.add_row if mode == "add" else ss.store.replace_row
             warns = apply(
@@ -169,7 +175,13 @@ def _ingest_lines(
             emit_stdout(emit_record(rec, ss.tag_map))
         ss.mark_written()
     except MemNetError as exc:
-        ss.store.load_records([Record.model_validate(r) for r in backup])
+        for rid in added:
+            ss.store.delete(rid)
+        for old in replaced:
+            # Restore without re-validating caps/relations (internal rollback path)
+            ss.store.by_id[old.id] = old
+            if old.tag == "EDG":
+                ss.store._index_edge(old)
         _handle_error(exc)
     emit_stderr_summary(len(parsed), 0)
     return 0
