@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import timedelta
 from pathlib import Path
@@ -125,7 +126,21 @@ def load_snapshot(
             "limit_exceeded",
             f"sessions|{count() + 1}/{caps.max_sessions}",
         )
-    text = Path(path).read_text(encoding="utf-8")
+    try:
+        text = Path(path).read_text(encoding="utf-8")
+    except FileNotFoundError:
+        cwd = os.getcwd()
+        raise MemNetError(
+            "snapshot_not_found",
+            f"{path}|serve_cwd={cwd}",
+            hint="path is resolved on the memnet serve host; use a path visible there or stream via session_load_lines",
+        ) from None
+    except OSError as exc:
+        cwd = os.getcwd()
+        raise MemNetError(
+            "snapshot_io_error",
+            f"{type(exc).__name__}|{path}|serve_cwd={cwd}",
+        ) from exc
     return load_snapshot_text(
         text,
         caps=caps,
