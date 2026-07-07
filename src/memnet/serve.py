@@ -1,4 +1,13 @@
-"""Local TCP server — holds the in-memory session registry for CLI clients."""
+"""Local TCP server — holds the in-memory session registry for CLI clients.
+
+Low-level TCP primitives:
+- send_command: send argv+stdin to a running memnet serve and return the JSON envelope.
+- probe: quick reachability check.
+- run_serve: start the TCP server.
+
+Most callers should use memnet.serve_client.dispatch (the canonical public client API)
+which handles inline vs TCP routing, probe, and error surfacing.
+"""
 
 from __future__ import annotations
 

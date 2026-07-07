@@ -1,4 +1,13 @@
-"""Route CLI invocations to memnet serve or run in-process."""
+"""Route CLI invocations to memnet serve or run in-process.
+
+Canonical client entry point: dispatch(argv=None) -> int
+
+dispatch decides whether to run inline (stateless commands, test mode, or when no serve is
+running) or to proxy via TCP to a running memnet serve. It is the supported public API for
+all CLI/MCP consumers.
+
+Low-level TCP helpers (send_command, probe) live in memnet.serve and are re-exported here
+for advanced clients that need direct control.
 
 from __future__ import annotations
 
@@ -52,3 +61,7 @@ def _emit_proxy_response(response: dict) -> int:
     if stderr:
         sys.stderr.write(stderr if stderr.endswith("\n") else stderr + "\n")
     return int(response.get("exit_code", 1))
+
+
+# Re-export low-level primitives so advanced clients have a single canonical import path.
+from memnet.serve import probe, send_command  # noqa: F401
