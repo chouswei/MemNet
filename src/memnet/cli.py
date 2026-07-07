@@ -665,7 +665,10 @@ def query_walk(
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``."""
+    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``.
+
+    For listing all rows of a tag (enumeration), use ``read list --tag T`` instead.
+    """
     ss, lock = _load_session(session)
     with lock:
         if not anchor:

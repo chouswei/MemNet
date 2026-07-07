@@ -161,7 +161,10 @@ async def query_walk(
     max_rows: int = 50,
     session: str | None = None,
 ) -> str:
-    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``."""
+    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``.
+
+    For enumeration by tag, prefer the dedicated ``read_list`` tool (or CLI ``read list --tag``).
+    """
     argv = [
         "query",
         "walk",
@@ -213,6 +216,29 @@ async def update(
 async def read_get(id: str, session: str | None = None) -> str:
     """Fetch a single row by id."""
     return await _run(["read", "get", "--id", id], session=session)
+
+
+@mcp.tool()
+async def read_list(
+    tag: str | None = None,
+    active_only: bool = False,
+    where: list[str] | None = None,
+    session: str | None = None,
+) -> str:
+    """List rows, optionally filtered by tag, active state, or field=value conditions.
+
+    Use this for enumeration ("all rows of tag X") without needing prior IDs.
+    `where` items are "field=value" or "field=*glob*"; repeat for AND.
+    """
+    argv = ["read", "list"]
+    if tag:
+        argv.extend(["--tag", tag])
+    if active_only:
+        argv.append("--active-only")
+    if where:
+        for w in where:
+            argv.extend(["--where", w])
+    return await _run(argv, session=session)
 
 
 @mcp.tool()
