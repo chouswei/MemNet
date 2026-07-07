@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.31] — 2026-07-07
+
+### Fixed
+- **registry.py** — bare `get`/`remove` renamed to `get_entry`/`remove_entry` to avoid shadowing builtins (#1).
+- **serve / serve_client surface** — `dispatch` declared canonical public client API; low-level TCP helpers documented as internal (#2).
+- **snapshot load on remote serve** — `FileNotFoundError` now emits `snapshot_not_found|<path>|serve_cwd=<...>` so cross-host path mismatches are diagnosable (#3).
+- **ingest hot path** — full-store `to_jsonl_rows` backup replaced by O(batch) incremental journal (added ids + replaced Records); rollback cost now proportional to batch size (#4).
+- **serve TCP path exit_code** — `_handle_request` now captures `app(...)` return value for `typer.Exit`, ensuring `exit_code` is non-zero when per-line errors (FIELD_COUNT, etc.) occur (#5).
+- **read enumeration** — added `read_list` MCP tool (and documented `read list --tag`) as the supported path for "all rows of tag X"; `query_walk` docstrings redirect to it (#7).
+- **TTL expiry** — `get_session` now implements sliding TTL (extends `expires_at` by original `ttl_minutes` on every access), eliminating silent expiry for long-lived sessions (#8).
+
+### Changed
+- **TagMap immutability** — confirmed by design: schema is fixed at session open. Runtime tag addition is unsupported and dangerous; closed #6 with rationale.
+
 ## [0.2.30] — 2026-06-30
 
 ### Added
