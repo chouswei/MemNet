@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.32] — 2026-07-07
+
+### Fixed
+- **Critical: `memnet/serve_client.py` unterminated module docstring** — the 0.2.31 client-API doc update (#2) added a closing paragraph but omitted the closing `"""`, wrapping `from __future__ import annotations` inside the string literal. Every `memnet` invocation (including `--help`) raised `SyntaxError` at import time. 0.2.31 was completely unusable (#9).
+- **Regression coverage** — added `tests/test_packaging_sanity.py`: `ast.parse`'s every file under `src/`, imports `memnet`/`memnet_mcp` top-level modules, and walks+imports every submodule of `memnet` via `pkgutil.walk_packages`. This class of bug (valid at edit time, broken at import time, never exercised by any existing test) can no longer ship silently.
+
+### Note
+- If you installed `memnet-llm==0.2.31`, upgrade immediately: `pip install -U memnet-llm==0.2.32`.
+
 ## [0.2.31] — 2026-07-07
 
 ### Fixed

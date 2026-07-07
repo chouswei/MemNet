@@ -8,6 +8,7 @@ all CLI/MCP consumers.
 
 Low-level TCP helpers (send_command, probe) live in memnet.serve and are re-exported here
 for advanced clients that need direct control.
+"""
 
 from __future__ import annotations
 
