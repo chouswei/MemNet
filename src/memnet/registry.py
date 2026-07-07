@@ -28,12 +28,12 @@ def register(session_id: str, entry: SessionEntry) -> None:
         _sessions[session_id] = entry
 
 
-def get(session_id: str) -> SessionEntry | None:
+def get_entry(session_id: str) -> SessionEntry | None:
     with _registry_lock:
         return _sessions.get(session_id)
 
 
-def remove(session_id: str) -> bool:
+def remove_entry(session_id: str) -> bool:
     with _registry_lock:
         return _sessions.pop(session_id, None) is not None
 

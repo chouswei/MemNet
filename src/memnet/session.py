@@ -11,7 +11,7 @@ from memnet.config import Caps, default_ttl_minutes, examples_dir
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta
-from memnet.registry import SessionEntry, clear_all, count, get, list_entries, purge_before, register, remove
+from memnet.registry import SessionEntry, clear_all, count, get_entry, list_entries, purge_before, register, remove_entry
 from memnet.tag_map import TagMap, load_map_from_file, load_map_from_lines
 
 _now_override: datetime | None = None
@@ -47,7 +47,7 @@ class SessionStore:
     def __init__(self, session_id: str, caps: Caps | None = None) -> None:
         self.session_id = session_id
         self.caps = caps or Caps()
-        entry = get(session_id)
+        entry = get_entry(session_id)
         if entry is None:
             raise MemNetError("session_not_found", self.session_id, exit_code=2)
         self._entry = entry
@@ -140,13 +140,13 @@ def open_session(
 
 def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     caps = caps or Caps()
-    entry = get(session_id)
+    entry = get_entry(session_id)
     if entry is None:
         purge_expired(caps)
         raise MemNetError("session_not_found", session_id, exit_code=2)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
-        remove(session_id)
+        remove_entry(session_id)
         purge_expired(caps)
         raise MemNetError("session_expired", session_id, exit_code=2)
     purge_expired(caps)
@@ -173,7 +173,7 @@ def close_session(session_id: str, caps: Caps | None = None) -> None:
     caps = caps or Caps()
     ss = get_session(session_id, caps)
     with ss.lock(exclusive=True):
-        if not remove(session_id):
+        if not remove_entry(session_id):
             raise MemNetError("session_not_found", session_id, exit_code=2)
 
 
