@@ -45,7 +45,9 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         sys.stdin = io.StringIO(stdin_text)
     code = 0
     try:
-        app(argv, prog_name="memnet", standalone_mode=False)
+        result = app(argv, prog_name="memnet", standalone_mode=False)
+        if isinstance(result, int) and result != 0:
+            code = result
     except SystemExit as exc:
         code = int(exc.code) if isinstance(exc.code, int) else 1
     except Exception as exc:
