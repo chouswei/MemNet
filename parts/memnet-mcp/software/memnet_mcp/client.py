@@ -1,13 +1,12 @@
-"""Run MemNet CLI commands via serve TCP or inline test mode."""
+"""Run MemNet CLI commands via in-process engine (primary) or TCP fallback."""
 
 from __future__ import annotations
 
-import io
 import json
 import os
-import sys
 from dataclasses import dataclass
 
+from memnet.in_process_engine import run_argv
 from memnet.serve import probe, send_command
 from memnet_mcp.parse import extract_errors, extract_session_id
 
@@ -101,30 +100,17 @@ def _append_session(argv: list[str], session: str | None) -> list[str]:
     return out
 
 
-def _run_inline(argv: list[str], *, stdin: str | None) -> dict:
-    os.environ.setdefault("MEMNET_TEST_INLINE", "1")
-    os.environ["MEMNET_SERVE_INTERNAL"] = "1"
-    from memnet.cli import app
-
-    out = io.StringIO()
-    err = io.StringIO()
-    old_out, old_err, old_in = sys.stdout, sys.stderr, sys.stdin
-    sys.stdout, sys.stderr = out, err
-    if stdin:
-        sys.stdin = io.StringIO(stdin)
-    code = 0
-    try:
-        result = app(argv, prog_name="memnet", standalone_mode=False)
-        if isinstance(result, int) and result != 0:
-            code = result
-    except SystemExit as exc:
-        code = int(exc.code) if isinstance(exc.code, int) else 1
-    except Exception as exc:
-        code = 1
-        err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
-    finally:
-        sys.stdout, sys.stderr, sys.stdin = old_out, old_err, old_in
-    return {"exit_code": code, "stdout": out.getvalue(), "stderr": err.getvalue()}
+def _transport() -> str:
+    """inprocess (default) | tcp — MN-REQ-06.1 primary / 06.3 fallback."""
+    explicit = os.environ.get("MEMNET_MCP_TRANSPORT", "").strip().lower()
+    if explicit in ("tcp", "serve"):
+        return "tcp"
+    if explicit in ("inprocess", "inline", "local"):
+        return "inprocess"
+    # Legacy test flag forces in-process
+    if os.environ.get("MEMNET_TEST_INLINE"):
+        return "inprocess"
+    return "inprocess"
 
 
 def run_memnet(
@@ -133,16 +119,19 @@ def run_memnet(
     stdin: str | None = None,
     session: str | None = None,
 ) -> MemNetResponse:
-    """Execute a memnet CLI argv list; return structured wire output."""
+    """Execute a memnet CLI argv list; return structured wire output.
+
+    Default: InProcessEngine. Set MEMNET_MCP_TRANSPORT=tcp to use TcpServeBridge.
+    """
     session = session or os.environ.get("MEMNET_SESSION")
     full_argv = _append_session(argv, session)
+    mode = _transport()
 
-    if os.environ.get("MEMNET_TEST_INLINE"):
-        raw = _run_inline(full_argv, stdin=stdin)
-        return MemNetResponse.from_raw(raw, session_hint=session)
+    if mode == "tcp":
+        if probe():
+            raw = send_command(full_argv, stdin=stdin)
+            return MemNetResponse.from_raw(raw, session_hint=session)
+        return MemNetResponse.serve_required(session_hint=session)
 
-    if probe():
-        raw = send_command(full_argv, stdin=stdin)
-        return MemNetResponse.from_raw(raw, session_hint=session)
-
-    return MemNetResponse.serve_required(session_hint=session)
+    raw = run_argv(full_argv, stdin=stdin)
+    return MemNetResponse.from_raw(raw, session_hint=session)

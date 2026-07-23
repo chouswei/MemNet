@@ -27,8 +27,9 @@ def test_mission_warm_hides_settled(memnet_temp, schema_file, workflow_file):
         ["query", "warm", "--anchor", "PLR01", "--session", sid],
     )
     assert warm.exit_code == 0
-    assert "@TSK: T01" not in warm.stdout
-    assert "@LAW:" in warm.stdout
+    assert "T01" not in warm.stdout or "delete_on_settle" not in warm.stdout
+    assert "[T01]" not in warm.stdout
+    assert "LAW01" in warm.stdout or "## Laws" in warm.stdout
 
     still = runner.invoke(app, ["read", "get", "--id", "T01", "--session", sid])
     assert still.exit_code == 0

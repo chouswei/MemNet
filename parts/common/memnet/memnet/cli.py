@@ -11,7 +11,6 @@ import typer
 
 from memnet import __version__
 from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, serve_host, serve_port
-from memnet.context_view import format_walk_hop
 from memnet.exceptions import MemNetError
 from memnet.filter import parse_wheres
 from memnet.help_text import (
@@ -33,7 +32,6 @@ from memnet.housekeep import (
 )
 from memnet.serve import run_serve
 from memnet.snapshot import load_snapshot, write_snapshot
-from memnet.models import Record
 from memnet.output import (
     emit_err,
     emit_record,
@@ -51,8 +49,11 @@ from memnet.session import (
     purge_expired,
     resolve_session_id,
 )
-from memnet.tag_map import example_ingest_line, parse_line
+from memnet.mutate_gate import MutateGate
+from memnet.pin_map_composer import PinMapComposer
+from memnet.tag_map import example_ingest_line
 from memnet.warnings import emit_session_warnings
+from memnet.walk_query import WalkQuery
 
 
 def emit_del(record_id: str, tag: str) -> None:
@@ -111,15 +112,6 @@ def _load_session(session: str | None, *, exclusive: bool = False):
     return ss, ss.lock(exclusive=False)
 
 
-def _mission_settled_warn(old_status: str | None, record) -> None:
-    if record.tag == "TSK" and record.fields.get("status") == "settled":
-        if old_status != "settled":
-            emit_wrn(
-                "mission_settled",
-                f"{record.id}|next read use query warm --anchor <focus>",
-            )
-
-
 def _ingest_lines(
     ss,
     lines: list[str],
@@ -129,61 +121,32 @@ def _ingest_lines(
     allow_new_relation: bool = False,
     agent: str | None = None,
 ) -> int:
-    caps = _caps()
     agent = agent or os.environ.get("MEMNET_AGENT")
-    parsed = []
-    errors: list[MemNetError] = []
-    for line in lines:
-        try:
-            rec = parse_line(line, ss.tag_map, caps)
-            parsed.append((line, rec))
-        except MemNetError as exc:
-            errors.append(exc)
-    if errors:
-        for exc in errors:
-            emit_err(exc)
-        emit_stderr_summary(0, len(errors))
-        raise typer.Exit(1)
+    gate = MutateGate(ss)
+    try:
+        result = gate.apply(
+            lines,
+            mode=mode,
+            dry_run=dry_run,
+            allow_new_relation=allow_new_relation,
+            agent=agent,
+        )
+    except MemNetError as exc:
+        emit_err(exc)
+        emit_stderr_summary(0, 1)
+        raise typer.Exit(exc.exit_code) from exc
     if dry_run:
         emit_stderr("DRY-RUN")
-        for _line, rec in parsed:
-            emit_stdout(emit_record(rec, ss.tag_map))
-        emit_stderr_summary(len(parsed), 0)
-        return 0
-    # Incremental rollback journal (O(batch) instead of O(store))
-    added: list[str] = []
-    replaced: list[Record] = []
-    try:
-        for line, rec in parsed:
-            old = ss.store.get(rec.id)
-            if old is None:
-                added.append(rec.id)
-            else:
-                replaced.append(old)
-            old_status = old.fields.get("status") if old and old.tag == "TSK" else None
-            apply = ss.store.add_row if mode == "add" else ss.store.replace_row
-            warns = apply(
-                rec,
-                agent=agent,
-                allow_new_relation=allow_new_relation,
-                relations=ss.relations,
-            )
-            for w in warns:
-                parts = w.split("|", 1)
-                emit_wrn(parts[0], parts[1] if len(parts) > 1 else "")
-            _mission_settled_warn(old_status, rec)
-            emit_stdout(emit_record(rec, ss.tag_map))
-        ss.mark_written()
-    except MemNetError as exc:
-        for rid in added:
-            ss.store.delete(rid)
-        for old in replaced:
-            # Restore without re-validating caps/relations (internal rollback path)
-            ss.store.by_id[old.id] = old
-            if old.tag == "EDG":
-                ss.store._index_edge(old)
-        _handle_error(exc)
-    emit_stderr_summary(len(parsed), 0)
+    for w in result.warnings:
+        parts = w.split("|", 1)
+        emit_wrn(parts[0], parts[1] if len(parts) > 1 else "")
+    for line in result.ack_lines:
+        emit_stdout(line)
+    # Assigned ids (Tier A NEW mint) as compact stderr hint for agents
+    if result.assigned.mapping:
+        for key, rid in result.assigned.mapping.items():
+            emit_stderr(f"@ID: {key}|{rid}")
+    emit_stderr_summary(len(result.ack_lines), 0)
     return 0
 
 
@@ -554,7 +517,28 @@ def _query_context(
     max_rows: int,
     active_only: bool,
     require_anchor: bool,
+    tier_a: bool = False,
 ) -> None:
+    if tier_a:
+        composer = PinMapComposer(ss)
+        try:
+            _rows, text = composer.compose(
+                anchor=anchor,
+                depth=depth,
+                max_rows=max_rows,
+                active_only=active_only,
+                require_anchor=require_anchor,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
+        if text:
+            for line in text.splitlines():
+                emit_stdout(line)
+        elif not anchor:
+            emit_wrn("no_anchor", "store has no nodes")
+        return
+
     if require_anchor and not anchor:
         _handle_error(MemNetError("no_anchor", "query warm requires --anchor"))
     stale_warnings: list = []
@@ -646,6 +630,7 @@ def query_warm(
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """Live pin map (legacy alias for PinMapComposer). Emits Tier A Write=display."""
     ss, lock = _load_session(session)
     with lock:
         _query_context(
@@ -655,6 +640,7 @@ def query_warm(
             max_rows=max_rows,
             active_only=True,
             require_anchor=True,
+            tier_a=True,
         )
 
 
@@ -671,16 +657,12 @@ def query_walk(
     """
     ss, lock = _load_session(session)
     with lock:
-        if not anchor:
-            _handle_error(MemNetError("no_anchor", "query walk requires --anchor"))
-        hops = ss.store.context_walk_hops(
-            anchor_id=anchor,
-            depth=depth,
-            max_rows=max_rows,
-            active_only=True,
-        )
-        for src, rel, dst in hops:
-            emit_stdout(format_walk_hop(src, rel, dst))
+        walk = WalkQuery(ss)
+        try:
+            for line in walk.hops(anchor=anchor or "", depth=depth, max_rows=max_rows):
+                emit_stdout(line)
+        except MemNetError as exc:
+            _handle_error(exc)
 
 
 @housekeep_app.command("stats")

@@ -1,12 +1,13 @@
 # parts/common/memnet
 
-Shared MemNet core library (Python package `memnet`): CLI, serve, wire format, session graph.
+Shared MemNet core library (Python package `memnet`): GraphStore, TierACodec, MutateGate, PinMapComposer, CLI, TCP serve.
 
 | Item | Value |
 |------|-------|
-| SysML type | (deferred — no deploy model yet) |
+| SysML | `MemNetCoreLibrary` in `sysml-models/models/deploy.sysml` |
 | Role | `parts/common` shared software |
 | Package | `parts/common/memnet/memnet/` |
+| Module map | [`parts/README.md`](../../README.md) |
 | Examples | `parts/common/memnet/memnet/examples/` |
 
-See root `README.md` and `docs/LLM-GUIDE.md`.
+See root `README.md` and `docs/grammar/memnet-grammar-design.md`.

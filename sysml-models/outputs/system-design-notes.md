@@ -17,7 +17,7 @@ Requirements and grammar doctrine win over today's Python layout. Novel-writer i
 
 ```text
 MemNetSystem
-├── MemNetCoreLibrary              → parts/common/memnet (evolving)
+├── MemNetCoreLibrary              → parts/common/memnet
 │   ├── TierACodec                 // SSOT parse/emit Write=display
 │   ├── InProcessEngine            // primary binding (MN-REQ-06.1)
 │   │   └── SessionLifecycle
@@ -31,7 +31,7 @@ MemNetSystem
 │   │       ├── WalkQuery
 │   │       ├── HousekeepSettle
 │   │       └── SnapshotStore
-│   ├── LocalIpcGateway            // 06.2 — part present; LocalIpcFlow UNALLOCATED
+│   ├── LocalIpcGateway            // 06.2 — stub; LocalIpcFlow UNALLOCATED
 │   ├── TcpServeBridge             // TCP localhost migration (06.3)
 │   └── CliFacade                  // ipcOut ready; not wired on MemNetSystem yet
 ├── MemNetMcpServer                → parts/memnet-mcp
@@ -47,6 +47,8 @@ MemNetSystem
 (not nested) LegacyPipeImport     // DEPRECATED import-once
 ```
 
+Code module map: [`parts/README.md`](../../parts/README.md).
+
 ## Behaviours
 
 | State machine | Role |
@@ -60,29 +62,29 @@ MemNetSystem
 
 | Connection | From → To | Status |
 |------------|-----------|--------|
-| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary) |
-| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (migration) |
-| LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** until IPC implemented |
-| GraphRecordFlow | TierACodec → MutateGate → GraphStore | Nested under SessionLifecycle |
-| LivePinMapFlow / TierAFlow | PinMapComposer / facades | Live pin map Write=display |
-| SessionSnapshotFlow | SnapshotStore ↔ file | MN-REQ-01 |
-| PinMapFlow | PinMapIngest_* | MN-REQ-11 selective pins |
+| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary; MCP default) |
+| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (`MEMNET_MCP_TRANSPORT=tcp`) |
+| LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** |
+| GraphRecordFlow | TierACodec → MutateGate → GraphStore | **Wired** via MutateGate |
+| LivePinMapFlow / TierAFlow | PinMapComposer / facades | **Wired** (`query warm` → Tier A) |
+| SessionSnapshotFlow | SnapshotStore ↔ file | MN-REQ-01 (still pipe snapshot body) |
+| PinMapFlow | PinMapIngest_* | MN-REQ-11 stubs only |
 
 ## As-is → target map
 
-| Target part | Today's module(s) | Gap |
-|-------------|-------------------|-----|
-| GraphStore | `mem_store.py`, `models.py` | Clarity rename |
-| SchemaRegistry | `tag_map.py`, `fixed_tags.py` | Positional TagMap is legacy |
-| TierACodec | `tier_a.py` | Pure-Python twin; ANTLR deferred |
-| LegacyPipeImport | `wire.py` pipe | **Not target** — import-once only |
-| IdAllocator | (pending) | NEW goldfish + deterministic pin keys |
-| MutateGate | cli ingest | Tier A + NEW (skip mint if none) |
-| PinMapComposer | `query_warm` + output | Emit Tier A `LivePinMap` |
-| InProcessEngine | MCP inline / cli | Primary |
-| LocalIpcGateway | — | Stub; **LocalIpcFlow unallocated** |
-| TcpServeBridge | `serve.py` | Migration fallback |
-| PinMapIngest_* | skills / future | Roadmap; no client NEW for source pins |
+| Target part | Today's module(s) | Status (this notch) |
+|-------------|-------------------|---------------------|
+| GraphStore | `mem_store.py` + `graph_store.py` alias | Aliased |
+| SchemaRegistry | `tag_map.py` + `schema_registry.py` | Aliased; TagMap still positional for pipe |
+| TierACodec | `tier_a.py` / `tier_a_codec.py` | Pure-Python twin; ANTLR deferred |
+| LegacyPipeImport | `legacy_pipe_import.py` | Import-once path inside MutateGate |
+| IdAllocator | `id_allocator.py` | Wired through MutateGate on Tier A |
+| MutateGate | `mutate_gate.py` | Tier A + legacy pipe; NEW mint |
+| PinMapComposer | `pin_map_composer.py` | `query warm` emits Tier A LivePinMap |
+| InProcessEngine | `in_process_engine.py` | MCP/CLI primary |
+| LocalIpcGateway | `local_ipc_gateway.py` | Stub |
+| TcpServeBridge | `serve.py` / `tcp_serve_bridge.py` | Migration fallback |
+| PinMapIngest_* | `pin_map_ingest.py` | Roadmap stubs |
 
 ## Satisfy coverage
 
@@ -99,11 +101,12 @@ MemNetSystem
 | MN-REQ-08 | TierACodec, CliFacade, McpFacade, PinMapComposer |
 | MN-REQ-09 | TierACodec, CliFacade, McpFacade |
 | MN-REQ-10 | GraphStore, CapsPolicy, PinMapComposer, CliFacade, TierACodec, IdAllocator, McpFacade |
-| MN-REQ-11 | PinMapIngest_* + PinMapComposer (11.13) + IdAllocator (11.16) + SnapshotStore |
+| MN-REQ-11 | PinMapIngest_* stubs + PinMapComposer (11.13) + IdAllocator (11.16) + SnapshotStore |
 
 ## Gaps / next steps
 
-- PinMapComposer Tier A `LivePinMap` emit (`query_warm` alias until rename)
-- Allocate `LocalIpcFlow` when LocalIpcGateway is implemented
+- Session snapshot / `read get|list` still emit legacy pipe (agent mutate+warm are Tier A)
+- `LocalIpcFlow` when LocalIpcGateway is implemented
 - PinMapIngest_* deterministic locators (reject client NEW on projecting)
-- Optional ANTLR codegen; LegacyPipeImport one-shot only
+- Optional ANTLR codegen; LegacyPipeImport remains one-shot only
+- Migrate `docs/LLM-GUIDE.md` off pipe-centric warm examples

@@ -45,6 +45,7 @@ def test_run_memnet_add_and_warm(memnet_temp, schema_file):
 def test_serve_required_without_inline(monkeypatch):
     monkeypatch.delenv("MEMNET_TEST_INLINE", raising=False)
     monkeypatch.delenv("MEMNET_SERVE_INTERNAL", raising=False)
+    monkeypatch.setenv("MEMNET_MCP_TRANSPORT", "tcp")
     monkeypatch.setenv("MEMNET_SERVE_PORT", "59999")
     resp = run_memnet(["session", "current"])
     assert resp.exit_code == 2

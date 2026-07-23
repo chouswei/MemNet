@@ -1,4 +1,4 @@
-"""Input sanitiser for add/update batches."""
+"""Input sanitiser for add/update batches (pipe + Tier A)."""
 
 from __future__ import annotations
 
@@ -12,9 +12,19 @@ _THINK_RE = re.compile(
 )
 
 
+def _looks_like_tier_a(line: str) -> bool:
+    if line.startswith("##"):
+        return True
+    if line.startswith(("+", "~", "-")):
+        return True
+    if line.startswith("LAW") and len(line) > 3 and line[3].isdigit():
+        return True
+    return False
+
+
 def sanitise_line(line: str) -> str | None:
     line = line.strip()
-    if not line or line.lstrip().startswith("#"):
+    if not line or line.lstrip().startswith("#") and not line.startswith("##"):
         return None
     line = _THINK_RE.sub("", line).strip()
     line = line.strip("`").strip()
@@ -26,9 +36,9 @@ def sanitise_line(line: str) -> str | None:
             "MemNet uses wire format not JSON",
             example="@PLR: P01|Alice|10",
         )
-    if not line.startswith("@"):
-        raise MemNetError("invalid_line", "line must start with @TAG:")
-    return line
+    if line.startswith("@") or _looks_like_tier_a(line):
+        return line
+    raise MemNetError("invalid_line", "line must start with @TAG: or Tier A op")
 
 
 def _to_text(raw: str | bytes) -> str:
