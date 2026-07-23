@@ -1,0 +1,3 @@
+# expect: lint-reject
+# Bad: corpus dump in a field (pin map violated).
++ ART [A1] ; body=<entire system-design.md pasted here with chapters and tables> ; recycle=persistent

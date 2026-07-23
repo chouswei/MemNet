@@ -1,120 +1,109 @@
 # MemNet - system design notes (from SysML)
 
-Brief notes aligned with `deploy.sysml` / `behaviour.sysml`. Novel-writer is out of scope.
+Target architecture notes for `deploy.sysml` / `behaviour.sysml` / `connections.sysml`.
+Requirements and grammar doctrine win over today's Python layout. Novel-writer is out of scope.
+
+**Primary term:** **pin map** (live turn-facing ego digest).  
+**Items:** `LivePinMap` (turn payload), `PinMapProjection` (MN-REQ-11 export/ingest).  
+**Composer:** `PinMapComposer` (legacy CLI/MCP `query_warm` = deprecated alias).  
+**Removed from target:** `WarmComposer`, `TierBBridge` / standing Tier B pipe.  
+**Deprecated stub:** `LegacyPipeImport` (one-shot `@TAG` pipe import; not nested in `MemNetSystem`).
 
 ## Mission
 
-**MemNet = Net of Memory** - a memory *network* of **NODE** and **EDGE** only (durable facts + relations), not a chat notepad and not the search corpus. It sits **between** pipelines of LLM calls and data searching; aids the LLM for system, programme, and hardware development, and for documentation; aims to **save time** and **token usage** while **keeping high accuracy** when presenting facts. Agent I/O is LLM-produced/consumed and SHALL follow **prompt rules**; humans inspect via a **canonical parser**.
+**MemNet = Net of Memory** — durable **NODE | EDGE** network between LLM pipelines and data search; aims to save wall-clock time and tokens while keeping factual accuracy. Agent I/O is Tier A Write=display both ways; humans inspect via canonical parser (ANTLR path).
 
-## Context
-
-Mechanisms: durable named sessions; atomised facts + first-class relations; strict add/update; anchored warm slice with recycle hide and caps; shared local serve; generic MCP boundary. Grammar is the agent language; the parser recovers structure for humans/tools. Concrete spellings (`@TAG` pipe, TagMap, LAW01-LAW05, length-prefixed JSON) are current realisations, not eternal identity.
-
-## Part tree (logical)
+## Target part tree
 
 ```text
 MemNetSystem
-├── MemNetCoreLibrary          → parts/common/memnet
-│   ├── WireCodec
-│   ├── MemNetCliApp
-│   └── MemNetServeDaemon
-│       ├── SessionRegistryService (+ CapsConfig)
-│       └── SessionStoreFacade
-│           ├── TagMapService
-│           ├── MemStoreEngine
-│           ├── HousekeepService
-│           └── SnapshotService
-└── MemNetMcpServer            → parts/memnet-mcp
-    ├── MemNetMcpToolSurface
-    ├── MemNetServeClient
-    └── MemNetSeedHelper
+├── MemNetCoreLibrary              → parts/common/memnet (evolving)
+│   ├── TierACodec                 // SSOT parse/emit Write=display
+│   ├── InProcessEngine            // primary binding (MN-REQ-06.1)
+│   │   └── SessionLifecycle
+│   │       ├── CapsPolicy
+│   │       ├── SchemaRegistry
+│   │       ├── TierACodec
+│   │       ├── GraphStore
+│   │       ├── MutateGate
+│   │       │   └── IdAllocator    // NEW (goldfish) | pin-key (ingest)
+│   │       ├── PinMapComposer     // LivePinMap emit
+│   │       ├── WalkQuery
+│   │       ├── HousekeepSettle
+│   │       └── SnapshotStore
+│   ├── LocalIpcGateway            // 06.2 — part present; LocalIpcFlow UNALLOCATED
+│   ├── TcpServeBridge             // TCP localhost migration (06.3)
+│   └── CliFacade                  // ipcOut ready; not wired on MemNetSystem yet
+├── MemNetMcpServer                → parts/memnet-mcp
+│   ├── McpFacade                  // in-process by default
+│   ├── ServeBridge                // optional TCP client
+│   └── LawSeedHelper
+└── PinMapRoadmap
+    ├── PinMapIngest_Sysml
+    ├── PinMapIngest_Codebase
+    ├── PinMapIngest_PcbaAto       // .ato == PCBA
+    └── PinMapIngest_SkillsRules
+
+(not nested) LegacyPipeImport     // DEPRECATED import-once
 ```
+
+## Behaviours
+
+| State machine | Role |
+|---------------|------|
+| `SessionLifecycleStates` | closed → opening/loading → active → saving → closed |
+| `GoldfishLoop` | awaitingPinMap → presentingPinMap → applyingMutate → settling |
+| `MutateWithNew` | idle → parsing → minting (no-op if no NEW) → committing |
+| `PinMapIngestCycle` | pinIdle → selectingPins → projecting (deterministic locators; reject client NEW) |
 
 ## Interfaces
 
-| Connection | From → To | Payload |
-|------------|-----------|---------|
-| ServeCommandFlow | MCP client / CLI → ServeDaemon | JSON `{args, stdin}` |
-| JsonEnvelopeFlow | Serve / tools → host | `exit_code`, stdout wire, stderr `@ERR` |
-| WirePayloadFlow | Host tools ↔ ingest / codec | `@TAG:` batches |
-| WarmSliceFlow | MemStore → consumer | LAW + active subgraph |
-| SnapshotFlow | Session ↔ file | save/load blob |
+| Connection | From → To | Status |
+|------------|-----------|--------|
+| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary) |
+| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (migration) |
+| LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** until IPC implemented |
+| GraphRecordFlow | TierACodec → MutateGate → GraphStore | Nested under SessionLifecycle |
+| LivePinMapFlow / TierAFlow | PinMapComposer / facades | Live pin map Write=display |
+| SessionSnapshotFlow | SnapshotStore ↔ file | MN-REQ-01 |
+| PinMapFlow | PinMapIngest_* | MN-REQ-11 selective pins |
 
-## Session lifecycle
+## As-is → target map
 
-`closed` → `opening`/`loading` → `active` (warm/mutate loop) → `saving` → `active` or `closed` (close/TTL). Errors on a command typically stay in `active` without closing the session.
+| Target part | Today's module(s) | Gap |
+|-------------|-------------------|-----|
+| GraphStore | `mem_store.py`, `models.py` | Clarity rename |
+| SchemaRegistry | `tag_map.py`, `fixed_tags.py` | Positional TagMap is legacy |
+| TierACodec | `tier_a.py` | Pure-Python twin; ANTLR deferred |
+| LegacyPipeImport | `wire.py` pipe | **Not target** — import-once only |
+| IdAllocator | (pending) | NEW goldfish + deterministic pin keys |
+| MutateGate | cli ingest | Tier A + NEW (skip mint if none) |
+| PinMapComposer | `query_warm` + output | Emit Tier A `LivePinMap` |
+| InProcessEngine | MCP inline / cli | Primary |
+| LocalIpcGateway | — | Stub; **LocalIpcFlow unallocated** |
+| TcpServeBridge | `serve.py` | Migration fallback |
+| PinMapIngest_* | skills / future | Roadmap; no client NEW for source pins |
 
-## Requirements tree
+## Satisfy coverage
 
-Hierarchy is **nested `requirement def`s** under `MN-REQ-00` (not deploy parts). Formal **deriveReqt** in SysML v2 is `#derivation connection` (`RequirementDerivation`: `#original` parent, `#derive` children) on requirement *usages*. Groups derive from mission; leaves derive from their group. ID scheme: `MN-REQ-NN` groups, `MN-REQ-NN.M` atomic leaves. `satisfy` targets leaves on implementing parts; only `MN-REQ-00` on `MemNetSystem`.
+| Group | Coverage |
+|-------|----------|
+| MN-REQ-00 | `MemNetSystem` |
+| MN-REQ-01 | SessionLifecycle, SnapshotStore, CliFacade, McpFacade |
+| MN-REQ-02 | GraphStore, TierACodec, PinMapComposer, WalkQuery, MutateGate, SchemaRegistry, McpFacade |
+| MN-REQ-03 | GraphStore, MutateGate, IdAllocator |
+| MN-REQ-04 | PinMapComposer, WalkQuery, HousekeepSettle |
+| MN-REQ-05 | CapsPolicy |
+| MN-REQ-06 | InProcessEngine, LocalIpcGateway (stub), TcpServeBridge, SessionLifecycle, McpFacade |
+| MN-REQ-07 | McpFacade, LawSeedHelper |
+| MN-REQ-08 | TierACodec, CliFacade, McpFacade, PinMapComposer |
+| MN-REQ-09 | TierACodec, CliFacade, McpFacade |
+| MN-REQ-10 | GraphStore, CapsPolicy, PinMapComposer, CliFacade, TierACodec, IdAllocator, McpFacade |
+| MN-REQ-11 | PinMapIngest_* + PinMapComposer (11.13) + IdAllocator (11.16) + SnapshotStore |
 
-```text
-MN-REQ-00 MissionBridge
-├── MN-REQ-01 SessionLifecycle
-│   ├── 01.1 Named sessions
-│   ├── 01.2 open/resume/save/load/close
-│   └── 01.3 TTL + session caps
-├── MN-REQ-02 MemoryNetGraph (conceptual kinds: NODE | EDGE only)
-│   ├── 02.1 Exactly NODE and EDGE
-│   ├── 02.2 Nodes hold atomised facts
-│   ├── 02.3 Edges are first-class
-│   ├── 02.4 Query warm/walk over NODE+EDGE
-│   ├── 02.5 Grammar expresses both
-│   ├── 02.6 Parser recovers both
-│   └── 02.7 Schema-validated ingest (tags may realise node kinds)
-├── MN-REQ-03 StrictMutate
-│   ├── 03.1 add fails if exists
-│   ├── 03.2 update fails if absent
-│   └── 03.3 no silent upsert
-├── MN-REQ-04 SliceEconomy
-│   ├── 04.1 Anchored warm slice
-│   ├── 04.2 Recycle hidden from warm
-│   ├── 04.3 Warm depth/row caps
-│   ├── 04.4 Engine-law prepend
-│   └── 04.5 Anchored walk SHOULD
-├── MN-REQ-05 HardCaps
-│   ├── 05.1 Store resource caps
-│   └── 05.2 Query fanout caps
-├── MN-REQ-06 BoundaryServe
-│   ├── 06.1 Shared session registry
-│   └── 06.2 Local serve endpoint
-├── MN-REQ-07 McpAgentBoundary
-│   ├── 07.1 Generic tool surface
-│   ├── 07.2 Structured tool envelope
-│   ├── 07.3 No domain-product tools
-│   └── 07.4 MCP law seed on open
-├── MN-REQ-08 AgentIoGrammar (LLM is I/O actor; follow prompt rules)
-│   ├── 08.1 LLM-friendly stdio
-│   ├── 08.2 LLM-friendly MCP
-│   ├── 08.3 No hostile positional dump
-│   ├── 08.4 Boundary friendly if internal differs
-│   ├── 08.5 I/O actor is LLM
-│   ├── 08.6 Follow prompt rules (WDC/novel-cut as example families)
-│   ├── 08.7 Write ≈ display
-│   └── 08.8 Template-copyable shapes
-├── MN-REQ-09 HumanInspect
-│   ├── 09.1 Canonical parser SSOT
-│   ├── 09.2 Reject invalid wire
-│   ├── 09.3 Parse-faithful inspect
-│   └── 09.4 No ad-hoc consumer splits
-└── MN-REQ-10 LlmPropertiesAndLimits (assumed LLM attrs + limitation leaves)
-    ├── 10.1 No chat as durable store
-    ├── 10.2 Warm must fit context
-    ├── 10.3 Minimise token round-trips
-    ├── 10.4 External ground truth required
-    ├── 10.5 Grammar must be LLM-learnable
-    ├── 10.6 Prefer template-friendly pins
-    └── 10.7 Human verify via parser
-```
+## Gaps / next steps
 
-Agent-facing MemNet I/O is LLM-produced/consumed and SHALL follow prompt rules; mechanism groups also `#derive` from MN-REQ-10 limitation leaves.
-
-Domain products (e.g. novel-writer) are out of scope for this model.
-
-## Gaps / next modelling steps
-
-- Finer allocate from parts to Python modules (`@SYM`-level) once MemNet design snap is warm
-- Explicit prune/settle action defs if behaviour depth needed
-- Pin `sysml-models/libs` via `project.toml` submodule (replace local OMG junction; do not commit junction)
-- Full-project load validate once OMG Kernel is pinned (MCP package smoke already green)
-- Optional interconnection Mermaid in outputs when diagrams are requested
+- PinMapComposer Tier A `LivePinMap` emit (`query_warm` alias until rename)
+- Allocate `LocalIpcFlow` when LocalIpcGateway is implemented
+- PinMapIngest_* deterministic locators (reject client NEW on projecting)
+- Optional ANTLR codegen; LegacyPipeImport one-shot only

@@ -1,0 +1,5 @@
+# expect: parse-ok
+# Settle / update: known ids from warm only — never [NEW].
+~ [T42] ; status=settled ; recycle=delete_on_settle
+~ E77 ; recycle=delete_on_settle
+~ [N03] --(helps)--> [T42] ; recycle=delete_on_settle

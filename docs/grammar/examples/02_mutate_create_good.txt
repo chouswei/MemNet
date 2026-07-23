@@ -1,0 +1,6 @@
+# expect: parse-ok
+# Create nodes with mint [NEW]; engine allocates real ids.
+# Do not invent ground ids. Link with edges only after ids are known (warm / response).
++ CLM [NEW] ; type=fact ; code=24V rail feeds both modems ; recycle=persistent
++ CLM [NEW] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
++ NEW [S03] --(part_of)--> [ART_pdu] ; note=pending_claim_link ; recycle=delete_on_settle

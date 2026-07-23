@@ -1,0 +1,4 @@
+# expect: parse-reject
+# Bad: Tier B @TAG pipe as agent-facing dialect.
+@TSK: T42|Clear the warehouse|2|in_progress|persistent
+@EDG: E77|N03|helps|T42|labour|persistent

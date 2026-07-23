@@ -1,0 +1,3 @@
+# expect: lint-reject
+# Bad: embedded relation as comma id-list (R1: expand to EDGE lines).
++ TSK [T42] ; helpers=N03,N04 ; goal=Clear warehouse ; recycle=persistent

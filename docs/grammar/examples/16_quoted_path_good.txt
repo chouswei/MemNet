@@ -1,0 +1,4 @@
+# expect: parse-ok
+# Quoted path with spaces / escapes (prefer STRING for awkward locators).
++ MOD [M_docs] ; path="docs/grammar/examples/01_warm_slice_good.txt" ; summary=warm fixture ; recycle=persistent
++ MOD [M_win] ; path="C:\\Projects\\MemNet\\parts\\common\\memnet\\wire.py" ; recycle=persistent

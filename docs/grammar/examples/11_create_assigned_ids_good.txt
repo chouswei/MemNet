@@ -1,0 +1,11 @@
+# expect: parse-ok
+# After create: engine response / warm re-read returns assigned ids.
+# LLM copies those ids; never invent. Then create edges with known endpoints.
+## Nodes
++ CLM [C11] ; type=fact ; code=24V rail feeds both modems ; recycle=persistent
++ CLM [C12] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
+
+## Edges
++ E20 [C11] --(belongs_to)--> [S03]
++ E21 [C12] --(belongs_to)--> [S03]
++ E22 [S03] --(part_of)--> [ART_pdu]

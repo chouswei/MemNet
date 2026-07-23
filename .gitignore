@@ -43,3 +43,8 @@ Thumbs.db
 # SysML local OMG junction / validate scratch (pin libs via submodule later)
 sysml-models/libs/
 sysml-models/outputs/_validate_bundle.sysml
+
+# Local grammar / parser vendor refs (pins live in refs/README.md)
+refs/novel-cut-grammar/*
+!refs/novel-cut-grammar/MANIFEST.md
+third_party/antlr4/

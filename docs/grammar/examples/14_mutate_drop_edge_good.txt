@@ -1,0 +1,3 @@
+# expect: parse-ok
+# Drop edge by known edge id from warm.
+- E77

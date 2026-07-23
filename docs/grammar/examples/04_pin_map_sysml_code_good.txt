@@ -1,0 +1,13 @@
+## Pins
++ PRT [P_pdu] ; name=PowerDistribution ; kind=partDef ; recycle=persistent
++ POR [Por_24v] ; name=rail24V ; kind=portUsage ; dir=out ; recycle=persistent
++ REQ [R_MN02] ; requirementId=MN-REQ-02.1 ; recycle=persistent
++ MOD [M_wire] ; path=parts/common/memnet/wire.py ; recycle=persistent
++ SYM [S_split] ; name=split_payload ; kind=function ; path=parts/common/memnet/wire.py ; line=42 ; recycle=persistent
++ SKL [SKL_fmt] ; skill_id=memnet-format ; recycle=persistent
+
+## Edges
++ E10 [Por_24v] --(owned_by)--> [P_pdu]
++ E11 [P_pdu] --(satisfies)--> [R_MN02]
++ E12 [S_split] --(defined_in)--> [M_wire]
++ E13 [SKL_fmt] --(documents)--> [M_wire]

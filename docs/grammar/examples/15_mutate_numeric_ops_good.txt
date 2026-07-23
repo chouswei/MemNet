@@ -1,0 +1,3 @@
+# expect: parse-ok
+# Optional += / -= numeric field ops (R1).
+~ [T42] ; phase+=1 ; risk-=0.5 ; recycle=persistent

@@ -1,24 +1,38 @@
 # MemNet SysML models
 
-Software-only system model for the MemNet core engine and generic MemNet MCP server.
+Software-only **target** system model for the MemNet core engine and generic MemNet MCP server.
 
 **Layout:** `sysml-models/` per [SYSTEM-REPO-LAYOUT.md](../../SYSTEM-REPO-LAYOUT.md) and repo [LAYOUT.md](../LAYOUT.md).
+
+Design authority: rebuilt requirements + `docs/grammar/memnet-grammar-design.md`. Today's `parts/common/memnet` and `parts/memnet-mcp` inform feasibility; see [outputs/system-design-notes.md](outputs/system-design-notes.md) for **target vs as-is**.
 
 ## Packages
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | Ports, connection defs, flow items |
-| `models/requirements.sysml` | `MemNetRequirements` | Nested MN-REQ-00…10 (groups + atomic leaves; LLM props/limits; MN-R* retired) |
-| `models/deploy.sysml` | `MemNet` | Core + MCP parts and system composite |
-| `models/behaviour.sysml` | `MemNetBehaviour` | Session lifecycle state machine |
+| `models/connections.sysml` | `MemNetConnections` | Tier A/B/C items, ports, connection defs |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…11 (no parts) |
+| `models/deploy.sysml` | `MemNet` | Target parts + system composite + satisfy |
+| `models/behaviour.sysml` | `MemNetBehaviour` | Session, goldfish, NEW mint, pin-map ingest |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
-## Subsystems modelled
+## Target subsystems
 
-- **Core (`parts/common/memnet`):** Caps, WireCodec, TagMap, MemStore (add/update, warm/walk, LAW prepend), SessionRegistry/SessionStore, Snapshot, Housekeep, CLI, Serve TCP daemon
-- **MCP (`parts/memnet-mcp`):** Tool surface, serve client bridge, LAW seed helper, JSON envelope vs wire payload
-- **Out of scope:** domain product surfaces (this model covers engine + generic MCP only)
+- **Core:** CapsPolicy, SchemaRegistry, TierACodec, IdAllocator, GraphStore, MutateGate, PinMapComposer, WalkQuery, HousekeepSettle, SnapshotStore, SessionLifecycle, InProcessEngine, LocalIpcGateway, TcpServeBridge, CliFacade
+- **MCP:** McpFacade (in-process default), ServeBridge (optional TCP), LawSeedHelper
+- **Deprecated (not in target composition):** LegacyPipeImport (one-shot `@TAG` pipe)
+- **Roadmap:** PinMapIngest_Sysml / Codebase / PcbaAto / SkillsRules (MN-REQ-11; `.ato` = PCBA)
+- **Out of scope:** novel-writer and other domain-product tools
+
+## Transport (MN-REQ-06)
+
+1. **InProcessEngine** — primary (MCP / library)
+2. **LocalIpcGateway** — named pipe / AF_UNIX when CLI + MCP share a registry
+3. **TcpServeBridge** — TCP localhost migration / fallback only
+
+## Live pin map (MN-REQ-04)
+
+Turn-facing agent payload = **pin map** (ego digest). Composer: **PinMapComposer**. Legacy CLI/MCP `query_warm` = deprecated alias.
 
 ## Libs
 
@@ -26,7 +40,7 @@ Software-only system model for the MemNet core engine and generic MemNet MCP ser
 
 ## Validate
 
-Prefer Cursor SysML v2 MCP `validate` / `parse` on files under `models/`. Load order is in `config.yaml`.
+Prefer Cursor SysML v2 MCP `validate` / `validateFile` on files under `models/`. Load order is in `config.yaml`.
 
 ## Anchor
 

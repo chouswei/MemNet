@@ -6,6 +6,7 @@
     MN-REQ-NN          group requirement (organisational; short framing doc)
     MN-REQ-NN.M        atomic leaf (one SHALL/SHOULD idea)
     MN-REQ-10          LLM assumed properties + limitation leaves
+    MN-REQ-11          Snapshot / interoperability (map of pins)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -31,11 +32,13 @@
   canonical parser for human inspection. Conceptual data kinds: NODE | EDGE.
 
   Current realisation notes (not eternal identity):
-    Agent grammar today is often @TAG pipe rows; relations often @EDG;
-    session schema often TagMap; store often MemStore; serve often
-    length-prefixed JSON {args, stdin}; fixed engine laws often LAW01-LAW05.
-    Requirements state behavioural contracts; those spellings may change if
-    the boundary still meets the contract.
+    Target agent grammar is Tier A Write=display (NODE|EDGE lines).
+    Legacy @TAG pipe may still appear in old session files (import once).
+    Session schema often TagMap; store is in-memory NODE|EDGE records;
+    process binding prefers in-process, then local IPC, TCP as fallback;
+    fixed engine laws often LAW01-LAW05. Requirements state behavioural
+    contracts; those spellings may change if the boundary still meets
+    the contract.
 
   Stakeholders (comment only -- no structural defs in this file):
     LLM pipelines; data-search steps; MCP host; human inspectors who verify
@@ -80,8 +83,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_01_2_SessionLifecycleOps {
         doc /*
-          SHALL support open, resume, save, load, and close for each named
-          session.
+          SHALL support open, resume, and close for each named session.
         */
         attribute requirementId : String = "MN-REQ-01.2";
       }
@@ -92,6 +94,30 @@ package MemNetRequirements {
           sessions.
         */
         attribute requirementId : String = "MN-REQ-01.3";
+      }
+
+      requirement def MN_REQ_01_4_SaveSessionSnapshot {
+        doc /*
+          SHALL persist a named session to a durable snapshot so working-memory
+          state can outlive the process (schema, records, relations).
+        */
+        attribute requirementId : String = "MN-REQ-01.4";
+      }
+
+      requirement def MN_REQ_01_5_LoadSessionSnapshot {
+        doc /*
+          SHALL restore a named session from a durable snapshot into an active
+          working-memory session.
+        */
+        attribute requirementId : String = "MN-REQ-01.5";
+      }
+
+      requirement def MN_REQ_01_6_OptionalKeepSessionId {
+        doc /*
+          On load, SHALL allow the caller to optionally keep the session id
+          from the snapshot (keep_id); otherwise assign a new id.
+        */
+        attribute requirementId : String = "MN-REQ-01.6";
       }
     }
 
@@ -132,7 +158,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
-          Warm, walk, and query SHALL operate over the NODE and EDGE graph.
+          Pin map, walk, and query SHALL operate over the NODE and EDGE graph.
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
@@ -193,43 +219,45 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Slice economy (warm / recycle / walk) -----
+    // ----- Slice economy (pin map / recycle / walk) -----
 
     requirement def MN_REQ_04_SliceEconomy {
       doc /*
-        Group: small accurate live slices for LLM turns; hide recyclable rows;
-        optional relation walk. Engine fixed-law rows (often LAW01-LAW05) are
-        a current realisation, not the contract identity.
+        Group: bounded live pin map for LLM turns (not the whole net);
+        hide recyclable rows; optional relation walk. Engine fixed-law rows
+        (often LAW01-LAW05) are a current realisation, not the contract
+        identity. Legacy name "warm" = live pin map (deprecated alias).
       */
       attribute requirementId : String = "MN-REQ-04";
 
-      requirement def MN_REQ_04_1_AnchoredWarmSlice {
+      requirement def MN_REQ_04_1_AnchoredPinMap {
         doc /*
-          SHALL return an anchored live neighbourhood for each turn, not the
-          full session or a raw search dump.
+          SHALL return an anchored live pin map for each turn -- a bounded
+          ego/anchor digest of pins -- not the full session or a raw search
+          dump.
         */
         attribute requirementId : String = "MN-REQ-04.1";
       }
 
-      requirement def MN_REQ_04_2_RecycleHiddenFromWarm {
+      requirement def MN_REQ_04_2_RecycleHiddenFromPinMap {
         doc /*
-          SHALL hide rows marked for settle or expire recycle from the warm
-          slice.
+          SHALL hide rows marked for settle or expire recycle from the live
+          pin map.
         */
         attribute requirementId : String = "MN-REQ-04.2";
       }
 
-      requirement def MN_REQ_04_3_WarmDepthAndRowCaps {
+      requirement def MN_REQ_04_3_PinMapDepthAndRowCaps {
         doc /*
-          SHALL cap warm slice depth and row count.
+          SHALL cap live pin map depth and row count.
         */
         attribute requirementId : String = "MN-REQ-04.3";
       }
 
       requirement def MN_REQ_04_4_EngineLawPrepend {
         doc /*
-          SHALL prepend session engine-law rows to the warm slice when those
-          rows are present in the store.
+          SHALL prepend session engine-law rows to the live pin map when
+          those rows are present in the store.
         */
         attribute requirementId : String = "MN-REQ-04.4";
       }
@@ -261,36 +289,47 @@ package MemNetRequirements {
 
       requirement def MN_REQ_05_2_QueryFanoutCaps {
         doc /*
-          SHALL enforce hard caps on warm/walk depth and fanout so token cost
-          stays bounded under misuse.
+          SHALL enforce hard caps on pin-map/walk depth and fanout so token
+          cost stays bounded under misuse.
         */
         attribute requirementId : String = "MN-REQ-05.2";
       }
     }
 
-    // ----- Serve boundary -----
+    // ----- Process / transport boundary -----
 
-    requirement def MN_REQ_06_BoundaryServe {
+    requirement def MN_REQ_06_ProcessBoundary {
       doc /*
-        Group: shared local serve process for concurrent CLI and MCP clients.
-        Framing today is often length-prefixed JSON {args, stdin}.
+        Group: how clients bind to GraphStore and the session registry.
+        Locked preference: in-process primary, local IPC for multi-process
+        share, TCP localhost only as migration / fallback (not the core).
       */
       attribute requirementId : String = "MN-REQ-06";
 
-      requirement def MN_REQ_06_1_SharedSessionRegistry {
+      requirement def MN_REQ_06_1_InProcessPrimary {
         doc /*
-          SHALL hold a shared session registry in a production serve process
-          usable by concurrent CLI and MCP clients.
+          SHALL provide in-process GraphStore and session APIs as the primary
+          binding for MCP and library users (lowest latency; no network hop).
         */
         attribute requirementId : String = "MN-REQ-06.1";
       }
 
-      requirement def MN_REQ_06_2_LocalServeEndpoint {
+      requirement def MN_REQ_06_2_LocalIpcShare {
         doc /*
-          SHALL expose that serve process over a local network endpoint for
-          in-pipeline clients.
+          SHALL support a local IPC gateway when CLI and MCP must share one
+          session registry across processes (prefer named pipe on Windows /
+          AF_UNIX on POSIX).
         */
         attribute requirementId : String = "MN-REQ-06.2";
+      }
+
+      requirement def MN_REQ_06_3_TcpServeMigration {
+        doc /*
+          MAY expose TCP localhost length-prefixed serve as a migration or
+          multi-process fallback; it SHALL NOT be treated as the conceptual
+          core binding.
+        */
+        attribute requirementId : String = "MN-REQ-06.3";
       }
     }
 
@@ -304,9 +343,9 @@ package MemNetRequirements {
 
       requirement def MN_REQ_07_1_GenericToolSurface {
         doc /*
-          SHALL expose generic MCP tools for serve probe, session
-          open/current/load/save, query warm and walk, add, update, read
-          get/list, and housekeep stats.
+          SHALL expose generic MCP tools for engine/status probe, session
+          open/current/load/save, live pin map and walk, add, update, read
+          get/list, and housekeep stats (in-process by default).
         */
         attribute requirementId : String = "MN-REQ-07.1";
       }
@@ -341,10 +380,10 @@ package MemNetRequirements {
     requirement def MN_REQ_08_AgentIoGrammar {
       doc /*
         Group: LLM-friendly grammar on agent-facing I/O. MemNet agent I/O
-        (stdio warm/emit; MCP tool args/results that carry memory language)
+        (stdio pin-map emit; MCP tool args/results that carry memory language)
         is produced and consumed by an LLM, so presentation SHALL follow
-        prompt rules. Grammar is the language; not forever tied to one
-        concrete spelling (e.g. @TAG pipe).
+        prompt rules. One agent dialect both directions (Write = display).
+        Legacy @TAG pipe is import-once only, not a second agent-facing dialect.
       */
       attribute requirementId : String = "MN-REQ-08";
 
@@ -377,6 +416,9 @@ package MemNetRequirements {
         doc /*
           Store-internal representation MAY differ from the agent grammar only
           if every agent boundary still presents the friendly surface.
+          Internal store records MAY differ; legacy pipe import-once is allowed. Pipe
+          SHALL NOT appear as a standing agent-facing dialect on pin-map read
+          or mutate/write.
         */
         attribute requirementId : String = "MN-REQ-08.4";
       }
@@ -393,19 +435,18 @@ package MemNetRequirements {
         doc /*
           Agent-facing I/O grammar and presentation SHALL follow prompt rules:
           low-noise; accurate, precise, consistent, and coherent fact
-          presentation; template-copyable shapes; write approximately equals
-          display. Named constraint family -- examples include WDC and
-          novel-cut prompt-rule doctrines; not a novel-writer product
-          dependency.
+          presentation; template-copyable shapes; write equals display.
+          Named constraint family -- examples include WDC and novel-cut
+          prompt-rule doctrines; not a novel-writer product dependency.
         */
         attribute requirementId : String = "MN-REQ-08.6";
       }
 
       requirement def MN_REQ_08_7_WriteApproxDisplay {
         doc /*
-          Agent-facing emit shapes SHALL be such that what the LLM writes is
-          substantially what it (and humans) read back -- write approximately
-          equals display -- so prompts need not teach a second dialect.
+          Agent-facing emit and accept shapes SHALL be the same dialect:
+          what the LLM writes is what it (and humans) read back -- Write =
+          display -- so prompts need not teach a second grammar.
         */
         attribute requirementId : String = "MN-REQ-08.7";
       }
@@ -417,6 +458,15 @@ package MemNetRequirements {
           tricks.
         */
         attribute requirementId : String = "MN-REQ-08.8";
+      }
+
+      requirement def MN_REQ_08_9_PinMapEmitSameAsMutate {
+        doc /*
+          Live pin map and other agent-facing read/emit payloads SHALL use
+          the same Tier A grammar as accepted mutate/write input (Write =
+          display). SHALL NOT present a second agent dialect on read vs write.
+        */
+        attribute requirementId : String = "MN-REQ-08.9";
       }
     }
 
@@ -491,9 +541,10 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-10.1";
       }
 
-      requirement def MN_REQ_10_2_WarmMustFitContext {
+      requirement def MN_REQ_10_2_PinMapMustFitContext {
         doc /*
-          Re-injected warm slices SHALL be sized to fit a finite context
+          Re-injected live pin maps SHALL be sized to fit a finite context
+          window.
           window and token budget.
         */
         attribute requirementId : String = "MN-REQ-10.2";
@@ -539,6 +590,187 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-10.7";
       }
     }
+
+    // ----- Snapshot / interoperability: map of pins -----
+    // Distinct from MN-REQ-01.4--01.6 (session file save/load).
+
+    requirement def MN_REQ_11_SnapshotInterop {
+      doc /*
+        Group: a map of pins -- short accurate anchors and locators into
+        SysML v2, codebase, PCBA schematics (Atopile .ato), and agent
+        skills/rules, linked as NODE and EDGE so the LLM can navigate without
+        swallowing the whole source. Selective projection means pin map, not
+        a bulky corpus dump. Not session-file persistence (see MN-REQ-01.4
+        through MN-REQ-01.6).
+      */
+      attribute requirementId : String = "MN-REQ-11";
+
+      requirement def MN_REQ_11_13_MapOfPins {
+        doc /*
+          Every MN-REQ-11 snapshot or export SHALL be a map of pins: short
+          accurate anchors and locators linked as NODE and EDGE, sufficient
+          for LLM navigation. SHALL NOT be a complete copy of the source
+          artefact or a bulky corpus dump (same spirit as pin-map economy).
+        */
+        attribute requirementId : String = "MN-REQ-11.13";
+      }
+
+      requirement def MN_REQ_11_1_ExportGraphToSysmlV2 {
+        doc /*
+          SHALL support exporting a pin map of in-memory NODE and EDGE facts
+          into a SysML v2 model representation for the in-repo model-based
+          workflow (sysml-models). SHALL NOT require dumping the entire
+          session graph.
+        */
+        attribute requirementId : String = "MN-REQ-11.1";
+      }
+
+      requirement def MN_REQ_11_2_NodeMapsToSysmlStructure {
+        doc /*
+          On SysML export, each MemNet NODE included in the pin map SHALL map
+          to a SysML v2 structural element analogue (e.g. part, item, or
+          attribute usage) -- an isomorphic projection of the pins, not a
+          claim that the SysML metamodel defines literal NODE types, and not
+          a requirement to export every store row.
+        */
+        attribute requirementId : String = "MN-REQ-11.2";
+      }
+
+      requirement def MN_REQ_11_3_EdgeMapsToSysmlConnection {
+        doc /*
+          On SysML export, each MemNet EDGE included in the pin map SHALL map
+          to a SysML v2 connection or relationship analogue between the
+          mapped structural elements -- projection of the pins only, not
+          literal EDGE metamodel types.
+        */
+        attribute requirementId : String = "MN-REQ-11.3";
+      }
+
+      requirement def MN_REQ_11_4_DistinctFromSessionSnapshot {
+        doc /*
+          Pin maps (SysML export, codebase, PCBA schematics via Atopile .ato,
+          skills/rules) SHALL be distinct from named-session file save and
+          load (MN-REQ-01.4 through MN-REQ-01.6), which persist
+          working-memory session state. Session save/load MUST NOT be taken
+          as satisfying these projections, and these projections MUST NOT be
+          taken as a full-fidelity session backup or corpus dump.
+        */
+        attribute requirementId : String = "MN-REQ-11.4";
+      }
+
+      requirement def MN_REQ_11_5_SysmlRoundTripShould {
+        doc /*
+          Round-trip of the SysML pin map back into MemNet NODE and EDGE form
+          SHOULD be supported where practical. Full-fidelity recovery of
+          original SysML sources from the pins SHALL NOT be required; lossy
+          cases SHALL be documented.
+        */
+        attribute requirementId : String = "MN-REQ-11.5";
+      }
+
+      requirement def MN_REQ_11_6_SnapshotCodebaseIntoGraph {
+        doc /*
+          SHALL support ingesting a pin map of a codebase into the Net of
+          Memory as NODE and EDGE locators so agents can fetch a pin map, walk, and
+          navigate purpose-relevant structure without swallowing the tree.
+          SHALL NOT require indexing every file, symbol, or line.
+        */
+        attribute requirementId : String = "MN-REQ-11.6";
+      }
+
+      requirement def MN_REQ_11_7_CodebaseNodesAreModulesSymbols {
+        doc /*
+          A codebase pin map SHALL represent selected files or modules and
+          symbols (functions, variables, types, and similar) as NODE pins --
+          short anchors, not free prose blobs or an exhaustive inventory.
+        */
+        attribute requirementId : String = "MN-REQ-11.7";
+      }
+
+      requirement def MN_REQ_11_8_CodebaseEdgesAreRelations {
+        doc /*
+          A codebase pin map SHALL represent selected relations among those
+          pins (defines, calls, includes, owns, uses, and similar) as
+          first-class EDGEs -- not every possible edge in the corpus.
+        */
+        attribute requirementId : String = "MN-REQ-11.8";
+      }
+
+      requirement def MN_REQ_11_9_SnapshotAtoIntoGraph {
+        doc /*
+          SHALL support ingesting a pin map of PCBA schematics from Atopile
+          (.ato projects or files) into the Net of Memory as NODE and EDGE
+          locators so agents can fetch a pin map, walk, and navigate purpose-relevant
+          connectivity without swallowing the drawing. Atopile .ato is the
+          PCBA schematic source for this pin map -- not a separate ingest
+          pipeline. SHALL NOT require a complete schematic dump or a copy of
+          every .ato artefact.
+        */
+        attribute requirementId : String = "MN-REQ-11.9";
+      }
+
+      requirement def MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph {
+        doc /*
+          SHALL support ingesting a pin map of agent skills and rules
+          (Cursor/agent SKILL.md packs, .mdc rules, and similar) into the Net
+          of Memory as NODE and EDGE locators. SHALL NOT require copying
+          every skill body or rule file verbatim into the graph.
+        */
+        attribute requirementId : String = "MN-REQ-11.10";
+      }
+
+      requirement def MN_REQ_11_11_SkillsAndRulesAreNodes {
+        doc /*
+          A skills/rules pin map SHALL represent selected skill packs and
+          rules as NODE pins -- short anchors, not free prose blobs or an
+          exhaustive catalogue of every installed pack.
+        */
+        attribute requirementId : String = "MN-REQ-11.11";
+      }
+
+      requirement def MN_REQ_11_12_SkillsRulesEdgesAreRelations {
+        doc /*
+          A skills/rules pin map SHALL represent selected relations among
+          those pins (paired_with, triggers, governs, and similar) as
+          first-class EDGEs.
+        */
+        attribute requirementId : String = "MN-REQ-11.12";
+      }
+
+      requirement def MN_REQ_11_14_PcbaAtoNodesAreNetsComponentsPins {
+        doc /*
+          A PCBA schematic (Atopile .ato) pin map SHALL represent selected
+          nets, components, and pins as NODE pins -- short anchors into the
+          schematic, not free prose blobs or an exhaustive inventory of every
+          symbol and wire.
+        */
+        attribute requirementId : String = "MN-REQ-11.14";
+      }
+
+      requirement def MN_REQ_11_15_PcbaAtoEdgesAreConnectivity {
+        doc /*
+          A PCBA schematic (Atopile .ato) pin map SHALL represent selected
+          connectivity among those pins (pin-to-net, component-owns-pin, and
+          similar) as first-class EDGEs -- not every possible connection in
+          the schematic.
+        */
+        attribute requirementId : String = "MN-REQ-11.15";
+      }
+
+      requirement def MN_REQ_11_16_PinIngestDeterministicIds {
+        doc /*
+          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL assign
+          MemNet ids from deterministic locator keys derived from the source,
+          or an engine key with required locator fields (loc, path, refdes,
+          net, pin, qname, skill_id, and similar). The live pin map SHALL emit those
+          ground ids and locator fields for copy. Pin-map ingest SHALL NOT
+          accept client NEW for source elements. LLM NEW remains only for
+          goldfish-authored memory facts that do not yet exist in the net
+          (annotations), not for re-creating schematic or source pins.
+        */
+        attribute requirementId : String = "MN-REQ-11.16";
+      }
+    }
   }
 
   // --- Requirement usages + #derivation (SysML v2 deriveReqt) ---
@@ -554,6 +786,12 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
   requirement sessionTtlAndCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+  requirement saveSessionSnapshotReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
+  requirement loadSessionSnapshotReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
+  requirement optionalKeepSessionIdReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;
@@ -583,12 +821,12 @@ package MemNetRequirements {
 
   requirement sliceEconomyReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy;
-  requirement anchoredWarmSliceReq
-    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredWarmSlice;
-  requirement recycleHiddenFromWarmReq
-    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromWarm;
-  requirement warmDepthAndRowCapsReq
-    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_WarmDepthAndRowCaps;
+  requirement anchoredPinMapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
+  requirement recycleHiddenFromPinMapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
+  requirement pinMapDepthAndRowCapsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
   requirement engineLawPrependReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_4_EngineLawPrepend;
   requirement anchoredWalkReq
@@ -601,12 +839,14 @@ package MemNetRequirements {
   requirement queryFanoutCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
 
-  requirement boundaryServeReq
-    : MN_REQ_00_MissionBridge::MN_REQ_06_BoundaryServe;
-  requirement sharedSessionRegistryReq
-    : MN_REQ_00_MissionBridge::MN_REQ_06_BoundaryServe::MN_REQ_06_1_SharedSessionRegistry;
-  requirement localServeEndpointReq
-    : MN_REQ_00_MissionBridge::MN_REQ_06_BoundaryServe::MN_REQ_06_2_LocalServeEndpoint;
+  requirement processBoundaryReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
+  requirement inProcessPrimaryReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
+  requirement localIpcShareReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_2_LocalIpcShare;
+  requirement tcpServeMigrationReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -637,6 +877,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
   requirement templateCopyableShapesReq
     : MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_8_TemplateCopyableShapes;
+  requirement pinMapEmitSameAsMutateReq
+    : MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
 
   requirement humanInspectReq
     : MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect;
@@ -653,8 +895,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits;
   requirement noChatAsDurableStoreReq
     : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
-  requirement warmMustFitContextReq
-    : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_WarmMustFitContext;
+  requirement pinMapMustFitContextReq
+    : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
   requirement minimiseTokenRoundTripsReq
     : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
   requirement externalGroundTruthRequiredReq
@@ -666,6 +908,41 @@ package MemNetRequirements {
   requirement humanVerifyViaParserReq
     : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_7_HumanVerifyViaParser;
 
+  requirement snapshotInteropReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop;
+  requirement exportGraphToSysmlV2Req
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_1_ExportGraphToSysmlV2;
+  requirement nodeMapsToSysmlStructureReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_2_NodeMapsToSysmlStructure;
+  requirement edgeMapsToSysmlConnectionReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_3_EdgeMapsToSysmlConnection;
+  requirement distinctFromSessionSnapshotReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
+  requirement sysmlRoundTripShouldReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_5_SysmlRoundTripShould;
+  requirement snapshotCodebaseIntoGraphReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_6_SnapshotCodebaseIntoGraph;
+  requirement codebaseNodesAreModulesSymbolsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_7_CodebaseNodesAreModulesSymbols;
+  requirement codebaseEdgesAreRelationsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_8_CodebaseEdgesAreRelations;
+  requirement snapshotAtoIntoGraphReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_9_SnapshotAtoIntoGraph;
+  requirement snapshotSkillsAndRulesIntoGraphReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph;
+  requirement skillsAndRulesAreNodesReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_11_SkillsAndRulesAreNodes;
+  requirement skillsRulesEdgesAreRelationsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_12_SkillsRulesEdgesAreRelations;
+  requirement mapOfPinsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+  requirement pcbaAtoNodesAreNetsComponentsPinsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_14_PcbaAtoNodesAreNetsComponentsPins;
+  requirement pcbaAtoEdgesAreConnectivityReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_15_PcbaAtoEdgesAreConnectivity;
+  requirement pinIngestDeterministicIdsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
+
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
     end #original ::> missionReq;
@@ -674,11 +951,12 @@ package MemNetRequirements {
     end #derive ::> strictMutateReq;
     end #derive ::> sliceEconomyReq;
     end #derive ::> hardCapsReq;
-    end #derive ::> boundaryServeReq;
+    end #derive ::> processBoundaryReq;
     end #derive ::> mcpAgentBoundaryReq;
     end #derive ::> agentIoGrammarReq;
     end #derive ::> humanInspectReq;
     end #derive ::> llmPropertiesAndLimitsReq;
+    end #derive ::> snapshotInteropReq;
   }
 
   // Leaves derive from their group
@@ -687,6 +965,9 @@ package MemNetRequirements {
     end #derive ::> namedSessionsReq;
     end #derive ::> sessionLifecycleOpsReq;
     end #derive ::> sessionTtlAndCapsReq;
+    end #derive ::> saveSessionSnapshotReq;
+    end #derive ::> loadSessionSnapshotReq;
+    end #derive ::> optionalKeepSessionIdReq;
   }
 
   #derivation connection deriveMemoryNetGraphLeaves {
@@ -709,9 +990,9 @@ package MemNetRequirements {
 
   #derivation connection deriveSliceEconomyLeaves {
     end #original ::> sliceEconomyReq;
-    end #derive ::> anchoredWarmSliceReq;
-    end #derive ::> recycleHiddenFromWarmReq;
-    end #derive ::> warmDepthAndRowCapsReq;
+    end #derive ::> anchoredPinMapReq;
+    end #derive ::> recycleHiddenFromPinMapReq;
+    end #derive ::> pinMapDepthAndRowCapsReq;
     end #derive ::> engineLawPrependReq;
     end #derive ::> anchoredWalkReq;
   }
@@ -722,10 +1003,11 @@ package MemNetRequirements {
     end #derive ::> queryFanoutCapsReq;
   }
 
-  #derivation connection deriveBoundaryServeLeaves {
-    end #original ::> boundaryServeReq;
-    end #derive ::> sharedSessionRegistryReq;
-    end #derive ::> localServeEndpointReq;
+  #derivation connection deriveProcessBoundaryLeaves {
+    end #original ::> processBoundaryReq;
+    end #derive ::> inProcessPrimaryReq;
+    end #derive ::> localIpcShareReq;
+    end #derive ::> tcpServeMigrationReq;
   }
 
   #derivation connection deriveMcpLeaves {
@@ -746,6 +1028,7 @@ package MemNetRequirements {
     end #derive ::> followPromptRulesReq;
     end #derive ::> writeApproxDisplayReq;
     end #derive ::> templateCopyableShapesReq;
+    end #derive ::> pinMapEmitSameAsMutateReq;
   }
 
   #derivation connection deriveHumanInspectLeaves {
@@ -759,12 +1042,40 @@ package MemNetRequirements {
   #derivation connection deriveLlmLimitLeaves {
     end #original ::> llmPropertiesAndLimitsReq;
     end #derive ::> noChatAsDurableStoreReq;
-    end #derive ::> warmMustFitContextReq;
+    end #derive ::> pinMapMustFitContextReq;
     end #derive ::> minimiseTokenRoundTripsReq;
     end #derive ::> externalGroundTruthRequiredReq;
     end #derive ::> grammarMustBeLlmLearnableReq;
     end #derive ::> preferTemplateFriendlyPinsReq;
     end #derive ::> humanVerifyViaParserReq;
+  }
+
+  #derivation connection deriveSnapshotInteropLeaves {
+    end #original ::> snapshotInteropReq;
+    end #derive ::> mapOfPinsReq;
+    end #derive ::> exportGraphToSysmlV2Req;
+    end #derive ::> nodeMapsToSysmlStructureReq;
+    end #derive ::> edgeMapsToSysmlConnectionReq;
+    end #derive ::> distinctFromSessionSnapshotReq;
+    end #derive ::> sysmlRoundTripShouldReq;
+    end #derive ::> snapshotCodebaseIntoGraphReq;
+    end #derive ::> codebaseNodesAreModulesSymbolsReq;
+    end #derive ::> codebaseEdgesAreRelationsReq;
+    end #derive ::> snapshotAtoIntoGraphReq;
+    end #derive ::> snapshotSkillsAndRulesIntoGraphReq;
+    end #derive ::> skillsAndRulesAreNodesReq;
+    end #derive ::> skillsRulesEdgesAreRelationsReq;
+    end #derive ::> pcbaAtoNodesAreNetsComponentsPinsReq;
+    end #derive ::> pcbaAtoEdgesAreConnectivityReq;
+    end #derive ::> pinIngestDeterministicIdsReq;
+  }
+
+  #derivation connection deriveTargetsFromMapOfPins {
+    end #original ::> mapOfPinsReq;
+    end #derive ::> exportGraphToSysmlV2Req;
+    end #derive ::> snapshotCodebaseIntoGraphReq;
+    end #derive ::> snapshotAtoIntoGraphReq;
+    end #derive ::> snapshotSkillsAndRulesIntoGraphReq;
   }
 
   // Cross-derive: LLM limitations -> AgentIO / inspect / session / slice
@@ -776,6 +1087,7 @@ package MemNetRequirements {
     end #derive ::> ioActorIsLlmReq;
     end #derive ::> writeApproxDisplayReq;
     end #derive ::> templateCopyableShapesReq;
+    end #derive ::> pinMapEmitSameAsMutateReq;
     end #derive ::> noHostilePositionalDumpReq;
   }
 
@@ -785,6 +1097,7 @@ package MemNetRequirements {
     end #derive ::> llmFriendlyMcpReq;
     end #derive ::> writeApproxDisplayReq;
     end #derive ::> templateCopyableShapesReq;
+    end #derive ::> pinMapEmitSameAsMutateReq;
   }
 
   #derivation connection deriveSessionFromNoChatStore {
@@ -792,8 +1105,19 @@ package MemNetRequirements {
     end #derive ::> sessionLifecycleReq;
   }
 
+  #derivation connection deriveSaveLoadFromNoChatStore {
+    end #original ::> noChatAsDurableStoreReq;
+    end #derive ::> saveSessionSnapshotReq;
+    end #derive ::> loadSessionSnapshotReq;
+  }
+
+  #derivation connection deriveKeepIdFromLoad {
+    end #original ::> loadSessionSnapshotReq;
+    end #derive ::> optionalKeepSessionIdReq;
+  }
+
   #derivation connection deriveSliceFromContextLimit {
-    end #original ::> warmMustFitContextReq;
+    end #original ::> pinMapMustFitContextReq;
     end #derive ::> sliceEconomyReq;
     end #derive ::> hardCapsReq;
   }
@@ -819,5 +1143,48 @@ package MemNetRequirements {
   #derivation connection deriveSliceFromNodeEdgeQuery {
     end #original ::> queryOverNodeEdgeGraphReq;
     end #derive ::> sliceEconomyReq;
+  }
+
+  #derivation connection deriveSnapshotFromNodeEdge {
+    end #original ::> exactlyNodeAndEdgeReq;
+    end #original ::> edgesAreFirstClassReq;
+    end #derive ::> snapshotInteropReq;
+    end #derive ::> exportGraphToSysmlV2Req;
+    end #derive ::> snapshotCodebaseIntoGraphReq;
+    end #derive ::> snapshotAtoIntoGraphReq;
+    end #derive ::> snapshotSkillsAndRulesIntoGraphReq;
+  }
+
+  #derivation connection deriveSysmlMappingFromNodeEdge {
+    end #original ::> exactlyNodeAndEdgeReq;
+    end #derive ::> nodeMapsToSysmlStructureReq;
+    end #derive ::> edgeMapsToSysmlConnectionReq;
+  }
+
+  #derivation connection deriveCodebaseShapeFromNodeEdge {
+    end #original ::> nodesHoldAtomisedFactsReq;
+    end #original ::> edgesAreFirstClassReq;
+    end #derive ::> codebaseNodesAreModulesSymbolsReq;
+    end #derive ::> codebaseEdgesAreRelationsReq;
+  }
+
+  #derivation connection deriveSkillsRulesShapeFromNodeEdge {
+    end #original ::> nodesHoldAtomisedFactsReq;
+    end #original ::> edgesAreFirstClassReq;
+    end #derive ::> skillsAndRulesAreNodesReq;
+    end #derive ::> skillsRulesEdgesAreRelationsReq;
+  }
+
+  #derivation connection derivePcbaAtoShapeFromNodeEdge {
+    end #original ::> nodesHoldAtomisedFactsReq;
+    end #original ::> edgesAreFirstClassReq;
+    end #derive ::> pcbaAtoNodesAreNetsComponentsPinsReq;
+    end #derive ::> pcbaAtoEdgesAreConnectivityReq;
+  }
+
+  #derivation connection deriveDistinctFromSessionSave {
+    end #original ::> saveSessionSnapshotReq;
+    end #original ::> loadSessionSnapshotReq;
+    end #derive ::> distinctFromSessionSnapshotReq;
   }
 }
