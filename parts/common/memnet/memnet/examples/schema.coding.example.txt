@@ -1,5 +1,5 @@
 # TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
-# Pipe @TAG: id|field… declarations tell the engine which fields each user tag has.
+# Pipe @TAG: id|field... declarations tell the engine which fields each user tag has.
 # Built-in (always merged; do not redefine here):
 #   @LAW  id|name|cycle|mechanism|constraint
 #   @EDG  id|src|relation|dist|at|attrs|recycle
