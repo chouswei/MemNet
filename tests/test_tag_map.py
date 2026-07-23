@@ -84,16 +84,24 @@ def test_techdocs_schema_and_workflow_parse():
         parse_line(stripped, tm)
 
 
-def test_coding_schema_and_workflow_parse():
-    """Coding example map + seed lines parse without field errors."""
+def test_coding_schema_and_workflow_parse(memnet_temp):
+    """Coding TagMap + Tier A workflow ingest without field errors."""
     from pathlib import Path
+
+    from memnet.mutate_gate import MutateGate
+    from memnet.session import open_session
 
     root = Path(__file__).resolve().parents[1]
     schema_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "schema.coding.example.txt"
     workflow_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "workflow.coding.example.txt"
     tm = load_map_from_lines(schema_path.read_text(encoding="utf-8").splitlines())
-    for line in workflow_path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        parse_line(stripped, tm)
+    assert "MOD" in tm.tags and "SYM" in tm.tags
+    ss = open_session(map_file=str(schema_path))
+    result = MutateGate(ss).apply(
+        workflow_path.read_text(encoding="utf-8").splitlines(),
+        mode="add",
+    )
+    assert result.dialect == "tier_a"
+    assert ss.store.get("CFG01") is not None
+    assert ss.store.get("MOD_cli") is not None
+    assert ss.store.get("E_cfg_root") is not None

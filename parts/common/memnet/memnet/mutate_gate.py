@@ -22,7 +22,7 @@ from memnet.tier_a_codec import TierACodec
 
 
 def looks_like_tier_a(line: str) -> bool:
-    s = line.strip()
+    s = line.strip().lstrip("\ufeff")
     if not s or s.startswith("#"):
         return False
     if s.startswith("@"):
@@ -31,7 +31,8 @@ def looks_like_tier_a(line: str) -> bool:
         return True
     if s.startswith(("+", "~", "-")):
         return True
-    if s.startswith("LAW") and len(s) > 3 and s[3].isdigit():
+    # Engine LAW01… or domain LAW-CODE01 / LAW_SNAP01
+    if s.startswith("LAW") and len(s) > 3 and (s[3].isdigit() or s[3] in "-_"):
         return True
     return False
 

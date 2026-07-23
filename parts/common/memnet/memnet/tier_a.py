@@ -98,7 +98,7 @@ _RE_PATCH_EDGE_BARE = re.compile(
 )
 _RE_DROP = re.compile(r"^-\s+([A-Za-z_][A-Za-z0-9_]*)\s*$")
 _RE_LAW = re.compile(
-    r"^(LAW[0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$"
+    r"^(LAW[A-Za-z0-9_.-]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$"
 )
 # Pin-map present (MemNet->LLM): no leading +/~/-
 _RE_PRESENT_NODE = re.compile(

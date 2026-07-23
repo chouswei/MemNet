@@ -1,3 +1,6 @@
+# TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
+# Used by CLI quick start, tests (schema_file fixture), and memnet examples map.
+# Built-in @LAW / @EDG are merged automatically — do not redefine them here.
 @CFG: id|world|economy|identity|core_ability|crisis
 @SYS: id|round|time|deficit|revenue|chaos|exchange_rate
 @PLR: id|identity|wealth|cashflow|monopoly|reputation|inventory

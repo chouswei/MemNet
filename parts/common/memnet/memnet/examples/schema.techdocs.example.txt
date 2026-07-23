@@ -1,3 +1,5 @@
+# TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
+# Pair with workflow.rto-remote.example.txt (machine SCPI seed; legacy @TAG pipe).
 @CFG: id|corpus|anchor|version|notes
 @ART: id|title|source|kind|status|recycle
 @SEC: id|art|heading|numbering|parent|order|status|recycle

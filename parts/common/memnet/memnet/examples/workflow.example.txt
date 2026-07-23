@@ -1,15 +1,24 @@
-@CFG: CFG01|Ming Syndicate|Late Ming economy|Beggar|Soul Library (21C tech)|Faction warlords
-@LAW: LAW01|edge_recycle|on_context|hide|delete_on_expire and delete_on_settle EDG unless anchor touches src or dist
-@LAW: LAW02|node_id|on_add|unique|one row per global id use add then update same tag only
-@LAW: LAW03|edge_endpoints|on_add|validate|prefer src and dist to reference existing node ids before settle
-@LAW: LAW04|field_escape|on_add|use_backslash|pipe inside one field value is backslash pipe not bare pipe
-@SYS: SYS01|1|Autumn Year 38|0|0|15|1 tael:750 cash
-@PLR: PLR01|Vagrant beggar|3|-5|0|0|Soul Library (21C tech),wheat cake
-@BIZ: B01|Unfound|none|none|0|0|0|persistent
-@NPC: N01|Shen Tiexin|female(12)|0|traditional|80|active|persistent
-@TSK: T01|Upgrade workshop|1|urgent|persistent
-@TEC: TEC01|21C coke blast furnace|thermal metallurgy|locked|output+500%
-@PRD: PRD01|Industrial pig iron|goods|0|0|not_in_production
-@EDG: E01|N01|seeks_help|PLR01|unlock|delete_on_expire
-@EDG: E02|PLR01|binds|TEC01|unlock|delete_on_expire
-@EDG: E03|TEC01|produces|PRD01|output|persistent
+# Tier A seed for schema.example.txt (agent dialect: Write = display mutate ops).
+# Stable ids kept for CLI/MCP integration tests (PLR01, N01, T01, LAW01…).
+# Live pin map omits leading +; mutate uses + / ~ / - (see README Agent I/O).
+
+## Laws
+LAW01 name=EDG ; cycle=on_context ; mechanism=hide ; constraint=settled_edg_unless_anchor
+LAW02 name=* ; cycle=on_add ; mechanism=unique ; constraint=one_id_add_then_update
+LAW03 name=EDG ; cycle=on_add ; mechanism=validate ; constraint=src_dist_exist_first
+LAW04 name=* ; cycle=on_add ; mechanism=use_backslash ; constraint=backslash_pipe_not_bare
+
+## Nodes
++ CFG [CFG01] ; world=Ming Syndicate ; economy=Late Ming economy ; identity=Beggar ; core_ability=Soul Library (21C tech) ; crisis=Faction warlords
++ SYS [SYS01] ; round=1 ; time=Autumn Year 38 ; deficit=0 ; revenue=0 ; chaos=15 ; exchange_rate=1 tael:750 cash
++ PLR [PLR01] ; identity=Vagrant beggar ; wealth=3 ; cashflow=-5 ; monopoly=0 ; reputation=0 ; inventory=Soul Library (21C tech),wheat cake
++ BIZ [B01] ; name=Unfound ; type=none ; location=none ; profit=0 ; cashflow=0 ; employees=0 ; recycle=persistent
++ NPC [N01] ; name=Shen Tiexin ; traits=female(12) ; corruption=0 ; craft=traditional ; funding_gap=80 ; status=active ; recycle=persistent
++ TSK [T01] ; goal=Upgrade workshop ; deadline=1 ; status=urgent ; recycle=persistent
++ TEC [TEC01] ; name=21C coke blast furnace ; domain=thermal metallurgy ; status=locked ; effect=output+500%
++ PRD [PRD01] ; name=Industrial pig iron ; type=goods ; cost=0 ; price=0 ; status=not_in_production
+
+## Edges
++ E01 [N01] --(seeks_help)--> [PLR01] ; note=unlock ; recycle=delete_on_expire
++ E02 [PLR01] --(binds)--> [TEC01] ; note=unlock ; recycle=delete_on_expire
++ E03 [TEC01] --(produces)--> [PRD01] ; note=output ; recycle=persistent

@@ -146,7 +146,8 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
 def test_supplement_seed_lines():
     out = supplement_seed_lines(None)
     assert len(out) == 5
-    assert all(line.startswith("@LAW:") for line in out)
+    assert all(line.startswith("LAW") and not line.startswith("@") for line in out)
+    assert "name=EDG" in out[0]
     custom = [
         "@LAW: LAW01|custom|on_add|x|y",
         "@CFG: CFG01|a|CFG01|1|b|c",
@@ -155,6 +156,13 @@ def test_supplement_seed_lines():
     assert out2[0].startswith("@LAW: LAW02")
     assert any("LAW01|custom" in line for line in out2)
     assert any("CFG01" in line for line in out2)
+    tier_custom = [
+        "LAW01 name=custom ; cycle=on_add ; mechanism=x ; constraint=y",
+    ]
+    out3 = supplement_seed_lines(tier_custom)
+    assert out3[0].startswith("LAW02")
+    assert not out3[0].startswith("@")
+    assert any(line.startswith("LAW01 ") for line in out3)
 
 
 def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
@@ -186,7 +194,7 @@ def test_session_open_seed_lines_unknown_relation_aborts(memnet_temp, schema_fil
         "@CFG: CFG01|x|CFG01|1|x|x",
         "@PLR: PLR01|Hero|1|0|0|0|x",
         "@PLR: PLR02|Friend|1|0|0|0|x",
-        "@EDG: E1|PLR01|owns|PLR02|tie|persistent",
+        "@EDG: E1|PLR01|foobarz_rel|PLR02|tie|persistent",
     ]
     open_raw = asyncio.run(
         session_open(
@@ -212,7 +220,7 @@ def test_session_open_seed_lines_allow_new_relation(memnet_temp, schema_file, mo
         "@CFG: CFG01|x|CFG01|1|x|x",
         "@PLR: PLR01|Hero|1|0|0|0|x",
         "@PLR: PLR02|Friend|1|0|0|0|x",
-        "@EDG: E1|PLR01|owns|PLR02|tie|persistent",
+        "@EDG: E1|PLR01|foobarz_rel|PLR02|tie|persistent",
     ]
     open_raw = asyncio.run(
         session_open(

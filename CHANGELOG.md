@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-23
+
+### Added
+- **Tier A agent surface** — Write=display dialect (`tier_a.py`), golden tests, grammar design and examples under `docs/grammar/`.
+- **MutateGate / PinMapComposer / IdAllocator** — Tier A mutate batches, live pin map (bounded ego digest), engine id mint for `[NEW]`.
+- **SysML baseline** — `sysml-models/` and doctrine aligned to Net of Memory / pin-map ingest.
+- **In-process MCP default** — generic `memnet-mcp` without a required TCP serve hop.
+
 ### Changed
-- Housekeeping: root agent docs aligned to Net of Memory / Tier A / pin map doctrine; scratch `tmp_*.py` removed; `.gitignore` tightened for validate/refs/antlr extracts.
+- **Live pin map emits bare present lines** — no leading `+`/`~`/`-` on MemNet→LLM output (ops remain mutate-only); grammar, composer, README, and golden examples updated.
+- **MCP law seed defaults to Tier A** — LAW01–LAW05 injected as Tier A; legacy `@TAG` pipe only when `seed_lines` are already pipe.
+- **Parts layout** — engine under `parts/common/memnet/`, MCP under `parts/memnet-mcp/`; CLI help and bundled examples clarified (schema/workflow vs agent grammar fixtures).
+- Housekeeping: root agent docs aligned to Tier A / pin map; `.gitignore` tightened for validate/refs/antlr extracts.
+
+### Removed
+- **novel-writer** — dropped from this repo (`DROP-NOVEL-WRITER.md`); MemNet hosts the graph engine and generic MCP only.
+
+### Fixed / closed
+- Issues #10–#12, #15–#16, #21 (Net of Memory refactor, Tier A/pin map, parts layout, novel drop, MCP path).
 
 ## [0.2.32] — 2026-07-07
 

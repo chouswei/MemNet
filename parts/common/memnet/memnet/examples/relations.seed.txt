@@ -1,4 +1,28 @@
+# Default @EDG relation vocabulary loaded on every session_open (_seed_relations).
+# Add further verbs with add/update --allow-new-relation; prefer this seed for common work.
+#
+# Legacy demo (workflow.example.txt)
 seeks_help
 binds
 produces
 links
+#
+# Doctrine / coding (memnet-format + workflow.coding.example.txt)
+owns
+contains
+defines
+implements
+calls
+tests
+documents
+satisfies
+constrained_by
+next
+delegates
+overrides
+governs
+preempts
+memberOf
+mentions
+maps_to
+helps

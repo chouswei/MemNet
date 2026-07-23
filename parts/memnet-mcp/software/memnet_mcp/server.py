@@ -54,12 +54,12 @@ async def session_open(
 ) -> str:
     """Open a new MemNet session with a tag map (map_lines preferred over map_file).
 
-    Optional seed_lines are added via add --stdin immediately after open (e.g. @CFG anchor
-    and domain @LAW rows). Core LAW01–LAW05 are auto-included when missing so every warm
-    read carries engine invariants without relying on chat memory.
+    Optional seed_lines are added via add --stdin immediately after open (e.g. CFG/domain
+    rows). Core LAW01–LAW05 are auto-included when missing (Tier A by default; pipe only
+    when seed_lines are legacy @TAG) so every warm/pin map carries engine invariants.
 
-    Set allow_new_relation=True when seed_lines include @EDG rows with relations beyond
-    the four built-in (binds/links/produces/seeks_help); otherwise the seed batch will
+    Set allow_new_relation=True when seed_lines include EDG relations beyond
+    relations.seed.txt (session_open default vocabulary); otherwise the seed batch will
     abort on the first unknown relation and roll back, leaving the session empty.
     """
     if map_file:

@@ -8,6 +8,6 @@ Shared MemNet core library (Python package `memnet`): GraphStore, TierACodec, Mu
 | Role | `parts/common` shared software |
 | Package | `parts/common/memnet/memnet/` |
 | Module map | [`parts/README.md`](../../README.md) |
-| Examples | `parts/common/memnet/memnet/examples/` |
+| Examples | `parts/common/memnet/memnet/examples/` (see `examples/README.md`) |
 
 See root `README.md` and `docs/grammar/memnet-grammar-design.md`.

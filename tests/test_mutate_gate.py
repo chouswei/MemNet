@@ -40,7 +40,8 @@ def test_tier_a_add_mints_new(memnet_temp, schema_file):
     )
     assert warm.exit_code == 0
     assert plrs[0].id in warm.stdout
-    assert f"+ PLR [{plrs[0].id}]" in warm.stdout
+    assert f"PLR [{plrs[0].id}]" in warm.stdout
+    assert f"+ PLR [{plrs[0].id}]" not in warm.stdout
     assert "@PLR:" not in warm.stdout
 
 
@@ -53,4 +54,5 @@ def test_pin_map_composer_unit(memnet_temp, schema_file):
     )
     text = PinMapComposer(ss).compose(anchor="PLR01", depth=1)[1]
     assert "## Nodes" in text
-    assert "+ PLR [PLR01]" in text
+    assert "PLR [PLR01]" in text
+    assert "+ PLR [PLR01]" not in text
