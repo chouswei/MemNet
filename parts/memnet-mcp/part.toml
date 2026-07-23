@@ -1,0 +1,4 @@
+[part]
+name = "memnet-mcp"
+version = "0.2.32"
+sysml_type = "MemnetMcp"

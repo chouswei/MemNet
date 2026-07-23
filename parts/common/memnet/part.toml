@@ -1,0 +1,4 @@
+[part]
+name = "common/memnet"
+version = "0.2.32"
+sysml_type = "MemnetCore"

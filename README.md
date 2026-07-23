@@ -1,4 +1,4 @@
-# MemNet
+﻿# MemNet
 
 **Pure in-memory working-memory graph for LLM "goldfish brains"** — structured state an agent writes once and re-reads each turn because the model forgets.
 
@@ -50,12 +50,12 @@ memnet serve
 memnet guide --loose
 
 # Start a session with the bundled schema
-memnet session open --map-file src/memnet/examples/schema.example.txt
+memnet session open --map-file parts/common/memnet/memnet/examples/schema.example.txt
 # stderr also prints: MEMNET_SESSION=mn_xxxxxxxx
 $env:MEMNET_SESSION = "mn_xxxxxxxx"
 
 # Ingest a small world (LAW rules + world state + missions)
-memnet add --file src/memnet/examples/workflow.example.txt
+memnet add --file parts/common/memnet/memnet/examples/workflow.example.txt
 
 # Preferred read for the next LLM turn: only live mission state
 memnet query warm --anchor PLR01
@@ -68,7 +68,7 @@ Without `memnet serve` running, any stateful command returns `@ERR: serve_requir
 
 For one-off scripting or tests you can set `MEMNET_TEST_INLINE=1` to run in-process (no server), but this is not the normal multi-turn agent mode.
 
-**LLM agents:** read `LLM-GUIDE.md` (in this repo) for the full agent playbook, the goldfish loop, settlement pattern, and disciplines. It is written to be consumed by models.
+**LLM agents:** read `docs/LLM-GUIDE.md` (in this repo) for the full agent playbook, the goldfish loop, settlement pattern, and disciplines. It is written to be consumed by models.
 
 ## Atomisation (required)
 
@@ -90,7 +90,7 @@ memnet add --stdin @"
 "@
 ```
 
-See `LLM-GUIDE.md` for the full agent playbook. Application notes (novel, SysML, MUD) show domain-specific tag maps — all use the same atomisation rule.
+See `docs/LLM-GUIDE.md` for the full agent playbook. Application notes (SysML, MUD, coding) show domain-specific tag maps — all use the same atomisation rule.
 
 ## The goldfish loop (recommended pattern)
 
@@ -233,26 +233,22 @@ No JSON on the wire for LLM consumption — only the `@TAG:` lines plus a handfu
 
 ## Application notes
 
-Seven self-contained worked examples live under `application-notes/` — each shows a complete MemNet pattern (schema, seed, 6-step loop, domain LAW rows). Ordered by typical adoption path, not release date.
+Self-contained worked examples live under `docs/application-notes/` — each shows a complete MemNet pattern (schema, seed, 6-step loop, domain LAW rows). Ordered by typical adoption path, not release date.
 
 | # | Note | Pattern |
 |---|------|---------|
-| 1 | [llm-software-development.md](application-notes/llm-software-development.md) | **Multi-turn coding in Cursor** — `@MOD`/`@SYM`/`@TSK`/`@USR`/`@DEC`, verified locators, v0.2.12 `session_load`/`session_save` retrospective; complements grep/LSP/git and Cursor codebase indexing |
-| 2 | [llm-daily-news.md](application-notes/llm-daily-news.md) | **Batch RSS digest** (~100 articles/day) — run-scoped working memory (120-min TTL), `@KYWD` hub salience, `@CLU`/`@SYN` layers, Python bridge via `send_command` |
-| 3 | [llm-tech-docs-decomposition.md](application-notes/llm-tech-docs-decomposition.md) | **Instrument manual / SCPI remote mode** — R&S RTO rev 29, 4 584 `@CMD`, procedure layers with `precedes`/`requires`, two driver turns; `scripts/extract_rto_scpi.py` |
-| 4 | [llm-sysml-v2-modeling.md](application-notes/llm-sysml-v2-modeling.md) | **SysML v2 textual modeling** — 6U CubeSat PDU, `@PKG` cross-file refs, allocations/ports/traceability from rows, runtime behaviour budgeting |
-| 5 | [llm-novel-writer.md](application-notes/llm-novel-writer.md) | **Interactive novel / RPG** — 6-step read → context → user-input-as-data → analyse → update → loop; `@LORE`/`@SCN`/`@STEP`, chapter merge |
-| 6 | [llm-mud.md](application-notes/llm-mud.md) | **Multiplayer text MUD** — server-side world agent + client prose agents, *Alice in Wonderland* sample; tiered atomisation, `scripts/load_test_mud.py` |
-| 7 | [llm-build-on-memnet.md](application-notes/llm-build-on-memnet.md) | **Builder guide** — author your own MCP server (`FastMCP` + `run_memnet` bridge, JSON envelope, LAW supplementation) and Cursor skill pack (`SKILL.md` frontmatter, `references/` split, `mcp.json` registration); worked example = `mcp-memnet` skill + `novel-mcp` application split |
+| 1 | [llm-software-development.md](docs/application-notes/llm-software-development.md) | **Multi-turn coding in Cursor** — `@MOD`/`@SYM`/`@TSK`/`@USR`/`@DEC`, verified locators, v0.2.12 `session_load`/`session_save` retrospective; complements grep/LSP/git and Cursor codebase indexing |
+| 2 | [llm-daily-news.md](docs/application-notes/llm-daily-news.md) | **Batch RSS digest** (~100 articles/day) — run-scoped working memory (120-min TTL), `@KYWD` hub salience, `@CLU`/`@SYN` layers, Python bridge via `send_command` |
+| 3 | [llm-tech-docs-decomposition.md](docs/application-notes/llm-tech-docs-decomposition.md) | **Instrument manual / SCPI remote mode** — R&S RTO rev 29, 4 584 `@CMD`, procedure layers with `precedes`/`requires`, two driver turns; `scripts/extract_rto_scpi.py` |
+| 4 | [llm-sysml-v2-modeling.md](docs/application-notes/llm-sysml-v2-modeling.md) | **SysML v2 textual modeling** — 6U CubeSat PDU, `@PKG` cross-file refs, allocations/ports/traceability from rows, runtime behaviour budgeting |
+| 5 | [llm-mud.md](docs/application-notes/llm-mud.md) | **Multiplayer text MUD** — server-side world agent + client prose agents, *Alice in Wonderland* sample; tiered atomisation, `scripts/load_test_mud.py` |
+| 6 | [llm-build-on-memnet.md](docs/application-notes/llm-build-on-memnet.md) | **Builder guide** — author your own MCP server (`FastMCP` + `run_memnet` bridge, JSON envelope, LAW supplementation) and Cursor skill pack (`SKILL.md` frontmatter, `references/` split, `mcp.json` registration); worked example = `mcp-memnet` skill |
 
-Supplement: [novel-shenjia-initial-state.md](application-notes/novel-shenjia-initial-state.md) — 《工匠傳奇》 bootstrap rows for the novel writer MCP pipeline.
+Novel writer was removed from this repository — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md).
 
-## Development
+## Layout
 
-```powershell
-.\scripts\dev.ps1          # setup / test / lint / fmt / cli
-pytest
-```
+Part-based tree — see `LAYOUT.md` and `AGENTS.md`. Core library: `parts/common/memnet/`; MCP: `parts/memnet-mcp/`.
 
 Tests run with `MEMNET_TEST_INLINE=1` so they do not require a separate `serve` process.
 
@@ -289,7 +285,7 @@ Set `MEMNET_SESSION` to your open session id. Example Cursor MCP config:
 }
 ```
 
-**Tools (v1):** `serve_status`, `session_open`, `session_current`, `query_warm`, `add`, `update`, `read_get`, `housekeep_stats`. Each returns a JSON envelope with `stdout` / `stderr` wire lines, `exit_code`, `session_id`, and `errors[]` (from `@ERR:` lines). **`session_open`** auto-seeds **LAW01–LAW05** on every new session (prepended on each `query_warm`); optional **`seed_lines`** adds `@CFG` anchors and domain `@LAW` rows in the same call. See [LLM-GUIDE.md](LLM-GUIDE.md).
+**Tools (v1):** `serve_status`, `session_open`, `session_current`, `query_warm`, `add`, `update`, `read_get`, `housekeep_stats`. Each returns a JSON envelope with `stdout` / `stderr` wire lines, `exit_code`, `session_id`, and `errors[]` (from `@ERR:` lines). **`session_open`** auto-seeds **LAW01–LAW05** on every new session (prepended on each `query_warm`); optional **`seed_lines`** adds `@CFG` anchors and domain `@LAW` rows in the same call. See [LLM-GUIDE.md](docs/LLM-GUIDE.md).
 
 ## Licence
 

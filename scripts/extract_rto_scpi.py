@@ -1,4 +1,4 @@
-"""Extract SCPI commands from RTO User Manual PDF into MemNet @CMD rows."""
+﻿"""Extract SCPI commands from RTO User Manual PDF into MemNet @CMD rows."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PDF = ROOT / "data" / "rto" / "UserManual_en_29.pdf"
 OUT_CMD = ROOT / "data" / "rto" / "scpi_commands.txt"
-OUT_WIRE = ROOT / "src" / "memnet" / "examples" / "workflow.rto-remote.example.txt"
+OUT_WIRE = ROOT / "parts" / "common" / "memnet" / "memnet" / "examples" / "workflow.rto-remote.example.txt"
 
 LIST_FIRST_PAGE = 2955
 LIST_LAST_PAGE = 3058

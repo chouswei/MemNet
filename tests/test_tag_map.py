@@ -74,8 +74,8 @@ def test_techdocs_schema_and_workflow_parse():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    schema_path = root / "src" / "memnet" / "examples" / "schema.techdocs.example.txt"
-    workflow_path = root / "src" / "memnet" / "examples" / "workflow.rto-remote.example.txt"
+    schema_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "schema.techdocs.example.txt"
+    workflow_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "workflow.rto-remote.example.txt"
     tm = load_map_from_lines(schema_path.read_text(encoding="utf-8").splitlines())
     for line in workflow_path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
@@ -89,8 +89,8 @@ def test_coding_schema_and_workflow_parse():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
-    schema_path = root / "src" / "memnet" / "examples" / "schema.coding.example.txt"
-    workflow_path = root / "src" / "memnet" / "examples" / "workflow.coding.example.txt"
+    schema_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "schema.coding.example.txt"
+    workflow_path = root / "parts" / "common" / "memnet" / "memnet" / "examples" / "workflow.coding.example.txt"
     tm = load_map_from_lines(schema_path.read_text(encoding="utf-8").splitlines())
     for line in workflow_path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()

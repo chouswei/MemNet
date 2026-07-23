@@ -39,3 +39,7 @@ novel-output/
 *.swp
 .DS_Store
 Thumbs.db
+
+# SysML local OMG junction / validate scratch (pin libs via submodule later)
+sysml-models/libs/
+sysml-models/outputs/_validate_bundle.sysml

@@ -1,0 +1,20 @@
+[project]
+name = "memnet"
+repo = "MemNet"
+version = "0.2.32"
+description = "In-memory working-memory graph for LLM agents (goldfish brain scratch space)"
+
+# No pcba-libs pins — software-only system (see LAYOUT.md).
+# sysml-models/libs/omg: local junction until [deps.sysml_libs] is pinned.
+
+[sysml]
+config = "sysml-models/config.yaml"
+models_dir = "sysml-models/models"
+libs_dir = "sysml-models/libs"
+
+[parts]
+# Informational index for agents/CI — align with LAYOUT.md / deploy.sysml
+roots = [
+  "common/memnet",
+  "memnet-mcp",
+]

@@ -1,0 +1,47 @@
+@LAW: LAW-CODE01|SYM|on_add|verify_first|grep_or_lsp_before_first_sym_row
+@LAW: LAW-CODE02|SYM|on_turn|refresh_line|update_line_after_every_edit
+@LAW: LAW-CODE03|*|on_add|no_bodies|path_line_signature_not_file_text
+@LAW: LAW-CODE04|TSK|on_turn|one_active|one_in_progress_tsk_per_session
+@LAW: LAW-MEMNET01|*|on_turn|cli_before_mcp|wrap_existing_cli_not_reimplement
+
+@CFG: CFG01|MemNet|MOD_repo_root|0.2.12|coding_session_v0_2_12
+@MOD: MOD_repo_root|.|MemNet repo root|active|persistent
+@MOD: MOD_cli|parts/common/memnet/memnet/cli.py|Typer CLI session commands|active|persistent
+@MOD: MOD_mcp_server|parts/memnet-mcp/software/memnet_mcp/server.py|FastMCP tool wrappers|active|persistent
+@MOD: MOD_mcp_client|parts/memnet-mcp/software/memnet_mcp/client.py|CLI subprocess bridge|active|persistent
+@MOD: MOD_test_snapshot|tests/test_snapshot.py|CLI snapshot tests|active|persistent
+@MOD: MOD_test_mcp|tests/test_mcp.py|MCP integration tests|active|persistent
+
+@SYM: SYM_cli_session_save|session_save|fn|parts/common/memnet/memnet/cli.py|339|def session_save(file, session=None)|active|persistent
+@SYM: SYM_cli_session_load|session_load|fn|parts/common/memnet/memnet/cli.py|351|def session_load(file, ttl, keep_id)|active|persistent
+@SYM: SYM_mcp_session_load|session_load|fn|parts/memnet-mcp/software/memnet_mcp/server.py|100|async def session_load(file, keep_id=True)|active|persistent
+@SYM: SYM_mcp_session_save|session_save|fn|parts/memnet-mcp/software/memnet_mcp/server.py|120|async def session_save(file, session=None)|active|persistent
+@SYM: SYM_run_memnet|run_memnet|fn|parts/memnet-mcp/software/memnet_mcp/client.py|128|def run_memnet(argv, stdin, session)|active|persistent
+
+@TSK: TSK_mcp_session_load|Expose session_load on memnet-mcp|MOD_cli|done|delete_on_settle
+@TSK: TSK_mcp_session_save|Add session_save MCP and tests|MOD_mcp_server|done|delete_on_settle
+
+@USR: USR_keep_id|api|keep_id default true on session_load|active|persistent
+
+@DEC: DEC_mcp_keep_id|TSK_mcp_session_load|keep_id default on session_load|true / false|true|delete_on_settle
+
+@EDG: E_cfg_root|CFG01|contains|MOD_repo_root|struct|persistent
+@EDG: E_cli_def_save|MOD_cli|defines|SYM_cli_session_save|handler|persistent
+@EDG: E_cli_def_load|MOD_cli|defines|SYM_cli_session_load|handler|persistent
+@EDG: E_srv_def_load|MOD_mcp_server|defines|SYM_mcp_session_load|mcp_tool|persistent
+@EDG: E_srv_def_save|MOD_mcp_server|defines|SYM_mcp_session_save|mcp_tool|persistent
+@EDG: E_client_def|MOD_mcp_client|defines|SYM_run_memnet|bridge|persistent
+@EDG: E_mcp_impl_load|SYM_mcp_session_load|implements|SYM_cli_session_load|wraps_cli|persistent
+@EDG: E_mcp_impl_save|SYM_mcp_session_save|implements|SYM_cli_session_save|wraps_cli|persistent
+@EDG: E_mcp_calls|SYM_mcp_session_load|calls|SYM_run_memnet|subprocess|persistent
+@EDG: E_mcp_save_calls|SYM_mcp_session_save|calls|SYM_run_memnet|subprocess|persistent
+@EDG: E_tsk_load_owns_cli|TSK_mcp_session_load|owns|MOD_cli|scope|persistent
+@EDG: E_tsk_load_owns_srv|TSK_mcp_session_load|owns|MOD_mcp_server|scope|persistent
+@EDG: E_tsk_load_owns_dec|TSK_mcp_session_load|owns|DEC_mcp_keep_id|decision|persistent
+@EDG: E_tsk_save_owns_srv|TSK_mcp_session_save|owns|MOD_mcp_server|scope|persistent
+@EDG: E_tsk_save_owns_test|TSK_mcp_session_save|owns|MOD_test_mcp|scope|persistent
+@EDG: E_tsk_load_usr|TSK_mcp_session_load|constrained_by|USR_keep_id|user_stated|persistent
+@EDG: E_test_load|MOD_test_mcp|tests|SYM_mcp_session_load|integration|persistent
+@EDG: E_test_save|MOD_test_mcp|tests|SYM_mcp_session_save|integration|persistent
+@EDG: E_cli_snap|MOD_test_snapshot|tests|SYM_cli_session_save|cli|persistent
+@EDG: E_cli_snap_load|MOD_test_snapshot|tests|SYM_cli_session_load|cli|persistent

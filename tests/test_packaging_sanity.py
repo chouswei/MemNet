@@ -1,8 +1,5 @@
-"""Guards against the class of bug in issue #9: a syntax error (e.g. unterminated
-docstring) shipped in a released wheel because no test ever imported the module.
-
-Every src/**/*.py file must at least parse and, for the two published packages,
-import cleanly.
+"""Guards against shipping a broken wheel: every published package module must
+parse and import cleanly.
 """
 
 from __future__ import annotations
@@ -12,17 +9,22 @@ import importlib
 import pkgutil
 from pathlib import Path
 
-SRC_ROOT = Path(__file__).resolve().parent.parent / "src"
+REPO = Path(__file__).resolve().parent.parent
+SCAN_ROOTS = (
+    REPO / "parts" / "common" / "memnet" / "memnet",
+    REPO / "parts" / "memnet-mcp" / "software" / "memnet_mcp",
+)
 
 
 def _all_py_files() -> list[Path]:
-    return sorted(SRC_ROOT.rglob("*.py"))
+    out: list[Path] = []
+    for root in SCAN_ROOTS:
+        if root.is_dir():
+            out.extend(sorted(root.rglob("*.py")))
+    return out
 
 
 def test_all_source_files_parse():
-    """ast.parse must succeed for every .py file under src/ (catches unterminated
-    strings, stray indentation, etc. that py_compile/import alone might mask via
-    cached .pyc files)."""
     failures: list[str] = []
     for path in _all_py_files():
         try:
@@ -51,14 +53,12 @@ def test_memnet_mcp_package_imports():
 
 
 def test_every_submodule_of_memnet_importable():
-    """Belt-and-braces: walk every submodule of the memnet package and import it,
-    so a broken module can't hide behind not being explicitly named above."""
     import memnet
 
     failures: list[str] = []
     for module_info in pkgutil.walk_packages(memnet.__path__, prefix="memnet."):
         try:
             importlib.import_module(module_info.name)
-        except Exception as exc:  # noqa: BLE001 - we want to report any import failure
+        except Exception as exc:  # noqa: BLE001
             failures.append(f"{module_info.name}: {type(exc).__name__}: {exc}")
     assert not failures, "\n".join(failures)

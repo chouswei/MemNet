@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-"""Regenerate workflow.memnet-codebase.snap.txt from src/**/*.py via AST walk.
+﻿#!/usr/bin/env python3
+"""Regenerate workflow.memnet-codebase.snap.txt from published packages via AST walk.
 
 Top-level FunctionDef / AsyncFunctionDef / ClassDef nodes become @SYM rows; one
 @MOD row per file. Private names (leading underscore) and dunder modules are
@@ -13,11 +13,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_ROOTS = (
-    ROOT / "src",
-    ROOT / "applications" / "novel_cursor",
-    ROOT / "applications" / "novel_mobile",
+    ROOT / "parts" / "common" / "memnet" / "memnet",
+    ROOT / "parts" / "memnet-mcp" / "software" / "memnet_mcp",
 )
-OUT = ROOT / "src" / "memnet" / "examples" / "workflow.memnet-codebase.snap.txt"
+OUT = ROOT / "parts" / "common" / "memnet" / "memnet" / "examples" / "workflow.memnet-codebase.snap.txt"
 
 
 def mod_id(path: Path) -> str:
@@ -26,9 +25,7 @@ def mod_id(path: Path) -> str:
 
 
 def role_for(rel: str) -> str:
-    if "novel_mobile" in rel:
-        return "mobile"
-    if "novel_cursor" in rel or "_mcp" in rel:
+    if "memnet_mcp" in rel:
         return "mcp"
     return "engine"
 
@@ -60,7 +57,7 @@ def collect_symbols(path: Path) -> list[tuple[str, str, int, str]]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             kind = "fn"
             name = node.name
-        elif isinstance(node, ast.ClassDef):
+        elif isinstance(node, (ast.ClassDef)):
             kind = "class"
             name = node.name
         else:
@@ -78,36 +75,25 @@ def main() -> None:
         "@LAW: LAW-SNAP01|SYM|on_add|ast_first|ast_walk_top_level_def_class",
         "@LAW: LAW-SNAP02|MOD|on_add|one_per_file|one_mod_per_source_file",
         "@CFG: CFG01|MemNet|MOD_repo_root|0.2.16|memnet_codebase_snap",
-        "@MOD: MOD_repo_root|.|MemNet repo root|active|persistent",
-        "@TSK: TSK_codebase_snap_memnet|Full MemNet src index|MOD_repo_root|in_progress|persistent",
-        "@USR: USR_snap_scope|scope|src+applications public top-level defs|active|persistent",
     ]
     mods: list[str] = []
     syms: list[str] = []
-    edges: list[str] = [
-        "@EDG: E_tsk_root|TSK_codebase_snap_memnet|owns|MOD_repo_root|scope|persistent",
-        "@EDG: E_tsk_usr|TSK_codebase_snap_memnet|constrained_by|USR_snap_scope|light_snap|persistent",
-    ]
-    n = 1
-    used_sym: set[str] = set()
+    edges: list[str] = []
+    ei = 1
     for path in iter_python_files():
-        rel = path.relative_to(ROOT).as_posix()
         mid = mod_id(path)
+        rel = path.relative_to(ROOT).as_posix()
         role = role_for(rel)
-        mods.append(f"@MOD: {mid}|{rel}|{path.name} {role}|active|persistent")
-        edges.append(f"@EDG: E_own_{n}|TSK_codebase_snap_memnet|owns|{mid}|scope|persistent")
-        n += 1
+        mods.append(f"@MOD: {mid}|{rel}|{path.name}|{role}|active|persistent")
         for name, kind, lineno, sig in collect_symbols(path):
-            sid_base = f"SYM_{mid[4:]}_{name}"
-            sid = sid_base[:60]
-            if sid in used_sym:
-                sid = f"{sid_base[:52]}_{n}"[:60]
-            used_sym.add(sid)
-            syms.append(f"@SYM: {sid}|{name}|{kind}|{rel}|{lineno}|{sig}|active|persistent")
-            edges.append(f"@EDG: E_def_{n}|{mid}|defines|{sid}|entry|persistent")
-            n += 1
-    OUT.write_text("\n".join(head + mods + syms + edges) + "\n", encoding="utf-8")
-    print(f"{OUT}: {len(mods)} MOD, {len(syms)} SYM, {len(edges)} EDG")
+            sid = f"SYM_{mid}_{name}"
+            syms.append(f"@SYM: {sid}|{name}|{kind}|{lineno}|{sig}|active|persistent")
+            edges.append(f"@EDG: E{ei:04d}|{mid}|defines|{sid}|ast|persistent")
+            ei += 1
+    lines = head + mods + syms + edges
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"wrote {OUT} ({len(mods)} mods, {len(syms)} syms)")
 
 
 if __name__ == "__main__":

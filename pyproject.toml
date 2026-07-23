@@ -31,7 +31,7 @@ dependencies = [
 Homepage = "https://github.com/chouswei/MemNet"
 Repository = "https://github.com/chouswei/MemNet"
 Changelog = "https://github.com/chouswei/MemNet/blob/master/CHANGELOG.md"
-Documentation = "https://github.com/chouswei/MemNet/blob/master/LLM-GUIDE.md"
+Documentation = "https://github.com/chouswei/MemNet/blob/master/docs/LLM-GUIDE.md"
 
 [project.optional-dependencies]
 dev = [
@@ -42,39 +42,39 @@ dev = [
 mcp = [
     "mcp>=1.2,<2",
 ]
-novel-mcp = [
-    "mcp>=1.2,<2",
-]
-novel-mobile = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.32",
-    "mcp>=1.2,<2",
-    "google-auth>=2.0",
-    "PyJWT>=2.8",
-]
 
 [project.scripts]
 memnet = "memnet.cli:main"
 memnet-mcp = "memnet_mcp.server:main"
-novel-mcp = "novel_mcp.server:main"
-novel-mobile = "novel_mobile.server:main"
 
 [tool.hatch.version]
-path = "src/memnet/__init__.py"
+path = "parts/common/memnet/memnet/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/memnet", "src/memnet_mcp", "src/novel_mcp", "applications/novel_mobile"]
-
-[tool.hatch.build.targets.wheel.sources]
-"applications/novel_mobile" = "novel_mobile"
+packages = [
+    "parts/common/memnet/memnet",
+    "parts/memnet-mcp/software/memnet_mcp",
+]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/memnet", "src/memnet_mcp", "src/novel_mcp", "tests", "README.md", "LICENSE", "pyproject.toml"]
+only-include = [
+    "parts/common/memnet/memnet",
+    "parts/memnet-mcp/software/memnet_mcp",
+    "tests",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "project.toml",
+    "LAYOUT.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
-pythonpath = ["src", "applications", "applications/novel_cursor"]
+pythonpath = [
+    "parts/common/memnet",
+    "parts/memnet-mcp/software",
+]
 markers = [
     "scheme(id): integration scheme identifier from plan S01-S115",
 ]
@@ -82,7 +82,11 @@ markers = [
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "tests"]
+src = [
+    "parts/common/memnet",
+    "parts/memnet-mcp/software",
+    "tests",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

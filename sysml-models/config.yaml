@@ -1,0 +1,18 @@
+# MemNet — in-memory working-memory graph (core engine + MCP server).
+# Software-only system; Kernel ScalarValues only (no ISQ/SI, no hardware common).
+# Paths relative to sysml-models/. libs/omg is a local junction until sysml-libs is submodule-pinned.
+default_diagram_type: bdd
+auto_generate: []
+color_by_status: false
+
+model_dir: models
+model_files:
+  # 1) OMG Kernel
+  - libs/omg/SysML-v2-Release/sysml.library/Kernel Libraries/Kernel Semantic Library/Base.kerml
+  - libs/omg/SysML-v2-Release/sysml.library/Kernel Libraries/Kernel Data Type Library/ScalarValues.kerml
+  # 2) System models (root last)
+  - connections.sysml
+  - requirements.sysml
+  - deploy.sysml
+  - behaviour.sysml
+  - root.sysml

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Build MemNet codebase index and write memnet-codebase.snap.txt (inline, one process)."""
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from pathlib import Path
 os.environ.setdefault("MEMNET_TEST_INLINE", "1")
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ROOT / "src" / "memnet" / "examples"
+EXAMPLES = ROOT / "parts" / "common" / "memnet" / "memnet" / "examples"
 SCHEMA = EXAMPLES / "schema.coding.example.txt"
 SEED = EXAMPLES / "workflow.memnet-codebase.snap.txt"
 OUT = ROOT / "memnet-codebase.snap.txt"
