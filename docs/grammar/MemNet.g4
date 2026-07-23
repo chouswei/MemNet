@@ -30,6 +30,8 @@ line
     | createEdge NEWLINE
     | patchEdge NEWLINE
     | dropEdge NEWLINE
+    | presentNode NEWLINE     // live pin map (MemNet->LLM): bare present, no mutate op
+    | presentEdge NEWLINE
     | lawPin NEWLINE          // warm-prepend invariants; still a Node
     ;
 
@@ -44,7 +46,7 @@ patchNode
     ;
 
 // Edge forms (Write=display):
-//   Warm / known eid:  + E77 [from] --(rel)--> [to] ; …
+//   Mutate known eid:  + E77 [from] --(rel)--> [to] ; …
 //   Create mint eid:   + NEW [from] --(rel)--> [to] ; …
 //   Shorthand create:  + [from] --(rel)--> [to] ; …   (implicit edge-id mint)
 createEdge
@@ -65,6 +67,16 @@ patchEdge
 
 dropEdge
     : MINUS IDENT
+    ;
+
+
+// Live pin map present (display): no PLUS/TILDE/MINUS. Mutate keeps ops.
+presentNode
+    : IDENT LBRACK IDENT RBRACK (SEMI field)*
+    ;
+
+presentEdge
+    : IDENT LBRACK IDENT RBRACK ARROW_L IDENT ARROW_R LBRACK IDENT RBRACK (SEMI field)*
     ;
 
 // First field has NO leading ';' — matches warm LAW lines.

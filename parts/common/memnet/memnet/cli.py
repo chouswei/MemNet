@@ -14,6 +14,7 @@ from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, ser
 from memnet.exceptions import MemNetError
 from memnet.filter import parse_wheres
 from memnet.help_text import (
+    agent_guide_text,
     examples_map_text,
     examples_path_text,
     examples_workflow_text,
@@ -66,7 +67,7 @@ def emit_stat(key: str, value: int, cap: str = "-") -> None:
 
 app = typer.Typer(
     name="memnet",
-    help="External working memory for LLM agents. Run memnet guide to start.",
+    help="Net of Memory - in-memory NODE|EDGE graph for LLM agents. Run memnet guide.",
     no_args_is_help=True,
 )
 session_app = typer.Typer(help="Session lifecycle")
@@ -187,7 +188,7 @@ def serve(
 def guide(
     loose: Annotated[bool, typer.Option("--loose")] = False,
 ) -> None:
-    """Overview and wire-format rules."""
+    """Tier A / pin-map overview (honest about legacy pipe)."""
     emit_stdout(guide_text(loose=loose))
 
 
@@ -221,13 +222,7 @@ def examples_path() -> None:
 
 @examples_app.command("agent-guide")
 def examples_agent_guide() -> None:
-    emit_stdout(
-        "Read LLM-GUIDE.md (repository root) for the complete agent playbook.\n"
-        "Key points: always use query warm --anchor, settle missions with status=settled + recycle=delete_on_settle, "
-        "reuse IDs, add for new rows and update for changes, run housekeep prune stale after settlement, "
-        "respect @WRN on stderr.\n"
-        "See also: memnet guide --loose, memnet examples map, memnet tagmap fields."
-    )
+    emit_stdout(agent_guide_text())
 
 
 @tagmap_app.command("fields")

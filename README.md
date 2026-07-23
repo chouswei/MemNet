@@ -25,7 +25,7 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 
 ## Agent I/O (Tier A)
 
-Target surface (not `@TAG` pipe). **Write = display** — same Tier A grammar both ways.
+Target surface (not `@TAG` pipe). Shared NODE | EDGE field shapes. **Mutate** uses ops (`+` create, `~` update, `-` drop). **Live pin map** emits bare present lines — no leading ops (ops are mutate-only; a pin-map `+` would look like “please add”).
 
 **Mutate input** (LLM → MemNet) — may use `[NEW]`; engine mints ids:
 
@@ -42,12 +42,12 @@ Target surface (not `@TAG` pipe). **Write = display** — same Tier A grammar bo
 
 ```text
 ## Nodes
-+ CLM [C12] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
-+ TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
-+ NPC [N03] ; role=helper ; status=active ; recycle=persistent
+CLM [C12] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
+TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
+NPC [N03] ; role=helper ; status=active ; recycle=persistent
 
 ## Edges
-+ E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
 ```
 
 - **Create:** `[NEW]` / leading `NEW` — engine allocates ids; copy them afterwards.
@@ -62,7 +62,7 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 
 | Area | Today (as-is) | Target |
 |------|---------------|--------|
-| Agent wire | Mutate + live pin map prefer **Tier A**; legacy `@TAG` pipe still accepted on add/update and used in snapshots / `read` | Tier A Write=display both ways everywhere agent-facing |
+| Agent wire | Mutate + live pin map prefer **Tier A**; legacy `@TAG` pipe still accepted on add/update and used in snapshots / `read` | Tier A shared shapes; pin map bare present; mutate keeps ops |
 | Tier A | Pure-Python codec in `memnet/tier_a.py` + golden tests | SSOT parse/emit; ANTLR optional later |
 | Id mint | `IdAllocator` wired through `MutateGate` on Tier A batches | Same |
 | MutateGate | `mutate_gate.py` — Tier A parse → mint → commit; pipe import-once | Same dialect only |
@@ -107,7 +107,7 @@ PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project).
 
 ## Quick start (as-is CLI)
 
-Until Tier A is the store boundary, the running path is still pipe + serve.
+Until Tier A is universal at every boundary, CLI sessions still use serve; agent mutate prefers Tier A.
 
 **Terminal 1:**
 
@@ -123,7 +123,7 @@ memnet session open --map-file parts/common/memnet/memnet/examples/schema.exampl
 $env:MEMNET_SESSION = "mn_xxxxxxxx"   # from stderr
 
 memnet add --file parts/common/memnet/memnet/examples/workflow.example.txt
-memnet query warm --anchor PLR01      # live pin map (legacy name)
+memnet query warm --anchor PLR01      # live pin map (bare present; legacy command name)
 
 memnet session close $env:MEMNET_SESSION
 ```

@@ -43,7 +43,7 @@ MemNet’s agent language is a **single Write=display dialect of NODE and EDGE l
 ```text
 ┌─────────────────────────────────────────────────────────┐
 │  Agent I/O — Tier A (this grammar)                      │
-│  Write = display. Warm emit + add/update stdin.         │
+│  Shared shapes. Pin map = bare present; mutate = +/~/-.         │
 │  NODE / EDGE lines + optional section headers + pins.   │
 └───────────────────────────┬─────────────────────────────┘
                             │ project (parse / emit)
@@ -141,6 +141,8 @@ IdAllocator: **`NEW` path** for goldfish mutate only; **pin-key path** for PinMa
 
 ### 4.3 Pin map (presentation, not a third data kind)
 
+**Emit form (locked):** live pin map lines are **bare present** — KIND [Id] ; fields… / Eid [from] --(rel)--> [to] ; fields… with **no** leading + / ~ / -. Those ops are **mutate-only**. PinMapComposer emits Op.PRESENT.
+
 The LLM must **not** see the whole Net of Memory. Each turn it receives a **pin map**: a bounded, ego/anchor digest of pins in the same Tier A grammar as mutate I/O (Write = display).
 
 **Primary term (locked):** **pin map** — the turn-facing agent payload.  
@@ -152,7 +154,7 @@ PinMap = {                 // live pin map (turn-facing)
   laws: Pin[],             // engine invariants prepended
   focus: Id[],             // MCP/CLI envelope only — not Tier A body lines
   nodes: Node[],           // ego-reachable, recycle-filtered
-  edges: Edge[],           // emit edge ids: + Eid [from] --(rel)--> [to]
+  edges: Edge[],           // emit bare: Eid [from] --(rel)--> [to]  (no +)
   caps: { depth, max_rows }  // envelope only
 }
 ```

@@ -143,6 +143,11 @@ class MutateGate:
         for it in doc.items:
             if isinstance(it, Section):
                 continue
+            if it.op == Op.PRESENT:
+                raise MemNetError(
+                    "present_on_mutate",
+                    "bare pin-map lines are display-only; use + / ~ / - to mutate",
+                )
             if mode == "add" and it.op in (Op.PATCH, Op.DROP):
                 raise MemNetError(
                     "op_mode_mismatch",

@@ -101,3 +101,19 @@ def test_edge_id_warm_form() -> None:
     assert edge.edge_id == "E77"
     assert edge.frm == "N03"
     assert edge.to == "T42"
+
+
+def test_pin_map_bare_present() -> None:
+    from memnet.tier_a import Op
+
+    doc = parse(
+        "CLM [C12] ; type=decision ; recycle=persistent\n"
+        "E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent\n"
+    )
+    assert doc.items[0].op == Op.PRESENT
+    assert doc.items[1].op == Op.PRESENT
+    emitted = emit(doc)
+    assert emitted.startswith("CLM [C12]")
+    assert "+ CLM" not in emitted
+    assert "E77 [N03]" in emitted
+    assert "+ E77" not in emitted

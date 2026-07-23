@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from memnet.config import examples_dir
 from memnet.fixed_tags import FIXED_TAGS
 from memnet.tag_map import example_ingest_line, load_map_from_file
 
+# Legacy pipe field orders for tagmap/examples commands (not the agent dialect).
 REFERENCE_FIELDS: dict[str, str] = {
     "CFG": "id|world|economy|identity|core_ability|crisis",
     "SYS": "id|round|time|deficit|revenue|chaos|exchange_rate",
@@ -32,50 +31,65 @@ ADD_SAMPLES: dict[str, str] = {
 def guide_text(*, loose: bool = False) -> str:
     if loose:
         bullets = [
-            "Wire line: @TAG: field|field|... — quote the whole line in shell.",
-            "Pipe inside a value: use backslash pipe \\| not bare |.",
-            "Start server: memnet serve (one terminal).",
-            "Open once: memnet session open --map-file schema.txt; export MEMNET_SESSION.",
-            "Resume: memnet session resume <id> — never re-open for same task.",
-            "New rows: memnet add --stdin or --file. Changes: memnet update --stdin or --file.",
-            "Read turn: memnet query warm --anchor PLR01 (not query context).",
-            "Structure: memnet query walk --anchor PLR01 → @WALK: src -[rel]-> dst hops.",
-            "Optional: memnet session save --file snap.txt / session load --file snap.txt.",
+            "MemNet (Net of Memory): in-memory NODE|EDGE working graph for agents.",
+            "Agent dialect: Tier A NODE|EDGE shapes; mutate uses +/~/-; live pin map is bare present (no ops).",
+            "Create with [NEW]; engine mints ids. Patch/settle: known ids only (no NEW).",
+            "Live pin map: memnet query warm --anchor <id> (legacy name; bounded ego digest).",
+            "Pin-map ingest: stable locators (path=, qname=, ...) - no client NEW for those pins.",
+            "Transport: MCP in-process first; memnet serve / TCP is migration fallback.",
+            "Legacy: @TAG pipe still accepted on add/update; snapshots and read may be pipe.",
+            "MCP LawSeedHelper: Tier A LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
             "Reuse ids; never invent new ids for the same entity.",
-            "Read LLM-GUIDE.md (in the repo) for the full agent playbook and settlement rules.",
-            "Example: @PLR: PLR01|Beggar|3|-5|0|0|cake",
+            "Forward docs: docs/grammar/. LLM-GUIDE.md is still partly pipe-era.",
         ]
         return "\n".join(f"- {b}" for b in bullets)
-    return """MemNet — in-memory working-memory graph for LLM agents (goldfish brain).
+    return """MemNet - Net of Memory: in-memory NODE|EDGE working graph for LLM agents.
 
-Quick start:
+Doctrine:
+  Tier A: mutate uses +/~/-; live pin map emits bare present lines (no ops)
+  Live pin map = bounded ego digest (query warm is a legacy alias)
+  Create with NEW; pin-map ingest uses locators, not client NEW
+  Transport: in-process MCP first; serve/TCP as fallback
+
+Quick start (CLI sessions still need serve today):
   memnet serve
-  memnet examples map
   memnet session open --map-file schema.example.txt
-  memnet add --file workflow.example.txt
-  memnet query warm --anchor PLR01
-  memnet query walk --anchor PLR01
+  memnet add --file workflow.example.txt   # Tier A preferred; @TAG pipe still accepted
+  memnet query warm --anchor ...           # live pin map (legacy command name)
 
-Wire format: @TAG: field|field|...
-  Pipe in value: a\\|b
-  Errors: @ERR: code|message|example on stderr
+Tier A sketch:
+  + TSK [NEW] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
+  + E77 [N03] --(helps)--> [T42] ; recycle=persistent
+  # live pin map (emit): bare — no leading +
+  TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
+  E77 [N03] --(helps)--> [T42] ; recycle=persistent
 
-Shell (PowerShell): memnet add \"@NPC: N01|Alice|...\"
-Shell (bash):       memnet add '@NPC: N01|Alice|...'
-  Update existing:  memnet update '@NPC: N01|Alice|...'
-
-See: memnet tagmap fields --tag NPC
-     memnet guide --loose
-     LLM-GUIDE.md (repo root) for the complete LLM/agent instructions
+TagMap maps (schema.*.example.txt) are pipe field defs for session_open — not agent dialect.
+MCP LawSeedHelper defaults to Tier A; pipe only when seed_lines are @TAG.
+See: docs/grammar/, examples/README.md, README.md, memnet guide --loose
 """
 
 
+def agent_guide_text() -> str:
+    return (
+        "Agent playbook pointer (British English docs in-repo).\n"
+        "Forward dialect: docs/grammar/ - Tier A, pin map, NEW vs locators.\n"
+        "Operational loop: LLM-GUIDE.md (still partly pipe-era; prefer grammar when they conflict).\n"
+        "Turn habit: query warm --anchor before inventing ids; mutate with Tier A; reuse ids.\n"
+        "See also: memnet guide, memnet guide --loose, README.md."
+    )
+
+
 def examples_map_text() -> str:
-    lines = ["# Fixed tags (always present)"]
+    lines = [
+        "# TagMap field maps for session_open --map-file (pipe @TAG: fields).",
+        "# Not agent mutate — Tier A lives in workflow.*.example.txt and docs/grammar/.",
+        "# Fixed tags (always present):",
+    ]
     for tag, td in FIXED_TAGS.items():
         lines.append(f"@{tag}: {'|'.join(td.fields)}")
     lines.append("")
-    lines.append("# Reference user tags")
+    lines.append("# Reference user tags (schema.example.txt)")
     schema = examples_dir() / "schema.example.txt"
     if schema.exists():
         lines.extend(schema.read_text(encoding="utf-8").splitlines())
@@ -92,7 +106,12 @@ def examples_workflow_text() -> str:
 def examples_path_text() -> str:
     d = examples_dir()
     paths = [str(p) for p in sorted(d.glob("*.txt"))]
-    paths.append("(LLM-GUIDE.md lives at repository root — run 'memnet examples agent-guide' for the pointer)")
+    readme = d / "README.md"
+    if readme.exists():
+        paths.append(str(readme))
+    paths.append(
+        "(Tier A fixtures: docs/grammar/examples/; memnet examples agent-guide)"
+    )
     return "\n".join(paths)
 
 

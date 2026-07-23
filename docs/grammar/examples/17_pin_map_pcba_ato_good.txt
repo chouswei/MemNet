@@ -3,12 +3,12 @@
 # Ingest never uses client [NEW] for R1/U2/nets/pins. LLM copies ids from warm.
 # [NEW] appears only on goldfish annotations (new MemNet facts), not schematic pins.
 ## Pins
-+ CMP [ATO_R1] ; refdes=R1 ; value=10k ; path=boards/pdu/pdu.ato ; recycle=persistent
-+ CMP [ATO_U2] ; refdes=U2 ; value=regulator ; path=boards/pdu/pdu.ato ; recycle=persistent
-+ NET [NET_GND] ; net=GND ; path=boards/pdu/pdu.ato ; recycle=persistent
-+ NET [NET_24V] ; net=24V ; path=boards/pdu/pdu.ato ; recycle=persistent
-+ PIN [PIN_U2_3] ; refdes=U2 ; pin=3 ; path=boards/pdu/pdu.ato ; recycle=persistent
+CMP [ATO_R1] ; refdes=R1 ; value=10k ; path=boards/pdu/pdu.ato ; recycle=persistent
+CMP [ATO_U2] ; refdes=U2 ; value=regulator ; path=boards/pdu/pdu.ato ; recycle=persistent
+NET [NET_GND] ; net=GND ; path=boards/pdu/pdu.ato ; recycle=persistent
+NET [NET_24V] ; net=24V ; path=boards/pdu/pdu.ato ; recycle=persistent
+PIN [PIN_U2_3] ; refdes=U2 ; pin=3 ; path=boards/pdu/pdu.ato ; recycle=persistent
 
 ## Edges
-+ E_ato1 [PIN_U2_3] --(connects_to)--> [NET_24V] ; recycle=persistent
-+ E_ato2 [ATO_U2] --(owns)--> [PIN_U2_3] ; recycle=persistent
+E_ato1 [PIN_U2_3] --(connects_to)--> [NET_24V] ; recycle=persistent
+E_ato2 [ATO_U2] --(owns)--> [PIN_U2_3] ; recycle=persistent

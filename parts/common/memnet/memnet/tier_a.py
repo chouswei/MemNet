@@ -23,6 +23,7 @@ class Op(str, Enum):
     PATCH = "~"
     DROP = "-"
     LAW = "LAW"
+    PRESENT = ""  # pin-map display: bare atom (no mutate op)
 
 
 @dataclass
@@ -99,6 +100,18 @@ _RE_DROP = re.compile(r"^-\s+([A-Za-z_][A-Za-z0-9_]*)\s*$")
 _RE_LAW = re.compile(
     r"^(LAW[0-9]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$"
 )
+# Pin-map present (MemNet->LLM): no leading +/~/-
+_RE_PRESENT_NODE = re.compile(
+    r"^([A-Z][A-Z0-9_]*)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$"
+)
+_RE_PRESENT_EDGE = re.compile(
+    r"^([A-Za-z_][A-Za-z0-9_]*)\s+"
+    r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
+    r"--\(([a-z][a-z0-9_]*)\)-->\s*"
+    r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
+    r"(.*)$"
+)
+
 
 
 def _unescape_string(body: str) -> str:
@@ -310,6 +323,35 @@ def parse_line(line: str, line_no: int = 1) -> Section | NodeRec | EdgeRec | Non
             raw=s,
         )
 
+
+    m = _RE_PRESENT_EDGE.match(s)
+    if m:
+        eid, frm, rel, to, tail = m.groups()
+        if eid == "NEW" or frm == "NEW" or to == "NEW":
+            raise ParseError("NEW illegal on pin-map present edge", line_no)
+        return EdgeRec(
+            op=Op.PRESENT,
+            edge_id=eid,
+            frm=frm,
+            rel=rel,
+            to=to,
+            fields=_parse_fields(tail or "", line_no),
+            raw=s,
+        )
+
+    m = _RE_PRESENT_NODE.match(s)
+    if m:
+        kind, nid, tail = m.groups()
+        if nid == "NEW":
+            raise ParseError("[NEW] illegal on pin-map present node", line_no)
+        return NodeRec(
+            op=Op.PRESENT,
+            kind=kind,
+            id=nid,
+            fields=_parse_fields(tail or "", line_no),
+            raw=s,
+        )
+
     raise ParseError(f"unrecognised Tier A line: {s!r}", line_no)
 
 
@@ -360,7 +402,9 @@ def emit_item(item: Section | NodeRec | EdgeRec) -> str:
         if item.op == Op.LAW:
             body = _format_fields(item.fields)
             return f"{item.id} {body}" if body else item.id
-        if item.op == Op.CREATE:
+        if item.op == Op.PRESENT:
+            head = f"{item.kind} [{item.id}]"
+        elif item.op == Op.CREATE:
             head = f"+ {item.kind} [{item.id}]"
         else:
             head = f"~ [{item.id}]"
@@ -374,11 +418,14 @@ def emit_item(item: Section | NodeRec | EdgeRec) -> str:
         head = f"~ {item.edge_id}"
         fields = _format_fields(item.fields)
         return f"{head} ; {fields}" if fields else head
-    op = "+" if item.op == Op.CREATE else "~"
-    if item.edge_id:
-        head = f"{op} {item.edge_id} [{item.frm}] --({item.rel})--> [{item.to}]"
+    if item.op == Op.PRESENT:
+        head = f"{item.edge_id} [{item.frm}] --({item.rel})--> [{item.to}]"
     else:
-        head = f"{op} [{item.frm}] --({item.rel})--> [{item.to}]"
+        op = "+" if item.op == Op.CREATE else "~"
+        if item.edge_id:
+            head = f"{op} {item.edge_id} [{item.frm}] --({item.rel})--> [{item.to}]"
+        else:
+            head = f"{op} [{item.frm}] --({item.rel})--> [{item.to}]"
     fields = _format_fields(item.fields)
     return f"{head} ; {fields}" if fields else head
 

@@ -17,7 +17,7 @@ def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
             if k not in ("id", "src", "relation", "dist") and v
         ]
         return EdgeRec(
-            op=Op.CREATE,
+            op=Op.PRESENT,
             edge_id=rec.id,
             frm=rec.fields.get("src", ""),
             rel=rec.fields.get("relation", ""),
@@ -36,7 +36,7 @@ def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
         for k, v in rec.fields.items()
         if k != "id" and v
     ]
-    return NodeRec(op=Op.CREATE, kind=rec.tag, id=rec.id, fields=fields)
+    return NodeRec(op=Op.PRESENT, kind=rec.tag, id=rec.id, fields=fields)
 
 
 class PinMapComposer:
