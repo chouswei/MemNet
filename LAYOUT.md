@@ -8,17 +8,18 @@ This repository follows [SYSTEM-REPO-LAYOUT.md](../SYSTEM-REPO-LAYOUT.md) for **
 |--------------|---------------|
 | `parts/common/<lib>/` | Core Python library `parts/common/memnet/` (shared by MCP hosts) |
 | `parts/<part>/software/` | Product surface: `memnet-mcp` |
-| `docs/` | Cross-part guides: `docs/LLM-GUIDE.md`, `docs/application-notes/` |
-| `sysml-models/` | System SysML scaffold (`models/deploy.sysml`, …); libs pin may still be local |
+| `docs/` | Cross-part guides: `docs/LLM-GUIDE.md`, `docs/grammar/`, `docs/application-notes/` |
+| `sysml-models/` | System SysML (`models/`, design notes under `outputs/`); libs pin may still be local |
 | `pcba-libs/` | **N/A** — no hardware boards |
 | `project.toml` | System identity + SemVer; Python packaging remains in `pyproject.toml` |
 | `scripts/`, `tests/`, `data/` | Kept at repo root (tooling, tests, sample data) |
+| `refs/` | Local vendor grammar pins (`refs/README.md` tracked; extract trees gitignored) |
 
 ## Part roots
 
 | Folder | Role |
 |--------|------|
-| `parts/common/memnet` | Shared `memnet` package (CLI + graph engine) |
+| `parts/common/memnet` | Shared `memnet` package (CLI + graph engine; Tier A, MutateGate, PinMapComposer) |
 | `parts/memnet-mcp` | Generic MemNet MCP server (`memnet_mcp`) |
 
 Novel-writer is **not** a part root. Removal record: [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md).
@@ -28,4 +29,3 @@ Novel-writer is **not** a part root. Removal record: [`DROP-NOVEL-WRITER.md`](DR
 - GitHub / clone folder rename to `modelbasedPrj-memnet` (user decision)
 - Pinning `sysml-models/libs` as a proper `sysml-libs` submodule (local OMG junction may be used until then)
 - Rewriting historical `CHANGELOG.md` paths
-- Deleting untracked `tmp_*.py` scratch files

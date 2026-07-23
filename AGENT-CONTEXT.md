@@ -1,10 +1,12 @@
-# Agent context — memnet
+# Agent context — MemNet
 
-**MemNet session:** `(serve down at scaffold — open when serve is up)` · **Anchor:** `TSK_model_memnet`
+**MemNet session:** `(open when serve/MCP is up)` · **Anchor:** `TSK_model_memnet`
 
 ## Summary
 
-SysML v2 models for MemNet core engine/store/wire and MemNet MCP server under `sysml-models/`. Novel-writer is out of scope. Dual Python trees (`src/` vs `parts/`) may exist during layout migration; allocate targets are `parts/common/memnet` and `parts/memnet-mcp`.
+Net of Memory: in-memory NODE|EDGE working graph for LLM agents. This repo is **engine + generic memnet-mcp** only (part layout under `parts/`). Novel-writer is out of scope — see `DROP-NOVEL-WRITER.md`.
+
+Doctrine (Tier A Write=display, live pin map, `NEW` vs locators): `README.md` → `docs/grammar/` → `sysml-models/`. Operational goldfish loop still in `docs/LLM-GUIDE.md` (pipe migration pending).
 
 ## MemNet
 

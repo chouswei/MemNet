@@ -27,9 +27,10 @@
   notepad and not the search corpus.
 
   Mission SSOT: Net of Memory between LLM pipelines and data searching; aids
-  system, programme, and hardware development, and documentation; save time
-  and tokens; high factual accuracy; LLM-friendly grammar on stdio/MCP;
-  canonical parser for human inspection. Conceptual data kinds: NODE | EDGE.
+  system, programme, software, firmware, hardware, and documentation
+  development; save time and tokens; high factual accuracy; LLM-friendly
+  grammar on stdio/MCP; canonical parser for human inspection. Conceptual
+  data kinds: NODE | EDGE.
 
   Current realisation notes (not eternal identity):
     Target agent grammar is Tier A Write=display (NODE|EDGE lines).
@@ -59,9 +60,9 @@ package MemNetRequirements {
       SHALL provide a Net of Memory (MemNet): an in-memory network of durable
       facts and relations -- not a chat notepad and not the search corpus --
       that sits between pipelines of LLM calls and data searching, aiding the
-      LLM for system development, programme development, hardware development,
-      and documentation, with the aims of saving wall-clock time and token
-      usage while keeping high accuracy when presenting facts.
+      LLM for system, programme, software, firmware, hardware, and
+      documentation development, with the aims of saving wall-clock time and
+      token usage while keeping high accuracy when presenting facts.
     */
     attribute requirementId : String = "MN-REQ-00";
 

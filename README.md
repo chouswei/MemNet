@@ -2,7 +2,7 @@
 
 **MemNet** (Net of Memory) is an in-memory **NODE | EDGE** graph that sits between pipelines of LLM calls and data search. It is working memory for agents — not a chat notepad and not the search corpus.
 
-Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy when presenting facts. It aids **system**, **programme**, **hardware**, and **documentation** development.
+Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy when presenting facts. It aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation** development.
 
 Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`). Python ≥ 3.11.
 
@@ -25,12 +25,26 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 
 ## Agent I/O (Tier A)
 
-Target surface (not `@TAG` pipe):
+Target surface (not `@TAG` pipe). **Write = display** — same Tier A grammar both ways.
+
+**Mutate input** (LLM → MemNet) — may use `[NEW]`; engine mints ids:
 
 ```text
 ## Nodes
 + CLM [NEW] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
 + TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
+
+## Edges
++ E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+```
+
+**Live pin map output** (MemNet → LLM) — assigned ids, no `NEW`; copyable for the next mutate:
+
+```text
+## Nodes
++ CLM [C12] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
++ TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
++ NPC [N03] ; role=helper ; status=active ; recycle=persistent
 
 ## Edges
 + E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent

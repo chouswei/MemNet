@@ -20,11 +20,12 @@ Novel writer was removed from the MemNet repository so this repo hosts the **gra
 
 ## Kept
 
-- `parts/common/memnet/` — core library / CLI
+- `parts/common/memnet/` — core library / CLI (Tier A, pin map, MutateGate)
 - `parts/memnet-mcp/` — generic MemNet MCP
 - Non-novel application notes (coding, news, tech-docs, SysML, MUD, build-on-memnet)
 - Engine tests under `tests/` that do not import novel packages
 - Part-based layout per SYSTEM-REPO-LAYOUT (`parts/common/memnet`, `parts/memnet-mcp`)
+- Doctrine docs: `README.md`, `docs/grammar/`, `sysml-models/` — Net of Memory only
 
 ## Left on disk (manual)
 

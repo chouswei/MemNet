@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Housekeeping: root agent docs aligned to Net of Memory / Tier A / pin map doctrine; scratch `tmp_*.py` removed; `.gitignore` tightened for validate/refs/antlr extracts.
+
 ## [0.2.32] — 2026-07-07
 
 ### Fixed

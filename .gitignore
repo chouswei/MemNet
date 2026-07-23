@@ -40,11 +40,25 @@ novel-output/
 .DS_Store
 Thumbs.db
 
+# Scratch scripts / cut extracts (agent housekeeping)
+tmp_*.py
+tmp_*.txt
+tmp_*.json
+_ref_*/
+
 # SysML local OMG junction / validate scratch (pin libs via submodule later)
 sysml-models/libs/
+sysml-models/outputs/_*
 sysml-models/outputs/_validate_bundle.sysml
+**/_validate*.json
+**/validate_*.json
+
+# Local Cursor MCP (machine-local Python paths — do not commit)
+.cursor/mcp.json
 
 # Local grammar / parser vendor refs (pins live in refs/README.md)
 refs/novel-cut-grammar/*
 !refs/novel-cut-grammar/MANIFEST.md
+!refs/README.md
 third_party/antlr4/
+third_party/antlr4/**
