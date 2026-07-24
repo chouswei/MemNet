@@ -10,13 +10,16 @@ description: >-
   inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.1"
+  version: "1.2"
   domain: memnet
+  product: "0.3.1"
 ---
 
 # MemNet project reference
 
 Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives in docs below — do not duplicate or invent features here.
+
+**Product version:** `project.toml` / PyPI **`memnet-llm==0.3.1`** (CLI command remains `memnet`).
 
 ## Mission
 
@@ -68,6 +71,7 @@ Wire shapes and grammar: `README.md` + `docs/grammar/` (not personal Cursor skil
 
 - Invent ids when a pin map already shows them — copy assigned ids.
 - Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; Tier A for LLM I/O).
+- Recommend TOON/TRON for handoffs — Tier A or plain Markdown.
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Route agents to personal Cursor / user-pack skills from this repo.
 
