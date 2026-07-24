@@ -53,15 +53,16 @@ Part-based folders only — do not recreate top-level `src/` or `applications/`.
 
 ## MCP (generic memnet)
 
-Typical tools: `session_*` (open/save/load/…), `query_warm` (pin-map alias), `add` / `update` via **MutateGate** (Tier A preferred; legacy `@TAG` pipe still accepted on mutate). Always pass the same `session` id. Prefer project MCP `project-0-MemNet-memnet` when available.
+Implementation: `parts/memnet-mcp/`. Typical tools: `session_*` (open/save/load/…), `query_warm` (pin-map alias), `add` / `update` via **MutateGate** (Tier A preferred; legacy `@TAG` pipe still accepted on mutate). Always pass the same `session` id.
 
-Wire authoring detail: user pack `memnet-format`. Tool mechanics: user pack `mcp-memnet`.
+Wire shapes and grammar: `README.md` + `docs/grammar/` (not personal Cursor skills).
 
 ## MUSTNOT
 
-- Invent ids when a pin map / warm already shows them — copy assigned ids.
+- Invent ids when a pin map already shows them — copy assigned ids.
 - Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; Tier A for LLM I/O).
 - Restore `parts/novel-writer/` or novel MCP extras.
+- Route agents to personal Cursor / user-pack skills from this repo.
 
 ## Pre-write checklist
 
@@ -69,11 +70,12 @@ Wire authoring detail: user pack `memnet-format`. Tool mechanics: user pack `mcp
 2. `NEW` for genuine LLM creates; known id for update/settle; locators for ingest pins.
 3. Atomise: one fact per row; relations as edges; short field values (no prose blobs).
 
-## Related skills
+## Related (in-repo only)
 
-| Skill | Role |
-|-------|------|
-| `.cursor/skills/memnet-reference` (this) | Repo doctrine + routing |
-| user pack `memnet-format` | Wire / atomisation detail |
-| user pack `mcp-memnet` | MCP tool mechanics |
-| user pack `reasoning-strategy-selector` | Ambiguous planning |
+| Path | Role |
+|------|------|
+| `.cursor/skills/memnet-reference/` (this) | Repo doctrine + routing |
+| `README.md`, `docs/grammar/` | SSOT doctrine / Tier A |
+| `parts/memnet-mcp/` | Generic MCP |
+| `sysml-models/` | SysML models |
+| `AGENTS.md` | Hub / policy |

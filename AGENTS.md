@@ -1,6 +1,6 @@
 # AGENTS.md — MemNet
 
-LLM hub for this system repo. Prefer skills over ad-hoc invention. Layout authority: `LAYOUT.md` + `C:\Projects\SYSTEM-REPO-LAYOUT.md`.
+LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc invention. Layout authority: `LAYOUT.md` + `C:\Projects\SYSTEM-REPO-LAYOUT.md`.
 
 ## Mission
 
@@ -26,10 +26,13 @@ LLM hub for this system repo. Prefer skills over ad-hoc invention. Layout author
 
 ## Skill routing
 
-| Intent | Skill / tool |
-|--------|----------------|
-| MemNet work in this repo (Tier A / pin map / MCP / parts) | **primary:** `.cursor/skills/memnet-reference`; then user pack `memnet-format`, `mcp-memnet`; SSOT `README.md` + `docs/grammar/` (playbook `docs/LLM-GUIDE.md`) |
-| Ambiguous planning | user pack `reasoning-strategy-selector` |
+| Intent | Path |
+|--------|------|
+| MemNet work (Tier A / pin map / MCP / parts) | `.cursor/skills/memnet-reference/` |
+| Doctrine / grammar / models | `README.md`, `docs/grammar/`, `sysml-models/` |
+| Generic MCP implementation | `parts/memnet-mcp/` |
+
+Personal Cursor skills (user pack) are out of scope for this repo.
 
 ## Policy
 
