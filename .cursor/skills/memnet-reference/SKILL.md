@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.4"
+  version: "1.5"
   domain: memnet
   product: "0.3.1"
 ---
@@ -63,9 +63,20 @@ Part-based folders only — do not recreate top-level `src/` or `applications/`.
 
 ## MCP (generic memnet)
 
-Implementation: `parts/memnet-mcp/`. Tools (package source of truth): `serve_status`, `session_open` / `session_save` / `session_load` / `session_current`, `query_warm` (pin-map alias), `query_walk`, `add` / `update`, `read_get` / `read_list`, `housekeep_stats`. Transport defaults to **in-process** (`MEMNET_MCP_TRANSPORT=tcp` only when bridging `memnet serve`). Always pass the same `session` id.
+Implementation: `parts/memnet-mcp/` (`server.py` = tool SSOT). Transport defaults to **in-process**. Register MemNet MCP **once** (prefer project `.cursor/mcp.json`; do not also enable user-level `memnet`). Always pass the same `session` id.
 
-Wire shapes: shared dialect for agent I/O. Legacy `@TAG` pipe may still be accepted on mutate/import — do not teach it as preferred agent format. SSOT: `README.md` + `docs/grammar/`.
+### Tool <-> grammar
+
+| Tool | Grammar role |
+|------|----------------|
+| `session_*` | Lifecycle / snapshot — not NODE/EDGE body |
+| `query_warm` | **Live pin map** (legacy name) — bare present in `stdout` |
+| `query_walk` | Hop debug |
+| `add` / `update` | Mutate — shared dialect in `wire_lines` (`+`/`~`/`-`, `NEW`) |
+| `read_get` / `read_list` | Lookup / enumerate |
+| `housekeep_stats` / `serve_status` | Caps / transport probe |
+
+Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe may still be accepted on mutate/import — do not teach it as preferred agent format. User-pack map detail: skill `mcp-memnet` → `references/tool-grammar.md`.
 
 ## MUSTNOT
 

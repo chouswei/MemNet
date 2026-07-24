@@ -34,7 +34,7 @@ async def _run(argv: list[str], *, stdin: str | None = None, session: str | None
 
 @mcp.tool()
 async def serve_status() -> str:
-    """Check whether memnet serve is reachable on the configured host/port."""
+    """Transport probe for TCP ``memnet serve`` (optional under default in-process)."""
     return json.dumps(
         {
             "running": probe(),
@@ -140,7 +140,10 @@ async def query_warm(
     max_rows: int = 50,
     session: str | None = None,
 ) -> str:
-    """Read the live graph slice (LAW-prepended) anchored on a node id."""
+    """Live pin map (legacy name query_warm): bounded bare-present NODE|EDGE slice.
+
+    Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
+    """
     argv = [
         "query",
         "warm",
@@ -161,9 +164,10 @@ async def query_walk(
     max_rows: int = 50,
     session: str | None = None,
 ) -> str:
-    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``.
+    """Hop debug (not the primary pin map): ``@WALK: src -[relation]-> dst``.
 
-    For enumeration by tag, prefer the dedicated ``read_list`` tool (or CLI ``read list --tag``).
+    For agent reason each turn prefer ``query_warm`` (live pin map). For enumeration
+    by tag, prefer ``read_list``.
     """
     argv = [
         "query",
@@ -185,7 +189,10 @@ async def add(
     agent: str | None = None,
     session: str | None = None,
 ) -> str:
-    """Create new graph rows (add only — fails if id exists)."""
+    """Create rows via shared-dialect mutate lines (leading ``+``, optional NEW).
+
+    Prefer shared dialect in wire_lines (Write=display). Fails if id already exists.
+    """
     argv = ["add", "--stdin"]
     if allow_new_relation:
         argv.append("--allow-new-relation")
@@ -202,7 +209,10 @@ async def update(
     agent: str | None = None,
     session: str | None = None,
 ) -> str:
-    """Replace existing graph rows (update only — fails if id missing)."""
+    """Patch or drop rows via shared-dialect mutate lines (``~`` / ``-`` on known ids).
+
+    Prefer shared dialect in wire_lines. Fails if id is missing.
+    """
     argv = ["update", "--stdin"]
     if allow_new_relation:
         argv.append("--allow-new-relation")
