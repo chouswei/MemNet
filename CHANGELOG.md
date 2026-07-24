@@ -7,21 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Node re-id on update** — `~ [OldId] ; id=NewId` re-keys and retargets edge endpoints; occupied target rejects (`id_occupied`) unless `; merge=true` (nodes only).
-- **Neighbourhood reserve design** — `docs/grammar/memnet-neighbourhood-reserve.md` (holder `llm_id` + TTL; MCP sketch; not implemented).
-
-### Notes
-- Multi-agent same-session lost-update remains unmitigated in code (mutex only); primary fix is neighbourhood reservation (design), not optimistic `rev`.
-
 ## [0.3.2] — 2026-07-24
 
 ### Added
 - **MCP `pin_map` tool** — primary name for live pin map read; `query_warm` kept as deprecated alias (same params/behaviour).
 - **CLI `query pin-map`** — preferred subcommand; `query warm` kept as deprecated alias.
+- **Node re-id on update** — `~ [OldId] ; id=NewId` re-keys and retargets edge endpoints; occupied target rejects (`id_occupied`) unless `; merge=true` (nodes only).
+- **Neighbourhood reserve design** — `docs/grammar/memnet-neighbourhood-reserve.md` (holder `llm_id` + TTL; MCP sketch; not implemented).
 
 ### Changed
 - MCP/CLI help and docs teach `pin_map` / `pin-map` first; legacy `query_warm` / `query warm` noted as aliases.
+
+### Notes
+- Multi-agent same-session lost-update remains unmitigated in code (mutex only); primary fix is neighbourhood reservation (design), not optimistic `rev`.
 
 ## [0.3.1] — 2026-07-23
 
