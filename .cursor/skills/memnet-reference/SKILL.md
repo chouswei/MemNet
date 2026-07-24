@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.5"
+  version: "1.6"
   domain: memnet
   product: "0.3.1"
 ---
@@ -86,10 +86,45 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Route agents to personal Cursor / user-pack skills from this repo.
 
+## When ids must match model / schematic
+
+**Decision rule:** if the row is a **pin into an external artefact** (SysML qname, `.ato` refdes/net/pin, codebase path, skill id) → **stable locator path**. If it is a **new MemNet-only fact** (decision, task, note) with no external id → **`[NEW]`**.
+
+| Path | Use when | Id rule |
+|------|----------|---------|
+| **B — pin / ingest** | Must align with model or schematic | Deterministic ground id + locator fields; **no** client `NEW` |
+| **A — goldfish** | Annotation / memory fact only | `+ KIND [NEW]`; engine mints; copy thereafter |
+
+**Form ground ids from the source** (illustrative; keep ASCII):
+
+| Source | Ground id examples | Locator fields |
+|--------|--------------------|----------------|
+| PCBA `.ato` | `ATO_R1`, `NET_GND`, `PIN_U2_3` | `refdes=`, `net=`, `pin=`, `path=` |
+| SysML | `PRT_PowerDistribution`, `REQ_MN_REQ_02_1` | `name=`, `qname=`, `requirementId=` |
+| Codebase | `MOD_wire`, `SYM_split_payload` | `path=`, `line=`, `signature=` |
+| Skills | `SKL_memnet_format` | `skill_id=`, `phrase=` |
+
+**`NEW` is forbidden** for: schematic/model pins on ingest; re-creating an element that already has a pin; any `~` / `-` line.
+
+**Lookup before write** (same session):
+
+1. Know ground id → `read_get(id=ATO_R1)` or pin map `query_warm(anchor=ATO_R1, …)`.
+2. Know only schematic field → `read_list(tag=CMP, where=["refdes=R1"])` (or `net=`, `qname=`, …) → then warm on the returned id.
+3. If missing and alignment is required → create once with **explicit id + locators** (seed / bootstrap), not `NEW`:
+
+```text
++ CMP [ATO_R1] ; refdes=R1 ; value=10k ; path=boards/pdu/pdu.ato ; recycle=persistent
++ CLM [NEW] ; type=decision ; code=R1 stays 10k ; recycle=persistent
+```
+
+(After create, copy the minted `CLM…` id from ack/re-warm, then `+ NEW [CLM…] --(about)--> [ATO_R1]`. Prefer create → assigned ids → edge. `add` fails if the id already exists — look up first.)
+
+**0.3.1:** Path A vs B remains valid. PinMapIngest_* may still be stubs; agents may seed pins via `session_open` `seed_lines` or `add` with explicit locator ids. Prefer ingest when available. SSOT: `docs/grammar/memnet-grammar-design.md` §4.2.1.
+
 ## Pre-write checklist
 
 1. Pin map first (`query_warm` is the legacy alias) before inventing structure.
-2. `NEW` for genuine LLM creates; known id for update/settle; locators for ingest pins.
+2. External artefact → locator ground id; goldfish fact → `NEW`; known id for update/settle.
 3. Atomise: one fact per row; relations as edges; short field values (no prose blobs).
 
 ## Related (in-repo only)
