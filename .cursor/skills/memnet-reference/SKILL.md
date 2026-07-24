@@ -1,10 +1,17 @@
 ---
 name: memnet-reference
 description: >-
-  Project reference for MemNet (Net of Memory): Tier A Write=display, live pin map,
-  MCP session/mutate loop, parts layout, and doctrine SSOT pointers. Use when working
-  in this repo on MemNet engine, memnet-mcp, Tier A grammar, pin map, query_warm,
-  MutateGate, or agent I/O — before inventing wire dialect or restoring novel-writer.
+  Load when working in this MemNet (Net of Memory) repository on the agent
+  memory graph, MCP sessions, live pin-map reads, or graph mutates (including
+  minting ids with NEW) — triggers: MemNet, pin map, MCP session, mutate NEW,
+  query_warm, memnet-mcp, Net of Memory, MutateGate, Tier A. Explains the shared
+  agent read/write dialect (Tier A: Write=display — same NODE|EDGE shapes for
+  display and mutate), parts layout, and doctrine SSOT pointers. Use before
+  inventing a wire dialect or restoring novel-writer.
+metadata:
+  pattern: pipeline
+  version: "1.1"
+  domain: memnet
 ---
 
 # MemNet project reference
@@ -13,11 +20,11 @@ Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives i
 
 ## Mission
 
-**MemNet** (Net of Memory) sits between pipelines of LLM calls and data searching: a **NODE | EDGE** working graph for agents. **Tier A** Write = display; live **pin map** (not “warm” as the primary term). Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that shared dialect is **Tier A** (**Write = display**). Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
 
 ## Agent I/O (Tier A)
 
-- **Tier A only** for agent dialect: Write = display (shared NODE | EDGE field shapes).
+- **Tier A only** for agent dialect: **Write = display** means shared NODE | EDGE field shapes for live read and mutate (copy what you see).
 - **Mutate** uses ops: `+` create, `~` update, `-` drop. May use `[NEW]` / leading `NEW` so the engine mints ids.
 - **Live pin map** output is **bare present** (assigned ids, **no** leading `+`/`~`/`-`). Ops are mutate-only.
 - LLM creates: mint with `NEW`. Pin-map ingest (SysML, codebase, PCBA, skills): **stable locators** (`refdes=`, `path=`, `qname=`, …); reject client `NEW` for those pins. PCBA schematics use Atopile **`.ato`**.

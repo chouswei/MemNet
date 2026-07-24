@@ -4,7 +4,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Mission
 
-**MemNet** (Net of Memory) sits between pipelines of LLM calls and data searching: a **NODE | EDGE** working graph for agents. **Tier A** Write = display; live **pin map** (bounded ego digest; `query warm` / `query_warm` is a legacy alias). Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (TCP fallback). This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the same shapes — that dialect is **Tier A** (**Write = display**). CLI/MCP `query warm` / `query_warm` is a legacy alias for the pin map. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (TCP fallback). This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
 
 ## Where to look
 
@@ -28,7 +28,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 | Intent | Path |
 |--------|------|
-| MemNet work (Tier A / pin map / MCP / parts) | `.cursor/skills/memnet-reference/` |
+| MemNet work (pin map / MCP session / mutate / parts) | `.cursor/skills/memnet-reference/` |
 | Doctrine / grammar / models | `README.md`, `docs/grammar/`, `sysml-models/` |
 | Generic MCP implementation | `parts/memnet-mcp/` |
 
