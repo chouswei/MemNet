@@ -535,7 +535,7 @@ def _query_context(
         return
 
     if require_anchor and not anchor:
-        _handle_error(MemNetError("no_anchor", "query warm requires --anchor"))
+        _handle_error(MemNetError("no_anchor", "pin map requires --anchor"))
     stale_warnings: list = []
     if not anchor:
         anchor = ss.store.default_anchor()
@@ -555,7 +555,7 @@ def _query_context(
             if stale_count <= 10:
                 emit_wrn(
                     "stale_in_context",
-                    f"{stale_count}|use query warm or --active-only",
+                    f"{stale_count}|use query pin-map or --active-only",
                     emit_record(rec, ss.tag_map),
                 )
         if stale_count > 10:
@@ -618,14 +618,13 @@ def query_context(
         )
 
 
-@query_app.command("warm")
-def query_warm(
-    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
-    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
-    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
-    session: Annotated[str | None, typer.Option("--session")] = None,
+def _run_pin_map(
+    *,
+    anchor: str | None,
+    depth: int,
+    max_rows: int,
+    session: str | None,
 ) -> None:
-    """Live pin map (legacy alias for PinMapComposer). Emits Tier A Write=display."""
     ss, lock = _load_session(session)
     with lock:
         _query_context(
@@ -637,6 +636,28 @@ def query_warm(
             require_anchor=True,
             tier_a=True,
         )
+
+
+@query_app.command("pin-map")
+def query_pin_map(
+    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Live pin map (PinMapComposer). Emits Tier A Write=display."""
+    _run_pin_map(anchor=anchor, depth=depth, max_rows=max_rows, session=session)
+
+
+@query_app.command("warm")
+def query_warm(
+    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Live pin map — deprecated alias for pin-map."""
+    _run_pin_map(anchor=anchor, depth=depth, max_rows=max_rows, session=session)
 
 
 @query_app.command("walk")

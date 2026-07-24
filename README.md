@@ -19,7 +19,7 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 | Transport | **In-process first**; local IPC next; TCP localhost as migration fallback |
 | Persistence | Optional snapshots (`session save` / `session load`); sessions are RAM + TTL |
 
-**Primary term:** pin map. CLI/MCP `query warm` / `query_warm` is a **legacy alias** until call sites rename.
+**Primary term:** pin map. MCP tool `pin_map` / CLI `query pin-map`. Legacy aliases: `query_warm` / `query warm`.
 
 ---
 
@@ -66,7 +66,7 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 | Shared-dialect codec | Pure-Python codec in `memnet/tier_a.py` + golden tests | SSOT parse/emit; ANTLR optional later |
 | Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
 | MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
-| Live pin map | `PinMapComposer` via `query warm` / `query_warm` (shared-dialect emit) | Rename alias when call sites ready |
+| Live pin map | `PinMapComposer` via `pin_map` / `query pin-map` (shared-dialect emit) | Done |
 | Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve | In-process primary; local IPC; TCP fallback |
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
@@ -123,14 +123,14 @@ memnet session open --map-file parts/common/memnet/memnet/examples/schema.exampl
 $env:MEMNET_SESSION = "mn_xxxxxxxx"   # from stderr
 
 memnet add --file parts/common/memnet/memnet/examples/workflow.example.txt
-memnet query warm --anchor PLR01      # live pin map (bare present; legacy command name)
+memnet query pin-map --anchor PLR01   # live pin map (bare present; query warm is legacy)
 
 memnet session close $env:MEMNET_SESSION
 ```
 
 Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unless `MEMNET_TEST_INLINE=1` for tests/scripts).
 
-**MCP (as-is):** run `memnet serve`, then `memnet-mcp`. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `query_warm`, `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. Envelope is JSON; memory payload is still pipe lines today.
+**MCP (as-is):** run `memnet serve`, then `memnet-mcp`. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. Envelope is JSON; memory payload is still pipe lines today.
 
 Forward reading order for agents:
 

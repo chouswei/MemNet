@@ -118,7 +118,7 @@ def test_serve_status_tool(monkeypatch):
 
 def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
-    from memnet_mcp.server import query_warm, session_open
+    from memnet_mcp.server import pin_map, query_warm, session_open
 
     open_raw = asyncio.run(
         session_open(map_lines=schema_file.read_text(encoding="utf-8").strip().splitlines())
@@ -136,11 +136,25 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     )
     assert add_resp.exit_code == 0
 
-    warm_raw = asyncio.run(query_warm(anchor="PLR55", depth=1, session=sid))
+    warm_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
     assert warm_payload["exit_code"] == 0
     assert "PLR55" in warm_payload["stdout"]
     assert warm_payload["errors"] == []
+
+    alias_raw = asyncio.run(query_warm(anchor="PLR55", depth=1, session=sid))
+    alias_payload = json.loads(alias_raw)
+    assert alias_payload["stdout"] == warm_payload["stdout"]
+
+
+def test_mcp_tool_names(monkeypatch):
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    from memnet_mcp.server import mcp
+
+    names = asyncio.run(mcp.list_tools())
+    tool_names = {t.name for t in names}
+    assert "pin_map" in tool_names
+    assert "query_warm" in tool_names
 
 
 def test_supplement_seed_lines():
@@ -167,7 +181,7 @@ def test_supplement_seed_lines():
 
 def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
-    from memnet_mcp.server import query_warm, session_open
+    from memnet_mcp.server import pin_map, session_open
 
     open_raw = asyncio.run(
         session_open(map_lines=schema_file.read_text(encoding="utf-8").strip().splitlines())
@@ -178,7 +192,7 @@ def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
     assert "LAW01" in payload["stdout"]
     assert "LAW05" in payload["stdout"]
 
-    warm_raw = asyncio.run(query_warm(anchor="PLR01", depth=1, session=sid))
+    warm_raw = asyncio.run(pin_map(anchor="PLR01", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
     # anchor missing — still get all LAW rows (goldfish invariants)
     assert "LAW01" in warm_payload["stdout"]
@@ -239,7 +253,7 @@ def test_session_open_seed_lines_allow_new_relation(memnet_temp, schema_file, mo
 
 def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
-    from memnet_mcp.server import query_warm, session_open
+    from memnet_mcp.server import pin_map, session_open
 
     seed = [
         "@CFG: CFG01|daily_news|CFG01|3|digest|notes",
@@ -259,7 +273,7 @@ def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
     assert "CFG01" in payload["stdout"]
     assert "LAW01" in payload["stdout"]
 
-    warm_raw = asyncio.run(query_warm(anchor="CFG01", depth=1, session=sid))
+    warm_raw = asyncio.run(pin_map(anchor="CFG01", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
     assert warm_payload["exit_code"] == 0
     assert "CFG01" in warm_payload["stdout"]

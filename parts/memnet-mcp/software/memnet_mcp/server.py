@@ -113,7 +113,7 @@ async def session_load(
     """Load a snapshot file into memnet serve (restores graph state).
 
     Returns session id in stdout/stderr. Does not require an existing session.
-    Use before query_warm / add / update when resuming mid-story.
+    Use before pin_map / add / update when resuming mid-story.
     """
     argv = ["session", "load", "--file", file]
     if keep_id:
@@ -133,17 +133,12 @@ async def session_save(
     return await _run(["session", "save", "--file", file], session=session)
 
 
-@mcp.tool()
-async def query_warm(
+async def _pin_map(
     anchor: str,
     depth: int = 2,
     max_rows: int = 50,
     session: str | None = None,
 ) -> str:
-    """Live pin map (legacy name query_warm): bounded bare-present NODE|EDGE slice.
-
-    Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
-    """
     argv = [
         "query",
         "warm",
@@ -158,6 +153,31 @@ async def query_warm(
 
 
 @mcp.tool()
+async def pin_map(
+    anchor: str,
+    depth: int = 2,
+    max_rows: int = 50,
+    session: str | None = None,
+) -> str:
+    """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
+
+    Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
+    """
+    return await _pin_map(anchor, depth, max_rows, session)
+
+
+@mcp.tool()
+async def query_warm(
+    anchor: str,
+    depth: int = 2,
+    max_rows: int = 50,
+    session: str | None = None,
+) -> str:
+    """Deprecated alias for ``pin_map`` — same params and behaviour."""
+    return await _pin_map(anchor, depth, max_rows, session)
+
+
+@mcp.tool()
 async def query_walk(
     anchor: str,
     depth: int = 2,
@@ -166,7 +186,7 @@ async def query_walk(
 ) -> str:
     """Hop debug (not the primary pin map): ``@WALK: src -[relation]-> dst``.
 
-    For agent reason each turn prefer ``query_warm`` (live pin map). For enumeration
+    For agent reason each turn prefer ``pin_map`` (live pin map). For enumeration
     by tag, prefer ``read_list``.
     """
     argv = [

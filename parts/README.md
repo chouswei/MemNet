@@ -18,7 +18,7 @@ Only two product parts (novel-writer is out of scope; see root `DROP-NOVEL-WRITE
 | IdAllocator | `id_allocator.py` | `NEW` mint + locator keys |
 | GraphStore | `graph_store.py` (`mem_store.MemStore`) | NODE\|EDGE indexes |
 | MutateGate | `mutate_gate.py` | Parse → mint → commit (Tier A + pipe) |
-| PinMapComposer | `pin_map_composer.py` | Live pin map Tier A; CLI `query warm` alias |
+| PinMapComposer | `pin_map_composer.py` | Live pin map Tier A; CLI `query pin-map` (`query warm` alias) |
 | WalkQuery | `walk_query.py` | Hop lines |
 | HousekeepSettle | `housekeep_settle.py` (`housekeep`) | Stats / prune |
 | SnapshotStore | `snapshot_store.py` (`snapshot`) | Session file; not MN-REQ-11 |

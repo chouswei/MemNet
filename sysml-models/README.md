@@ -32,7 +32,7 @@ Design authority: rebuilt requirements + `docs/grammar/memnet-grammar-design.md`
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **pin map** (ego digest). Composer: **PinMapComposer**. Legacy CLI/MCP `query_warm` = deprecated alias.
+Turn-facing agent payload = **pin map** (ego digest). Composer: **PinMapComposer**. MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` = deprecated aliases.
 
 ## Libs
 

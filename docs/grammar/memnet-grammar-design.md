@@ -152,7 +152,7 @@ The LLM must **not** see the whole Net of Memory. Each turn it receives a **pin 
 
 **Primary term (locked):** **pin map** — the turn-facing agent payload.  
 **Disambiguation:** MN-REQ-11 export/snapshot pin maps are selective projections into SysML/codebase/PCBA/skills; the **live pin map** is the per-turn ego digest. Same NODE|EDGE shapes; different purpose.  
-**Legacy:** CLI/MCP `query_warm` is a **deprecated alias** for “fetch live pin map” until call sites rename (as-is code).
+**Legacy:** CLI/MCP `query_warm` / `query warm` are **deprecated aliases** for `pin_map` / `query pin-map`.
 
 ```text
 PinMap = {                 // live pin map (turn-facing)
@@ -396,7 +396,7 @@ Phase 4  Legacy pipe session files: import once → convert → gone (keep impor
 
 Compatibility: old pipe session blobs MAY load via a deprecated importer; they are not a standing store format and not preferred agent I/O.
 
-**Remaining:** finish live MCP/CLI call-site naming (`query_warm` → pin map); pipe import path only for historical files. Formal grammar + golden harness remain the dialect authority.
+**Done:** live MCP/CLI call-site naming (`pin_map` / `query pin-map`; `query_warm` alias kept). Remaining: pipe import path only for historical files. Formal grammar + golden harness remain the dialect authority.
 
 ---
 

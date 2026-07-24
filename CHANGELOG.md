@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-07-24
+
+### Added
+- **MCP `pin_map` tool** — primary name for live pin map read; `query_warm` kept as deprecated alias (same params/behaviour).
+- **CLI `query pin-map`** — preferred subcommand; `query warm` kept as deprecated alias.
+
+### Changed
+- MCP/CLI help and docs teach `pin_map` / `pin-map` first; legacy `query_warm` / `query warm` noted as aliases.
+
 ## [0.3.1] — 2026-07-23
 
 ### Fixed

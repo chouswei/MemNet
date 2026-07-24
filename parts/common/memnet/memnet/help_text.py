@@ -34,7 +34,7 @@ def guide_text(*, loose: bool = False) -> str:
             "MemNet (Net of Memory): in-memory NODE|EDGE working graph for agents.",
             "Agent dialect: Tier A NODE|EDGE shapes; mutate uses +/~/-; live pin map is bare present (no ops).",
             "Create with [NEW]; engine mints ids. Patch/settle: known ids only (no NEW).",
-            "Live pin map: memnet query warm --anchor <id> (legacy name; bounded ego digest).",
+            "Live pin map: memnet query pin-map --anchor <id> (query warm is legacy alias).",
             "Pin-map ingest: stable locators (path=, qname=, ...) - no client NEW for those pins.",
             "Transport: MCP in-process first; memnet serve / TCP is migration fallback.",
             "Legacy: @TAG pipe still accepted on add/update; snapshots and read may be pipe.",
@@ -47,7 +47,7 @@ def guide_text(*, loose: bool = False) -> str:
 
 Doctrine:
   Tier A: mutate uses +/~/-; live pin map emits bare present lines (no ops)
-  Live pin map = bounded ego digest (query warm is a legacy alias)
+  Live pin map = bounded ego digest (query pin-map; query warm is legacy)
   Create with NEW; pin-map ingest uses locators, not client NEW
   Transport: in-process MCP first; serve/TCP as fallback
 
@@ -55,7 +55,7 @@ Quick start (CLI sessions still need serve today):
   memnet serve
   memnet session open --map-file schema.example.txt
   memnet add --file workflow.example.txt   # Tier A preferred; @TAG pipe still accepted
-  memnet query warm --anchor ...           # live pin map (legacy command name)
+  memnet query pin-map --anchor ...        # live pin map (query warm is legacy)
 
 Tier A sketch:
   + TSK [NEW] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
@@ -75,7 +75,7 @@ def agent_guide_text() -> str:
         "Agent playbook pointer (British English docs in-repo).\n"
         "Forward dialect: docs/grammar/ - Tier A, pin map, NEW vs locators.\n"
         "Operational loop: LLM-GUIDE.md (still partly pipe-era; prefer grammar when they conflict).\n"
-        "Turn habit: query warm --anchor before inventing ids; mutate with Tier A; reuse ids.\n"
+        "Turn habit: query pin-map --anchor before inventing ids; mutate with Tier A; reuse ids.\n"
         "See also: memnet guide, memnet guide --loose, README.md."
     )
 

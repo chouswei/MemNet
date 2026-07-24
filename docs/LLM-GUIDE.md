@@ -27,7 +27,7 @@ MemNet is a **knowledge graph** (nodes + edges), not a notepad. The wire format 
 Bad: `@NOTE: N01|The warehouse mission involves N03 helping T42 and also the lock on PLR01…|persistent`  
 Good: separate `@TSK`, `@NPC`, `@EDG` rows — see [Relations (EDG)](#relations-edg) and application notes.
 
-**MCP alternative (optional):** If your host supports MCP, install `memnet-llm[mcp]`, run `memnet serve`, then register `memnet-mcp` with `MEMNET_SESSION` set. Use the `query_warm`, `add`, and `update` tools instead of shelling `memnet` — same wire output, structured JSON envelope. **`session_open`** auto-seeds **LAW01–LAW05** (engine invariants; prepended on every warm) and accepts optional **`seed_lines`** for `@CFG` anchors and domain `@LAW` rows. Production use requires `memnet serve`; do not rely on `MEMNET_TEST_INLINE`.
+**MCP alternative (optional):** If your host supports MCP, install `memnet-llm[mcp]`, run `memnet serve`, then register `memnet-mcp` with `MEMNET_SESSION` set. Use `pin_map` (primary), `add`, and `update` instead of shelling `memnet` — same wire output, structured JSON envelope. `query_warm` is a deprecated alias for `pin_map`. **`session_open`** auto-seeds **LAW01–LAW05** (engine invariants; prepended on every pin map) and accepts optional **`seed_lines`** for `@CFG` anchors and domain `@LAW` rows. Production use requires `memnet serve`; do not rely on `MEMNET_TEST_INLINE`.
 
 ---
 
@@ -298,7 +298,7 @@ memnet query warm --anchor PLR01
 
 - `session_open(map_lines=[...], seed_lines=[...], ttl=...)` — auto-seeds engine LAW01–LAW05
 - `session_save(file=...)` · `session_load(file=..., keep_id=True)`
-- `query_warm(anchor=<id>, depth=2)`
+- `pin_map(anchor=<id>, depth=2)` (`query_warm` is legacy alias)
 - `add(wire_lines=[...])` · `update(wire_lines=[...])`
 - `serve_status` first; abort if `running=false`
 

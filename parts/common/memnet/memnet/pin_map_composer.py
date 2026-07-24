@@ -1,4 +1,4 @@
-"""PinMapComposer — live pin map emit as Tier A Write=display (query_warm alias)."""
+"""PinMapComposer — live pin map emit as Tier A Write=display."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
 
 
 class PinMapComposer:
-    """Compose anchored live pin map; emit Tier A (legacy CLI name: query warm)."""
+    """Compose anchored live pin map; emit Tier A (CLI: query pin-map)."""
 
     def __init__(self, session_store) -> None:
         self.ss = session_store
@@ -58,7 +58,7 @@ class PinMapComposer:
         """Return (records, tier_a_text)."""
         del law_prepend  # store.context_pack already prepends laws
         if require_anchor and not anchor:
-            raise MemNetError("no_anchor", "query warm requires --anchor")
+            raise MemNetError("no_anchor", "pin map requires --anchor")
         stale_warnings: list = []
         if not anchor:
             anchor = self.ss.store.default_anchor()

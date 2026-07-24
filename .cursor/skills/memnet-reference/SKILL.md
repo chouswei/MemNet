@@ -4,26 +4,26 @@ description: >-
   Load when working in this MemNet (Net of Memory) repository on the agent
   memory graph, MCP sessions, live pin-map reads, or graph mutates (including
   minting ids with NEW) — triggers: MemNet, pin map, MCP session, mutate NEW,
-  query_warm, memnet-mcp, Net of Memory, MutateGate, shared dialect,
+  pin_map, memnet-mcp, Net of Memory, MutateGate, shared dialect,
   Write=display. Explains the shared agent read/write dialect (Write=display —
   same NODE|EDGE shapes for display and mutate), parts layout, and doctrine
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.6"
+  version: "1.7"
   domain: memnet
-  product: "0.3.1"
+  product: "0.3.2"
 ---
 
 # MemNet project reference
 
 Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives in docs below — do not duplicate or invent features here.
 
-**Product version:** `project.toml` / PyPI **`memnet-llm==0.3.1`** (CLI command remains `memnet`).
+**Product version:** `project.toml` / PyPI **`memnet-llm==0.3.2`** (CLI command remains `memnet`).
 
 ## Mission
 
-**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that **shared dialect** (Write = display). Code/harness may still say “Tier A” for the same dialect; prefer **shared dialect** in agent text. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that **shared dialect** (Write = display). Code/harness may still say "Tier A" for the same dialect; prefer **shared dialect** in agent text. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
 
 ## Agent I/O (shared dialect)
 
@@ -44,7 +44,7 @@ Formal shapes / validation: `docs/grammar/` (`MemNet.g4`, golden fixtures, `tool
 pin map → reason → mutate → pin map
 ```
 
-Primary read: live **pin map** (bounded ego/anchor digest). CLI/MCP `query warm` / `query_warm` is a **legacy alias** until call sites rename.
+Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI `query pin-map`. Legacy aliases: `query_warm` / `query warm`.
 
 ## Canonical paths
 
@@ -70,7 +70,7 @@ Implementation: `parts/memnet-mcp/` (`server.py` = tool SSOT). Transport default
 | Tool | Grammar role |
 |------|----------------|
 | `session_*` | Lifecycle / snapshot — not NODE/EDGE body |
-| `query_warm` | **Live pin map** (legacy name) — bare present in `stdout` |
+| `pin_map` | **Live pin map** — bare present in `stdout` (`query_warm` is legacy alias) |
 | `query_walk` | Hop debug |
 | `add` / `update` | Mutate — shared dialect in `wire_lines` (`+`/`~`/`-`, `NEW`) |
 | `read_get` / `read_list` | Lookup / enumerate |
@@ -108,7 +108,7 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 
 **Lookup before write** (same session):
 
-1. Know ground id → `read_get(id=ATO_R1)` or pin map `query_warm(anchor=ATO_R1, …)`.
+1. Know ground id → `read_get(id=ATO_R1)` or pin map `pin_map(anchor=ATO_R1, …)`.
 2. Know only schematic field → `read_list(tag=CMP, where=["refdes=R1"])` (or `net=`, `qname=`, …) → then warm on the returned id.
 3. If missing and alignment is required → create once with **explicit id + locators** (seed / bootstrap), not `NEW`:
 
@@ -119,11 +119,11 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 
 (After create, copy the minted `CLM…` id from ack/re-warm, then `+ NEW [CLM…] --(about)--> [ATO_R1]`. Prefer create → assigned ids → edge. `add` fails if the id already exists — look up first.)
 
-**0.3.1:** Path A vs B remains valid. PinMapIngest_* may still be stubs; agents may seed pins via `session_open` `seed_lines` or `add` with explicit locator ids. Prefer ingest when available. SSOT: `docs/grammar/memnet-grammar-design.md` §4.2.1.
+**0.3.2:** Path A vs B remains valid. PinMapIngest_* may still be stubs; agents may seed pins via `session_open` `seed_lines` or `add` with explicit locator ids. Prefer ingest when available. SSOT: `docs/grammar/memnet-grammar-design.md` §4.2.1.
 
 ## Pre-write checklist
 
-1. Pin map first (`query_warm` is the legacy alias) before inventing structure.
+1. Pin map first (`pin_map`) before inventing structure.
 2. External artefact → locator ground id; goldfish fact → `NEW`; known id for update/settle.
 3. Atomise: one fact per row; relations as edges; short field values (no prose blobs).
 
