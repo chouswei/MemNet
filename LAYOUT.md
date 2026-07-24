@@ -1,6 +1,6 @@
 # MemNet layout adaptation
 
-This repository follows [SYSTEM-REPO-LAYOUT.md](../SYSTEM-REPO-LAYOUT.md) for **model-based software project development**, with the adaptations below. MemNet is a software product (in-memory graph library + generic MCP), not a hardware deploy with PCBA.
+This repository follows [SYSTEM-REPO-LAYOUT.md](../SYSTEM-REPO-LAYOUT.md) for **model-based software project development**, with the adaptations below. MemNet is a software product (NODE|EDGE graph engine + generic MCP; in-process first), not a hardware deploy with PCBA.
 
 ## Mapping
 

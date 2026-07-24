@@ -4,9 +4,7 @@ LLM hub for this system repo. Prefer skills over ad-hoc invention. Layout author
 
 ## Mission
 
-**MemNet** (Net of Memory) is an in-memory NODE|EDGE working-memory graph for LLM agents (CLI + MCP). This repository hosts the graph engine and generic memnet-mcp only — not novel-writer.
-
-Doctrine in brief: **Tier A** Write = display; live **pin map** (bounded ego digest; `query warm` is a legacy alias); mint with `NEW` / locators for ingest. See `README.md` and `docs/grammar/`.
+**MemNet** (Net of Memory) sits between pipelines of LLM calls and data searching: a **NODE | EDGE** working graph for agents. **Tier A** Write = display; live **pin map** (bounded ego digest; `query warm` / `query_warm` is a legacy alias). Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (TCP fallback). This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
 
 ## Where to look
 
@@ -30,7 +28,7 @@ Doctrine in brief: **Tier A** Write = display; live **pin map** (bounded ego dig
 
 | Intent | Skill / tool |
 |--------|----------------|
-| MemNet wire / Tier A / goldfish loop | user pack `memnet-format`, `mcp-memnet`; read `README.md` + `docs/grammar/` then `docs/LLM-GUIDE.md` |
+| MemNet work in this repo (Tier A / pin map / MCP / parts) | **primary:** `.cursor/skills/memnet-reference`; then user pack `memnet-format`, `mcp-memnet`; SSOT `README.md` + `docs/grammar/` (playbook `docs/LLM-GUIDE.md`) |
 | Ambiguous planning | user pack `reasoning-strategy-selector` |
 
 ## Policy

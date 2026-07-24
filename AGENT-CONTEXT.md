@@ -4,9 +4,9 @@
 
 ## Summary
 
-Net of Memory: in-memory NODE|EDGE working graph for LLM agents. This repo is **engine + generic memnet-mcp** only (part layout under `parts/`). Novel-writer is out of scope — see `DROP-NOVEL-WRITER.md`.
+Net of Memory: NODE|EDGE working graph between LLM call pipelines and data searching. This repo is **engine + generic memnet-mcp** only (part layout under `parts/`). Novel-writer is out of scope — see `DROP-NOVEL-WRITER.md`.
 
-Doctrine (Tier A Write=display, live pin map, `NEW` vs locators): `README.md` → `docs/grammar/` → `sysml-models/`. Operational goldfish loop still in `docs/LLM-GUIDE.md` (pipe migration pending).
+Doctrine (Tier A Write=display, live pin map, in-process first, `NEW` vs locators): `README.md` → `docs/grammar/` → `sysml-models/`. Operational loop still in `docs/LLM-GUIDE.md` (pipe migration pending; prefer pin map over “warm” as the primary term).
 
 ## MemNet
 
