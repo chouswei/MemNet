@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.3"
+  version: "1.4"
   domain: memnet
   product: "0.3.1"
 ---
@@ -23,16 +23,16 @@ Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives i
 
 ## Mission
 
-**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that **shared dialect** (Write = display). Design docs under `docs/grammar/` may still say “Tier A” for this dialect; prefer **shared dialect** in agent text. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that **shared dialect** (Write = display). Code/harness may still say “Tier A” for the same dialect; prefer **shared dialect** in agent text. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
 
 ## Agent I/O (shared dialect)
 
 - **Shared dialect only** for agent I/O: **Write = display** means shared NODE | EDGE field shapes for live read and mutate (copy what you see).
 - **Mutate** uses ops: `+` create, `~` update, `-` drop. May use `[NEW]` / leading `NEW` so the engine mints ids.
 - **Live pin map** output is **bare present** (assigned ids, **no** leading `+`/`~`/`-`). Ops are mutate-only.
-- LLM creates: mint with `NEW`. Pin-map ingest (SysML, codebase, PCBA, skills): **stable locators** (`refdes=`, `path=`, `qname=`, …); reject client `NEW` for those pins. PCBA schematics use Atopile **`.ato`**.
+- LLM creates: mint with `NEW`. Pin-map ingest (SysML, codebase, PCBA, skills): **stable locators** (`refdes=`, `path=`, `qname=`, ...); reject client `NEW` for those pins. PCBA schematics use Atopile **`.ato`**.
 
-Forward dialect: `README.md` + `docs/grammar/`. `docs/LLM-GUIDE.md` remains operational (still largely pipe-centric) until migrated.
+Formal shapes / validation: `docs/grammar/` (`MemNet.g4`, golden fixtures, `tools/tier_a.py`) — **keep** that precision; do not invent a thinner dialect. `docs/LLM-GUIDE.md` remains operational (still largely pipe-centric) until migrated.
 
 ## Transport
 
@@ -63,9 +63,9 @@ Part-based folders only — do not recreate top-level `src/` or `applications/`.
 
 ## MCP (generic memnet)
 
-Implementation: `parts/memnet-mcp/`. Typical tools: `session_*` (open/save/load/…), `query_warm` (pin-map alias), `add` / `update` via **MutateGate** (shared dialect preferred; legacy `@TAG` pipe still accepted on mutate). Always pass the same `session` id.
+Implementation: `parts/memnet-mcp/`. Tools (package source of truth): `serve_status`, `session_open` / `session_save` / `session_load` / `session_current`, `query_warm` (pin-map alias), `query_walk`, `add` / `update`, `read_get` / `read_list`, `housekeep_stats`. Transport defaults to **in-process** (`MEMNET_MCP_TRANSPORT=tcp` only when bridging `memnet serve`). Always pass the same `session` id.
 
-Wire shapes and grammar: `README.md` + `docs/grammar/` (not personal Cursor skills).
+Wire shapes: shared dialect for agent I/O. Legacy `@TAG` pipe may still be accepted on mutate/import — do not teach it as preferred agent format. SSOT: `README.md` + `docs/grammar/`.
 
 ## MUSTNOT
 

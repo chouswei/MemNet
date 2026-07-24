@@ -3,8 +3,10 @@
 **Status:** design proposal (not yet implemented as SSOT parser)  
 **Audience:** LLM agents, human inspectors, future ANTLR / codec owners  
 **Aligns with:** MN-REQ-00, MN-REQ-02, MN-REQ-08, MN-REQ-09, MN-REQ-10, MN-REQ-11  
-**Lineage:** `refs/novel-cut-grammar/` (`md_triple` Write = display; G_n digest) + current store `@TAG` pipe  
+**Lineage:** `refs/novel-cut-grammar/` (`md_triple` Write = display; G_n digest) + legacy store `@TAG` pipe (import-once)  
 **British English.** Paths ASCII.
+
+**Naming (locked for agent prose):** the LLM-facing dialect is the **shared dialect** (Write = display). Older design text and code names (**Tier A**, package `memnet.tier_a`, `tools/tier_a.py`) refer to the **same** dialect — keep those identifiers for harness/parser continuity; prefer **shared dialect** in new agent-facing sentences. Formal value of this folder (`MemNet.g4`, golden fixtures, soft lint, round-trip tests) is **preserved**; renaming must not drop productions or coverage.
 
 ---
 
@@ -15,11 +17,11 @@
 | Goal | Requirement hooks |
 |------|-------------------|
 | One **LLM-facing** dialect for stdio + MCP memory payloads | MN-REQ-08.1–08.2, 08.5 |
-| **Write ≈ display** — same shapes in warm emit and agent mutate | MN-REQ-08.7, 08.6, 08.8 |
+| **Write = display** — same shapes in live **pin map** emit and agent mutate | MN-REQ-08.7, 08.6, 08.8 |
 | Express exactly **NODE** and **EDGE** (tags realise node kinds only) | MN-REQ-02.* |
 | **Prompt-rule** friendly: low noise, template-copyable, not hostile positional dumps | MN-REQ-08.3, 08.6, 10.5, 10.6 |
 | **Canonical parser** recovers structure; reject invalid wire | MN-REQ-09.*, 02.6, 10.7 |
-| Warm / snapshot presentation = **map of pins**, not corpus dump | MN-REQ-11.13, 04.*, 10.2–10.3 |
+| Pin map / snapshot presentation = **map of pins**, not corpus dump | MN-REQ-11.13, 04.*, 10.2–10.3 |
 | Store may keep a denser internal form if boundaries still show the friendly surface | MN-REQ-08.4 |
 
 ### Non-goals (this design)
@@ -28,13 +30,13 @@
 - Novel-writer / play-loop product grammar (novel-cut is **reference only**).
 - Making ad-hoc compact encodings (e.g. former TOON/TRON) the durable graph language — handoffs use plain Markdown or domain wire only.
 - JSON as the agent memory dialect (JSON stays at MCP/CLI **envelope** boundaries only).
-- Embedding full SysML / source files in warm (pin map only).
+- Embedding full SysML / source files in the live pin map (pin map only).
 
 ---
 
 ## 2. Thesis (one paragraph)
 
-MemNet’s agent language is a **single Write=display dialect of NODE and EDGE lines** — English-keyed fields, explicit triple arrows, short pins — so the LLM copies what it reads; the internal store holds NODE|EDGE records without a second agent dialect; warm and snapshots are **ego digests of pins**, not full copies; one canonical parser is the only supported structure-recovery path for humans and tools. Legacy `@TAG` pipe may be imported once from old session files, then discarded.
+MemNet’s agent language is a **single shared dialect of NODE and EDGE lines** (Write = display) — English-keyed fields, explicit triple arrows, short pins — so the LLM copies what it reads; the internal store holds NODE|EDGE records without a second agent dialect; live pin maps and snapshots are **ego digests of pins**, not full copies; one canonical parser is the only supported structure-recovery path for humans and tools. Legacy `@TAG` pipe may be imported once from old session files, then discarded (not preferred agent I/O).
 
 ---
 
@@ -42,8 +44,8 @@ MemNet’s agent language is a **single Write=display dialect of NODE and EDGE l
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│  Agent I/O — Tier A (this grammar)                      │
-│  Shared shapes. Pin map = bare present; mutate = +/~/-.         │
+│  Agent I/O — shared dialect (this grammar; aka Tier A)  │
+│  Shared shapes. Pin map = bare present; mutate = +/~/-. │
 │  NODE / EDGE lines + optional section headers + pins.   │
 └───────────────────────────┬─────────────────────────────┘
                             │ project (parse / emit)
@@ -59,9 +61,11 @@ MemNet’s agent language is a **single Write=display dialect of NODE and EDGE l
 │  (in-process primary; local IPC / TCP migration).       │
 └─────────────────────────────────────────────────────────┘
 
-Deprecated footnote (not a peer tier):
+Deprecated footnote (not a peer agent dialect):
   Legacy @TAG pipe session files MAY be imported once then gone.
-  Pipe is not agent-facing and not the target store codec.
+  Pipe is not preferred agent I/O and not the target store codec.
+  Import productions / migration modules may still exist — keep them
+  specified; do not teach pipe as the agent write surface.
 
 Handoff contrast (not MemNet grammar):
   Plain Markdown tables / short prose = serve-down scratch between LLM steps
@@ -144,7 +148,7 @@ IdAllocator: **`NEW` path** for goldfish mutate only; **pin-key path** for PinMa
 
 **Emit form (locked):** live pin map lines are **bare present** — KIND [Id] ; fields… / Eid [from] --(rel)--> [to] ; fields… with **no** leading + / ~ / -. Those ops are **mutate-only**. PinMapComposer emits Op.PRESENT.
 
-The LLM must **not** see the whole Net of Memory. Each turn it receives a **pin map**: a bounded, ego/anchor digest of pins in the same Tier A grammar as mutate I/O (Write = display).
+The LLM must **not** see the whole Net of Memory. Each turn it receives a **pin map**: a bounded, ego/anchor digest of pins in the same **shared dialect** grammar as mutate I/O (Write = display).
 
 **Primary term (locked):** **pin map** — the turn-facing agent payload.  
 **Disambiguation:** MN-REQ-11 export/snapshot pin maps are selective projections into SysML/codebase/PCBA/skills; the **live pin map** is the per-turn ego digest. Same NODE|EDGE shapes; different purpose.  
@@ -153,7 +157,7 @@ The LLM must **not** see the whole Net of Memory. Each turn it receives a **pin 
 ```text
 PinMap = {                 // live pin map (turn-facing)
   laws: Pin[],             // engine invariants prepended
-  focus: Id[],             // MCP/CLI envelope only — not Tier A body lines
+  focus: Id[],             // MCP/CLI envelope only — not shared-dialect body lines
   nodes: Node[],           // ego-reachable, recycle-filtered
   edges: Edge[],           // emit bare: Eid [from] --(rel)--> [to]  (no +)
   caps: { depth, max_rows }  // envelope only
@@ -207,7 +211,7 @@ Session open/load/save/close remain **tool/CLI verbs**; they are not NODE/EDGE r
 
 **No `|` as field separator on the agent surface** (avoids LAW04 escape traps that plague the pipe codec — GH #10).
 
-### 5.2 Sections (required on agent-facing warm)
+### 5.2 Sections (required on agent-facing pin map)
 
 ```text
 ## Laws       // when laws are present
@@ -301,19 +305,19 @@ Fixture classification (`parse-reject` vs `lint-reject`): see `docs/grammar/exam
 
 Pipe is **not** part of the target architecture. It exists only as a **one-shot import** of historical session files.
 
-| Concern | Target (Tier A + internal graph) | Legacy pipe (deprecated) |
-|---------|----------------------------------|--------------------------|
-| Agent I/O | `+ KIND [id] ; k=v` / EDGE arrows | Must not appear on warm or mutate |
-| Store wire | In-memory NODE\|EDGE records | Old `@KIND: id\|…` blobs |
-| Warm | Same dialect as write | N/A (import once then gone) |
+| Concern | Target (shared dialect + internal graph) | Legacy pipe (deprecated agent I/O) |
+|---------|------------------------------------------|------------------------------------|
+| Agent I/O | `+ KIND [id] ; k=v` / EDGE arrows | Must not appear on pin map or mutate |
+| Store wire | In-memory NODE\|EDGE records | Old `@KIND: id\|…` blobs (import path) |
+| Pin map | Same dialect as write (bare present) | N/A (import once then gone) |
 
 **Design stance (locked):**
 
-1. **One agent dialect** — Tier A Write=display both directions (MN-REQ-08.7 / 08.9).
+1. **One agent dialect** — shared dialect Write=display both directions (MN-REQ-08.7 / 08.9).
 2. **No standing pipe store codec** — internal graph is not `@TAG` pipe.
-3. **MAY** import old pipe snapshots once and convert; thereafter Tier A only.
+3. **MAY** import old pipe snapshots once and convert; thereafter shared dialect only for agent I/O. Keep import rules documented where they exist.
 
-Do not teach dual dialect as normal. See `examples/deprecated/` for historical sketches only.
+Do not teach dual dialect as normal agent practice. See `examples/deprecated/` for historical sketches only (fixtures retained for clarity, not as preferred I/O).
 
 Schema authority for which keys exist per kind remains the session schema registry (MN-REQ-02.7).
 
@@ -324,19 +328,19 @@ Schema authority for which keys exist per kind remains the session schema regist
 Agents and assemblers SHALL treat these as prompt rules for MemNet I/O (MN-REQ-08.6):
 
 ```text
-@CHK: G01 | Write = display: mutate using the same line shapes as warm | pass|fail
+@CHK: G01 | Write = display: mutate using the same line shapes as the pin map | pass|fail
 @CHK: G02 | Only NODE and EDGE lines; no prose paragraphs as records | pass|fail
 @CHK: G03 | One idea per field; short atoms; no sentences in values | pass|fail
 @CHK: G04 | Relations only as EDGE arrows; never embedded id lists as fake relations | pass|fail
-@CHK: G05 | Create with [NEW]; copy assigned ids from warm/response; never invent ids | pass|fail
+@CHK: G05 | Create with [NEW]; copy assigned ids from pin map/response; never invent ids | pass|fail
 @CHK: G06 | Use + for create and ~ for replace; no silent upsert | pass|fail
 @CHK: G07 | Prefer named key=value fields; do not invent positional columns | pass|fail
-@CHK: G08 | Warm is a pin map: keep depth/max_rows; do not paste corpora | pass|fail
+@CHK: G08 | Pin map: keep depth/max_rows; do not paste corpora | pass|fail
 @CHK: G09 | English keys and templates; low noise; template-copy from few examples | pass|fail
-@CHK: G10 | Recycle matches lifetime; settle finished work out of future warm | pass|fail
+@CHK: G10 | Recycle matches lifetime; settle finished work out of future pin maps | pass|fail
 ```
 
-Contrast tiers (from memnet-format): durable graph = this grammar (or its compile); serve-down scratch = plain Markdown; tool envelope = JSON. Do not use TOON/TRON.
+Contrast (from memnet-format): durable graph = this grammar (or its compile); serve-down scratch = plain Markdown; tool envelope = JSON. Do not use TOON/TRON.
 
 ---
 
@@ -352,26 +356,28 @@ Contrast tiers (from memnet-format): durable graph = this grammar (or its compil
 
 ```text
 1. Spec book (this doc + examples/)              — human + LLM normative shapes
-2. MemNet.g4 (ANTLR 4)                           — lexer/parser of Tier A (stub)
+2. MemNet.g4 (ANTLR 4)                           — lexer/parser of shared dialect (stub; keep)
 3. docs/grammar/tools/tier_a.py                  — R1 Python twin: parse → AST → emit + soft lint
 4. tests/grammar/test_tier_a_golden.py           — golden accept/reject/lint + round-trip
 5. Forbidden                                     — ad-hoc str.split in consumers (MN-REQ-09.4)
 ```
 
+(Harness / package names keep `tier_a` for continuity; they implement the shared dialect.)
+
 - **Reject** invalid lines (MN-REQ-09.2); do not “best effort” mis-split.
 - Inspect / `read` paths render via the same AST (parse-faithful, MN-REQ-09.3).
-- Deprecated pipe import may live behind a migration module; it is **not** the agent SSOT and **not** a standing store tier.
+- Deprecated pipe import may live behind a migration module; it is **not** the agent SSOT and **not** a standing store tier — keep the module/docs if present; do not elevate pipe to preferred agent I/O.
 
 ### ANTLR roadmap
 
 | Step | Deliverable |
 |------|-------------|
 | R0 | This design + example fixtures |
-| R1 | `MemNet.g4` + `tier_a.py` twin + golden harness — **current** |
+| R1 | `MemNet.g4` + `tier_a.py` twin + golden harness — **current** (preserve) |
 | R2 | Optional: generate visitor from `.g4`; keep twin or replace |
 | R3 | CLI `memnet parse --stdin` / MCP inspect hook |
-| R4 | Warm + mutate agent I/O fully Tier A; deprecate pipe ingest |
-| R5 | Legacy pipe = import-once only (session upgrade) |
+| R4 | Pin map + mutate agent I/O fully shared dialect; deprecate pipe as agent ingest |
+| R5 | Legacy pipe = import-once only (session upgrade; keep import rules) |
 
 Reference tooling docs: `third_party/antlr4/` (pin 4.13.2).  
 Coherence / gaps / next steps: **`docs/grammar/memnet-grammar-antlr.md`**.
@@ -381,16 +387,16 @@ Coherence / gaps / next steps: **`docs/grammar/memnet-grammar-antlr.md`**.
 ## 9. Migration sketch
 
 ```text
-Phase 0  Document Write=display Tier A as sole agent dialect.
-Phase 1  Accept Tier A on add/update; emit Tier A on warm (Write=display).
-Phase 2  Skills / LLM-GUIDE teach Tier A only.
+Phase 0  Document Write=display shared dialect as sole agent dialect.
+Phase 1  Accept shared dialect on add/update; emit shared dialect on pin map (Write=display).
+Phase 2  Skills / LLM-GUIDE teach shared dialect only (not pipe).
 Phase 3  Parser SSOT mandatory for all consumers; delete private splits.
-Phase 4  Legacy pipe session files: import once → convert → gone.
+Phase 4  Legacy pipe session files: import once → convert → gone (keep importer).
 ```
 
-Compatibility: old pipe session blobs MAY load via a deprecated importer; they are not a standing store format.
+Compatibility: old pipe session blobs MAY load via a deprecated importer; they are not a standing store format and not preferred agent I/O.
 
-**Remaining:** finish live MCP/CLI convergence on Tier A emit/accept; pipe import path only for historical files.
+**Remaining:** finish live MCP/CLI call-site naming (`query_warm` → pin map); pipe import path only for historical files. Formal grammar + golden harness remain the dialect authority.
 
 ---
 
@@ -400,13 +406,13 @@ Compatibility: old pipe session blobs MAY load via a deprecated importer; they a
 
 | Decision | Default |
 |----------|---------|
-| Agent dialect | **Tier A only** (Write = display both directions) |
-| Pipe / dual dialect | **Removed from target** — legacy import-once footnote only |
-| Warm sections | **Require** `## Nodes`/`## Pins` + `## Edges` (+ `## Laws` if present) on agent-facing warm |
+| Agent dialect | **Shared dialect only** (Write = display both directions; aka Tier A in code) |
+| Pipe / dual agent dialect | **Not preferred** — legacy import-once footnote; keep import productions if present |
+| Pin-map sections | **Require** `## Nodes`/`## Pins` + `## Edges` (+ `## Laws` if present) on agent-facing pin map |
 | Fat / prose fields | **Soft lint** (parse OK; lint-reject in harness) |
 | Compound values | **R1 atoms-only**; R2 list/map deferred |
 | focus / caps | **Envelope only** (MCP/CLI args), not body grammar |
-| Id mint | **`[NEW]`** / leading **`NEW`** on create; engine allocates; copy from warm thereafter |
+| Id mint | **`[NEW]`** / leading **`NEW`** on create; engine allocates; copy from pin map thereafter |
 
 **Still open (id-mint behaviour):**
 
@@ -426,9 +432,9 @@ Compatibility: old pipe session blobs MAY load via a deprecated importer; they a
 | MN-REQ-02.1–02.6 | AST = Node \| Edge only; grammar + parser express both |
 | MN-REQ-02.7 | Kind tokens + TagMap/schema validation on ingest |
 | MN-REQ-03.* | `+` create vs `~` update; create uses `NEW` (engine id); update needs existing id |
-| MN-REQ-08.* | LLM-facing named fields; Write≈display; prompt checklist; mint `NEW` not invented ids |
-| MN-REQ-09.* | `tier_a.py` + `.g4` path; reject invalid; golden harness |
-| MN-REQ-10.* | Learnable templates; warm caps in envelope; ground ids from warm/response |
+| MN-REQ-08.* | LLM-facing named fields; Write=display; prompt checklist; mint `NEW` not invented ids |
+| MN-REQ-09.* | `tier_a.py` + `.g4` path; reject invalid; golden harness (**keep**) |
+| MN-REQ-10.* | Learnable templates; pin-map caps in envelope; ground ids from pin map/response |
 | MN-REQ-11.13 | Pins as short locator nodes/edges; no corpus dump |
 
 No requirement text is edited in `requirements.sysml` by this task. Thin note: engine-allocated ids on `NEW` align with MN-REQ-03 / 08 / 10.4 — see `system-design-notes.md`.
@@ -439,12 +445,12 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 
 | Path | Role |
 |------|------|
-| `docs/grammar/MemNet.g4` | ANTLR stub (R1; atom values; `KW_NEW`; lawPin; edge ids) |
-| `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin |
+| `docs/grammar/MemNet.g4` | ANTLR stub (R1; atom values; `KW_NEW`; lawPin; edge ids) — **keep** |
+| `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin — **keep** |
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
-| `docs/grammar/examples/` | Good/bad fixtures + README classification |
-| `tests/grammar/test_tier_a_golden.py` | Golden harness |
+| `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |
+| `tests/grammar/test_tier_a_golden.py` | Golden harness — **keep** |
 | `refs/novel-cut-grammar/specs/md_triple_grammar.md` | Write=display lineage |
-| `docs/LLM-GUIDE.md` | Current agent playbook (pipe-era — migration remaining) |
+| `docs/LLM-GUIDE.md` | Agent playbook (still largely pipe-centric — migrate prose; do not delete) |
 | `sysml-models/outputs/system-design-notes.md` | Design notes pointer |
-| Skill `memnet-format` | Current wire skill (handoff tiers; pipe until Phase 2) |
+| Skill `memnet-format` / `mcp-memnet` | Agent wire + MCP tools (shared dialect; point here for formal rules) |

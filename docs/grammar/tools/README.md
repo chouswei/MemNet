@@ -1,4 +1,6 @@
-# Tier A grammar tools
+# Shared-dialect grammar tools
+
+Package / file names keep `tier_a` for harness continuity; they implement the **shared dialect** (Write = display). **Keep** the twin, fixtures, and golden tests — they are the formal benefit of this folder.
 
 | Path | Role |
 |------|------|
@@ -14,6 +16,6 @@ From repo root (PowerShell):
 python -m pytest tests/grammar -q
 ```
 
-Round-trip check for warm fixtures is included (`01_`, `04_`).
+Round-trip check for pin-map fixtures is included (`01_`, `04_`).
 
 ANTLR codegen is optional later (`antlr4 -Dlanguage=Python3`); this twin does not require `antlr4-python3-runtime`.

@@ -1,17 +1,18 @@
-// MemNet.g4 — Tier A agent surface (NODE | EDGE lines).
+// MemNet.g4 — shared dialect agent surface (NODE | EDGE lines).
+// Also known historically as "Tier A"; harness/package names keep tier_a.
 // Normative prose: docs/grammar/memnet-grammar-design.md
 // ANTLR notes:    docs/grammar/memnet-grammar-antlr.md
 // Tooling:        third_party/antlr4/ (4.13.2); Python twin: docs/grammar/tools/tier_a.py
 //
 // Conceptual kinds from the visitor / twin: Node | Edge only.
-// Uppercase kind spellings (TSK, CLM, …) are IDENT data, not extra kinds.
+// Uppercase kind spellings (TSK, CLM, ...) are IDENT data, not extra kinds.
 //
 // Id mint: KW_NEW ('NEW') on create node id / create edge id; engine allocates real ids.
 // Patch / drop require ground IDENT ids (no KW_NEW).
 //
 // R1 scope: atom values only (optional quotes; escapes in STRING).
 // List/map (; inside one value) = R2 — deferred (see design §5.1 / antlr notes).
-// Tier B @TAG pipe is NOT in this grammar (separate codec / front-end).
+// Legacy @TAG pipe is NOT in this grammar (import/store codec — not preferred agent I/O).
 // focus / caps: MCP/CLI envelope only — not in this body grammar.
 
 grammar MemNet;
