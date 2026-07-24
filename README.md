@@ -13,7 +13,7 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 | Idea | Meaning |
 |------|---------|
 | NODE \| EDGE only | Conceptual kinds are nodes and edges; tags realise node kinds |
-| One agent dialect | **Tier A** Write = display — same shapes for live read and mutate |
+| One agent dialect | **Shared dialect** (Write = display) — same shapes for live read and mutate; design docs may still say “Tier A” |
 | Live **pin map** | Bounded ego/anchor digest for the turn (not a session dump) |
 | `NEW` vs locators | LLM creates use mint token `NEW`; pin-map ingest uses **stable locators** (no client `NEW` for source pins). PCBA schematics use Atopile **`.ato`** |
 | Transport | **In-process first**; local IPC next; TCP localhost as migration fallback |
@@ -23,9 +23,9 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 
 ---
 
-## Agent I/O (Tier A)
+## Agent I/O (shared dialect)
 
-Target surface (not `@TAG` pipe). Shared NODE | EDGE field shapes. **Mutate** uses ops (`+` create, `~` update, `-` drop). **Live pin map** emits bare present lines — no leading ops (ops are mutate-only; a pin-map `+` would look like “please add”).
+Target surface (not `@TAG` pipe). Shared NODE | EDGE field shapes (**Write = display**). **Mutate** uses ops (`+` create, `~` update, `-` drop). **Live pin map** emits bare present lines — no leading ops (ops are mutate-only; a pin-map `+` would look like “please add”).
 
 **Mutate input** (LLM → MemNet) — may use `[NEW]`; engine mints ids:
 
@@ -62,11 +62,11 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 
 | Area | Today (as-is) | Target |
 |------|---------------|--------|
-| Agent wire | Mutate + live pin map prefer **Tier A**; legacy `@TAG` pipe still accepted on add/update and used in snapshots / `read` | Tier A shared shapes; pin map bare present; mutate keeps ops |
-| Tier A | Pure-Python codec in `memnet/tier_a.py` + golden tests | SSOT parse/emit; ANTLR optional later |
-| Id mint | `IdAllocator` wired through `MutateGate` on Tier A batches | Same |
-| MutateGate | `mutate_gate.py` — Tier A parse → mint → commit; pipe import-once | Same dialect only |
-| Live pin map | `PinMapComposer` via `query warm` / `query_warm` (Tier A emit) | Rename alias when call sites ready |
+| Agent wire | Mutate + live pin map prefer **shared dialect**; legacy `@TAG` pipe still accepted on add/update and used in snapshots / `read` | Shared shapes; pin map bare present; mutate keeps ops |
+| Shared-dialect codec | Pure-Python codec in `memnet/tier_a.py` + golden tests | SSOT parse/emit; ANTLR optional later |
+| Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
+| MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
+| Live pin map | `PinMapComposer` via `query warm` / `query_warm` (shared-dialect emit) | Rename alias when call sites ready |
 | Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve | In-process primary; local IPC; TCP fallback |
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
@@ -85,7 +85,7 @@ Part-based tree ([`LAYOUT.md`](LAYOUT.md), [`AGENTS.md`](AGENTS.md)):
 | `parts/memnet-mcp/` | Generic MCP server (`memnet-mcp`) |
 | `docs/` | LLM-GUIDE, grammar, application notes |
 | `sysml-models/` | Requirements and deploy/behaviour models |
-| `tests/` | Engine, MCP, Tier A golden tests |
+| `tests/` | Engine, MCP, shared-dialect golden tests |
 
 Do not recreate top-level `src/` or `applications/`. Do not restore `parts/novel-writer/`.
 
@@ -107,7 +107,7 @@ PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project).
 
 ## Quick start (as-is CLI)
 
-Until Tier A is universal at every boundary, CLI sessions still use serve; agent mutate prefers Tier A.
+Until the shared dialect is universal at every boundary, CLI sessions still use serve; agent mutate prefers the shared dialect.
 
 **Terminal 1:**
 
@@ -134,7 +134,7 @@ Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unle
 
 Forward reading order for agents:
 
-1. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — Tier A, pin map, `NEW` vs locators  
+1. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — shared dialect (Write = display), pin map, `NEW` vs locators  
 2. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
 3. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — current goldfish loop (pipe; migration pending)
 

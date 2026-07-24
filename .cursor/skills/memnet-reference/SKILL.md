@@ -4,13 +4,13 @@ description: >-
   Load when working in this MemNet (Net of Memory) repository on the agent
   memory graph, MCP sessions, live pin-map reads, or graph mutates (including
   minting ids with NEW) — triggers: MemNet, pin map, MCP session, mutate NEW,
-  query_warm, memnet-mcp, Net of Memory, MutateGate, Tier A. Explains the shared
-  agent read/write dialect (Tier A: Write=display — same NODE|EDGE shapes for
-  display and mutate), parts layout, and doctrine SSOT pointers. Use before
-  inventing a wire dialect or restoring novel-writer.
+  query_warm, memnet-mcp, Net of Memory, MutateGate, shared dialect,
+  Write=display. Explains the shared agent read/write dialect (Write=display —
+  same NODE|EDGE shapes for display and mutate), parts layout, and doctrine
+  SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.2"
+  version: "1.3"
   domain: memnet
   product: "0.3.1"
 ---
@@ -23,11 +23,11 @@ Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives i
 
 ## Mission
 
-**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that shared dialect is **Tier A** (**Write = display**). Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the **same shapes** — that **shared dialect** (Write = display). Design docs under `docs/grammar/` may still say “Tier A” for this dialect; prefer **shared dialect** in agent text. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first**. This repo is **engine + generic memnet-mcp** only — novel-writer dropped.
 
-## Agent I/O (Tier A)
+## Agent I/O (shared dialect)
 
-- **Tier A only** for agent dialect: **Write = display** means shared NODE | EDGE field shapes for live read and mutate (copy what you see).
+- **Shared dialect only** for agent I/O: **Write = display** means shared NODE | EDGE field shapes for live read and mutate (copy what you see).
 - **Mutate** uses ops: `+` create, `~` update, `-` drop. May use `[NEW]` / leading `NEW` so the engine mints ids.
 - **Live pin map** output is **bare present** (assigned ids, **no** leading `+`/`~`/`-`). Ops are mutate-only.
 - LLM creates: mint with `NEW`. Pin-map ingest (SysML, codebase, PCBA, skills): **stable locators** (`refdes=`, `path=`, `qname=`, …); reject client `NEW` for those pins. PCBA schematics use Atopile **`.ato`**.
@@ -51,7 +51,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). CLI/MCP `query warm`
 | Need | Path |
 |------|------|
 | Doctrine / quick start | `README.md` |
-| Tier A grammar design | `docs/grammar/` |
+| Shared-dialect grammar design | `docs/grammar/` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/` |
@@ -63,15 +63,15 @@ Part-based folders only — do not recreate top-level `src/` or `applications/`.
 
 ## MCP (generic memnet)
 
-Implementation: `parts/memnet-mcp/`. Typical tools: `session_*` (open/save/load/…), `query_warm` (pin-map alias), `add` / `update` via **MutateGate** (Tier A preferred; legacy `@TAG` pipe still accepted on mutate). Always pass the same `session` id.
+Implementation: `parts/memnet-mcp/`. Typical tools: `session_*` (open/save/load/…), `query_warm` (pin-map alias), `add` / `update` via **MutateGate** (shared dialect preferred; legacy `@TAG` pipe still accepted on mutate). Always pass the same `session` id.
 
 Wire shapes and grammar: `README.md` + `docs/grammar/` (not personal Cursor skills).
 
 ## MUSTNOT
 
 - Invent ids when a pin map already shows them — copy assigned ids.
-- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; Tier A for LLM I/O).
-- Recommend TOON/TRON for handoffs — Tier A or plain Markdown.
+- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; shared dialect for LLM I/O).
+- Recommend TOON/TRON for handoffs — shared dialect or plain Markdown.
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Route agents to personal Cursor / user-pack skills from this repo.
 
@@ -86,7 +86,7 @@ Wire shapes and grammar: `README.md` + `docs/grammar/` (not personal Cursor skil
 | Path | Role |
 |------|------|
 | `.cursor/skills/memnet-reference/` (this) | Repo doctrine + routing |
-| `README.md`, `docs/grammar/` | SSOT doctrine / Tier A |
+| `README.md`, `docs/grammar/` | SSOT doctrine / shared dialect |
 | `parts/memnet-mcp/` | Generic MCP |
 | `sysml-models/` | SysML models |
 | `AGENTS.md` | Hub / policy |
