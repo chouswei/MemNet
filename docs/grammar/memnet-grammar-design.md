@@ -26,7 +26,7 @@
 
 - Rewriting `parts/common/memnet` parsers in this pass.
 - Novel-writer / play-loop product grammar (novel-cut is **reference only**).
-- Making TOON/TRON the durable graph language (those remain serve-down / handoff tiers).
+- Making ad-hoc compact encodings (e.g. former TOON/TRON) the durable graph language — handoffs use plain Markdown or domain wire only.
 - JSON as the agent memory dialect (JSON stays at MCP/CLI **envelope** boundaries only).
 - Embedding full SysML / source files in warm (pin map only).
 
@@ -64,8 +64,9 @@ Deprecated footnote (not a peer tier):
   Pipe is not agent-facing and not the target store codec.
 
 Handoff contrast (not MemNet grammar):
-  TOON/TRON = serve-down tabular scratch between LLM steps
+  Plain Markdown tables / short prose = serve-down scratch between LLM steps
   Prose Markdown = human operator deliverable
+  (Do not use TOON/TRON — they do not meaningfully save tokens.)
 ```
 
 **Identity rule:** conceptual kinds are always NODE | EDGE. Surface spellings (`CLM`, `TSK`, …) are **node kinds**, not extra conceptual kinds (MN-REQ-02.7).
@@ -335,7 +336,7 @@ Agents and assemblers SHALL treat these as prompt rules for MemNet I/O (MN-REQ-0
 @CHK: G10 | Recycle matches lifetime; settle finished work out of future warm | pass|fail
 ```
 
-Contrast tiers (from memnet-format): durable graph = this grammar (or its compile); serve-down scratch = TOON/TRON; tool envelope = JSON.
+Contrast tiers (from memnet-format): durable graph = this grammar (or its compile); serve-down scratch = plain Markdown; tool envelope = JSON. Do not use TOON/TRON.
 
 ---
 
