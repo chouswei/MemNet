@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.7"
+  version: "1.8"
   domain: memnet
   product: "0.3.2"
 ---
@@ -82,7 +82,7 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 ## MUSTNOT
 
 - Invent ids when a pin map already shows them — copy assigned ids.
-- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; shared dialect for LLM I/O).
+- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; shared dialect for LLM I/O). Includes `@RSV:` — use `RSV [rid] ; llm_id=…` present lines instead.
 - Recommend TOON/TRON for handoffs — shared dialect or plain Markdown.
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Route agents to personal Cursor / user-pack skills from this repo.
@@ -109,7 +109,13 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 
 **Re-id (wrong ground id):** `~ [OldId] ; id=NewId` on `update`. If `NewId` exists → `id_occupied` unless `; merge=true` (fold mistaken mint into locator id; retarget edges; drop OldId). Self `id=OldId` is a no-op. Not the MCP tool rename `query_warm`→`pin_map`.
 
-**Multi-agent (design):** neighbourhood **reserve** with holder **`llm_id`** + **TTL**; see `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.2.
+**Multi-agent (design):** neighbourhood **reserve** with holder **`llm_id`** + **TTL**; MCP `reserve` / `extend` / `release` (next minor). Pin map may show bare present:
+
+```text
+RSV [R7] ; llm_id=coder_a ; anchor=ATO_R1 ; depth=2 ; until=2026-07-24T08:15:00Z
+```
+
+Shared dialect only — **never** `@RSV:` pipe. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.2.
 
 **Lookup before write** (same session):
 
