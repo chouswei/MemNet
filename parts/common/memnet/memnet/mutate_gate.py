@@ -20,6 +20,26 @@ from memnet.tier_a import (
 )
 from memnet.tier_a_codec import TierACodec
 
+_MERGE_TRUE = frozenset({"true", "1", "yes"})
+
+
+def _split_rename_fields(
+    fields: list[Field],
+) -> tuple[str | None, bool, list[Field]]:
+    """Pull id= / merge= off a patch; remaining fields apply as normal patches."""
+    rename_to: str | None = None
+    merge = False
+    kept: list[Field] = []
+    for f in fields:
+        if f.key == "id" and f.op == "=":
+            rename_to = f.value
+            continue
+        if f.key == "merge" and f.op == "=":
+            merge = f.value.lower() in _MERGE_TRUE
+            continue
+        kept.append(f)
+    return rename_to, merge, kept
+
 
 def looks_like_tier_a(line: str) -> bool:
     s = line.strip().lstrip("\ufeff")
@@ -168,6 +188,7 @@ class MutateGate:
 
         drops: list[str] = []
         records: list[Record] = []
+        renames: list[tuple[str, str, bool, Record, set[str]]] = []
         ack_items: list[NodeRec | EdgeRec] = []
         for it in doc.items:
             if isinstance(it, Section):
@@ -176,6 +197,67 @@ class MutateGate:
                 drops.append(it.edge_id or "")
                 ack_items.append(it)
                 continue
+            if isinstance(it, NodeRec) and it.op == Op.CREATE:
+                if any(f.key == "id" for f in it.fields):
+                    raise MemNetError(
+                        "invalid_field",
+                        "id= illegal on create; put id in [brackets]",
+                    )
+            if isinstance(it, NodeRec) and it.op == Op.PATCH:
+                rename_to, merge_flag, kept = _split_rename_fields(it.fields)
+                patch_it = NodeRec(
+                    op=it.op, kind=it.kind, id=it.id, fields=kept, raw=it.raw
+                )
+                rec = self._item_to_record(patch_it)
+                explicit = {f.key for f in kept if f.op == "="}
+                if rename_to is not None:
+                    renames.append((it.id, rename_to, merge_flag, rec, explicit))
+                    ack_items.append(
+                        NodeRec(
+                            op=Op.PATCH,
+                            kind=rec.tag,
+                            id=rename_to,
+                            fields=kept,
+                            raw=it.raw,
+                        )
+                    )
+                    continue
+                records.append(rec)
+                ack_items.append(it)
+                continue
+            if isinstance(it, EdgeRec) and it.op == Op.PATCH:
+                rename_to, merge_flag, kept = _split_rename_fields(it.fields)
+                if rename_to is not None:
+                    if merge_flag:
+                        raise MemNetError(
+                            "invalid_merge",
+                            "merge=true applies to nodes only (not EDG)",
+                        )
+                    patch_it = EdgeRec(
+                        op=it.op,
+                        edge_id=it.edge_id,
+                        frm=it.frm,
+                        rel=it.rel,
+                        to=it.to,
+                        fields=kept,
+                        raw=it.raw,
+                    )
+                    rec = self._item_to_record(patch_it)
+                    old_eid = it.edge_id or ""
+                    explicit = {f.key for f in kept if f.op == "="}
+                    renames.append((old_eid, rename_to, False, rec, explicit))
+                    ack_items.append(
+                        EdgeRec(
+                            op=Op.PATCH,
+                            edge_id=rename_to,
+                            frm=it.frm,
+                            rel=it.rel,
+                            to=it.to,
+                            fields=kept,
+                            raw=it.raw,
+                        )
+                    )
+                    continue
             rec = self._item_to_record(it)
             records.append(rec)
             ack_items.append(it)
@@ -224,6 +306,52 @@ class MutateGate:
                     relations=self.ss.relations,
                 )
                 warnings.extend(warns)
+            for old_id, new_id, merge_flag, patch_rec, explicit in renames:
+                if mode != "update":
+                    raise MemNetError(
+                        "op_mode_mismatch",
+                        "id= rename requires update mode",
+                    )
+                old = self.ss.store.get(old_id)
+                if old is None:
+                    raise MemNetError("not_found", f"id {old_id}|use add")
+                # Only wire-explicit fields (not TagMap defaults filled by _node_to_record).
+                field_keys = {k for k in explicit if k != "id"}
+                if merge_flag:
+                    # Merge first (drop source); then patch surviving target.
+                    warns = self.ss.store.rename_id(old_id, new_id, merge=True)
+                    warnings.extend(warns)
+                    if field_keys:
+                        target = self.ss.store.get(new_id)
+                        if target is None:
+                            raise MemNetError("not_found", f"id {new_id}|use add")
+                        merged = dict(target.fields)
+                        for k in field_keys:
+                            merged[k] = patch_rec.fields[k]
+                        merged["id"] = new_id
+                        warns = self.ss.store.replace_row(
+                            Record(tag=target.tag, fields=merged),
+                            agent=agent,
+                            allow_new_relation=allow_new_relation,
+                            relations=self.ss.relations,
+                        )
+                        warnings.extend(warns)
+                else:
+                    # Patch source in place, then re-key (fields travel with the row).
+                    if field_keys:
+                        merged = dict(old.fields)
+                        for k in field_keys:
+                            merged[k] = patch_rec.fields[k]
+                        merged["id"] = old_id
+                        warns = self.ss.store.replace_row(
+                            Record(tag=old.tag, fields=merged),
+                            agent=agent,
+                            allow_new_relation=allow_new_relation,
+                            relations=self.ss.relations,
+                        )
+                        warnings.extend(warns)
+                    warns = self.ss.store.rename_id(old_id, new_id, merge=False)
+                    warnings.extend(warns)
             self.ss.mark_written()
         except MemNetError:
             for rid in added:

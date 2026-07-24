@@ -15,6 +15,7 @@ from memnet.output import emit_wrn
 _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
 _LAW_LINK_RELATIONS = frozenset({"governs", "features", "constrains", "applies_to"})
 _ENGINE_LAW_ID_RE = re.compile(r"^LAW0[1-5]$")
+_ID_TOKEN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class MemStore:
@@ -158,6 +159,77 @@ class MemStore:
         if rec and record_id in self.write_order:
             self.write_order.remove(record_id)
         return rec
+
+    def rename_id(
+        self,
+        old_id: str,
+        new_id: str,
+        *,
+        merge: bool = False,
+    ) -> list[str]:
+        """Re-key a record. Free rename retargets edge endpoints; occupied target rejects
+        unless merge=True (nodes only: retarget endpoints to target, drop source).
+        Self no-op (old_id == new_id) returns without error.
+        """
+        warnings: list[str] = []
+        if old_id == new_id:
+            return warnings
+        if new_id == "NEW" or not _ID_TOKEN_RE.match(new_id):
+            raise MemNetError("invalid_id", f"id {new_id}")
+        old = self.by_id.get(old_id)
+        if old is None:
+            raise MemNetError("not_found", f"id {old_id}|use add")
+        target = self.by_id.get(new_id)
+        if target is not None and not merge:
+            raise MemNetError(
+                "id_occupied",
+                f"id {new_id} occupied @{target.tag}|use merge=true to merge into existing",
+            )
+        if target is not None and merge:
+            if old.tag == "EDG" or target.tag == "EDG":
+                raise MemNetError(
+                    "invalid_merge",
+                    "merge=true applies to nodes only (not EDG)",
+                )
+            if old.tag != target.tag:
+                raise MemNetError(
+                    "id_conflict",
+                    f"merge {old_id}@{old.tag} into {new_id}@{target.tag} tag mismatch",
+                )
+            self._retarget_endpoints(old_id, new_id)
+            self.delete(old_id)
+            warnings.append(f"merged|{old_id}->{new_id}")
+            return warnings
+
+        # Free rename: retarget endpoints first, then move the record key.
+        self._retarget_endpoints(old_id, new_id)
+        if old.tag == "EDG":
+            self._unindex_edge(old)
+        self._unindex_tag(old)
+        self.by_id.pop(old_id)
+        old.fields["id"] = new_id
+        if old_id in self.write_order:
+            self.write_order[self.write_order.index(old_id)] = new_id
+        self.by_id[new_id] = old
+        self._index_tag(old)
+        if old.tag == "EDG":
+            self._index_edge(old)
+        return warnings
+
+    def _retarget_endpoints(self, old_id: str, new_id: str) -> None:
+        affected = set(self._edges_by_src.get(old_id, ())) | set(
+            self._edges_by_dist.get(old_id, ())
+        )
+        for eid in affected:
+            edge = self.by_id.get(eid)
+            if edge is None or edge.tag != "EDG":
+                continue
+            self._unindex_edge(edge)
+            if edge.fields.get("src") == old_id:
+                edge.fields["src"] = new_id
+            if edge.fields.get("dist") == old_id:
+                edge.fields["dist"] = new_id
+            self._index_edge(edge)
 
     def get(self, record_id: str) -> Record | None:
         return self.by_id.get(record_id)

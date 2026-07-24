@@ -16,6 +16,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Layout adaptation notes | `LAYOUT.md` |
 | SysML models | `sysml-models/` |
 | Shared-dialect grammar design | `docs/grammar/` |
+| Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
 | Domain worked examples | `docs/application-notes/` |
 | Core library | `parts/common/memnet/` |

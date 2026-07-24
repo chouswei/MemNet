@@ -95,15 +95,40 @@ Edge  = { id?, from: Id, rel: Rel, to: Id, fields: Map[Key → Value], recycle? 
 ### 4.2 Ops (mutate)
 
 ```text
-CreateNode  = + kind [NEW] ; fields*          // engine allocates node id
+CreateNode  = + kind [NEW|Id] ; fields*      // NEW mints; explicit Id for locator pins
 PatchNode   = ~ [Id] ; fields*               // Id from warm / prior response only
+              // re-id: ~ [OldId] ; id=NewId
+              // occupied: reject (id_occupied) unless ; merge=true (nodes only)
 CreateEdge  = + [NEW|Eid]? [Id] --(Rel)--> [Id] ; fields*
               // warm shows Eid; create uses NEW or omits eid (implicit mint)
 PatchEdge   = ~ [Id] --(Rel)--> [Id] ; fields*   |   ~ Eid ; fields*
+              // re-id edge record: ~ Eid ; id=NewEid  (no merge=true)
 DropEdge    = - Eid
 ```
 
 Strict mutate maps to MemNet commands (MN-REQ-03): `+` → add; `~` → update; silent upsert forbidden.
+
+### 4.2.0 Re-id / rename (locked default)
+
+Ground **id** is the Write=display copy key (stable locator doctrine). `~` field patches do **not** change the bracket id unless an explicit `id=` field is present.
+
+| Case | Line | Behaviour |
+|------|------|-----------|
+| Free | `~ [A] ; id=B` | Re-key A→B; retarget all EDG `src`/`dist` that referenced A. |
+| Occupied | `~ [A] ; id=B` | **Reject** `id_occupied` (safe default). |
+| Merge | `~ [A] ; id=B ; merge=true` | Nodes only: retarget edges A→B, drop A, keep B fields (optional other fields patch B). Tag mismatch → `id_conflict`. EDG → `invalid_merge`. |
+| Self | `~ [A] ; id=A` | No-op on key; other fields still apply. |
+| Create | `+ KIND [X] ; id=Y` | Illegal (`invalid_field`) — id belongs in brackets. |
+
+`id=` / `merge=` are mutate control fields: they do not persist as row attributes. Prefer merge when a mistaken mint must fold into an existing schematic/locator ground id.
+
+**Not the same as** MCP tool rename `query_warm` → `pin_map` (transport naming only).
+
+### 4.2.0a Multi-agent same session (design — not yet enforced)
+
+Today: per-session mutex serialises ops (no torn writes), but there is **no** neighbourhood lease. Two agents sharing one `session_id` can still **logically** race. Goldfish docs assume one writer loop; `--agent` is attribution only.
+
+**Recommended default (next minor):** **neighbourhood reserve** with holder **`llm_id`** + **TTL** (`ttl_s` / `until`). Pin map shows leases as shared-dialect present lines (`RSV [rid] ; llm_id=… ; …`) — **never** `@RSV:…|…` pipe. MCP `reserve` / `extend` / `release`. Optimistic `rev` optional secondary. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md` and §9a. Re-id / merge under the same holder rules (§4.2.0).
 
 ### 4.2.1 Id mint rule (`NEW`) — locked
 
@@ -400,6 +425,42 @@ Compatibility: old pipe session blobs MAY load via a deprecated importer; they a
 
 ---
 
+## 9a. Multi-agent concurrency (design note)
+
+**As-is (0.3.2):** each session has a mutex (`SessionStore.lock`) so concurrent `add`/`update` do not tear the store. There is **no** neighbourhood lease, session `rev` / etag, or mutate gate on writer identity. `modified_at` / `has_writes` exist on session meta but are not agent-facing CAS. `--agent` is attribution only. Logical lost-update is unmitigated when two agents share one `session_id`.
+
+**Goldfish assumption:** docs teach one agent loop (`pin_map` → reason → mutate → `pin_map`). Shared-session multi-writer is out of that model (MUD note: last write wins on contended edges).
+
+**Primary (locked for next minor):** **neighbourhood reservation** with holder **`llm_id`** + **TTL**. SSOT: [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md).
+
+| Rank | Option | Role |
+|------|--------|------|
+| 1 | **Reserve ego neighbourhood** (`llm_id` + `ttl_s`; MCP `reserve`/`extend`/`release`) | **Primary** — parallel agents on disjoint pin-map scopes |
+| 2 | Optimistic `rev` on envelope | **Secondary** — stale-read / single-writer CAS; optional later |
+| 3 | Session-per-agent + snapshot merge | Avoids races; merge UX heavy |
+| 4 | Append-only ops log + conflict markers | Large dialect change |
+
+**MCP sketch (ASCII) — shared dialect on pin map; MCP tools for lifecycle:**
+
+```text
+reserve(session, anchor, depth=2, llm_id, ttl_s=120)
+extend(session, rid|anchor, llm_id, ttl_s=120)
+release(session, rid|anchor, llm_id)   # match holder only; no force in v1
+
+# pin_map body (bare present — Write=display). Never @RSV: pipe.
+## Reserves
+RSV [R7] ; llm_id=coder_a ; anchor=ATO_R1 ; depth=2 ; until=2026-07-24T08:15:00Z ; left_s=87
+
+# errors (prose / codes — do not invent @RSV pipe)
+reserved: id ATO_R1 held by llm_id=coder_a until=… (caller llm_id=coder_b)
+reserve_conflict: overlapping neighbourhood held by other llm_id
+reserve_mismatch: release llm_id does not match holder
+```
+
+Re-id (`id=` / `merge=true`) is a mutate: only the lease holder may run it on covered ids; merge requires both endpoints held by the same `llm_id` (or free).
+
+---
+
 ## 10. Locked defaults and remaining edges
 
 **Locked (this pass):**
@@ -448,6 +509,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 | `docs/grammar/MemNet.g4` | ANTLR stub (R1; atom values; `KW_NEW`; lawPin; edge ids) — **keep** |
 | `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin — **keep** |
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
+| `docs/grammar/memnet-neighbourhood-reserve.md` | Multi-agent neighbourhood reserve design (shared dialect) |
 | `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |
 | `tests/grammar/test_tier_a_golden.py` | Golden harness — **keep** |
 | `refs/novel-cut-grammar/specs/md_triple_grammar.md` | Write=display lineage |

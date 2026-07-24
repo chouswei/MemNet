@@ -52,6 +52,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI 
 |------|------|
 | Doctrine / quick start | `README.md` |
 | Shared-dialect grammar design | `docs/grammar/` |
+| Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/` |
@@ -105,6 +106,10 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 | Skills | `SKL_memnet_format` | `skill_id=`, `phrase=` |
 
 **`NEW` is forbidden** for: schematic/model pins on ingest; re-creating an element that already has a pin; any `~` / `-` line.
+
+**Re-id (wrong ground id):** `~ [OldId] ; id=NewId` on `update`. If `NewId` exists → `id_occupied` unless `; merge=true` (fold mistaken mint into locator id; retarget edges; drop OldId). Self `id=OldId` is a no-op. Not the MCP tool rename `query_warm`→`pin_map`.
+
+**Multi-agent (design):** neighbourhood **reserve** with holder **`llm_id`** + **TTL**; see `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.2.
 
 **Lookup before write** (same session):
 

@@ -56,3 +56,78 @@ def test_pin_map_composer_unit(memnet_temp, schema_file):
     assert "## Nodes" in text
     assert "PLR [PLR01]" in text
     assert "+ PLR [PLR01]" not in text
+
+
+def test_rename_free_retargets_edges(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR_BAD] ; identity=Hero ; wealth=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+            "+ NPC [N01] ; name=Guide ; traits=kind ; corruption=0 ; craft=none ; funding_gap=0 ; status=active ; recycle=persistent",
+            "+ NEW [N01] --(seeks_help)--> [PLR_BAD] ; recycle=persistent",
+        ],
+        mode="add",
+        allow_new_relation=False,
+    )
+    result = gate.apply(["~ [PLR_BAD] ; id=PLR01"], mode="update")
+    assert ss.store.get("PLR_BAD") is None
+    assert ss.store.get("PLR01") is not None
+    assert ss.store.get("PLR01").fields["identity"] == "Hero"
+    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR01"]
+    assert len(edges) == 1
+    assert edges[0].fields.get("src") == "N01"
+    assert "PLR01" in result.ack_lines[0]
+
+
+def test_rename_occupied_rejects(memnet_temp, schema_file):
+    import pytest
+    from memnet.exceptions import MemNetError
+
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR_BAD] ; identity=Wrong ; wealth=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+            "+ PLR [PLR01] ; identity=Hero ; wealth=2 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+        ],
+        mode="add",
+    )
+    with pytest.raises(MemNetError) as ei:
+        gate.apply(["~ [PLR_BAD] ; id=PLR01"], mode="update")
+    assert ei.value.code == "id_occupied"
+    assert ss.store.get("PLR_BAD") is not None
+    assert ss.store.get("PLR01").fields["identity"] == "Hero"
+
+
+def test_rename_occupied_merge_retargets(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR_BAD] ; identity=Wrong ; wealth=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+            "+ PLR [PLR01] ; identity=Hero ; wealth=2 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+            "+ NPC [N01] ; name=Guide ; traits=kind ; corruption=0 ; craft=none ; funding_gap=0 ; status=active ; recycle=persistent",
+            "+ NEW [N01] --(seeks_help)--> [PLR_BAD] ; recycle=persistent",
+        ],
+        mode="add",
+    )
+    result = gate.apply(["~ [PLR_BAD] ; id=PLR01 ; merge=true"], mode="update")
+    assert ss.store.get("PLR_BAD") is None
+    assert ss.store.get("PLR01").fields["identity"] == "Hero"
+    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR01"]
+    assert len(edges) == 1
+    assert any("merged|PLR_BAD->PLR01" == w for w in result.warnings)
+
+
+def test_rename_self_noop(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR01] ; identity=Hero ; wealth=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+        ],
+        mode="add",
+    )
+    gate.apply(["~ [PLR01] ; id=PLR01 ; wealth=9"], mode="update")
+    assert ss.store.get("PLR01").fields["wealth"] == "9"
