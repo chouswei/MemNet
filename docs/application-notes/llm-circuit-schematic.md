@@ -1,8 +1,10 @@
 # LLM Circuit Schematic & s-Domain Analysis — A MemNet Application Note
 
-**Application example (documentation only).** Pattern for holding **electrical schematics** and **linear s-domain circuit analysis** in MemNet so an agent can warm a small subgraph (one IC, one net, one KCL equation) without packing pin lists or textbook prose into a single row.
+**Application example (documentation only).** Pattern for holding **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can warm a small subgraph (one IC, one net, one KCL equation) without packing pin lists or textbook prose into a single row.
 
-**Primary worked example:** inverting op-amp with resistive negative feedback — schematic grain (`CMP` / `PIN` / `NET`), ideal op-amp library type, **golden rules scoped to the s-domain linear model under negative feedback**, and nodal (node-voltage) equation atoms.
+For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analysis frame**: DC, steady-state sinusoid (phasor), and linear transient results are specialisations or inversions of the same \(V(s)\) / \(H(s)\) model — not parallel incompatible graphs. Prefer one s-domain atom set (`domain=s`); recover other views by evaluation or inverse Laplace.
+
+**Primary worked example:** inverting op-amp with resistive negative feedback — schematic grain (`CMP` / `PIN` / `NET`), ideal op-amp library type, **golden rules in that s-domain linear model under negative feedback**, and nodal (node-voltage) equation atoms.
 
 This note complements:
 
@@ -21,7 +23,7 @@ An op-amp stage is one component on the BOM but many facts in analysis:
 - Package pins and nets (undirected copper)
 - Ideal-model assumptions (golden rules)
 - Feedback topology that licenses those assumptions
-- Nodal equations and transfer-function results in the **Laplace (s) domain**
+- Nodal equations and transfer-function results held once in the **Laplace (s) domain**, then specialised (DC / \(j\omega\) / inverse Laplace) as needed
 
 Stuffing `pins=2,3,6,…` or a paragraph of golden rules onto `U1` breaks atomisation: warm bloats, nets cannot attach, and s-domain constraints cannot be scoped.
 
@@ -95,7 +97,8 @@ Fixed tags (`EDG`, engine `LAW`) are always present. Add analysis kinds via `ses
 
 Field notes:
 
-- `CLM.domain` / `VAR.domain` / `EQN.domain` — use `s` for Laplace-domain analysis atoms (this note’s default).
+- `CLM.domain` / `VAR.domain` / `EQN.domain` — default **`s`** for linear analysis atoms (unifying frame; see §4.0).
+- Optional result tags: `view=dc`, `view=jw`, `view=t` on a **derived** `CLM` that evaluates or inverts an s-domain result — do not fork a second full equation set for the same linear network.
 - `CLM.when` — guard such as `neg_feedback` (required for virtual short).
 - `NET.role` — e.g. `reference` for the nodal ground.
 
@@ -104,6 +107,21 @@ Shared-dialect equivalents use the same kinds and `key=value` fields.
 ---
 
 ## 4. Ideal op-amp and golden rules (**s-domain**)
+
+### 4.0 s-domain converts linear analysis
+
+For a **linear time-invariant** schematic (R, L, C, dependent sources, ideal op-amp under NFB), hold **one** analysis in \(s\):
+
+| Familiar view | How it relates to the s-model |
+|---------------|-------------------------------|
+| DC / bias (linear) | Evaluate at \(s \to 0\) (capacitors open, inductors short in the \(Z(s)\) sense) |
+| Steady sinusoid | Set \(s = j\omega\) (phasor / AC) |
+| Linear transient | Inverse Laplace of \(V_k(s)\) (with initial-condition sources if needed) |
+| Transfer function | \(H(s)\) itself — then Bode from \(H(j\omega)\) |
+
+So linear “DC vs AC vs transient” are **views of the same graph**, not three unrelated MemNet dialects. Mark core `VAR` / `EQN` / golden-rule `CLM` with `domain=s`. Add thin result rows (`type=result`, optional `view=…`) when the agent specialises.
+
+**Outside this unification:** large-signal / non-linear behaviour (op-amp saturation, slew, switching, hard limits). Those need separate atoms and must **not** reuse G1/G2 as written.
 
 ### 4.1 Scope (important)
 
@@ -114,7 +132,7 @@ The classical **golden rules** in this note are **linear s-domain analysis assum
 | G1 | \(V_+(s) = V_-(s)\) (virtual short) | `V_plus_s_eq_V_minus_s` |
 | G2 | \(I_+(s) = I_-(s) = 0\) | `I_plus_s_eq_0_and_I_minus_s_eq_0` |
 
-They license writing nodal / transfer-function algebra in \(s\) (impedances \(Z(s)\), \(H(s) = V_\mathrm{out}(s)/V_\mathrm{in}(s)\)).
+They license writing nodal / transfer-function algebra in \(s\) (impedances \(Z(s)\), \(H(s) = V_\mathrm{out}(s)/V_\mathrm{in}(s)\)). DC and \(j\omega\) answers for the **same linear stage** come from that model (§4.0).
 
 **They are not:**
 
@@ -216,7 +234,7 @@ E_fb2 [NET_VOUT] --(feeds_back_to)--> [NET_SUM] ; note=via_Rf ; recycle=persiste
 
 ## 6. Nodal analysis in the s-domain
 
-MemNet does **not** solve KCL. It holds the **node set, branch uses, and equation atoms**. An agent or external solver reads the warm slice, solves, and writes result `CLM`s.
+MemNet does **not** solve KCL. It holds the **node set, branch uses, and equation atoms** in \(s\). An agent or external solver reads the warm slice, solves for \(V_k(s)\) / \(H(s)\), writes result `CLM`s, and may add `view=dc` / `view=jw` / `view=t` specialisations without rebuilding the netlist equations.
 
 ### 6.1 Mapping
 
@@ -332,7 +350,9 @@ Same device may appear in both: schematic `ATO_U1` `typedBy` ideal `PRT_IdealOpA
 | Net arrow as current or “feedback direction” | `connects_to` is PIN→NET only; use `closes_loop` / `CLM_NFB` for feedback story |
 | Golden rules as prose on `U1` | `CLM` on ideal type; `domain=s`; `requires` `CLM_NFB` |
 | Applying G1 with no feedback / in saturation | Keep `when=neg_feedback`; add separate large-signal `CLM`s if needed |
-| Omitting `domain=s` on analysis atoms | Mark `VAR`/`EQN`/`CLM` results as s-domain so time-domain work does not reuse them blindly |
+| Parallel DC / AC / transient equation graphs for one LTI netlist | One `domain=s` set; specialise with `view=` result rows (§4.0) |
+| Omitting `domain=s` on linear analysis atoms | Mark core `VAR`/`EQN`/golden-rule `CLM` as `domain=s` |
+| Reusing G1/G2 for saturation / switching | Separate non-linear `CLM`s; golden rules stay linear s-domain under NFB |
 | `NEW` for `ATO_*` / `PIN_*` / `NET_*` | Locator path only; `[NEW]` for annotations |
 | One KCL blob for the whole circuit | One `EQN` per essential node (+ constraint eqns) |
 | Expecting MemNet to SPICE-solve | Graph holds atoms; solver/agent writes `type=result` |
