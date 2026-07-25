@@ -2,7 +2,7 @@
 
 **Single-file document example.** This file is self-contained. It demonstrates how to drive a long-form, user-steered SysML v2 textual modeling session where *every* piece of data lives in MemNet, following the canonical patterns from the `sysml-memnet-documentation` skill (user pack) and its mandatory 6-step snap procedure.
 
-It complements `sysml-modeling-workflow`, `mcp-sysml-v2` (validate), `sysml-view-doc-sync`, and `mcp-sysmledgraph` (impact/trace). MemNet holds the symbol index (@MOD/@SYM), design atoms (@PRT/@CON/@REQ/@CLM), locators, rationale and backlog; the authoritative structure and satisfy links live in the split `models/*.sysml` files.
+It complements `sysml-modeling-workflow`, `mcp-sysml-v2` (validate), `sysml-view-doc-sync`, and `mcp-sysmledgraph` (impact/trace). MemNet holds the symbol index (@MOD/@SYM), design atoms (@PRT/@CON/@REQ/@CLM), locators, rationale and backlog; the authoritative structure and satisfy links live in the split `models/*.sysml` files. For electrical schematic / s-domain analysis atoms (`CMP`/`PIN`/`NET`, op-amp golden rules), see [`llm-circuit-schematic.md`](llm-circuit-schematic.md).
 
 Background, conventions, requirements, model elements (parts, ports, connections, behaviours), traceability links, symbol locators, user preferences, current focus tasks, claims and open decisions are **not** kept as monolithic bibles, external files, or scattered chat state. They are broken into many small, independent rows (following the atomisation rules in the sysml-memnet-documentation skill):
 

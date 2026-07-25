@@ -310,10 +310,11 @@ memnet query warm --anchor PLR01
 | 2 | `llm-daily-news.md` | **Batch RSS digest** — session-scoped working memory, `@KYWD` hubs, `@CLU`/`@SYN` layers, Python bridge |
 | 3 | `llm-tech-docs-decomposition.md` | **Manual / SCPI decomposition** — RTO rev 29 remote mode, `@CMD` dictionary, procedure layers, driver turns |
 | 4 | `llm-sysml-v2-modeling.md` | **SysML v2 modeling** — PDU controller, cross-package `@PKG` refs, allocations, traceability from rows |
-| 5 | `llm-mud.md` | **Multiplayer MUD** — shared server graph, client prose agents, tiered room atomisation |
-| 6 | `llm-build-on-memnet.md` | **Builder guide** — write your own MCP server + Cursor skill pack on top of MemNet (FastMCP wrapper, JSON envelope, LAW supplementation, `mcp.json` registration) |
+| 5 | `llm-circuit-schematic.md` | **Circuit schematic / s-domain** — `CMP`/`PIN`/`NET`, undirected nets, ideal op-amp golden rules under NFB, nodal `EQN`/`VAR` |
+| 6 | `llm-mud.md` | **Multiplayer MUD** — shared server graph, client prose agents, tiered room atomisation |
+| 7 | `llm-build-on-memnet.md` | **Builder guide** — write your own MCP server + Cursor skill pack on top of MemNet (FastMCP wrapper, JSON envelope, LAW supplementation, `mcp.json` registration) |
 
-Row 5 (MUD) is a strong reference for **EDG wiring discipline** on a stateful shared world — transient links settled with `delete_on_settle`. Row 6 is for **integrators**, not runtime agents.
+Row 6 (MUD) is a strong reference for **EDG wiring discipline** on a stateful shared world — transient links settled with `delete_on_settle`. Row 7 is for **integrators**, not runtime agents.
 
 **Read this file (`docs/LLM-GUIDE.md`) at the beginning of any non-trivial task.**
 
