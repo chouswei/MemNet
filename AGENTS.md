@@ -18,7 +18,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Shared-dialect grammar design | `docs/grammar/` |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
-| Domain worked examples | `docs/application-notes/` |
+| Domain worked examples | `docs/application-notes/` (incl. `llm-circuit-schematic.md` for PCBA / s-domain) |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` |
 | Session stub | `AGENT-CONTEXT.md` |

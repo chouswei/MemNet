@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-07-25
+
+### Added
+- **application-notes/llm-circuit-schematic.md** — schematic grain (`CMP`/`PIN`/`NET`), undirected net convention, ideal op-amp golden rules in s-domain under negative feedback, nodal analysis atoms; s-domain as unifying linear frame (DC / \(j\omega\) / inverse Laplace as views); indexed from `docs/LLM-GUIDE.md`.
+
 ## [0.3.2] — 2026-07-24
 
 ### Added
