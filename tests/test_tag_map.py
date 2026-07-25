@@ -42,6 +42,35 @@ def test_user_map_requires_id_first():
     assert exc.value.code == "id_first"
 
 
+def test_schema_shared_dialect_load():
+    tm = load_map_from_lines(
+        [
+            "SCHEMA NPC ; fields=id name traits corruption craft funding_gap status recycle",
+            "SCHEMA BIZ ; fields=id name type location profit cashflow employees recycle",
+        ]
+    )
+    assert tm.tags["NPC"].fields[0] == "id"
+    assert "name" in tm.tags["BIZ"].fields
+
+
+def test_schema_shared_requires_id_first():
+    with pytest.raises(MemNetError) as exc:
+        load_map_from_lines(["SCHEMA FOO ; fields=name id"])
+    assert exc.value.code == "id_first"
+
+
+def test_schema_emit_roundtrip():
+    from memnet.tag_map import emit_schema_line, load_persisted_map_from_lines, tag_map_to_lines
+
+    tm = load_map_from_lines(["SCHEMA MOD ; fields=id path summary status recycle"])
+    lines = tag_map_to_lines(tm)
+    assert any(line.startswith("SCHEMA MOD ;") for line in lines)
+    assert emit_schema_line("MOD", ["id", "path"]) == "SCHEMA MOD ; fields=id path"
+    # Snapshots emit fixed LAW/EDG too; persisted load skips them.
+    tm2 = load_persisted_map_from_lines(lines)
+    assert tm2.tags["MOD"].fields == tm.tags["MOD"].fields
+
+
 def test_field_count_mismatch():
     tm = load_map_from_lines(["@NPC: id|name|traits|corruption|craft|funding_gap|status|recycle"])
     with pytest.raises(MemNetError) as exc:

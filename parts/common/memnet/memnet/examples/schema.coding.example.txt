@@ -1,12 +1,9 @@
-# TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
-# Pipe @TAG: id|field... declarations tell the engine which fields each user tag has.
-# Built-in (always merged; do not redefine here):
-#   @LAW  id|name|cycle|mechanism|constraint
-#   @EDG  id|src|relation|dist|at|attrs|recycle
-# Agent-facing mutate/display uses Tier A (docs/grammar/); see workflow.coding.example.txt.
-@CFG: id|repo|anchor|version|notes
-@MOD: id|path|summary|status|recycle
-@SYM: id|name|kind|path|line|signature|status|recycle
-@TSK: id|goal|anchor|status|recycle
-@USR: id|topic|content|status|recycle
-@DEC: id|task|question|options|chosen|recycle
+# Shared-dialect session map for session_open --map-file (SCHEMA lines).
+# Prefer SCHEMA … ; fields=… — not @TAG pipe. Built-in LAW / EDG are merged automatically.
+# Agent mutate / pin map: NODE|EDGE shared dialect (see workflow.*.example.txt, docs/grammar/).
+SCHEMA CFG ; fields=id repo anchor version notes
+SCHEMA MOD ; fields=id path summary status recycle
+SCHEMA SYM ; fields=id name kind path line signature status recycle
+SCHEMA TSK ; fields=id goal anchor status recycle
+SCHEMA USR ; fields=id topic content status recycle
+SCHEMA DEC ; fields=id task question options chosen recycle

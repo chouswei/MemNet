@@ -208,9 +208,24 @@ A **pin** is a short accurate locator atom, usually a Node (or a thin Edge) that
 
 Export / snapshot pin map = **graph of pins** (NODE+EDGE), never a full source copy (MN-REQ-11.13).
 
-### 4.5 Session ops (out of line grammar, named for completeness)
+### 4.5 Session ops and session schema
 
-Session open/load/save/close remain **tool/CLI verbs**; they are not NODE/EDGE records. Seed lines at open may inject law/config **nodes** in the same dialect.
+Session open/load/save/close remain **tool/CLI verbs**. Seed lines at open may inject law/config **nodes** in the shared dialect.
+
+**Session schema** (`session open --map-file`) declares which kinds exist and their **ordered field names** (MN-REQ-02.7). That declaration is now **in the shared dialect**:
+
+```text
+SCHEMA MOD ; fields=id path summary status recycle
+```
+
+| Piece | Rule |
+|-------|------|
+| Keyword | `SCHEMA` (lexer `KW_SCHEMA`) |
+| Kind | Uppercase token (`MOD`, `CMP`, …) — user kinds only; do not redefine fixed `LAW` / `EDG` |
+| `fields=` | Space-separated field names (R1 atom / `BARE_ATOM`); **`id` must be first** |
+| Not | Graph `NODE`/`EDGE`; not mutate ops; not `@TAG: id\|…` pipe |
+
+Legacy pipe TagMap (`@MOD: id|path|…`) remains **accepted on import** for old map files; **emit / examples prefer `SCHEMA`**. Pin map and mutate stay NODE|EDGE — schema lines are registry only.
 
 ---
 
@@ -468,6 +483,7 @@ Re-id (`id=` / `merge=true`) is a mutate: only the lease holder may run it on co
 | Decision | Default |
 |----------|---------|
 | Agent dialect | **Shared dialect only** (Write = display both directions; aka Tier A in code) |
+| Session map | **`SCHEMA KIND ; fields=…`** preferred; legacy `@TAG:` pipe accepted on load |
 | Pipe / dual agent dialect | **Not preferred** — legacy import-once footnote; keep import productions if present |
 | Pin-map sections | **Require** `## Nodes`/`## Pins` + `## Edges` (+ `## Laws` if present) on agent-facing pin map |
 | Fat / prose fields | **Soft lint** (parse OK; lint-reject in harness) |

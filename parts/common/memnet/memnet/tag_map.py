@@ -12,11 +12,119 @@ from memnet.wire import emit_record_line, parse_tag_line, split_payload, join_pa
 
 _ID_RE = re.compile(ID_PATTERN)
 _REL_RE = re.compile(RELATION_PATTERN)
+# Shared dialect: SCHEMA MOD ; fields=id path summary status recycle
+_RE_SCHEMA = re.compile(
+    r"^SCHEMA\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$",
+    re.IGNORECASE,
+)
+_RE_FIELD = re.compile(
+    r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$",
+)
+
+
+def _split_schema_fields_tail(tail: str) -> dict[str, str]:
+    """Parse ``;``-joined ``key=value`` atoms from a SCHEMA line tail."""
+    tail = tail.strip()
+    if not tail:
+        return {}
+    if tail.startswith(";"):
+        tail = tail[1:].strip()
+    out: dict[str, str] = {}
+    if not tail:
+        return out
+    parts: list[str] = []
+    buf: list[str] = []
+    in_str = False
+    i = 0
+    while i < len(tail):
+        ch = tail[i]
+        if ch == '"' and (i == 0 or tail[i - 1] != "\\"):
+            in_str = not in_str
+            buf.append(ch)
+            i += 1
+            continue
+        if ch == ";" and not in_str:
+            parts.append("".join(buf).strip())
+            buf = []
+            i += 1
+            continue
+        buf.append(ch)
+        i += 1
+    parts.append("".join(buf).strip())
+    for part in parts:
+        if not part:
+            continue
+        m = _RE_FIELD.match(part)
+        if not m:
+            raise MemNetError(
+                "invalid_schema",
+                f"SCHEMA field must be key=value got {part!r}",
+            )
+        key, val = m.group(1), m.group(2).strip()
+        if val.startswith('"') and val.endswith('"') and len(val) >= 2:
+            val = val[1:-1]
+        out[key] = val
+    return out
+
+
+def parse_schema_shared_line(line: str) -> tuple[str, list[str]] | None:
+    """Parse shared-dialect SCHEMA line → (kind, ordered field names).
+
+    Returns None if the line is not a SCHEMA declaration.
+    """
+    s = line.strip()
+    m = _RE_SCHEMA.match(s)
+    if not m:
+        return None
+    tag = m.group(1).upper()
+    kv = _split_schema_fields_tail(m.group(2) or "")
+    raw_fields = kv.get("fields", "").strip()
+    if not raw_fields:
+        raise MemNetError("empty_fields", f"SCHEMA {tag} missing fields=")
+    # Space-separated field names (R1 atom; matches MemNet.g4 BARE_ATOM).
+    field_names = [p for p in raw_fields.split() if p]
+    if not field_names:
+        raise MemNetError("empty_fields", f"SCHEMA {tag} has no fields")
+    return tag, field_names
 
 
 def parse_map_line(line: str) -> tuple[str, list[str]]:
-    tag, payload = parse_tag_line(line.strip())
+    """Parse one map line: shared-dialect SCHEMA preferred; legacy @TAG pipe accepted."""
+    s = line.strip()
+    shared = parse_schema_shared_line(s)
+    if shared is not None:
+        return shared
+    tag, payload = parse_tag_line(s)
     return tag, split_payload(payload)
+
+
+def _register_user_tag(
+    user: dict[str, TagDef],
+    tag: str,
+    field_names: list[str],
+    caps: Caps,
+    *,
+    allow_fixed_skip: bool = False,
+) -> None:
+    if tag in RESERVED_TAGS:
+        raise MemNetError("reserved_tag", f"tag {tag} is reserved")
+    if tag in FIXED_TAGS:
+        if allow_fixed_skip:
+            return
+        raise MemNetError("fixed_tag", f"cannot redefine fixed tag {tag}")
+    if tag in user:
+        raise MemNetError("duplicate_tag", f"duplicate tag {tag} in map")
+    if not field_names:
+        raise MemNetError("empty_fields", f"tag {tag} has no fields")
+    if field_names[0] != "id":
+        raise MemNetError("id_first", f"tag {tag} must start with id field")
+    if len(field_names) > caps.max_fields:
+        raise MemNetError(
+            "limit_exceeded",
+            f"fields|{len(field_names)}/{caps.max_fields}",
+        )
+    kind = "edge" if tag == "EDG" else "node"
+    user[tag] = TagDef(tag=tag, fields=field_names, kind=kind)
 
 
 def load_user_map(lines: list[str], caps: Caps | None = None) -> dict[str, TagDef]:
@@ -27,23 +135,7 @@ def load_user_map(lines: list[str], caps: Caps | None = None) -> dict[str, TagDe
         if not line or line.startswith("#"):
             continue
         tag, field_names = parse_map_line(line)
-        if tag in RESERVED_TAGS:
-            raise MemNetError("reserved_tag", f"tag {tag} is reserved")
-        if tag in FIXED_TAGS:
-            raise MemNetError("fixed_tag", f"cannot redefine fixed tag {tag}")
-        if tag in user:
-            raise MemNetError("duplicate_tag", f"duplicate tag {tag} in map")
-        if not field_names:
-            raise MemNetError("empty_fields", f"tag {tag} has no fields")
-        if field_names[0] != "id":
-            raise MemNetError("id_first", f"tag {tag} must start with id field")
-        if len(field_names) > caps.max_fields:
-            raise MemNetError(
-                "limit_exceeded",
-                f"fields|{len(field_names)}/{caps.max_fields}",
-            )
-        kind = "edge" if tag == "EDG" else "node"
-        user[tag] = TagDef(tag=tag, fields=field_names, kind=kind)
+        _register_user_tag(user, tag, field_names, caps)
     if len(user) > caps.max_tags:
         raise MemNetError("limit_exceeded", f"tags|{len(user)}/{caps.max_tags}")
     return user
@@ -64,10 +156,9 @@ def load_persisted_map_from_lines(lines: list[str], caps: Caps | None = None) ->
         if not line or line.startswith("#"):
             continue
         tag, field_names = parse_map_line(line)
-        if tag in FIXED_TAGS:
-            continue
-        kind = "edge" if tag == "EDG" else "node"
-        user[tag] = TagDef(tag=tag, fields=field_names, kind=kind)
+        _register_user_tag(
+            user, tag, field_names, caps, allow_fixed_skip=True
+        )
     return merge_fixed(user)
 
 
@@ -81,11 +172,16 @@ def load_map_from_file(path: str, caps: Caps | None = None) -> TagMap:
     return load_map_from_lines(text.splitlines(), caps)
 
 
+def emit_schema_line(tag: str, fields: list[str]) -> str:
+    """Emit shared-dialect SCHEMA line (preferred map surface)."""
+    return f"SCHEMA {tag} ; fields={' '.join(fields)}"
+
+
 def tag_map_to_lines(tag_map: TagMap) -> list[str]:
     lines: list[str] = []
     for tag in tag_map.tag_names():
         td = tag_map.tags[tag]
-        lines.append(emit_record_line(tag, td.fields))
+        lines.append(emit_schema_line(tag, td.fields))
     return lines
 
 

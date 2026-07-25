@@ -105,21 +105,21 @@ Field notes:
 - `when=` — guard such as `neg_feedback` (required for virtual short).
 - `NET` `role=` — e.g. `reference` for the nodal ground.
 
-### 3.1 Session TagMap (engine schema only — not agent wire)
+### 3.1 Session TagMap (`SCHEMA` — shared dialect)
 
-`session open --map-file` still declares **user-tag columns** in legacy pipe form (same pattern as `schema.coding.example.txt`). That file is **engine TagMap**, not mutate/display dialect. Prefer shared dialect in every agent turn; keep the map file out of warm prompts.
+`session open --map-file` declares **user-kind columns**. Preferred form is shared-dialect **`SCHEMA`** (same spine as NODE/EDGE fields). Legacy `@TAG: id|…` pipe remains accepted on load only.
 
 ```text
-# TagMap for session_open --map-file only (NOT agent mutate / pin map).
-@CMP: id|refdes|value|path|recycle
-@PIN: id|refdes|pin|name|path|recycle
-@NET: id|net|role|path|recycle
-@PRT: id|name|kind|recycle
-@POR: id|name|kind|dir|recycle
-@CLM: id|type|code|domain|when|recycle
-@VAR: id|symbol|of|unit|domain|recycle
-@EQN: id|method|form|code|domain|recycle
-@TSK: id|goal|phase|status|recycle
+# session_open --map-file (SCHEMA preferred; not agent mutate / pin map body)
+SCHEMA CMP ; fields=id refdes value path recycle
+SCHEMA PIN ; fields=id refdes pin name path recycle
+SCHEMA NET ; fields=id net role path recycle
+SCHEMA PRT ; fields=id name kind recycle
+SCHEMA POR ; fields=id name kind dir recycle
+SCHEMA CLM ; fields=id type code domain when recycle
+SCHEMA VAR ; fields=id symbol of unit domain recycle
+SCHEMA EQN ; fields=id method form code domain recycle
+SCHEMA TSK ; fields=id goal phase status recycle
 ```
 
 (`EDG` / engine `LAW` are fixed and merged by the session — do not redefine them here.)
@@ -381,7 +381,7 @@ Same device may appear in both: schematic `ATO_U1` `typedBy` ideal `PRT_IdealOpA
 
 ## 10. Minimal seed (copy-paste sketch)
 
-After opening a session with the TagMap in §3.1 (engine schema only), seed library + task in **shared dialect** (abbreviated; expand pins as in §5):
+After opening a session with the SCHEMA map in §3.1, seed library + task in **shared dialect** (abbreviated; expand pins as in §5):
 
 ```text
 + PRT [PRT_IdealOpAmp] ; name=IdealOpAmp ; kind=partDef ; recycle=persistent

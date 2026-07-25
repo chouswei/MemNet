@@ -60,8 +60,24 @@ class Section:
 
 
 @dataclass
+class SchemaRec:
+    """Session schema declaration (session_open --map-file), not a graph node."""
+
+    kind: str
+    fields: list[Field] = field(default_factory=list)
+    raw: str = ""
+
+    @property
+    def field_names(self) -> list[str]:
+        for f in self.fields:
+            if f.key == "fields" and f.op == "=":
+                return [p for p in f.value.split() if p]
+        return []
+
+
+@dataclass
 class Document:
-    items: list[Section | NodeRec | EdgeRec] = field(default_factory=list)
+    items: list[Section | NodeRec | EdgeRec | SchemaRec] = field(default_factory=list)
 
 
 @dataclass
@@ -111,7 +127,10 @@ _RE_PRESENT_EDGE = re.compile(
     r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
     r"(.*)$"
 )
-
+_RE_SCHEMA = re.compile(
+    r"^SCHEMA\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$",
+    re.IGNORECASE,
+)
 
 
 def _unescape_string(body: str) -> str:
@@ -232,7 +251,7 @@ def _law_fields(first_key: str, rest: str, line_no: int) -> list[Field]:
     return _parse_fields(combined, line_no)
 
 
-def parse_line(line: str, line_no: int = 1) -> Section | NodeRec | EdgeRec | None:
+def parse_line(line: str, line_no: int = 1) -> Section | NodeRec | EdgeRec | SchemaRec | None:
     s = line.strip()
     if not s:
         return None
@@ -242,6 +261,23 @@ def parse_line(line: str, line_no: int = 1) -> Section | NodeRec | EdgeRec | Non
     m = _RE_SECTION.match(s)
     if m:
         return Section(name=m.group(1).strip(), raw=s)
+
+    m = _RE_SCHEMA.match(s)
+    if m:
+        kind, tail = m.groups()
+        fields = _parse_fields(tail or "", line_no)
+        if not any(f.key == "fields" and f.op == "=" for f in fields):
+            raise ParseError(f"SCHEMA {kind} requires fields=", line_no)
+        names = []
+        for f in fields:
+            if f.key == "fields" and f.op == "=":
+                names = [p for p in f.value.split() if p]
+                break
+        if not names:
+            raise ParseError(f"SCHEMA {kind} fields= is empty", line_no)
+        if names[0] != "id":
+            raise ParseError(f"SCHEMA {kind} must start with id field", line_no)
+        return SchemaRec(kind=kind.upper(), fields=fields, raw=s)
 
     m = _RE_DROP.match(s)
     if m:
@@ -395,9 +431,12 @@ def _format_fields(fields: list[Field]) -> str:
     return " ; ".join(bits)
 
 
-def emit_item(item: Section | NodeRec | EdgeRec) -> str:
+def emit_item(item: Section | NodeRec | EdgeRec | SchemaRec) -> str:
     if isinstance(item, Section):
         return f"## {item.name}"
+    if isinstance(item, SchemaRec):
+        fields = _format_fields(item.fields)
+        return f"SCHEMA {item.kind} ; {fields}" if fields else f"SCHEMA {item.kind}"
     if isinstance(item, NodeRec):
         if item.op == Op.LAW:
             body = _format_fields(item.fields)
@@ -440,6 +479,25 @@ def lint(doc: Document) -> list[LintIssue]:
     issues: list[LintIssue] = []
     for it in doc.items:
         if isinstance(it, Section):
+            continue
+        if isinstance(it, SchemaRec):
+            names = it.field_names
+            if not names:
+                issues.append(
+                    LintIssue("error", "schema_fields", f"SCHEMA {it.kind} missing fields=")
+                )
+            elif names[0] != "id":
+                issues.append(
+                    LintIssue(
+                        "error",
+                        "schema_id_first",
+                        f"SCHEMA {it.kind} must start with id",
+                    )
+                )
+            if it.raw.startswith("@"):
+                issues.append(
+                    LintIssue("error", "pipe_dialect", "pipe TagMap on SCHEMA surface")
+                )
             continue
         if isinstance(it, NodeRec):
             if it.op == Op.CREATE and it.id != "NEW":

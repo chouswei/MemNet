@@ -30,6 +30,7 @@ Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives i
 - **Shared dialect only** for agent I/O: **Write = display** means shared NODE | EDGE field shapes for live read and mutate (copy what you see).
 - **Mutate** uses ops: `+` create, `~` update, `-` drop. May use `[NEW]` / leading `NEW` so the engine mints ids.
 - **Live pin map** output is **bare present** (assigned ids, **no** leading `+`/`~`/`-`). Ops are mutate-only.
+- **Session map** (`session open --map-file`): shared-dialect `SCHEMA KIND ; fields=id …` (legacy `@TAG: id|…` still loads).
 - LLM creates: mint with `NEW`. Pin-map ingest (SysML, codebase, PCBA, skills): **stable locators** (`refdes=`, `path=`, `qname=`, ...); reject client `NEW` for those pins. PCBA schematics use Atopile **`.ato`**.
 
 Formal shapes / validation: `docs/grammar/` (`MemNet.g4`, golden fixtures, `tools/tier_a.py`) — **keep** that precision; do not invent a thinner dialect. `docs/LLM-GUIDE.md` remains operational (still largely pipe-centric) until migrated.

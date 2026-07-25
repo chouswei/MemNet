@@ -62,8 +62,8 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
 def test_examples_map():
     result = runner.invoke(app, ["examples", "map"])
     assert result.exit_code == 0
-    assert "@EDG:" in result.stdout
-    assert "@CFG:" in result.stdout
+    assert "SCHEMA EDG ;" in result.stdout
+    assert "SCHEMA CFG ;" in result.stdout
 
 
 def test_no_session_error(memnet_temp):

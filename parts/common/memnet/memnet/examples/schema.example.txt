@@ -1,11 +1,11 @@
-# TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
+# Shared-dialect session map for session_open --map-file (SCHEMA lines).
 # Used by CLI quick start, tests (schema_file fixture), and memnet examples map.
-# Built-in @LAW / @EDG are merged automatically — do not redefine them here.
-@CFG: id|world|economy|identity|core_ability|crisis
-@SYS: id|round|time|deficit|revenue|chaos|exchange_rate
-@PLR: id|identity|wealth|cashflow|monopoly|reputation|inventory
-@BIZ: id|name|type|location|profit|cashflow|employees|recycle
-@NPC: id|name|traits|corruption|craft|funding_gap|status|recycle
-@TSK: id|goal|deadline|status|recycle
-@TEC: id|name|domain|status|effect
-@PRD: id|name|type|cost|price|status
+# Built-in LAW / EDG are merged automatically — do not redefine them here.
+SCHEMA CFG ; fields=id world economy identity core_ability crisis
+SCHEMA SYS ; fields=id round time deficit revenue chaos exchange_rate
+SCHEMA PLR ; fields=id identity wealth cashflow monopoly reputation inventory
+SCHEMA BIZ ; fields=id name type location profit cashflow employees recycle
+SCHEMA NPC ; fields=id name traits corruption craft funding_gap status recycle
+SCHEMA TSK ; fields=id goal deadline status recycle
+SCHEMA TEC ; fields=id name domain status effect
+SCHEMA PRD ; fields=id name type cost price status
