@@ -12,14 +12,14 @@ metadata:
   pattern: pipeline
   version: "1.8"
   domain: memnet
-  product: "0.3.4"
+  product: "0.3.5"
 ---
 
 # MemNet project reference
 
 Repo skill for agents using MemNet in **this** repository. Doctrine SSOT lives in docs below — do not duplicate or invent features here.
 
-**Product version:** `project.toml` / PyPI **`memnet-llm==0.3.4`** (CLI command remains `memnet`).
+**Product version:** `project.toml` / PyPI **`memnet-llm==0.3.5`** (CLI command remains `memnet`).
 
 ## Mission
 
@@ -116,7 +116,7 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 RSV [R7] ; llm_id=coder_a ; anchor=ATO_R1 ; depth=2 ; until=2026-07-24T08:15:00Z
 ```
 
-Shared dialect only — **never** `@RSV:` pipe. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.4.
+Shared dialect only — **never** `@RSV:` pipe. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.5.
 
 **Lookup before write** (same session):
 
@@ -131,7 +131,7 @@ Shared dialect only — **never** `@RSV:` pipe. SSOT: `docs/grammar/memnet-neigh
 
 (After create, copy the minted `CLM…` id from ack/re-warm, then `+ NEW [CLM…] --(about)--> [ATO_R1]`. Prefer create → assigned ids → edge. `add` fails if the id already exists — look up first.)
 
-**0.3.4:** Path A vs B remains valid. PinMapIngest_* may still be stubs; agents may seed pins via `session_open` `seed_lines` or `add` with explicit locator ids. Prefer ingest when available. SSOT: `docs/grammar/memnet-grammar-design.md` §4.2.1.
+**0.3.5:** Path A vs B remains valid. PinMapIngest_* may still be stubs; agents may seed pins via `session_open` `seed_lines` or `add` with explicit locator ids. Prefer ingest when available. SSOT: `docs/grammar/memnet-grammar-design.md` §4.2.1.
 
 ## Pre-write checklist
 
