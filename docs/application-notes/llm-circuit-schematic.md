@@ -78,11 +78,39 @@ flowchart TB
 
 ---
 
-## 3. Suggested session map (domain tags)
+## 3. Domain kinds (shared dialect)
 
-Fixed tags (`EDG`, engine `LAW`) are always present. Add analysis kinds via `session open --map-file` (illustrative):
+**Agent I/O is shared dialect only** (Write = display): `KIND [id] ; key=value…` and `[from] --(rel)--> [to]`. Do **not** use `@TAG: id|field|…` pipe as the agent-facing surface (store / legacy only).
+
+Illustrative kinds and fields for this note:
+
+| Kind | Role | Typical fields |
+|------|------|----------------|
+| `CMP` | Package / instance | `refdes=`, `value=`, `path=`, `recycle=` |
+| `PIN` | Package terminal | `refdes=`, `pin=`, `name=`, `path=`, `recycle=` |
+| `NET` | Electrical node | `net=`, `role=`, `path=`, `recycle=` |
+| `PRT` | Ideal / library part | `name=`, `kind=`, `recycle=` |
+| `POR` | Logical port on ideal type | `name=`, `kind=`, `dir=`, `recycle=` |
+| `CLM` | Assumption, fact, result | `type=`, `code=`, `domain=`, `when=`, `view=`, `recycle=` |
+| `VAR` | Unknown \(V_k(s)\) | `symbol=`, `of=` / `voltage_of` edge, `unit=`, `domain=`, `recycle=` |
+| `EQN` | KCL / constraint | `method=`, `form=`, `code=`, `domain=`, `recycle=` |
+| `TSK` | Analysis campaign | `goal=`, `phase=`, `status=`, `recycle=` |
+
+Edges use named relations (`owns`, `connects_to`, `typedBy`, `hasPort`, `applies_to`, `kcl_at`, …) — never embedded id lists on a node.
+
+Field notes:
+
+- `domain=` on `CLM` / `VAR` / `EQN` — default **`s`** for linear analysis (unifying frame; see §4.0).
+- Optional `view=dc` / `view=jw` / `view=t` on a **derived** result `CLM` — do not fork a second full equation set for the same linear network.
+- `when=` — guard such as `neg_feedback` (required for virtual short).
+- `NET` `role=` — e.g. `reference` for the nodal ground.
+
+### 3.1 Session TagMap (engine schema only — not agent wire)
+
+`session open --map-file` still declares **user-tag columns** in legacy pipe form (same pattern as `schema.coding.example.txt`). That file is **engine TagMap**, not mutate/display dialect. Prefer shared dialect in every agent turn; keep the map file out of warm prompts.
 
 ```text
+# TagMap for session_open --map-file only (NOT agent mutate / pin map).
 @CMP: id|refdes|value|path|recycle
 @PIN: id|refdes|pin|name|path|recycle
 @NET: id|net|role|path|recycle
@@ -92,17 +120,9 @@ Fixed tags (`EDG`, engine `LAW`) are always present. Add analysis kinds via `ses
 @VAR: id|symbol|of|unit|domain|recycle
 @EQN: id|method|form|code|domain|recycle
 @TSK: id|goal|phase|status|recycle
-@EDG: id|from|rel|to|note|recycle
 ```
 
-Field notes:
-
-- `CLM.domain` / `VAR.domain` / `EQN.domain` — default **`s`** for linear analysis atoms (unifying frame; see §4.0).
-- Optional result tags: `view=dc`, `view=jw`, `view=t` on a **derived** `CLM` that evaluates or inverts an s-domain result — do not fork a second full equation set for the same linear network.
-- `CLM.when` — guard such as `neg_feedback` (required for virtual short).
-- `NET.role` — e.g. `reference` for the nodal ground.
-
-Shared-dialect equivalents use the same kinds and `key=value` fields.
+(`EDG` / engine `LAW` are fixed and merged by the session — do not redefine them here.)
 
 ---
 
