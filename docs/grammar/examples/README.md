@@ -35,5 +35,6 @@ Harness / package names keep `tier_a` for continuity; fixtures teach **legal and
 | 16_quoted_path_good | parse-ok | STRING escapes |
 | 17_pin_map_pcba_ato_good | parse-ok | PCBA / `.ato` locators |
 | 18_mutate_annotation_on_pcba_pin_good | parse-ok | Annotate ingest pins |
+| 19_schema_map_good | parse-ok | `SCHEMA` session map (not NODE/EDGE) |
 
 focus / caps are **not** in body fixtures (MCP/CLI envelope only).

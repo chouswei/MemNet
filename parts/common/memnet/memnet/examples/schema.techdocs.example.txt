@@ -1,10 +1,10 @@
-# TagMap field map for session_open --map-file (NOT agent mutate / Tier A).
-# Pair with workflow.rto-remote.example.txt (machine SCPI seed; legacy @TAG pipe).
-@CFG: id|corpus|anchor|version|notes
-@ART: id|title|source|kind|status|recycle
-@SEC: id|art|heading|numbering|parent|order|status|recycle
-@CLM: id|sec|type|code|status|recycle
-@CMD: id|sec|scpi|role|params_code|status|recycle
-@ENT: id|name|kind|code|recycle
-@TSK: id|goal|anchor|status|recycle
-@USR: id|key|value|recycle
+# Shared-dialect session map for session_open --map-file (SCHEMA lines).
+# Pair with workflow.rto-remote.example.txt (machine SCPI seed; legacy @TAG pipe still accepted on mutate).
+SCHEMA CFG ; fields=id corpus anchor version notes
+SCHEMA ART ; fields=id title source kind status recycle
+SCHEMA SEC ; fields=id art heading numbering parent order status recycle
+SCHEMA CLM ; fields=id sec type code status recycle
+SCHEMA CMD ; fields=id sec scpi role params_code status recycle
+SCHEMA ENT ; fields=id name kind code recycle
+SCHEMA TSK ; fields=id goal anchor status recycle
+SCHEMA USR ; fields=id key value recycle

@@ -20,11 +20,12 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 | Topic | Assessment |
 |-------|------------|
 | Left recursion | None. Fine for ANTLR4. |
-| Ambiguity (parser) | Line forms distinguishable by first tokens (`+ KIND [id]`, `+ Eid [a] --(rel)--> [b]`, `~ Eid`, `- Eid`, `LAW…`, bare present). |
+| Ambiguity (parser) | Line forms distinguishable by first tokens (`+ KIND [id]`, `+ Eid [a] --(rel)--> [b]`, `~ Eid`, `- Eid`, `LAW…`, `SCHEMA KIND`, bare present). |
 | Ambiguity (values) | **R1 locked atoms-only** — `;` joins fields only. List/map deferred to R2. |
-| Lexer vs parser | One `IDENT` + `KW_NEW` + visitor/twin checks. |
-| Keywords | Ops, `##` heads, mint **`KW_NEW`** (`NEW`). Kind tokens remain data. |
+| Lexer vs parser | One `IDENT` + `KW_NEW` + `KW_SCHEMA` + visitor/twin checks. |
+| Keywords | Ops, `##` heads, mint **`KW_NEW`** (`NEW`), schema **`KW_SCHEMA`**. Kind tokens remain data. |
 | `lawPin` | **`IDENT field (SEMI field)*`** — first field has **no** leading `;` (matches pin-map LAW lines). |
+| `schemaDecl` | **`KW_SCHEMA IDENT (SEMI field)*`** — `fields=` space-separated names; `id` first. Session map only. |
 | Edge ids | Pin map (bare present): `E77 [from] --(rel)--> [to]`. Create: `+ NEW [from] --(rel)--> [to]` or omit eid. |
 | `key=value` | `IDENT ASSIGN value`. `+=` / `-=` longer match before `=`. |
 | Arrows | `--(` + rel + `)-->` unambiguous. |

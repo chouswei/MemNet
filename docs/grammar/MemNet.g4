@@ -34,6 +34,14 @@ line
     | presentNode NEWLINE     // live pin map (MemNet->LLM): bare present, no mutate op
     | presentEdge NEWLINE
     | lawPin NEWLINE          // warm-prepend invariants; still a Node
+    | schemaDecl NEWLINE      // session map / TagMap (session_open --map-file)
+    ;
+
+// Session schema: which kinds exist and ordered field names (MN-REQ-02.7).
+// Not a graph NODE/EDGE — registry declaration for session_open --map-file.
+// Example: SCHEMA MOD ; fields=id path summary status recycle
+schemaDecl
+    : KW_SCHEMA IDENT (SEMI field)*
     ;
 
 // Create node: id slot KW_NEW (mint) when LLM lacks a ground id.
@@ -129,6 +137,8 @@ ARROW_R      : ')-->' ;
 
 // Mint token for create (must precede IDENT so 'NEW' is not absorbed as IDENT).
 KW_NEW       : 'NEW' ;
+// Session schema keyword (must precede IDENT).
+KW_SCHEMA    : 'SCHEMA' ;
 
 // Quoted atoms; \\ \" \n \r \t escapes (paths with spaces / backslashes).
 STRING       : '"' ( ESC_SEQ | ~["\\\r\n] )* '"' ;

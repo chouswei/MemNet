@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-07-25
+
+### Added
+- **Shared-dialect `SCHEMA` for session maps** — `session open --map-file` prefers `SCHEMA KIND ; fields=id …` (`MemNet.g4` `schemaDecl` / `KW_SCHEMA`); legacy `@TAG: id|…` pipe still accepted on load; `tag_map_to_lines` emits SCHEMA; examples under `schema.*.example.txt` migrated.
+
 ## [0.3.4] — 2026-07-25
 
 ### Changed

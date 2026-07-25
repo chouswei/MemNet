@@ -64,7 +64,8 @@ Tier A sketch:
   TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
   E77 [N03] --(helps)--> [T42] ; recycle=persistent
 
-TagMap maps (schema.*.example.txt) are pipe field defs for session_open — not agent dialect.
+TagMap maps (schema.*.example.txt) use shared-dialect SCHEMA lines for session_open.
+Legacy @TAG: id|field pipe maps remain accepted on load. Not agent mutate dialect.
 MCP LawSeedHelper defaults to Tier A; pipe only when seed_lines are @TAG.
 See: docs/grammar/, examples/README.md, README.md, memnet guide --loose
 """
@@ -82,12 +83,12 @@ def agent_guide_text() -> str:
 
 def examples_map_text() -> str:
     lines = [
-        "# TagMap field maps for session_open --map-file (pipe @TAG: fields).",
-        "# Not agent mutate — Tier A lives in workflow.*.example.txt and docs/grammar/.",
+        "# Session maps for session_open --map-file (SCHEMA preferred; @TAG pipe accepted).",
+        "# Not agent mutate — NODE|EDGE lives in workflow.*.example.txt and docs/grammar/.",
         "# Fixed tags (always present):",
     ]
     for tag, td in FIXED_TAGS.items():
-        lines.append(f"@{tag}: {'|'.join(td.fields)}")
+        lines.append(f"SCHEMA {tag} ; fields={' '.join(td.fields)}")
     lines.append("")
     lines.append("# Reference user tags (schema.example.txt)")
     schema = examples_dir() / "schema.example.txt"
