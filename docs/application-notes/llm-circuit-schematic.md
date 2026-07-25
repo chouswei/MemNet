@@ -381,7 +381,7 @@ Same device may appear in both: schematic `ATO_U1` `typedBy` ideal `PRT_IdealOpA
 
 ## 10. Minimal seed (copy-paste sketch)
 
-After opening a session with the map in §3, seed library + task (abbreviated; expand pins as in §5):
+After opening a session with the TagMap in §3.1 (engine schema only), seed library + task in **shared dialect** (abbreviated; expand pins as in §5):
 
 ```text
 + PRT [PRT_IdealOpAmp] ; name=IdealOpAmp ; kind=partDef ; recycle=persistent
