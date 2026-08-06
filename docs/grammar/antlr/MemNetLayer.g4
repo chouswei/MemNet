@@ -23,33 +23,39 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
 //    name: {…} (COLON = name-to-bag only; ASSIGN = all scalars/attrs).
-//    MUSTNOT: direction:in (use direction=in); ports=x={…} (use x: {…}). Discipline
-//    (not a domain-field allow-list): {…} = record of attrs; scalar = for
-//    singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT
-//    bags on dialect keywords law/pseudo/recycle/role/view/layer.
+//    MUSTNOT: direc:in / direction:in (use direc=in); ports=x={…} (use x: {…}).
+//    direc= ≡ direction= (prefer direc=). Discipline (not a domain-field
+//    allow-list): {…} = record of attrs; scalar = for singles; flat first;
+//    nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect
+//    keywords law/pseudo/recycle/role/view/layer.
 //    OK: meta={units={x=m,y=s}}. Demote bare name{...} and name(...).
-// 5. COMMA dual role: between port entries vs between attrs inside {…} —
+// 5. Quantity alias: ALIAS_REF = '@' IDENT as attrValue only (V=@va).
+//    Law keeps '@' in maths (opaque inside LAW_SEG): $@va-@vb=@ia*R$.
+//    Soft-validate: law @idents ⊆ bag @aliases ∪ params ∪ port.qty.
+// 6. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
-// 6. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
+// 7. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
 //    LBRACE) after IDENT to pick portList; bare LBRACE picks recordBag;
 //    single-atom values use the final atom alt.
-// 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
+// 8. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
-// 8. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
+// 9. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
-// 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT (bind); plain IDENT
+// 10. EDGE endpoints: [Node.port] via IDENT DOT IDENT (bind); plain IDENT
 //    (relation / NEW / rare first-class PORT). Soft-validate same grain both
 //    ends. Reject mixed; reject from=/to= on EDGE.
-// 10. Dialect stays domain-generic; electronics V/I are instance attr keys only.
-// 11. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
+// 11. Dialect stays domain-generic; electronics V/I are instance attr keys only.
+// 12. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
-//     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
-// 12. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
+//     (() & * ^ ! ? ` …) held; '@' used for ALIAS_REF (bag) + opaque in LAW_SEG.
+// 13. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
 //     {…} = brace-group / record (ports primary; other keys by discipline);
 //     max nesting depth = 2 — demote braced --{label}-->.
 //     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
-// 13. Omit recycle= on teachable wire unless non-default (session/engine
+// 14. Omit recycle= on teachable wire unless non-default (session/engine
 //     default typically persistent — default recycle= wastes tokens).
+// 15. LAW_SEG is opaque $…$: '@', '\\', '=', '*', LaTeX macros all OK inside;
+//     only '$', ';', newline close/forbid the unquoted segment.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.
@@ -198,6 +204,7 @@ attr
 attrValue
     : NUMBER
     | IDENT
+    | ALIAS_REF
     | LAW_SEG
     | STRING
     | BARE_ATOM
@@ -220,6 +227,7 @@ flatAttr
 flatAttrValue
     : NUMBER
     | IDENT
+    | ALIAS_REF
     | LAW_SEG
     | STRING
     | BARE_ATOM
@@ -262,14 +270,19 @@ ARROW_DASH   : '--' ;
 
 KW_NEW       : 'NEW' ;
 
-// Inline LaTeX math segment: $…$ (opaque; may hold ',', '=', ':', spaces, Greek macros)
-// Unquoted form MUST NOT contain '$', ';', or newline. Nested '$' → use STRING field.
+// Quantity law-symbol alias as bag attr value only: V=@va (not free text).
+ALIAS_REF    : '@' [A-Za-z_][A-Za-z0-9_]* ;
+
+// Inline LaTeX math segment: $…$ (opaque). May hold '@', '=', '*', '\\',
+// ',', ':', spaces, LaTeX macros (\times, \beta, …). Unquoted form MUST NOT
+// contain '$', ';', or newline. Nested '$' → use STRING field.
 LAW_SEG      : '$' (~[$\r\n;])* '$' ;
 
 STRING       : '"' ( ESC_SEQ | ~["\\\r\n] )* '"' ;
 fragment ESC_SEQ : '\\' [\\"nrt] ;
 
-NUMBER       : [0-9]+ ('.' [0-9]+)? ;
+// Optional leading '-' for bag attrs (I=-0.101). MINUS_EQ '+='/'-=' stay longer-match.
+NUMBER       : '-'? [0-9]+ ('.' [0-9]+)? ;
 
 IDENT        : [A-Za-z_][A-Za-z0-9_]* ;
 
