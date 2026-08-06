@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.8"
+  version: "1.9"
   domain: memnet
   product: "0.3.5"
 ---
@@ -54,6 +54,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI 
 | Doctrine / quick start | `README.md` |
 | Shared-dialect grammar design | `docs/grammar/` |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
+| Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/` |
@@ -83,7 +84,7 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 ## MUSTNOT
 
 - Invent ids when a pin map already shows them — copy assigned ids.
-- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; shared dialect for LLM I/O). Includes `@RSV:` — use `RSV [rid] ; llm_id=…` present lines instead.
+- Feed `@TAG` pipe as the agent-facing dialect (store/legacy only; shared dialect for LLM I/O). Includes `@RSV:` / `@SES:` / `@ACL:` — use bare present `RSV` / `SES` / `ACL` lines instead (design).
 - Recommend TOON/TRON for handoffs — shared dialect or plain Markdown.
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Route agents to personal Cursor / user-pack skills from this repo.
@@ -110,13 +111,7 @@ Wire shapes: shared dialect for agent I/O (`docs/grammar/`). Legacy `@TAG` pipe 
 
 **Re-id (wrong ground id):** `~ [OldId] ; id=NewId` on `update`. If `NewId` exists → `id_occupied` unless `; merge=true` (fold mistaken mint into locator id; retarget edges; drop OldId). Self `id=OldId` is a no-op. Not the MCP tool rename `query_warm`→`pin_map`.
 
-**Multi-agent (design):** neighbourhood **reserve** with holder **`llm_id`** + **TTL**; MCP `reserve` / `extend` / `release` (next minor). Pin map may show bare present:
-
-```text
-RSV [R7] ; llm_id=coder_a ; anchor=ATO_R1 ; depth=2 ; until=2026-07-24T08:15:00Z
-```
-
-Shared dialect only — **never** `@RSV:` pipe. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.5.
+**Multi-agent / session access (design):** limit the session first — ACL modes (`private` / `shared` / `open`), roles (`owner` / `writer` / `reader`), engine-minted **`session_token`** (not obscurity of `session_id`). Then neighbourhood **reserve** (`llm_id` + TTL) for coop inside an authorised session. Pin map may show `SES` / `ACL` / `RSV` present lines. SSOT: `docs/grammar/memnet-security-multi-agent.md` + `docs/grammar/memnet-neighbourhood-reserve.md`. Not implemented in 0.3.5.
 
 **Lookup before write** (same session):
 

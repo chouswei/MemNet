@@ -128,7 +128,7 @@ Ground **id** is the Write=display copy key (stable locator doctrine). `~` field
 
 Today: per-session mutex serialises ops (no torn writes), but there is **no** neighbourhood lease. Two agents sharing one `session_id` can still **logically** race. Goldfish docs assume one writer loop; `--agent` is attribution only.
 
-**Recommended default (next minor):** **neighbourhood reserve** with holder **`llm_id`** + **TTL** (`ttl_s` / `until`). Pin map shows leases as shared-dialect present lines (`RSV [rid] ; llm_id=… ; …`) — **never** `@RSV:…|…` pipe. MCP `reserve` / `extend` / `release`. Optimistic `rev` optional secondary. SSOT: `docs/grammar/memnet-neighbourhood-reserve.md` and §9a. Re-id / merge under the same holder rules (§4.2.0).
+**Recommended default (next minor):** **session ACL** (modes + roles + `session_token`) then **neighbourhood reserve** with holder **`llm_id`** + **TTL**. Pin map may show `SES` / `ACL` / `RSV` present lines — **never** `@TAG|pipe` for these. MCP `session_acl` / grant / revoke + `reserve` / `extend` / `release`. Optimistic `rev` optional secondary. SSOT: `docs/grammar/memnet-security-multi-agent.md`, `docs/grammar/memnet-neighbourhood-reserve.md`, and §9a. Re-id / merge under the same holder rules (§4.2.0).
 
 ### 4.2.1 Id mint rule (`NEW`) — locked
 
@@ -526,6 +526,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 | `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin — **keep** |
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Multi-agent neighbourhood reserve design (shared dialect) |
+| `docs/grammar/memnet-security-multi-agent.md` | Session ACL / tokens + security + multi-agent coop (shared dialect) |
 | `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |
 | `tests/grammar/test_tier_a_golden.py` | Golden harness — **keep** |
 | `refs/novel-cut-grammar/specs/md_triple_grammar.md` | Write=display lineage |

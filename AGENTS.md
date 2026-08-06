@@ -17,6 +17,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | SysML models | `sysml-models/` |
 | Shared-dialect grammar design | `docs/grammar/` |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
+| Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
 | Domain worked examples | `docs/application-notes/` (incl. `llm-circuit-schematic.md` for PCBA / s-domain) |
 | Core library | `parts/common/memnet/` |

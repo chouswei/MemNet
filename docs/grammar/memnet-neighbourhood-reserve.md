@@ -1,8 +1,9 @@
 # Neighbourhood reservation (design)
 
-**Status:** design locked for next minor (not implemented in 0.3.2).  
-**Primary concurrency fix** for multi-agent same-session confusion.  
+**Status:** design locked for next minor (not implemented in 0.3.5).  
+**Primary concurrency fix** for multi-agent same-session confusion **inside an already-authorised session**.  
 **Related:** re-id §4.2.0 in `memnet-grammar-design.md`; optimistic `rev` is secondary only.  
+**Security + session ACL:** [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) — first-class session access (`private` / `shared` / `open`, roles, `session_token`); this reserve design is the coop layer **after** that gate.  
 **Dialect:** agent-facing I/O is **shared dialect only** (Write = display). Do **not** invent `@RSV:` or other `@TAG|pipe` forms for this feature.
 
 ## Problem
@@ -149,11 +150,12 @@ Re-id shape (shared dialect, already in engine):
 
 - Force release  
 - Cross-session reserves  
-- Auth beyond string `llm_id`  
 - `+ RSV` / `- RSV` graph mutate  
 - Shipping optimistic `rev` in the same drop  
-- Any new agent-facing `@TAG|pipe` feature
+- Any new agent-facing `@TAG|pipe` feature  
+
+Session ACL, roles, and `session_token` are specified in [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) (not deferred as vague “auth later” here).
 
 ## Implementation note
 
-Not a thin stub. Track for next minor; do not ship half-enforced reserve.
+Not a thin stub. Track for next minor; do not ship half-enforced reserve (or ACL display without gates).
