@@ -81,8 +81,8 @@ Eid [PORT_A] --(connects)--> [PORT_B] ; carries=token
 | Shape | Form |
 |-------|------|
 | NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
-| EDGE (pin map / bare) | `Eid [from] --(connection)--> [to] ; key=value ; …` |
-| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [from] --(connection)--> [to] ; …` |
+| EDGE (pin map / bare) | `Eid [from] --(kind)--> [to] ; key=value ; …` (`kind` = connection kind, e.g. `connects`) |
+| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [from] --(kind)--> [to] ; …` |
 | Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
 | Drop | `- Eid` |
 
