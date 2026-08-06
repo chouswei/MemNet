@@ -1,9 +1,9 @@
 # Security and multi-agent cooperation (design)
 
-**Status:** design for next minor / follow-ons (not implemented in 0.3.5).  
+**Status:** design for next minor / follow-ons; **partial MVP in 0.3.6** (localhost bind default, remote opt-in, frame cap — not session token/ACL).  
 **Builds on:** [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) (coop leases), re-id §4.2.0 in [`memnet-grammar-design.md`](memnet-grammar-design.md).  
 **Dialect:** agent-facing I/O is **shared dialect only** (Write = display). No new `@TAG|pipe` surfaces. ASCII field values.  
-**Product context:** ~0.3.5; primary read `pin_map`; transport **in-process first**, TCP `memnet serve` (default `127.0.0.1:18765`) as fallback.
+**Product context:** ~0.3.6; primary read `pin_map`; transport **in-process first**, TCP `memnet serve` (default `127.0.0.1:18765`) as fallback.
 
 ## How the pieces fit
 
@@ -213,7 +213,8 @@ memnet session revoke --session S --token TOKEN --llm-id coder_a --member review
 |------|-----------|--------|
 | **MVP** | `session_token` (session capability) + ACL membership of ASCII **`llm_id`** | First-class session limit |
 | **MVP** | Non-empty `llm_id` on reserve / reserved mutate | Lease key inside authorised session |
-| **MVP (TCP)** | Default bind **`127.0.0.1`**; `0.0.0.0` = LAN trust | `config.serve_host()` |
+| **MVP (TCP)** | Default bind **`127.0.0.1`**; non-loopback (`0.0.0.0`, LAN IP) needs **`MEMNET_SERVE_ALLOW_REMOTE=1`** | `config.serve_host()` + `validate_serve_bind_host()` (**0.3.6**) |
+| **MVP (TCP)** | Length-prefixed frame cap (default **4 MiB**); oversized frames get `@ERR: frame_too_large` | `MEMNET_SERVE_MAX_FRAME_BYTES` (**0.3.6**) |
 | Later | Host **serve token** (`MEMNET_SERVE_TOKEN`) | Casual LAN gate before session layer |
 | Later | Per-agent bearer / HMAC proving `llm_id` | Stops token-sharing impersonation |
 | Out of scope (v1) | OAuth / mTLS / OS user mapping | Local engineer tooling |

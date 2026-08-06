@@ -12,7 +12,9 @@ which handles inline vs TCP routing, probe, and error surfacing.
 from __future__ import annotations
 
 import io
+import ipaddress
 import json
+import logging
 import os
 import socket
 import socketserver
@@ -20,7 +22,55 @@ import struct
 import sys
 from typing import Any
 
-from memnet.config import serve_host, serve_port
+from memnet.config import (
+    serve_allow_remote,
+    serve_host,
+    serve_max_frame_bytes,
+    serve_port,
+)
+
+_LOG = logging.getLogger(__name__)
+
+
+class ServeBindError(RuntimeError):
+    """Non-loopback bind refused without MEMNET_SERVE_ALLOW_REMOTE."""
+
+
+def is_loopback_bind_host(host: str) -> bool:
+    """Return True when host is a loopback literal (127.x, ::1, localhost)."""
+    h = host.strip().lower()
+    if h == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(h).is_loopback
+    except ValueError:
+        return False
+
+
+def validate_serve_bind_host(host: str) -> None:
+    """Refuse non-loopback binds unless MEMNET_SERVE_ALLOW_REMOTE is set."""
+    if is_loopback_bind_host(host):
+        return
+    if serve_allow_remote():
+        sys.stderr.write(
+            f"WARNING: memnet serve binding to non-loopback {host!r} "
+            f"(MEMNET_SERVE_ALLOW_REMOTE=1). "
+            "No session token or ACL yet — treat as LAN-trust exposure.\n"
+        )
+        sys.stderr.flush()
+        return
+    raise ServeBindError(
+        f"refusing non-loopback bind {host!r}: set MEMNET_SERVE_ALLOW_REMOTE=1 "
+        "to expose memnet serve beyond localhost (no session token/ACL yet)"
+    )
+
+
+def _protocol_envelope(code: str, detail: str) -> dict[str, Any]:
+    return {
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": f"@ERR: {code}|{detail}\n",
+    }
 
 
 def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
@@ -65,15 +115,48 @@ class _Handler(socketserver.BaseRequestHandler):
             if not raw_len:
                 return
             (length,) = struct.unpack(">I", raw_len)
+            max_frame = serve_max_frame_bytes()
+            if length > max_frame:
+                self._send_envelope(
+                    _protocol_envelope(
+                        "frame_too_large",
+                        f"request frame {length} bytes exceeds cap {max_frame}",
+                    )
+                )
+                return
             body = self._read_exact(length)
             if body is None:
                 return
-            payload = json.loads(body.decode("utf-8"))
+            try:
+                payload = json.loads(body.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                self._send_envelope(_protocol_envelope("bad_frame", str(exc)))
+                return
+            if not isinstance(payload, dict):
+                self._send_envelope(_protocol_envelope("bad_request", "payload must be a JSON object"))
+                return
             response = _handle_request(payload)
-            data = json.dumps(response).encode("utf-8")
-            self.request.sendall(struct.pack(">I", len(data)) + data)
-        except Exception:
-            return
+            self._send_envelope(response)
+        except Exception as exc:
+            _LOG.exception("memnet serve handler error")
+            try:
+                self._send_envelope(
+                    _protocol_envelope("serve_internal", f"{type(exc).__name__}: {exc}")
+                )
+            except OSError:
+                pass
+
+    def _send_envelope(self, response: dict[str, Any]) -> None:
+        data = json.dumps(response).encode("utf-8")
+        max_frame = serve_max_frame_bytes()
+        if len(data) > max_frame:
+            data = json.dumps(
+                _protocol_envelope(
+                    "response_too_large",
+                    f"response {len(data)} bytes exceeds cap {max_frame}",
+                )
+            ).encode("utf-8")
+        self.request.sendall(struct.pack(">I", len(data)) + data)
 
     def _read_exact(self, n: int) -> bytes | None:
         chunks: list[bytes] = []
@@ -95,6 +178,7 @@ class _Server(socketserver.ThreadingTCPServer):
 def run_serve(host: str | None = None, port: int | None = None) -> None:
     host = host or serve_host()
     port = port or serve_port()
+    validate_serve_bind_host(host)
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     with _Server((host, port), _Handler) as server:
         server.serve_forever()
@@ -113,11 +197,21 @@ def send_command(
     if stdin is not None:
         payload_obj["stdin"] = stdin
     payload = json.dumps(payload_obj).encode("utf-8")
+    max_frame = serve_max_frame_bytes()
+    if len(payload) + 4 > max_frame:
+        return _protocol_envelope(
+            "frame_too_large",
+            f"request payload {len(payload)} bytes exceeds cap {max_frame}",
+        )
     frame = struct.pack(">I", len(payload)) + payload
     with socket.create_connection((host, port), timeout=30.0) as sock:
         sock.sendall(frame)
         raw_len = _recv_exact(sock, 4)
         (length,) = struct.unpack(">I", raw_len)
+        if length > max_frame:
+            raise ConnectionError(
+                f"response frame {length} bytes exceeds cap {max_frame}"
+            )
         body = _recv_exact(sock, length)
     return json.loads(body.decode("utf-8"))
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] — 2026-08-06
+
+### Added
+- **Serve hardening MVP** — TCP length-prefixed frames capped (default 4 MiB; `MEMNET_SERVE_MAX_FRAME_BYTES`); oversized requests return `@ERR: frame_too_large` without unbounded allocation.
+- **Non-loopback bind gate** — `memnet serve` refuses `0.0.0.0` and other non-loopback hosts unless `MEMNET_SERVE_ALLOW_REMOTE=1` (warns when enabled). Escape hatch for existing LAN binds (e.g. `10.0.0.10`).
+- **Serve protocol errors** — malformed JSON and handler failures return framed JSON envelopes instead of silent disconnects.
+
+### Changed
+- **docs/grammar/memnet-security-multi-agent.md** — notes partial MVP (bind + frame cap); session token/ACL still design-only.
+
 ## [0.3.5] — 2026-07-25
 
 ### Added

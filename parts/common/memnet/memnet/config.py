@@ -55,12 +55,24 @@ class Caps:
         self.lock_timeout_ms = _env_int("MEMNET_LOCK_TIMEOUT_MS", 2000)
 
 
+DEFAULT_SERVE_MAX_FRAME_BYTES = 4 * 1024 * 1024  # 4 MiB
+
+
 def serve_host() -> str:
     return os.environ.get("MEMNET_SERVE_HOST", "127.0.0.1")
 
 
 def serve_port() -> int:
     return _env_int("MEMNET_SERVE_PORT", 18765)
+
+
+def serve_max_frame_bytes() -> int:
+    return _env_int("MEMNET_SERVE_MAX_FRAME_BYTES", DEFAULT_SERVE_MAX_FRAME_BYTES)
+
+
+def serve_allow_remote() -> bool:
+    raw = os.environ.get("MEMNET_SERVE_ALLOW_REMOTE", "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 def examples_dir() -> Path:

@@ -1,3 +1,3 @@
 """MemNet — a tiny CLI knowledge graph for LLM context."""
 
-__version__ = "0.3.5"
+__version__ = "0.3.6"
