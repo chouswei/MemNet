@@ -17,7 +17,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | SysML models | `sysml-models/` |
 | Shared-dialect grammar design | `docs/grammar/` |
 | Field formulas (generic EDGE relations) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) |
-| Multi-layer (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; law on node; nesting = view budget) |
+| Multi-layer (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; law on node; EDGE = connection; nesting = view budget) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
