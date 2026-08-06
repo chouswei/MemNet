@@ -43,10 +43,14 @@ This is a **complete refactor** of the agent dialect (and the engine assumptions
 
 ## 2. Atoms
 
+Store atoms remain only **NODE | EDGE** — never a third AST primitive.
+
 | Atom | Role |
 |------|------|
 | **NODE** | Kinded fact. Elemental leaves: **`CST`** / **`FN`**. Composition: **`CAP`**. Boundary: **`PORT`**. Also locator / session kinds (`CMP`, `NET`, `PIN`, `TSK`, `LAW`, …) |
 | **EDGE** | **Carrier / incidence** between endpoints — moves something **in/out** (`connects`), or membership / boundary (`contains` / `exposes` / `refines` / `summarises`). **Not** the function or constraint |
+
+**Lock — kinds, not new atoms:** **`FN`**, **`CST`**, **`CAP`**, **`PORT`** (and demoted kinds such as `RES` / `VAR`) are **kinds (types) of NODE**. They are not a third atom class beside NODE|EDGE. **EDGE** remains the only non-node atom; carriers (`connects`, …) are EDGEs.
 
 ### 2.1 Constraint family: FN ⊂ CST (with causality)
 
@@ -55,7 +59,7 @@ Mathematically a **function is a special constraint**. The MemNet differentiator
 | Tag | Role | Causality | Law shape (sketch) |
 |-----|------|-----------|--------------------|
 | **`CST`** | General **constraint** — law among port quantities | **Acausal** — no preferred compute direction | Ohm `V_a-V_b=I*R` |
-| **`FN`** | **Specialisation of `CST`** that **declares causality** | **Causal** — directed map inputs → outputs (cause → effect) | BJT `I_c=beta*I_b`; op-amp `V_out=a_s*(V_inp-V_inm)` |
+| **`FN`** | **Specialisation of `CST`** that **declares causality** | **Causal** — directed map inputs → outputs (cause → effect) | BJT `I_c=beta*I_b\|I_e=I_b+I_c`; op-amp `V_out=a_s*(V_inp-V_inm)` |
 
 **Hierarchy (prose lock):** `FN ⊂ CST` **with causality** — every FN is a constraint; a plain `CST` (no FN tag) is an **acausal** constitutive law.
 
@@ -70,20 +74,22 @@ Causality lives on the **FN node** (law orientation + port sides) — **not** by
 
 **Wire preference:** keep short tags **`FN`** and **`CST`**. Optional later SCHEMA may encode subtype (`form=causal|acausal`); agents still write `FN` / `CST`.
 
-**Law placement (locked):** `law=` / `expr=` / params (`beta=`, `R=`, `a_s=`) live **on the FN/CST node**, never on the EDGE.
+**Law placement (locked):** `law=` / `expr=` / params (`beta=`, `R=`, `a_s=`) live **on the FN/CST node**, never on the EDGE. When one node owns several equations, keep a **single** `law=` field and separate equations with `|` (e.g. `law=I_c=beta*I_b|I_e=I_b+I_c`) — do not invent a second atom or put laws on EDGEs.
 
-**Contrast:** BJT teachable `I_c=beta*I_b` → **causal `FN`** (base current drives collector current). Resistor Ohm → **acausal `CST`** (`V` and `I` related either way). Op-amp gain → **causal `FN`**.
+**Contrast:** BJT teachable controlled-source + KCL → **causal `FN`** (`I_c=beta*I_b` and `I_e=I_b+I_c` on the node; B drives C; E closes current balance). Resistor Ohm → **acausal `CST`** (`V` and `I` related either way). Op-amp gain → **causal `FN`**.
 
 ### 2.2 Kind roles
 
+All rows below are **NODE kinds** (wire tags on a NODE). EDGE is separate.
+
 | Kind | Wire | Role |
 |------|------|------|
-| **Constraint** | **`CST`** | Acausal constitutive elemental — ports usually `inout`; Ohm / C / L on the node |
-| **Function** | **`FN`** | Causal CST — `in`/`out` hints + law orientation; controlled-source / gain map on the node |
-| **Capsule** | `CAP` | Composition shell — nests `FN` / `CST` / child `CAP`; sugar `ports=` / `contains=` |
-| **Port** | `PORT` | Endpoint; quantities (`V=`, `I=`) live **on** the port; `side=in\|out\|inout\|internal` |
-| **Pin / Net / CMP** | `PIN` / `NET` / `CMP` | Schematic locator grain (ingest) until exit criteria — not maths hubs |
-| **`RES` / `VAR`** | as today | Demoted hubs — migrate into `FN`/`CST` + ports |
+| **Constraint** | **`CST`** | NODE kind — acausal constitutive elemental; ports usually `inout`; Ohm / C / L on the node |
+| **Function** | **`FN`** | NODE kind — causal CST; `in`/`out` hints + law orientation; controlled-source / gain map on the node |
+| **Capsule** | `CAP` | NODE kind — composition shell; nests `FN` / `CST` / child `CAP`; sugar `ports=` / `contains=` |
+| **Port** | `PORT` | NODE kind — endpoint; quantities (`V=`, `I=`) live **on** the port; `side=in\|out\|inout\|internal` |
+| **Pin / Net / CMP** | `PIN` / `NET` / `CMP` | NODE kinds — schematic locator grain (ingest) until exit criteria — not maths hubs |
+| **`RES` / `VAR`** | as today | Demoted NODE kinds — migrate into `FN`/`CST` + ports |
 
 Reject wire tokens `CONSTRAINT` / `CON` / `FUNC` / `FUNCTION` / `DEV` / `PASS` / `PART` as the teachable passive leaf.
 
@@ -227,34 +233,36 @@ All examples below are **proposed 1.x / not in engine**. Primary multi-port witn
 
 ### 5.1 BJT leaf (primary) — causal FN
 
-**BJT:** one **causal `FN`** — law `I_c=beta*I_b` declares cause→effect on the node (base current drives collector current). Load resistor is a separate **acausal `CST`**; wiring is a **carrier** only.
+**BJT:** one **causal `FN` NODE** — three terminals (B/C/E), owner param `beta=`, and both teachable equations on the node: controlled source `I_c=beta*I_b` plus KCL current balance `I_e=I_b+I_c`. Port sides: B `in` (Ib control), C `out` (Ic effect), E `inout` (Ie closes the three-terminal balance). Load resistor is a separate **acausal `CST` NODE**; wiring is a **carrier EDGE** only.
 
 ```text
-FN [FN_Q1] ; name=bjt_npn ; beta=100 ; ports=PORT_B:B:in,PORT_C:C:out,PORT_E:E:inout ; law=I_c=beta*I_b ; recycle=persistent
+FN [FN_Q1] ; name=bjt_npn ; beta=100 ; ports=PORT_B:B:in,PORT_C:C:out,PORT_E:E:inout ; law=I_c=beta*I_b|I_e=I_b+I_c ; recycle=persistent
 CST [CST_Rc] ; name=Rc ; R=1000 ; ports=PORT_Rc_a:a:inout,PORT_Rc_b:b:inout ; law=V_a-V_b=I_a*R ; recycle=persistent
 E_c [PORT_C] --(connects)--> [PORT_Rc_a] ; carries=I
 ```
 
 ```text
-+ FN [NEW] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=I_c=beta*I_b ; recycle=persistent
++ FN [NEW] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=I_c=beta*I_b|I_e=I_b+I_c ; recycle=persistent
 ```
 
-(`side=in`/`out` on B/C are **causality hints** for the teachable controlled-source law; circuit terminals may still be modelled `inout` when V/I both matter — the FN tag + law orientation remain the causal claim.)
+Causality is the FN kind plus law orientation (Ib → Ic); E is not optional — omitting the emitter truncates the device and leaves KCL unowned. Circuit terminals may still be modelled all-`inout` when V/I both matter; the FN tag + `law=` orientation remain the causal claim.
 
 **Rejected:**
 
 ```text
-# REJECTED — edge-as-FN + lies about three-terminal topology
 E_x [PORT_B] --(derives)--> [PORT_C] ; expr=I_c=beta*I_b
 ```
 
+(That line is rejected: EDGE-as-FN, binary topology lie, and no emitter / KCL.)
+
 | Gap BJT exposes | Lesson |
 |-----------------|--------|
-| Three ports | Binary `derives` cannot be the device |
+| Three ports | Binary `derives` cannot be the device — need B, C, and E |
 | Causality | Lives on the **FN node** (law + port sides), not on the EDGE |
-| Law ≠ edge | `I_c=β·I_b` *is* the FN; `connects` only carries I/V |
+| Law ≠ edge | `I_c=β·I_b` and `I_e=I_b+I_c` *are* the FN; `connects` only carries I/V |
+| FN/CST kinds | Tags name NODE kinds — not a third store atom |
 
-Teachable leaf = **causal `FN`**. Full Ebers–Moll as mutual port constraints would be **acausal `CST`** — optional later, not the default teaching leaf.
+Teachable leaf = **causal `FN` NODE**. Full Ebers–Moll as mutual port constraints would be **acausal `CST` NODE** — optional later, not the default teaching leaf.
 
 ### 5.2 Board Capsule + resistors
 
@@ -382,7 +390,7 @@ Cross-layer links on the pin map are **thin**: enough to choose the next anchor,
 | Item | Lock |
 |------|------|
 | Atoms | NODE \| EDGE only |
-| Ontology | `FN` ⊂ `CST` with causality (FN causal, CST acausal); law on node; EDGE = carrier |
+| Ontology | Store = NODE\|EDGE only; `FN`/`CST`/`CAP`/`PORT` = NODE kinds; `FN` ⊂ `CST` with causality; law on node; EDGE = carrier |
 | Capsule | Sugar B on agent shell; nested capsules one shell at a time |
 | `pin_map` | Honour `layer` and/or `view=shell\|interior` |
 | Caps | Existing `depth` / `max_rows`; optional nest-open limit N |
@@ -418,8 +426,8 @@ Answer each as **“refactor to X”** for the 1.x target — not “extend toda
 | **7** | **Shell `CLM`** | Summary only; constitutive maths on FN/CST | Shell self-loop as primary formula teaching |
 | **8** | **Behaviour vs EDGE** | **Locked:** law on FN/CST; EDGE = carrier / membership / boundary | Formula-on-edge; `constrains` EDGE is the CST |
 | **9** | **What `connects` carries** | Optional `carries=V` / `carries=I` — lock spelling before SCHEMA | Full flow type system in this doc |
-| **10** | **BJT leaf** | **Locked:** `FN [FN_Q1]` + B/C/E + `law=I_c=beta*I_b` on node | β-law on EDGE; BJT as hollow `CAP` only |
-| **11** | **FN ⊂ CST + causality wire encoding** | Keep tags `FN`/`CST`; FN = causal specialisation; CST = acausal; optional SCHEMA `form=causal\|acausal` later | Treating FN and CST as unrelated forever; putting causality on the EDGE |
+| **10** | **BJT leaf** | **Locked:** `FN [FN_Q1]` NODE + `PORT_B`/`PORT_C`/`PORT_E` + `beta=` + `law=I_c=beta*I_b\|I_e=I_b+I_c` on the node | β-law on EDGE; truncated ports/`…`; omit emitter; BJT as hollow `CAP` only |
+| **11** | **FN ⊂ CST + causality wire encoding** | Keep tags `FN`/`CST` as **NODE kinds**; FN = causal specialisation; CST = acausal; store still NODE\|EDGE only; optional SCHEMA `form=causal\|acausal` later | Treating FN/CST as a third atom class; treating FN and CST as unrelated forever; putting causality on the EDGE |
 
 **Out of this lock set:** recycle policy; ACL / RSV; nest-open depth `N`; TagMap timing — separate tracks; do not justify dual dialect.
 
