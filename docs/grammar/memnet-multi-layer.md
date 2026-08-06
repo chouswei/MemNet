@@ -31,7 +31,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is strongly usual (`in` / `ou
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Composition without `CAP`: membership binds with `carries=member` (`view=parts` / `layer=arch` — §3 parts note). Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**Bind (thin)** — EDGE is an **ideal pipe / bind** between **ports of nodes** (not bare node-to-node). Slot label (default teach **`bind`**) is not a relation or law. Three wire forms only; endpoints are **qualified port refs** in brackets:
+**Bind (thin)** — EDGE is an **ideal pipe / bind**. Slot label (default teach **`bind`**) is not a relation or law. Three wire forms only. **Default endpoints** are **qualified port refs** `[NodeId.PortName]` (physical / programme / law CST). **Bare node ids** `[NodeId]` are allowed only where this doc locks an exception (persons / relation chart — §3).
 
 | Form | Wire | Sense |
 |------|------|-------|
@@ -47,7 +47,7 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 
 **Bind label (locked):** exactly one `IDENT` inside the braces — charset `[A-Za-z_][A-Za-z0-9_]*` (matches [`MemNetLayer.g4`](antlr/MemNetLayer.g4)). Default teach **`bind`**. Other idents (`contains`, `refines`, …) OK as bind *kinds* only when they earn their keep. Payload / flow sense stays on fields — `carries=flow|member|event|token|…` (and optional `event=` / `guard=`); do **not** put those words in the label slot. Empty `{}` forbidden. No spaces, multi-token, attrs, or `key=value` inside `{…}` on a wire (port bags are `name: {attrs}` elsewhere — different context). No `law=` on EDGE. `NEW` is mint-only, not a label. Legacy alias: `connects` → `bind`.
 
-**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains (use `name: {side=…}` instead); bind node ids without port grain; empty or attr-stuffed bind braces.
+**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains (use `name: {side=…}` instead); use bare node-to-node binds for law/physical/programme CST (port grain required there; **persons chart** is the locked bare-id exception — §3); empty or attr-stuffed bind braces.
 
 ---
 
@@ -86,7 +86,7 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 |--------|------------|--------|
 | **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; brace group (ports + bind labels); ids; ownership; LaTeX; STRING; comment; mutate |
 | **Used (arrow compounds)** | `--{` `}-->` `}--` `<--{` | Bind wires; `{}` wraps label (same braces as port bags) |
-| **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports and paren-label binds `--(bind)-->` |
+| **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports; reject bare `--bind-->` and paren `--(bind)-->` (locked: `--{label}-->`) |
 | **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
 
 **Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = bind arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = brace group (port bag after `name:` **or** bind label after `--` / `<--`). `()` is free — not locked to binds.
@@ -145,7 +145,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | `event=` | optional bind metadata on a transition EDGE (statechart) — **not** `law=` |
 | `guard=` | optional bind metadata (`$…$` predicate text) on a transition EDGE — **not** device `law=` |
 | `recycle=` | shared-dialect visibility (`persistent`, …) |
-| `view=` / `layer=` | pin-map grain (`shell`/`interior`; also `flowchart` / `parts` / `statechart`; `layer=arch` / `layer=req`; …) — query/envelope; not ontology |
+| `view=` / `layer=` | pin-map grain (`shell`/`interior`; also `flowchart` / `parts` / `statechart` / `persons` / `org`; `layer=arch` / `layer=req`; …) — query/envelope; not ontology |
 
 ### Port token (`ports=`)
 
@@ -175,7 +175,7 @@ Teach **always** `name: {…}` (prefer one space after `:`; at least `side=`). D
 | `.` | Ownership join (inside brackets only) |
 | `C` | Port **name** declared on that node’s `ports=` |
 
-Wire forms around the label unchanged. Optional `carries=`. Rejected as teachable defaults: `from=`/`to=` on the EDGE; node-to-node `[CST_Q1]--{bind}--[CST_Rc]` without port grain. First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice. Label rules: §1 **Bind label (locked)**.
+Wire forms around the label unchanged. Optional `carries=`. Rejected as teachable defaults for **law / physical / programme** CST: `from=`/`to=` on the EDGE; node-to-node `[CST_Q1]--{bind}--[CST_Rc]` without port grain. **Persons / relation chart** locks the opposite: bare `[PersonA] --{bind}--> [PersonB]` (§3). First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice for port-grain domains. Label rules: §1 **Bind label (locked)**.
 
 ---
 
@@ -473,11 +473,11 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | `--{bind}-->` costs two braces per EDGE vs bare `--bind-->` (~2–4 tokens/edge × fan-out); kept for brace-group unity with port bags. Teach default label `bind` only — label zoo burns tokens. Port bags `name: {side=…}` beat colon piles for clarity but stay verbose. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows (relay law is the cautionary extreme). Flowchart / parts / statechart sketches multiply rows fast. |
-| **Accuracy** | `{}` dual use (port bag after `name:` vs bind label after `--`/`<--`) is parser-safe with context but agents still confuse the two — stuffing `carries=` into braces or emitting bare `--bind-->`. Soft law completeness is unenforced (orphan symbols). One kind `CST` + `role=`/`view=` is lean but invites over-kinding. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting is LLM-fragile. `<--{…}-->` vs Dirac `<…\|…>` is OK if maths stays in `$…$` (prefer `\langle`/`\rangle`). Empty `{}` or attr bags on the wire fail parse. |
+| **Tokens** | Braced `--{bind}-->` costs two marks vs demoted bare `--bind-->` / paren `--(bind)-->`; kept for brace-group unity with port bags. Teach default label `bind` only — label zoo burns tokens. Port bags `name: {side=…}` beat colon piles for clarity but stay verbose. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows (relay law is the cautionary extreme). Flowchart / parts / statechart sketches multiply rows fast. |
+| **Accuracy** | `{}` dual use (port bag after `name:` vs bind label after `--`/`<--`) is parser-safe with context but agents still confuse the two — stuffing `carries=` into braces or emitting bare `--bind-->` (reject; locked form is `--{label}-->`). Soft law completeness is unenforced (orphan symbols). One kind `CST` + `role=`/`view=` is lean but invites over-kinding. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting is LLM-fragile. `<--{…}-->` vs Dirac `<…\|…>` is OK if maths stays in `$…$` (prefer `\langle`/`\rangle`). Empty `{}` or attr bags on the wire fail parse. |
 | **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Warm BJT slice (~5 lines) is fine; relay / flowchart shells need stricter caps. Prefer omit-default attrs and short `law=` on the warm slice. |
 
-**Ranked cuts (token save / accuracy gain):** (1) prefer bare `--bind-->` (drop brace-label dual use; keep `{}` for port bags only) — largest joint token+accuracy win; (2) pin-map omit defaults — session-default `recycle=`, skip empty attr bags beyond `side=`; (3) soft-validate law symbols ⊆ ports∪params; (4) cap flowchart/statechart fan-out in shell view; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
+**Ranked cuts (token save / accuracy gain):** (1) pin-map omit defaults — session-default `recycle=`, skip empty attr bags beyond `side=`; (2) teach default label `bind` only (no label zoo); (3) soft-validate law symbols ⊆ ports∪params; (4) cap flowchart/statechart fan-out in shell view; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
 
 ---
 
