@@ -135,9 +135,14 @@ Eid [NodeA] --rel_name--> [NodeB]
 - **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with EDGE arrowheads `<--` / `-->` (direction marks on wires).
 - **Quantity symbols (two OK forms, locked):**
   1. **Qualified** (default when few ports): ASCII **`port.qty`** in maths matching bag keys — e.g. `$pin1.V = pin1.I * R$`.
-  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params ∪ same-`law=` defs.
+  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ **this NODE’s** bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params ∪ same-`law=` defs.
 - **Completeness (soft-validate):** every quantity symbol in `law=` MUST bind via one of the two forms above, a node param, a bare **port name** under single-quantity discipline, or a same-`law=` def — no orphan bare `V`/`I` on multi-qty ports. Demote pretty-only `$V_{\mathrm{pin1}}$` for lint. Agents SHOULD fix before settle.
 - **Binding (same node):** math idents resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), (2) **`port.qty`** ASCII (`pin1.V`) matching `ports=` name + bag attr, (3) an **`@alias`** declared as a quantity-key value and repeated with `@` in `law=` (`V=@va` → `$@va$`), or (4) a **bare port name** under single-quantity discipline (`x`/`y` data ports). **MUSTNOT** orphan bare `V` / `I` unless that single-port discipline holds; **MUSTNOT** `@spam` outside bag quantity values (law `@` only after bag declare).
+- **Alias scope (locked):** `@ident` lives on the **owning NODE** (the CST that declares it). Two nodes may both use `@va` without clash; each `law=` sees only that node’s `@` set ∪ params ∪ local ports. Cross-node coupling is via **port binds** (ideal-pipe continuity), **not** a shared `@` namespace — after bind, each law still uses local `@`. Need a global name → use **`port.qty`** (`a.V` / teach `CST_R.a.V` in prose) or distinct aliases by discipline (`@R_va` vs `@C_va`). **No** automatic merge of `@`.
+- **Alias naming (discipline, not SCHEMA-hard):** grammar accepts any free `IDENT` after `@` — **uniform spelling across nodes is not required**. LLMs **can** confuse reused short names (`@va` on two CSTs looks like one quantity in a multi-node `pin_map` even though scope is per-NODE). Prefer:
+  - **unique-in-slice** aliases when several NODEs appear together (`@R_aV` / `@R_aI`, or `@va_R` / `@ia_R`)
+  - **`port.qty`** in `law=` when the slice is small (skip `@`)
+  - short `@va` / `@ia` **within one NODE** only
 - **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on bind or relation; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
 
 ### Line shapes
@@ -194,6 +199,14 @@ Teach **always** `name: {…}` inside `ports=` (prefer one space after `:`; at l
 CST [CST_Pin] ; name=pin_load ; R=1000 ; ports=pin1: {direc=inout, V=0, I=0} ; law=$pin1.V = pin1.I * R$
 # alias (optional — @ in bag and in law)
 CST [CST_Pin] ; name=pin_load ; R=50 ; ports=pin1: {direc=inout, V=@v1, I=@i1} ; law=$@v1 = @i1 \times 50ohm$
+```
+
+Two nodes + one bind — scope allows reuse of `@va`, but prefer unique-in-slice names:
+
+```text
+CST [CST_Src] ; name=Vs ; ports=p: {direc=out, V=@va_S, I=@ia_S} ; law=$@va_S=5$
+CST [CST_R] ; R=50 ; ports=a: {direc=in, V=@va_R, I=@ia_R} ; law=$@va_R=@ia_R*R$
+E1 [CST_Src.p] --bind-- [CST_R.a]
 ```
 
 Generic bags stay domain-free (`q=` or other named quantities); `V`/`I` are the electronics spelling of across + through.
