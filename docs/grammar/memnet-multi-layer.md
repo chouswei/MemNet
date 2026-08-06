@@ -13,7 +13,7 @@
 | Atom | Role |
 |------|------|
 | **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). |
-| **EDGE** | Incidence / carrier only — never the law. |
+| **EDGE** | Incidence / carrier only — carries something between endpoints; never the law and not “the relation”. |
 
 **Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `,` (same list joiner as `ports=`).
 
@@ -29,11 +29,11 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**EDGE relations (thin):**
+**EDGE kinds (thin)** — label in `--(…)-->` is an **edge kind** (carrier/incidence label), not a relationship-as-law:
 
-| Rel | Use |
-|-----|-----|
-| `connects` | Carrier between port endpoints (optional `carries=` quantity/token name) |
+| Kind | Use |
+|------|-----|
+| `connects` | Default carrier between port endpoints (optional `carries=` quantity/token name) |
 | `contains` | Membership (immediate children only) — when nesting exists |
 | `refines` | Coarser tip → finer (boundary bridge) |
 
@@ -55,7 +55,7 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 | `:` | Structured-token separator (pair/tuple join **inside** a field value) — e.g. port `name:side`, `id:label`, `qty:unit` (not a field separator) |
 | `$…$` | LaTeX inline math **only** (not a field separator) |
 | `[` `]` | Wrap Id or mint `NEW` |
-| `--(` `)-->` | Directed EDGE; `rel` between `--(` and `)-->` |
+| `--(` `)-->` | Directed EDGE; **edge kind** between `--(` and `)-->` (e.g. `connects` — not “the relation”, not the law) |
 | `"` | STRING for awkward values (shared dialect) |
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`.
@@ -81,8 +81,8 @@ Eid [PORT_A] --(connects)--> [PORT_B] ; carries=token
 | Shape | Form |
 |-------|------|
 | NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
-| EDGE (pin map / bare) | `Eid [from] --(rel)--> [to] ; key=value ; …` |
-| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [from] --(rel)--> [to] ; …` |
+| EDGE (pin map / bare) | `Eid [from] --(kind)--> [to] ; key=value ; …` |
+| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [from] --(kind)--> [to] ; …` |
 | Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
 | Drop | `- Eid` |
 
@@ -111,7 +111,7 @@ in:in
 | `in` | Port **name** (ties to symbols in `law=`) |
 | `in` | **Side:** `in` / `out` / `inout` |
 
-First-class PORT NODE (only when `connects` needs stable endpoints): Id like `[PORT_X_out]` — **not** a three-part wire form here. Thin EDGE rels: `connects`, `contains`, `refines`.
+First-class PORT NODE (only when `connects` needs stable endpoints): Id like `[PORT_X_out]` — **not** a three-part wire form here. Thin EDGE kinds: `connects`, `contains`, `refines`.
 
 ---
 
@@ -130,7 +130,7 @@ Mutate (mint):
 + CST [NEW] ; name=block ; k=2 ; ports=x:in,y:out ; law=$y=k x$ ; recycle=persistent
 ```
 
-Carrier `connects` does **not** own the law or its params.
+Edge kind `connects` names the carrier; it does **not** own the law or its params.
 
 ### Application note: BJT (electronics instance)
 
@@ -148,7 +148,7 @@ Omit E → truncated device and unowned KCL. Same syntax skeleton as above; elec
 
 ## 4. Wrong shapes (three)
 
-- **Law on EDGE** — e.g. `[A] --(derives)--> [B] ; expr=$y=k x$` (EDGE ≠ law; binary lie; missing ports).
+- **Law on EDGE** — e.g. `[A] --(derives)--> [B] ; expr=$y=k x$` (edge kind ≠ law; binary lie; missing ports).
 - **Orphan stamp mirrors** — fields that are not graph endpoints.
 - **Hollow nest with no law leaf** — a shell without a node that owns `law=` (behaviour has nowhere to live).
 
