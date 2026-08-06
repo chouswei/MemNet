@@ -75,6 +75,8 @@ Handoff contrast (not MemNet grammar):
 
 **Identity rule:** conceptual kinds are always NODE | EDGE. Surface spellings (`CLM`, `TSK`, …) are **node kinds**, not extra conceptual kinds (MN-REQ-02.7).
 
+**Capsule / Port pattern (design only):** stratified shells and boundary ports remain NODE|EDGE — see [`memnet-multi-layer.md`](memnet-multi-layer.md). Port-hood is kind `PORT` (Port) plus EDGE `exposes` from kind `CAP` (Capsule), not id punctuation (`_`, `__`, dotted paths). Distinct from this §3 I/O / store / transport layering.
+
 ---
 
 ## 4. Abstract syntax
@@ -217,6 +219,7 @@ A **pin** is a short accurate locator atom, usually a Node (or a thin Edge) that
 | Pin family | Example kinds | Locator fields (illustrative) |
 |------------|---------------|-------------------------------|
 | SysML | `PRT`, `POR`, `REQ`, `PKG` | `name=`, `qname=`, `requirementId=` |
+| Capsule shell / Port (design; multi-layer) | `CAP`, `PORT` | `name=`, `layer=`, `side=`; ownership via `exposes` / `contains` — see `memnet-multi-layer.md` |
 | Codebase | `MOD`, `SYM` | `path=`, `line=`, `signature=` |
 | Skills / rules | `SKL`, `RUL`, `TRG` | `skill_id=`, `phrase=` |
 | PCBA schematics (Atopile `.ato`) | `CMP`, `NET`, `PIN` (or domain kinds) | `refdes=`, `net=`, `pin=`, `path=` |
@@ -553,7 +556,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
 | `docs/grammar/memnet-field-formulas.md` | **Generic** formula-as-EDGE (`derives`/`feeds`; design; no engine): MVP = one EDGE, `src_fields` **list** + `expr`, one `tgt_field` — any domain; not circuit-specific |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | **Application:** nodal circuit graph (NET/CMP/PIN + KCL/Ohm) *using* formula edges; does not define the formula grammar |
-| `docs/grammar/memnet-multi-layer.md` | **Design:** stratified pin maps + **capsule** (part-with-ports pattern from NODE\|EDGE only; SysML analogy) — distinct from §3 I/O/store/transport layering |
+| `docs/grammar/memnet-multi-layer.md` | **Design:** stratified pin maps + Capsule (`CAP`) / Port (`PORT`) pattern from NODE\|EDGE only; port-hood = kind + `exposes` (not id `_` tricks); SysML analogy — distinct from §3 I/O/store/transport layering |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Multi-agent neighbourhood reserve design (shared dialect) |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL / tokens + security + multi-agent coop (shared dialect) |
 | `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |
