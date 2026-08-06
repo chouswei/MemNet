@@ -188,6 +188,28 @@ Mutate (mint):
 
 A bind does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`).
 
+### Application note: pipeline stage (programme instance)
+
+**Instance only** — same ontology as any other CST. A **programme** here is a module/service stage with **ports** as data or control endpoints (payloads, events, API in/out) — not volts/amps, and not a SysML clone or a full programming language. Kind stays **`CST`**; `law=` is the behavioural contract (output as function of input, or pre/post). Agents use this grain on `pin_map`, not to execute code.
+
+Mutate create (teachable assign) — z-score stage then threshold gate:
+
+```text
++ CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x{side=in},y{side=out} ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x{side=in},y{side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
++ E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
+```
+
+Pin-map present (same facts, no leading `+`):
+
+```text
+CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x{side=in},y{side=out} ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x{side=in},y{side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
+E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
+```
+
+`x`/`y` are data ports; the directed bind is an ideal pipe for the token stream (`carries=token`). Norm: `$y=(x-\mu)/\sigma$` with params `mu=`/`sigma=`. Gate: `$y=\mathbf{1}(x>t)$` with param `t=` (1 when input exceeds threshold, else 0).
+
 ### Application note: BJT + resistor (electronics instance)
 
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
