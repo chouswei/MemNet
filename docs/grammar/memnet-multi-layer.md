@@ -469,15 +469,15 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 ## 7. LLM cost & accuracy
 
-**Verdict:** mixed — ontology is tight (NODE law + ideal bind + `[Node.port]`); warm slices stay unambiguous when `view=`/`layer=` caps hold. Token burn and soft-CST overload are the main risks.
+**Verdict:** mixed — ontology (law on NODE, ideal bind, `[Node.port]`, shell/interior) is sound for Write=display; brace-group dual use and soft-CST overload are the main LLM risks.
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | Braced `--{bind}-->` costs two marks vs demoted bare `--bind-->` / paren `--(bind)-->`; kept for brace-group unity with port bags. Teach default label `bind` only — label zoo burns tokens. Port bags `name: {side=…}` cost more than a bare name but parse cleaner than colon piles. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows. Flowchart / parts / statechart sketches multiply rows fast. |
-| **Accuracy** | Soft law completeness is unenforced — agents invent orphan symbols. One kind `CST` + `role=`/`view=` is lean but easy to over-kind. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting (`ports=` vs attrs vs `$eq$,$eq$`) is parser-safe; LLMs still mis-join. Bi-directed `<--{bind}-->` ≠ with bare Dirac `<…\|…>` unless maths stays in `$…$`. Empty `{}` or attr bags on the wire fail parse. |
-| **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Prefer omit-default attrs (`side=` only when non-obvious) and short `law=` on the warm slice. |
+| **Tokens** | `--{bind}-->` costs two braces per EDGE vs bare `--bind-->` (~2–4 tokens/edge × fan-out); kept for brace-group unity with port bags. Teach default label `bind` only — label zoo burns tokens. Port bags `name: {side=…}` beat colon piles for clarity but stay verbose. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows (relay law is the cautionary extreme). Flowchart / parts / statechart sketches multiply rows fast. |
+| **Accuracy** | `{}` dual use (port bag after `name:` vs bind label after `--`/`<--`) is parser-safe with context but agents still confuse the two — stuffing `carries=` into braces or emitting bare `--bind-->`. Soft law completeness is unenforced (orphan symbols). One kind `CST` + `role=`/`view=` is lean but invites over-kinding. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting is LLM-fragile. `<--{…}-->` vs Dirac `<…\|…>` is OK if maths stays in `$…$` (prefer `\langle`/`\rangle`). Empty `{}` or attr bags on the wire fail parse. |
+| **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Warm BJT slice (~5 lines) is fine; relay / flowchart shells need stricter caps. Prefer omit-default attrs and short `law=` on the warm slice. |
 
-**Ranked cuts (token save / accuracy gain):** (1) pin-map omit defaults — drop `recycle=` when session-default, omit empty attr bags beyond `side=`; (2) teach `\langle`/`\rangle` + law-only Dirac; (3) cap flowchart/statechart fan-out in shell view; (4) soft-validate law symbols ⊆ ports∪params; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
+**Ranked cuts (token save / accuracy gain):** (1) prefer bare `--bind-->` (drop brace-label dual use; keep `{}` for port bags only) — largest joint token+accuracy win; (2) pin-map omit defaults — session-default `recycle=`, skip empty attr bags beyond `side=`; (3) soft-validate law symbols ⊆ ports∪params; (4) cap flowchart/statechart fan-out in shell view; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
 
 ---
 
