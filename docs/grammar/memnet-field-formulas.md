@@ -268,7 +268,7 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | Path | Role |
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` §4.2 / §4.2.0b | EDGE mutate; locked numeric `+=`/`-=` |
-| `docs/grammar/memnet-multi-layer.md` | Capsules / stratified pin maps; **§3.7** elemental atom = **`FN` (function) with ports**; port→port `derives` (design; ahead of this doc’s cross-node “later”) |
+| `docs/grammar/memnet-multi-layer.md` | Capsules / stratified pin maps; **§3.7** leaves = **`FN`** (active) + **`CST`** (constraint) with ports; port→port `derives`/`constrains` |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Lease both endpoints before cross-node |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL before coop formula writes |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | **Application** of this grammar: nodal circuit graph + KCL/Ohm (no solver; does not redefine formula EDGE) |
