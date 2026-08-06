@@ -24,7 +24,7 @@ python smoke_parse.py
 ## Covered shapes
 
 - NODE present / `+` create / `~` patch
-- EDGE three binds with qualified endpoints: `[Node.port] --{bind}--> [Node.port]` (also `--{bind}--`, `<--{bind}-->`); label = one `IDENT`, default `bind`
+- EDGE three binds with qualified endpoints: `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`); label = bare `IDENT` between dashes, default `bind`; `{}` only for port bags
 - Fields: `ports=name: {side=…, q=…}`, `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
 - Drop: `- Eid`
 

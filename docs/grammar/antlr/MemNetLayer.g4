@@ -8,8 +8,9 @@
 // Not an evaluator for LaTeX; law is opaque $...$.
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
-// 1. Wire disambiguation: tokenise '}-->' before '}--' (longest match). Left:
-//    '<--{' vs '--{'. Directed and non-directed share ARROW_L; right token decides.
+// 1. Wire disambiguation: tokenise '-->' before '--' (longest match). Left:
+//    '<--' vs '--'. Directed and non-directed share ARROW_DASH; right token
+//    decides (ARROW_R_DIR vs second ARROW_DASH).
 // 2. law= list commas vs LaTeX commas: commas inside LAW_SEG are opaque; only
 //    COMMA between closed $...$ segments is the field list joiner. Nested '$'
 //    inside maths is out of unquoted form — quote the whole field (STRING).
@@ -24,7 +25,7 @@
 //    IDENT to pick portList; single-atom values use the final atom alt.
 // 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
-// 8. Create-edge optional eid: '+ [A] --{bind}--> [B]' vs '+ Eid [A] ...' —
+// 8. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
 // 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT inside brackets (form A).
 //    Plain IDENT kept for NEW mint / rare first-class PORT ids. Rejected teach
@@ -33,6 +34,8 @@
 // 11. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
 //     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
+// 12. Bind label = bare IDENT between dashes (--label--> / --label-- /
+//     <--label-->). {} is ports only — demote braced --{label}-->.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.
@@ -74,10 +77,10 @@ patchNode
 
 // Three bind forms: directed / non-directed / bi-directed
 // Endpoints: [Node.port] (teach) or [Id] / [NEW]
-// Wire: --{label}--> | --{label}-- | <--{label}-->
-// Label = exactly one IDENT ([A-Za-z_][A-Za-z0-9_]*). Empty {} / attrs /
-// multi-token / spaces inside braces forbidden. Default teach: bind.
+// Wire: --label--> | --label-- | <--label-->
+// Label = exactly one bare IDENT ([A-Za-z_][A-Za-z0-9_]*). Default teach: bind.
 // Payload sense → carries= (not the label). No law= on EDGE (semantic).
+// {} ports only — not on arrows.
 presentEdge
     : IDENT endpoint bindWire endpoint (SEMI field)*
     ;
@@ -102,13 +105,13 @@ bindWire
     | biDirectedBind    # WireBiDirected
     ;
 
-// IDENT required — rejects --{}-->, --{a b}-->, --{k=v}-->, --{bind,x}-->
+// IDENT required — rejects -- -->, --a b-->, --k=v-->
 directedBind
-    : ARROW_L IDENT ARROW_R_DIR
+    : ARROW_DASH IDENT ARROW_R_DIR
     ;
 
 nonDirectedBind
-    : ARROW_L IDENT ARROW_R_UND
+    : ARROW_DASH IDENT ARROW_DASH
     ;
 
 biDirectedBind
@@ -200,7 +203,7 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LBRACE       : '{' ;   // brace group: port bag after name: (bind uses ARROW_* compounds)
+LBRACE       : '{' ;   // port bag after name: only (not bind labels)
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
@@ -208,13 +211,12 @@ COLON        : ':' ;   // port name-to-bag join; also id:label elsewhere
 DOT          : '.' ;
 COMMA        : ',' ;
 
-// Bind wire fragments (order: bi-left before dir-left; dir-right before und-right).
-// {} = brace group (label bag); same as port bags — context after -- / <--.
-// () fully free. <-- / --> are direction marks only (not Dirac; Dirac in LAW_SEG).
-ARROW_BI_L   : '<--{' ;
-ARROW_L      : '--{' ;
-ARROW_R_DIR  : '}-->' ;   // must precede ARROW_R_UND
-ARROW_R_UND  : '}--' ;
+// Bind wire fragments (order: bi-left before dash; dir-right before dash).
+// Bare IDENT between dashes. () fully free. <-- / --> = direction marks only
+// (not Dirac; Dirac in LAW_SEG). Demote braced --{label}-->.
+ARROW_BI_L   : '<--' ;
+ARROW_R_DIR  : '-->' ;   // must precede ARROW_DASH
+ARROW_DASH   : '--' ;
 
 KW_NEW       : 'NEW' ;
 
