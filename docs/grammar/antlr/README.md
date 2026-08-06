@@ -24,10 +24,12 @@ python smoke_parse.py
 ## Covered shapes
 
 - NODE present / `+` create / `~` patch
-- EDGE three binds with qualified endpoints: `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`); label = bare `IDENT` between dashes, default `bind`; `{}` only for port bags
+- Dual EDGE (same three wire forms):
+  - **Bind:** `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`; `pipe` ≡ `bind`; sense on `carries=`)
+  - **Relation:** `[NodeA] --knows--> [NodeB]` (bare ids; label = sense)
 - Fields: `ports=name: {side=…, q=…}`, `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
 - Drop: `- Eid`
 
-Port entry: labelled bag `name: {side=…, …}` (colon + braces). EDGE binds ports via `[NodeId.PortName]`. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
+Port entry: labelled bag `name: {side=…, …}` (colon + braces). Soft-validate: same endpoint grain both ends; no `law=` on EDGE. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
 
 British English.

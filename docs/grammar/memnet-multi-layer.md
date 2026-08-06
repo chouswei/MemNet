@@ -13,11 +13,38 @@
 | Atom | Role |
 |------|------|
 | **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). Device / constitutive / causal laws live **only** here. Disambiguate with **`role=`** / pin-map **`view=`** — no kind zoo (`REQ`/`PER`/`FN` as law leaves). |
-| **EDGE** | An **ideal pipe / bind** between endpoints (ports/ids). Not a relation, not law, not causality — **no** `law=` on EDGE. |
+| **EDGE** | One store primitive, **two endpoint grains** (dual EDGE). **No** `law=` on EDGE. |
+
+**Dual EDGE (locked):**
+
+```text
+port ↔ port  →  bind / pipe   (ideal connection; sense on carries=)
+node ↔ node  →  relation      (chart / semantic link; sense = label)
+```
+
+| Grain | Endpoints | Label | Sense |
+|-------|-----------|-------|-------|
+| **Bind** (ideal pipe) | Both `[Node.port]` (or both first-class PORT ids) | Default **`bind`**; optional synonym **`pipe`** (same meaning) | Fields: `carries=` / `event=` / `guard=` — **not** the label |
+| **Relation** (chart / semantic) | Both bare `[NodeId]` | Relation name itself (`owns`, `knows`, `reports_to`, `helps`, …) | **The label is the sense** — do not pile `carries=` as a second name |
+
+Same three ASCII wire forms for both grains (bare `IDENT` between dashes; charset `[A-Za-z_][A-Za-z0-9_]*` — [`MemNetLayer.g4`](antlr/MemNetLayer.g4)):
+
+| Form | Wire | Meaning |
+|------|------|---------|
+| Directed | `--label-->` | One-way |
+| Non-directed | `--label--` | Undirected (no arrowheads) |
+| Bi-directed | `<--label-->` | Both directions explicit (≠ non-directed) |
+
+```text
+Eid [CST_Q1.C] --bind--> [CST_Rc.a] ; carries=token
+Eid [CST_Alice] --knows--> [CST_Bob]
+```
 
 **Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node** (`CST`). `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `,` (same list joiner as `ports=`).
 
-**Ideal bind:** an EDGE is an ideal pipe — endpoints share the carried quantity as the domain defines (agent may rely on that continuity without EDGE `law=` text; further constraints stay on NODE laws or domain convention).
+**Ideal bind:** port↔port EDGE is an ideal pipe — endpoints share the carried quantity as the domain defines (agent may rely on that continuity without EDGE `law=` text; further constraints stay on NODE laws or domain convention). Synonym **`pipe`** ≡ **`bind`** (accept on parse; emit **`bind`**). Legacy `connects` → `bind`. Demote other non-`bind`/`pipe` labels on port-grain edges (`contains`, `refines`, …).
+
+**Relation:** node↔node EDGE is a chart/semantic link. Label = relation name. Prefer directed form for asymmetric links (`reports_to`, `owns`); non-directed / bi-directed when the chart needs them. No inventing `self` / `reports` ports just to force bind grain.
 
 **Ports:** fields on the law node until separate atoms are proven necessary. Entry = `name: {attr=val, …}` (labelled record bag — TS/YAML-style; not a call):
 
@@ -27,35 +54,20 @@ ports=x: {side=in, q=0},y: {side=out},state: {side=inout, q=$s$}
 
 Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags (`in` / `out` / `inout`). Other attrs are **domain quantities at/through the port** — omit when unused (no empty bags beyond `side=`). “Through” quantities often align with directed binds / port side; non-directed binds need not invent direction. Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and port `side=` on the **NODE**.
 
-**`PORT` as first-class NODE:** only if endpoints must be wired independently (binds need stable ids). Quantity fields on that atom use ordinary `key=value` (teach `value=` / domain keys). Until then, keep ports as fields; engine may desugar later.
+**`PORT` as first-class NODE:** only if endpoints must be wired independently (binds need stable ids). Quantity fields on that atom use ordinary `key=value` (teach `value=` / domain keys). Until then, keep ports as fields; engine may desugar later. First-class PORT↔PORT still uses **bind** grain (not relation).
 
-**`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Composition without `CAP`: membership binds with `carries=member` (`view=parts` / `layer=arch` — §3 parts note). Optional later sugar `CAP` + `contains=` is packaging, not ontology.
+**`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Composition without `CAP`: membership **binds** with `carries=member` on port grain (`view=parts` / `layer=arch` — §3 parts note). Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
 **Omit defaults (wire):** session default `recycle=persistent` — **omit** `recycle=` on teachable lines when that is the default. Emit `recycle=` only when non-default. Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
 
-**Bind (thin)** — EDGE is an **ideal pipe / bind**. Slot label is bare `IDENT` between dashes (default teach **`bind` only**). Three wire forms only. **Default endpoints** are **qualified port refs** `[NodeId.PortName]` (physical / programme / law CST). **Bare node ids** `[NodeId]` are allowed only where this doc locks an exception (persons / relation chart — §3).
+**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{}` is **ports only** — not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
-| Form | Wire | Sense |
-|------|------|-------|
-| Directed | `--label-->` | One-way bind/carrier |
-| Non-directed | `--label--` | Undirected bind (no arrowheads) |
-| Bi-directed | `<--label-->` | Both directions explicit (≠ non-directed) |
-
-```text
-Eid [CST_Q1.C] --bind--> [CST_Rc.a] ; carries=token
-```
-
-Locked endpoint shape (default): `[NodeId.PortName]` (`.` = ownership join inside `[…]`). Prefer this over EDGE fields `from=`/`to=` (hides grain) and over minting a first-class PORT NODE for every bind. Optional `carries=` on all three. Bare `[NodeId]` only for the persons / relation-chart exception (§3).
-
-**Bind label (locked):** exactly one bare `IDENT` between the dashes — charset `[A-Za-z_][A-Za-z0-9_]*` (matches [`MemNetLayer.g4`](antlr/MemNetLayer.g4)). **Teach default `bind` only** — no label zoo. Sense / payload on fields: `carries=flow|member|event|token|…` (and optional `event=` / `guard=`). Rare non-`bind` idents (`contains`, `refines`, …) are **demoted** — do not teach them. `{}` is **ports only** (`name: {attrs}`) — not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. No `law=` on EDGE. `NEW` is mint-only, not a label. Legacy alias: `connects` → `bind`.
-
-**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains (use `name: {side=…}` instead); use bare node-to-node binds for law/physical/programme CST (port grain required there; **persons chart** is the locked bare-id exception — §3); put braces or attrs on the bind label; invent new KINDs instead of `role=` / `view=`.
+**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`.
 
 ---
-
 ## 2. Syntax (cheat sheet)
 
-**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `pseudo=` / `carries=` / three bind forms / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
+**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `pseudo=` / `carries=` / dual EDGE / three wire forms / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
 
 ### Delimiters (locked)
 
@@ -69,14 +81,14 @@ Locked endpoint shape (default): `[NodeId.PortName]` (`.` = ownership join insid
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
-| `--` `-->` | **Directed** bind: `--label-->` (bare `IDENT` between dashes; no spaces) |
-| `--` `--` | **Non-directed** bind: `--label--` |
-| `<--` `-->` | **Bi-directed** bind: `<--label-->` (`<--` / `-->` = direction marks only — not Dirac) |
+| `--` `-->` | **Directed** EDGE: `--label-->` (bare `IDENT` between dashes; no spaces) |
+| `--` `--` | **Non-directed** EDGE: `--label--` |
+| `<--` `-->` | **Bi-directed** EDGE: `<--label-->` (`<--` / `-->` = direction marks only — not Dirac) |
 | `"` | STRING for awkward values (shared dialect) |
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Port vs bind:** `{}` = port bags only (`IDENT: {…}` inside `ports=`). Bind = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. `()` is **free** (held for later; not used on binds).
+**Port vs EDGE:** `{}` = port bags only (`IDENT: {…}` inside `ports=`). EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -87,16 +99,16 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 | Status | Characters | Notes |
 |--------|------------|--------|
 | **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port bags only; ids; ownership; LaTeX; STRING; comment; mutate |
-| **Used (arrow compounds)** | `--` `-->` `<--` | Bind wires; bare `IDENT` label between dashes |
+| **Used (arrow compounds)** | `--` `-->` `<--` | Dual EDGE wires; bare `IDENT` label between dashes |
 | **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports; demote braced `--{label}-->` and paren `--(label)-->` (locked: bare `--label-->`) |
 | **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = bind arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = **port bag only** after `name:` (not bind labels). `()` is free — not locked to binds.
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = EDGE arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = **port bag only** after `name:` (not arrow labels). `()` is free — not locked to EDGE.
 
 **Sparing recommendations (0–2):**
 
 1. **Keep `#` as line comment only** — already matches `MemNet.g4` / layer grammar; no second meaning.
-2. **No new punct for through-quantity or bind sugar** — port `name: {attrs}` + `--label-->` already cover that; hold `&` `*` `^` `!` `?` `` ` ``.
+2. **No new punct for through-quantity or EDGE sugar** — port `name: {attrs}` + `--label-->` already cover bind and relation; hold `&` `*` `^` `!` `?` `` ` ``.
 
 ### Generic skeleton
 
@@ -105,28 +117,28 @@ CST [Id] ; name=… ; ports=name: {side=…, q=…},… ; law=$eq$,$eq$ ; param=
 Eid [Id.port] --bind--> [Id.port] ; carries=token
 Eid [Id.port] --bind-- [Id.port] ; carries=token
 Eid [Id.port] <--bind--> [Id.port] ; carries=token
+Eid [NodeA] --rel_name--> [NodeB]
 ```
 
-`ports=` entries are `,`-joined `name: {…}` labelled records on the NODE. EDGE endpoints name those ports as `[NodeId.PortName]`. `law=` holds LaTeX maths on the NODE only. EDGE is ideal bind/pipe (`carries=` optional; no `law=`). Omit session-default `recycle=persistent`.
+`ports=` entries are `,`-joined `name: {…}` labelled records on the NODE. Bind endpoints name those ports as `[NodeId.PortName]` (`pipe` ≡ `bind`). Relation endpoints are bare `[NodeId]`; label = relation name. `law=` holds LaTeX maths on the NODE only. Omit session-default `recycle=persistent`.
 
 ### `law=` expression rules (LaTeX)
 
-- **Where:** one `law=` field on the **NODE** (prefer kind `CST`). **Never** on EDGE — ideal bind implies continuity; do not teach wire equations on the arrow. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
+- **Where:** one `law=` field on the **NODE** (prefer kind `CST`). **Never** on EDGE — bind implies continuity; relation is a chart link; do not teach equations on the arrow. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
 - **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
-- **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with bind arrowheads `<--` / `-->` (direction marks on EDGE wires).
+- **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with EDGE arrowheads `<--` / `-->` (direction marks on wires).
 - **Completeness (soft-validate):** every symbol in `law=` MUST appear as a port quantity (name / attr / subscript), a node param, or be defined in the same `law=` list — no orphan predicates. **Lint (optional, thin):** warn when a math ident / macro base is not ⊆ ports ∪ params ∪ same-`law=` defs (ignore pure numerals and LaTeX operators / `\mathrm{…}` wrappers). Agents SHOULD fix before settle.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: domain attrs in the bag (`q=`, …) or subscripts in `law=` — port name is the subscript. Qualified `PORT_x.q` deferred.
-- **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on a bind; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
+- **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on bind or relation; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
 
 ### Line shapes
 
 | Shape | Form |
 |-------|------|
 | NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
-| EDGE directed | `Eid [Node.port\|Node] --bind--> [Node.port\|Node] ; …` (port grain default; bare id = persons chart only) |
-| EDGE non-directed | `Eid [Node.port] --bind-- [Node.port] ; key=value ; …` |
-| EDGE bi-directed | `Eid [Node.port] <--bind--> [Node.port] ; key=value ; …` |
-| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [Node.port] --bind-- [Node.port] ; …` · or `--bind-->` / `<--bind-->` |
+| EDGE bind (port grain) | `Eid [Node.port] --bind--> [Node.port] ; …` (also `--bind--` / `<--bind-->`; `pipe` ≡ `bind`) |
+| EDGE relation (node grain) | `Eid [NodeA] --rel_name--> [NodeB] ; …` (label = sense; bare ids only) |
+| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [Node.port] --bind-- [Node.port] ; …` · or relation `--owns-->` / … |
 | Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
 | Drop | `- Eid` |
 
@@ -144,7 +156,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | `state=` | optional present discrete state on the NODE (e.g. relay `energised` / `deenergised`) — display + agent cue; not an EDGE evaluator |
 | params | domain keys **on the NODE** (`k=`, `gain=`, `I_th=`, …) |
 | `value=` | on first-class **PORT** NODE — quantity at/through that endpoint (domain terms) |
-| `carries=` | optional on any bind form; generic quantity/token name (`signal`, `q`, `member`, `event`, `token`, …) |
+| `carries=` | optional on **bind** forms; generic quantity/token name (`signal`, `q`, `member`, `event`, `token`, …) — **not** on relation grain |
 | `event=` | optional bind metadata on a transition EDGE (statechart) — **not** `law=` |
 | `guard=` | optional bind metadata (`$…$` predicate text) on a transition EDGE — **not** device `law=` |
 | `recycle=` | omit when session-default `persistent`; emit only when non-default |
@@ -166,7 +178,9 @@ x: {side=in, q=0}
 
 Teach **always** `name: {…}` (prefer one space after `:`; at least `side=`). Demote bare `x{…}` and `x(…)`. Bare `name` without `: {…}` is not a port entry. List joiner between ports stays `,`. Quote the whole `ports=` field if an attr value needs `;` or a list-joining `,` outside `$…$`.
 
-### EDGE endpoint (`[Node.port]`)
+### EDGE endpoint
+
+**Bind (port grain):**
 
 ```text
 [CST_Q1.C]
@@ -178,7 +192,17 @@ Teach **always** `name: {…}` (prefer one space after `:`; at least `side=`). D
 | `.` | Ownership join (inside brackets only) |
 | `C` | Port **name** declared on that node’s `ports=` |
 
-Wire forms around the label unchanged. Optional `carries=`. Rejected as teachable defaults for **law / physical / programme** CST: `from=`/`to=` on the EDGE; node-to-node `[CST_Q1]--bind--[CST_Rc]` without port grain. **Persons / relation chart** locks the opposite: bare `[PersonA] --bind--> [PersonB]` (§3). First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice for port-grain domains. Label rules: §1 **Bind label (locked)**.
+Both ends MUST be qualified (or both first-class PORT ids). Optional `carries=`. Label `bind` (emit) or `pipe` (synonym). Rejected: `from=`/`to=`; bare `[CST_Q1]--bind--[CST_Rc]` without port grain; chart relation labels on port endpoints.
+
+**Relation (node grain):**
+
+```text
+[CST_Alice]
+```
+
+Both ends MUST be bare node ids. Label = relation name (`knows`, `reports_to`, …). Sense is the label — do not teach `carries=` as a duplicate name. Rejected: mixed `[Alice]` ↔ `[Bob.port]`; `--bind-->` / `--pipe-->` on bare person ids.
+
+First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice for bind grain. Label / grain rules: §1 **Dual EDGE**.
 
 ---
 
@@ -198,7 +222,7 @@ Mutate (mint):
 + CST [NEW] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$
 ```
 
-A bind does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`).
+A **bind** does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`). A **relation** names two nodes and puts sense in the label.
 
 ### Application note: pipeline stage (programme instance)
 
@@ -224,7 +248,7 @@ E_pipe [CST_Norm.y] --bind--> [CST_Gate.x] ; carries=token
 
 ### Application note: requirements view (agent memory)
 
-**Instance only** — bounded pin-map slice of requirement memory, **not** a SysML / MBSE requirements module. Prefer kind **`CST`** with `role=requirement` (law leaf + ports). Existing TagMap **`REQ`** stays a **SysML locator** pin (`requirementId=`, …); **`CLM`** stays soft claims/decisions — neither is the 1.x acceptance-criteria leaf. Traceability is an **ideal bind** between ports (`carries=trace`), not EDGE-as-relation and not `law=` on the arrow. Label stays **`bind`**; port names carry the roles (`stake` / `design` / optional `verify`).
+**Instance only** — bounded pin-map slice of requirement memory, **not** a SysML / MBSE requirements module. Prefer kind **`CST`** with `role=requirement` (law leaf + ports). Existing TagMap **`REQ`** stays a **SysML locator** pin (`requirementId=`, …); **`CLM`** stays soft claims/decisions — neither is the 1.x acceptance-criteria leaf. Traceability is an **ideal bind** between ports (`carries=trace`), not a chart relation and not `law=` on the arrow. Label stays **`bind`**; port names carry the roles (`stake` / `design` / optional `verify`).
 
 Mutate create (one requirement CST bound to a programme stage port):
 
@@ -379,22 +403,22 @@ Guarded transition (thin): keep `guard=$…$` on the bind as metadata; if the gu
 
 **Instance only** — org chart, family, or collaborator graph for **agent pin_map** (who reports to whom, who knows whom) — **not** a social-network product. No TagMap **`PER`** / **`ACT`**; prefer light **`CST`** with `role=person` (no `law=` / `ports=` required for chart rows).
 
-**Locked split (bare id vs port grain):**
+**Locked split (dual EDGE):**
 
-| Domain | EDGE endpoints | Why |
-|--------|----------------|-----|
-| Physical / programme / law CST | `[Node.port]` | Quantity continuity needs port grain |
-| Persons / org / family chart | **bare** `[PersonA]` / `[PersonB]` | Chart edge is person↔person; inventing `self`/`reports`/`knows` ports is noise |
+| Domain | EDGE grain | Endpoints | Label |
+|--------|------------|-----------|-------|
+| Physical / programme / law CST | **Bind** | `[Node.port]` | `bind` (or `pipe`) |
+| Persons / org / family chart | **Relation** | bare `[PersonA]` / `[PersonB]` | relation name (`reports_to`, `knows`, …) |
 
-Do **not** generalise bare-id binds back onto BJT / pipeline / parts. Label stays **`bind`**; chart sense on **`carries=`** (`reports_to`, `knows`, `member`, …). Prefer `carries=` alone over a second `role=` field on EDGE. Pin-map grain: **`view=persons`** or **`view=org`**.
+Do **not** generalise bare-id relations back onto BJT / pipeline / parts. Do **not** invent `self`/`reports`/`knows` ports to force bind grain. Sense = label; no `carries=` duplicate. Pin-map grain: **`view=persons`** or **`view=org`**.
 
-ASCII (Boss → Alice; Alice knows Bob):
+ASCII (Boss ← Alice reports_to; Alice knows Bob):
 
 ```text
   [Boss]
-     | carries=reports_to
-     v
-  [Alice] --bind--> [Bob] ; carries=knows
+     ^ reports_to
+     |
+  [Alice] --knows--> [Bob]
 ```
 
 Mutate create:
@@ -403,8 +427,8 @@ Mutate create:
 + CST [CST_Boss] ; role=person ; name=Boss
 + CST [CST_Alice] ; role=person ; name=Alice
 + CST [CST_Bob] ; role=person ; name=Bob
-+ E_ra [CST_Alice] --bind--> [CST_Boss] ; carries=reports_to
-+ E_kb [CST_Alice] --bind--> [CST_Bob] ; carries=knows
++ E_ra [CST_Alice] --reports_to--> [CST_Boss]
++ E_kb [CST_Alice] --knows--> [CST_Bob]
 ```
 
 Pin-map present (`view=persons`):
@@ -413,11 +437,11 @@ Pin-map present (`view=persons`):
 CST [CST_Boss] ; role=person ; name=Boss
 CST [CST_Alice] ; role=person ; name=Alice
 CST [CST_Bob] ; role=person ; name=Bob
-E_ra [CST_Alice] --bind--> [CST_Boss] ; carries=reports_to
-E_kb [CST_Alice] --bind--> [CST_Bob] ; carries=knows
+E_ra [CST_Alice] --reports_to--> [CST_Boss]
+E_kb [CST_Alice] --knows--> [CST_Bob]
 ```
 
-Membership of a team (thin): same bare-id bind with `carries=member`. Keep the slice small — mission is tokens + accuracy, not a full org dump.
+Team membership (thin): bare-id relation `--member_of-->` / `--member--` (non-directed when undirected). Keep the slice small — mission is tokens + accuracy, not a full org dump.
 
 ### Application note: BJT + resistor (electronics instance)
 
@@ -469,8 +493,8 @@ E_path [CST_K1.COM] --bind-- [CST_K1.NO] ; carries=I
 
 ## 4. Wrong shapes (three)
 
-- **Anything as EDGE law** — device FN on the arrow (`[A] --derives--> [B] ; law=$y=k x$`) **or** stuffing ideal-wire equations onto EDGE (`… --bind-- … ; law=$V_a=V_b$`). EDGE = ideal pipe only; continuity is implied.
-- **Bare bind on law/physical CST** — e.g. `[CST_Q1] --bind-- [CST_Rc]` with no `.port` (missing port grain; prefer `[CST_Q1.C]`). **Exception:** persons / relation chart uses bare ids by design (§3) — do not treat that as licence for device binds.
+- **Anything as EDGE law** — device FN on the arrow (`[A] --derives--> [B] ; law=$y=k x$`) **or** stuffing ideal-wire equations onto EDGE (`… --bind-- … ; law=$V_a=V_b$`). EDGE = bind or relation only; continuity is implied on bind; no equations on either grain.
+- **Grain mismatch** — bare bind on law/physical CST (`[CST_Q1] --bind-- [CST_Rc]` — missing port grain); **or** port endpoints with a chart label (`[A.x] --knows--> [B.y]`); **or** mixed `[Node.port]` ↔ bare `[Node]`; **or** `--bind-->` / `--pipe-->` on bare person ids (use `--reports_to-->` / `--knows-->`).
 - **Hollow nest with no behaviour leaf** — a shell without a node that owns `law=` or `pseudo=` (behaviour has nowhere to live). For person chart rows, no `law=` is fine — they are not behaviour leaves.
 
 ---
@@ -503,30 +527,31 @@ pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior|flowc
 | Keep | Migrate into 1.x | Demote |
 |------|------------------|--------|
 | NODE\|EDGE store | Active stamps → node + `ports=` + `law=` | Formula-on-edge; maths hubs on wrong kinds |
-| Write = display; pin_map caps | Flat self-loop `derives` → law on node; `connects` → `bind` | Forever dual dialect; colon-pile port tokens |
-| Locator kinds (domain locators) | Non-directed `--bind--` and bi-directed `<--bind-->` | Those kinds as formula hubs; braced `--{bind}-->` |
+| Write = display; pin_map caps | Flat self-loop `derives` → law on node; `connects` → `bind`; chart sense → relation label | Forever dual dialect; colon-pile port tokens; bare `--bind-->` for persons |
+| Locator kinds (domain locators) | Non-directed `--bind--` / bi-directed `<--bind-->`; dual EDGE grains | Those kinds as formula hubs; braced `--{bind}-->`; `carries=` as fake relation name on bare ids |
 
-Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat same-node `derives` in [`memnet-field-formulas.md`](memnet-field-formulas.md) = **transitional** only.
+Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same-node `derives` in [`memnet-field-formulas.md`](memnet-field-formulas.md) = **transitional** only.
 
 ---
 
 ## 7. LLM cost & accuracy
 
-**Verdict:** ontology (law on NODE, ideal bare bind, `[Node.port]`, shell/interior) is sound for Write=display. The five ranked cuts below are **applied** in this doc (not a wish-list).
+**Verdict:** ontology (law on NODE; dual EDGE; `[Node.port]` bind vs bare-id relation; shell/interior) is sound for Write=display. The ranked cuts below are **applied** in this doc (not a wish-list).
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | Locked bare `--bind-->` (two marks cheaper than demoted `--{bind}-->`; also demote paren `--(bind)-->`). Session-default `recycle=` omitted. Port bags keep `side=`; skip unused attrs. Teach label `bind` only. Relay `law=` stays the cautionary extreme — warm slice still short. |
-| **Accuracy** | `{}` is **ports only**. Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Sense on `carries=` / `event=` — not the label slot. Bare-id person binds vs port-grain CST: teach the §3 split. |
+| **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). Session-default `recycle=` omitted. Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
+| **Accuracy** | `{}` is **ports only**. Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
 | **Pin map** | Shell-first + re-anchor; flowchart/statechart shell ≤8/12 or decision-only. Warm BJT ~5 lines; relay omits idle V/I noise. |
 
 **Ranked cuts — applied:**
 
 1. **Pin-map omit defaults** — session-default `recycle=persistent` omitted on wire; port bags keep required `side=`, skip empty/unused attrs. Examples updated.
-2. **Default label `bind` only** — no label zoo; sense via `carries=` / `event=`; rare non-`bind` labels demoted.
+2. **Dual EDGE labels** — bind: teach `bind` only (`pipe` synonym); sense via `carries=` / `event=`. Relation: label = sense on bare ids; demote `--bind-->` + `carries=` on persons.
 3. **Soft-validate law symbols** — rule + optional thin lint (symbols ⊆ ports∪params); examples fixed (req `t`/`t_lim`; flowchart `x` port; Next `law=$y=x$`).
 4. **Cap flowchart/statechart fan-out** — shell ≤8 NODEs / ≤12 EDGEs or decision-only; flowchart sketch trimmed to Dec+Yes+No.
 5. **`role=` / `view=` only CST disambiguators** — no kind zoo; instances use `role=requirement` / `role=person`.
+6. **Reject mixed endpoints** — soft-validate both ends same grain (port or bare); no port↔node EDGE.
 
 ---
 
@@ -534,7 +559,7 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 - **`ports=` binding** — attrs in `{…}` vs params / `law=` idents; quantity keys still open.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
-- **`carries=` spelling** — optional token before SCHEMA lock; no flow type system here.
+- **Relation label vocabulary** — open set of `IDENT`s for now; optional SCHEMA / allow-list later (no flow type system here).
 
 ---
 

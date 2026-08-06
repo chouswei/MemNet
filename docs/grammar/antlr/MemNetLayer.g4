@@ -3,9 +3,14 @@
 // Sibling R1 stub: docs/grammar/MemNet.g4 (0.3.x directed-only shared dialect).
 //
 // Scope: NODE | EDGE line shapes with ports=, law=$...$ (NODE only — semantic),
-// three bind wire forms, and mutate prefixes + / ~ / -. EDGE = ideal bind/pipe;
-// no teachable law= on EDGE (fields stay generic; reject in validation).
+// dual EDGE (bind vs relation), three wire forms, mutate prefixes + / ~ / -.
+// No teachable law= on EDGE (fields stay generic; reject in validation).
 // Not an evaluator for LaTeX; law is opaque $...$.
+//
+// Dual EDGE (semantic — same arrow syntax):
+//   port ↔ port  → bind / pipe  (label bind|pipe; sense on carries=)
+//   node ↔ node  → relation     (label = sense; bare [NodeId] both ends)
+//   MUSTNOT: mixed [Node.port] ↔ [Node]; law= on EDGE; bind-as-relation
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
 // 1. Wire disambiguation: tokenise '-->' before '--' (longest match). Left:
@@ -27,15 +32,16 @@
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
 // 8. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
-// 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT inside brackets (form A).
-//    Plain IDENT kept for NEW mint / rare first-class PORT ids. Rejected teach
-//    default: from=/to= on EDGE; node-to-node without port grain.
+// 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT (bind); plain IDENT
+//    (relation / NEW / rare first-class PORT). Soft-validate same grain both
+//    ends. Reject mixed; reject from=/to= on EDGE.
 // 10. Dialect stays domain-generic; electronics V/I are instance attr keys only.
 // 11. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
 //     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
-// 12. Bind label = bare IDENT between dashes (--label--> / --label-- /
-//     <--label-->). {} is ports only — demote braced --{label}-->.
+// 12. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
+//     {} is ports only — demote braced --{label}-->.
+//     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.
@@ -75,23 +81,21 @@ patchNode
     : TILDE LBRACK IDENT RBRACK (SEMI field)*
     ;
 
-// Three bind forms: directed / non-directed / bi-directed
-// Endpoints: [Node.port] (teach) or [Id] / [NEW]
-// Wire: --label--> | --label-- | <--label-->
-// Label = exactly one bare IDENT ([A-Za-z_][A-Za-z0-9_]*). Default teach: bind.
-// Payload sense → carries= (not the label). No law= on EDGE (semantic).
-// {} ports only — not on arrows.
+// Dual EDGE: same three wire forms; grain from endpoints (semantic).
+// Bind: [Node.port] --bind--> [Node.port]  (pipe ≡ bind; carries= sense)
+// Relation: [NodeA] --knows--> [NodeB]     (label = sense; bare ids)
+// No law= on EDGE (semantic). {} ports only — not on arrows.
 presentEdge
-    : IDENT endpoint bindWire endpoint (SEMI field)*
+    : IDENT endpoint edgeWire endpoint (SEMI field)*
     ;
 
 createEdge
-    : PLUS edgeIdAtom endpoint bindWire endpoint (SEMI field)*
-    | PLUS endpoint bindWire endpoint (SEMI field)*
+    : PLUS edgeIdAtom endpoint edgeWire endpoint (SEMI field)*
+    | PLUS endpoint edgeWire endpoint (SEMI field)*
     ;
 
 patchEdge
-    : TILDE endpoint bindWire endpoint (SEMI field)*
+    : TILDE endpoint edgeWire endpoint (SEMI field)*
     | TILDE IDENT (SEMI field)*
     ;
 
@@ -99,22 +103,22 @@ dropEdge
     : MINUS IDENT
     ;
 
-bindWire
-    : directedBind      # WireDirected
-    | nonDirectedBind   # WireNonDirected
-    | biDirectedBind    # WireBiDirected
+edgeWire
+    : directedEdge      # WireDirected
+    | nonDirectedEdge   # WireNonDirected
+    | biDirectedEdge    # WireBiDirected
     ;
 
 // IDENT required — rejects -- -->, --a b-->, --k=v-->
-directedBind
+directedEdge
     : ARROW_DASH IDENT ARROW_R_DIR
     ;
 
-nonDirectedBind
+nonDirectedEdge
     : ARROW_DASH IDENT ARROW_DASH
     ;
 
-biDirectedBind
+biDirectedEdge
     : ARROW_BI_L IDENT ARROW_R_DIR
     ;
 
@@ -122,7 +126,7 @@ endpoint
     : LBRACK endpointAtom RBRACK
     ;
 
-// Teach: NodeId.PortName. Plain IDENT = rare first-class PORT / legacy id.
+// Bind teach: NodeId.PortName. Plain IDENT = relation / NEW / rare PORT id.
 endpointAtom
     : KW_NEW
     | IDENT DOT IDENT
@@ -203,7 +207,7 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LBRACE       : '{' ;   // port bag after name: only (not bind labels)
+LBRACE       : '{' ;   // port bag after name: only (not arrow labels)
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
@@ -211,7 +215,7 @@ COLON        : ':' ;   // port name-to-bag join; also id:label elsewhere
 DOT          : '.' ;
 COMMA        : ',' ;
 
-// Bind wire fragments (order: bi-left before dash; dir-right before dash).
+// EDGE wire fragments (order: bi-left before dash; dir-right before dash).
 // Bare IDENT between dashes. () fully free. <-- / --> = direction marks only
 // (not Dirac; Dirac in LAW_SEG). Demote braced --{label}-->.
 ARROW_BI_L   : '<--' ;

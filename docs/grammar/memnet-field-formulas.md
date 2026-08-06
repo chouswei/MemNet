@@ -259,7 +259,7 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | **5** | `:=` sugar → compile to EDGE; SCHEMA default derives | Convenience |
 | **6** | Qualified cross-node expr; field-port NODEs | Avoid unless forced |
 
-**Decision:** re-centre on **formula as EDGE relation** for the **flat same-node transitional MVP** only. Do **not** implement an expression engine yet. First concrete dialect candidate remains the **same-node self-loop** `derives` line with **`src_fields` as a multi-name list**. Keep `+=`/`-=` literal-only. **1.x ([`memnet-multi-layer.md`](memnet-multi-layer.md)):** laws live on the **node** (`CST` + `law=` / `ports=`); EDGE is a **carrier** only — do **not** treat formula-on-edge as the long-term teachable surface.
+**Decision:** re-centre on **formula as EDGE relation** for the **flat same-node transitional MVP** only. Do **not** implement an expression engine yet. First concrete dialect candidate remains the **same-node self-loop** `derives` line with **`src_fields` as a multi-name list**. Keep `+=`/`-=` literal-only. **1.x ([`memnet-multi-layer.md`](memnet-multi-layer.md)):** laws live on the **node** (`CST` + `law=` / `ports=`); EDGE is **bind** (port↔port) or **relation** (node↔node) — do **not** treat formula-on-edge as the long-term teachable surface.
 
 ---
 
