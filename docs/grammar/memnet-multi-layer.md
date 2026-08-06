@@ -124,7 +124,7 @@ CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
 
-**Interior** (after descend / `view=interior` — still `depth` / `max_rows` capped). Nodal / schematic atoms stay `NET` / `CMP` / `PIN` — do not rename them to `PORT`:
+**Interior** (after descend / `view=interior` — still `depth` / `max_rows` capped). Nodal / schematic atoms stay `NET` / `CMP` / `PIN` — do not rename them to `PORT`. Thin sketch (membership + boundary only); full wiring is §3.6:
 
 ```text
 ## Nodes
@@ -137,7 +137,7 @@ E4 [CAP_InvAmp] --(contains)--> [ATO_Rf]
 E6 [PORT_Vin] --(refines)--> [NET_VIN]
 ```
 
-Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports.
+Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports. Interior **interconnection** (PIN↔NET, optional formula edges) is ordinary schematic dialect inside the open Capsule — §3.6.
 
 **Mutate** (compact sugar; ops mutate-only; desugars to store atoms §8.1):
 
@@ -189,6 +189,90 @@ Ef [PORT_Vbus] --(refines)--> [CAP_Rail12] ; note=descend_hint
 ```
 
 Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` (child’s `ports=` sugar) → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
+
+### 3.6 Interior interconnection view (worked)
+
+**Question:** once a Capsule is open, how do agents see **wiring between ports and interior parts** — not only shell `ports=` sugar?
+
+**Answer:** the interior interconnection view is ordinary NODE|EDGE schematic / nodal dialect **under** the Capsule. There is **no** third view token beyond `view=shell|interior` (optional later: `view=atoms` for expanded shell). Interconn lives **inside** `view=interior` (or an interior re-anchor). Shell `connects` (Port→Port) stays on the shell; interior uses schematic `connects_to` (PIN→NET) plus Port `refines` as the boundary bridge.
+
+#### How the agent opens the interior
+
+| Step | Call | What you get |
+|------|------|----------------|
+| 1. Shell | `pin_map(anchor=CAP_InvAmp, view=shell)` | Compact `CAP` + `ports=` / `contains=` / `summarises` — **no** PIN/NET dump |
+| 2a. Descend (preferred) | `pin_map(anchor=CAP_InvAmp, view=interior)` | Contained ego: children, Port `refines`, PIN–NET wiring, optional `derives` — still `depth` / `max_rows` capped |
+| 2b. Re-anchor | Follow one `refines` / `contains` tip → `pin_map(anchor=NET_VMINUS)` (or `ATO_Rf`, …) | Same interior grain, tighter ego around that node |
+| 3. Ascend | `pin_map(anchor=CAP_InvAmp, view=shell)` again | Shell contract only; do not keep the whole interior in context |
+
+**MUSTNOT:** paste interior interconnect into the shell pin map; invent `view=interconn` as a separate dialect; use Port→Port `connects` for schematic pads; rename `PIN`/`NET` to `PORT`.
+
+#### What lines appear (InvAmp Capsule interior)
+
+Shell first (contract only):
+
+```text
+## Nodes
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; contains=NET_VIN,NET_VMINUS,NET_VOUT,NET_VGND,ATO_Rin,ATO_Rf ; recycle=persistent
+CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
+
+## Edges
+Es [CAP_InvAmp] --(summarises)--> [CLM_gain]
+```
+
+Interior interconnect after `view=interior` (ASCII shared dialect; bare present). Membership, boundary `refines`, schematic wiring, and one formula edge:
+
+```text
+## Nodes
+NET [NET_VIN] ; net=VIN ; layer=board ; recycle=persistent
+NET [NET_VMINUS] ; net=VMINUS ; layer=board ; recycle=persistent
+NET [NET_VOUT] ; net=VOUT ; layer=board ; recycle=persistent
+NET [NET_VGND] ; net=VGND ; role=reference ; layer=board ; recycle=persistent
+CMP [ATO_Rin] ; refdes=R1 ; value=10k ; R=10000 ; layer=board ; recycle=persistent
+CMP [ATO_Rf] ; refdes=R2 ; value=100k ; R=100000 ; layer=board ; recycle=persistent
+PIN [PIN_R1_a] ; refdes=R1 ; pin=1 ; recycle=persistent
+PIN [PIN_R1_b] ; refdes=R1 ; pin=2 ; recycle=persistent
+PIN [PIN_R2_a] ; refdes=R2 ; pin=1 ; recycle=persistent
+PIN [PIN_R2_b] ; refdes=R2 ; pin=2 ; recycle=persistent
+RES [RES_A] ; A_s=-10.0 ; Rf=100000 ; Rin=10000 ; domain=s ; recycle=persistent
+
+## Edges
+# ownership (immediate children — not every leaf required)
+Ec1 [CAP_InvAmp] --(contains)--> [NET_VIN]
+Ec2 [CAP_InvAmp] --(contains)--> [NET_VMINUS]
+Ec3 [CAP_InvAmp] --(contains)--> [NET_VOUT]
+Ec4 [CAP_InvAmp] --(contains)--> [ATO_Rin]
+Ec5 [CAP_InvAmp] --(contains)--> [ATO_Rf]
+Ec6 [CAP_InvAmp] --(contains)--> [RES_A]
+
+# shell Port -> interior net (boundary bridge; locked polarity)
+Er1 [PORT_Vin] --(refines)--> [NET_VIN]
+Er2 [PORT_Vout] --(refines)--> [NET_VOUT]
+
+# schematic interconnect (interior only — not connects)
+Ew1 [PIN_R1_a] --(connects_to)--> [NET_VIN]
+Ew2 [PIN_R1_b] --(connects_to)--> [NET_VMINUS]
+Ew3 [PIN_R2_a] --(connects_to)--> [NET_VOUT]
+Ew4 [PIN_R2_b] --(connects_to)--> [NET_VMINUS]
+
+# formula (same interior view; circuitry vs formula is not capsule shell/interior)
+Ef1 [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=Rf,Rin ; expr=-(Rf/Rin)
+```
+
+Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VMINUS`. An op-amp child Capsule (if present) would appear as `CAP_InvAmp --(contains)--> CAP_OpAmp` plus Port–Port `connects` **on the child shell** when that child is the anchor — not as renamed schematic pins inside the parent dump.
+
+#### Rel cheat-sheet (shell vs interior)
+
+| Rel | Where | Endpoints |
+|-----|--------|-----------|
+| `exposes` / sugar `ports=` | Shell (store / sugar) | Capsule → Port |
+| `connects` | Shell (inter-capsule) | Port → Port |
+| `contains` | Interior open | Capsule → child Capsule / key NET / CMP / RES |
+| `refines` | Boundary | Port → NET / PIN / child Port |
+| `connects_to` | Interior interconnect | PIN → NET |
+| `derives` / `feeds` | Interior or shell summary node | Same-node MVP; see field-formulas |
+
+Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, that file’s Layer A/B atoms are exactly this **interior** graph.
 
 ---
 
@@ -415,6 +499,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | **Sugar / expand mismatch** | Shell pin_map and mutate both use compact form; expanded only in store / interior / `view=atoms` (§8.1) |
 | **Orphan ports** | Reject stand-alone agent `+ PORT` without Capsule sugar or `exposes` ownership when shell sugar is in force |
 | **Accidental whole-interior expand** | Default shell view; `contains` not followed unless `view=interior` or anchor is interior |
+| **Interconn on shell** | Keep PIN-NET `connects_to` in interior only; shell shows `ports=` / Port-Port `connects` (§3.6) |
 | **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.5) |
 | **`contains` fan-out** | Contain immediate children / child Capsules only; use Port `refines` for boundary nets — not one `contains` per leaf (§3.3) |
 | **Id-as-grammar drift** | Port-hood = kind `PORT` + `exposes`; `_` in ids is KIND_rest only (§3.2) — reject `__` / dotted-id “port of CAP” conventions |
@@ -446,7 +531,7 @@ No change to `requirements.sysml` in this design task.
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
 | `docs/grammar/memnet-field-formulas.md` | Same-node `derives` on shell/interior; cross-port later |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
-| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata |
+| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata; flat atoms = Capsule interior when wrapped (§3.6) |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
 | `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve; shell lease ≠ interior lease |
 | `docs/grammar/examples/` | Future golden fixtures for capsule/shell slices |
