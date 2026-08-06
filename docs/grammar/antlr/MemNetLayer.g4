@@ -8,14 +8,17 @@
 // Not an evaluator for LaTeX; law is opaque $...$.
 //
 // Dual EDGE (semantic — same arrow syntax):
-//   port ↔ port  → bind / pipe  (label bind|pipe; sense on carries=)
-//   node ↔ node  → relation     (label = sense; bare [NodeId] both ends)
-//   MUSTNOT: mixed [Node.port] ↔ [Node]; law= on EDGE; bind-as-relation
+//   port ↔ port  → bind     (teach bind only; pipe accept-only; optional carries=)
+//   node ↔ node  → relation (label = sense; bare [NodeId] both ends; open IDENT)
+//   MUSTNOT: mixed [Node.port] ↔ [Node]; law= on EDGE; bind-as-relation;
+//            CAP/contains=/carries=member (membership = relation grain)
+// Mission freeze: A only (CST+bind) for named functions — no B def=/uses=/role=lib.
+// Teach: direc= / bind / view=. Accept-only / do not teach: direction= / pipe / layer=.
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
 // 1. Wire disambiguation: tokenise '-->' before '--' (longest match). Left:
 //    '<--' vs '--'. Directed and non-directed share ARROW_DASH; right token
-//    decides (ARROW_R_DIR vs second ARROW_DASH).
+//    decides (ARROW_R_DIR vs second ARROW_DASH). Bi-directed: accept; demote teach.
 // 2. law= list commas vs LaTeX commas: commas inside LAW_SEG are opaque; only
 //    COMMA between closed $...$ segments is the field list joiner. Nested '$'
 //    inside maths is out of unquoted form — quote the whole field (STRING).
@@ -23,21 +26,17 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
 //    name: {…} (COLON = name-to-bag only; ASSIGN = all scalars/attrs).
-//    MUSTNOT: direc:in / direction:in (use direc=in); ports=x={…} (use x: {…}).
-//    direc= ≡ direction= (prefer direc=). Discipline (not a domain-field
+//    MUSTNOT: direc:in (use direc=in); ports=x={…} (use x: {…}).
+//    Teach direc= only; direction= accept-only. Discipline (not a domain-field
 //    allow-list): {…} = record of attrs; scalar = for singles; flat first;
 //    nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect
-//    keywords law/def/uses/pseudo/recycle/role/view/layer.
-//    OK: meta={units={x=m,y=s}}. Demote bare name{...} and name(...).
+//    keywords law/pseudo/recycle/role/view (B fields dropped from denylist).
+//    Do not promote meta=/units= teach. Demote bare name{...} and name(...).
 // 5. Quantity alias: ALIAS_REF = '@' IDENT as attrValue only (V=@va).
 //    Law keeps '@' in maths (opaque inside LAW_SEG): $@va-@vb=@ia*R$.
-//    Soft-validate separately: (i) law @idents ⊆ bag @aliases ∪ params ∪
-//    port.qty; (ii) bare B call names are NOT @idents — resolve vs reachable
-//    def= only. Optional B sugar: def=/uses= are ordinary IDENT=value fields
-//    (lawList / atom; not SCHEMA-hard). uses= = soft NODE-id pointer, NOT an
-//    EDGE — MUSTNOT invent import/bind EDGE for libs. Call text inside LAW_SEG
-//    (e.g. sum(@x,@y)) is maths only — no call AST; soft-validate name/arity.
-//    LaTeX macros (\mathrm{clip}, …) ≠ B def= names.
+//    Soft-validate: law symbols ⊆ ports ∪ params ∪ @aliases (∪ port.qty).
+//    Primary teach: in-NODE @aliases; port.qty secondary. No B call soft-validate
+//    (def=/uses= removed from teach). LaTeX macros (\mathrm{clip}, …) = maths only.
 // 6. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 7. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
@@ -48,8 +47,8 @@
 // 9. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
 // 10. EDGE endpoints: [Node.port] via IDENT DOT IDENT (bind); plain IDENT
-//    (relation / NEW / rare first-class PORT). Soft-validate same grain both
-//    ends. Reject mixed; reject from=/to= on EDGE.
+//    (relation / NEW). First-class PORT NODE deferred/no. Soft-validate same
+//    grain both ends. Reject mixed; reject from=/to= on EDGE.
 // 11. Dialect stays domain-generic; electronics V/I are instance attr keys only.
 // 12. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
@@ -57,12 +56,12 @@
 // 13. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
 //     {…} = brace-group / record (ports primary; other keys by discipline);
 //     max nesting depth = 2 — demote braced --{label}-->.
-//     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
+//     Bind teach: bind only (pipe accept-only). Relation: any other IDENT as sense.
 // 14. Omit recycle= on teachable wire unless non-default (session/engine
 //     default typically persistent — default recycle= wastes tokens).
-// 15. LAW_SEG is opaque $…$: '@', '\\', '=', '*', LaTeX macros, and B-looking
-//     call text (sum(@x,@y)) all OK as maths — no call AST in the grammar;
-//     only '$', ';', newline close/forbid the unquoted segment.
+// 15. LAW_SEG is opaque $…$: '@', '\\', '=', '*', LaTeX macros all OK as maths —
+//     no call AST in the grammar; only '$', ';', newline close/forbid the
+//     unquoted segment. Named-function reuse = A (CST+bind) only.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.
@@ -103,7 +102,7 @@ patchNode
     ;
 
 // Dual EDGE: same three wire forms; grain from endpoints (semantic).
-// Bind: [Node.port] --bind--> [Node.port]  (pipe ≡ bind; carries= sense)
+// Bind: [Node.port] --bind--> [Node.port]  (teach bind; pipe accept-only; optional carries=)
 // Relation: [NodeA] --knows--> [NodeB]     (label = sense; bare ids)
 // No law= on EDGE (semantic). {…} = brace-group / record — not on arrows.
 presentEdge
