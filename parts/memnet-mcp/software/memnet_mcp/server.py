@@ -138,6 +138,7 @@ async def _pin_map(
     depth: int = 2,
     max_rows: int = 50,
     session: str | None = None,
+    view: str | None = None,
 ) -> str:
     argv = [
         "query",
@@ -149,6 +150,8 @@ async def _pin_map(
         "--max-rows",
         str(max_rows),
     ]
+    if view:
+        argv.extend(["--view", view])
     return await _run(argv, session=session)
 
 
@@ -157,13 +160,18 @@ async def pin_map(
     anchor: str,
     depth: int = 2,
     max_rows: int = 50,
+    view: str | None = None,
     session: str | None = None,
 ) -> str:
     """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
 
+    Optional ``view``: ``shell`` | ``interior`` (teach); ``flowchart`` | ``parts`` |
+    ``statechart`` accepted with soft shell caps (grain filters deferred).
+    Omit ``view`` for 0.3 Tier A depth/max_rows behaviour.
+
     Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
     """
-    return await _pin_map(anchor, depth, max_rows, session)
+    return await _pin_map(anchor, depth, max_rows, session, view)
 
 
 @mcp.tool()
@@ -171,10 +179,11 @@ async def query_warm(
     anchor: str,
     depth: int = 2,
     max_rows: int = 50,
+    view: str | None = None,
     session: str | None = None,
 ) -> str:
     """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(anchor, depth, max_rows, session)
+    return await _pin_map(anchor, depth, max_rows, session, view)
 
 
 @mcp.tool()

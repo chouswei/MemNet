@@ -2,6 +2,10 @@
 
 Layer (1.x) rows with ``src_port`` / ``dist_port`` / non-default ``wire`` emit
 Layer wire forms; other rows stay on the 0.3 Tier A paren-label surface.
+
+Optional ``view=`` (multi-layer grain): ``shell`` / ``interior`` taught;
+``flowchart`` / ``parts`` / ``statechart`` accepted with soft shell caps
+(grain-specific filters deferred).
 """
 
 from __future__ import annotations
@@ -16,6 +20,96 @@ from memnet.layer import (
 )
 from memnet.models import Record
 from memnet.tier_a import EdgeRec, Field, NodeRec, Op, emit_item
+
+# Soft shell caps (docs/grammar/memnet-multi-layer.md §3 flowchart / §5).
+SHELL_MAX_NODES = 8
+SHELL_MAX_EDGES = 12
+
+# Teachable grains first; soft = accept param, shell-like budget for now.
+PIN_MAP_VIEWS_TEACH = frozenset({"shell", "interior"})
+PIN_MAP_VIEWS_SOFT = frozenset({"flowchart", "parts", "statechart"})
+PIN_MAP_VIEWS = PIN_MAP_VIEWS_TEACH | PIN_MAP_VIEWS_SOFT
+
+
+def normalize_view(view: str | None) -> str | None:
+    """Return canonical view token, or None for default 0.3 Tier A behaviour."""
+    if view is None:
+        return None
+    text = str(view).strip().lower()
+    if not text or text in ("default", "all"):
+        return None
+    if text not in PIN_MAP_VIEWS:
+        raise MemNetError(
+            "bad_view",
+            f"unknown view={view!r}; expected shell|interior"
+            f"|flowchart|parts|statechart (or omit)",
+        )
+    return text
+
+
+def resolve_view_budget(
+    view: str | None,
+    *,
+    depth: int,
+    max_rows: int,
+) -> tuple[int, int, bool]:
+    """Map ``view=`` to (depth, max_rows, apply_shell_soft_cap).
+
+    * omit / default — honour caller depth/max_rows; no soft shell cap
+    * ``interior`` — same; no soft shell cap (fuller neighbourhood)
+    * ``shell`` — depth capped at 1; soft 8 NODE / 12 EDGE after pack
+    * ``flowchart`` / ``parts`` / ``statechart`` — soft: shell-like budget
+      (grain filters deferred)
+    """
+    v = normalize_view(view)
+    if v is None or v == "interior":
+        return depth, max_rows, False
+    # shell + soft grain aliases
+    return min(depth, 1), max_rows, True
+
+
+def apply_shell_soft_cap(
+    rows: list[Record],
+    *,
+    anchor: str | None,
+    max_nodes: int = SHELL_MAX_NODES,
+    max_edges: int = SHELL_MAX_EDGES,
+) -> list[Record]:
+    """Truncate NODE/EDGE payload to soft shell caps; keep LAW rows intact."""
+    laws: list[Record] = []
+    nodes: list[Record] = []
+    edges: list[Record] = []
+    for rec in rows:
+        if rec.tag == "LAW":
+            laws.append(rec)
+        elif rec.tag == "EDG" or getattr(rec, "kind", None) == "edge":
+            edges.append(rec)
+        else:
+            nodes.append(rec)
+
+    if anchor:
+        nodes = sorted(nodes, key=lambda r: (0 if r.id == anchor else 1, r.id))
+    else:
+        nodes = sorted(nodes, key=lambda r: r.id)
+    nodes = nodes[:max_nodes]
+    kept = {r.id for r in nodes}
+
+    def _edge_rank(e: Record) -> tuple[int, str]:
+        src = e.fields.get("src", "")
+        dist = e.fields.get("dist", "")
+        both = int(src in kept) + int(dist in kept)
+        return (-both, e.id)
+
+    filtered: list[Record] = []
+    for e in sorted(edges, key=_edge_rank):
+        src = e.fields.get("src", "")
+        dist = e.fields.get("dist", "")
+        if src in kept or dist in kept:
+            filtered.append(e)
+        if len(filtered) >= max_edges:
+            break
+
+    return laws + nodes + filtered
 
 
 def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
@@ -76,8 +170,12 @@ class PinMapComposer:
         active_only: bool = True,
         require_anchor: bool = True,
         law_prepend: bool = True,
+        view: str | None = None,
     ) -> tuple[list[Record], str]:
-        """Return (records, shared-dialect text)."""
+        """Return (records, shared-dialect text).
+
+        ``view`` is optional/additive — omit for 0.3 Tier A depth/max_rows behaviour.
+        """
         del law_prepend  # store.context_pack already prepends laws
         if require_anchor and not anchor:
             raise MemNetError("no_anchor", "pin map requires --anchor")
@@ -86,13 +184,18 @@ class PinMapComposer:
             anchor = self.ss.store.default_anchor()
             if not anchor:
                 return [], ""
+        eff_depth, eff_max_rows, soft_cap = resolve_view_budget(
+            view, depth=depth, max_rows=max_rows
+        )
         rows = self.ss.store.context_pack(
             anchor_id=anchor,
-            depth=depth,
-            max_rows=max_rows,
+            depth=eff_depth,
+            max_rows=eff_max_rows,
             active_only=active_only,
             stale_warnings=stale_warnings,
         )
+        if soft_cap:
+            rows = apply_shell_soft_cap(rows, anchor=anchor)
         text = self.emit_tier_a(rows)
         return rows, text
 

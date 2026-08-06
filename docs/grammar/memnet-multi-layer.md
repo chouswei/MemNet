@@ -2,8 +2,10 @@
 
 **Status:** design + **engine vertical slice (step 3)** — Layer codec / MutateGate /
 store ports on NODE + dual EDGE (`src_port`/`dist_port`/`wire`) land in 0.3.x
-additively; MCP `pin_map(view=)` and full formula-on-EDGE migration still target
-**MemNet 1.x**.  
+additively; **MCP/CLI `pin_map(view=)`** teaches `shell`|`interior` with soft
+shell caps (≤8 NODE / ≤12 EDGE); `flowchart`|`parts`|`statechart` accepted
+(shell-like budget; grain filters deferred). Full formula-on-EDGE migration
+still targets **MemNet 1.x**.  
 **Mission:** agent memory graph (any domain), Write = display, bounded `pin_map`, tokens — **not** MBSE.  
 **Store:** **NODE | EDGE** only. No third AST primitive.  
 **Mission freeze:** A only for named functions; teach `direc=` / `bind` / `view=` only; no B (`def=`/`uses=`/`role=lib`); no `CAP`/`contains=`/`carries=member`; membership = node↔node relation.
@@ -579,6 +581,12 @@ pin_map(session, anchor, depth, max_rows, view?=shell|interior|flowchart|parts|s
 ```
 
 (`shell|interior|…` above is API documentation “or”, not a wire list.)
+
+**Implemented (0.3.x additive):** MCP/CLI honour optional `view=`. Teach `shell`
+(depth capped at 1 + soft ≤8 NODE / ≤12 EDGE after pack) and `interior` (caller
+`depth`/`max_rows`, no soft shell cap). Omit `view` → prior Tier A behaviour.
+`flowchart` / `parts` / `statechart` accepted with shell-like budget; grain-specific
+filters remain TODO.
 
 1. Read shell — few rows.  
 2. Reason / mutate at that grain.  

@@ -58,6 +58,23 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
     assert warm_result.exit_code == 0
     assert "PLR77" in warm_result.stdout
 
+    shell_result = runner.invoke(
+        app,
+        [
+            "query",
+            "pin-map",
+            "--anchor",
+            "PLR77",
+            "--view",
+            "shell",
+            "--session",
+            sid,
+        ],
+        env={"MEMNET_TEST_INLINE": "1"},
+    )
+    assert shell_result.exit_code == 0
+    assert "PLR77" in shell_result.stdout
+
 
 def test_examples_map():
     result = runner.invoke(app, ["examples", "map"])

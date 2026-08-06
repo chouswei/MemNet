@@ -146,6 +146,19 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     alias_payload = json.loads(alias_raw)
     assert alias_payload["stdout"] == warm_payload["stdout"]
 
+    shell_raw = asyncio.run(
+        pin_map(anchor="PLR55", depth=2, view="shell", session=sid)
+    )
+    shell_payload = json.loads(shell_raw)
+    assert shell_payload["exit_code"] == 0
+    assert "PLR55" in shell_payload["stdout"]
+
+    bad_raw = asyncio.run(pin_map(anchor="PLR55", view="persons", session=sid))
+    bad_payload = json.loads(bad_raw)
+    assert bad_payload["exit_code"] != 0
+    err_blob = " ".join(bad_payload.get("errors") or []) + bad_payload.get("stderr", "")
+    assert "bad_view" in err_blob
+
 
 def test_mcp_tool_names(monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
@@ -155,6 +168,11 @@ def test_mcp_tool_names(monkeypatch):
     tool_names = {t.name for t in names}
     assert "pin_map" in tool_names
     assert "query_warm" in tool_names
+    pin_tool = next(t for t in names if t.name == "pin_map")
+    props = (pin_tool.inputSchema or {}).get("properties") or {}
+    assert "view" in props
+    assert "depth" in props
+    assert "max_rows" in props
 
 
 def test_supplement_seed_lines():

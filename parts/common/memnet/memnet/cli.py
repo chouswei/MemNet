@@ -513,6 +513,7 @@ def _query_context(
     active_only: bool,
     require_anchor: bool,
     tier_a: bool = False,
+    view: str | None = None,
 ) -> None:
     if tier_a:
         composer = PinMapComposer(ss)
@@ -523,6 +524,7 @@ def _query_context(
                 max_rows=max_rows,
                 active_only=active_only,
                 require_anchor=require_anchor,
+                view=view,
             )
         except MemNetError as exc:
             _handle_error(exc)
@@ -624,6 +626,7 @@ def _run_pin_map(
     depth: int,
     max_rows: int,
     session: str | None,
+    view: str | None = None,
 ) -> None:
     ss, lock = _load_session(session)
     with lock:
@@ -635,6 +638,7 @@ def _run_pin_map(
             active_only=True,
             require_anchor=True,
             tier_a=True,
+            view=view,
         )
 
 
@@ -643,10 +647,19 @@ def query_pin_map(
     anchor: Annotated[str | None, typer.Option("--anchor")] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    view: Annotated[
+        str | None,
+        typer.Option(
+            "--view",
+            help="Pin-map grain: shell|interior (teach); flowchart|parts|statechart (soft).",
+        ),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Live pin map (PinMapComposer). Emits Tier A Write=display."""
-    _run_pin_map(anchor=anchor, depth=depth, max_rows=max_rows, session=session)
+    """Live pin map (PinMapComposer). Emits Tier A / Layer Write=display."""
+    _run_pin_map(
+        anchor=anchor, depth=depth, max_rows=max_rows, session=session, view=view
+    )
 
 
 @query_app.command("warm")
@@ -654,10 +667,19 @@ def query_warm(
     anchor: Annotated[str | None, typer.Option("--anchor")] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    view: Annotated[
+        str | None,
+        typer.Option(
+            "--view",
+            help="Pin-map grain: shell|interior (teach); flowchart|parts|statechart (soft).",
+        ),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Live pin map — deprecated alias for pin-map."""
-    _run_pin_map(anchor=anchor, depth=depth, max_rows=max_rows, session=session)
+    _run_pin_map(
+        anchor=anchor, depth=depth, max_rows=max_rows, session=session, view=view
+    )
 
 
 @query_app.command("walk")

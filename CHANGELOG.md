@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **MCP/CLI `pin_map(view=)`** — optional grain on live pin map (additive to 0.3 `depth`/`max_rows`): teach `shell` (depth≤1 + soft ≤8 NODE / ≤12 EDGE) and `interior` (no soft shell cap); `flowchart`|`parts`|`statechart` accepted with shell-like budget (grain filters deferred). `query_warm` / `query warm` alias the same param. Unknown view → `@ERR: bad_view`.
 - **Layer dialect engine slice (step 3)** — parallel `memnet.layer` / `LayerCodec` + MutateGate path: dual EDGE (`src_port`/`dist_port`/`wire` on EDG), structured `ports=` / `law=` on NODE (CST auto-registered), soft-validate before commit (mixed endpoints, law-on-EDGE, bag denylist, carries= bind-only); pin map emits Layer wire when ports marked. Coexists with 0.3 Tier A `--(rel)-->` path.
 - **Numeric incremental update** — shared-dialect `~` patches accept `key+=N` / `key-=N` for int/float fields; create keeps plain `=`; pin map shows absolute values; `@ERR: bad_numeric` / `invalid_field` on misuse.
 - **Field formulas design** — `docs/grammar/memnet-field-formulas.md` (relation-first: formula as EDGE/`derives`; same-node self-loop MVP; no expression engine).
