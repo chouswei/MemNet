@@ -43,7 +43,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is strongly usual (`in` / `ou
 Eid [CST_Q1.C] --{bind}--> [CST_Rc.a] ; carries=token
 ```
 
-Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`). Prefer this over EDGE fields `from=`/`to=` (hides grain) and over minting a first-class PORT NODE for every bind. Optional `carries=` on all three.
+Locked endpoint shape (default): `[NodeId.PortName]` (`.` = ownership join inside `[…]`). Prefer this over EDGE fields `from=`/`to=` (hides grain) and over minting a first-class PORT NODE for every bind. Optional `carries=` on all three. Bare `[NodeId]` only for the persons / relation-chart exception (§3).
 
 **Bind label (locked):** exactly one `IDENT` inside the braces — charset `[A-Za-z_][A-Za-z0-9_]*` (matches [`MemNetLayer.g4`](antlr/MemNetLayer.g4)). Default teach **`bind`**. Other idents (`contains`, `refines`, …) OK as bind *kinds* only when they earn their keep. Payload / flow sense stays on fields — `carries=flow|member|event|token|…` (and optional `event=` / `guard=`); do **not** put those words in the label slot. Empty `{}` forbidden. No spaces, multi-token, attrs, or `key=value` inside `{…}` on a wire (port bags are `name: {attrs}` elsewhere — different context). No `law=` on EDGE. `NEW` is mint-only, not a label. Legacy alias: `connects` → `bind`.
 
@@ -121,7 +121,7 @@ Eid [Id.port] <--{bind}--> [Id.port] ; carries=token
 | Shape | Form |
 |-------|------|
 | NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
-| EDGE directed | `Eid [Node.port] --{bind}--> [Node.port] ; key=value ; …` |
+| EDGE directed | `Eid [Node.port\|Node] --{bind}--> [Node.port\|Node] ; …` (port grain default; bare id = persons chart only) |
 | EDGE non-directed | `Eid [Node.port] --{bind}-- [Node.port] ; key=value ; …` |
 | EDGE bi-directed | `Eid [Node.port] <--{bind}--> [Node.port] ; key=value ; …` |
 | Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [Node.port] --{bind}-- [Node.port] ; …` · or `--{bind}-->` / `<--{bind}-->` |
@@ -378,6 +378,50 @@ E_stop [CST_Run.exit] --{bind}--> [CST_Idle.enter] ; event=stop ; carries=event
 
 Guarded transition (thin): keep `guard=$…$` on the bind as metadata; if the guard needs ports or `pseudo=`, mint a tiny junction CST instead — do **not** put device `law=` on the EDGE.
 
+### Application note: persons / relation chart
+
+**Instance only** — org chart, family, or collaborator graph for **agent pin_map** (who reports to whom, who knows whom) — **not** a social-network product. No TagMap **`PER`** / **`ACT`**; prefer light **`CST`** with `role=person` (no `law=` / `ports=` required for chart rows).
+
+**Locked split (bare id vs port grain):**
+
+| Domain | EDGE endpoints | Why |
+|--------|----------------|-----|
+| Physical / programme / law CST | `[Node.port]` | Quantity continuity needs port grain |
+| Persons / org / family chart | **bare** `[PersonA]` / `[PersonB]` | Chart edge is person↔person; inventing `self`/`reports`/`knows` ports is noise |
+
+Do **not** generalise bare-id binds back onto BJT / pipeline / parts. Label stays **`bind`**; chart sense on **`carries=`** (`reports_to`, `knows`, `member`, …). Prefer `carries=` alone over a second `role=` field on EDGE. Pin-map grain: **`view=persons`** or **`view=org`**.
+
+ASCII (Boss → Alice; Alice knows Bob):
+
+```text
+  [Boss]
+     | carries=reports_to
+     v
+  [Alice] --{bind}--> [Bob] ; carries=knows
+```
+
+Mutate create:
+
+```text
++ CST [CST_Boss] ; role=person ; name=Boss ; recycle=persistent
++ CST [CST_Alice] ; role=person ; name=Alice ; recycle=persistent
++ CST [CST_Bob] ; role=person ; name=Bob ; recycle=persistent
++ E_ra [CST_Alice] --{bind}--> [CST_Boss] ; carries=reports_to
++ E_kb [CST_Alice] --{bind}--> [CST_Bob] ; carries=knows
+```
+
+Pin-map present (`view=persons`):
+
+```text
+CST [CST_Boss] ; role=person ; name=Boss ; recycle=persistent
+CST [CST_Alice] ; role=person ; name=Alice ; recycle=persistent
+CST [CST_Bob] ; role=person ; name=Bob ; recycle=persistent
+E_ra [CST_Alice] --{bind}--> [CST_Boss] ; carries=reports_to
+E_kb [CST_Alice] --{bind}--> [CST_Bob] ; carries=knows
+```
+
+Membership of a team (thin): same bare-id bind with `carries=member` (Alice → Team node, or person↔person as the chart needs). Keep the slice small — mission is tokens + accuracy, not a full org dump.
+
 ### Application note: BJT + resistor (electronics instance)
 
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
@@ -429,8 +473,8 @@ E_path [CST_K1.COM] --{bind}-- [CST_K1.NO] ; carries=I
 ## 4. Wrong shapes (three)
 
 - **Anything as EDGE law** — device FN on the arrow (`[A] --{derives}--> [B] ; law=$y=k x$`) **or** stuffing ideal-wire equations onto EDGE (`… --{bind}-- … ; law=$V_a=V_b$`). EDGE = ideal pipe only; continuity is implied.
-- **Node-to-node bind** — e.g. `[CST_Q1] --{bind}-- [CST_Rc]` with no `.port` (missing port grain; prefer `[CST_Q1.C]`).
-- **Hollow nest with no behaviour leaf** — a shell without a node that owns `law=` or `pseudo=` (behaviour has nowhere to live).
+- **Bare bind on law/physical CST** — e.g. `[CST_Q1] --{bind}-- [CST_Rc]` with no `.port` (missing port grain; prefer `[CST_Q1.C]`). **Exception:** persons / relation chart uses bare ids by design (§3) — do not treat that as licence for device binds.
+- **Hollow nest with no behaviour leaf** — a shell without a node that owns `law=` or `pseudo=` (behaviour has nowhere to live). For person chart rows, no `law=` is fine — they are not behaviour leaves.
 
 ---
 
@@ -439,7 +483,7 @@ E_path [CST_K1.COM] --{bind}-- [CST_K1.NO] ; carries=I
 Flat `depth` / `max_rows` alone fails at coarse → fine strata.
 
 ```text
-pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior|flowchart|parts|statechart|…)
+pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior|flowchart|parts|statechart|persons|org|…)
 ```
 
 (`shell|interior|…` above is API documentation “or”, not a wire list.)
@@ -449,7 +493,7 @@ pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior|flowc
 3. If blocked → one descend (re-anchor or `view=interior`).  
 4. Ascend; do not keep nested shells in context.
 
-`layer=` = abstraction stratum (project-chosen labels). Examples: **`layer=req`** — requirement CSTs + design binds; **`layer=arch`** — parts composition. Shell vs interior = **`view=`**, not a new atom. Other teachable **`view=`** grains (§3): `flowchart`, `parts`, `statechart`. Do not invent a kind zoo per view.
+`layer=` = abstraction stratum (project-chosen labels). Examples: **`layer=req`** — requirement CSTs + design binds; **`layer=arch`** — parts composition. Shell vs interior = **`view=`**, not a new atom. Other teachable **`view=`** grains (§3): `flowchart`, `parts`, `statechart`, `persons` / `org`. Do not invent a kind zoo per view.
 
 **Goldfish:** re-read the current pin map each turn. Chat is not SSOT.
 
@@ -474,7 +518,7 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 | Axis | Finding |
 |------|---------|
 | **Tokens** | Braced `--{bind}-->` costs two marks vs demoted bare `--bind-->` / paren `--(bind)-->`; kept for brace-group unity with port bags. Teach default label `bind` only — label zoo burns tokens. Port bags `name: {side=…}` beat colon piles for clarity but stay verbose. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows (relay law is the cautionary extreme). Flowchart / parts / statechart sketches multiply rows fast. |
-| **Accuracy** | `{}` dual use (port bag after `name:` vs bind label after `--`/`<--`) is parser-safe with context but agents still confuse the two — stuffing `carries=` into braces or emitting bare `--bind-->` (reject; locked form is `--{label}-->`). Soft law completeness is unenforced (orphan symbols). One kind `CST` + `role=`/`view=` is lean but invites over-kinding. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting is LLM-fragile. `<--{…}-->` vs Dirac `<…\|…>` is OK if maths stays in `$…$` (prefer `\langle`/`\rangle`). Empty `{}` or attr bags on the wire fail parse. |
+| **Accuracy** | `{}` dual use (port bag after `name:` vs bind label after `--`/`<--`) is parser-safe with context but agents still confuse the two — stuffing `carries=` into braces or emitting bare `--bind-->` (reject; locked form is `--{label}-->`). Soft law completeness is unenforced (orphan symbols). One kind `CST` + `role=`/`view=` is lean but invites over-kinding. Agents mis-place `flow`/`member`/`event` into the label slot — keep those on `carries=` / `event=`. Comma nesting is LLM-fragile. `<--{…}-->` vs Dirac `<…\|…>` is OK if maths stays in `$…$` (prefer `\langle`/`\rangle`). Empty `{}` or attr bags on the wire fail parse. Bare-id person binds vs port-grain CST: agents may apply the wrong rule — teach the §3 split explicitly. |
 | **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Warm BJT slice (~5 lines) is fine; relay / flowchart shells need stricter caps. Prefer omit-default attrs and short `law=` on the warm slice. |
 
 **Ranked cuts (token save / accuracy gain):** (1) pin-map omit defaults — session-default `recycle=`, skip empty attr bags beyond `side=`; (2) teach default label `bind` only (no label zoo); (3) soft-validate law symbols ⊆ ports∪params; (4) cap flowchart/statechart fan-out in shell view; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
