@@ -61,18 +61,18 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `{…}` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
-| `{` `}` | **Brace group** (intentional unity): port record bag after `name:` — `x: {side=in, q=0}`; bind label bag on arrows — `--bind-->`. Role from context (`name:` vs `--` / `<--`) |
+| `{` `}` | Port record bag after `name:` — `x: {side=in, q=0}` (not a call; not a bind-label wrap) |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
-| `--{` `}-->` | **Directed** bind (braces wrap label; no spaces inside) |
-| `--{` `}--` | **Non-directed** bind |
-| `<--{` `}-->` | **Bi-directed** bind (`<--` / `-->` = direction marks only — not Dirac) |
+| `--` `-->` | **Directed** bind: `--label-->` (bare ident; default `bind`) |
+| `--` `--` | **Non-directed** bind: `--label--` |
+| `<--` `-->` | **Bi-directed** bind: `<--label-->` (`<` / `>` only in these fragments — not Dirac) |
 | `"` | STRING for awkward values (shared dialect) |
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Port vs bind:** same `{` `}` = brace group. Port = `IDENT: {…}` inside `ports=`; bind = `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Context disambiguates. `()` is **free** (held for later; not used on binds).
+**Port vs bind:** port = `IDENT: {…}` inside `ports=`; bind = `--label-->` / `--label--` / `<--label-->` after endpoint `]` (bare ident label). `()` is **free** (held for later — tuples / other); demote `--(bind)-->` and `--{bind}-->`.
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -82,12 +82,12 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 
 | Status | Characters | Notes |
 |--------|------------|--------|
-| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; brace group (ports + bind labels); ids; ownership; LaTeX; STRING; comment; mutate |
-| **Used (arrow compounds)** | `--{` `}-->` `}--` `<--{` | Bind wires; `{}` wraps label (same braces as port bags) |
-| **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports and paren-label binds `--(bind)-->` |
-| **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
+| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port `name: {…}`; ids; ownership; LaTeX; STRING; comment; mutate |
+| **Used (arrow compounds)** | `--` `-->` `<--` | Bind wires with bare label between (`--bind-->`) |
+| **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports; demote `--(bind)-->` and `--{bind}-->` |
+| **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` freed from binds (tuples / later); others held |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = bind arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = brace group (port bag after `name:` **or** bind label after `--` / `<--`). `()` is free — not locked to binds.
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = bind arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = port record bags only (+ opaque LaTeX braces inside `$…$`). `()` is free — not locked to binds.
 
 **Sparing recommendations (0–2):**
 
