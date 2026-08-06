@@ -4,10 +4,11 @@
 **Refactor framing (locked for design prose):** ports-first + **`FN`** (active) + **`CST`** (constraint) + **`CAP`** composition is a **complete refactor** of MemNet’s **shared dialect / agent surface** (and the engine assumptions that serve that surface) — **not** a small dialect tweak on today’s `RES`/`VAR` stamp hubs. Store atomics remain NODE|EDGE; transport and (likely) MCP tool *names* can stay. See §3.7 scope box and §13.  
 **Versioning implication:** treat the target dialect as **breaking / next major** — label design prose **MemNet 1.x dialect** (recommend ship path **0.4 design → 1.0** when SCHEMA + engine land). Do **not** pretend compatibility with 0.3.x agent teaching of `RES` self-loop hubs as the long-term surface.  
 **Thesis:** MemNet stays **NODE | EDGE** only in the store; agents use **compact capsule sugar** on the shell (`ports=` / `contains=` on `CAP`) that desugars 1:1 to those atoms. Complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports — including capsule-in-capsule). Port-hood is structure (store: kind `PORT` + `exposes`), not id punctuation.  
-**Direction (locked for design prose):** elemental leaves with ports — **function** (`FN`, active in→out map) and **constraint** (`CST`, constitutive relation on port variables); every interconnect EDGE is **port→port** (or pin→pin); Capsules (`CAP`) compose both. Never orphan scalars on `RES` / free fields. See §3.7.  
+**Direction (locked for design prose):** elemental leaves with ports — **`FN`** and **`CST` are NODEs that *are* the function / constraint** (law / `expr` / `law=` lives **on the node**); Capsules (`CAP`) compose them. **EDGE ≠ function/constraint** — an EDGE is a **carrier** of what goes **in/out** between ports (flow / signal / incidence of quantities), not the gain or Ohm law. Never orphan scalars on `RES` / free fields. See §3.7.  
+**Grammar incompleteness (open):** how the FN/CST **node** names multi-port IO in its law without smuggling via edge-as-function (e.g. `src_ports=` / `tgt_ports=` / `law=` **on the node**). Binary EDGE arity remains a store fact for carriers; **do not** “fix” multi-input by putting `expr` on an EDGE. §3.7; §13 #8–#9.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
-**Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
+**Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md) (flat same-node `derives` = **transitional** only; 1.x = law on `FN`/`CST`), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
 
 **Disambiguation:** §3 *Layering* in the grammar design doc is **I/O / store / transport**. This document is **stratified product graph** (abstraction strata + capsule shell/interior) so agents do not load the whole net into context. App-note phrases such as “Layer A / Layer B” in the inverting-amplifier example mean **circuitry vs formula relations**, not capsule strata and not grammar §3.
 
@@ -28,10 +29,10 @@ Agents need to **reason at layer L**, then **descend only when needed** — fini
 
 | Atom | Role |
 |------|------|
-| **NODE** | Kinded fact (`CMP`, `NET`, `TSK`, `LAW`, Capsule `CAP`, Port `PORT`, Function `FN`, Constraint `CST`, …) |
-| **EDGE** | Directed relation with English / snake `rel` and optional fields |
+| **NODE** | Kinded fact. **`FN` / `CST` *are* the behaviour / constitutive law** (params + `law=` / `expr` on the node). Also `CAP`, `PORT`, `CMP`, `NET`, `TSK`, `LAW`, … |
+| **EDGE** | **Carrier / incidence** between endpoints — moves something **in/out** (e.g. `connects` between ports carries V/I). Membership (`contains` / `exposes`) and boundary (`refines`) too. **Not** the function or constraint itself |
 
-**MUSTNOT:** invent a third conceptual primitive (no free-standing “layer object” or “SysML part” type outside NODE|EDGE). Surface spellings remain node kinds / edge relations (MN-REQ-02.7). Capsules and layers are **patterns and projections** over the same atoms. The **complete refactor** (§3.7) changes which kinds and endpoint rules agents are taught — not NODE|EDGE itself.
+**MUSTNOT:** invent a third conceptual primitive; treat an EDGE as the FN/CST (no `expr` / gain / Ohm on a `derives` / `constrains` edge as the teachable 1.x law). Capsules and layers are **patterns and projections** over NODE|EDGE. The **complete refactor** (§3.7) locks laws-on-nodes + edges-as-carriers.
 
 ---
 
@@ -86,7 +87,7 @@ ConstraintNode = CST  [Id] ; name=Atom ; layer=Atom? ; fields*       // constitu
 PortNode       = PORT [Id] ; name=Atom ; side=in|out|inout|internal? ; layer=Atom? ; fields*
 ExposeEdge     = [OwnerId]   --(exposes)--> [PortId]   ; fields*      // Owner = CAP | FN | CST
 ContainEdge    = [CapsuleId] --(contains)--> [ChildId] ; fields*      // Child = CAP | FN | CST | …
-ConnectEdge    = [PortId]    --(connects)--> [PortId]  ; fields*      // wiring (not connects_to)
+ConnectEdge    = [PortId]    --(connects)--> [PortId]  ; carries=? ; fields*  // carrier in/out (not the FN/CST law)
 RefineEdge     = [PortId]    --(refines)--> [InteriorId] ; fields*    // locked: shell tip -> finer grain
 ```
 
@@ -142,7 +143,7 @@ E4 [CAP_InvAmp] --(contains)--> [ATO_Rf]
 E6 [PORT_Vin] --(refines)--> [NET_VIN]
 ```
 
-Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports. Interior **interconnection** (PIN↔NET, optional formula edges) is ordinary schematic dialect inside the open Capsule — §3.6.
+Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports. Interior **interconnection** (PIN↔NET, port `connects` carriers, `FN`/`CST` law nodes) is ordinary dialect inside the open Capsule — §3.6 / §3.7.
 
 **Mutate** (compact sugar; ops mutate-only; desugars to store atoms §8.1):
 
@@ -206,7 +207,7 @@ Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_R
 | Step | Call | What you get |
 |------|------|----------------|
 | 1. Shell | `pin_map(anchor=CAP_InvAmp, view=shell)` | Compact `CAP` + `ports=` / `contains=` / `summarises` — **no** PIN/NET dump |
-| 2a. Descend (preferred) | `pin_map(anchor=CAP_InvAmp, view=interior)` | Contained ego: children, Port `refines`, PIN–NET wiring, optional `derives` — still `depth` / `max_rows` capped |
+| 2a. Descend (preferred) | `pin_map(anchor=CAP_InvAmp, view=interior)` | Contained ego: children, Port `refines`, PIN–NET / port `connects` carriers, `FN`/`CST` law nodes — still `depth` / `max_rows` capped |
 | 2b. Re-anchor | Follow one `refines` / `contains` tip → `pin_map(anchor=NET_VMINUS)` (or `ATO_Rf`, …) | Same interior grain, tighter ego around that node |
 | 3. Ascend | `pin_map(anchor=CAP_InvAmp, view=shell)` again | Shell contract only; do not keep the whole interior in context |
 
@@ -262,7 +263,7 @@ Ew2 [PIN_R1_b] --(connects_to)--> [NET_VMINUS]
 Ew3 [PIN_R2_a] --(connects_to)--> [NET_VOUT]
 Ew4 [PIN_R2_b] --(connects_to)--> [NET_VMINUS]
 
-# formula (same interior view; circuitry vs formula is not capsule shell/interior)
+# formula (TRANSITIONAL flat RES self-loop — not 1.x; see §3.7 law-on-FN/CST)
 Ef1 [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=Rf,Rin ; expr=-(Rf/Rin)
 ```
 
@@ -272,48 +273,76 @@ Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VM
 
 **Question:** if an op-amp is a node, how do you express it?
 
-**Answer:** one **`FN`** with three ports. Behaviour is port↔port `derives` **owned by that node** — not orphan fields, not a nest of `RES`/`VAR`. Use a child `CAP` around the amp **only** when you need a nestable composition shell with its own exposed board contract (rare for a single behavioural leaf).
+**Answer:** one **`FN`** node that *is* the amp: it owns ports and holds the law (and `a_s`). Board assembly uses **`connects` EDGEs only as carriers** of V/I between ports — never a `derives` EDGE pretending to *be* the gain. Use a child `CAP` around the amp **only** when you need a nestable composition shell with its own exposed board contract (rare for a single behavioural leaf).
+
+**Rejected (wrong twice — do not teach):** EDGE as the function *and* binary fake `src`:
 
 ```text
-# Canonical: op-amp = one Function node
+# REJECTED — edge-as-FN + incomplete topology
 FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; recycle=persistent
-E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_OpAmp ; owner_fields=a_s ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
+E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_OpAmp ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
 ```
 
-Mutate sugar (engine desugars `ports=` on `FN` the same way as on `CAP` / `CST` — §13 #1 lock toward sugar on elemental leaves too):
+Also reject multi-from `derives` with `expr` on the EDGE — that still treats the edge as the function (§3.7).
+
+**Proposed 1.x / not in engine** (law on FN node; carriers only when wiring):
 
 ```text
-+ FN [NEW] ; name=opamp ; a_s=1e6 ; ports=Inm:in,Inp:in,Out:out ; recycle=persistent
+# Proposed — FN *is* the amp; law + ports on the node
+FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; law=V_out=a_s*(V_inp-V_inm) ; recycle=persistent
+```
+
+Open (not fixed by edge-as-function): exact field spelling for naming port IO in the law (`law=` vs `expr=`; whether `src_ports=` / `tgt_ports=` appear **on the FN node** — §13 #2 / #8).
+
+Mutate sugar (engine desugars `ports=` on `FN` the same way as on `CAP` / `CST` — §13 #1):
+
+```text
++ FN [NEW] ; name=opamp ; a_s=1e6 ; ports=Inm:in,Inp:in,Out:out ; law=V_out=a_s*(V_inp-V_inm) ; recycle=persistent
 ```
 
 **Wrong shapes (do not teach):**
 
 | Shape | Why wrong |
 |-------|-----------|
+| Any `derives` / `constrains` EDGE carrying `expr=` as the gain / Ohm law | **EDGE ≠ FN/CST** — law lives on the node; EDGE only carries in/out |
+| Binary `[PORT_Inm] --(derives)--> [PORT_Out]` + `src_ports=…` | Edge-as-FN **and** topology lie |
+| Multi-from `[PORT_Inp,PORT_Inm] --(derives)--> [PORT_Out] ; expr=…` | Still formula-on-edge — rejected |
 | `RES_a` with `Vinp`/`Vinm`/`Vdiff` mirrors + self-loop `derives` | Orphan scalars; mirrors are not graph endpoints |
 | Amp as only `CAP_OpAmp` with no `FN` | Capsule is composition; behaviour has nowhere owned to live |
 | Amp as three free nodes (`VAR`/`NET`/`RES`) | Soup — not one leaf with a contract |
 
-**Transitional pain (demoted):** Port → Net → Var → `RES_a` mirrors under a child `CAP_OpAmp` is what agents invent today. **Do not teach it.** Prefer the `FN` leaf above. Kept historically only as the failure mode §3.7 removes.
+**Transitional pain (demoted):** Port → Net → Var → `RES_a` mirrors under a child `CAP_OpAmp` is what agents invent today. **Do not teach it.** Prefer the `FN` leaf with law on the node. Kept historically only as the failure mode §3.7 removes.
 
-**Descend path (board):** `pin_map(CAP_InvAmp, view=shell)` → interior (sees `FN_OpAmp` + `CST_*` + `connects`). Re-anchor on `FN_OpAmp` only if you need that leaf’s port/`derives` ego — **not** a nested Capsule open for a lone amp.
+**Descend path (board):** `pin_map(CAP_InvAmp, view=shell)` → interior (sees `FN_OpAmp` + `CST_*` + `connects` carriers). Re-anchor on `FN_OpAmp` only if you need that leaf’s ports/law ego — **not** a nested Capsule open for a lone amp.
 
-**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump amp ports into the InvAmp **shell**; put Rin/Rf inside the op-amp node; rename Capsule/FN Ports to schematic `PIN_*`; teach `CAP_OpAmp`+`RES` as the long-term leaf.
+**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump amp ports into the InvAmp **shell**; put Rin/Rf inside the op-amp node; rename Capsule/FN Ports to schematic `PIN_*`; teach `CAP_OpAmp`+`RES` as the long-term leaf; teach formula-on-edge (`derives`/`constrains` + `expr`) as 1.x.
 
 ### 3.7 Direction: function / constraint with ports
 
 **Complete-refactor statement:** this section is the **target ontology** for MemNet’s agent dialect after a **breaking** redesign — not an optional overlay on 0.3.x stamp teaching. Prefer **one target dialect** + migration notes; reject forever dual-MVP (§13 #3).
 
-**Core rule (one interconnect):** every interconnect EDGE is **port→port** (or pin→pin). Elemental leaves that expose ports come in two kinds:
+#### Ontology lock (laws on nodes; edges as carriers)
+
+| Claim | Consequence |
+|-------|-------------|
+| **`FN` / `CST` are NODEs** | The node *is* the function or constitutive constraint; **`law=` / `expr=` / params (`a_s`, `R`) live on that node** (or on a child formula NODE owned by FN/CST — still a NODE) |
+| **EDGE ≠ FN/CST** | An EDGE must **not** carry the gain / Ohm / free `expr` that *is* the behaviour |
+| **EDGE = carrier (in/out)** | Port↔port **`connects`** (and membership `exposes` / `contains`, boundary `refines`) **carry** what goes between endpoints — flow / signal / incidence of quantities (e.g. voltage, current). Wiring moves something; it does not *be* the law |
+
+**Rejected as teachable 1.x:** formula-on-edge (`[PORT] --(derives)--> [PORT] ; expr=…`); “`constrains` EDGE is the CST”; multi-from hyper-edge with `expr` on the EDGE (still edge-as-function). Flat same-node `derives` in [`memnet-field-formulas.md`](memnet-field-formulas.md) = **transitional migration note only**.
+
+**Still open (grammar incompleteness — not fixed by edge-as-FN):** how the FN/CST **node** binds multi-port symbols in `law=` (Inp **and** Inm → Out) — e.g. `src_ports=` / `tgt_ports=` / port `name=` + quantity **on the node**. Binary EDGE remains fine for **carriers** (one wire, two ends). Optional later: `carries=V` (or item flow) on `connects` — sketch only (§13 #9); do not over-invent.
+
+**Core interconnect rule:** every **wiring** EDGE is **port→port** (or pin→pin transitional). Elemental leaves that expose ports:
 
 | Leaf | Wire | Nature |
 |------|------|--------|
-| **Function** | **`FN`** | Active — directed map from input ports → output ports (e.g. op-amp open-loop gain) |
-| **Constraint** | **`CST`** | Constitutive — relation among port variables (e.g. Ohm `V=I*R`), not a directed “function” |
+| **Function** | **`FN`** | Active NODE — law maps input-port quantities → output-port quantities (e.g. op-amp gain) |
+| **Constraint** | **`CST`** | Constitutive NODE — law among port variables (e.g. Ohm `V_a-V_b=I*R`) |
 
 Capsules (`CAP`) are **composition shells** that nest `FN`, `CST`, and child Capsules. Shared dialect stays NODE|EDGE only.
 
-SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *constraint on values* ≈ Constraint; *connection* ≈ EDGE between ports.
+SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function **node**; *constraint on values* ≈ Constraint **node**; *connection* ≈ EDGE **carrier** between ports.
 
 **Kind token lock:** wire **`CST`** (gloss: Constraint). Reject wire `CONSTRAINT` (too long). Demote **`CON`** (collides mentally with `connects` / connection). Earlier candidates **`DEV` / `PASS` / `PART`** for passives are **demoted** — passive R/C look like constraints, not devices-as-parts.
 
@@ -322,19 +351,19 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *con
 | **In** (must change for 1.x dialect) | **Out** (may stay; separate tracks) |
 |--------------------------------------|-------------------------------------|
 | Elemental ontology: **`FN` / `CST` / `PORT` / `CAP`** as the taught leaves + shell | Store atomics still **NODE \| EDGE** only (sugar desugars; no third AST primitive) |
-| Interconnect EDGEs **port↔port** (pin↔pin transitional then sunset path) | Transport: **in-process first**, TCP fallback |
-| Formula placement: port→port `derives` / `feeds` / `constrains` (not orphan `RES` fields) | Session / MCP **tool names** may keep (`pin_map`, `add`, `update`, …) — payloads change |
+| **Laws on FN/CST nodes**; interconnect EDGEs = **carriers** only (`connects` / membership / `refines`) | Transport: **in-process first**, TCP fallback |
+| Demotion of formula-on-edge / `constrains`-edge-as-CST | Session / MCP **tool names** may keep (`pin_map`, `add`, `update`, …) — payloads change |
 | `pin_map` views: shell sugar + interior under Capsules; Write = display | **ACL / RSV** (neighbourhood reserve) — orthogonal design track (§7) |
 | Capsule sugar (`ports=` / `contains=`) as default agent shell (§8.1) | Recycle policy; nest-open depth `N`; TagMap formalisation timing |
 | Demotion / sunset of **`RES` / `VAR` / `NET` / `PIN`-as-hubs** as the agent maths surface | Locator grains `PIN`/`NET`/`CMP` may linger as **ingest** until exit criteria (§13 #4) |
-| Field-formulas **same-node self-loop MVP** → superseded by port-endpoint model (migration notes only) | Security multi-agent doc — not blocked by this dialect lock |
+| Field-formulas **same-node self-loop MVP** → superseded by law-on-FN/CST (migration notes only) | Security multi-agent doc — not blocked by this dialect lock |
 
 #### Today (0.3.x) vs target (1.x dialect)
 
 | Today (scatter) | Target (complete refactor) |
 |-----------------|----------------------------|
-| `RES` / `VAR` / `NET` / `PIN` + agent-mirrored fields | **`FN` \| `CST` + `PORT` + EDGE(port,port)** |
-| Same-node `RES` self-loop `derives` + informal mirrors | `FN`: port→port `derives` / `feeds`; `CST`: port→port `constrains` |
+| `RES` / `VAR` / `NET` / `PIN` + agent-mirrored fields | **`FN` \| `CST` + `PORT`**; law on node; EDGE = carrier |
+| Same-node `RES` self-loop `derives` + informal mirrors | `FN`/`CST` hold `law=`; port↔port `connects` carries V/I |
 | Capsule interior = stamp bags | `CAP` nests `FN` / `CST`; shell sugar `ports=` stays |
 | Dual teaching (flat self-loop **and** ports-first) | **One** target dialect; flat self-loop = **transitional** teaching only (§13 #3) |
 
@@ -342,55 +371,51 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *con
 
 | Kind | Wire token | Role |
 |------|------------|------|
-| **Function** | **`FN`** | Active elemental — ports in/out; params such as `a_s=`; maps inputs → outputs |
-| **Constraint** | **`CST`** | Constitutive elemental — ports (often `inout`); params such as `R=`; owns Ohm / C / L relations on port fields |
+| **Function** | **`FN`** | Active elemental NODE — ports in/out; params (`a_s=`); **`law=` / `expr=` on the node** |
+| **Constraint** | **`CST`** | Constitutive elemental NODE — ports (often `inout`); params (`R=`); **Ohm / C / L law on the node** |
 | **Capsule** | `CAP` | Composition shell — nests `FN` / `CST` / child `CAP`; sugar `ports=` / `contains=` |
 | **Port** | `PORT` | Endpoint; `V=` / `I=` live **on** the port; `side=in\|out\|inout\|internal` |
 | **Pin / Net / CMP** | `PIN` / `NET` / `CMP` | Schematic locator grain — keep until pin↔pin migration; optional `CST --(refines)--> CMP` |
 | **`RES` / `VAR`** | as today | Demoted hubs — migrate into `FN`/`CST` + ports under Capsules |
 | **`DEV` / `PASS` / `PART`** | — | **Demoted** naming for passives; use `CST` |
 
-**Ownership:** `FN|CST --(exposes)--> PORT`. Capsule `contains` → leaf; shell ports bind via sugar / `connects` / `refines`. Interior ports (`side=internal`) belong to the leaf (e.g. `PORT_Vdiff` on `FN_OpAmp`).
+**Ownership:** `FN|CST --(exposes)--> PORT`. Capsule `contains` → leaf; shell ports bind via sugar / `connects` / `refines`. Interior ports (`side=internal`) belong to the leaf (e.g. optional `PORT_Vdiff` on `FN_OpAmp` when an intermediate quantity is modelled as a port — law still on the FN).
 
-**Amp leaf lock:** **op-amp node = `FN`** (`FN_OpAmp`). `CAP` only when you need a nestable composition shell with its own exposed ports (board / subsystem) — not as a hollow wrapper around a lone behavioural amp.
+**Amp leaf lock:** **op-amp node = `FN`** (`FN_OpAmp`) with law on the node. `CAP` only when you need a nestable composition shell with its own exposed ports (board / subsystem) — not as a hollow wrapper around a lone behavioural amp.
 
-#### EDGE endpoint rule
+#### EDGE endpoint rule (carriers and membership — not laws)
 
 | Rel | Endpoints | Notes |
 |-----|-----------|-------|
-| `exposes` | `CAP`/`FN`/`CST` → Port | Contract |
+| `exposes` | `CAP`/`FN`/`CST` → Port | Contract / ownership |
 | `contains` | Capsule → `FN` / `CST` / child Capsule | Composition (immediate only) |
-| `connects` | Port → Port | Wiring (same rule for active and passive) |
-| `derives` / `feeds` | Port → Port | **Function** formulae (directed) |
-| `constrains` | Port → Port | **Constraint** constitutive relation (`expr` / `owner_fields`); not orphan node fields |
+| `connects` | Port → Port | **Carrier** — wiring moves V/I (or later `carries=…`) between ports |
 | `refines` | Port → finer Port / PIN / NET / CMP | Boundary / locator bridge |
 | `connects_to` | PIN → NET | Transitional schematic |
+| `derives` / `feeds` / `constrains` **with `expr` as the law** | — | **Rejected** for 1.x teachable surface (formula-on-edge) |
 
-**MUSTNOT:** orphan `Vdiff` on `RES`; agent-mirrored `Vinp`/`Vinm`; teach Port→Net→Var→mirror as Capsule interior; invent `FLD_*`; wire kinds `FUNC` / `FUNCTION` / `CONSTRAINT` / `CON` / `DEV` as the passive leaf.
+**MUSTNOT:** orphan `Vdiff` on `RES`; agent-mirrored `Vinp`/`Vinm`; teach Port→Net→Var→mirror as Capsule interior; invent `FLD_*`; wire kinds `FUNC` / `FUNCTION` / `CONSTRAINT` / `CON` / `DEV` as the passive leaf; put gain / Ohm `expr` on an EDGE.
 
 #### Worked mini-example: op-amp leaf, then InvAmp board
 
-**1. Op-amp = one `FN` node** (canonical leaf — start here):
+**1. Op-amp = one `FN` node** (canonical leaf — proposed 1.x / not in engine):
 
 ```text
-FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; recycle=persistent
-E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_OpAmp ; owner_fields=a_s ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
+FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; law=V_out=a_s*(V_inp-V_inm) ; recycle=persistent
 ```
 
-**2. InvAmp = board Capsule that *uses* that node** + `CST` resistors (composition only):
+**2. InvAmp = board Capsule** — `CST` resistors hold Ohm on the node; **`connects` only carry** quantities between ports:
 
 ```text
 CAP [CAP_InvAmp] ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; contains=FN_OpAmp,CST_Rin,CST_Rf ; recycle=persistent
-CST [CST_Rin] ; name=Rin ; R=10000 ; ports=PORT_Rin_a:a:inout,PORT_Rin_b:b:inout ; recycle=persistent
-CST [CST_Rf] ; name=Rf ; R=100000 ; ports=PORT_Rf_a:a:inout,PORT_Rf_b:b:inout ; recycle=persistent
-E_ohm_f [PORT_Rf_a] --(constrains)--> [PORT_Rf_b] ; owner=CST_Rf ; owner_fields=R ; expr=V_a-V_b-I_a*R
-E_ohm_i [PORT_Rin_a] --(constrains)--> [PORT_Rin_b] ; owner=CST_Rin ; owner_fields=R ; expr=V_a-V_b-I_a*R
-# board wiring: port→port (sketch — Vin→Rin→Inm, Out→Rf→Inm feedback, Out→Vout, …)
-E_w1 [PORT_Out] --(connects)--> [PORT_Rf_a]
-E_w2 [PORT_Rf_b] --(connects)--> [PORT_Inm]
+CST [CST_Rin] ; name=Rin ; R=10000 ; ports=PORT_Rin_a:a:inout,PORT_Rin_b:b:inout ; law=V_a-V_b=I_a*R ; recycle=persistent
+CST [CST_Rf] ; name=Rf ; R=100000 ; ports=PORT_Rf_a:a:inout,PORT_Rf_b:b:inout ; law=V_a-V_b=I_a*R ; recycle=persistent
+# board wiring: carriers only (sketch — Vin→Rin→Inm, Out→Rf→Inm feedback, …)
+E_w1 [PORT_Out] --(connects)--> [PORT_Rf_a] ; carries=V
+E_w2 [PORT_Rf_b] --(connects)--> [PORT_Inm] ; carries=V
 ```
 
-Same interconnect rule for both leaves; `a_s` lives on `FN_OpAmp`, `R` on each `CST`, voltages/currents on ports, constitutive / gain facts on EDGEs with `owner=`. Optional internal `PORT_Vdiff` (`side=internal`) may hang off `FN_OpAmp` when the model needs an explicit diff node — still owned by the same Function.
+`a_s` and gain law on `FN_OpAmp`; `R` and Ohm law on each `CST`; voltages/currents on ports; **`connects` carries** the net quantity — optional `carries=V` is a sketch (§13 #9), not a SCHEMA lock. No `derives`/`constrains` EDGE as the amp or resistor.
 
 #### Compatibility / migration (under complete-refactor framing)
 
@@ -398,24 +423,23 @@ Prefer **migrate → demote → sunset**, not forever parallel dialects.
 
 | Stays (substrate) | Migrates (into 1.x dialect) | Demoted / sunset (agent surface) |
 |-------------------|-----------------------------|----------------------------------|
-| NODE\|EDGE store; CAP sugar `ports=` / `contains=` | Active stamps → **`FN`+ports**; R/L/C → **`CST`+ports** | `DEV` / `PASS` / `PART` as passive kind |
-| Port→Port `connects`; transport; tool *names* | `RES` self-loop → `derives` (FN) or `constrains` (CST) | Agent-mirrored stamp fields; **`RES`/`VAR` as maths hubs** |
+| NODE\|EDGE store; CAP sugar `ports=` / `contains=` | Active stamps → **`FN`+ports+law**; R/L/C → **`CST`+ports+law** | `DEV` / `PASS` / `PART` as passive kind |
+| Port→Port `connects` as **carrier**; transport; tool *names* | `RES` self-loop `derives` → **law on FN/CST node** | Formula-on-edge; agent-mirrored stamp fields; **`RES`/`VAR` as maths hubs** |
 | Flat InvAmp / PIN–NET as **legacy / ingest** examples | When wrapped: board passives → `CST`; amp → `FN` under `CAP` | Orphan scalars; Port→Net→Var→mirror path |
-| Field-formulas same-node MVP as **migration note** only | Target: port endpoints + `src_ports=` / `constrains` everywhere formulae are taught | Wire `CONSTRAINT` / `CON`; forever dual-MVP |
+| Field-formulas same-node MVP as **migration note** only | Target: **law on FN/CST**; edges = carriers only | Wire `CONSTRAINT` / `CON`; forever dual-MVP; `constrains` EDGE as the CST |
 
-**Engine:** design only — **not** in 0.3.5 / 0.3.6 (`FN` / `CST` kinds, `constrains`, port→port evaluator). Landing implies **MemNet 1.0** (or clearly labelled 1.x dialect) — not a silent 0.3.x patch.
+**Engine:** design only — **not** in 0.3.5 / 0.3.6 (`FN` / `CST` kinds, law-on-node evaluator, optional `carries=`). Landing implies **MemNet 1.0** (or clearly labelled 1.x dialect) — not a silent 0.3.x patch.
 
 #### Rel cheat-sheet (shell vs interior)
 
 | Rel | Where | Endpoints |
 |-----|--------|-----------|
 | `exposes` / sugar `ports=` | Shell (`CAP` / `FN` / `CST`) | Owner → Port |
-| `connects` | Wiring | Port → Port |
+| `connects` | Wiring (**carrier**) | Port → Port |
 | `contains` | Capsule interior | Capsule → `FN` / `CST` / child Capsule |
-| `derives` / `feeds` | Function interior | Port → Port (directed) |
-| `constrains` | Constraint interior | Port → Port (constitutive) |
 | `refines` | Boundary | Port → NET / PIN / CMP / child Port |
 | `connects_to` | Schematic (transitional) | PIN → NET |
+| `derives` / `constrains` + law `expr` | — | **Rejected** as 1.x law carrier |
 
 Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, board passives → `CST`, behavioural amp → `FN` (§3.7).
 
@@ -499,7 +523,7 @@ Analogy: finite element / asymptotic reasoning — pick the scale that answers t
 | Mechanism | Interaction |
 |-----------|-------------|
 | **`depth` / `max_rows`** | Still the hard budget **within** a layer/view; layers prevent burning the budget on irrelevant strata |
-| **Formula `derives` / `feeds` / `constrains`** | **1.x target:** port→port under `FN`/`CST` (§3.7). Flat same-node self-loop = transitional only (reject forever dual — §13 #3). See [`memnet-field-formulas.md`](memnet-field-formulas.md) |
+| **Formula / law placement** | **1.x locked:** `law=` / `expr=` on **`FN`/`CST` nodes**; `connects` = carrier only. Flat same-node self-loop `derives` = transitional only (§13 #3 / #8). See [`memnet-field-formulas.md`](memnet-field-formulas.md) |
 | **Nodal / inverting-amp notes** | Topology + KCL/Ohm stay **flat** `NET`/`CMP`/`PIN` today. When wrapped: passives → **`CST`**, amp → **`FN`**, under `CAP` (§3.7) — app notes do **not** rename `PIN`→`PORT` |
 | **LAW** | Prefer **normative layer** / shell-adjacent; exempt from neighbourhood reserve checks (as in reserve design); pin map may keep a small `## Laws` section even on shell views |
 | **Session ACL / reserve** | Unchanged order: ACL then reserve. Reserve scope = ego at requested `depth` **within** the active layer/view (same expand as `pin_map`). Holding a shell does not silently lease the entire interior until expand includes those ids |
@@ -521,9 +545,10 @@ CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; ports=PORT_Vin:Vin:in,PORT
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 
 ## Edges
-Eb [CLM_gain] --(derives)--> [CLM_gain] ; src_fields=Rf,Rg ; expr=-Rf/Rg ; tgt_field=gain_v
 Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
+
+*(Shell `CLM` holds a summary number; constitutive maths live on interior `FN`/`CST` nodes — not on a self-loop `derives` EDGE. §13 #7.)*
 
 Mutate examples:
 
@@ -544,7 +569,7 @@ Expanded CAP + PORT + `exposes` / `contains` lines are **store atoms** (and the 
 | **B. Compact capsule sugar** | One (or few) `CAP` lines with `ports=` / `contains=`; engine **desugars 1:1** to A in the store | **Recommended agent surface (MVP design)** |
 | **C. Third primitive** | Capsule outside NODE\|EDGE | **Rejected** |
 
-**Write ≈ display (locked for accuracy):** shell `pin_map` **emits the same compact sugar** agents mutate. Do **not** teach sugar-on-write + expanded-on-read — that second dialect is what confuses models. Interior `view=interior` stays ordinary NODE\|EDGE (nets, pins, `derives`). Optional later: `view=atoms` for expanded shell debug.
+**Write ≈ display (locked for accuracy):** shell `pin_map` **emits the same compact sugar** agents mutate. Do **not** teach sugar-on-write + expanded-on-read — that second dialect is what confuses models. Interior `view=interior` stays ordinary NODE\|EDGE (nets, pins, `FN`/`CST` law nodes, `connects` carriers). Optional later: `view=atoms` for expanded shell debug.
 
 | Concern | Why B for agents |
 |---------|------------------|
@@ -620,7 +645,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Capsule syntax | **B sugar on agent shell** (`ports=` / `contains=` on `CAP`); desugar to store atoms; no third primitive (§8.1) |
 | Shell pin_map | Emit **compact** sugar (Write ≈ display); not full Port+`exposes` expand by default |
 | SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
-| Function / constraint with ports (§3.7) | **Design-locked complete refactor** — kinds `FN` + `CST`; port→port `derives` / `constrains`; engine / SCHEMA → **1.0** |
+| Function / constraint with ports (§3.7) | **Design-locked complete refactor** — kinds `FN` + `CST`; **law on node**; EDGE = **carrier** (`connects`); engine / SCHEMA → **1.0** |
 
 ### Later
 
@@ -629,7 +654,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
 | Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.5 limits in `pin_map` |
 | SCHEMA / TagMap formalisation of `CAP` / `PORT` / `FN` / `CST` + sugar fields | With golden fixtures (1.x) |
-| `FN`/`CST` + port→port `derives`/`constrains` + `src_ports=` / `owner_fields=` evaluator | Implements §3.7 |
+| `FN`/`CST` + law-on-node evaluator; optional `carries=` on `connects` | Implements §3.7 |
 | Schematic pin↔pin / pin→net-port migration of `connects_to` | Sunset path under Capsule wrap (§13 #4) |
 | Drop transitional flat self-loop formula teaching | After migration notes + fixtures exist |
 | `view=atoms` expanded shell for debug | Optional |
@@ -644,7 +669,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Risk | Mitigation |
 |------|------------|
 | **Layer sprawl** | Small closed vocabulary for MVP (`system`, `board`, `net`, `equation`, `law`, `working`); reject free prose tokens in lint later |
-| **Stale summaries** | Shell fields and `summarises` targets are **explicit**; MVP = writer refreshes; later = materialise hooks. Prefer absolute shell numbers + visible `derives` over silent cache |
+| **Stale summaries** | Shell fields and `summarises` targets are **explicit**; MVP = writer refreshes; later = materialise hooks. Prefer absolute shell numbers + visible `FN`/`CST` laws over silent cache |
 | **Inconsistent cross-layer ids** | Same ground-id rules as grammar §4.2.1 — locators for artefact pins; `NEW` only for MemNet-only facts; re-id/merge under reserve/ACL. Ports keep stable ids when interior nets are reminted |
 | **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; sugar desugars to atoms (§8.1 C rejected) |
 | **Sugar / expand mismatch** | Shell pin_map and mutate both use compact form; expanded only in store / interior / `view=atoms` (§8.1) |
@@ -681,7 +706,7 @@ No change to `requirements.sysml` in this design task.
 | Path | Role |
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
-| `docs/grammar/memnet-field-formulas.md` | Flat same-node `derives` MVP; capsule interiors → `FN`/`CST` + port→port (§3.7) |
+| `docs/grammar/memnet-field-formulas.md` | Flat same-node `derives` MVP (**transitional**); 1.x capsule interiors → law on `FN`/`CST` nodes; EDGE = carrier (§3.7) |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
 | `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas; when wrapped: `CST` passives + `FN` amp (§3.7) |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
@@ -700,11 +725,13 @@ Stub only — answers belong in the locked sections above once chosen. Completen
 | # | Decision | Tension | Lock as “refactor to …” (sketch) | Reject / demote |
 |---|----------|---------|-----------------------------------|-----------------|
 | **1** | **`ports=` sugar owners** | §3.7 shows sugar on `FN`/`CST`; §8.1 says sugar on **`CAP` only** | Refactor to: (a) sugar on `FN`/`CST` too (same desugar), **or** (b) sugar on `CAP` only with leaf ports as atoms | Leaving sugar rules contradictory across sections |
-| **2** | **`expr` binding to port fields** | Mini-example uses `V_inp`, `V_a`, `I_a` without a binding rule | Refactor to one binding rule: port `name=` + quantity; **or** `PORT_x.V`; **or** `src_ports=` + fixed `V`/`I` keys | Ad-hoc mirror fields on `RES` |
-| **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = port→port | **Refactor to one target:** port→port everywhere formulae are taught; flat self-loop = **transitional migration note only** (finite window) | **Forever dual-MVP** (flat domains stay self-loop indefinitely) |
+| **2** | **`law=` / `expr` binding to port fields** | Mini-example uses `V_inp`, `V_a` without a binding rule | Refactor to one binding rule **on the FN/CST node**: port `name=` + quantity; **or** `src_ports=` / `tgt_ports=` on the node; **or** `PORT_x.V` | Ad-hoc mirror fields on `RES`; binding via EDGE endpoints |
+| **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = law on FN/CST | **Refactor to one target:** law on `FN`/`CST` everywhere; flat self-loop = **transitional migration note only** | **Forever dual-MVP**; formula-on-edge as the long-term surface |
 | **4** | **Locator coexistence** | `PIN`/`NET`/`CMP` “until pin↔pin migration” — no exit criteria | Refactor to: ingest grain + `refines` with **exit criteria**; **or** keep forever as locator-only (never maths hubs) | `PIN`/`NET` as long-term formula hubs |
-| **5** | **Op-amp leaf shape** | Was: §3.6 `CAP_OpAmp`+`RES` vs §3.7 `FN` | **Locked:** amp node = **`FN [FN_OpAmp]`** + ports + owned `derives`; InvAmp board = `CAP` containing `FN_OpAmp` + `CST_*`. Child `CAP` only for nestable shell contracts | `CAP_OpAmp`+`RES` mirrors; amp as CAP-only; three free nodes |
-| **6** | **`feeds` vs `derives` on FN** | Both listed; no worked distinction | Refactor to: `derives` = free `expr`; `feeds` = typed `op=` only (align field-formulas) — one glossary | Synonym sprawl without fixtures |
-| **7** | **Shell `CLM` + self-loop `derives`** | §8 still shows claim-level formula; §3.7 demotes stamp hubs | Refactor to: `CLM` = shell **summary** only; constitutive maths only on `FN`/`CST` ports | Shell self-loop as the primary formula teaching |
+| **5** | **Op-amp leaf shape** | Was: §3.6 `CAP_OpAmp`+`RES` vs §3.7 `FN` | **Locked:** amp = **`FN [FN_OpAmp]`** + ports + **`law=` on the node**; InvAmp = `CAP` containing `FN_OpAmp` + `CST_*`; wiring = `connects` carriers | `CAP_OpAmp`+`RES`; amp as CAP-only; gain on a `derives` EDGE |
+| **6** | **`feeds` / `derives` as law carriers** | Earlier prose treated them as FN formulae | **Locked demote for 1.x laws:** behaviour on FN/CST nodes; edges ≠ laws. Keep tokens only if redefined as non-law (else drop) | Teaching `derives`/`constrains` + `expr` as the FN/CST |
+| **7** | **Shell `CLM` + self-loop `derives`** | §8 once showed claim-level formula EDGE | Refactor to: `CLM` = shell **summary** only; constitutive maths only on `FN`/`CST` nodes | Shell self-loop as the primary formula teaching |
+| **8** | **Behaviour on FN/CST; edges ≠ laws** | Edge-as-function vs node-as-function | **Locked:** FN/CST nodes hold the law; EDGE = **carrier** (in/out) / membership / boundary only | Formula-on-edge; multi-from EDGE with `expr`; `constrains` EDGE is the CST |
+| **9** | **What `connects` carries** | Carrier ontology needs a quantity token? | Optional sketch: `carries=V` / `carries=I` (or item flow) on `connects` — lock spelling before SCHEMA | Over-inventing a full flow type system in this doc |
 
 **Out of this redesign’s lock set (pointers only):** recycle policy; session ACL / RSV (§7 — shell lease ≠ interior); nest-open depth `N`; SCHEMA TagMap formalisation. These stay on separate tracks and do **not** justify forever dual dialect.

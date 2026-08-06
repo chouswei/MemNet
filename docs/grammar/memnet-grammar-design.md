@@ -556,7 +556,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
 | `docs/grammar/memnet-field-formulas.md` | **Generic** formula-as-EDGE (`derives`/`feeds`; design; no engine): MVP = one EDGE, `src_fields` **list** + `expr`, one `tgt_field` — any domain; not circuit-specific |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | **Application:** nodal circuit graph (NET/CMP/PIN + KCL/Ohm) *using* formula edges; does not define the formula grammar |
-| `docs/grammar/memnet-multi-layer.md` | **Design:** stratified pin maps + Capsule (`CAP`) / Port (`PORT`) pattern from NODE\|EDGE only; port-hood = kind + `exposes` (not id `_` tricks); SysML analogy — distinct from §3 I/O/store/transport layering |
+| `docs/grammar/memnet-multi-layer.md` | **Design:** stratified pin maps + Capsule (`CAP`) / Port (`PORT`); **§3.7** — `FN`/`CST` hold laws; EDGE = carrier (not the function); distinct from §3 I/O/store/transport layering |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Multi-agent neighbourhood reserve design (shared dialect) |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL / tokens + security + multi-agent coop (shared dialect) |
 | `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |
