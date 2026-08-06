@@ -218,7 +218,7 @@ First-class PORT NODE remains an escape hatch only when a port must be an indepe
 
 ```text
 CST [CST_Blk] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$
-CST [CST_Next] ; name=next ; ports=x: {side=in} ; law=$y=x$
+CST [CST_Next] ; name=next ; ports=x: {side=in},y: {side=out} ; law=$y=x$
 E1 [CST_Blk.y] --bind--> [CST_Next.x] ; carries=signal
 ```
 
