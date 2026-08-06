@@ -19,10 +19,10 @@
 
 **Ideal bind:** an EDGE is an ideal pipe — endpoints share the carried quantity as the domain defines (agent may rely on that continuity without EDGE `law=` text; further constraints stay on NODE laws or domain convention).
 
-**Ports:** fields on the law node until separate atoms are proven necessary. Entry = `name(attr=val, …)` (paren attr bag):
+**Ports:** fields on the law node until separate atoms are proven necessary. Entry = `name: {attr=val, …}` (labelled record bag — TS/YAML-style; not a call):
 
 ```text
-ports=x(side=in, q=0),y(side=out),state(side=inout, q=$s$)
+ports=x: {side=in, q=0},y: {side=out},state: {side=inout, q=$s$}
 ```
 
 Attrs use the same `=` / `,` as elsewhere. `side=` is strongly usual (`in` / `out` / `inout`). Other attrs are **domain quantities at/through the port** (generic keys such as `q=`; not a fixed unit vocabulary). “Through” quantities often align with directed binds / port side; non-directed binds need not invent direction. Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and port `side=` on the **NODE**.
@@ -45,7 +45,7 @@ Eid [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=token
 
 Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`). Prefer this over EDGE fields `from=`/`to=` (hides grain) and over minting a first-class PORT NODE for every bind. Optional `carries=` on all three. Legacy alias: `connects` → `bind`. Rare labels (`contains`, `refines`) only when they earn their keep.
 
-**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; bind node ids without port grain.
+**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains (use `name: {side=…}` instead); bind node ids without port grain.
 
 ---
 
@@ -58,11 +58,12 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | Char | Role |
 |------|------|
 | `;` | **Only** top-level field separator on a line |
-| `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `(…)` |
-| `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `(…)`, multi-eq `law=`, …) |
-| `(` `)` | Port attr bag: `name(side=in, q=0)` — `IDENT(` after the port name inside `ports=` |
+| `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `{…}` |
+| `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
+| `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
+| `{` `}` | Record / attr bag after `name:` — `x: {side=in, q=0}` (not a call; `()` reserved for bind arrows) |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
-| `:` | Other structured joins inside a field value (`id:label`, `qty:unit`) — **not** for port piles or EDGE endpoints |
+| `(` `)` | Bind arrow fragments only (`--(label)--` / `)-->` / `<--(`) — **not** port bags |
 | `$…$` | LaTeX inline math **only** (not a field separator) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
 | `--(` `)-->` | **Directed** bind |
@@ -72,7 +73,7 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Port vs bind parens:** port bag = `IDENT(` immediately after the port name inside `ports=`; bind wire = `--(` / `<--(` after an endpoint `]`. Same `(` `)` glyphs; context decides.
+**Port vs bind:** port = `IDENT: {…}` inside `ports=`; bind = `--(` / `<--(` after endpoint `]`. `()` is bind-only; `{}` is the port record bag.
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -82,28 +83,28 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 
 | Status | Characters | Notes |
 |--------|------------|--------|
-| **Used** | `;` `,` `=` `[` `]` `(` `)` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port bags; ids; ownership; structured joins; LaTeX; STRING; comment; mutate |
-| **Used (arrow compounds)** | `--(` `)-->` `)--` `<--(` | Bind wires; consume `<` `>` only inside these tokens |
-| **Demoted / avoid** | `\|` `{` `}` | No wire pipe; prefer `\lvert`/`\rvert` in maths; `{}` demoted for ports (use `(…)`); `{}` remains only inside LaTeX `$…$` |
+| **Used** | `;` `,` `=` `{` `}` `[` `]` `(` `)` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port `name: {…}`; ids; ownership; binds; LaTeX; STRING; comment; mutate |
+| **Used (arrow compounds)** | `--(` `)-->` `)--` `<--(` | Bind wires; `()` reserved here |
+| **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` and `x(…)` port forms |
 | **Free (held)** | `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | Available if a later gap appears; **none assigned yet** |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths; `<` `>` = bind arrow fragments; `.` = `[Node.port]` (not path punctuation in unquoted atoms); `(` `)` = port bags **and** bind wires (context: `IDENT(` vs `--(` / `<--(`).
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths; `<` `>` = bind arrow fragments; `.` = `[Node.port]`; `:` = port name-to-bag (and other structured joins); `{}` = port record bags (+ LaTeX); `()` = bind wires only.
 
 **Sparing recommendations (0–2):**
 
 1. **Keep `#` as line comment only** — already matches `MemNet.g4` / layer grammar; no second meaning.
-2. **No new punct for through-quantity or bind sugar** — port `(attrs)` + directed/non-directed/bi-directed wires already cover that; hold `&` `*` `^` `!` `?` `` ` ``.
+2. **No new punct for through-quantity or bind sugar** — port `name: {attrs}` + bind wires already cover that; hold `&` `*` `^` `!` `?` `` ` ``.
 
 ### Generic skeleton
 
 ```text
-CST [Id] ; name=… ; ports=name(side=…, q=…),… ; law=$eq$,$eq$ ; param=… ; recycle=persistent
+CST [Id] ; name=… ; ports=name: {side=…, q=…},… ; law=$eq$,$eq$ ; param=… ; recycle=persistent
 Eid [Id.port] --(bind)--> [Id.port] ; carries=token
 Eid [Id.port] --(bind)-- [Id.port] ; carries=token
 Eid [Id.port] <--(bind)--> [Id.port] ; carries=token
 ```
 
-`ports=` entries are `,`-joined `name(…)` bags on the NODE. EDGE endpoints name those ports as `[NodeId.PortName]`. `law=` holds LaTeX maths on the NODE only. EDGE is ideal bind/pipe (`carries=` optional; no `law=`).
+`ports=` entries are `,`-joined `name: {…}` labelled records on the NODE. EDGE endpoints name those ports as `[NodeId.PortName]`. `law=` holds LaTeX maths on the NODE only. EDGE is ideal bind/pipe (`carries=` optional; no `law=`).
 
 ### `law=` expression rules (LaTeX)
 
@@ -131,7 +132,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 
 | Field | Form |
 |-------|------|
-| `ports=` | `name(side=…, …)`, `,`-joined — e.g. `ports=x(side=in, q=0),y(side=out)` |
+| `ports=` | `name: {side=…, …}`, `,`-joined — e.g. `ports=x: {side=in, q=0},y: {side=out}` |
 | `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
 | `pseudo=` | algorithmic steps as a STRING on the **NODE** (prefer quoted); not LaTeX; not an evaluator — see §3 pseudocode note |
 | `name=` | short label |
@@ -147,17 +148,18 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 ### Port token (`ports=`)
 
 ```text
-x(side=in, q=0)
+x: {side=in, q=0}
 ```
 
 | Part | Meaning |
 |------|---------|
 | `x` | Port **name** (ties to symbols in `law=`) |
-| `(…)` | Attr bag: `attr=val` pairs, `,`-joined |
+| `:` | Name-to-bag join (prefer one space after) |
+| `{…}` | Record / attr bag: `attr=val` pairs, `,`-joined |
 | `side=` | Strongly usual: `in` / `out` / `inout` |
 | other attrs | Domain quantities (e.g. `q=`); number, id, or `$latex$` |
 
-Teach **always** `name(…)` (at least `side=`). Bare `name` without `()` is not used in the wire form (ambiguous with plain atoms). List joiner between ports stays `,`. Quote the whole `ports=` field if an attr value needs `;` or a list-joining `,` outside `$…$`.
+Teach **always** `name: {…}` (prefer one space after `:`; at least `side=`). Demote bare `x{…}` and `x(…)`. Bare `name` without `: {…}` is not a port entry. List joiner between ports stays `,`. Quote the whole `ports=` field if an attr value needs `;` or a list-joining `,` outside `$…$`.
 
 ### EDGE endpoint (`[Node.port]`)
 
@@ -180,15 +182,15 @@ Wire forms around the label unchanged. Optional `carries=`. Rejected as teachabl
 **Lead (any domain)** — abstract CST with ports, law, and binds:
 
 ```text
-CST [CST_Blk] ; name=block ; k=2 ; ports=x(side=in, q=1.0),y(side=out) ; law=$y=k x$ ; recycle=persistent
-CST [CST_Next] ; name=next ; ports=x(side=in) ; law=$…$ ; recycle=persistent
+CST [CST_Blk] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$ ; recycle=persistent
+CST [CST_Next] ; name=next ; ports=x: {side=in} ; law=$…$ ; recycle=persistent
 E1 [CST_Blk.y] --(bind)--> [CST_Next.x] ; carries=signal
 ```
 
 Mutate (mint):
 
 ```text
-+ CST [NEW] ; name=block ; k=2 ; ports=x(side=in, q=1.0),y(side=out) ; law=$y=k x$ ; recycle=persistent
++ CST [NEW] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$ ; recycle=persistent
 ```
 
 A bind does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`).
@@ -200,16 +202,16 @@ A bind does **not** own `law=` or device params; it is an ideal pipe that names 
 Mutate create (teachable assign) — z-score stage then threshold gate:
 
 ```text
-+ CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x(side=in),y(side=out) ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
-+ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x(side=in),y(side=out) ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
++ CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {side=in},y: {side=out} ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
 + E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x(side=in),y(side=out) ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
-CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x(side=in),y(side=out) ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
+CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {side=in},y: {side=out} ; law=$y=(x-\mu)/\sigma$ ; recycle=persistent
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
 E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
 ```
 
@@ -222,16 +224,16 @@ E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
 Mutate create (one requirement CST bound to a programme stage port):
 
 ```text
-+ CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake(side=in),design(side=out) ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
-+ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x(side=in),y(side=out) ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
++ CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {side=in},design: {side=out} ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
 + E_tr [CST_R_lat.design] --(bind)--> [CST_Gate.x] ; carries=trace
 ```
 
 Pin-map present (`layer=req`, or anchor on `CST_R_lat`):
 
 ```text
-CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake(side=in),design(side=out) ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
-CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x(side=in),y(side=out) ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
+CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {side=in},design: {side=out} ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
 E_tr [CST_R_lat.design] --(bind)--> [CST_Gate.x] ; carries=trace
 ```
 
@@ -244,13 +246,13 @@ This view shows acceptance criteria on requirement CSTs and ideal binds that pin
 Mutate create (clamp stub):
 
 ```text
-+ CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x(side=in),y(side=out) ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
++ CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {side=in},y: {side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x(side=in),y(side=out) ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
+CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {side=in},y: {side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
 ```
 
 Quote `pseudo="…"` whenever the body would collide with `;` or list `,` (usual STRING rule). Optional: omit `law=` when only informal steps are known; add it when the postcondition is clear.
@@ -270,11 +272,11 @@ ASCII (start → decide → two paths → end):
 Mutate create:
 
 ```text
-+ CST [CST_Start] ; name=start ; ports=out(side=out) ; recycle=persistent
-+ CST [CST_Dec] ; name=ok ; ports=in(side=in),yes(side=out),no(side=out) ; law=$x>0$ ; recycle=persistent
-+ CST [CST_Yes] ; name=path_yes ; ports=in(side=in),out(side=out) ; recycle=persistent
-+ CST [CST_No] ; name=path_no ; ports=in(side=in),out(side=out) ; recycle=persistent
-+ CST [CST_End] ; name=end ; ports=in(side=in) ; recycle=persistent
++ CST [CST_Start] ; name=start ; ports=out: {side=out} ; recycle=persistent
++ CST [CST_Dec] ; name=ok ; ports=in: {side=in},yes: {side=out},no: {side=out} ; law=$x>0$ ; recycle=persistent
++ CST [CST_Yes] ; name=path_yes ; ports=in: {side=in},out: {side=out} ; recycle=persistent
++ CST [CST_No] ; name=path_no ; ports=in: {side=in},out: {side=out} ; recycle=persistent
++ CST [CST_End] ; name=end ; ports=in: {side=in} ; recycle=persistent
 + E_sd [CST_Start.out] --(bind)--> [CST_Dec.in] ; carries=token
 + E_dy [CST_Dec.yes] --(bind)--> [CST_Yes.in] ; carries=token
 + E_dn [CST_Dec.no] --(bind)--> [CST_No.in] ; carries=token
@@ -285,11 +287,11 @@ Mutate create:
 Pin-map present (`view=flowchart`):
 
 ```text
-CST [CST_Start] ; name=start ; ports=out(side=out) ; recycle=persistent
-CST [CST_Dec] ; name=ok ; ports=in(side=in),yes(side=out),no(side=out) ; law=$x>0$ ; recycle=persistent
-CST [CST_Yes] ; name=path_yes ; ports=in(side=in),out(side=out) ; recycle=persistent
-CST [CST_No] ; name=path_no ; ports=in(side=in),out(side=out) ; recycle=persistent
-CST [CST_End] ; name=end ; ports=in(side=in) ; recycle=persistent
+CST [CST_Start] ; name=start ; ports=out: {side=out} ; recycle=persistent
+CST [CST_Dec] ; name=ok ; ports=in: {side=in},yes: {side=out},no: {side=out} ; law=$x>0$ ; recycle=persistent
+CST [CST_Yes] ; name=path_yes ; ports=in: {side=in},out: {side=out} ; recycle=persistent
+CST [CST_No] ; name=path_no ; ports=in: {side=in},out: {side=out} ; recycle=persistent
+CST [CST_End] ; name=end ; ports=in: {side=in} ; recycle=persistent
 E_sd [CST_Start.out] --(bind)--> [CST_Dec.in] ; carries=token
 E_dy [CST_Dec.yes] --(bind)--> [CST_Yes.in] ; carries=token
 E_dn [CST_Dec.no] --(bind)--> [CST_No.in] ; carries=token
@@ -317,9 +319,9 @@ ASCII (box with two children):
 Mutate create:
 
 ```text
-+ CST [CST_Box] ; name=box ; ports=in(side=in),out(side=out),own(side=inout) ; recycle=persistent
-+ CST [CST_A] ; name=child_a ; ports=x(side=in),y(side=out),own(side=inout) ; law=$y=x$ ; recycle=persistent
-+ CST [CST_B] ; name=child_b ; ports=x(side=in),y(side=out),own(side=inout) ; law=$y=x$ ; recycle=persistent
++ CST [CST_Box] ; name=box ; ports=in: {side=in},out: {side=out},own: {side=inout} ; recycle=persistent
++ CST [CST_A] ; name=child_a ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$ ; recycle=persistent
++ CST [CST_B] ; name=child_b ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$ ; recycle=persistent
 + E_ma [CST_Box.own] --(bind)-- [CST_A.own] ; carries=member
 + E_mb [CST_Box.own] --(bind)-- [CST_B.own] ; carries=member
 + E_xin [CST_Box.in] --(bind)--> [CST_A.x] ; carries=signal
@@ -330,9 +332,9 @@ Mutate create:
 Pin-map present (`view=parts`):
 
 ```text
-CST [CST_Box] ; name=box ; ports=in(side=in),out(side=out),own(side=inout) ; recycle=persistent
-CST [CST_A] ; name=child_a ; ports=x(side=in),y(side=out),own(side=inout) ; law=$y=x$ ; recycle=persistent
-CST [CST_B] ; name=child_b ; ports=x(side=in),y(side=out),own(side=inout) ; law=$y=x$ ; recycle=persistent
+CST [CST_Box] ; name=box ; ports=in: {side=in},out: {side=out},own: {side=inout} ; recycle=persistent
+CST [CST_A] ; name=child_a ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$ ; recycle=persistent
+CST [CST_B] ; name=child_b ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$ ; recycle=persistent
 E_ma [CST_Box.own] --(bind)-- [CST_A.own] ; carries=member
 E_mb [CST_Box.own] --(bind)-- [CST_B.own] ; carries=member
 E_xin [CST_Box.in] --(bind)--> [CST_A.x] ; carries=signal
@@ -357,8 +359,8 @@ ASCII (Idle ↔ Run):
 Mutate create:
 
 ```text
-+ CST [CST_Idle] ; name=idle ; ports=enter(side=in),exit(side=out),in(side=inout) ; recycle=persistent
-+ CST [CST_Run] ; name=run ; ports=enter(side=in),exit(side=out),in(side=inout) ; recycle=persistent
++ CST [CST_Idle] ; name=idle ; ports=enter: {side=in},exit: {side=out},in: {side=inout} ; recycle=persistent
++ CST [CST_Run] ; name=run ; ports=enter: {side=in},exit: {side=out},in: {side=inout} ; recycle=persistent
 + E_start [CST_Idle.exit] --(bind)--> [CST_Run.enter] ; event=start ; carries=event
 + E_stop [CST_Run.exit] --(bind)--> [CST_Idle.enter] ; event=stop ; carries=event
 ```
@@ -366,8 +368,8 @@ Mutate create:
 Pin-map present (`view=statechart`):
 
 ```text
-CST [CST_Idle] ; name=idle ; ports=enter(side=in),exit(side=out),in(side=inout) ; recycle=persistent
-CST [CST_Run] ; name=run ; ports=enter(side=in),exit(side=out),in(side=inout) ; recycle=persistent
+CST [CST_Idle] ; name=idle ; ports=enter: {side=in},exit: {side=out},in: {side=inout} ; recycle=persistent
+CST [CST_Run] ; name=run ; ports=enter: {side=in},exit: {side=out},in: {side=inout} ; recycle=persistent
 E_start [CST_Idle.exit] --(bind)--> [CST_Run.enter] ; event=start ; carries=event
 E_stop [CST_Run.exit] --(bind)--> [CST_Idle.enter] ; event=stop ; carries=event
 ```
@@ -379,16 +381,16 @@ Guarded transition (thin): keep `guard=$…$` on the bind as metadata; if the gu
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
 
 ```text
-+ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B(side=in, V=0.7, I=0.001),C(side=out),E(side=inout) ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
-+ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a(side=inout),b(side=inout) ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
++ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {side=in, V=0.7, I=0.001},C: {side=out},E: {side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
++ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {side=inout},b: {side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
 + E_c [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=I
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B(side=in, V=0.7, I=0.001),C(side=out),E(side=inout) ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
-CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a(side=inout),b(side=inout) ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
+CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {side=in, V=0.7, I=0.001},C: {side=out},E: {side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {side=inout},b: {side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
 E_ab [CST_Rc.a] --(bind)-- [CST_Rc.b] ; carries=I
 E_c [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=I
 E_ea [CST_Q1.E] <--(bind)--> [CST_Rc.b] ; carries=I
@@ -403,7 +405,7 @@ Collector current rides the **directed** bind `[CST_Q1.C]→[CST_Rc.a]`; resisto
 Mutate create (teachable assign):
 
 ```text
-+ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1(side=in, domain=coil, V=0, I=0),A2(side=in, domain=coil),COM(side=inout, domain=contact),NO(side=inout, domain=contact),NC(side=inout, domain=contact) ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
++ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1: {side=in, domain=coil, V=0, I=0},A2: {side=in, domain=coil},COM: {side=inout, domain=contact},NO: {side=inout, domain=contact},NC: {side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
 + E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
 + E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
 + E_path [CST_K1.COM] --(bind)-- [CST_K1.NC] ; carries=I
@@ -412,7 +414,7 @@ Mutate create (teachable assign):
 Pin-map present after energise (`state=energised`; contact EDGE retargeted COM↔NO):
 
 ```text
-CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1(side=in, domain=coil, V=12, I=0.02),A2(side=in, domain=coil),COM(side=inout, domain=contact),NO(side=inout, domain=contact),NC(side=inout, domain=contact) ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
+CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1: {side=in, domain=coil, V=12, I=0.02},A2: {side=in, domain=coil},COM: {side=inout, domain=contact},NO: {side=inout, domain=contact},NC: {side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
 E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
 E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
 E_path [CST_K1.COM] --(bind)-- [CST_K1.NO] ; carries=I
@@ -465,7 +467,7 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 ## 7. Open (three bullets max)
 
-- **`ports=` binding** — attrs in `(…)` vs params / `law=` idents; quantity keys still open.
+- **`ports=` binding** — attrs in `{…}` vs params / `law=` idents; quantity keys still open.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
 - **`carries=` spelling** — optional token before SCHEMA lock; no flow type system here.
 

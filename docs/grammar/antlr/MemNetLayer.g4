@@ -15,16 +15,14 @@
 //    inside maths is out of unquoted form — quote the whole field (STRING).
 // 3. Prefer quote when unquoted law would need ';' or a list-joining ',' that is
 //    not a segment boundary (locked in multi-layer.md delimiters).
-// 4. ports= entry: name( attr=val, ... ) — paren attr bag required (no bare
-//    name in portList; bare would steal fieldValue as atom). Attrs reuse
-//    ASSIGN and COMMA. side= strongly usual (semantic). Rejected: colon piles.
-//    Disambiguate from bind: port = IDENT( after port name inside ports=;
-//    bind = '--(' / '<--(' after endpoint ']'. Same LPAREN/RPAREN glyphs.
-// 5. COMMA dual role: between port entries vs between attrs inside (…) —
+// 4. ports= entry: name: { attr=val, ... } — labelled record bag (TS/YAML-style).
+//    COLON joins name to bag; LBRACE/RBRACE hold attrs. Prefer one space after
+//    ':' (WS skips it). Demote bare name{...} and name(...). () reserved for
+//    bind arrows (--(label)-- / )--> / <--(). Rejected: name:side:value piles.
+// 5. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList); no lexer mode needed.
-// 6. fieldValue: portList before atom — LL(*) needs LPAREN after IDENT to
-//    pick portList; single-atom values use the final atom alt. {} demoted
-//    for ports (LaTeX only inside LAW_SEG).
+// 6. fieldValue: portList before atom — LL(*) needs COLON (then LBRACE) after
+//    IDENT to pick portList; single-atom values use the final atom alt.
 // 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
 // 8. Create-edge optional eid: '+ [A] --(bind)--> [B]' vs '+ Eid [A] ...' —
@@ -157,10 +155,9 @@ portList
     : portToken (COMMA portToken)*
     ;
 
-// Teach always name(…). Bare name without parens is not a portList entry
-// (would be ambiguous with atom); use name(side=…) even when no quantities.
+// Teach always name: {…}. Bare name / name{…} / name(…) are not portList entries.
 portToken
-    : IDENT LPAREN attrList? RPAREN
+    : IDENT COLON LBRACE attrList? RBRACE
     ;
 
 attrList
@@ -199,16 +196,16 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LPAREN       : '(' ;   // port attr bag: IDENT( … ) inside ports=
-RPAREN       : ')' ;   // also closes bind arrows via ARROW_R_* (longest match first)
+LBRACE       : '{' ;   // port record bag after name:
+RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
-COLON        : ':' ;
+COLON        : ':' ;   // port name-to-bag join; also id:label elsewhere
 DOT          : '.' ;
 COMMA        : ',' ;
 
 // Bind wire fragments (order: bi-left before dir-left; dir-right before und-right).
-// Longer ARROW_* tokens beat bare LPAREN/RPAREN after ']' / before label.
+// () reserved for these compounds — not port bags.
 ARROW_BI_L   : '<--(' ;
 ARROW_L      : '--(' ;
 ARROW_R_DIR  : ')-->' ;   // must precede ARROW_R_UND
