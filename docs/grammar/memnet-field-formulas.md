@@ -261,4 +261,5 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | `docs/grammar/memnet-grammar-design.md` §4.2 / §4.2.0b | EDGE mutate; locked numeric `+=`/`-=` |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Lease both endpoints before cross-node |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL before coop formula writes |
+| `docs/application-notes/llm-nodal-analysis-formulas.md` | Nodal KCL / Ohm as multi-field `derives` / `feeds` (no solver) |
 | `parts/common/memnet/memnet/mutate_gate.py` | Absolute materialise for `+=`/`-=` today |

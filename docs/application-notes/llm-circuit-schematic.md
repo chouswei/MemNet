@@ -9,8 +9,10 @@ For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analys
 This note complements:
 
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML `PRT` / `POR` / `hasPort` for system ports (logical grain)
+- [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) — node method ↔ formula EDGE (`derives` / `feeds` for KCL / Ohm)
 - Grammar PCBA fixtures — `docs/grammar/examples/17_pin_map_pcba_ato_good.txt`, `18_mutate_annotation_on_pcba_pin_good.txt`
 - [`docs/grammar/memnet-grammar-design.md`](../grammar/memnet-grammar-design.md) — atomisation, Write=display, pin locators
+- [`docs/grammar/memnet-field-formulas.md`](../grammar/memnet-field-formulas.md) — formula as EDGE relation (design)
 
 Prefer the **shared dialect** (NODE | EDGE) for agent I/O. Legacy `@TAG` pipe may appear in seeds; do not teach it as the preferred surface.
 
@@ -254,7 +256,7 @@ E_fb2 [NET_VOUT] --(feeds_back_to)--> [NET_SUM] ; note=via_Rf ; recycle=persiste
 
 ## 6. Nodal analysis in the s-domain
 
-MemNet does **not** solve KCL. It holds the **node set, branch uses, and equation atoms** in \(s\). An agent or external solver reads the warm slice, solves for \(V_k(s)\) / \(H(s)\), writes result `CLM`s, and may add `view=dc` / `view=jw` / `view=t` specialisations without rebuilding the netlist equations.
+MemNet does **not** solve KCL. It holds the **node set, branch uses, and equation atoms** in \(s\). An agent or external solver reads the warm slice, solves for \(V_k(s)\) / \(H(s)\), writes result `CLM`s, and may add `view=dc` / `view=jw` / `view=t` specialisations without rebuilding the netlist equations. For mapping KCL / Ohm onto multi-field `derives` / `feeds` formula EDGEs (still no solver), see [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md).
 
 ### 6.1 Mapping
 
@@ -404,6 +406,8 @@ Then ingest or hand-seed `CMP`/`PIN`/`NET` with **explicit locator ids**, bind `
 | `docs/grammar/examples/17_pin_map_pcba_ato_good.txt` | PCBA pin→net present form |
 | `docs/grammar/examples/18_mutate_annotation_on_pcba_pin_good.txt` | `[NEW]` only for annotations |
 | `docs/application-notes/llm-sysml-v2-modeling.md` | Logical ports / `hasPort` |
+| `docs/application-notes/llm-nodal-analysis-formulas.md` | KCL / Ohm as multi-field formula EDGEs |
+| `docs/grammar/memnet-field-formulas.md` | Formula EDGE design |
 | `docs/LLM-GUIDE.md` | Goldfish loop (operational) |
 | `.cursor/skills/memnet-reference/` | Engine dialect routing (keep thin — this note is the circuit SSOT) |
 

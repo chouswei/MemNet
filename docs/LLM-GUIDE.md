@@ -311,6 +311,7 @@ memnet query warm --anchor PLR01
 | 3 | `llm-tech-docs-decomposition.md` | **Manual / SCPI decomposition** — RTO rev 29 remote mode, `@CMD` dictionary, procedure layers, driver turns |
 | 4 | `llm-sysml-v2-modeling.md` | **SysML v2 modeling** — PDU controller, cross-package `@PKG` refs, allocations, traceability from rows |
 | 5 | `llm-circuit-schematic.md` | **Circuit schematic / s-domain** — `CMP`/`PIN`/`NET`, undirected nets, ideal op-amp golden rules under NFB; s-domain unifies linear DC/\(j\omega\)/transient views; nodal `EQN`/`VAR` |
+| 5b | `llm-nodal-analysis-formulas.md` | **Nodal method ↔ formulas** — KCL / Ohm as multi-field `derives` / `feeds`; absolute pin-map values vs law relations; no solver |
 | 6 | `llm-mud.md` | **Multiplayer MUD** — shared server graph, client prose agents, tiered room atomisation |
 | 7 | `llm-build-on-memnet.md` | **Builder guide** — write your own MCP server + Cursor skill pack on top of MemNet (FastMCP wrapper, JSON envelope, LAW supplementation, `mcp.json` registration) |
 
