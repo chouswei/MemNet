@@ -52,7 +52,7 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 | `;` | **Only** top-level field separator on a line |
 | `=` | `key=value` (present / create); `+=` / `-=` only on `~` |
 | `,` | **Sole** list joiner inside a field value (`ports=`, multi-eq `law=`, …) |
-| `:` | Port token `name:side` **only** (not a field separator) |
+| `:` | Structured-token separator (pair/tuple join **inside** a field value) — e.g. port `name:side`, `id:label`, `qty:unit` (not a field separator) |
 | `$…$` | LaTeX inline math **only** (not a field separator) |
 | `[` `]` | Wrap Id or mint `NEW` |
 | `--(` `)-->` | Directed EDGE; `rel` between `--(` and `)-->` |
