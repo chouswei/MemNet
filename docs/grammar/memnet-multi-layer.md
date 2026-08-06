@@ -29,15 +29,23 @@ Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and option
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**Bind (thin)** — teachable label in the arrow slot is **`bind`**. Optional `carries=` on either form. Legacy alias: `connects` → treat as `bind`. Rare directed labels (`contains`, `refines`) only when membership / refine earns its keep — not a kind zoo.
+**Bind (thin)** — EDGE is a bind; slot label (default teach **`bind`**) is not a relation or law. Three forms only:
 
-**MUSTNOT:** put the governing equation or its params on an EDGE; treat a binary EDGE as a multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind.
+| Form | Wire | Sense |
+|------|------|-------|
+| Directed | `--(label)-->` | One-way bind/carrier |
+| Non-directed | `--(label)--` | Undirected bind (no arrowheads) |
+| Bi-directed | `<--(label)-->` | Both directions explicit (≠ non-directed) |
+
+Optional `carries=` on all three. Legacy alias: `connects` → `bind`. Rare labels (`contains`, `refines`) only when they earn their keep.
+
+**MUSTNOT:** put the governing equation or its params on an EDGE; treat a binary EDGE as a multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed.
 
 ---
 
 ## 2. Syntax (cheat sheet)
 
-**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `carries=` / non-directed bind / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
+**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `carries=` / three bind forms / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
 
 ### Delimiters (locked)
 
@@ -49,8 +57,9 @@ Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and option
 | `:` | Structured-token separator (pair/tuple join **inside** a field value) — e.g. port `name:side`, `id:label`, `qty:unit` (not a field separator) |
 | `$…$` | LaTeX inline math **only** (not a field separator) |
 | `[` `]` | Wrap Id or mint `NEW` |
-| `--(` `)-->` | **Directed** bind; label between `--(` and `)-->` (teachable: `bind`) |
-| `--` label `--` | **Non-directed** bind; locked form `--bind--` (no parens, no arrowheads — avoids unfinished `)--`) |
+| `--(` `)-->` | **Directed** bind |
+| `--(` `)--` | **Non-directed** bind (parens + label; no spaces inside parens) |
+| `<--(` `)-->` | **Bi-directed** bind |
 | `"` | STRING for awkward values (shared dialect) |
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`.
@@ -59,11 +68,12 @@ No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not
 
 ```text
 CST [Id] ; name=… ; ports=name:side,… ; law=$eq$,$eq$ ; param=… ; recycle=persistent
-Eid [A] --bind-- [B] ; carries=token
 Eid [A] --(bind)--> [B] ; carries=token
+Eid [A] --(bind)-- [B] ; carries=token
+Eid [A] <--(bind)--> [B] ; carries=token
 ```
 
-`ports=` uses `name:side` with side ∈ {`in`, `out`, `inout`}. `law=` holds LaTeX maths on the NODE. `carries=` is optional on either bind form (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
+`ports=` uses `name:side` with side ∈ {`in`, `out`, `inout`}. `law=` holds LaTeX maths on the NODE. `carries=` is optional on all three bind forms (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
 
 ### `law=` expression rules (LaTeX)
 
@@ -78,8 +88,9 @@ Eid [A] --(bind)--> [B] ; carries=token
 |-------|------|
 | NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
 | EDGE directed | `Eid [A] --(bind)--> [B] ; key=value ; …` |
-| EDGE non-directed | `Eid [A] --bind-- [B] ; key=value ; …` |
-| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [A] --bind-- [B] ; …` · or `--(bind)-->` |
+| EDGE non-directed | `Eid [A] --(bind)-- [B] ; key=value ; …` |
+| EDGE bi-directed | `Eid [A] <--(bind)--> [B] ; key=value ; …` |
+| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [A] --(bind)-- [B] ; …` · or `--(bind)-->` / `<--(bind)-->` |
 | Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
 | Drop | `- Eid` |
 
@@ -93,7 +104,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments `,`-joined |
 | `name=` | short label |
 | params | domain keys **on the NODE** (`k=`, `gain=`, …) |
-| `carries=` | optional on either bind form; quantity/token name (`signal`, `q`, `V`, `I`, …) |
+| `carries=` | optional on any bind form; quantity/token name (`signal`, `q`, `V`, `I`, …) |
 | `recycle=` | shared-dialect visibility (`persistent`, …) |
 | `view=` / `layer=` | pin-map grain (exclusive: `shell` or `interior`; coarse→fine strata) — query/envelope; not ontology |
 
@@ -131,13 +142,14 @@ A bind does **not** own the law or its params.
 
 ### Application note: BJT + resistor (electronics instance)
 
-One domain instance only — not the default frame. Law on NODE; resistor wire is a **non-directed** bind; Q1→Rc current path may be **directed** when direction earns its keep:
+One domain instance only — not the default frame. Law on NODE; resistor terminals **non-directed**; Q1→Rc **directed**; a two-way link **bi-directed** when both directions are explicit:
 
 ```text
 CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=$I_c=\beta I_b$,$I_e=I_b+I_c$ ; recycle=persistent
 CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a:inout,b:inout ; law=$V_a-V_b=I_a R$ ; recycle=persistent
-E_ab [PORT_Rc_a] --bind-- [PORT_Rc_b] ; carries=I
+E_ab [PORT_Rc_a] --(bind)-- [PORT_Rc_b] ; carries=I
 E_c [PORT_Q1_C] --(bind)--> [PORT_Rc_a] ; carries=I
+E_ea [PORT_Q1_E] <--(bind)--> [PORT_Rc_b] ; carries=I
 ```
 
 Omit E → truncated device and unowned KCL. Same syntax skeleton as above; electrical `V`/`I`/`beta` are instance tokens.
@@ -179,7 +191,7 @@ pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior)
 |------|------------------|--------|
 | NODE\|EDGE store | Active stamps → node + `ports=` + `law=` | Formula-on-edge; maths hubs on wrong kinds |
 | Write = display; pin_map caps | Flat self-loop `derives` → law on node; `connects` → `bind` | Forever dual dialect |
-| Locator kinds (domain locators) | Non-directed `--bind--` form | Those kinds as formula hubs |
+| Locator kinds (domain locators) | Non-directed `--(bind)--` and bi-directed `<--(bind)-->` | Those kinds as formula hubs |
 
 Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat same-node `derives` in [`memnet-field-formulas.md`](memnet-field-formulas.md) = **transitional** only.
 
