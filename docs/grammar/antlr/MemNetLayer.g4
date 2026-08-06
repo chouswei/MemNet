@@ -8,8 +8,8 @@
 // Not an evaluator for LaTeX; law is opaque $...$.
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
-// 1. Wire disambiguation: tokenise ')-->' before ')--' (longest match). Left:
-//    '<--(' vs '--('. Directed and non-directed share ARROW_L; right token decides.
+// 1. Wire disambiguation: tokenise '}-->' before '}--' (longest match). Left:
+//    '<--{' vs '--{'. Directed and non-directed share ARROW_L; right token decides.
 // 2. law= list commas vs LaTeX commas: commas inside LAW_SEG are opaque; only
 //    COMMA between closed $...$ segments is the field list joiner. Nested '$'
 //    inside maths is out of unquoted form — quote the whole field (STRING).
@@ -17,15 +17,16 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. ports= entry: name: { attr=val, ... } — labelled record bag (TS/YAML-style).
 //    COLON joins name to bag; LBRACE/RBRACE hold attrs. Prefer one space after
-//    ':' (WS skips it). Demote bare name{...} and name(...). () reserved for
-//    bind arrows (--(label)-- / )--> / <--(). Rejected: name:side:value piles.
+//    ':' (WS skips it). Demote bare name{...} and name(...). Bind arrows reuse
+//    braces as compounds: --{label}--> / }-- / <--{ (context after -- / <--).
+//    () fully free. Rejected: name:side:value piles.
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList); no lexer mode needed.
 // 6. fieldValue: portList before atom — LL(*) needs COLON (then LBRACE) after
 //    IDENT to pick portList; single-atom values use the final atom alt.
 // 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
-// 8. Create-edge optional eid: '+ [A] --(bind)--> [B]' vs '+ Eid [A] ...' —
+// 8. Create-edge optional eid: '+ [A] --{bind}--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
 // 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT inside brackets (form A).
 //    Plain IDENT kept for NEW mint / rare first-class PORT ids. Rejected teach
@@ -33,7 +34,7 @@
 // 10. Dialect stays domain-generic; electronics V/I are instance attr keys only.
 // 11. BARE_ATOM must not start with +/-/~ or include '+'/'-' (longest-match
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
-//     (& * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
+//     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.
@@ -75,6 +76,7 @@ patchNode
 
 // Three bind forms: directed / non-directed / bi-directed
 // Endpoints: [Node.port] (teach) or [Id] / [NEW]
+// Wire: --{label}--> | --{label}-- | <--{label}-->
 presentEdge
     : IDENT endpoint bindWire endpoint (SEMI field)*
     ;
@@ -196,7 +198,7 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LBRACE       : '{' ;   // port record bag after name:
+LBRACE       : '{' ;   // port record bag after name: (bind arrows use ARROW_* compounds)
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
@@ -205,11 +207,12 @@ DOT          : '.' ;
 COMMA        : ',' ;
 
 // Bind wire fragments (order: bi-left before dir-left; dir-right before und-right).
-// () reserved for these compounds — not port bags.
-ARROW_BI_L   : '<--(' ;
-ARROW_L      : '--(' ;
-ARROW_R_DIR  : ')-->' ;   // must precede ARROW_R_UND
-ARROW_R_UND  : ')--' ;
+// {} wraps bind label; same brace chars as port bags — context after -- / <--.
+// () fully free (not used here).
+ARROW_BI_L   : '<--{' ;
+ARROW_L      : '--{' ;
+ARROW_R_DIR  : '}-->' ;   // must precede ARROW_R_UND
+ARROW_R_UND  : '}--' ;
 
 KW_NEW       : 'NEW' ;
 
