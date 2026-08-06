@@ -129,7 +129,8 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | `ports=` | `name{side=…, …}`, `,`-joined — e.g. `ports=x{side=in, q=0},y{side=out}` |
 | `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments `,`-joined |
 | `name=` | short label |
-| params | domain keys **on the NODE** (`k=`, `gain=`, …) |
+| `state=` | optional present discrete state on the NODE (e.g. relay `energised` / `deenergised`) — display + agent cue; not an EDGE evaluator |
+| params | domain keys **on the NODE** (`k=`, `gain=`, `I_th=`, …) |
 | `value=` | on first-class **PORT** NODE — quantity at/through that endpoint (domain terms) |
 | `carries=` | optional on any bind form; generic quantity/token name (`signal`, `q`, …) |
 | `recycle=` | shared-dialect visibility (`persistent`, …) |
@@ -205,6 +206,30 @@ E_ea [CST_Q1.E] <--(bind)--> [CST_Rc.b] ; carries=I
 ```
 
 Collector current rides the **directed** bind `[CST_Q1.C]→[CST_Rc.a]`; resistor terminals **non-directed** on `a`/`b`; E↔Rc.b **bi-directed** when both directions are explicit. Omit E → truncated device / unowned KCL.
+
+### Application note: relay SPDT (electronics instance)
+
+**Instance only** — same grain as the BJT note. One **`CST`** owns coil + contact ports; galvanic isolation is **two domains on one NODE** (port attr `domain=coil` vs `domain=contact`), not a second kind. Contact path is **state-dependent bind**: `law=` states the condition; the live EDGE is whichever path is present; the agent **updates** that EDGE when `state=` flips — do **not** fake switching as EDGE-as-function.
+
+Mutate create (teachable assign):
+
+```text
++ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=0, I=0},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$path=\mathrm{NO}\ \mathrm{if}\ s=1\ \mathrm{else}\ \mathrm{NC}$ ; recycle=persistent
++ E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
++ E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
++ E_path [CST_K1.COM] --(bind)-- [CST_K1.NC] ; carries=I
+```
+
+Pin-map present after energise (`state=energised`; contact EDGE retargeted COM↔NO):
+
+```text
+CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=12, I=0.02},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$path=\mathrm{NO}\ \mathrm{if}\ s=1\ \mathrm{else}\ \mathrm{NC}$ ; recycle=persistent
+E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
+E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
+E_path [CST_K1.COM] --(bind)-- [CST_K1.NO] ; carries=I
+```
+
+**State / contact switching:** when coil current exceeds `I_th`, set `state=energised` and replace the contact bind `COM--NC` with `COM--NO` (else the reverse); `law=` records the rule, EDGE records the present path.
 
 ---
 

@@ -21,6 +21,8 @@ SAMPLES = [
     "+ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B{side=in, V=0.7, I=0.001},C{side=out},E{side=inout} ; law=$I_c=\\beta I_b$,$I_e=I_b+I_c$ ; recycle=persistent\n",
     "+ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a{side=inout},b{side=inout} ; law=$V_a-V_b=I_a R$ ; recycle=persistent\n",
     "+ E_c [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=I\n",
+    "+ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=0, I=0},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$s=\\mathbf{1}(\\lvert I_{A1}\\rvert>I_{th})$,$path=\\mathrm{NO}\\ \\mathrm{if}\\ s=1\\ \\mathrm{else}\\ \\mathrm{NC}$ ; recycle=persistent\n",
+    "+ E_path [CST_K1.COM] --(bind)-- [CST_K1.NC] ; carries=I\n",
     "+ CST [NEW] ; ports=x{side=in, q=$x$},y{side=out}\n",
     "~ [CST_Blk] ; k+=1\n",
     "- E1\n",
