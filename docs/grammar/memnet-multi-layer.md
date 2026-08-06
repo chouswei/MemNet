@@ -51,7 +51,7 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 
 ## 2. Syntax (cheat sheet)
 
-**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `carries=` / three bind forms / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
+**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine** — directed only today). **1.x overlays** below (`ports=` / `law=` / `pseudo=` / `carries=` / three bind forms / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
 
 ### Delimiters (locked)
 
@@ -72,7 +72,7 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`.
+No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
 ### Delimiter inventory (used vs free)
 
@@ -131,6 +131,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 |-------|------|
 | `ports=` | `name{side=…, …}`, `,`-joined — e.g. `ports=x{side=in, q=0},y{side=out}` |
 | `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
+| `pseudo=` | algorithmic steps as a STRING on the **NODE** (prefer quoted); not LaTeX; not an evaluator — see §3 pseudocode note |
 | `name=` | short label |
 | `state=` | optional present discrete state on the NODE (e.g. relay `energised` / `deenergised`) — display + agent cue; not an EDGE evaluator |
 | params | domain keys **on the NODE** (`k=`, `gain=`, `I_th=`, …) |
@@ -232,6 +233,24 @@ E_tr [CST_R_lat.design] --(bind)--> [CST_Gate.x] ; carries=trace
 
 This view shows acceptance criteria on requirement CSTs and ideal binds that pin those criteria to design/programme ports.
 
+### Application note: pseudocode (programme steps)
+
+**Instance only** — agent memory of algorithmic steps, **not** a programming language or runtime. Kind stays **`CST`** with in/out ports. Steps live in **`pseudo=`** (quoted STRING); keep **`law=`** for the formal contract / postcondition (LaTeX). Do **not** overload `law=` with code text. Prefer one CST over a chain of step NODEs. EDGE remains ideal bind/pipe into/out of ports — no control-flow on the arrow.
+
+Mutate create (clamp stub):
+
+```text
++ CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x{side=in},y{side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
+```
+
+Pin-map present (same facts, no leading `+`):
+
+```text
+CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x{side=in},y{side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$ ; recycle=persistent
+```
+
+Quote `pseudo="…"` whenever the body would collide with `;` or list `,` (usual STRING rule). Optional: omit `law=` when only informal steps are known; add it when the postcondition is clear.
+
 ### Application note: BJT + resistor (electronics instance)
 
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
@@ -284,7 +303,7 @@ E_path [CST_K1.COM] --(bind)-- [CST_K1.NO] ; carries=I
 
 - **Anything as EDGE law** — device FN on the arrow (`[A] --(derives)--> [B] ; law=$y=k x$`) **or** stuffing ideal-wire equations onto EDGE (`… --(bind)-- … ; law=$V_a=V_b$`). EDGE = ideal pipe only; continuity is implied.
 - **Node-to-node bind** — e.g. `[CST_Q1] --(bind)-- [CST_Rc]` with no `.port` (missing port grain; prefer `[CST_Q1.C]`).
-- **Hollow nest with no law leaf** — a shell without a node that owns `law=` (behaviour has nowhere to live).
+- **Hollow nest with no behaviour leaf** — a shell without a node that owns `law=` or `pseudo=` (behaviour has nowhere to live).
 
 ---
 
