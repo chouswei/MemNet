@@ -23,7 +23,7 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
 //    name: {…} (COLON = name-to-bag only; ASSIGN = all scalars/attrs).
-//    MUSTNOT: side:in (use side=in); ports=x={…} (use x: {…}). Discipline
+//    MUSTNOT: direction:in (use direction=in); ports=x={…} (use x: {…}). Discipline
 //    (not a domain-field allow-list): {…} = record of attrs; scalar = for
 //    singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT
 //    bags on dialect keywords law/pseudo/recycle/role/view/layer.

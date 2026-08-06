@@ -49,22 +49,22 @@ Eid [CST_Alice] --knows--> [CST_Bob]
 **Ports:** fields on the law node until separate atoms are proven necessary. Entry = `name: {attr=val, …}` (labelled record bag — TS/YAML-style; not a call):
 
 ```text
-ports=x: {side=in, q=0},y: {side=out},state: {side=inout, q=$s$}
+ports=x: {direction=in, q=0},y: {direction=out},state: {direction=inout, q=$s$}
 ```
 
-Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags (`in` / `out` / `inout`). Other attrs are **domain quantities at/through the port** — omit when unused (no empty bags beyond `side=`). “Through” quantities often align with directed binds / port side; non-directed binds need not invent direction. Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and port `side=` on the **NODE**.
+Attrs use the same `=` / `,` as elsewhere. `direction=` is required in teachable bags (`in` / `out` / `inout`). Other attrs are **domain quantities at/through the port** — omit when unused (no empty bags beyond `direction=`). “Through” quantities often align with directed binds / port direction; non-directed binds need not invent direction. Do **not** celebrate a kind zoo. No `FN`. Orientation lives in `law=` and port `direction=` on the **NODE**.
 
 **`PORT` as first-class NODE:** only if endpoints must be wired independently (binds need stable ids). Quantity fields on that atom use ordinary `key=value` (teach `value=` / domain keys). Until then, keep ports as fields; engine may desugar later. First-class PORT↔PORT still uses **bind** grain (not relation).
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Composition without `CAP`: membership **binds** with `carries=member` on port grain (`view=parts` / `layer=arch` — §3 parts note). Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**Omit defaults (wire):** session/engine default covers `recycle=` (typically `persistent`) — **omit** `recycle=` on teachable mutate and pin_map lines unless the value is **non-default** (token waste otherwise). Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
+**Omit defaults (wire):** session/engine default covers `recycle=` (typically `persistent`) — **omit** `recycle=` on teachable mutate and pin_map lines unless the value is **non-default** (token waste otherwise). Same spirit for empty port attrs: `ports=x: {direction=in}` not `ports=x: {direction=in, q=}`.
 
 **Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags. **No** closed global allow-list of domain field names (domains differ) — prefer **author/agent discipline** below. Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
 **Brace-group discipline (locked):** use `{…}` when the value is a **record of attrs**; use scalar `=` for a single value. Prefer flat attrs; nest only when needed (**depth ≤2**). Domain vocab is free under discipline — do **not** invent bag spam on every key. Soft MUSTNOT (keyword denylist, not an allow-list): dialect scalars `law` / `pseudo` / `recycle` / `role` / `view` / `layer` stay STRING / IDENT / number — never bags. OK: `meta={rev=1, src=doc}`; `units={x=m, y=s}`. Bad: `gain={k=2}` (single value → `gain=2`); `law={eq=$V=IR$}`.
 
-**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`side:in` — use `side=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`; bag dialect keywords (`law`/`pseudo`/`recycle`/`role`/`view`/`layer`).
+**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`direction:in` — use `direction=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:direction:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`; bag dialect keywords (`law`/`pseudo`/`recycle`/`role`/`view`/`layer`).
 
 ---
 ## 2. Syntax (cheat sheet)
@@ -76,10 +76,10 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | Char | Role |
 |------|------|
 | `;` | **Only** top-level field separator on a line |
-| `=` | Assign a **value** to a **key** — top-level `key=value` (present / create); `+=` / `-=` only on `~`; attrs inside `{…}` (`side=in`). Scalars stay `=` — **no** `key: value` |
+| `=` | Assign a **value** to a **key** — top-level `key=value` (present / create); `+=` / `-=` only on `~`; attrs inside `{…}` (`direction=in`). Scalars stay `=` — **no** `key: value` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
-| `:` | Bind a **name** to a **brace-group** only: `name: {…}` (inside `ports=` list). **Not** scalar assign; **not** `side:in`; **not** `x={…}` without `:` |
-| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`). Discipline: bag = record of attrs; scalar `=` for singles; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on `law`/`pseudo`/`recycle`/`role`/`view`/`layer`. OK: `meta={units={x=m,y=s}}`. Bad: `gain={k=2}`; `meta={a={b={c=1}}}`. Not on EDGE arrows |
+| `:` | Bind a **name** to a **brace-group** only: `name: {…}` (inside `ports=` list). **Not** scalar assign; **not** `direction:in`; **not** `x={…}` without `:` |
+| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {direction=in, q=0}`). Discipline: bag = record of attrs; scalar `=` for singles; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on `law`/`pseudo`/`recycle`/`role`/`view`/`layer`. OK: `meta={units={x=m,y=s}}`. Bad: `gain={k=2}`; `meta={a={b={c=1}}}`. Not on EDGE arrows |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
@@ -90,7 +90,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**`=` vs `:` (locked):** `=` assigns values to keys (fields and bag attrs). `:` binds a name to a brace-group only (`name: {…}`). Good: `ports=x: {side=in}`. Bad: `ports=x={side=in}` or `{side:in}`.
+**`=` vs `:` (locked):** `=` assigns values to keys (fields and bag attrs). `:` binds a name to a brace-group only (`name: {…}`). Good: `ports=x: {direction=in}`. Bad: `ports=x={direction=in}` or `{direction:in}`.
 
 **Defaults:** omit `recycle=` on wire unless non-default — session/engine default (typically `persistent`) already covers it.
 
@@ -119,7 +119,7 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 ### Generic skeleton
 
 ```text
-CST [Id] ; name=… ; ports=name: {side=…, q=…},… ; law=$eq$,$eq$ ; param=…
+CST [Id] ; name=… ; ports=name: {direction=…, q=…},… ; law=$eq$,$eq$ ; param=…
 Eid [Id.port] --bind--> [Id.port] ; carries=token
 Eid [Id.port] --bind-- [Id.port] ; carries=token
 Eid [Id.port] <--bind--> [Id.port] ; carries=token
@@ -131,7 +131,7 @@ Eid [NodeA] --rel_name--> [NodeB]
 ### `law=` expression rules (LaTeX)
 
 - **Where:** one `law=` field on the **NODE** (prefer kind `CST`). **Never** on EDGE — bind implies continuity; relation is a chart link; do not teach equations on the arrow. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
-- **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
+- **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `direction=` only.
 - **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with EDGE arrowheads `<--` / `-->` (direction marks on wires).
 - **Completeness (soft-validate):** every symbol in `law=` MUST appear as a port quantity (name / attr / subscript), a node param, or be defined in the same `law=` list — no orphan predicates. **Lint (optional, thin):** warn when a math ident / macro base is not ⊆ ports ∪ params ∪ same-`law=` defs (ignore pure numerals and LaTeX operators / `\mathrm{…}` wrappers). Agents SHOULD fix before settle.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: domain attrs in the bag (`q=`, …) or subscripts in `law=` — port name is the subscript. Qualified `PORT_x.q` deferred.
@@ -154,7 +154,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 
 | Field | Form |
 |-------|------|
-| `ports=` | `name: {side=…, …}`, `,`-joined — omit attrs beyond needed `side=` / quantities |
+| `ports=` | `name: {direction=…, …}`, `,`-joined — omit attrs beyond needed `direction=` / quantities |
 | `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
 | `pseudo=` | algorithmic steps as a STRING on the **NODE** (prefer quoted); not LaTeX; not an evaluator — see §3 pseudocode note |
 | `name=` | short label |
@@ -171,7 +171,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 ### Port token (`ports=`)
 
 ```text
-x: {side=in, q=0}
+x: {direction=in, q=0}
 ```
 
 | Part | Meaning |
@@ -179,10 +179,18 @@ x: {side=in, q=0}
 | `x` | Port **name** (ties to symbols in `law=`) |
 | `:` | Bind name to brace-group only (prefer one space after) |
 | `{…}` | Brace-group / record: `attr=val` pairs, `,`-joined (same shape as other record field values) |
-| `side=` | Required in teachable bags: `in` / `out` / `inout` — **MUSTNOT** `side:in` |
-| other attrs | Domain quantities (e.g. `q=`); omit when unused |
+| `direction=` | Required in teachable bags: `in` / `out` / `inout` — **MUSTNOT** `direction:in` |
+| other attrs | Domain quantities (generic `q=` or named keys); omit when unused |
 
-Teach **always** `name: {…}` inside `ports=` (prefer one space after `:`; at least `side=`). Demote `x={…}`, bare `x{…}`, and `x(…)`. Bare `name` without `: {…}` is not a port entry. List joiner between ports stays `,`. Quote the whole `ports=` field if an attr value needs `;` or a list-joining `,` outside `$…$`.
+Teach **always** `name: {…}` inside `ports=` (prefer one space after `:`; at least `direction=`). Demote `x={…}`, bare `x{…}`, and `x(…)`. Bare `name` without `: {…}` is not a port entry. List joiner between ports stays `,`. Quote the whole `ports=` field if an attr value needs `;` or a list-joining `,` outside `$…$`.
+
+**Electronics instance (not core):** an IC pin is **one** port with **two** quantities — voltage **at** the pin (`V`) and current **through** it (`I`). Do **not** split V and I into two ports. Sign of `I` follows `direction=` / device `law=`.
+
+```text
+pin1: {direction=inout, V=0, I=0}
+```
+
+Generic bags stay domain-free (`q=` or other named quantities); `V`/`I` are the electronics spelling of across + through.
 
 ### EDGE endpoint
 
@@ -217,15 +225,15 @@ First-class PORT NODE remains an escape hatch only when a port must be an indepe
 **Lead (any domain)** — abstract CST with ports, law, and binds:
 
 ```text
-CST [CST_Blk] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$
-CST [CST_Next] ; name=next ; ports=x: {side=in},y: {side=out} ; law=$y=x$
+CST [CST_Blk] ; name=block ; k=2 ; ports=x: {direction=in, q=1.0},y: {direction=out} ; law=$y=k x$
+CST [CST_Next] ; name=next ; ports=x: {direction=in},y: {direction=out} ; law=$y=x$
 E1 [CST_Blk.y] --bind--> [CST_Next.x] ; carries=signal
 ```
 
 Mutate (mint):
 
 ```text
-+ CST [NEW] ; name=block ; k=2 ; ports=x: {side=in, q=1.0},y: {side=out} ; law=$y=k x$
++ CST [NEW] ; name=block ; k=2 ; ports=x: {direction=in, q=1.0},y: {direction=out} ; law=$y=k x$
 ```
 
 A **bind** does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`). A **relation** names two nodes and puts sense in the label.
@@ -237,16 +245,16 @@ A **bind** does **not** own `law=` or device params; it is an ideal pipe that na
 Mutate create (teachable assign) — z-score stage then threshold gate:
 
 ```text
-+ CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {side=in},y: {side=out} ; law=$y=(x-\mu)/\sigma$
-+ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$
++ CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {direction=in},y: {direction=out} ; law=$y=(x-\mu)/\sigma$
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {direction=in},y: {direction=out} ; law=$y=\mathbf{1}(x>t)$
 + E_pipe [CST_Norm.y] --bind--> [CST_Gate.x] ; carries=token
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {side=in},y: {side=out} ; law=$y=(x-\mu)/\sigma$
-CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$
+CST [CST_Norm] ; name=zscore ; mu=0 ; sigma=1 ; ports=x: {direction=in},y: {direction=out} ; law=$y=(x-\mu)/\sigma$
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {direction=in},y: {direction=out} ; law=$y=\mathbf{1}(x>t)$
 E_pipe [CST_Norm.y] --bind--> [CST_Gate.x] ; carries=token
 ```
 
@@ -259,16 +267,16 @@ E_pipe [CST_Norm.y] --bind--> [CST_Gate.x] ; carries=token
 Mutate create (one requirement CST bound to a programme stage port):
 
 ```text
-+ CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {side=in, q=$t$},design: {side=out} ; t_lim=10 ; law=$t<t_{\mathrm{lim}}\,\mathrm{ms}$
-+ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$
++ CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {direction=in, q=$t$},design: {direction=out} ; t_lim=10 ; law=$t<t_{\mathrm{lim}}\,\mathrm{ms}$
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {direction=in},y: {direction=out} ; law=$y=\mathbf{1}(x>t)$
 + E_tr [CST_R_lat.design] --bind--> [CST_Gate.x] ; carries=trace
 ```
 
 Pin-map present (`layer=req`, or anchor on `CST_R_lat`):
 
 ```text
-CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {side=in, q=$t$},design: {side=out} ; t_lim=10 ; law=$t<t_{\mathrm{lim}}\,\mathrm{ms}$
-CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {side=in},y: {side=out} ; law=$y=\mathbf{1}(x>t)$
+CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake: {direction=in, q=$t$},design: {direction=out} ; t_lim=10 ; law=$t<t_{\mathrm{lim}}\,\mathrm{ms}$
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x: {direction=in},y: {direction=out} ; law=$y=\mathbf{1}(x>t)$
 E_tr [CST_R_lat.design] --bind--> [CST_Gate.x] ; carries=trace
 ```
 
@@ -281,13 +289,13 @@ This view shows acceptance criteria on requirement CSTs and ideal binds that pin
 Mutate create (clamp stub):
 
 ```text
-+ CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {side=in},y: {side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$
++ CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {direction=in},y: {direction=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {side=in},y: {side=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$
+CST [CST_Clamp] ; name=clamp ; lo=0 ; hi=1 ; ports=x: {direction=in},y: {direction=out} ; pseudo="if x<lo then y:=lo elif x>hi then y:=hi else y:=x" ; law=$y=\mathrm{clip}(x,lo,hi)$
 ```
 
 Quote `pseudo="…"` whenever the body would collide with `;` or list `,` (usual STRING rule). Optional: omit `law=` when only informal steps are known; add it when the postcondition is clear.
@@ -311,9 +319,9 @@ ASCII (decision-only shell):
 Mutate create (shell — decision only):
 
 ```text
-+ CST [CST_Dec] ; name=ok ; ports=x: {side=in},yes: {side=out},no: {side=out} ; law=$x>0$
-+ CST [CST_Yes] ; name=path_yes ; ports=in: {side=in}
-+ CST [CST_No] ; name=path_no ; ports=in: {side=in}
++ CST [CST_Dec] ; name=ok ; ports=x: {direction=in},yes: {direction=out},no: {direction=out} ; law=$x>0$
++ CST [CST_Yes] ; name=path_yes ; ports=in: {direction=in}
++ CST [CST_No] ; name=path_no ; ports=in: {direction=in}
 + E_dy [CST_Dec.yes] --bind--> [CST_Yes.in] ; carries=token
 + E_dn [CST_Dec.no] --bind--> [CST_No.in] ; carries=token
 ```
@@ -321,9 +329,9 @@ Mutate create (shell — decision only):
 Pin-map present (`view=flowchart` shell — 3 NODEs / 2 EDGEs):
 
 ```text
-CST [CST_Dec] ; name=ok ; ports=x: {side=in},yes: {side=out},no: {side=out} ; law=$x>0$
-CST [CST_Yes] ; name=path_yes ; ports=in: {side=in}
-CST [CST_No] ; name=path_no ; ports=in: {side=in}
+CST [CST_Dec] ; name=ok ; ports=x: {direction=in},yes: {direction=out},no: {direction=out} ; law=$x>0$
+CST [CST_Yes] ; name=path_yes ; ports=in: {direction=in}
+CST [CST_No] ; name=path_no ; ports=in: {direction=in}
 E_dy [CST_Dec.yes] --bind--> [CST_Yes.in] ; carries=token
 E_dn [CST_Dec.no] --bind--> [CST_No.in] ; carries=token
 ```
@@ -348,9 +356,9 @@ ASCII (box with two children):
 Mutate create:
 
 ```text
-+ CST [CST_Box] ; name=box ; ports=in: {side=in},out: {side=out},own: {side=inout}
-+ CST [CST_A] ; name=child_a ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$
-+ CST [CST_B] ; name=child_b ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$
++ CST [CST_Box] ; name=box ; ports=in: {direction=in},out: {direction=out},own: {direction=inout}
++ CST [CST_A] ; name=child_a ; ports=x: {direction=in},y: {direction=out},own: {direction=inout} ; law=$y=x$
++ CST [CST_B] ; name=child_b ; ports=x: {direction=in},y: {direction=out},own: {direction=inout} ; law=$y=x$
 + E_ma [CST_Box.own] --bind-- [CST_A.own] ; carries=member
 + E_mb [CST_Box.own] --bind-- [CST_B.own] ; carries=member
 + E_xin [CST_Box.in] --bind--> [CST_A.x] ; carries=signal
@@ -361,9 +369,9 @@ Mutate create:
 Pin-map present (`view=parts`):
 
 ```text
-CST [CST_Box] ; name=box ; ports=in: {side=in},out: {side=out},own: {side=inout}
-CST [CST_A] ; name=child_a ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$
-CST [CST_B] ; name=child_b ; ports=x: {side=in},y: {side=out},own: {side=inout} ; law=$y=x$
+CST [CST_Box] ; name=box ; ports=in: {direction=in},out: {direction=out},own: {direction=inout}
+CST [CST_A] ; name=child_a ; ports=x: {direction=in},y: {direction=out},own: {direction=inout} ; law=$y=x$
+CST [CST_B] ; name=child_b ; ports=x: {direction=in},y: {direction=out},own: {direction=inout} ; law=$y=x$
 E_ma [CST_Box.own] --bind-- [CST_A.own] ; carries=member
 E_mb [CST_Box.own] --bind-- [CST_B.own] ; carries=member
 E_xin [CST_Box.in] --bind--> [CST_A.x] ; carries=signal
@@ -388,8 +396,8 @@ ASCII (Idle ↔ Run):
 Mutate create:
 
 ```text
-+ CST [CST_Idle] ; name=idle ; ports=enter: {side=in},exit: {side=out}
-+ CST [CST_Run] ; name=run ; ports=enter: {side=in},exit: {side=out}
++ CST [CST_Idle] ; name=idle ; ports=enter: {direction=in},exit: {direction=out}
++ CST [CST_Run] ; name=run ; ports=enter: {direction=in},exit: {direction=out}
 + E_start [CST_Idle.exit] --bind--> [CST_Run.enter] ; event=start ; carries=event
 + E_stop [CST_Run.exit] --bind--> [CST_Idle.enter] ; event=stop ; carries=event
 ```
@@ -397,8 +405,8 @@ Mutate create:
 Pin-map present (`view=statechart` — 2 NODEs / 2 EDGEs):
 
 ```text
-CST [CST_Idle] ; name=idle ; ports=enter: {side=in},exit: {side=out}
-CST [CST_Run] ; name=run ; ports=enter: {side=in},exit: {side=out}
+CST [CST_Idle] ; name=idle ; ports=enter: {direction=in},exit: {direction=out}
+CST [CST_Run] ; name=run ; ports=enter: {direction=in},exit: {direction=out}
 E_start [CST_Idle.exit] --bind--> [CST_Run.enter] ; event=start ; carries=event
 E_stop [CST_Run.exit] --bind--> [CST_Idle.enter] ; event=stop ; carries=event
 ```
@@ -449,21 +457,35 @@ E_kb [CST_Alice] --knows--> [CST_Bob]
 
 Team membership (thin): bare-id relation `--member_of-->` / `--member--` (non-directed when undirected). Keep the slice small — mission is tokens + accuracy, not a full org dump.
 
-### Application note: BJT + resistor (electronics instance)
+### Application note: resistor (electronics instance — tiny)
 
-**Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
+**Instance only** — each terminal is one port holding `V` (at) and `I` (through); Ohm’s law + KCL on the NODE.
 
 ```text
-+ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {side=in, V=0.7, I=0.001},C: {side=out},E: {side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$
-+ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {side=inout},b: {side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
++ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {direction=inout, V=0, I=0},b: {direction=inout, V=0, I=0} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
+```
+
+Pin-map present:
+
+```text
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {direction=inout, V=5, I=0.005},b: {direction=inout, V=0, I=-0.005} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
+```
+
+### Application note: BJT + resistor (electronics instance)
+
+**Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings; each pin is one port (across + through). Mutate create (teachable assign):
+
+```text
++ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {direction=in, V=0.7, I=0.001},C: {direction=out, V=5, I=0.1},E: {direction=inout, V=0, I=-0.101} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$
++ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {direction=inout, V=0, I=0},b: {direction=inout, V=0, I=0} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
 + E_c [CST_Q1.C] --bind--> [CST_Rc.a] ; carries=I
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {side=in, V=0.7, I=0.001},C: {side=out},E: {side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$
-CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {side=inout},b: {side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
+CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B: {direction=in, V=0.7, I=0.001},C: {direction=out, V=5, I=0.1},E: {direction=inout, V=0, I=-0.101} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a: {direction=inout, V=5, I=0.1},b: {direction=inout, V=0, I=-0.1} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$
 E_ab [CST_Rc.a] --bind-- [CST_Rc.b] ; carries=I
 E_c [CST_Q1.C] --bind--> [CST_Rc.a] ; carries=I
 E_ea [CST_Q1.E] <--bind--> [CST_Rc.b] ; carries=I
@@ -478,7 +500,7 @@ Collector current rides the **directed** bind `[CST_Q1.C]→[CST_Rc.a]`; resisto
 Mutate create (teachable assign):
 
 ```text
-+ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1: {side=in, domain=coil},A2: {side=in, domain=coil},COM: {side=inout, domain=contact},NO: {side=inout, domain=contact},NC: {side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$
++ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1: {direction=in, domain=coil},A2: {direction=in, domain=coil},COM: {direction=inout, domain=contact},NO: {direction=inout, domain=contact},NC: {direction=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$
 + E_coil [CST_Drv.out] --bind--> [CST_K1.A1] ; carries=I
 + E_ret [CST_K1.A2] --bind-- [CST_Gnd.a] ; carries=I
 + E_path [CST_K1.COM] --bind-- [CST_K1.NC] ; carries=I
@@ -487,7 +509,7 @@ Mutate create (teachable assign):
 Pin-map present after energise (`state=energised`; contact EDGE retargeted COM↔NO; warm slice omits idle V/I noise):
 
 ```text
-CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1: {side=in, domain=coil, V=12, I=0.02},A2: {side=in, domain=coil},COM: {side=inout, domain=contact},NO: {side=inout, domain=contact},NC: {side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$
+CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1: {direction=in, domain=coil, V=12, I=0.02},A2: {direction=in, domain=coil},COM: {direction=inout, domain=contact},NO: {direction=inout, domain=contact},NC: {direction=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$
 E_coil [CST_Drv.out] --bind--> [CST_K1.A1] ; carries=I
 E_ret [CST_K1.A2] --bind-- [CST_Gnd.a] ; carries=I
 E_path [CST_K1.COM] --bind-- [CST_K1.NO] ; carries=I
@@ -546,13 +568,13 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). **Omit** `recycle=` unless non-default (session default covers it — default lines waste tokens). Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
+| **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). **Omit** `recycle=` unless non-default (session default covers it — default lines waste tokens). Port bags keep `direction=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
 | **Accuracy** | `{…}` = brace-group / record (ports primary; other attrs may take `{…}`, e.g. `meta={…}`). Nesting **capped at depth 2** — allow `meta={units={x=m,y=s}}`; reject depth 3+ (do **not** forbid nested bags outright). Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
 | **Pin map** | Shell-first + re-anchor; flowchart/statechart shell ≤8/12 or decision-only. Warm BJT ~5 lines; relay omits idle V/I noise. |
 
 **Ranked cuts — applied:**
 
-1. **Omit `recycle=` by default** — session/engine default (typically `persistent`) covers it; emit only when non-default. Port bags keep required `side=`, skip empty/unused attrs. Examples already omit default `recycle=`.
+1. **Omit `recycle=` by default** — session/engine default (typically `persistent`) covers it; emit only when non-default. Port bags keep required `direction=`, skip empty/unused attrs. Examples already omit default `recycle=`.
 2. **Dual EDGE labels** — bind: teach `bind` only (`pipe` synonym); sense via `carries=` / `event=`. Relation: label = sense on bare ids; demote `--bind-->` + `carries=` on persons.
 3. **Soft-validate law symbols** — rule + optional thin lint (symbols ⊆ ports∪params); examples fixed (req `t`/`t_lim`; flowchart `x` port; Next `law=$y=x$`).
 4. **Cap flowchart/statechart fan-out** — shell ≤8 NODEs / ≤12 EDGEs or decision-only; flowchart sketch trimmed to Dec+Yes+No.

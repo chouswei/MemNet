@@ -27,7 +27,7 @@ python smoke_parse.py
 - Dual EDGE (same three wire forms):
   - **Bind:** `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`; `pipe` ≡ `bind`; sense on `carries=`)
   - **Relation:** `[NodeA] --knows--> [NodeB]` (bare ids; label = sense)
-- Fields: `ports=name: {side=…, q=…}`, brace-group values (`meta={…}`; nest OK to depth 2 e.g. `meta={units={x=m,y=s}}`), `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
+- Fields: `ports=name: {direction=…, q=…}`, brace-group values (`meta={…}`; nest OK to depth 2 e.g. `meta={units={x=m,y=s}}`), `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
 - Drop: `- Eid`
 
 `{…}` = brace-group / record (ports primary teach; other attrs may take bare `{…}`). **Max nesting depth = 2** (grammar: one `nestedRecord` inside outer bag; depth 3+ fails parse). Soft-validate: same endpoint grain both ends; no `law=` on EDGE. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
