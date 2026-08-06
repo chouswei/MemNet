@@ -8,9 +8,8 @@
 // Not an evaluator for LaTeX; law is opaque $...$.
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
-// 1. Bind wires (no parens/braces on label): '--' IDENT '-->' | '--' IDENT '--' |
-//    '<--' IDENT '-->'. Tokenise '-->' before '--' (longest match). Left:
-//    '<--' vs '--'. () are free (held) — not used by binds.
+// 1. Wire disambiguation: tokenise '}-->' before '}--' (longest match). Left:
+//    '<--{' vs '--{'. Directed and non-directed share ARROW_L; right token decides.
 // 2. law= list commas vs LaTeX commas: commas inside LAW_SEG are opaque; only
 //    COMMA between closed $...$ segments is the field list joiner. Nested '$'
 //    inside maths is out of unquoted form — quote the whole field (STRING).
@@ -18,15 +17,17 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. ports= entry: name: { attr=val, ... } — labelled record bag (TS/YAML-style).
 //    COLON joins name to bag; LBRACE/RBRACE hold attrs. Prefer one space after
-//    ':' (WS skips it). Demote bare name{...}, name(...), paren-label
-//    --(bind)-->, and brace-label --{bind}-->. Rejected: name:side:value piles.
+//    ':' (WS skips it). Demote bare name{...} and name(...). {} = brace group
+//    (intentional unity): port bag after name: OR bind label after -- / <--
+//    (--{label}--> / }-- / <--{). () fully free. Dirac only inside LAW_SEG.
+//    Rejected: name:side:value piles.
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList); no lexer mode needed.
 // 6. fieldValue: portList before atom — LL(*) needs COLON (then LBRACE) after
 //    IDENT to pick portList; single-atom values use the final atom alt.
 // 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
-// 8. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
+// 8. Create-edge optional eid: '+ [A] --{bind}--> [B]' vs '+ Eid [A] ...' —
 //    distinguished by whether token after '+' is LBRACK or IDENT/KW_NEW.
 // 9. EDGE endpoints: [Node.port] via IDENT DOT IDENT inside brackets (form A).
 //    Plain IDENT kept for NEW mint / rare first-class PORT ids. Rejected teach
@@ -76,7 +77,7 @@ patchNode
 
 // Three bind forms: directed / non-directed / bi-directed
 // Endpoints: [Node.port] (teach) or [Id] / [NEW]
-// Wire: --label--> | --label-- | <--label-->  (bare IDENT label; no () / {})
+// Wire: --{label}--> | --{label}-- | <--{label}-->
 presentEdge
     : IDENT endpoint bindWire endpoint (SEMI field)*
     ;
@@ -102,15 +103,15 @@ bindWire
     ;
 
 directedBind
-    : DASH_DASH IDENT ARROW_R
+    : ARROW_L IDENT ARROW_R_DIR
     ;
 
 nonDirectedBind
-    : DASH_DASH IDENT DASH_DASH
+    : ARROW_L IDENT ARROW_R_UND
     ;
 
 biDirectedBind
-    : ARROW_L_BI IDENT ARROW_R
+    : ARROW_BI_L IDENT ARROW_R_DIR
     ;
 
 endpoint
@@ -198,7 +199,7 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LBRACE       : '{' ;   // port record bag after name: only (not bind labels)
+LBRACE       : '{' ;   // brace group: port bag after name: (bind uses ARROW_* compounds)
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
@@ -206,10 +207,13 @@ COLON        : ':' ;   // port name-to-bag join; also id:label elsewhere
 DOT          : '.' ;
 COMMA        : ',' ;
 
-// Bind wire fragments (no parens/braces on label). Order: '-->' / '<--' before '--'.
-ARROW_R      : '-->' ;
-ARROW_L_BI   : '<--' ;
-DASH_DASH    : '--' ;
+// Bind wire fragments (order: bi-left before dir-left; dir-right before und-right).
+// {} = brace group (label bag); same as port bags — context after -- / <--.
+// () fully free. <-- / --> are direction marks only (not Dirac; Dirac in LAW_SEG).
+ARROW_BI_L   : '<--{' ;
+ARROW_L      : '--{' ;
+ARROW_R_DIR  : '}-->' ;   // must precede ARROW_R_UND
+ARROW_R_UND  : '}--' ;
 
 KW_NEW       : 'NEW' ;
 
