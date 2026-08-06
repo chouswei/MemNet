@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Numeric incremental update** — shared-dialect `~` patches accept `key+=N` / `key-=N` for int/float fields; create keeps plain `=`; pin map shows absolute values; `@ERR: bad_numeric` / `invalid_field` on misuse.
+- **Field formulas design** — `docs/grammar/memnet-field-formulas.md` (relation-first: formula as EDGE/`derives`; same-node self-loop MVP; no expression engine).
 
 ## [0.3.6] — 2026-08-06
 

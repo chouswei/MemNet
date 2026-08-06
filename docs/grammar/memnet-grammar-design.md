@@ -551,6 +551,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 | `docs/grammar/MemNet.g4` | ANTLR stub (R1; atom values; `KW_NEW`; lawPin; edge ids) — **keep** |
 | `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin — **keep** |
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
+| `docs/grammar/memnet-field-formulas.md` | Field formulas as EDGE relations (design; no engine yet) |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Multi-agent neighbourhood reserve design (shared dialect) |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL / tokens + security + multi-agent coop (shared dialect) |
 | `docs/grammar/examples/` | Good/bad fixtures + README classification — **keep** |

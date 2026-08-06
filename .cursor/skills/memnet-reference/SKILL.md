@@ -53,6 +53,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI 
 |------|------|
 | Doctrine / quick start | `README.md` |
 | Shared-dialect grammar design | `docs/grammar/` |
+| Field formulas (design) | `docs/grammar/memnet-field-formulas.md` (formula as EDGE / `derives`) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
