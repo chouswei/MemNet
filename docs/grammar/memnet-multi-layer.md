@@ -12,10 +12,12 @@
 
 | Atom | Role |
 |------|------|
-| **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). |
-| **EDGE** | A **bind** between endpoints (ports/ids). Not a relation, not law, not causality. |
+| **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). Device / constitutive / causal laws live **only** here. |
+| **EDGE** | An **ideal pipe / bind** between endpoints (ports/ids). Not a relation, not law, not causality — **no** `law=` on EDGE. |
 
-**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `,` (same list joiner as `ports=`).
+**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node** (`CST`). `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `,` (same list joiner as `ports=`).
+
+**Ideal bind:** an EDGE is an ideal pipe — endpoints share the carried quantity as the domain defines (agent may rely on that continuity without EDGE `law=` text; further constraints stay on NODE laws or domain convention).
 
 **Ports:** fields on the law node until separate atoms are proven necessary. Entry = `name{ attr=val, … }` (brace attr bag):
 
@@ -29,7 +31,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is strongly usual (`in` / `ou
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**Bind (thin)** — EDGE binds **ports of nodes** (not bare node-to-node). Slot label (default teach **`bind`**) is not a relation or law. Three wire forms only; endpoints are **qualified port refs** in brackets:
+**Bind (thin)** — EDGE is an **ideal pipe / bind** between **ports of nodes** (not bare node-to-node). Slot label (default teach **`bind`**) is not a relation or law. Three wire forms only; endpoints are **qualified port refs** in brackets:
 
 | Form | Wire | Sense |
 |------|------|-------|
@@ -43,7 +45,7 @@ Eid [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=token
 
 Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`). Prefer this over EDGE fields `from=`/`to=` (hides grain) and over minting a first-class PORT NODE for every bind. Optional `carries=` on all three. Legacy alias: `connects` → `bind`. Rare labels (`contains`, `refines`) only when they earn their keep.
 
-**MUSTNOT:** put the governing equation or its params on an EDGE; treat a binary EDGE as a multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; bind node ids without port grain.
+**MUSTNOT:** put `law=` (device equations **or** wire/continuity equations) on an EDGE; treat EDGE as a function or multi-port device; orphan stamp mirrors (fields that are not graph endpoints); invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; bind node ids without port grain.
 
 ---
 
@@ -99,11 +101,11 @@ Eid [Id.port] --(bind)-- [Id.port] ; carries=token
 Eid [Id.port] <--(bind)--> [Id.port] ; carries=token
 ```
 
-`ports=` entries are `,`-joined `name{…}` bags on the NODE. EDGE endpoints name those ports as `[NodeId.PortName]`. `law=` holds LaTeX maths on the NODE. `carries=` is optional on all three bind forms (generic token, e.g. `signal`, `q`).
+`ports=` entries are `,`-joined `name{…}` bags on the NODE. EDGE endpoints name those ports as `[NodeId.PortName]`. `law=` holds LaTeX maths on the NODE only. EDGE is ideal bind/pipe (`carries=` optional; no `law=`).
 
 ### `law=` expression rules (LaTeX)
 
-- **Where:** one `law=` field on the **NODE** (prefer kind `CST`). Never on EDGE. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
+- **Where:** one `law=` field on the **NODE** (prefer kind `CST`). **Never** on EDGE — ideal bind implies continuity; do not teach wire equations on the arrow. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
 - **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
 - **Completeness:** every symbol in `law=` MUST appear as a port quantity (name / attr / subscript), a node param, or be defined in the same `law=` list — no orphan predicates or hand-wavy stubs.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: domain attrs in the bag (`q=`, …) or subscripts in `law=` — port name is the subscript. Qualified `PORT_x.q` deferred.
@@ -128,7 +130,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | Field | Form |
 |-------|------|
 | `ports=` | `name{side=…, …}`, `,`-joined — e.g. `ports=x{side=in, q=0},y{side=out}` |
-| `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments `,`-joined |
+| `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
 | `name=` | short label |
 | `state=` | optional present discrete state on the NODE (e.g. relay `energised` / `deenergised`) — display + agent cue; not an EDGE evaluator |
 | params | domain keys **on the NODE** (`k=`, `gain=`, `I_th=`, …) |
@@ -184,7 +186,7 @@ Mutate (mint):
 + CST [NEW] ; name=block ; k=2 ; ports=x{side=in, q=1.0},y{side=out} ; law=$y=k x$ ; recycle=persistent
 ```
 
-A bind does **not** own the law or its params; it only names the ports it joins.
+A bind does **not** own `law=` or device params; it is an ideal pipe that names the ports it joins (optional `carries=`).
 
 ### Application note: BJT + resistor (electronics instance)
 
@@ -236,7 +238,7 @@ E_path [CST_K1.COM] --(bind)-- [CST_K1.NO] ; carries=I
 
 ## 4. Wrong shapes (three)
 
-- **Law on EDGE** — e.g. `[A] --(derives)--> [B] ; expr=$y=k x$` (bind ≠ law; binary lie; missing ports).
+- **Anything as EDGE law** — device FN on the arrow (`[A] --(derives)--> [B] ; law=$y=k x$`) **or** stuffing ideal-wire equations onto EDGE (`… --(bind)-- … ; law=$V_a=V_b$`). EDGE = ideal pipe only; continuity is implied.
 - **Node-to-node bind** — e.g. `[CST_Q1] --(bind)-- [CST_Rc]` with no `.port` (missing port grain; prefer `[CST_Q1.C]`).
 - **Hollow nest with no law leaf** — a shell without a node that owns `law=` (behaviour has nowhere to live).
 

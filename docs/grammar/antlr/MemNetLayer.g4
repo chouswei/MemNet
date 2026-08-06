@@ -2,8 +2,10 @@
 // Source prose: docs/grammar/memnet-multi-layer.md
 // Sibling R1 stub: docs/grammar/MemNet.g4 (0.3.x directed-only shared dialect).
 //
-// Scope: NODE | EDGE line shapes with ports=, law=$...$, three bind wire forms,
-// and mutate prefixes + / ~ / -. Not an evaluator for LaTeX; law is opaque $...$.
+// Scope: NODE | EDGE line shapes with ports=, law=$...$ (NODE only — semantic),
+// three bind wire forms, and mutate prefixes + / ~ / -. EDGE = ideal bind/pipe;
+// no teachable law= on EDGE (fields stay generic; reject in validation).
+// Not an evaluator for LaTeX; law is opaque $...$.
 //
 // --- Review notes (ANTLR4 vs human dialect) ---
 // 1. Wire disambiguation: tokenise ')-->' before ')--' (longest match). Left:
