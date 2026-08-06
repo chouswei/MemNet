@@ -225,7 +225,9 @@ CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 Es [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
 
-Interior interconnect after `view=interior` (ASCII shared dialect; bare present). Membership, boundary `refines`, schematic wiring, and one formula edge:
+Interior interconnect after `view=interior` (ASCII shared dialect; bare present). Membership, boundary `refines`, schematic wiring, and one formula edge.
+
+**Note:** the `RES_A` closed-loop stamp below is **transitional** (today’s flat maths hub). Target amp leaf = **`FN_OpAmp`** (§3.7 / next subsection); passives migrate to `CST`. Do not invent a competing `CAP_OpAmp` for the amp.
 
 ```text
 ## Nodes
@@ -264,66 +266,39 @@ Ew4 [PIN_R2_b] --(connects_to)--> [NET_VMINUS]
 Ef1 [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=Rf,Rin ; expr=-(Rf/Rin)
 ```
 
-Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VMINUS`. An op-amp child Capsule (if present) would appear as `CAP_InvAmp --(contains)--> CAP_OpAmp` plus Port–Port `connects` **on the child shell** when that child is the anchor — not as renamed schematic pins inside the parent dump.
+Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VMINUS`. The **op-amp itself is one leaf `FN`** (§3.7), not a child Capsule soup — board interior contains `FN_OpAmp` plus `CST` resistors; Port–Port `connects` wire them. Do **not** teach `CAP_OpAmp` + `RES_a` mirrors as the default leaf.
 
-#### Interior of CAP_OpAmp (child Capsule)
+#### Op-amp as one NODE (canonical leaf)
 
-**Question:** how do you express the interconnect **inside the op-amp** — not the InvAmp board with Rin/Rf?
+**Question:** if an op-amp is a node, how do you express it?
 
-**Answer:** same grammar, different anchor. Re-anchor on `CAP_OpAmp` (or `pin_map(anchor=CAP_OpAmp, view=interior)`). Still only `view=shell|interior` — **no** new view name. The board’s InvAmp interior (§3.6 above) stays parent; the op-amp’s differential / gain / output atoms live under the child Capsule.
-
-**Shell** of the op-amp Capsule (contract only — three ports + open-loop summary):
+**Answer:** one **`FN`** with three ports. Behaviour is port↔port `derives` **owned by that node** — not orphan fields, not a nest of `RES`/`VAR`. Use a child `CAP` around the amp **only** when you need a nestable composition shell with its own exposed board contract (rare for a single behavioural leaf).
 
 ```text
-## Nodes
-CAP [CAP_OpAmp] ; name=opamp ; layer=net ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; a_s=1000000 ; recycle=persistent
-CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; recycle=persistent
-
-## Edges
-Es_oa [CAP_OpAmp] --(summarises)--> [CLM_a_s]
+# Canonical: op-amp = one Function node
+FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; recycle=persistent
+E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_OpAmp ; owner_fields=a_s ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
 ```
 
-Mutate sugar (create shell; engine desugars `ports=`):
+Mutate sugar (engine desugars `ports=` on `FN` the same way as on `CAP` / `CST` — §13 #1 lock toward sugar on elemental leaves too):
 
 ```text
-+ CAP [NEW] ; name=opamp ; layer=net ; ports=Inm:in,Inp:in,Out:out ; recycle=persistent
-~ [CAP_InvAmp] ; contains=CAP_OpAmp
++ FN [NEW] ; name=opamp ; a_s=1e6 ; ports=Inm:in,Inp:in,Out:out ; recycle=persistent
 ```
 
-Parent–child shell wiring lands on Ports (not grandchild interiors): e.g. when InvAmp interior is open, board nets that feed the amp use `refines` into `PORT_Inm` / `PORT_Inp` / `PORT_Out`, or Port→Port `connects` once both Port ids are assigned. Do **not** paste those edges into the InvAmp **shell** dump.
+**Wrong shapes (do not teach):**
 
-**Interior interconnect (transitional — today’s pain):** Port → Net → Var → `RES_a` mirrors → same-node `derives` is what agents currently invent. It only works if mirrors stay in sync; it invites **orphan** `Vdiff`/`Vout` and informal field copies. **Do not teach it as the target dialect.** Prefer **ports-first** (§3.7). Kept below only as the transitional sketch that §3.7 replaces.
+| Shape | Why wrong |
+|-------|-----------|
+| `RES_a` with `Vinp`/`Vinm`/`Vdiff` mirrors + self-loop `derives` | Orphan scalars; mirrors are not graph endpoints |
+| Amp as only `CAP_OpAmp` with no `FN` | Capsule is composition; behaviour has nowhere owned to live |
+| Amp as three free nodes (`VAR`/`NET`/`RES`) | Soup — not one leaf with a contract |
 
-```text
-## Nodes
-NET [NET_INM] ; net=INM ; layer=net ; recycle=persistent
-NET [NET_INP] ; net=INP ; layer=net ; recycle=persistent
-NET [NET_OUT] ; net=OUT ; layer=net ; recycle=persistent
-VAR [VAR_INM] ; symbol=V_INM ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
-VAR [VAR_INP] ; symbol=V_INP ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
-VAR [VAR_OUT] ; symbol=V_OUT ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
-RES [RES_a] ; a_s=1000000 ; Vinp=0.0 ; Vinm=0.0 ; Vdiff=0.0 ; Vout=0.0 ; domain=s ; recycle=persistent
+**Transitional pain (demoted):** Port → Net → Var → `RES_a` mirrors under a child `CAP_OpAmp` is what agents invent today. **Do not teach it.** Prefer the `FN` leaf above. Kept historically only as the failure mode §3.7 removes.
 
-## Edges
-Ec_oa1 [CAP_OpAmp] --(contains)--> [NET_INM]
-Ec_oa2 [CAP_OpAmp] --(contains)--> [NET_INP]
-Ec_oa3 [CAP_OpAmp] --(contains)--> [NET_OUT]
-Ec_oa4 [CAP_OpAmp] --(contains)--> [RES_a]
-Er_inm [PORT_Inm] --(refines)--> [NET_INM]
-Er_inp [PORT_Inp] --(refines)--> [NET_INP]
-Er_out [PORT_Out] --(refines)--> [NET_OUT]
-Ev1 [VAR_INM] --(voltage_of)--> [NET_INM]
-Ev2 [VAR_INP] --(voltage_of)--> [NET_INP]
-Ev3 [VAR_OUT] --(voltage_of)--> [NET_OUT]
-Ef_diff [RES_a] --(derives)--> [RES_a] ; tgt_field=Vdiff ; src_fields=Vinp,Vinm ; expr=Vinp-Vinm
-Ef_gain [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ; expr=a_s*Vdiff
-```
+**Descend path (board):** `pin_map(CAP_InvAmp, view=shell)` → interior (sees `FN_OpAmp` + `CST_*` + `connects`). Re-anchor on `FN_OpAmp` only if you need that leaf’s port/`derives` ego — **not** a nested Capsule open for a lone amp.
 
-**Pain:** `Vinp`/`Vinm` are agent-mirrored fields, not graph endpoints; `Vdiff` lives on a stamp bag that is not a port. That is the failure mode §3.7 removes.
-
-**Descend path:** `pin_map(CAP_InvAmp, view=shell)` → interior → `pin_map(CAP_OpAmp, view=shell)` → `pin_map(CAP_OpAmp, view=interior)`. One Capsule-open step per turn when possible.
-
-**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`; teach the transitional mirror chain as the long-term interior dialect.
+**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump amp ports into the InvAmp **shell**; put Rin/Rf inside the op-amp node; rename Capsule/FN Ports to schematic `PIN_*`; teach `CAP_OpAmp`+`RES` as the long-term leaf.
 
 ### 3.7 Direction: function / constraint with ports
 
@@ -375,7 +350,9 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *con
 | **`RES` / `VAR`** | as today | Demoted hubs — migrate into `FN`/`CST` + ports under Capsules |
 | **`DEV` / `PASS` / `PART`** | — | **Demoted** naming for passives; use `CST` |
 
-**Ownership:** `FN|CST --(exposes)--> PORT`. Capsule `contains` → leaf; shell ports bind via sugar / `connects` / `refines`. Interior ports (`side=internal`) belong to the leaf (e.g. `PORT_Vdiff` on `FN_ol`).
+**Ownership:** `FN|CST --(exposes)--> PORT`. Capsule `contains` → leaf; shell ports bind via sugar / `connects` / `refines`. Interior ports (`side=internal`) belong to the leaf (e.g. `PORT_Vdiff` on `FN_OpAmp`).
+
+**Amp leaf lock:** **op-amp node = `FN`** (`FN_OpAmp`). `CAP` only when you need a nestable composition shell with its own exposed ports (board / subsystem) — not as a hollow wrapper around a lone behavioural amp.
 
 #### EDGE endpoint rule
 
@@ -391,23 +368,29 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *con
 
 **MUSTNOT:** orphan `Vdiff` on `RES`; agent-mirrored `Vinp`/`Vinm`; teach Port→Net→Var→mirror as Capsule interior; invent `FLD_*`; wire kinds `FUNC` / `FUNCTION` / `CONSTRAINT` / `CON` / `DEV` as the passive leaf.
 
-#### Worked mini-example: InvAmp Capsule (`FN` + `CST`)
+#### Worked mini-example: op-amp leaf, then InvAmp board
+
+**1. Op-amp = one `FN` node** (canonical leaf — start here):
 
 ```text
-CAP [CAP_InvAmp] ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; contains=FN_ol,CST_Rf ; recycle=persistent
-FN  [FN_ol] ; name=open_loop ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; recycle=persistent
-CST [CST_Rf] ; name=Rf ; R=100000 ; ports=PORT_Rf_a:a:inout,PORT_Rf_b:b:inout ; recycle=persistent
-# FN: directed gain (ports)
-E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_ol ; owner_fields=a_s ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
-# CST: Ohm constraint on port variables (not a directed function)
-E_ohm [PORT_Rf_a] --(constrains)--> [PORT_Rf_b] ; owner=CST_Rf ; owner_fields=R ; expr=V_a-V_b-I_a*R
-# wiring still port→port
-E_w [PORT_Out] --(connects)--> [PORT_Rf_a]
+FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; recycle=persistent
+E_gain [PORT_Inm] --(derives)--> [PORT_Out] ; src_ports=PORT_Inp,PORT_Inm ; owner=FN_OpAmp ; owner_fields=a_s ; expr=a_s*(V_inp-V_inm) ; tgt_field=V
 ```
 
-Same interconnect rule for both leaves; `R` lives on `CST_Rf`, voltages/currents on ports, constitutive fact on the EDGE.
+**2. InvAmp = board Capsule that *uses* that node** + `CST` resistors (composition only):
 
-Full op-amp interior with internal `PORT_Vdiff` may still expand as in prior sketches — keep `derives` on Function ports only.
+```text
+CAP [CAP_InvAmp] ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; contains=FN_OpAmp,CST_Rin,CST_Rf ; recycle=persistent
+CST [CST_Rin] ; name=Rin ; R=10000 ; ports=PORT_Rin_a:a:inout,PORT_Rin_b:b:inout ; recycle=persistent
+CST [CST_Rf] ; name=Rf ; R=100000 ; ports=PORT_Rf_a:a:inout,PORT_Rf_b:b:inout ; recycle=persistent
+E_ohm_f [PORT_Rf_a] --(constrains)--> [PORT_Rf_b] ; owner=CST_Rf ; owner_fields=R ; expr=V_a-V_b-I_a*R
+E_ohm_i [PORT_Rin_a] --(constrains)--> [PORT_Rin_b] ; owner=CST_Rin ; owner_fields=R ; expr=V_a-V_b-I_a*R
+# board wiring: port→port (sketch — Vin→Rin→Inm, Out→Rf→Inm feedback, Out→Vout, …)
+E_w1 [PORT_Out] --(connects)--> [PORT_Rf_a]
+E_w2 [PORT_Rf_b] --(connects)--> [PORT_Inm]
+```
+
+Same interconnect rule for both leaves; `a_s` lives on `FN_OpAmp`, `R` on each `CST`, voltages/currents on ports, constitutive / gain facts on EDGEs with `owner=`. Optional internal `PORT_Vdiff` (`side=internal`) may hang off `FN_OpAmp` when the model needs an explicit diff node — still owned by the same Function.
 
 #### Compatibility / migration (under complete-refactor framing)
 
@@ -720,7 +703,7 @@ Stub only — answers belong in the locked sections above once chosen. Completen
 | **2** | **`expr` binding to port fields** | Mini-example uses `V_inp`, `V_a`, `I_a` without a binding rule | Refactor to one binding rule: port `name=` + quantity; **or** `PORT_x.V`; **or** `src_ports=` + fixed `V`/`I` keys | Ad-hoc mirror fields on `RES` |
 | **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = port→port | **Refactor to one target:** port→port everywhere formulae are taught; flat self-loop = **transitional migration note only** (finite window) | **Forever dual-MVP** (flat domains stay self-loop indefinitely) |
 | **4** | **Locator coexistence** | `PIN`/`NET`/`CMP` “until pin↔pin migration” — no exit criteria | Refactor to: ingest grain + `refines` with **exit criteria**; **or** keep forever as locator-only (never maths hubs) | `PIN`/`NET` as long-term formula hubs |
-| **5** | **Op-amp leaf shape** | §3.6 `CAP_OpAmp` + transitional `RES`; §3.7 `FN_ol` under `CAP_InvAmp` | Refactor to prefer **`FN` leaf** (child `CAP` only when a board contract is needed) | Keeping transitional `RES` amp as the taught leaf |
+| **5** | **Op-amp leaf shape** | Was: §3.6 `CAP_OpAmp`+`RES` vs §3.7 `FN` | **Locked:** amp node = **`FN [FN_OpAmp]`** + ports + owned `derives`; InvAmp board = `CAP` containing `FN_OpAmp` + `CST_*`. Child `CAP` only for nestable shell contracts | `CAP_OpAmp`+`RES` mirrors; amp as CAP-only; three free nodes |
 | **6** | **`feeds` vs `derives` on FN** | Both listed; no worked distinction | Refactor to: `derives` = free `expr`; `feeds` = typed `op=` only (align field-formulas) — one glossary | Synonym sprawl without fixtures |
 | **7** | **Shell `CLM` + self-loop `derives`** | §8 still shows claim-level formula; §3.7 demotes stamp hubs | Refactor to: `CLM` = shell **summary** only; constitutive maths only on `FN`/`CST` ports | Shell self-loop as the primary formula teaching |
 
