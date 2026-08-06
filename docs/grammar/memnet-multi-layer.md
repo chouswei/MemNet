@@ -1,6 +1,8 @@
 # Multi-layer MemNet and capsules (design)
 
-**Status:** design only — **no engine implementation** in 0.3.5 / 0.3.6.  
+**Status:** design only — **no engine implementation** in 0.3.5 / 0.3.6 (SemVer today: `project.toml` **0.3.6**).  
+**Refactor framing (locked for design prose):** ports-first + **`FN`** (active) + **`CST`** (constraint) + **`CAP`** composition is a **complete refactor** of MemNet’s **shared dialect / agent surface** (and the engine assumptions that serve that surface) — **not** a small dialect tweak on today’s `RES`/`VAR` stamp hubs. Store atomics remain NODE|EDGE; transport and (likely) MCP tool *names* can stay. See §3.7 scope box and §13.  
+**Versioning implication:** treat the target dialect as **breaking / next major** — label design prose **MemNet 1.x dialect** (recommend ship path **0.4 design → 1.0** when SCHEMA + engine land). Do **not** pretend compatibility with 0.3.x agent teaching of `RES` self-loop hubs as the long-term surface.  
 **Thesis:** MemNet stays **NODE | EDGE** only in the store; agents use **compact capsule sugar** on the shell (`ports=` / `contains=` on `CAP`) that desugars 1:1 to those atoms. Complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports — including capsule-in-capsule). Port-hood is structure (store: kind `PORT` + `exposes`), not id punctuation.  
 **Direction (locked for design prose):** elemental leaves with ports — **function** (`FN`, active in→out map) and **constraint** (`CST`, constitutive relation on port variables); every interconnect EDGE is **port→port** (or pin→pin); Capsules (`CAP`) compose both. Never orphan scalars on `RES` / free fields. See §3.7.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
@@ -22,14 +24,14 @@ Agents need to **reason at layer L**, then **descend only when needed** — fini
 
 ---
 
-## 2. Foundation (unchanged)
+## 2. Foundation (store unchanged; dialect refactors)
 
 | Atom | Role |
 |------|------|
-| **NODE** | Kinded fact (`CMP`, `NET`, `TSK`, `LAW`, Capsule `CAP`, Port `PORT`, …) |
+| **NODE** | Kinded fact (`CMP`, `NET`, `TSK`, `LAW`, Capsule `CAP`, Port `PORT`, Function `FN`, Constraint `CST`, …) |
 | **EDGE** | Directed relation with English / snake `rel` and optional fields |
 
-**MUSTNOT:** invent a third conceptual primitive (no free-standing “layer object” or “SysML part” type outside NODE|EDGE). Surface spellings remain node kinds / edge relations (MN-REQ-02.7). Capsules and layers are **patterns and projections** over the same atoms.
+**MUSTNOT:** invent a third conceptual primitive (no free-standing “layer object” or “SysML part” type outside NODE|EDGE). Surface spellings remain node kinds / edge relations (MN-REQ-02.7). Capsules and layers are **patterns and projections** over the same atoms. The **complete refactor** (§3.7) changes which kinds and endpoint rules agents are taught — not NODE|EDGE itself.
 
 ---
 
@@ -325,6 +327,8 @@ Ef_gain [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ;
 
 ### 3.7 Direction: function / constraint with ports
 
+**Complete-refactor statement:** this section is the **target ontology** for MemNet’s agent dialect after a **breaking** redesign — not an optional overlay on 0.3.x stamp teaching. Prefer **one target dialect** + migration notes; reject forever dual-MVP (§13 #3).
+
 **Core rule (one interconnect):** every interconnect EDGE is **port→port** (or pin→pin). Elemental leaves that expose ports come in two kinds:
 
 | Leaf | Wire | Nature |
@@ -338,13 +342,26 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function; *con
 
 **Kind token lock:** wire **`CST`** (gloss: Constraint). Reject wire `CONSTRAINT` (too long). Demote **`CON`** (collides mentally with `connects` / connection). Earlier candidates **`DEV` / `PASS` / `PART`** for passives are **demoted** — passive R/C look like constraints, not devices-as-parts.
 
-#### Today vs direction
+#### Scope of the complete refactor
 
-| Today (scatter) | Direction |
-|-----------------|-----------|
+| **In** (must change for 1.x dialect) | **Out** (may stay; separate tracks) |
+|--------------------------------------|-------------------------------------|
+| Elemental ontology: **`FN` / `CST` / `PORT` / `CAP`** as the taught leaves + shell | Store atomics still **NODE \| EDGE** only (sugar desugars; no third AST primitive) |
+| Interconnect EDGEs **port↔port** (pin↔pin transitional then sunset path) | Transport: **in-process first**, TCP fallback |
+| Formula placement: port→port `derives` / `feeds` / `constrains` (not orphan `RES` fields) | Session / MCP **tool names** may keep (`pin_map`, `add`, `update`, …) — payloads change |
+| `pin_map` views: shell sugar + interior under Capsules; Write = display | **ACL / RSV** (neighbourhood reserve) — orthogonal design track (§7) |
+| Capsule sugar (`ports=` / `contains=`) as default agent shell (§8.1) | Recycle policy; nest-open depth `N`; TagMap formalisation timing |
+| Demotion / sunset of **`RES` / `VAR` / `NET` / `PIN`-as-hubs** as the agent maths surface | Locator grains `PIN`/`NET`/`CMP` may linger as **ingest** until exit criteria (§13 #4) |
+| Field-formulas **same-node self-loop MVP** → superseded by port-endpoint model (migration notes only) | Security multi-agent doc — not blocked by this dialect lock |
+
+#### Today (0.3.x) vs target (1.x dialect)
+
+| Today (scatter) | Target (complete refactor) |
+|-----------------|----------------------------|
 | `RES` / `VAR` / `NET` / `PIN` + agent-mirrored fields | **`FN` \| `CST` + `PORT` + EDGE(port,port)** |
 | Same-node `RES` self-loop `derives` + informal mirrors | `FN`: port→port `derives` / `feeds`; `CST`: port→port `constrains` |
 | Capsule interior = stamp bags | `CAP` nests `FN` / `CST`; shell sugar `ports=` stays |
+| Dual teaching (flat self-loop **and** ports-first) | **One** target dialect; flat self-loop = **transitional** teaching only (§13 #3) |
 
 #### Kind roles
 
@@ -392,16 +409,18 @@ Same interconnect rule for both leaves; `R` lives on `CST_Rf`, voltages/currents
 
 Full op-amp interior with internal `PORT_Vdiff` may still expand as in prior sketches — keep `derives` on Function ports only.
 
-#### Compatibility / migration
+#### Compatibility / migration (under complete-refactor framing)
 
-| Stays | Migrates | Demoted |
-|-------|----------|---------|
-| `CAP` sugar `ports=` / `contains=` | Active stamps → **`FN`+ports**; R/L/C → **`CST`+ports** | `DEV` / `PASS` / `PART` as passive kind |
-| Port→Port `connects` | `RES` self-loop → `derives` (FN) or `constrains` (CST) | Agent-mirrored stamp fields |
-| Flat InvAmp / PIN–NET | When wrapped: board passives → `CST`; amp → `FN` under `CAP` | Orphan scalars; Port→Net→Var→mirror path |
-| Field-formulas flat same-node MVP | Capsule interiors use port endpoints + `src_ports=` / `constrains` | Wire `CONSTRAINT` / `CON` |
+Prefer **migrate → demote → sunset**, not forever parallel dialects.
 
-**Engine:** design only — **not** in 0.3.5 / 0.3.6 (`FN` / `CST` kinds, `constrains`, port→port evaluator later).
+| Stays (substrate) | Migrates (into 1.x dialect) | Demoted / sunset (agent surface) |
+|-------------------|-----------------------------|----------------------------------|
+| NODE\|EDGE store; CAP sugar `ports=` / `contains=` | Active stamps → **`FN`+ports**; R/L/C → **`CST`+ports** | `DEV` / `PASS` / `PART` as passive kind |
+| Port→Port `connects`; transport; tool *names* | `RES` self-loop → `derives` (FN) or `constrains` (CST) | Agent-mirrored stamp fields; **`RES`/`VAR` as maths hubs** |
+| Flat InvAmp / PIN–NET as **legacy / ingest** examples | When wrapped: board passives → `CST`; amp → `FN` under `CAP` | Orphan scalars; Port→Net→Var→mirror path |
+| Field-formulas same-node MVP as **migration note** only | Target: port endpoints + `src_ports=` / `constrains` everywhere formulae are taught | Wire `CONSTRAINT` / `CON`; forever dual-MVP |
+
+**Engine:** design only — **not** in 0.3.5 / 0.3.6 (`FN` / `CST` kinds, `constrains`, port→port evaluator). Landing implies **MemNet 1.0** (or clearly labelled 1.x dialect) — not a silent 0.3.x patch.
 
 #### Rel cheat-sheet (shell vs interior)
 
@@ -497,7 +516,7 @@ Analogy: finite element / asymptotic reasoning — pick the scale that answers t
 | Mechanism | Interaction |
 |-----------|-------------|
 | **`depth` / `max_rows`** | Still the hard budget **within** a layer/view; layers prevent burning the budget on irrelevant strata |
-| **Formula `derives` / `feeds` / `constrains`** | Flat domains: same-node MVP (field-formulas). **Capsule interiors:** `FN` → port→port `derives`; `CST` → port→port `constrains` (§3.7). See [`memnet-field-formulas.md`](memnet-field-formulas.md) |
+| **Formula `derives` / `feeds` / `constrains`** | **1.x target:** port→port under `FN`/`CST` (§3.7). Flat same-node self-loop = transitional only (reject forever dual — §13 #3). See [`memnet-field-formulas.md`](memnet-field-formulas.md) |
 | **Nodal / inverting-amp notes** | Topology + KCL/Ohm stay **flat** `NET`/`CMP`/`PIN` today. When wrapped: passives → **`CST`**, amp → **`FN`**, under `CAP` (§3.7) — app notes do **not** rename `PIN`→`PORT` |
 | **LAW** | Prefer **normative layer** / shell-adjacent; exempt from neighbourhood reserve checks (as in reserve design); pin map may keep a small `## Laws` section even on shell views |
 | **Session ACL / reserve** | Unchanged order: ACL then reserve. Reserve scope = ego at requested `depth` **within** the active layer/view (same expand as `pin_map`). Holding a shell does not silently lease the entire interior until expand includes those ids |
@@ -508,7 +527,7 @@ Analogy: finite element / asymptotic reasoning — pick the scale that answers t
 
 ## 8. Dialect sketch (shared dialect only)
 
-Bare present (pin map) and mutate (`+` / `~` / `-`) use the same shapes.
+Under the **complete-refactor** framing (§3.7), this sketch is the **1.x agent surface** direction — shell sugar + stratified views — not an optional add-on to 0.3.x `RES` hubs. Bare present (pin map) and mutate (`+` / `~` / `-`) use the same shapes.
 
 ```text
 ## Laws
@@ -602,7 +621,9 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 
 ## 9. MVP vs later
 
-### MVP (design lock for first implementation drop)
+**Version note:** “MVP” here means the **first implementation drop of the 1.x dialect** (breaking vs 0.3.x agent teaching), not a soft extension of today’s `RES` surface. Prefer one target + migration notes over dual forever (§13 #3).
+
+### MVP (design lock for first 1.x implementation drop)
 
 | Item | MVP |
 |------|-----|
@@ -616,7 +637,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Capsule syntax | **B sugar on agent shell** (`ports=` / `contains=` on `CAP`); desugar to store atoms; no third primitive (§8.1) |
 | Shell pin_map | Emit **compact** sugar (Write ≈ display); not full Port+`exposes` expand by default |
 | SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
-| Function / constraint with ports (§3.7) | **Design-locked** — kinds `FN` + `CST`; port→port `derives` / `constrains`; engine / SCHEMA not yet |
+| Function / constraint with ports (§3.7) | **Design-locked complete refactor** — kinds `FN` + `CST`; port→port `derives` / `constrains`; engine / SCHEMA → **1.0** |
 
 ### Later
 
@@ -624,9 +645,10 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 |------|-------|
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
 | Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.5 limits in `pin_map` |
-| SCHEMA / TagMap formalisation of `CAP` / `PORT` / `FN` / `CST` + sugar fields | With golden fixtures |
+| SCHEMA / TagMap formalisation of `CAP` / `PORT` / `FN` / `CST` + sugar fields | With golden fixtures (1.x) |
 | `FN`/`CST` + port→port `derives`/`constrains` + `src_ports=` / `owner_fields=` evaluator | Implements §3.7 |
-| Schematic pin↔pin / pin→net-port migration of `connects_to` | Optional under Capsule wrap |
+| Schematic pin↔pin / pin→net-port migration of `connects_to` | Sunset path under Capsule wrap (§13 #4) |
+| Drop transitional flat self-loop formula teaching | After migration notes + fixtures exist |
 | `view=atoms` expanded shell for debug | Optional |
 | `pin_map` multi-layer “breadcrumb” section (ancestors only, tiny) | Optional |
 | Automatic SysML part/port ingest → capsules | PinMapIngest path |
@@ -690,14 +712,16 @@ No change to `requirements.sysml` in this design task.
 
 Stub only — answers belong in the locked sections above once chosen. Completeness review (2026-08-06).
 
-| # | Decision | Tension | Options (sketch) |
-|---|----------|---------|------------------|
-| **1** | **`ports=` sugar owners** | §3.7 shows sugar on `FN`/`CST`; §8.1 says sugar on **`CAP` only** | (a) Extend sugar to `FN`/`CST` (same desugar); (b) sugar on `CAP` only — expand leaf ports as atoms / interior |
-| **2** | **`expr` binding to port fields** | Mini-example uses `V_inp`, `V_a`, `I_a` without a binding rule | Name = port `name=` + quantity; qualified `PORT_x.V`; or `src_ports=` + fixed `V`/`I` keys only |
-| **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = port→port | Dual MVP (flat domains stay self-loop; capsule interiors require port endpoints); or one timeline |
-| **4** | **Locator coexistence** | `PIN`/`NET`/`CMP` “until pin↔pin migration” — no exit criteria | Keep forever as ingest grain + `refines`; or sunset after `CST`/`FN` wrap is teachable |
-| **5** | **Op-amp leaf shape** | §3.6 `CAP_OpAmp` + transitional `RES`; §3.7 `FN_ol` under `CAP_InvAmp` | Prefer `FN` leaf (no nested amp Capsule unless board needs a contract); or always wrap behavioural blocks as child `CAP` |
-| **6** | **`feeds` vs `derives` on FN** | Both listed; no worked distinction | `derives` = free `expr`; `feeds` = typed `op=` contribution only (align field-formulas) |
-| **7** | **Shell `CLM` + self-loop `derives`** | §8 still shows claim-level formula; §3.7 demotes stamp hubs | Keep `CLM` summaries on shell; constitutive maths only on `FN`/`CST` ports |
+**How to lock:** answer each row as **“refactor to X”** (1.x target dialect), **not** “extend today’s `RES` / self-loop MVP”. Under complete-refactor framing (§3.7), prefer **one target dialect** + short migration notes; do **not** design for forever dual teaching.
 
-**Out of this redesign’s lock set (pointers only):** recycle policy; session ACL / RSV (§7 — shell lease ≠ interior); nest-open depth `N`; SCHEMA TagMap formalisation.
+| # | Decision | Tension | Lock as “refactor to …” (sketch) | Reject / demote |
+|---|----------|---------|-----------------------------------|-----------------|
+| **1** | **`ports=` sugar owners** | §3.7 shows sugar on `FN`/`CST`; §8.1 says sugar on **`CAP` only** | Refactor to: (a) sugar on `FN`/`CST` too (same desugar), **or** (b) sugar on `CAP` only with leaf ports as atoms | Leaving sugar rules contradictory across sections |
+| **2** | **`expr` binding to port fields** | Mini-example uses `V_inp`, `V_a`, `I_a` without a binding rule | Refactor to one binding rule: port `name=` + quantity; **or** `PORT_x.V`; **or** `src_ports=` + fixed `V`/`I` keys | Ad-hoc mirror fields on `RES` |
+| **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = port→port | **Refactor to one target:** port→port everywhere formulae are taught; flat self-loop = **transitional migration note only** (finite window) | **Forever dual-MVP** (flat domains stay self-loop indefinitely) |
+| **4** | **Locator coexistence** | `PIN`/`NET`/`CMP` “until pin↔pin migration” — no exit criteria | Refactor to: ingest grain + `refines` with **exit criteria**; **or** keep forever as locator-only (never maths hubs) | `PIN`/`NET` as long-term formula hubs |
+| **5** | **Op-amp leaf shape** | §3.6 `CAP_OpAmp` + transitional `RES`; §3.7 `FN_ol` under `CAP_InvAmp` | Refactor to prefer **`FN` leaf** (child `CAP` only when a board contract is needed) | Keeping transitional `RES` amp as the taught leaf |
+| **6** | **`feeds` vs `derives` on FN** | Both listed; no worked distinction | Refactor to: `derives` = free `expr`; `feeds` = typed `op=` only (align field-formulas) — one glossary | Synonym sprawl without fixtures |
+| **7** | **Shell `CLM` + self-loop `derives`** | §8 still shows claim-level formula; §3.7 demotes stamp hubs | Refactor to: `CLM` = shell **summary** only; constitutive maths only on `FN`/`CST` ports | Shell self-loop as the primary formula teaching |
+
+**Out of this redesign’s lock set (pointers only):** recycle policy; session ACL / RSV (§7 — shell lease ≠ interior); nest-open depth `N`; SCHEMA TagMap formalisation. These stay on separate tracks and do **not** justify forever dual dialect.
