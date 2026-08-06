@@ -15,7 +15,7 @@
 | **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). |
 | **EDGE** | Incidence / carrier only — never the law. |
 
-**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. Several equations → one `law=` field, equations separated by `|`.
+**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `|`.
 
 **Ports:** fields on the law node until separate atoms are proven necessary:
 
@@ -48,11 +48,19 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 ### Generic skeleton
 
 ```text
-CST [Id] ; name=… ; ports=name:side,… ; law=eq|eq ; param=… ; recycle=persistent
+CST [Id] ; name=… ; ports=name:side,… ; law=$eq$|$eq$ ; param=… ; recycle=persistent
 Eid [PORT_A] --(connects)--> [PORT_B] ; carries=token
 ```
 
-`ports=` uses `name:side` with side ∈ `in|out|inout`. `law=` holds equations/relations on the NODE. `carries=` is an optional quantity/token name on a carrier edge (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
+`ports=` uses `name:side` with side ∈ `in|out|inout`. `law=` holds LaTeX maths on the NODE. `carries=` is an optional quantity/token name on a carrier edge (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
+
+### `law=` expression rules (LaTeX)
+
+- **Where:** one `law=` field on the **NODE** (prefer kind `CST`). Never on EDGE. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
+- **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those segments with `|` (prefer this over one `\begin{align}` blob). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
+- **Escapes:** prefer `\lvert`/`\rvert` over bare `|` inside maths; if the value contains `;` or a bare `|` that is not an eq-joiner, quote the whole field: `law="…"`.
+- **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: `I_c` / `I_{c}` / `V_a` — port name is the subscript. Qualified `PORT_x.q` deferred.
+- **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on `connects`; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
 
 ### Line shapes
 
@@ -84,7 +92,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only.
 | Field | Form |
 |-------|------|
 | `ports=` | `name:side` tokens, `,`-joined — e.g. `ports=in:in,out:out,state:inout` |
-| `law=` | equation/relation atom(s) on the NODE; several → one field, joined by `\|` |
+| `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments joined by `\|` |
 | `name=` | short label |
 | params | domain keys **on the NODE** (`k=`, `gain=`, …) |
 | `carries=` | optional on `connects`; quantity/token name (`signal`, `q`, `V`, `I`, …) |
@@ -111,14 +119,14 @@ First-class PORT NODE (only when `connects` needs stable endpoints): Id like `[P
 **Lead (any domain)** — abstract CST with ports, law, and a carrier:
 
 ```text
-CST [CST_Blk] ; name=block ; k=2 ; ports=in:in,out:out ; law=y=k*x ; recycle=persistent
-E1 [PORT_Blk_out] --(connects)--> [PORT_Next_in] ; carries=signal
+CST [CST_Blk] ; name=block ; k=2 ; ports=x:in,y:out ; law=$y=k x$ ; recycle=persistent
+E1 [PORT_Blk_y] --(connects)--> [PORT_Next_x] ; carries=signal
 ```
 
 Mutate (mint):
 
 ```text
-+ CST [NEW] ; name=block ; k=2 ; ports=in:in,out:out ; law=y=k*x ; recycle=persistent
++ CST [NEW] ; name=block ; k=2 ; ports=x:in,y:out ; law=$y=k x$ ; recycle=persistent
 ```
 
 Carrier `connects` does **not** own the law or its params.
@@ -128,8 +136,8 @@ Carrier `connects` does **not** own the law or its params.
 One domain instance only — not the default frame. One **`CST`** owns B/C/E and both teachable laws:
 
 ```text
-CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=I_c=beta*I_b|I_e=I_b+I_c ; recycle=persistent
-CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a:inout,b:inout ; law=V_a-V_b=I_a*R ; recycle=persistent
+CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=$I_c=\beta I_b$|$I_e=I_b+I_c$ ; recycle=persistent
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a:inout,b:inout ; law=$V_a-V_b=I_a R$ ; recycle=persistent
 E_c [PORT_Q1_C] --(connects)--> [PORT_Rc_a] ; carries=I
 ```
 
@@ -139,7 +147,7 @@ Omit E → truncated device and unowned KCL. Same syntax skeleton as above; elec
 
 ## 4. Wrong shapes (three)
 
-- **Law on EDGE** — e.g. `[A] --(derives)--> [B] ; expr=y=k*x` (EDGE ≠ law; binary lie; missing ports).
+- **Law on EDGE** — e.g. `[A] --(derives)--> [B] ; expr=$y=k x$` (EDGE ≠ law; binary lie; missing ports).
 - **Orphan stamp mirrors** — fields that are not graph endpoints.
 - **Hollow nest with no law leaf** — a shell without a node that owns `law=` (behaviour has nowhere to live).
 
@@ -178,7 +186,7 @@ Engine: law-on-node + optional port sugar → **1.0**, not a silent 0.3.x patch.
 
 ## 7. Open (three bullets max)
 
-- **`ports=` binding** — port `name=` + symbol in `law=`, or qualified `PORT_x.q`; pick one rule on the node.
+- **`ports=` binding** — proposed above (param / port name / `qty_portName`); qualified `PORT_x.q` still open if fields prove insufficient.
 - **When to mint first-class `PORT`** — only if carrier endpoints need stable ids independent of the owner; else fields stay on the node.
 - **`connects` spelling** — optional `carries=` token before SCHEMA lock; no flow type system here.
 
