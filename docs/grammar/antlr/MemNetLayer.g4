@@ -75,6 +75,9 @@ patchNode
 // Three bind forms: directed / non-directed / bi-directed
 // Endpoints: [Node.port] (teach) or [Id] / [NEW]
 // Wire: --{label}--> | --{label}-- | <--{label}-->
+// Label = exactly one IDENT ([A-Za-z_][A-Za-z0-9_]*). Empty {} / attrs /
+// multi-token / spaces inside braces forbidden. Default teach: bind.
+// Payload sense → carries= (not the label). No law= on EDGE (semantic).
 presentEdge
     : IDENT endpoint bindWire endpoint (SEMI field)*
     ;
@@ -99,6 +102,7 @@ bindWire
     | biDirectedBind    # WireBiDirected
     ;
 
+// IDENT required — rejects --{}-->, --{a b}-->, --{k=v}-->, --{bind,x}-->
 directedBind
     : ARROW_L IDENT ARROW_R_DIR
     ;
