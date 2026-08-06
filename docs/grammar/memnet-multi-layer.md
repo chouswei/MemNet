@@ -175,7 +175,7 @@ Teach **always** `name: {…}` (prefer one space after `:`; at least `side=`). D
 | `.` | Ownership join (inside brackets only) |
 | `C` | Port **name** declared on that node’s `ports=` |
 
-Wire forms around the label unchanged. Optional `carries=`. Rejected as teachable defaults for **law / physical / programme** CST: `from=`/`to=` on the EDGE; node-to-node `[CST_Q1]--{bind}--[CST_Rc]` without port grain. **Persons / relation chart** locks the opposite: bare `[PersonA] --{bind}--> [PersonB]` (§3). First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice for port-grain domains. Label rules: §1 **Bind label (locked)**.
+Wire forms around the label unchanged. Optional `carries=`. Rejected as teachable defaults for **law / physical / programme** CST: `from=`/`to=` on the EDGE; node-to-node `[CST_Q1]--{bind}--[CST_Rc]` without port grain. **Persons / relation chart** locks the opposite: bare `[PersonA] --bind--> [PersonB]` (§3). First-class PORT NODE remains an escape hatch only when a port must be an independent atom — otherwise qualified refs suffice for port-grain domains. Label rules: §1 **Bind label (locked)**.
 
 ---
 
@@ -397,7 +397,7 @@ ASCII (Boss → Alice; Alice knows Bob):
   [Boss]
      | carries=reports_to
      v
-  [Alice] --{bind}--> [Bob] ; carries=knows
+  [Alice] --bind--> [Bob] ; carries=knows
 ```
 
 Mutate create:
@@ -406,8 +406,8 @@ Mutate create:
 + CST [CST_Boss] ; role=person ; name=Boss ; recycle=persistent
 + CST [CST_Alice] ; role=person ; name=Alice ; recycle=persistent
 + CST [CST_Bob] ; role=person ; name=Bob ; recycle=persistent
-+ E_ra [CST_Alice] --{bind}--> [CST_Boss] ; carries=reports_to
-+ E_kb [CST_Alice] --{bind}--> [CST_Bob] ; carries=knows
++ E_ra [CST_Alice] --bind--> [CST_Boss] ; carries=reports_to
++ E_kb [CST_Alice] --bind--> [CST_Bob] ; carries=knows
 ```
 
 Pin-map present (`view=persons`):
@@ -416,8 +416,8 @@ Pin-map present (`view=persons`):
 CST [CST_Boss] ; role=person ; name=Boss ; recycle=persistent
 CST [CST_Alice] ; role=person ; name=Alice ; recycle=persistent
 CST [CST_Bob] ; role=person ; name=Bob ; recycle=persistent
-E_ra [CST_Alice] --{bind}--> [CST_Boss] ; carries=reports_to
-E_kb [CST_Alice] --{bind}--> [CST_Bob] ; carries=knows
+E_ra [CST_Alice] --bind--> [CST_Boss] ; carries=reports_to
+E_kb [CST_Alice] --bind--> [CST_Bob] ; carries=knows
 ```
 
 Membership of a team (thin): same bare-id bind with `carries=member` (Alice → Team node, or person↔person as the chart needs). Keep the slice small — mission is tokens + accuracy, not a full org dump.
