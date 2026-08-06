@@ -2,6 +2,7 @@
 
 **Status:** design only — **no engine implementation** in 0.3.5 / 0.3.6.  
 **Thesis:** MemNet stays **NODE | EDGE** only in the store; agents use **compact capsule sugar** on the shell (`ports=` / `contains=` on `CAP`) that desugars 1:1 to those atoms. Complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports — including capsule-in-capsule). Port-hood is structure (store: kind `PORT` + `exposes`), not id punctuation.  
+**Direction (locked for design prose):** **ports-first interconnect** — every connection / formula EDGE lands on **ports** (or schematic **pins**), never on opaque free fields or agent-mirrored stamp bags. See §3.7.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
 **Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
@@ -271,8 +272,8 @@ Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VM
 
 ```text
 ## Nodes
-CAP [CAP_OpAmp] ; name=opamp ; layer=net ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; contains=NET_INM,NET_INP,NET_OUT,RES_a ; recycle=persistent
-CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; a_s=1000000 ; recycle=persistent
+CAP [CAP_OpAmp] ; name=opamp ; layer=net ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; a_s=1000000 ; recycle=persistent
+CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; recycle=persistent
 
 ## Edges
 Es_oa [CAP_OpAmp] --(summarises)--> [CLM_a_s]
@@ -287,15 +288,7 @@ Mutate sugar (create shell; engine desugars `ports=`):
 
 Parent–child shell wiring lands on Ports (not grandchild interiors): e.g. when InvAmp interior is open, board nets that feed the amp use `refines` into `PORT_Inm` / `PORT_Inp` / `PORT_Out`, or Port→Port `connects` once both Port ids are assigned. Do **not** paste those edges into the InvAmp **shell** dump.
 
-**Interior interconnect** after `pin_map(anchor=CAP_OpAmp, view=interior)` — behavioural finite-gain model (matches the app-note op-amp assumption; not transistor-level).
-
-**Readable chain:** Port → Net → Var → stamp fields → formula → Out.
-
-1. `PORT_* --(refines)--> NET_*` (boundary bridge).
-2. `VAR_* --(voltage_of)--> NET_*` (nodal voltage of that net).
-3. Stamp `RES_a` holds **mirrors** of those voltages as local fields `Vinp` / `Vinm` (same pattern as InvAmp `RES_A.Vin` — agent copies `VAR_INP.V` → `Vinp`, `VAR_INM.V` → `Vinm`; cross-node `derives`/`feeds` remains later).
-4. Same-node `derives` **owns** `Vdiff` and `Vout` — they are not orphan scalars: `Vdiff=Vinp-Vinm`, then `Vout=a_s*Vdiff`.
-5. Agent mirrors `RES_a.Vout` → `VAR_OUT.V` for the output net.
+**Interior interconnect (transitional — today’s pain):** Port → Net → Var → `RES_a` mirrors → same-node `derives` is what agents currently invent. It only works if mirrors stay in sync; it invites **orphan** `Vdiff`/`Vout` and informal field copies. **Do not teach it as the target dialect.** Prefer **ports-first** (§3.7). Kept below only as the transitional sketch that §3.7 replaces.
 
 ```text
 ## Nodes
@@ -308,37 +301,101 @@ VAR [VAR_OUT] ; symbol=V_OUT ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
 RES [RES_a] ; a_s=1000000 ; Vinp=0.0 ; Vinm=0.0 ; Vdiff=0.0 ; Vout=0.0 ; domain=s ; recycle=persistent
 
 ## Edges
-# ownership (immediate children)
 Ec_oa1 [CAP_OpAmp] --(contains)--> [NET_INM]
 Ec_oa2 [CAP_OpAmp] --(contains)--> [NET_INP]
 Ec_oa3 [CAP_OpAmp] --(contains)--> [NET_OUT]
 Ec_oa4 [CAP_OpAmp] --(contains)--> [RES_a]
-
-# shell Port -> interior net (boundary bridge)
 Er_inm [PORT_Inm] --(refines)--> [NET_INM]
 Er_inp [PORT_Inp] --(refines)--> [NET_INP]
 Er_out [PORT_Out] --(refines)--> [NET_OUT]
-
-# voltages of interior nets (Port -> Net -> Var)
 Ev1 [VAR_INM] --(voltage_of)--> [NET_INM]
 Ev2 [VAR_INP] --(voltage_of)--> [NET_INP]
 Ev3 [VAR_OUT] --(voltage_of)--> [NET_OUT]
-
-# finite open-loop gain a(s): sources = stamp mirrors of VAR_INP / VAR_INM
-# Vdiff and Vout are formula-owned (one derives EDGE per tgt_field; MVP self-loop)
 Ef_diff [RES_a] --(derives)--> [RES_a] ; tgt_field=Vdiff ; src_fields=Vinp,Vinm ; expr=Vinp-Vinm
 Ef_gain [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ; expr=a_s*Vdiff
 ```
 
-| Grain | Under CAP_OpAmp | Not here |
-|-------|-----------------|----------|
-| Differential inputs | `NET_INM` / `NET_INP` + `refines` from `PORT_Inm` / `PORT_Inp`; `VAR_*` via `voltage_of`; stamp mirrors `Vinp`/`Vinm` on `RES_a` | Board nets `NET_VMINUS` / `NET_VGND` (parent interior; linked via shell `connects`) |
-| Finite gain **a(s)** | `RES_a` + `derives` owning `Vdiff=Vinp-Vinm` then `Vout=a_s*Vdiff`; shell may `summarises` → `CLM_a_s` | Closed-loop **A(s)** / Rin/Rf (`RES_A` stays on InvAmp); do **not** leave `Vdiff`/`Vout` without those EDGEs |
-| Output | `NET_OUT` + `PORT_Out --(refines)-->`; mirror `Vout` → `VAR_OUT.V` | External load / feedback resistors |
+**Pain:** `Vinp`/`Vinm` are agent-mirrored fields, not graph endpoints; `Vdiff` lives on a stamp bag that is not a port. That is the failure mode §3.7 removes.
 
-**Descend path:** `pin_map(CAP_InvAmp, view=shell)` → `pin_map(CAP_InvAmp, view=interior)` (see Rin/Rf) → `pin_map(CAP_OpAmp, view=shell)` → `pin_map(CAP_OpAmp, view=interior)` (this subsection). One Capsule-open step per turn when possible.
+**Descend path:** `pin_map(CAP_InvAmp, view=shell)` → interior → `pin_map(CAP_OpAmp, view=shell)` → `pin_map(CAP_OpAmp, view=interior)`. One Capsule-open step per turn when possible.
 
-**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`; put orphan `Vdiff`/`Vout` on `RES_a` without matching `derives` EDGEs whose `src_fields` exist on that node.
+**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`; teach the transitional mirror chain as the long-term interior dialect.
+
+### 3.7 Direction: ports-first interconnect
+
+**Core rule:** every interconnect EDGE is **port→port** (capsule grain) or **pin→pin** / **pin→net-port** (schematic grain); formula sources and targets are **fields on those ports**, never free-floating scalars or agent-mirrored stamp bags.
+
+This is the SysML v2 analogy done properly in shared dialect: a part **exposes** ports; connections and behavioural bindings join **ports**, not opaque interiors.
+
+#### What exposes ports
+
+| Kind | Exposes? | Role |
+|------|----------|------|
+| **`CAP`** | Yes (shell contract) | Capsule — preferred composition shell; sugar `ports=` stays |
+| **`PORT`** | No (it *is* the endpoint) | First-class boundary / interior tip; fields such as `V=` live **on** the port |
+| **`PIN`** | Is the schematic endpoint | PCBA / `.ato` terminal — keep locator kind; treat as the pin-grain peer of `PORT` |
+| **`NET`** | Optional later (net-as-bus with named tips) | Topology carrier; not a formula stamp bag |
+| **`RES` / `CLM`** | Demoted as interconnect hubs | May hold **owner params** (`a_s=`) referenced *via* a port EDGE; MUSTNOT be the only home of `Vdiff` / mirrored `Vinp` |
+| SysML `PRT` / `POR` | Ingest pins | Map to `CAP`/`PORT` on capsule wrap; do not overwrite locator kinds |
+
+**Also allowed:** interior-only ports (`side=internal`) owned by `contains` — e.g. `PORT_Vdiff` — so intermediate results are still ports, not orphan fields.
+
+#### EDGE endpoint rule
+
+| Rel | Endpoints (ports-first) | Notes |
+|-----|-------------------------|-------|
+| `connects` | Port → Port | Shell / inter-capsule wiring (unchanged) |
+| `derives` / `feeds` | Port → Port (preferred) | `tgt_field` / `src_fields` bind to **port** fields; multi-source via `src_ports=` list on the EDGE payload |
+| `exposes` | Capsule → Port | Unchanged |
+| `contains` | Capsule → child / interior port | Immediate children only |
+| `refines` | Port → finer Port / PIN / NET | Boundary bridge when schematic grain still present |
+| `connects_to` | PIN → NET | **Migrates** toward pin↔pin or pin→net-port when schematic capsules land; keep until then |
+
+**MUSTNOT:** same-node `RES --(derives)--> RES` whose `src_fields` are informal mirrors of other nodes; Port→Net→Var→mirror as the taught path; invent `FLD_*` field-ports (rejected in field-formulas) — use real `PORT` / `PIN` instead.
+
+#### CAP_OpAmp under ports-first (worked mini-example)
+
+Shell (sugar; `a_s` on the Capsule, not a stamp bag):
+
+```text
+CAP [CAP_OpAmp] ; name=opamp ; layer=net ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; a_s=1000000 ; recycle=persistent
+CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; recycle=persistent
+Es [CAP_OpAmp] --(summarises)--> [CLM_a_s]
+```
+
+Interior after `view=interior` — **no** `NET`/`VAR`/`RES_a` mirror chain:
+
+```text
+## Nodes
+PORT [PORT_Inm] ; name=Inm ; side=in ; V=0.0 ; recycle=persistent
+PORT [PORT_Inp] ; name=Inp ; side=in ; V=0.0 ; recycle=persistent
+PORT [PORT_Out] ; name=Out ; side=out ; V=0.0 ; recycle=persistent
+PORT [PORT_Vdiff] ; name=Vdiff ; side=internal ; V=0.0 ; recycle=persistent
+
+## Edges
+E_ex1 [CAP_OpAmp] --(exposes)--> [PORT_Inm]
+E_ex2 [CAP_OpAmp] --(exposes)--> [PORT_Inp]
+E_ex3 [CAP_OpAmp] --(exposes)--> [PORT_Out]
+E_ci  [CAP_OpAmp] --(contains)--> [PORT_Vdiff]
+# differential: Inp.V - Inm.V → Vdiff.V  (endpoints = ports)
+E_diff [PORT_Inp] --(derives)--> [PORT_Vdiff] ; tgt_field=V ; src_ports=PORT_Inp,PORT_Inm ; src_fields=V,V ; expr=V_inp-V_inm
+# gain: a_s * Vdiff.V → Out.V  (a_s on owning CAP, referenced from the EDGE)
+E_gain [PORT_Vdiff] --(derives)--> [PORT_Out] ; tgt_field=V ; src_ports=PORT_Vdiff ; src_fields=V ; owner=CAP_OpAmp ; owner_fields=a_s ; expr=a_s*V
+```
+
+Readable chain: **Inm / Inp → Vdiff → Out**, all ports; gain param stays on the Capsule. Parent InvAmp still wires board nets to `PORT_Inm` / `PORT_Inp` / `PORT_Out` via `connects` / `refines` — not into a stamp bag.
+
+#### Compatibility / migration
+
+| Stays | Migrates | Demoted / later |
+|-------|----------|-----------------|
+| `CAP` sugar `ports=` / `contains=` ; desugar to `PORT` + `exposes` | Interior formula from `RES` self-loop → **port→port** `derives` | Agent-mirrored `Vinp`/`Vinm` on `RES_*` |
+| Shell Port→Port `connects` | Optional: schematic `connects_to` PIN→NET → pin↔pin or pin→net-port under a Capsule | Port→Net→Var→mirror as taught path |
+| `contains` / `exposes` / `summarises` | `refines` kept as **boundary bridge** when a schematic NET/PIN grain still exists under the Capsule | Orphan scalars (`Vdiff` with no owning EDGE) |
+| Flat InvAmp without Capsule wrap | When wrapped, board interior may keep PIN/NET until ports-first schematic sugar exists | `voltage_of` VAR chain **inside** a behavioural Capsule (prefer `V=` on the port) |
+| Field-formulas same-node MVP for **flat** domains (cashflow, …) | Capsule / multi-port interiors adopt `src_ports=` + port endpoints (elevates cross-port earlier than field-formulas §6 “later”) | `FLD_*` field-port nodes — still rejected; use `PORT`/`PIN` |
+
+**Engine:** design direction only — **not** implemented in 0.3.5 / 0.3.6 (no port→port formula evaluator, no `src_ports=` lock in SCHEMA yet).
 
 #### Rel cheat-sheet (shell vs interior)
 
@@ -346,12 +403,12 @@ Ef_gain [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ;
 |-----|--------|-----------|
 | `exposes` / sugar `ports=` | Shell (store / sugar) | Capsule → Port |
 | `connects` | Shell (inter-capsule) | Port → Port |
-| `contains` | Interior open | Capsule → child Capsule / key NET / CMP / RES |
+| `contains` | Interior open | Capsule → child Capsule / key NET / CMP / RES / interior Port |
 | `refines` | Boundary | Port → NET / PIN / child Port |
-| `connects_to` | Interior interconnect | PIN → NET |
-| `derives` / `feeds` | Interior or shell summary node | Same-node MVP; see field-formulas |
+| `connects_to` | Interior interconnect (transitional) | PIN → NET — migrate toward pin grain under §3.7 |
+| `derives` / `feeds` | Interior (ports-first) | **Port → Port**; flat same-node MVP still in field-formulas |
 
-Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, that file’s Layer A/B atoms are exactly this **interior** graph.
+Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, that file’s Layer A/B atoms are the **board interior**; behavioural Capsules follow §3.7.
 
 ---
 
@@ -433,8 +490,8 @@ Analogy: finite element / asymptotic reasoning — pick the scale that answers t
 | Mechanism | Interaction |
 |-----------|-------------|
 | **`depth` / `max_rows`** | Still the hard budget **within** a layer/view; layers prevent burning the budget on irrelevant strata |
-| **Formula `derives` / `feeds`** | Same-node self-loop `derives` (MVP in field-formulas) may sit on shell summary nodes (`CLM_gain`, `RES_A`) or interior stamps. Cross-node / across-port `derives` / `feeds` remains **later** (after reserve/ACL) — do not teach it as capsule MVP. Not a separate layer system — see [`memnet-field-formulas.md`](memnet-field-formulas.md) |
-| **Nodal / inverting-amp notes** | Topology + KCL/Ohm stay **flat** `NET`/`CMP`/`PIN` + `derives` today. When wrapped: those atoms are **interior** of a board/stage Capsule; shell shows Capsule `PORT`s + summary gain — app notes apply formula grammar and do **not** redefine capsules or rename `PIN`→`PORT` |
+| **Formula `derives` / `feeds`** | Flat domains: same-node self-loop MVP (field-formulas). **Capsule interiors:** prefer **port→port** `derives` with `src_ports=` (§3.7) — design direction ahead of engine. Not a separate layer system — see [`memnet-field-formulas.md`](memnet-field-formulas.md) |
+| **Nodal / inverting-amp notes** | Topology + KCL/Ohm stay **flat** `NET`/`CMP`/`PIN` + `derives` today. When wrapped: board atoms are **interior** of a stage Capsule; behavioural children (op-amp) follow §3.7 ports-first — app notes do **not** redefine capsules or rename `PIN`→`PORT` |
 | **LAW** | Prefer **normative layer** / shell-adjacent; exempt from neighbourhood reserve checks (as in reserve design); pin map may keep a small `## Laws` section even on shell views |
 | **Session ACL / reserve** | Unchanged order: ACL then reserve. Reserve scope = ego at requested `depth` **within** the active layer/view (same expand as `pin_map`). Holding a shell does not silently lease the entire interior until expand includes those ids |
 | **Goldfish loop** | `pin_map` → reason → mutate → `pin_map`; layer/view is an argument to step 0/1, not a second dialect |
@@ -552,6 +609,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Capsule syntax | **B sugar on agent shell** (`ports=` / `contains=` on `CAP`); desugar to store atoms; no third primitive (§8.1) |
 | Shell pin_map | Emit **compact** sugar (Write ≈ display); not full Port+`exposes` expand by default |
 | SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
+| Ports-first interior (§3.7) | **Design-locked direction** — teach in docs; engine / SCHEMA not yet |
 
 ### Later
 
@@ -560,6 +618,8 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
 | Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.5 limits in `pin_map` |
 | SCHEMA / TagMap formalisation of `CAP` / `PORT` + sugar fields | With golden fixtures |
+| Port→port `derives` + `src_ports=` / `owner_fields=` evaluator | Implements §3.7; elevates cross-port ahead of flat field-formulas “later” |
+| Schematic pin↔pin / pin→net-port migration of `connects_to` | Optional under Capsule wrap |
 | `view=atoms` expanded shell for debug | Optional |
 | `pin_map` multi-layer “breadcrumb” section (ancestors only, tiny) | Optional |
 | Automatic SysML part/port ingest → capsules | PinMapIngest path |
@@ -584,6 +644,7 @@ Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside 
 | **Id-as-grammar drift** | Port-hood = kind `PORT` + `exposes`; `_` in ids is KIND_rest only (§3.2) — reject `__` / dotted-id “port of CAP” conventions |
 | **Name collision with SysML / `parts/`** | Use **capsule** / `CAP` in MemNet doctrine; say “SysML part (ingest)” when mapping; prefer wire `PORT` over opaque `POR` in new capsule prose |
 | **Port-grain conflation** | Keep Capsule `PORT` / SysML `POR` / PCBA `PIN` distinct (§3.1); relate with `refines` / ingest edges — never overwrite locator kinds |
+| **Mirror / orphan-field interior** | Teach §3.7 ports-first; reject `RES_*` stamp mirrors and orphan `Vdiff` as the Capsule interior dialect |
 | **`refines` polarity flip** | Shell tip → finer only; reject fine→coarse as `refines` (§5.2) |
 | **`layer=` vs `view=` overload** | Stratum tokens on nodes; shell/interior via `view=` only — no `layer=shell` |
 
@@ -608,9 +669,9 @@ No change to `requirements.sysml` in this design task.
 | Path | Role |
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
-| `docs/grammar/memnet-field-formulas.md` | Same-node `derives` on shell/interior; cross-port later |
+| `docs/grammar/memnet-field-formulas.md` | Flat same-node `derives` MVP; capsule interiors → port→port (§3.7) |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
-| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata; flat atoms = Capsule interior when wrapped (§3.6); op-amp child Capsule interior = §3.6 “Interior of CAP_OpAmp” |
+| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata; board interior §3.6; op-amp child → §3.7 ports-first |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
 | `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve; shell lease ≠ interior lease |
 | `docs/grammar/examples/` | Future golden fixtures for capsule/shell slices |
