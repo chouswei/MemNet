@@ -683,3 +683,21 @@ No change to `requirements.sysml` in this design task.
 | `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve; shell lease ≠ interior lease |
 | `docs/grammar/examples/` | Future golden fixtures for capsule/shell slices |
 | SysML v2 models / ingest | Analogy and target mapping — not wire syntax |
+
+---
+
+## 13. Open decisions (lock before SCHEMA / engine)
+
+Stub only — answers belong in the locked sections above once chosen. Completeness review (2026-08-06).
+
+| # | Decision | Tension | Options (sketch) |
+|---|----------|---------|------------------|
+| **1** | **`ports=` sugar owners** | §3.7 shows sugar on `FN`/`CST`; §8.1 says sugar on **`CAP` only** | (a) Extend sugar to `FN`/`CST` (same desugar); (b) sugar on `CAP` only — expand leaf ports as atoms / interior |
+| **2** | **`expr` binding to port fields** | Mini-example uses `V_inp`, `V_a`, `I_a` without a binding rule | Name = port `name=` + quantity; qualified `PORT_x.V`; or `src_ports=` + fixed `V`/`I` keys only |
+| **3** | **Flat vs ports-first formula MVP** | Field-formulas = same-node self-loop; §3.7 = port→port | Dual MVP (flat domains stay self-loop; capsule interiors require port endpoints); or one timeline |
+| **4** | **Locator coexistence** | `PIN`/`NET`/`CMP` “until pin↔pin migration” — no exit criteria | Keep forever as ingest grain + `refines`; or sunset after `CST`/`FN` wrap is teachable |
+| **5** | **Op-amp leaf shape** | §3.6 `CAP_OpAmp` + transitional `RES`; §3.7 `FN_ol` under `CAP_InvAmp` | Prefer `FN` leaf (no nested amp Capsule unless board needs a contract); or always wrap behavioural blocks as child `CAP` |
+| **6** | **`feeds` vs `derives` on FN** | Both listed; no worked distinction | `derives` = free `expr`; `feeds` = typed `op=` contribution only (align field-formulas) |
+| **7** | **Shell `CLM` + self-loop `derives`** | §8 still shows claim-level formula; §3.7 demotes stamp hubs | Keep `CLM` summaries on shell; constitutive maths only on `FN`/`CST` ports |
+
+**Out of this redesign’s lock set (pointers only):** recycle policy; session ACL / RSV (§7 — shell lease ≠ interior); nest-open depth `N`; SCHEMA TagMap formalisation.
