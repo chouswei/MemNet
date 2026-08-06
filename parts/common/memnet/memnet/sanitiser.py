@@ -17,7 +17,8 @@ def _looks_like_tier_a(line: str) -> bool:
         return True
     if line.startswith(("+", "~", "-")):
         return True
-    if line.startswith("LAW") and len(line) > 3 and line[3].isdigit():
+    # Match mutate_gate.looks_like_tier_a: LAW01… / LAW-CODE01 / LAW_SNAP01
+    if line.startswith("LAW") and len(line) > 3 and (line[3].isdigit() or line[3] in "-_"):
         return True
     return False
 
