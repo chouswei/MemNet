@@ -54,7 +54,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI 
 | Doctrine / quick start | `README.md` |
 | Shared-dialect grammar design | `docs/grammar/` |
 | Field formulas (generic design) | `docs/grammar/memnet-field-formulas.md` (formula as EDGE / `derives` — any domain) |
-| Multi-layer / capsules (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; CAP nests `FN`/`CST`+ports; §3.7) |
+| Multi-layer / capsules (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; `FN` ⊂ `CST`; CAP nests leaves+ports) |
 | Nodal circuitry (app note) | `docs/application-notes/llm-nodal-analysis-formulas.md` (*uses* formula edges; does not define them) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
