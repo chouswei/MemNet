@@ -1,0 +1,8 @@
+# expect: parse-ok
+# Dual EDGE relation grain: bare [NodeId] both ends; label = sense.
+CST [CST_Alice] ; role=person ; name=Alice
+CST [CST_Bob] ; role=person ; name=Bob
+CST [CST_Boss] ; role=person ; name=Boss
+E_kb [CST_Alice] --knows--> [CST_Bob]
+E_ra [CST_Alice] --reports_to--> [CST_Boss]
+E_team [CST_Alice] --member_of-- [CST_Boss]

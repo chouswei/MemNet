@@ -1,0 +1,7 @@
+# expect: parse-ok
+# Named function A only: CST_Sum law leaf + port binds (no B def=/uses=).
+CST [CST_Sum] ; ports=x: {direc=in, q=@sx},y: {direc=in, q=@sy},z: {direc=out, q=@sz} ; law=$@sz=@sx+@sy$
+CST [CST_Caller] ; ports=a: {direc=out, q=@sx},b: {direc=out, q=@sy},out: {direc=in, q=@sz}
+E1 [CST_Caller.a] --bind--> [CST_Sum.x]
+E2 [CST_Caller.b] --bind--> [CST_Sum.y]
+E3 [CST_Sum.z] --bind--> [CST_Caller.out]

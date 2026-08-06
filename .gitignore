@@ -63,6 +63,7 @@ refs/novel-cut-grammar/*
 third_party/antlr4/
 third_party/antlr4/**
 
-# Local ANTLR generate / tool jar (design .g4 stays under docs/grammar/antlr/)
-docs/grammar/antlr/generated/
+# Local ANTLR tool jar; commit generated/*.py for layer golden pytest
 docs/grammar/antlr/.tool/
+docs/grammar/antlr/generated/*.interp
+docs/grammar/antlr/generated/*.tokens

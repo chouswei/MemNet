@@ -49,3 +49,22 @@ Product context: **MemNet 0.3.6+** — generic agent memory graph; examples favo
 `focus` / caps are **not** in body fixtures (MCP/CLI envelope only).
 
 Run harness: `python -m pytest tests/grammar/test_tier_a_golden.py -v`
+
+---
+
+## MemNetLayer fixtures (`layer/`)
+
+Proposed **1.x** multi-layer dialect ([`../memnet-multi-layer.md`](../memnet-multi-layer.md); ANTLR [`../antlr/MemNetLayer.g4`](../antlr/MemNetLayer.g4)). Same `# expect:` markers. Soft-validate: [`../tools/layer_soft_validate.py`](../tools/layer_soft_validate.py).
+
+| File | Class | Notes |
+|------|-------|-------|
+| layer_01_bind_good | parse-ok | Port↔port bind (`--bind-->` / `--bind--`) |
+| layer_02_relation_good | parse-ok | Bare-id relation; label = sense |
+| layer_03_ports_law_alias_good | parse-ok | `ports=` + `@alias` in bag / `law=` |
+| layer_04_named_fn_A_good | parse-ok | CST Sum + binds (A only; no B) |
+| layer_05_bad_mixed_endpoints | lint-reject | Mixed port ↔ bare |
+| layer_06_bad_law_on_edge | lint-reject | `law=` on EDGE |
+| layer_07_bad_bag_on_law | lint-reject | Bag on denylist key `law=` |
+| layer_08_bad_brace_depth3 | parse-reject | Brace nesting depth 3 (grammar cap 2) |
+
+Run: `python -m pytest tests/grammar/test_memnet_layer_golden.py -v`

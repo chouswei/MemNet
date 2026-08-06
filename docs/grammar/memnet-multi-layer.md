@@ -643,5 +643,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 | [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) | Reserve within active view |
 | [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) | ACL before reserve |
 | [`antlr/MemNetLayer.g4`](antlr/MemNetLayer.g4) | Proposed ANTLR4 for this slim dialect |
+| [`examples/layer/`](examples/layer/) | Golden fixtures (`layer_*.txt`) — parse / soft-validate |
+| [`tools/layer_soft_validate.py`](tools/layer_soft_validate.py) | Soft-validate hung off ANTLR parse (not in 0.3 engine) |
 
 No change to `requirements.sysml` in this design task.

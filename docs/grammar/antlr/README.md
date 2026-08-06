@@ -19,17 +19,17 @@ java -jar .tool/antlr-4.13.2-complete.jar -Dlanguage=Python3 -visitor -no-listen
 python smoke_parse.py
 ```
 
-`generated/` and `.tool/` are gitignored. Core package does **not** require `antlr4-python3-runtime`.
+`.tool/` is gitignored. Commit `generated/*.py` for the layer golden pytest (regenerate when `.g4` changes). Core package does **not** require `antlr4-python3-runtime`; the layer harness / optional smoke do (`dev` extra).
 
 ## Covered shapes
 
 - NODE present / `+` create / `~` patch
 - Dual EDGE (same three wire forms):
-  - **Bind:** `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`; `pipe` ≡ `bind`; sense on `carries=`)
+  - **Bind:** teach `[Node.port] --bind--> [Node.port]` only (also `--bind--`, `<--bind-->`); `pipe` is **accept-only** — do not teach; optional `carries=`
   - **Relation:** `[NodeA] --knows--> [NodeB]` (bare ids; label = sense)
-- Fields: `ports=name: {direc=…, q=…}` (`direction=` alias), brace-group values (`meta={…}`; nest OK to depth 2), quantity `@alias` (`V=@va`), `law=$eq$,$eq$` (opaque `@` / `\` inside `$…$`), generic `key=value`, patch `+=` / `-=`
+- Fields: `ports=name: {direc=…, q=…}` (teach `direc=`; `direction=` accept-only), brace-group values (`meta={…}`; nest OK to depth 2), quantity `@alias` (`V=@va`), `law=$eq$,$eq$` (opaque `@` / `\` inside `$…$`), generic `key=value`, patch `+=` / `-=`
 - Drop: `- Eid`
 
-`{…}` = brace-group / record (ports primary teach; other attrs may take bare `{…}`). **Max nesting depth = 2** (grammar: one `nestedRecord` inside outer bag; depth 3+ fails parse). Soft-validate: same endpoint grain both ends; no `law=` on EDGE; law `@idents` ⊆ bag aliases. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
+`{…}` = brace-group / record (ports primary teach; other attrs may take bare `{…}`). **Max nesting depth = 2** (grammar: one `nestedRecord` inside outer bag; depth 3+ fails parse). Soft-validate: [`../tools/layer_soft_validate.py`](../tools/layer_soft_validate.py) — same endpoint grain both ends; no `law=` on EDGE; bag denylist on `law`/`pseudo`/`recycle`/`role`/`view`; law `@idents` ⊆ bag aliases. Fixtures: [`../examples/layer/`](../examples/layer/). Core syntax domain-generic; electronics `V`/`I` only in instance examples.
 
 British English.

@@ -38,6 +38,7 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
     "ruff>=0.9",
+    "antlr4-python3-runtime>=4.13.2,<4.14",
 ]
 mcp = [
     "mcp>=1.2,<2",

@@ -1,0 +1,5 @@
+# expect: lint-reject
+# Bad: law= on EDGE (laws live on NODE only).
+CST [CST_A] ; ports=x: {direc=out}
+CST [CST_B] ; ports=y: {direc=in}
+E1 [CST_A.x] --bind--> [CST_B.y] ; law=$x=y$

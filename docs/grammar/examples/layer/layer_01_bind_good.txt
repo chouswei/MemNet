@@ -1,0 +1,6 @@
+# expect: parse-ok
+# Dual EDGE bind grain: both ends [Node.port]; teach bind; optional carries=.
+CST [CST_Q1] ; name=bjt ; ports=C: {direc=out, I=@ic},E: {direc=inout, I=@ie}
+CST [CST_Rc] ; name=collector_r ; ports=a: {direc=inout, I=@ia},b: {direc=inout}
+E_c [CST_Q1.C] --bind--> [CST_Rc.a] ; carries=I
+E_ab [CST_Rc.a] --bind-- [CST_Rc.b] ; carries=q
