@@ -124,6 +124,23 @@ Ground **id** is the Write=display copy key (stable locator doctrine). `~` field
 
 **Not the same as** MCP tool rename `query_warm` → `pin_map` (transport naming only).
 
+### 4.2.0b Numeric incremental update (`+=` / `-=`) — locked
+
+On **patch** (`~`) only, a field may use **`key+=N`** or **`key-=N`** where `N` is a number literal (`NUMBER` in `MemNet.g4`). The engine reads the **current stored value** for `key`, applies the delta, and persists the **absolute** result. Create (`+`) and drop (`-`) are unchanged — create uses plain `key=value` only.
+
+| Rule | Detail |
+|------|--------|
+| Ops | `+=` add delta; `-=` subtract delta |
+| Scope | **Update (`~`) only** — reject on create (`invalid_field` / lint `numeric_op_on_create`) |
+| Operand | RHS must parse as `NUMBER`; stored field must parse as int/float (`bad_numeric`) |
+| Display | Pin map / warm show absolute values (`wealth=2`), never `wealth+=1` |
+| Spacing | Canonical emit: `key+=N` / `key-=N` (no spaces around operator) |
+| Mix | Same line may combine `=`, `+=`, and `-=` fields |
+
+```text
+~ [PLR01] ; wealth+=1 ; reputation-=0.5 ; status=active
+```
+
 ### 4.2.0a Multi-agent same session (design — not yet enforced)
 
 Today: per-session mutex serialises ops (no torn writes), but there is **no** neighbourhood lease. Two agents sharing one `session_id` can still **logically** race. Goldfish docs assume one writer loop; `--agent` is attribution only.
@@ -286,6 +303,15 @@ Compact mutate forms:
 ~ E77 ; recycle=delete_on_settle
 - E77
 ```
+
+Numeric incremental update (`~` only; create keeps plain `=`):
+
+```text
+~ [PLR01] ; wealth+=1 ; cashflow-=50
+~ [NPC02] ; corruption-=0.25
+```
+
+Canonical spacing: `key+=N` / `key-=N` (no spaces around the operator). Pin map and warm emit **absolute** field values, never `+=` / `-=`.
 
 Engine response / warm re-read (assigned ids — LLM copies thereafter):
 

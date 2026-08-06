@@ -31,10 +31,12 @@ Harness / package names keep `tier_a` for continuity; fixtures teach **legal and
 | 12_bad_invent_create_ids | lint-reject | Invented ids; use `[NEW]` |
 | 13_bad_new_on_update | parse-reject | `NEW` on `~` |
 | 14_mutate_drop_edge_good | parse-ok | `- Eid` |
-| 15_mutate_numeric_ops_good | parse-ok | `+=` / `-=` |
+| 15_mutate_numeric_ops_good | parse-ok | `+=` / `-=` on `~` (update only) |
 | 16_quoted_path_good | parse-ok | STRING escapes |
 | 17_pin_map_pcba_ato_good | parse-ok | PCBA / `.ato` locators |
 | 18_mutate_annotation_on_pcba_pin_good | parse-ok | Annotate ingest pins |
 | 19_schema_map_good | parse-ok | `SCHEMA` session map (not NODE/EDGE) |
+| 20_bad_numeric_op_on_create | lint-reject | `+=` / `-=` illegal on `+` create |
+| 21_bad_numeric_op_delta_not_number | parse-reject | non-number after `+=` / `-=` |
 
 focus / caps are **not** in body fixtures (MCP/CLI envelope only).

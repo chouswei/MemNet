@@ -203,6 +203,21 @@ class MutateGate:
                         "invalid_field",
                         "id= illegal on create; put id in [brackets]",
                     )
+                for f in it.fields:
+                    if f.op in ("+=", "-="):
+                        raise MemNetError(
+                            "invalid_field",
+                            f"{f.key}{f.op} illegal on create; use =",
+                            example=f"{f.key}={f.value}",
+                        )
+            if isinstance(it, EdgeRec) and it.op == Op.CREATE:
+                for f in it.fields:
+                    if f.op in ("+=", "-="):
+                        raise MemNetError(
+                            "invalid_field",
+                            f"{f.key}{f.op} illegal on create; use =",
+                            example=f"{f.key}={f.value}",
+                        )
             if isinstance(it, NodeRec) and it.op == Op.PATCH:
                 rename_to, merge_flag, kept = _split_rename_fields(it.fields)
                 patch_it = NodeRec(
@@ -404,20 +419,21 @@ class MutateGate:
         base = dict(existing.fields) if existing else {}
 
         for f in node.fields:
-            if f.op == "+=":
+            if f.op in ("+=", "-="):
                 cur = base.get(f.key, fields.get(f.key, "0"))
                 try:
-                    fields[f.key] = str(float(cur) + float(f.value)).rstrip("0").rstrip(".")
-                    if fields[f.key] == "-0":
-                        fields[f.key] = "0"
+                    cur_n = float(cur)
+                    delta = float(f.value)
                 except ValueError as exc:
-                    raise MemNetError("bad_numeric", f"{f.key}+={f.value}") from exc
-            elif f.op == "-=":
-                cur = base.get(f.key, fields.get(f.key, "0"))
-                try:
-                    fields[f.key] = str(float(cur) - float(f.value)).rstrip("0").rstrip(".")
-                except ValueError as exc:
-                    raise MemNetError("bad_numeric", f"{f.key}-={f.value}") from exc
+                    raise MemNetError(
+                        "bad_numeric",
+                        f"{f.key}{f.op}{f.value} requires numeric field",
+                        example=f"~ [{node.id}] ; {f.key}=<number>",
+                    ) from exc
+                result = cur_n + delta if f.op == "+=" else cur_n - delta
+                fields[f.key] = str(result).rstrip("0").rstrip(".")
+                if fields[f.key] == "-0":
+                    fields[f.key] = "0"
             else:
                 fields[f.key] = f.value
 

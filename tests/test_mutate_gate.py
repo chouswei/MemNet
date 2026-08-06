@@ -131,3 +131,66 @@ def test_rename_self_noop(memnet_temp, schema_file):
     )
     gate.apply(["~ [PLR01] ; id=PLR01 ; wealth=9"], mode="update")
     assert ss.store.get("PLR01").fields["wealth"] == "9"
+
+
+def test_numeric_increment_on_update(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR01] ; identity=Hero ; wealth=1 ; cashflow=100 ; monopoly=0 ; reputation=0 ; inventory=bag",
+        ],
+        mode="add",
+    )
+    gate.apply(["~ [PLR01] ; wealth+=2 ; cashflow-=25"], mode="update")
+    row = ss.store.get("PLR01")
+    assert row.fields["wealth"] == "3"
+    assert row.fields["cashflow"] == "75"
+
+
+def test_numeric_op_non_numeric_field_rejects(memnet_temp, schema_file):
+    import pytest
+    from memnet.exceptions import MemNetError
+
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ TSK [T01] ; goal=Test ; deadline=1 ; status=in_progress ; recycle=persistent",
+        ],
+        mode="add",
+    )
+    with pytest.raises(MemNetError) as ei:
+        gate.apply(["~ [T01] ; status+=1"], mode="update")
+    assert ei.value.code == "bad_numeric"
+
+
+def test_numeric_op_on_create_rejects(memnet_temp, schema_file):
+    import pytest
+    from memnet.exceptions import MemNetError
+
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    with pytest.raises(MemNetError) as ei:
+        gate.apply(
+            [
+                "+ PLR [NEW] ; identity=Hero ; wealth+=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+            ],
+            mode="add",
+        )
+    assert ei.value.code == "invalid_field"
+
+
+def test_pin_map_shows_absolute_after_numeric_op(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "+ PLR [PLR01] ; identity=Hero ; wealth=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag",
+        ],
+        mode="add",
+    )
+    gate.apply(["~ [PLR01] ; wealth+=4"], mode="update")
+    text = PinMapComposer(ss).compose(anchor="PLR01", depth=1)[1]
+    assert "wealth=5" in text
+    assert "+=" not in text

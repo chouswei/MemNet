@@ -103,6 +103,19 @@ def test_edge_id_warm_form() -> None:
     assert edge.to == "T42"
 
 
+def test_numeric_ops_parse_and_emit() -> None:
+    doc = parse("~ [T42] ; phase+=1 ; risk-=0.5 ; recycle=persistent\n")
+    node = doc.items[0]
+    assert [(f.key, f.op, f.value) for f in node.fields] == [
+        ("phase", "+=", "1"),
+        ("risk", "-=", "0.5"),
+        ("recycle", "=", "persistent"),
+    ]
+    emitted = emit(doc)
+    assert "phase+=1" in emitted
+    assert "risk-=0.5" in emitted
+
+
 def test_pin_map_bare_present() -> None:
     from memnet.tier_a import Op
 

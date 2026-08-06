@@ -530,6 +530,16 @@ def lint(doc: Document) -> list[LintIssue]:
                 issues.append(
                     LintIssue("error", "new_on_patch", "[NEW] illegal on update/settle")
                 )
+            if it.op == Op.CREATE:
+                for f in it.fields:
+                    if f.op in ("+=", "-="):
+                        issues.append(
+                            LintIssue(
+                                "error",
+                                "numeric_op_on_create",
+                                f"{f.key}{f.op} illegal on create; use =",
+                            )
+                        )
             for f in it.fields:
                 issues.extend(_lint_value(f.value, it.raw))
             # Pipe dialect leaked into values
@@ -537,6 +547,15 @@ def lint(doc: Document) -> list[LintIssue]:
                 issues.append(LintIssue("error", "pipe_dialect", "Tier B pipe on agent surface"))
         elif isinstance(it, EdgeRec):
             if it.op == Op.CREATE:
+                for f in it.fields:
+                    if f.op in ("+=", "-="):
+                        issues.append(
+                            LintIssue(
+                                "error",
+                                "numeric_op_on_create",
+                                f"{f.key}{f.op} illegal on create; use =",
+                            )
+                        )
                 for end in (it.frm, it.to):
                     if end == "NEW":
                         issues.append(
