@@ -16,10 +16,11 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Layout adaptation notes | `LAYOUT.md` |
 | SysML models | `sysml-models/` |
 | Shared-dialect grammar design | `docs/grammar/` |
+| Field formulas (generic EDGE relations) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
 | Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
-| Domain worked examples | `docs/application-notes/` (incl. `llm-circuit-schematic.md`, `llm-nodal-analysis-formulas.md` for PCBA / nodal) |
+| Domain worked examples | `docs/application-notes/` (schematic; nodal note *applies* formula grammar to circuits) |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` |
 | Session stub | `AGENT-CONTEXT.md` |

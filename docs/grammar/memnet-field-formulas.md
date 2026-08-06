@@ -1,16 +1,25 @@
 # Field formulas (design)
 
 **Status:** design only — **no expression engine** in 0.3.6+.  
+**Layer:** **generic formula grammar** — domain-agnostic relations (`derives` / `feeds`, multi `src_fields`, `tgt_field`, `expr`) for **any** domain.  
+**Not this doc:** circuit nodal analysis (NET/CMP/PIN, KCL/Ohm stamps) — that is an **application** of this grammar + topology; see `docs/application-notes/llm-nodal-analysis-formulas.md`. Do not conflate the two.  
 **Thesis:** a formula is a **relation** (EDGE), not primarily an inline field expression on a NODE.  
 **MVP is multi-source:** one `derives` EDGE carries `src_fields=a,b,c` (comma list) plus `expr` over those names and one `tgt_field` — **not** single-source-only.  
 **Aligns with:** Write = display; NODE|EDGE only; locked `+=`/`-=` (§4.2.0b in `memnet-grammar-design.md`).  
 **British English.** Paths ASCII. No `|` pipe on the agent surface.
 
+### Two layers (do not conflate)
+
+| Layer | What it is | Where |
+|-------|------------|--------|
+| **Formula relations (this doc)** | Generic grammar/design: write down all relations as formula-as-EDGE for any domain | `docs/grammar/memnet-field-formulas.md` |
+| **Nodal circuitry (application)** | Express a circuit with the node method: topology + KCL/Ohm stamps + absolute V/I — *uses* formula edges; does not define them | `docs/application-notes/llm-nodal-analysis-formulas.md` |
+
 ---
 
 ## Problem
 
-Agents need derived numerics, e.g. `cashflow = rent - expenses`, `net = income - tax - fees` (many inputs → one target), or `wealth` fed by `income`. Today the store holds **absolute** field values; `~` may apply `key+=N` / `key-=N` with a **number literal** only; the pin map never shows ops.
+Agents need derived numerics in **any** domain, e.g. `cashflow = rent - expenses`, `net = income - tax - fees` (many inputs → one target), or `wealth` fed by `income`. (Circuit Ohm/KCL is the same shape applied later — not the motivating SSOT.) Today the store holds **absolute** field values; `~` may apply `key+=N` / `key-=N` with a **number literal** only; the pin map never shows ops.
 
 The missing piece is not a second field syntax — it is a **durable link** from **source fact(s)** to a target fact, visible in the same NODE|EDGE dialect. A formula may be driven by **multiple fields**; the MVP shape already encodes that as a **list** on one EDGE.
 
@@ -261,5 +270,5 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | `docs/grammar/memnet-grammar-design.md` §4.2 / §4.2.0b | EDGE mutate; locked numeric `+=`/`-=` |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Lease both endpoints before cross-node |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL before coop formula writes |
-| `docs/application-notes/llm-nodal-analysis-formulas.md` | Nodal KCL / Ohm as multi-field `derives` / `feeds` (no solver) |
+| `docs/application-notes/llm-nodal-analysis-formulas.md` | **Application** of this grammar: nodal circuit graph + KCL/Ohm (no solver; does not redefine formula EDGE) |
 | `parts/common/memnet/memnet/mutate_gate.py` | Absolute materialise for `+=`/`-=` today |

@@ -1,13 +1,21 @@
 # Nodal Analysis and Field Formulas — A MemNet Application Note
 
-**Application example (documentation only).** Maps classical **nodal analysis** (the node method) onto MemNet’s NODE|EDGE graph and the **formula-as-relation** design (`derives` / `feeds`). Complements the schematic / s-domain note; does **not** implement a solver.
+**Layer:** **circuitry with the node method** — express a circuit as a MemNet graph (NET/CMP/PIN topology, KCL/Ohm stamps, voltages/currents as absolute fields).  
+**Uses (does not define):** the generic formula-as-EDGE grammar (`derives` / `feeds`, multi `src_fields`, `tgt_field`, `expr`) from [`memnet-field-formulas.md`](../grammar/memnet-field-formulas.md). That design doc is domain-agnostic; this note is one application of it plus topology. Do not conflate the two.  
+**Documentation only** — does **not** implement a solver.
 
 **British English.** Dialect examples ASCII. No `|` pipe on the agent surface.
 
-This note complements:
+### Two layers (do not conflate)
+
+| Layer | What it is | Where |
+|-------|------------|--------|
+| **Nodal circuitry (this note)** | Use MemNet to express a circuit with the node method | this file |
+| **Formula relations (grammar)** | Use MemNet to write down all relations (formulas) for any domain | [`memnet-field-formulas.md`](../grammar/memnet-field-formulas.md) |
+
+This note also complements:
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — `CMP` / `PIN` / `NET`, s-domain `VAR` / `EQN`, golden rules
-- [`docs/grammar/memnet-field-formulas.md`](../grammar/memnet-field-formulas.md) — formula EDGE (`src_fields`, `tgt_field`, `expr`)
 - Grammar PCBA fixtures — `docs/grammar/examples/17_*.txt`, `18_*.txt`
 
 ---
@@ -62,7 +70,7 @@ Branch **geometry** is PIN–NET connectivity. Branch **laws** are formula EDGEs
 
 ## 4. Multi-field formulas for KCL and Ohm
 
-Formula MVP (`memnet-field-formulas.md`): one `derives` EDGE, `src_fields=a,b,c`, `expr`, one `tgt_field`. Prefer **same-node self-loop** when all idents live on one analysis atom.
+**Borrowed shape** (defined in `memnet-field-formulas.md`, not here): one `derives` EDGE, `src_fields=a,b,c`, `expr`, one `tgt_field`. Prefer **same-node self-loop** when all idents live on one analysis atom. Circuit Ohm/KCL are instances of that generic relation; they are not a separate formula dialect.
 
 ### 4.1 Ohm (branch law) — same-node or stated code
 
@@ -185,7 +193,7 @@ E_sum [EQN_KCL_MID] --(derives)--> [EQN_KCL_MID] ; tgt_field=residual ; src_fiel
 | Path | Role |
 |------|------|
 | `docs/application-notes/llm-circuit-schematic.md` | Schematic grain, s-domain nodal `EQN`/`VAR` worked op-amp |
-| `docs/grammar/memnet-field-formulas.md` | Formula EDGE SSOT (design; no evaluator yet) |
+| `docs/grammar/memnet-field-formulas.md` | **Generic** formula EDGE SSOT (any domain; design; no evaluator) — this note only *uses* it |
 | `docs/grammar/memnet-grammar-design.md` | Atomisation, locators, `+=`/`-=` |
 | `.cursor/skills/memnet-reference/` | Repo dialect routing |
 
