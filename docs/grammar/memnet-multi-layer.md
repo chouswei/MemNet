@@ -62,9 +62,9 @@ Attrs use the same `=` / `,` as elsewhere. Port bag direction attr (locked alias
 
 **Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags. **No** closed global allow-list of domain field names (domains differ) — prefer **author/agent discipline** below. Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
-**Brace-group discipline (locked):** use `{…}` when the value is a **record of attrs**; use scalar `=` for a single value. Prefer flat attrs; nest only when needed (**depth ≤2**). Domain vocab is free under discipline — do **not** invent bag spam on every key. Soft MUSTNOT (keyword denylist, not an allow-list): dialect scalars `law` / `pseudo` / `recycle` / `role` / `view` / `layer` stay STRING / IDENT / number — never bags. OK: `meta={rev=1, src=doc}`; `units={x=m, y=s}`. Bad: `gain={k=2}` (single value → `gain=2`); `law={eq=$V=IR$}`.
+**Brace-group discipline (locked):** use `{…}` when the value is a **record of attrs**; use scalar `=` for a single value. Prefer flat attrs; nest only when needed (**depth ≤2**). Domain vocab is free under discipline — do **not** invent bag spam on every key. Soft MUSTNOT (keyword denylist, not an allow-list): dialect scalars `law` / `def` / `uses` / `pseudo` / `recycle` / `role` / `view` / `layer` stay STRING / IDENT / number / `$…$` — never bags. OK: `meta={rev=1, src=doc}`; `units={x=m, y=s}`. Bad: `gain={k=2}` (single value → `gain=2`); `law={eq=$V=IR$}`; `def={sum(x,y)=x+y}` (use `def=$sum(x,y)=x+y$`).
 
-**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`direc:in` / `direction:in` — use `direc=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:direc:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`; bag dialect keywords (`law`/`pseudo`/`recycle`/`role`/`view`/`layer`).
+**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`direc:in` / `direction:in` — use `direc=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:direc:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`; bag dialect keywords (`law`/`def`/`uses`/`pseudo`/`recycle`/`role`/`view`/`layer`).
 
 ---
 ## 2. Syntax (cheat sheet)
@@ -79,7 +79,7 @@ Attrs use the same `=` / `,` as elsewhere. Port bag direction attr (locked alias
 | `=` | Assign a **value** to a **key** — top-level `key=value` (present / create); `+=` / `-=` only on `~`; attrs inside `{…}` (`direc=in`). Scalars stay `=` — **no** `key: value` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Bind a **name** to a **brace-group** only: `name: {…}` (inside `ports=` list). **Not** scalar assign; **not** `direction:in`; **not** `x={…}` without `:` |
-| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {direc=in, q=0}`). Discipline: bag = record of attrs; scalar `=` for singles; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on `law`/`pseudo`/`recycle`/`role`/`view`/`layer`. OK: `meta={units={x=m,y=s}}`. Bad: `gain={k=2}`; `meta={a={b={c=1}}}`. Not on EDGE arrows |
+| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {direc=in, q=0}`). Discipline: bag = record of attrs; scalar `=` for singles; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on `law`/`def`/`uses`/`pseudo`/`recycle`/`role`/`view`/`layer`. OK: `meta={units={x=m,y=s}}`. Bad: `gain={k=2}`; `meta={a={b={c=1}}}`. Not on EDGE arrows |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
@@ -135,8 +135,8 @@ Eid [NodeA] --rel_name--> [NodeB]
 - **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with EDGE arrowheads `<--` / `-->` (direction marks on wires).
 - **Quantity symbols (two OK forms, locked):**
   1. **Qualified** (default when few ports): ASCII **`port.qty`** in maths matching bag keys — e.g. `$pin1.V = pin1.I * R$`.
-  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ **this NODE’s** bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params ∪ same-`law=` defs.
-- **Completeness (soft-validate):** every quantity symbol in `law=` MUST bind via one of the two forms above, a node param, a bare **port name** under single-quantity discipline, or a same-`law=` def — no orphan bare `V`/`I` on multi-qty ports. Demote pretty-only `$V_{\mathrm{pin1}}$` for lint. Agents SHOULD fix before settle.
+  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ **this NODE’s** bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params ∪ same-`law=` / reachable `def=` names.
+- **Completeness (soft-validate):** every quantity symbol in `law=` MUST bind via one of the two forms above, a node param, a bare **port name** under single-quantity discipline, a same-`law=` def, or a **B** call whose name is in reachable `def=` — no orphan bare `V`/`I` on multi-qty ports. Demote pretty-only `$V_{\mathrm{pin1}}$` for lint. Agents SHOULD fix before settle.
 - **Binding (same node):** math idents resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), (2) **`port.qty`** ASCII (`pin1.V`) matching `ports=` name + bag attr, (3) an **`@alias`** declared as a quantity-key value and repeated with `@` in `law=` (`V=@va` → `$@va$`), or (4) a **bare port name** under single-quantity discipline (`x`/`y` data ports). **MUSTNOT** orphan bare `V` / `I` unless that single-port discipline holds; **MUSTNOT** `@spam` outside bag quantity values (law `@` only after bag declare).
 - **Alias scope (locked):** `@ident` lives on the **owning NODE** (the CST that declares it). Two nodes may both use `@va` without clash; each `law=` sees only that node’s `@` set ∪ params ∪ local ports. Cross-node coupling is via **port binds** (ideal-pipe continuity), **not** a shared `@` namespace — after bind, each law still uses local `@`. Need a global name → use **`port.qty`** (`a.V` / teach `CST_R.a.V` in prose) or distinct aliases by discipline (`@R_va` vs `@C_va`). **No** automatic merge of `@`.
 - **Alias naming (discipline, not SCHEMA-hard):** grammar accepts any free `IDENT` after `@` — **uniform spelling across nodes is not required**. LLMs **can** confuse reused short names (`@va` on two CSTs looks like one quantity in a multi-node `pin_map` even though scope is per-NODE). Prefer:
@@ -144,6 +144,40 @@ Eid [NodeA] --rel_name--> [NodeB]
   - **`port.qty`** in `law=` when the slice is small (skip `@`)
   - short `@va` / `@ia` **within one NODE** only
 - **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on bind or relation; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
+
+### Named functions in `law=` (A default / B optional)
+
+Want `z = sum(x, y) = x + y` reusable? Two complementary patterns. **Never** put the function on an EDGE.
+
+**A — Function as CST (composition / bind) — default, always valid.** Graph-honest: the formula is a law leaf with ports; callers **bind** ports. No call syntax in `law=`.
+
+```text
+        [Caller]
+       /   |    \
+   .a      .b     .out
+    |      |       ^
+    v      v       |
+  [Sum.x][Sum.y] [Sum.z]
+      \    |    /
+       [CST_Sum]
+```
+
+```text
+CST [CST_Sum] ; ports=x: {direc=in, q=@sx},y: {direc=in, q=@sy},z: {direc=out, q=@sz} ; law=$@sz=@sx+@sy$
+CST [CST_Caller] ; ports=a: {direc=out, q=@sx},b: {direc=out, q=@sy},out: {direc=in, q=@sz}
+E1 [CST_Caller.a] --bind--> [CST_Sum.x]
+E2 [CST_Caller.b] --bind--> [CST_Sum.y]
+E3 [CST_Sum.z] --bind--> [CST_Caller.out]
+```
+
+**B — Named `def=` for textual reuse in `law=` — optional** (token save when many laws share one formula). Wire form locked: **`def=$…$`** (same `$…$` / `,`-joined segments as `law=` — not a brace bag). Point at a lib with **`uses=`**.
+
+```text
+CST [CST_Lib] ; role=lib ; def=$sum(x,y)=x+y$
+CST [CST_Blk] ; ports=x: {direc=in, q=@x},y: {direc=in, q=@y},z: {direc=out, q=@z} ; law=$@z=sum(@x,@y)$ ; uses=CST_Lib
+```
+
+**How to use in law (B):** call the declared name inside the caller’s `$…$` — e.g. `law=$@z=sum(@x,@y)$`. Soft-validate: call name ∈ reachable `def=` (own NODE or `uses=` lib); arity by discipline. Prefer **A** unless the same algebraic sugar is needed in many `law=` lines.
 
 ### Line shapes
 
@@ -164,9 +198,11 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 |-------|------|
 | `ports=` | `name: {direc=…, …}`, `,`-joined — omit attrs beyond needed `direc=` / quantities |
 | `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
+| `def=` | optional named formula(s) as `$…$` segments (same shape as `law=`) for B-style call reuse — on NODE only; see Named functions |
+| `uses=` | optional lib NODE id whose `def=` is in scope for this NODE’s `law=` calls (B) |
 | `pseudo=` | algorithmic steps as a STRING on the **NODE** (prefer quoted); not LaTeX; not an evaluator — see §3 pseudocode note |
 | `name=` | short label |
-| `role=` | CST disambiguator only (`requirement`, `person`, …) — **not** a new KIND |
+| `role=` | CST disambiguator only (`requirement`, `person`, `lib`, …) — **not** a new KIND |
 | `state=` | optional present discrete state on the NODE (e.g. relay `energised` / `deenergised`) — display + agent cue; not an EDGE evaluator |
 | params | domain keys **on the NODE** (`k=`, `gain=`, `I_th=`, …) |
 | `value=` | on first-class **PORT** NODE — quantity at/through that endpoint (domain terms) |
@@ -600,7 +636,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 5. **`role=` / `view=` only CST disambiguators** — no kind zoo; instances use `role=requirement` / `role=person`.
 6. **Reject mixed endpoints** — soft-validate both ends same grain (port or bare); no port↔node EDGE.
 7. **Brace nesting depth cap = 2** — allow one nested bag (`meta={units={x=m,y=s}}`); reject depth 3+; do **not** forbid nested `{a={…}}` outright. Grammar: one nested `recordBag` in `attrValue` ([`MemNetLayer.g4`](antlr/MemNetLayer.g4)).
-8. **Brace-group discipline** — reject a closed domain-field allow-list. Teach: `{…}` = record of attrs; scalar `=` for singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect keywords `law`/`pseudo`/`recycle`/`role`/`view`/`layer` (keyword denylist, not an allow-list). Replaces “allow-list which fields may take `{…}`”.
+8. **Brace-group discipline** — reject a closed domain-field allow-list. Teach: `{…}` = record of attrs; scalar `=` for singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect keywords `law`/`def`/`uses`/`pseudo`/`recycle`/`role`/`view`/`layer` (keyword denylist, not an allow-list). Replaces “allow-list which fields may take `{…}`”.
 
 ---
 
