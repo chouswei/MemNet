@@ -23,10 +23,11 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
 //    name: {…} (COLON = name-to-bag only; ASSIGN = all scalars/attrs).
-//    MUSTNOT: side:in (use side=in); ports=x={…} (use x: {…}). Other attrs
-//    may take bare {…} (e.g. meta={…}). Nesting max depth = 2 (outer = 1;
-//    one nested bag = 2). OK: meta={units={x=m,y=s}}. Demote bare name{...}
-//    and name(...).
+//    MUSTNOT: side:in (use side=in); ports=x={…} (use x: {…}). Discipline
+//    (not a domain-field allow-list): {…} = record of attrs; scalar = for
+//    singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT
+//    bags on dialect keywords law/pseudo/recycle/role/view/layer.
+//    OK: meta={units={x=m,y=s}}. Demote bare name{...} and name(...).
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 6. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
@@ -44,9 +45,11 @@
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
 //     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
 // 12. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
-//     {…} = brace-group / record (ports primary; other attrs may take {…});
+//     {…} = brace-group / record (ports primary; other keys by discipline);
 //     max nesting depth = 2 — demote braced --{label}-->.
 //     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
+// 13. Omit recycle= on teachable wire unless non-default (session/engine
+//     default typically persistent — default recycle= wastes tokens).
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
 // British English in this header.

@@ -58,11 +58,13 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 
 **`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Composition without `CAP`: membership **binds** with `carries=member` on port grain (`view=parts` / `layer=arch` — §3 parts note). Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
-**Omit defaults (wire):** session default `recycle=persistent` — **omit** `recycle=` on teachable lines when that is the default. Emit `recycle=` only when non-default. Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
+**Omit defaults (wire):** session/engine default covers `recycle=` (typically `persistent`) — **omit** `recycle=` on teachable mutate and pin_map lines unless the value is **non-default** (token waste otherwise). Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
 
-**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags; other attrs may take the same shape (e.g. `meta={rev=1, src=doc}`). **Nesting depth capped at 2** (outer brace = depth 1; one nested bag = depth 2; depth 3+ rejected) — do **not** forbid `a={…}` inside a bag. Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
+**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags. **No** closed global allow-list of domain field names (domains differ) — prefer **author/agent discipline** below. Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
-**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`side:in` — use `side=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`.
+**Brace-group discipline (locked):** use `{…}` when the value is a **record of attrs**; use scalar `=` for a single value. Prefer flat attrs; nest only when needed (**depth ≤2**). Domain vocab is free under discipline — do **not** invent bag spam on every key. Soft MUSTNOT (keyword denylist, not an allow-list): dialect scalars `law` / `pseudo` / `recycle` / `role` / `view` / `layer` stay STRING / IDENT / number — never bags. OK: `meta={rev=1, src=doc}`; `units={x=m, y=s}`. Bad: `gain={k=2}` (single value → `gain=2`); `law={eq=$V=IR$}`.
+
+**MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; use `:` for scalars (`side:in` — use `side=in`); omit `:` on name-to-bag (`ports=x={…}` — use `ports=x: {…}`); pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`; bag dialect keywords (`law`/`pseudo`/`recycle`/`role`/`view`/`layer`).
 
 ---
 ## 2. Syntax (cheat sheet)
@@ -77,7 +79,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `=` | Assign a **value** to a **key** — top-level `key=value` (present / create); `+=` / `-=` only on `~`; attrs inside `{…}` (`side=in`). Scalars stay `=` — **no** `key: value` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Bind a **name** to a **brace-group** only: `name: {…}` (inside `ports=` list). **Not** scalar assign; **not** `side:in`; **not** `x={…}` without `:` |
-| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`); also other field values (`meta={rev=1, src=doc}`). Nesting **allowed** up to **max depth = 2** (outer = 1; one nested bag = 2); depth 3+ rejected. OK: `meta={units={x=m,y=s}}`. Bad: `meta={a={b={c=1}}}`. Not on EDGE arrows |
+| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`). Discipline: bag = record of attrs; scalar `=` for singles; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on `law`/`pseudo`/`recycle`/`role`/`view`/`layer`. OK: `meta={units={x=m,y=s}}`. Bad: `gain={k=2}`; `meta={a={b={c=1}}}`. Not on EDGE arrows |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
@@ -90,7 +92,9 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 
 **`=` vs `:` (locked):** `=` assigns values to keys (fields and bag attrs). `:` binds a name to a brace-group only (`name: {…}`). Good: `ports=x: {side=in}`. Bad: `ports=x={side=in}` or `{side:in}`.
 
-**Record vs EDGE:** `{…}` = brace-group / record value (same shape everywhere). Primary teach: labelled port bags (`IDENT: {…}` inside `ports=`); other attrs may take bare `{…}` (e.g. `meta={…}`). Nested bags allowed to **max depth = 2** — OK `meta={units={x=m,y=s}}`; reject deeper. EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
+**Defaults:** omit `recycle=` on wire unless non-default — session/engine default (typically `persistent`) already covers it.
+
+**Record vs EDGE:** `{…}` = brace-group / record value (same shape everywhere). Primary teach: labelled port bags (`IDENT: {…}` inside `ports=`). Other keys follow **brace-group discipline** (record vs scalar; depth ≤2; no bag spam) — not a domain-field allow-list. Nested bags **max depth = 2** — OK `meta={units={x=m,y=s}}`; reject deeper. EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -105,7 +109,7 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 | **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports; demote braced `--{label}-->` and paren `--(label)-->` (locked: bare `--label-->`) |
 | **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = EDGE arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `=` = value assign (never colon for scalars); `:` = name-to-bag **only** (`name: {…}` inside `ports=`); `{…}` = **brace-group / record** (ports primary; other attrs may take `{…}` — not arrow labels). `()` is free — not locked to EDGE.
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = EDGE arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `=` = value assign (never colon for scalars); `:` = name-to-bag **only** (`name: {…}` inside `ports=`); `{…}` = **brace-group / record** (ports primary; other keys by discipline — not arrow labels). `()` is free — not locked to EDGE.
 
 **Sparing recommendations (0–2):**
 
@@ -161,7 +165,7 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 | `carries=` | optional on **bind** forms; generic quantity/token name (`signal`, `q`, `member`, `event`, `token`, …) — **not** on relation grain |
 | `event=` | optional bind metadata on a transition EDGE (statechart) — **not** `law=` |
 | `guard=` | optional bind metadata (`$…$` predicate text) on a transition EDGE — **not** device `law=` |
-| `recycle=` | omit when session-default `persistent`; emit only when non-default |
+| `recycle=` | **omit** unless non-default — session/engine default is typically `persistent` |
 | `view=` / `layer=` | pin-map grain (`shell`/`interior`; also `flowchart` / `parts` / `statechart` / `persons` / `org`; `layer=arch` / `layer=req`; …) — query/envelope; not ontology |
 
 ### Port token (`ports=`)
@@ -542,25 +546,26 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). Session-default `recycle=` omitted. Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
+| **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). **Omit** `recycle=` unless non-default (session default covers it — default lines waste tokens). Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
 | **Accuracy** | `{…}` = brace-group / record (ports primary; other attrs may take `{…}`, e.g. `meta={…}`). Nesting **capped at depth 2** — allow `meta={units={x=m,y=s}}`; reject depth 3+ (do **not** forbid nested bags outright). Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
 | **Pin map** | Shell-first + re-anchor; flowchart/statechart shell ≤8/12 or decision-only. Warm BJT ~5 lines; relay omits idle V/I noise. |
 
 **Ranked cuts — applied:**
 
-1. **Pin-map omit defaults** — session-default `recycle=persistent` omitted on wire; port bags keep required `side=`, skip empty/unused attrs. Examples updated.
+1. **Omit `recycle=` by default** — session/engine default (typically `persistent`) covers it; emit only when non-default. Port bags keep required `side=`, skip empty/unused attrs. Examples already omit default `recycle=`.
 2. **Dual EDGE labels** — bind: teach `bind` only (`pipe` synonym); sense via `carries=` / `event=`. Relation: label = sense on bare ids; demote `--bind-->` + `carries=` on persons.
 3. **Soft-validate law symbols** — rule + optional thin lint (symbols ⊆ ports∪params); examples fixed (req `t`/`t_lim`; flowchart `x` port; Next `law=$y=x$`).
 4. **Cap flowchart/statechart fan-out** — shell ≤8 NODEs / ≤12 EDGEs or decision-only; flowchart sketch trimmed to Dec+Yes+No.
 5. **`role=` / `view=` only CST disambiguators** — no kind zoo; instances use `role=requirement` / `role=person`.
 6. **Reject mixed endpoints** — soft-validate both ends same grain (port or bare); no port↔node EDGE.
 7. **Brace nesting depth cap = 2** — allow one nested bag (`meta={units={x=m,y=s}}`); reject depth 3+; do **not** forbid nested `{a={…}}` outright. Grammar: one nested `recordBag` in `attrValue` ([`MemNetLayer.g4`](antlr/MemNetLayer.g4)).
+8. **Brace-group discipline** — reject a closed domain-field allow-list. Teach: `{…}` = record of attrs; scalar `=` for singles; flat first; nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect keywords `law`/`pseudo`/`recycle`/`role`/`view`/`layer` (keyword denylist, not an allow-list). Replaces “allow-list which fields may take `{…}`”.
 
 ---
 
 ## 8. Open (three bullets max)
 
-- **`ports=` / record binding** — attrs in brace-groups vs params / `law=` idents; which non-port fields take `{…}` (e.g. `meta=`); quantity keys still open. Nesting depth locked at 2.
+- **`ports=` / record attrs** — quantity keys and bag attrs vs params / `law=` idents still open; brace discipline + nesting depth=2 are locked.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
 - **Relation label vocabulary** — open set of `IDENT`s for now; optional SCHEMA / allow-list later (no flow type system here).
 
