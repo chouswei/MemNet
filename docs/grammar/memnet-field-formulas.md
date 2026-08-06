@@ -2,6 +2,7 @@
 
 **Status:** design only — **no expression engine** in 0.3.6+.  
 **Thesis:** a formula is a **relation** (EDGE), not primarily an inline field expression on a NODE.  
+**MVP is multi-source:** one `derives` EDGE carries `src_fields=a,b,c` (comma list) plus `expr` over those names and one `tgt_field` — **not** single-source-only.  
 **Aligns with:** Write = display; NODE|EDGE only; locked `+=`/`-=` (§4.2.0b in `memnet-grammar-design.md`).  
 **British English.** Paths ASCII. No `|` pipe on the agent surface.
 
@@ -9,9 +10,9 @@
 
 ## Problem
 
-Agents need derived numerics, e.g. `cashflow = rent - expenses`, or `wealth` fed by `income`. Today the store holds **absolute** field values; `~` may apply `key+=N` / `key-=N` with a **number literal** only; the pin map never shows ops.
+Agents need derived numerics, e.g. `cashflow = rent - expenses`, `net = income - tax - fees` (many inputs → one target), or `wealth` fed by `income`. Today the store holds **absolute** field values; `~` may apply `key+=N` / `key-=N` with a **number literal** only; the pin map never shows ops.
 
-The missing piece is not a second field syntax — it is a **durable link** from source fact(s) to a target fact, visible in the same NODE|EDGE dialect.
+The missing piece is not a second field syntax — it is a **durable link** from **source fact(s)** to a target fact, visible in the same NODE|EDGE dialect. A formula may be driven by **multiple fields**; the MVP shape already encodes that as a **list** on one EDGE.
 
 ---
 
@@ -73,8 +74,26 @@ FormulaEdge = {
 - **Endpoints are nodes** — MemNet has no first-class “field port” type in v1.
 - **Field scope is edge payload** — `tgt_field` / `src_fields` (or names inside `expr`) locate fields on those nodes.
 - Same-node derive ⇒ **self-loop** EDGE (`from == to`) with distinct field roles.
-- Multi-source same node ⇒ one EDGE, `src_fields=rent,expenses`, `expr=rent-expenses`.
-- Cross-node ⇒ `from ≠ to`; `expr` names fields on the appropriate endpoint (see dialect).
+- **Multi-source is the default MVP shape** — one EDGE, `src_fields=a,b,c` (comma-separated ASCII list), `expr` over those names, one `tgt_field`. Single-source is just a list of length one.
+- Cross-node multi-field ⇒ later (`from ≠ to`; qualified idents / `feeds`); not MVP.
+
+### Multi-field inputs (locked for MVP prose)
+
+| Rule | Detail |
+|------|--------|
+| **One EDGE, many inputs** | `src_fields=rent,expenses,fees` + `expr=rent-expenses-fees` + `tgt_field=cashflow` |
+| **Cardinality** | N ≥ 1 source field names; exactly one `tgt_field` per `derives` EDGE |
+| **Binding** | Unqualified idents in `expr` bind to fields on **`from`** (self-loop ⇒ all on that node) |
+| **Not single-source-only** | Do not teach “one source field per EDGE” as the MVP; the list is intentional |
+
+**Why not N separate EDGEs by default?** One derive owns one target field and one expression. Splitting into N edges would either (a) invent partial exprs with no clear owner of `tgt_field`, or (b) require an aggregation story the MVP does not have. Keep **one `derives` EDGE per target field**. Optional later: N `feeds` edges (each one source → same target, `op=add|sub`, **no** free `expr`) when the relation is “contribute into”, not “compute as f(…)”.
+
+**Same-node vs cross-node multi-field**
+
+| Case | MVP? | Shape |
+|------|------|-------|
+| Same node, 2+ source fields → one target field | **Yes** | Self-loop `derives`; `src_fields=…` list; `expr` over local keys |
+| Cross-node, fields on several nodes → one target | Later | After reserve/ACL; qualified expr and/or several `feeds` |
 
 ---
 
@@ -94,7 +113,7 @@ FormulaEdge = {
 
 None implemented. Prefer ordinary EDGE mutate + bare present on pin map.
 
-### Same-node (self-loop) — primary MVP shape
+### Same-node (self-loop) — primary MVP shape (two sources)
 
 ```text
 + HH [HH01] ; rent=1000 ; expenses=400 ; cashflow=0 ; recycle=persistent
@@ -113,6 +132,25 @@ E12 [HH01] --(derives)--> [HH01] ; tgt_field=cashflow ; src_fields=rent,expenses
 
 After `~ [HH01] ; rent+=50`, engine (when implemented) re-materialises `cashflow` from EDGE `E12`.
 
+### Same-node — three or more sources (still one EDGE)
+
+```text
++ HH [HH02] ; income=5000 ; tax=800 ; fees=50 ; net=0 ; recycle=persistent
++ NEW [HH02] --(derives)--> [HH02] ; tgt_field=net ; src_fields=income,tax,fees ; expr=income-tax-fees
+```
+
+Pin map (illustrative):
+
+```text
+## Nodes
+HH [HH02] ; income=5000 ; tax=800 ; fees=50 ; net=4150 ; recycle=persistent
+
+## Edges
+E13 [HH02] --(derives)--> [HH02] ; tgt_field=net ; src_fields=income,tax,fees ; expr=income-tax-fees
+```
+
+Still **one** `derives` EDGE: list length is three; `tgt_field` remains singular. Do not emit three parallel `derives` edges for the same `net`.
+
 ### Cross-node (later)
 
 ```text
@@ -120,7 +158,7 @@ After `~ [HH01] ; rent+=50`, engine (when implemented) re-materialises `cashflow
 + NEW [N_inc] --(feeds)--> [N_wealth] ; tgt_field=wealth ; src_fields=amount ; op=add
 ```
 
-`feeds` + `op=add` is a typed relation without a free `expr` (safer). Free `expr` across nodes needs qualified idents — defer.
+`feeds` + `op=add` is a typed relation without a free `expr` (safer). Several `feeds` into one target may model multi-source **contribution** later; free multi-field `expr` across nodes needs qualified idents — defer both.
 
 ### Rel name
 
@@ -194,7 +232,8 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | **Unsafe expr** | Whitelist AST: field idents, `NUMBER`, `+ - * /`, `()`; max length/depth; **never** `eval`/`exec` |
 | **Ambiguous endpoints** | Require `tgt_field`; bind unqualified idents to `from` (MVP self-loop) |
 | **Stale target** | Materialise-on-write; `formula_stale` if target patched under an owning `derives` |
-| **Pin-map noise** | One EDGE per derive; no FLD_* ports; cap formula edges in ego view |
+| **Pin-map noise** | One EDGE per **target field** derive (multi-source via `src_fields` list); no FLD_* ports; cap formula edges in ego view |
+| **Misread as single-source** | Document `src_fields` as a list; examples with 2+ and 3+ names; reject N×`derives` for one `tgt_field` |
 | **LLM invents edges** | Soft lint: unknown `rel` / fat `expr`; SCHEMA may allowlist `derives`/`feeds` |
 
 ---
@@ -204,14 +243,14 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | Rank | Item | When |
 |------|------|------|
 | **0** | **Status quo** — agent computes; absolutes / `+=N` / `-=N`; no formula EDGE | **Now** |
-| **1** | **Dialect + store shape** — document/accept self-loop `derives` EDGE payload (`tgt_field`, `expr`, …) as ordinary EDGE; **no evaluator** (intent-visible only) | Small docs/parser allowlist if needed |
-| **2** | **Evaluator MVP** — whitelist AST; materialise-on-write for same-node self-loop only | First engine drop |
-| **3** | **`feeds` + `op=add|sub`** — relation form of field-into-field delta | With or just after 2 |
+| **1** | **Dialect + store shape** — document/accept self-loop `derives` EDGE payload (`tgt_field`, `src_fields` **list**, `expr`, …) as ordinary EDGE; **no evaluator** (intent-visible only) | Small docs/parser allowlist if needed |
+| **2** | **Evaluator MVP** — whitelist AST; materialise-on-write for same-node self-loop only (N sources on one EDGE) | First engine drop |
+| **3** | **`feeds` + `op=add|sub`** — optional per-source contribution edges (no free `expr`); not a substitute for multi-field `derives` | With or just after 2 |
 | **4** | Cross-node + reserve-aware recompute | After reserve/ACL |
 | **5** | `:=` sugar → compile to EDGE; SCHEMA default derives | Convenience |
 | **6** | Qualified cross-node expr; field-port NODEs | Avoid unless forced |
 
-**Decision:** re-centre on **formula as EDGE relation**; do **not** implement an expression engine yet. First concrete dialect candidate is the **same-node self-loop** `derives` line above. Keep `+=`/`-=` literal-only; pin map shows absolute fields plus the relation.
+**Decision:** re-centre on **formula as EDGE relation**; do **not** implement an expression engine yet. First concrete dialect candidate is the **same-node self-loop** `derives` line with **`src_fields` as a multi-name list** (one EDGE, one `tgt_field`, N inputs). Keep `+=`/`-=` literal-only; pin map shows absolute fields plus the relation.
 
 ---
 
