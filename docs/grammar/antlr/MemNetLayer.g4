@@ -31,9 +31,13 @@
 //    OK: meta={units={x=m,y=s}}. Demote bare name{...} and name(...).
 // 5. Quantity alias: ALIAS_REF = '@' IDENT as attrValue only (V=@va).
 //    Law keeps '@' in maths (opaque inside LAW_SEG): $@va-@vb=@ia*R$.
-//    Soft-validate: law @idents ⊆ bag @aliases ∪ params ∪ port.qty.
-//    Optional B sugar: def=/uses= are ordinary IDENT fields (lawList / atom);
-//    call forms inside LAW_SEG stay opaque — soft-validate name/arity only.
+//    Soft-validate separately: (i) law @idents ⊆ bag @aliases ∪ params ∪
+//    port.qty; (ii) bare B call names are NOT @idents — resolve vs reachable
+//    def= only. Optional B sugar: def=/uses= are ordinary IDENT=value fields
+//    (lawList / atom; not SCHEMA-hard). uses= = soft NODE-id pointer, NOT an
+//    EDGE — MUSTNOT invent import/bind EDGE for libs. Call text inside LAW_SEG
+//    (e.g. sum(@x,@y)) is maths only — no call AST; soft-validate name/arity.
+//    LaTeX macros (\mathrm{clip}, …) ≠ B def= names.
 // 6. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 7. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
@@ -56,7 +60,8 @@
 //     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
 // 14. Omit recycle= on teachable wire unless non-default (session/engine
 //     default typically persistent — default recycle= wastes tokens).
-// 15. LAW_SEG is opaque $…$: '@', '\\', '=', '*', LaTeX macros all OK inside;
+// 15. LAW_SEG is opaque $…$: '@', '\\', '=', '*', LaTeX macros, and B-looking
+//     call text (sum(@x,@y)) all OK as maths — no call AST in the grammar;
 //     only '$', ';', newline close/forbid the unquoted segment.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
