@@ -117,7 +117,7 @@ Capsule = {
 
 ```text
 ## Nodes
-CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; role=capsule ; recycle=persistent
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; recycle=persistent
 PORT [PORT_Vin] ; name=Vin ; side=in ; recycle=persistent
 PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
@@ -138,14 +138,15 @@ CMP [ATO_Rf] ; refdes=Rf ; layer=board ; path=boards/amp/amp.ato ; recycle=persi
 ## Edges
 E3 [CAP_InvAmp] --(contains)--> [NET_VIN]
 E4 [CAP_InvAmp] --(contains)--> [ATO_Rf]
-E5 [CAP_InvAmp] --(summarises)--> [CLM_gain] ; note=shell_gain_from_interior
 E6 [PORT_Vin] --(refines)--> [NET_VIN]
 ```
+
+Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports.
 
 **Mutate** (same shapes; ops mutate-only):
 
 ```text
-+ CAP [NEW] ; name=inverting_amp ; layer=board ; role=capsule ; recycle=persistent
++ CAP [NEW] ; name=inverting_amp ; layer=board ; recycle=persistent
 + PORT [NEW] ; name=Vin ; side=in ; recycle=persistent
 + NEW [CAP…] --(exposes)--> [PORT…]
 + NEW [CAP…] --(contains)--> [ATO_Rf]
@@ -153,14 +154,14 @@ E6 [PORT_Vin] --(refines)--> [NET_VIN]
 
 Kind tokens `CAP` / `PORT` are the **design preference**; final TagMap / SCHEMA is a later lock. The pattern does not depend on minting new conceptual kinds beyond NODE|EDGE.
 
-### 3.4 Shell vs interior = layer pair
+### 3.4 Shell vs interior = view pair
 
-| View | What pin_map shows | Budget |
-|------|--------------------|--------|
+| View (`view=`) | What pin_map shows | Budget |
+|----------------|--------------------|--------|
 | **Shell** (default for a Capsule anchor) | Capsule node + Port nodes + `exposes` / `connects` / summary edges + sibling Capsules / LAW | Small — stays under `max_rows` |
-| **Interior** (descend) | Contained NODE|EDGE ego from an interior anchor or `view=interior` | Still capped by `depth` / `max_rows` |
+| **Interior** (descend) | Contained NODE\|EDGE ego from an interior anchor or `view=interior` | Still capped by `depth` / `max_rows` |
 
-**Descend = open the capsule** — change anchor to a Port / interior node, or pass an explicit view; do **not** paste the whole interior into the shell pin map.
+**Descend = open the capsule** — change anchor to a Port / interior node, or pass an explicit view; do **not** paste the whole interior into the shell pin map. Stratum field `layer=` (system/board/…) is orthogonal to this view pair (§4).
 
 ### 3.5 Nested capsules (capsule-in-capsule)
 
@@ -182,23 +183,21 @@ CAP (Capsule system)
 | **Depth limits** | Hard budget remains `depth` / `max_rows` **within** the active shell/interior view. Design default: **one capsule-open step per turn** when possible; engine MVP may also cap nesting depth (e.g. refuse expand past N nested opens in one call) — exact N is an implementation lock |
 | **MUSTNOT** | Dump nested interiors in one pin map; treat nesting as prose in `note=`; invent a “nested capsule” AST kind outside NODE\|EDGE; encode nest level in the id |
 
-Illustrative nest sketch (shell of parent — child Capsule appears as a contained shell id, not fully expanded):
+Illustrative nest sketch (**parent shell only** — child Capsule as contained id; child’s own `exposes` appear when that child is the anchor):
 
 ```text
 ## Nodes
-CAP [CAP_Pdu] ; name=pdu ; layer=system ; role=capsule ; recycle=persistent
-CAP [CAP_Rail12] ; name=rail_12v ; layer=board ; role=capsule ; recycle=persistent
+CAP [CAP_Pdu] ; name=pdu ; layer=system ; recycle=persistent
+CAP [CAP_Rail12] ; name=rail_12v ; layer=board ; recycle=persistent
 PORT [PORT_Vbus] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
-PORT [PORT_RailOut] ; name=Vout ; side=out ; layer=board ; recycle=persistent
 
 ## Edges
 Ep [CAP_Pdu] --(exposes)--> [PORT_Vbus]
 Ec [CAP_Pdu] --(contains)--> [CAP_Rail12]
-Er [CAP_Rail12] --(exposes)--> [PORT_RailOut]
-Ef [PORT_Vbus] --(refines)--> [PORT_RailOut] ; note=descend_hint
+Ef [PORT_Vbus] --(refines)--> [CAP_Rail12] ; note=descend_hint
 ```
 
-Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
+Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` (then child’s Ports via `exposes`) → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
 
 ---
 
@@ -233,7 +232,7 @@ pin_map(session, anchor, depth, max_rows, layer?=board, view?=shell|interior)
 |------|--------|
 | **Default** | Expand within the anchor’s layer / capsule **shell** only |
 | **Up** | Follow `summarises` / parent `contains` inverse → coarser stratum (few rows) |
-| **Down** | Follow `refines` / `exposes` → port → interior **or** child capsule shell; **one step** per turn when possible |
+| **Down** | Follow `refines` (Port → finer) or re-anchor on a `contains` child Capsule; **one step** per turn when possible |
 | **Nested open** | Parent shell → child shell → grandchild …; never flatten the whole nest in one call (§3.5) |
 | **Caps unchanged** | Existing `depth` / `max_rows` still apply **inside** the chosen stratum |
 | **No whole-graph dump** | Multi-layer / multi-capsule expand in one call is **out of MVP** |
@@ -298,7 +297,7 @@ Bare present (pin map) and mutate (`+` / `~` / `-`) use the same shapes.
 LAW [LAW_KCL] ; code=sum_i_at_net_zero ; recycle=persistent
 
 ## Nodes
-CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; role=capsule
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board
 PORT [PORT_Vin] ; name=Vin ; side=in ; layer=board
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 
@@ -311,7 +310,7 @@ Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 Mutate examples:
 
 ```text
-+ CAP [NEW] ; name=pdu ; layer=system ; role=capsule ; recycle=persistent
++ CAP [NEW] ; name=pdu ; layer=system ; recycle=persistent
 + PORT [NEW] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
 + NEW [CAP…] --(exposes)--> [PORT…]
 ~ [CLM_gain] ; gain_v=-9.8
@@ -408,6 +407,7 @@ Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@
 | **Sugar as second dialect** | If B lands: mutate compile only; pin map never emits `with_ports=` / standing port lists (§8.1) |
 | **Accidental whole-interior expand** | Default shell view; `contains` not followed unless `view=interior` or anchor is interior |
 | **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.5) |
+| **`contains` fan-out** | Contain immediate children / child Capsules only; use Port `refines` for boundary nets — not one `contains` per leaf (§3.3) |
 | **Id-as-grammar drift** | Port-hood = kind `PORT` + `exposes`; `_` in ids is KIND_rest only (§3.2) — reject `__` / dotted-id “port of CAP” conventions |
 | **Name collision with SysML / `parts/`** | Use **capsule** / `CAP` in MemNet doctrine; say “SysML part (ingest)” when mapping; prefer wire `PORT` over opaque `POR` in new capsule prose |
 | **Port-grain conflation** | Keep Capsule `PORT` / SysML `POR` / PCBA `PIN` distinct (§3.1); relate with `refines` / ingest edges — never overwrite locator kinds |
@@ -435,7 +435,7 @@ No change to `requirements.sysml` in this design task.
 | Path | Role |
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
-| `docs/grammar/memnet-field-formulas.md` | `derives` / `feeds` inside or across capsules |
+| `docs/grammar/memnet-field-formulas.md` | Same-node `derives` on shell/interior; cross-port later |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
 | `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
