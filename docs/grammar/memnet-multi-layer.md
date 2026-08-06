@@ -4,9 +4,9 @@
 **Thesis:** MemNet stays **NODE | EDGE** only; complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports compositions built *from* those atoms — including capsule-in-capsule). Port-hood is **shared-dialect structure** (kind `PORT` + `exposes`), not id punctuation.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
-**Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal app note `docs/application-notes/llm-nodal-analysis-formulas.md`.
+**Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
 
-**Disambiguation:** §3 *Layering* in the grammar design doc is **I/O / store / transport**. This document is **stratified product graph** (abstraction strata + capsule shell/interior) so agents do not load the whole net into context.
+**Disambiguation:** §3 *Layering* in the grammar design doc is **I/O / store / transport**. This document is **stratified product graph** (abstraction strata + capsule shell/interior) so agents do not load the whole net into context. App-note phrases such as “Layer A / Layer B” in the inverting-amplifier example mean **circuitry vs formula relations**, not capsule strata and not grammar §3.
 
 ---
 
@@ -51,6 +51,18 @@ Agents need to **reason at layer L**, then **descend only when needed** — fini
 
 SysML v2 **part with ports** is the **analogy and ingest target** — map part/port/connection into MemNet NODE|EDGE on ingest. **Do not** embed SysML textual syntax in the agent wire. Nested SysML parts map to **capsule-in-capsule** (§3.5); the wire still shows only NODE|EDGE. SysML ingest may still emit kind `POR` / `PRT` as artefact pins; capsule shells use `CAP` + `PORT` + `exposes`.
 
+#### Three “port” grains (do not conflate)
+
+| Grain | Kind / rel | Role | Not |
+|-------|------------|------|-----|
+| **Capsule Port** | `PORT` + Capsule `--(exposes)-->` Port | Shell contract of a Capsule; inter-capsule wiring | A schematic pad or a SysML artefact pin by default |
+| **SysML port pin** | `POR` (+ `PRT`) + `--(hasPort)-->` | Locator into SysML model text | Capsule shell kind — map with edges / ingest, do not rename in place |
+| **PCBA terminal** | `PIN` + `--(owns)-->` / `--(connects_to)-->` | Locator into `.ato` / schematic | Capsule `PORT` — keep `PIN_*` ids; optional `PORT --(refines)--> PIN|NET` when a capsule wraps the stage |
+
+**Also not:** formula “field ports” (`FLD_*`) — rejected in [`memnet-field-formulas.md`](memnet-field-formulas.md). Capsule `PORT` is a **composition boundary**, not a field locator.
+
+**Shell wiring rel:** Capsule Port → Capsule Port uses `--(connects)-->`. Schematic pin → net stays `--(connects_to)-->`. Different grains; do not merge the tokens.
+
 ### 3.2 Shared-dialect grammar (port-hood is structure)
 
 **Locked preference:** port-hood and capsule-hood are **grammar / graph structure**, not id punctuation.
@@ -67,11 +79,13 @@ SysML v2 **part with ports** is the **analogy and ingest target** — map part/p
 ```text
 CapsuleNode  = CAP  [Id] ; name=Atom ; layer=Atom ; role=capsule? ; fields*
 PortNode     = PORT [Id] ; name=Atom ; side=in|out|inout? ; layer=Atom? ; fields*
-ExposeEdge   = [CapsuleId] --(exposes)--> [PortId]   ; layer=shell? ; fields*
-ContainEdge  = [CapsuleId] --(contains)--> [ChildId] ; layer=interior? ; fields*
-ConnectEdge  = [PortId]    --(connects)--> [PortId]  ; fields*          // shell wiring
-RefineEdge   = [PortId]    --(refines)--> [InteriorId] ; fields*      // descend hint
+ExposeEdge   = [CapsuleId] --(exposes)--> [PortId]   ; fields*
+ContainEdge  = [CapsuleId] --(contains)--> [ChildId] ; fields*
+ConnectEdge  = [PortId]    --(connects)--> [PortId]  ; fields*          // shell wiring (not connects_to)
+RefineEdge   = [PortId]    --(refines)--> [InteriorId] ; fields*      // locked: shell tip -> finer grain
 ```
+
+`layer=` on nodes is an **abstraction-stratum** token (`system` / `board` / … — §4). Shell vs interior is the pin-map **`view=`** envelope argument, not a second meaning of `layer=`. Do not write `layer=shell` / `layer=interior` on edges.
 
 `role=port` is **demoted** when kind is already `PORT` (noise). Keep `role=capsule` optional on `CAP` only if a session mixes capsule shells with other `CAP`-looking ids before SCHEMA lock — default: kind alone is enough.
 
@@ -109,23 +123,23 @@ PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 
 ## Edges
-E1 [CAP_InvAmp] --(exposes)--> [PORT_Vin] ; layer=shell
-E2 [CAP_InvAmp] --(exposes)--> [PORT_Vout] ; layer=shell
+E1 [CAP_InvAmp] --(exposes)--> [PORT_Vin]
+E2 [CAP_InvAmp] --(exposes)--> [PORT_Vout]
 Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
 
-**Interior** (after descend / `view=interior` — still `depth` / `max_rows` capped):
+**Interior** (after descend / `view=interior` — still `depth` / `max_rows` capped). Nodal / schematic atoms stay `NET` / `CMP` / `PIN` — do not rename them to `PORT`:
 
 ```text
 ## Nodes
-NET [NET_n1] ; layer=interior ; recycle=persistent
-CMP [ATO_Rf] ; refdes=Rf ; layer=interior ; path=boards/amp/amp.ato ; recycle=persistent
+NET [NET_VIN] ; layer=board ; recycle=persistent
+CMP [ATO_Rf] ; refdes=Rf ; layer=board ; path=boards/amp/amp.ato ; recycle=persistent
 
 ## Edges
-E3 [CAP_InvAmp] --(contains)--> [NET_n1] ; layer=interior
-E4 [CAP_InvAmp] --(contains)--> [ATO_Rf] ; layer=interior
-E5 [CAP_InvAmp] --(summarises)--> [NET_n1] ; note=virtual_ground_approx
-E6 [PORT_Vin] --(refines)--> [NET_n_in]
+E3 [CAP_InvAmp] --(contains)--> [NET_VIN]
+E4 [CAP_InvAmp] --(contains)--> [ATO_Rf]
+E5 [CAP_InvAmp] --(summarises)--> [CLM_gain] ; note=shell_gain_from_interior
+E6 [PORT_Vin] --(refines)--> [NET_VIN]
 ```
 
 **Mutate** (same shapes; ops mutate-only):
@@ -163,7 +177,7 @@ CAP (Capsule system)
 | Rule | Detail |
 |------|--------|
 | **Composition** | Parent `--(contains)-->` child Capsule shell; child keeps its own Ports via `exposes`; parent–child or sibling wiring still lands on **Ports**, not arbitrary grandchild interiors |
-| **Descend** | Parent Port or child shell `--(refines)-->` / is reached via `contains` — same thin cross-links as §5.1 |
+| **Descend** | Parent Port `--(refines)-->` child Port / interior; or re-anchor via `contains` — same thin cross-links as §5.2 |
 | **pin_map** | **One shell at a time.** Default view for a Capsule anchor = that Capsule’s shell only. Opening the parent does **not** auto-expand grandchild interiors. Re-anchor (or `view=interior` one step) to open the next Capsule |
 | **Depth limits** | Hard budget remains `depth` / `max_rows` **within** the active shell/interior view. Design default: **one capsule-open step per turn** when possible; engine MVP may also cap nesting depth (e.g. refuse expand past N nested opens in one call) — exact N is an implementation lock |
 | **MUSTNOT** | Dump nested interiors in one pin map; treat nesting as prose in `note=`; invent a “nested capsule” AST kind outside NODE\|EDGE; encode nest level in the id |
@@ -178,9 +192,9 @@ PORT [PORT_Vbus] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
 PORT [PORT_RailOut] ; name=Vout ; side=out ; layer=board ; recycle=persistent
 
 ## Edges
-Ep [CAP_Pdu] --(exposes)--> [PORT_Vbus] ; layer=shell
-Ec [CAP_Pdu] --(contains)--> [CAP_Rail12] ; layer=interior
-Er [CAP_Rail12] --(exposes)--> [PORT_RailOut] ; layer=shell
+Ep [CAP_Pdu] --(exposes)--> [PORT_Vbus]
+Ec [CAP_Pdu] --(contains)--> [CAP_Rail12]
+Er [CAP_Rail12] --(exposes)--> [PORT_RailOut]
 Ef [PORT_Vbus] --(refines)--> [PORT_RailOut] ; note=descend_hint
 ```
 
@@ -232,13 +246,13 @@ Cross-layer links on the pin map are **thin**: endpoints + `rel` + short fields 
 |-------|------------------------|---------|
 | `contains` | Capsule → interior node (or child Capsule) | Ownership / membership |
 | `exposes` | Capsule → Port | Shell contract (port-hood link) |
-| `summarises` | coarse → fine (or Capsule → key interior) | Aggregate fact / stub |
-| `refines` | fine → coarse **or** Port → interior detail | Descend hint (pick one polarity in impl and stick to it) |
-| `connects` | Port → Port | Inter-capsule wiring at the shell |
+| `summarises` | Capsule / coarse → key claim or interior stub | Aggregate fact visible on the shell |
+| `refines` | Port / shell tip → finer grain (interior node, child Port, or schematic `PIN`/`NET`) | Descend hint — **locked polarity** below |
+| `connects` | Capsule Port → Capsule Port | Inter-capsule shell wiring (not schematic `connects_to`) |
 
-**Locked preference for `refines` polarity (design):** fine/detail node `--(refines)-->` coarse/summary **or** interior `--(refines)-->` shell port’s abstract claim — document in engine notes when implementing; agents copy what pin map shows.
+**Locked `refines` polarity (design):** coarser / shell tip `--(refines)-->` finer detail. Examples: `[PORT_Vin] --(refines)--> [NET_VIN]`; `[PORT_Vbus] --(refines)--> [PORT_RailOut]`. Ascend by inverse walk, `summarises`, or parent `contains` — do **not** emit the opposite arrow as `refines`. Agents copy what the pin map shows.
 
-**MUSTNOT:** encode hierarchy only as prose in `note=`; use EDGE + `layer=`.
+**MUSTNOT:** encode hierarchy only as prose in `note=`; use EDGE + stratum `layer=` + `view=` for shell/interior.
 
 ---
 
@@ -266,8 +280,8 @@ Analogy: finite element / asymptotic reasoning — pick the scale that answers t
 | Mechanism | Interaction |
 |-----------|-------------|
 | **`depth` / `max_rows`** | Still the hard budget **within** a layer/view; layers prevent burning the budget on irrelevant strata |
-| **Formula `derives` / `feeds`** | Live **inside** a capsule interior, on the shell (summary gains), or **across** ports when endpoints are port/boundary nodes — see [`memnet-field-formulas.md`](memnet-field-formulas.md). Not a separate layer system |
-| **Nodal circuit note** | Topology + KCL/Ohm stamps are typically **interior** of a board/circuit capsule; shell shows ports (Vin, Vout, rails) + summary gain/bias — app note applies formula grammar, does not redefine layers |
+| **Formula `derives` / `feeds`** | Same-node self-loop `derives` (MVP in field-formulas) may sit on shell summary nodes (`CLM_gain`, `RES_A`) or interior stamps. Cross-node / across-port `derives` / `feeds` remains **later** (after reserve/ACL) — do not teach it as capsule MVP. Not a separate layer system — see [`memnet-field-formulas.md`](memnet-field-formulas.md) |
+| **Nodal / inverting-amp notes** | Topology + KCL/Ohm stay **flat** `NET`/`CMP`/`PIN` + `derives` today. When wrapped: those atoms are **interior** of a board/stage Capsule; shell shows Capsule `PORT`s + summary gain — app notes apply formula grammar and do **not** redefine capsules or rename `PIN`→`PORT` |
 | **LAW** | Prefer **normative layer** / shell-adjacent; exempt from neighbourhood reserve checks (as in reserve design); pin map may keep a small `## Laws` section even on shell views |
 | **Session ACL / reserve** | Unchanged order: ACL then reserve. Reserve scope = ego at requested `depth` **within** the active layer/view (same expand as `pin_map`). Holding a shell does not silently lease the entire interior until expand includes those ids |
 | **Goldfish loop** | `pin_map` → reason → mutate → `pin_map`; layer/view is an argument to step 0/1, not a second dialect |
@@ -347,6 +361,9 @@ Mutate examples:
 | **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.5) |
 | **Id-as-grammar drift** | Port-hood = kind `PORT` + `exposes`; `_` in ids is KIND_rest only (§3.2) — reject `__` / dotted-id “port of CAP” conventions |
 | **Name collision with SysML / `parts/`** | Use **capsule** / `CAP` in MemNet doctrine; say “SysML part (ingest)” when mapping; prefer wire `PORT` over opaque `POR` in new capsule prose |
+| **Port-grain conflation** | Keep Capsule `PORT` / SysML `POR` / PCBA `PIN` distinct (§3.1); relate with `refines` / ingest edges — never overwrite locator kinds |
+| **`refines` polarity flip** | Shell tip → finer only; reject fine→coarse as `refines` (§5.2) |
+| **`layer=` vs `view=` overload** | Stratum tokens on nodes; shell/interior via `view=` only — no `layer=shell` |
 
 ---
 
@@ -370,8 +387,9 @@ No change to `requirements.sysml` in this design task.
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
 | `docs/grammar/memnet-field-formulas.md` | `derives` / `feeds` inside or across capsules |
-| `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application |
+| `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
+| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
-| `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve |
+| `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve; shell lease ≠ interior lease |
 | `docs/grammar/examples/` | Future golden fixtures for capsule/shell slices |
 | SysML v2 models / ingest | Analogy and target mapping — not wire syntax |
