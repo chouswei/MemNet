@@ -5,7 +5,7 @@
 **Versioning implication:** treat the target dialect as **breaking / next major** — label design prose **MemNet 1.x dialect** (recommend ship path **0.4 design → 1.0** when SCHEMA + engine land). Do **not** pretend compatibility with 0.3.x agent teaching of `RES` self-loop hubs as the long-term surface.  
 **Thesis:** MemNet stays **NODE | EDGE** only in the store; agents use **compact capsule sugar** on the shell (`ports=` / `contains=` on `CAP`) that desugars 1:1 to those atoms. Complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports — including capsule-in-capsule). Port-hood is structure (store: kind `PORT` + `exposes`), not id punctuation.  
 **Direction (locked for design prose):** elemental leaves with ports — **`FN`** and **`CST` are NODEs that *are* the function / constraint** (law / `expr` / `law=` lives **on the node**); Capsules (`CAP`) compose them. **EDGE ≠ function/constraint** — an EDGE is a **carrier** of what goes **in/out** between ports (flow / signal / incidence of quantities), not the gain or Ohm law. Never orphan scalars on `RES` / free fields. See §3.7.  
-**Grammar incompleteness (open):** how the FN/CST **node** names multi-port IO in its law without smuggling via edge-as-function (e.g. `src_ports=` / `tgt_ports=` / `law=` **on the node**). Binary EDGE arity remains a store fact for carriers; **do not** “fix” multi-input by putting `expr` on an EDGE. §3.7; §13 #8–#9.  
+**Grammar incompleteness (open):** how the FN/CST **node** names multi-port IO in its law without smuggling via edge-as-function (e.g. `src_ports=` / `tgt_ports=` / `law=` **on the node**). Primary witness: **BJT** (three ports B/C/E; multi-quantity V/I; law ≠ edge) — §3.7. Binary EDGE arity remains a store fact for carriers; **do not** “fix” multi-input by putting `expr` on an EDGE. §13 #8–#10.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
 **Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md) (flat same-node `derives` = **transitional** only; 1.x = law on `FN`/`CST`), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
@@ -269,11 +269,11 @@ Ef1 [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=Rf,Rin ; expr=-(
 
 Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VMINUS`. The **op-amp itself is one leaf `FN`** (§3.7), not a child Capsule soup — board interior contains `FN_OpAmp` plus `CST` resistors; Port–Port `connects` wire them. Do **not** teach `CAP_OpAmp` + `RES_a` mirrors as the default leaf.
 
-#### Op-amp as one NODE (canonical leaf)
+#### Op-amp as one NODE (canonical leaf — secondary to BJT)
 
 **Question:** if an op-amp is a node, how do you express it?
 
-**Answer:** one **`FN`** node that *is* the amp: it owns ports and holds the law (and `a_s`). Board assembly uses **`connects` EDGEs only as carriers** of V/I between ports — never a `derives` EDGE pretending to *be* the gain. Use a child `CAP` around the amp **only** when you need a nestable composition shell with its own exposed board contract (rare for a single behavioural leaf).
+**Answer:** one **`FN`** node that *is* the amp: it owns ports and holds the law (and `a_s`). Board assembly uses **`connects` EDGEs only as carriers** of V/I between ports — never a `derives` EDGE pretending to *be* the gain. Use a child `CAP` around the amp **only** when you need a nestable composition shell with its own exposed board contract (rare for a single behavioural leaf). For the sharper multi-port witness (three terminals B/C/E), see **BJT** in §3.7.
 
 **Rejected (wrong twice — do not teach):** EDGE as the function *and* binary fake `src`:
 
@@ -331,14 +331,14 @@ Mutate sugar (engine desugars `ports=` on `FN` the same way as on `CAP` / `CST` 
 
 **Rejected as teachable 1.x:** formula-on-edge (`[PORT] --(derives)--> [PORT] ; expr=…`); “`constrains` EDGE is the CST”; multi-from hyper-edge with `expr` on the EDGE (still edge-as-function). Flat same-node `derives` in [`memnet-field-formulas.md`](memnet-field-formulas.md) = **transitional migration note only**.
 
-**Still open (grammar incompleteness — not fixed by edge-as-FN):** how the FN/CST **node** binds multi-port symbols in `law=` (Inp **and** Inm → Out) — e.g. `src_ports=` / `tgt_ports=` / port `name=` + quantity **on the node**. Binary EDGE remains fine for **carriers** (one wire, two ends). Optional later: `carries=V` (or item flow) on `connects` — sketch only (§13 #9); do not over-invent.
+**Still open (grammar incompleteness — not fixed by edge-as-FN):** how the FN/CST **node** binds multi-port symbols in `law=` (BJT: B **and** E currents → C; op-amp: Inp **and** Inm → Out) — e.g. `src_ports=` / `tgt_ports=` / port `name=` + quantity **on the node**. Binary EDGE remains fine for **carriers** (one wire, two ends). Optional later: `carries=V` / `carries=I` on `connects` — sketch only (§13 #9); do not over-invent.
 
 **Core interconnect rule:** every **wiring** EDGE is **port→port** (or pin→pin transitional). Elemental leaves that expose ports:
 
 | Leaf | Wire | Nature |
 |------|------|--------|
-| **Function** | **`FN`** | Active NODE — law maps input-port quantities → output-port quantities (e.g. op-amp gain) |
-| **Constraint** | **`CST`** | Constitutive NODE — law among port variables (e.g. Ohm `V_a-V_b=I*R`) |
+| **Function** | **`FN`** | Active NODE — law maps input-port quantities → output-port quantities (e.g. BJT `I_c=β·I_b`; op-amp gain) |
+| **Constraint** | **`CST`** | Constitutive NODE — law among port variables (e.g. Ohm `V_a-V_b=I*R`; full Ebers–Moll if taught as constraints) |
 
 Capsules (`CAP`) are **composition shells** that nest `FN`, `CST`, and child Capsules. Shared dialect stays NODE|EDGE only.
 
@@ -371,7 +371,7 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function **nod
 
 | Kind | Wire token | Role |
 |------|------------|------|
-| **Function** | **`FN`** | Active elemental NODE — ports in/out; params (`a_s=`); **`law=` / `expr=` on the node** |
+| **Function** | **`FN`** | Active elemental NODE — ports in/out; params (`beta=`, `a_s=`); **`law=` / `expr=` on the node** |
 | **Constraint** | **`CST`** | Constitutive elemental NODE — ports (often `inout`); params (`R=`); **Ohm / C / L law on the node** |
 | **Capsule** | `CAP` | Composition shell — nests `FN` / `CST` / child `CAP`; sugar `ports=` / `contains=` |
 | **Port** | `PORT` | Endpoint; `V=` / `I=` live **on** the port; `side=in\|out\|inout\|internal` |
@@ -381,7 +381,9 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function **nod
 
 **Ownership:** `FN|CST --(exposes)--> PORT`. Capsule `contains` → leaf; shell ports bind via sugar / `connects` / `refines`. Interior ports (`side=internal`) belong to the leaf (e.g. optional `PORT_Vdiff` on `FN_OpAmp` when an intermediate quantity is modelled as a port — law still on the FN).
 
-**Amp leaf lock:** **op-amp node = `FN`** (`FN_OpAmp`) with law on the node. `CAP` only when you need a nestable composition shell with its own exposed ports (board / subsystem) — not as a hollow wrapper around a lone behavioural amp.
+**BJT leaf lock (primary multi-port witness):** **BJT node = `FN`** (`FN_Q1`) — teachable controlled-source law `I_c=β·I_b` lives **on the node** with ports B/C/E. Prefer **`FN`** over **`CST`**: the sketch is an active port→port map (same leaf class as the op-amp); full Ebers–Moll as mutual port constraints would be **`CST`**, but that is not the default teaching leaf. Do **not** teach `[PORT_B] --(derives)--> [PORT_C] ; expr=…`.
+
+**Amp leaf lock (secondary):** **op-amp node = `FN`** (`FN_OpAmp`) with law on the node. `CAP` only when you need a nestable composition shell with its own exposed ports (board / subsystem) — not as a hollow wrapper around a lone behavioural leaf.
 
 #### EDGE endpoint rule (carriers and membership — not laws)
 
@@ -394,17 +396,58 @@ SysML analogy: *part* ≈ Capsule; *action / calc with ports* ≈ Function **nod
 | `connects_to` | PIN → NET | Transitional schematic |
 | `derives` / `feeds` / `constrains` **with `expr` as the law** | — | **Rejected** for 1.x teachable surface (formula-on-edge) |
 
-**MUSTNOT:** orphan `Vdiff` on `RES`; agent-mirrored `Vinp`/`Vinm`; teach Port→Net→Var→mirror as Capsule interior; invent `FLD_*`; wire kinds `FUNC` / `FUNCTION` / `CONSTRAINT` / `CON` / `DEV` as the passive leaf; put gain / Ohm `expr` on an EDGE.
+**MUSTNOT:** orphan `Vdiff` on `RES`; agent-mirrored `Vinp`/`Vinm`; teach Port→Net→Var→mirror as Capsule interior; invent `FLD_*`; wire kinds `FUNC` / `FUNCTION` / `CONSTRAINT` / `CON` / `DEV` as the passive leaf; put gain / Ohm / β-law `expr` on an EDGE; teach binary `[PORT_B] --(derives)--> [PORT_C]` as the BJT.
 
-#### Worked mini-example: op-amp leaf, then InvAmp board
+#### Worked mini-example: BJT leaf (primary), then brief op-amp / InvAmp
 
-**1. Op-amp = one `FN` node** (canonical leaf — proposed 1.x / not in engine):
+**1. BJT = one `FN` node** (primary multi-port + carrier witness — proposed 1.x / not in engine):
+
+```text
+FN [FN_Q1] ; name=bjt_npn ; beta=100 ; ports=PORT_B:B:inout,PORT_C:C:inout,PORT_E:E:inout ; law=I_c=beta*I_b ; recycle=persistent
+```
+
+**One carrier edge** (collector load — wiring only; Ohm stays on the resistor `CST`):
+
+```text
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=PORT_Rc_a:a:inout,PORT_Rc_b:b:inout ; law=V_a-V_b=I_a*R ; recycle=persistent
+E_c [PORT_C] --(connects)--> [PORT_Rc_a] ; carries=I
+```
+
+**Rejected (do not teach):** law on a fake binary edge between base and collector:
+
+```text
+# REJECTED — edge-as-FN + lies about three-terminal topology
+E_x [PORT_B] --(derives)--> [PORT_C] ; expr=I_c=beta*I_b
+```
+
+**Why BJT exposes grammar gaps again** (same incompleteness as op-amp, sharper):
+
+| Gap | BJT shows |
+|-----|-----------|
+| **Arity** | Three ports (B, C, E) — binary `derives` cannot be the device |
+| **Multi-quantity** | Law mixes currents (and, in fuller models, voltages) across ports — binding must live **on the FN node**, not on EDGE endpoints |
+| **Law ≠ edge** | `I_c=β·I_b` *is* the FN; `connects` only **carries** I/V to bias / load `CST`s |
+| **Kind pick** | Controlled-source sketch → **`FN`**; Ebers–Moll-as-constraints → **`CST`** (demoted as default teaching leaf) |
+
+Optional bias sketch (carriers only — emitter return + base divider omitted for brevity):
+
+```text
+E_e [PORT_E] --(connects)--> [PORT_GND] ; carries=I
+```
+
+Mutate sugar (same `ports=` desugar as `CAP` / `CST` — §13 #1):
+
+```text
++ FN [NEW] ; name=bjt_npn ; beta=100 ; ports=B:inout,C:inout,E:inout ; law=I_c=beta*I_b ; recycle=persistent
+```
+
+**2. Op-amp = one `FN` node** (secondary — same pattern; fewer teachable gaps than BJT):
 
 ```text
 FN [FN_OpAmp] ; name=opamp ; a_s=1e6 ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; law=V_out=a_s*(V_inp-V_inm) ; recycle=persistent
 ```
 
-**2. InvAmp = board Capsule** — `CST` resistors hold Ohm on the node; **`connects` only carry** quantities between ports:
+**3. InvAmp = board Capsule** — `CST` resistors hold Ohm on the node; **`connects` only carry** quantities between ports:
 
 ```text
 CAP [CAP_InvAmp] ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; contains=FN_OpAmp,CST_Rin,CST_Rf ; recycle=persistent
@@ -415,7 +458,7 @@ E_w1 [PORT_Out] --(connects)--> [PORT_Rf_a] ; carries=V
 E_w2 [PORT_Rf_b] --(connects)--> [PORT_Inm] ; carries=V
 ```
 
-`a_s` and gain law on `FN_OpAmp`; `R` and Ohm law on each `CST`; voltages/currents on ports; **`connects` carries** the net quantity — optional `carries=V` is a sketch (§13 #9), not a SCHEMA lock. No `derives`/`constrains` EDGE as the amp or resistor.
+`beta` / `I_c=β·I_b` on `FN_Q1`; `a_s` and gain law on `FN_OpAmp`; `R` and Ohm law on each `CST`; voltages/currents on ports; **`connects` carries** the net quantity — optional `carries=V` / `carries=I` is a sketch (§13 #9), not a SCHEMA lock. No `derives`/`constrains` EDGE as the BJT, amp, or resistor.
 
 #### Compatibility / migration (under complete-refactor framing)
 
@@ -425,7 +468,7 @@ Prefer **migrate → demote → sunset**, not forever parallel dialects.
 |-------------------|-----------------------------|----------------------------------|
 | NODE\|EDGE store; CAP sugar `ports=` / `contains=` | Active stamps → **`FN`+ports+law**; R/L/C → **`CST`+ports+law** | `DEV` / `PASS` / `PART` as passive kind |
 | Port→Port `connects` as **carrier**; transport; tool *names* | `RES` self-loop `derives` → **law on FN/CST node** | Formula-on-edge; agent-mirrored stamp fields; **`RES`/`VAR` as maths hubs** |
-| Flat InvAmp / PIN–NET as **legacy / ingest** examples | When wrapped: board passives → `CST`; amp → `FN` under `CAP` | Orphan scalars; Port→Net→Var→mirror path |
+| Flat InvAmp / PIN–NET as **legacy / ingest** examples | When wrapped: board passives → `CST`; amp / BJT → `FN` under `CAP` | Orphan scalars; Port→Net→Var→mirror path |
 | Field-formulas same-node MVP as **migration note** only | Target: **law on FN/CST**; edges = carriers only | Wire `CONSTRAINT` / `CON`; forever dual-MVP; `constrains` EDGE as the CST |
 
 **Engine:** design only — **not** in 0.3.5 / 0.3.6 (`FN` / `CST` kinds, law-on-node evaluator, optional `carries=`). Landing implies **MemNet 1.0** (or clearly labelled 1.x dialect) — not a silent 0.3.x patch.
@@ -441,7 +484,7 @@ Prefer **migrate → demote → sunset**, not forever parallel dialects.
 | `connects_to` | Schematic (transitional) | PIN → NET |
 | `derives` / `constrains` + law `expr` | — | **Rejected** as 1.x law carrier |
 
-Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, board passives → `CST`, behavioural amp → `FN` (§3.7).
+Flat InvAmp without Capsule wrap remains valid — see [`inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md). When wrapped, board passives → `CST`, behavioural amp → `FN` (§3.7). Prefer the **BJT** mini-example above when teaching multi-port + carrier edges.
 
 ---
 
@@ -733,5 +776,6 @@ Stub only — answers belong in the locked sections above once chosen. Completen
 | **7** | **Shell `CLM` + self-loop `derives`** | §8 once showed claim-level formula EDGE | Refactor to: `CLM` = shell **summary** only; constitutive maths only on `FN`/`CST` nodes | Shell self-loop as the primary formula teaching |
 | **8** | **Behaviour on FN/CST; edges ≠ laws** | Edge-as-function vs node-as-function | **Locked:** FN/CST nodes hold the law; EDGE = **carrier** (in/out) / membership / boundary only | Formula-on-edge; multi-from EDGE with `expr`; `constrains` EDGE is the CST |
 | **9** | **What `connects` carries** | Carrier ontology needs a quantity token? | Optional sketch: `carries=V` / `carries=I` (or item flow) on `connects` — lock spelling before SCHEMA | Over-inventing a full flow type system in this doc |
+| **10** | **BJT leaf shape (primary multi-port witness)** | FN controlled-source vs CST Ebers–Moll; three ports | **Locked teachable leaf:** BJT = **`FN [FN_Q1]`** + ports B/C/E + **`law=I_c=beta*I_b` on the node**; bias/load = `CST` + `connects` carriers. Full Ebers–Moll-as-constraints = optional **`CST`** later, not default | `[PORT_B] --(derives)--> [PORT_C] ; expr=…`; BJT as hollow `CAP` only; β-law on an EDGE |
 
 **Out of this redesign’s lock set (pointers only):** recycle policy; session ACL / RSV (§7 — shell lease ≠ interior); nest-open depth `N`; SCHEMA TagMap formalisation. These stay on separate tracks and do **not** justify forever dual dialect.
