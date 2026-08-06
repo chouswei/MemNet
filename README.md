@@ -137,8 +137,9 @@ Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unle
 Forward reading order for agents:
 
 1. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — shared dialect (Write = display), pin map, `NEW` vs locators  
-2. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
-3. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — current goldfish loop (pipe; migration pending)
+2. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps and capsules (part-with-ports from NODE\|EDGE; design)  
+3. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
+4. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — current goldfish loop (pipe; migration pending)
 
 ---
 

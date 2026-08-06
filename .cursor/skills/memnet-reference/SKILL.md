@@ -10,7 +10,7 @@ description: >-
   SSOT pointers. Use before inventing a wire dialect or restoring novel-writer.
 metadata:
   pattern: pipeline
-  version: "1.9"
+  version: "1.10"
   domain: memnet
   product: "0.3.5"
 ---
@@ -54,6 +54,7 @@ Primary read: live **pin map** (bounded ego/anchor digest). MCP `pin_map` / CLI 
 | Doctrine / quick start | `README.md` |
 | Shared-dialect grammar design | `docs/grammar/` |
 | Field formulas (generic design) | `docs/grammar/memnet-field-formulas.md` (formula as EDGE / `derives` — any domain) |
+| Multi-layer / capsules (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; capsule = part-with-ports from NODE\|EDGE) |
 | Nodal circuitry (app note) | `docs/application-notes/llm-nodal-analysis-formulas.md` (*uses* formula edges; does not define them) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
