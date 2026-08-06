@@ -61,18 +61,18 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `{…}` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
-| `{` `}` | Port record bag after `name:` — `x: {side=in, q=0}` (not a call; not a bind-label wrap) |
+| `{` `}` | **Brace group** (intentional unity): port record bag after `name:` — `x: {side=in, q=0}`; bind label bag on arrows — `--bind-->`. Role from context (`name:` vs `--` / `<--`) |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
-| `$…$` | LaTeX inline math **only** (not a field separator) |
+| `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
-| `--` `-->` | **Directed** bind: `--label-->` (bare ident; default `bind`) |
-| `--` `--` | **Non-directed** bind: `--label--` |
-| `<--` `-->` | **Bi-directed** bind: `<--label-->` (`<` / `>` only in these fragments) |
+| `--{` `}-->` | **Directed** bind (braces wrap label; no spaces inside) |
+| `--{` `}--` | **Non-directed** bind |
+| `<--{` `}-->` | **Bi-directed** bind (`<--` / `-->` = direction marks only — not Dirac) |
 | `"` | STRING for awkward values (shared dialect) |
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Port vs bind:** port = `IDENT: {…}` inside `ports=`; bind = `--label-->` / `--label--` / `<--label-->` after endpoint `]`. `()` is **free** (held for later — tuples / other); not used on bind labels.
+**Port vs bind:** same `{` `}` = brace group. Port = `IDENT: {…}` inside `ports=`; bind = `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Context disambiguates. `()` is **free** (held for later; not used on binds).
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -82,17 +82,17 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 
 | Status | Characters | Notes |
 |--------|------------|--------|
-| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port `name: {…}`; ids; ownership; LaTeX; STRING; comment; mutate |
-| **Used (arrow compounds)** | `--` `-->` `<--` | Bind wires with bare label between (`--bind-->`) |
+| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; brace group (ports + bind labels); ids; ownership; LaTeX; STRING; comment; mutate |
+| **Used (arrow compounds)** | `--{` `}-->` `}--` `<--{` | Bind wires; `{}` wraps label (same braces as port bags) |
 | **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports and paren-label binds `--(bind)-->` |
-| **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` freed from binds (tuples / later); others held |
+| **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths; `<` `>` = bind arrow fragments (`<--` / `-->`); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = port record bags (+ LaTeX). `()` is free — not locked to binds.
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = bind arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = brace group (port bag after `name:` **or** bind label after `--` / `<--`). `()` is free — not locked to binds.
 
 **Sparing recommendations (0–2):**
 
 1. **Keep `#` as line comment only** — already matches `MemNet.g4` / layer grammar; no second meaning.
-2. **No new punct for through-quantity or bind sugar** — port `name: {attrs}` + bare-label bind wires already cover that; hold `&` `*` `^` `!` `?` `` ` ``.
+2. **No new punct for through-quantity or bind sugar** — port `name: {attrs}` + `--label-->` already cover that; hold `&` `*` `^` `!` `?` `` ` ``.
 
 ### Generic skeleton
 
@@ -109,6 +109,7 @@ Eid [Id.port] <--bind--> [Id.port] ; carries=token
 
 - **Where:** one `law=` field on the **NODE** (prefer kind `CST`). **Never** on EDGE — ideal bind implies continuity; do not teach wire equations on the arrow. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
 - **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
+- **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with bind arrowheads `<--` / `-->` (direction marks on EDGE wires).
 - **Completeness:** every symbol in `law=` MUST appear as a port quantity (name / attr / subscript), a node param, or be defined in the same `law=` list — no orphan predicates or hand-wavy stubs.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: domain attrs in the bag (`q=`, …) or subscripts in `law=` — port name is the subscript. Qualified `PORT_x.q` deferred.
 - **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on a bind; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
@@ -464,7 +465,21 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 ---
 
-## 7. Open (three bullets max)
+## 7. LLM cost & accuracy
+
+**Verdict:** mixed — ontology is tight (NODE law + ideal bind + `[Node.port]`); warm slices stay unambiguous when `view=`/`layer=` caps hold. Token burn and soft-CST overload are the main risks.
+
+| Axis | Finding |
+|------|---------|
+| **Tokens** | Bare `--bind-->` (vs `--bind-->`) saves braces and kills `{}` dual-use. Port bags `name: {side=…}` cost more than a bare name but parse cleaner than colon piles. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows. Flowchart / parts / statechart sketches multiply rows fast. |
+| **Accuracy** | Soft law completeness is unenforced — agents invent orphan symbols. One kind `CST` + `role=`/`view=` is lean but easy to over-kind. Comma nesting (`ports=` vs attrs vs `$eq$,$eq$`) is parser-safe; LLMs still mis-join. Bi-directed `<--bind-->` ≠ with bare Dirac `<…\|…>` unless maths stays in `$…$`. |
+| **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Prefer omit-default attrs (`side=` only when non-obvious) and short `law=` on the warm slice. |
+
+**Ranked cuts (token save / accuracy gain):** (1) pin-map omit defaults — drop `recycle=` when session-default, omit empty attr bags beyond `side=`; (2) teach `\langle`/`\rangle` + law-only Dirac; (3) cap flowchart/statechart fan-out in shell view; (4) soft-validate law symbols ⊆ ports∪params; (5) keep `role=`/`view=` as the only CST disambiguators — no kind zoo.
+
+---
+
+## 8. Open (three bullets max)
 
 - **`ports=` binding** — attrs in `{…}` vs params / `law=` idents; quantity keys still open.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
@@ -472,7 +487,7 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 ---
 
-## 8. Related
+## 9. Related
 
 | Path | Role |
 |------|------|
