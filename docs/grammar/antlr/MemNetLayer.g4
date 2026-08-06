@@ -22,11 +22,11 @@
 // 3. Prefer quote when unquoted law would need ';' or a list-joining ',' that is
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
-//    name: {…} (COLON joins name to bag). Other attrs may take bare {…}
-//    (e.g. meta={…}). Nesting allowed to max depth = 2 (outer = 1; one
-//    nested bag = 2) — grammar: nestedRecord inside attrValue; flat leaves
-//    only (depth 3+ rejected). OK: meta={units={x=m,y=s}}. Demote bare
-//    name{...} and name(...).
+//    name: {…} (COLON = name-to-bag only; ASSIGN = all scalars/attrs).
+//    MUSTNOT: side:in (use side=in); ports=x={…} (use x: {…}). Other attrs
+//    may take bare {…} (e.g. meta={…}). Nesting max depth = 2 (outer = 1;
+//    one nested bag = 2). OK: meta={units={x=m,y=s}}. Demote bare name{...}
+//    and name(...).
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 6. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
@@ -246,7 +246,7 @@ LBRACE       : '{' ;   // brace-group / record (ports after name:; other attrs; 
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
-COLON        : ':' ;   // name-to-bag join (ports); also id:label elsewhere
+COLON        : ':' ;   // name-to-bag only: name: {…} inside ports= (not scalar assign)
 DOT          : '.' ;
 COMMA        : ',' ;
 
