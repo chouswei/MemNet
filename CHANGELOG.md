@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-06
+
 ### Added
 - **MCP/CLI `pin_map(view=)`** — optional grain on live pin map (additive to 0.3 `depth`/`max_rows`): teach `shell` (depth≤1 + soft ≤8 NODE / ≤12 EDGE) and `interior` (no soft shell cap); `flowchart`|`parts`|`statechart` accepted with shell-like budget (grain filters deferred). `query_warm` / `query warm` alias the same param. Unknown view → `@ERR: bad_view`.
 - **Layer dialect engine slice (step 3)** — parallel `memnet.layer` / `LayerCodec` + MutateGate path: dual EDGE (`src_port`/`dist_port`/`wire` on EDG), structured `ports=` / `law=` on NODE (CST auto-registered), soft-validate before commit (mixed endpoints, law-on-EDGE, bag denylist, carries= bind-only); pin map emits Layer wire when ports marked. Coexists with 0.3 Tier A `--(rel)-->` path.
 - **Numeric incremental update** — shared-dialect `~` patches accept `key+=N` / `key-=N` for int/float fields; create keeps plain `=`; pin map shows absolute values; `@ERR: bad_numeric` / `invalid_field` on misuse.
 - **Field formulas design** — `docs/grammar/memnet-field-formulas.md` (relation-first: formula as EDGE/`derives`; same-node self-loop MVP; no expression engine).
 - **llm-nodal-analysis-formulas.md** — nodal (node-method) mapping to MemNet NODE|EDGE and multi-field `derives`/`feeds` for KCL/Ohm; cross-links from circuit schematic + formula design docs.
+
+### Changed
+- **Efficiency test budgets** — soft local wall-clock guards raised for Windows host noise (exact 2000 ms, glob 3000 ms, AND 2000 ms, neighbours 3000 ms); correctness asserts unchanged.
 
 ## [0.3.6] — 2026-08-06
 
@@ -487,7 +492,9 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.2.30...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/chouswei/MemNet/compare/v0.3.6...v0.4.0
+[0.3.6]: https://github.com/chouswei/MemNet/compare/v0.3.5...v0.3.6
 [0.2.30]: https://github.com/chouswei/MemNet/compare/v0.2.29...v0.2.30
 [0.2.29]: https://github.com/chouswei/MemNet/compare/v0.2.28...v0.2.29
 [0.2.28]: https://github.com/chouswei/MemNet/compare/v0.2.27...v0.2.28
