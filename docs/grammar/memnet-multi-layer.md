@@ -63,7 +63,7 @@ Locked endpoint shape: `[NodeId.PortName]` (`.` = ownership join inside `[…]`)
 | `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
 | `{` `}` | Port record bag after `name:` — `x: {side=in, q=0}` (not a call; not a bind-label wrap) |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
-| `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here |
+| `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
 | `--` `-->` | **Directed** bind: `--label-->` (bare ident; default `bind`) |
 | `--` `--` | **Non-directed** bind: `--label--` |
@@ -471,7 +471,7 @@ Engine: law-on-node + bind forms → **1.0**, not a silent 0.3.x patch. Flat sam
 
 | Axis | Finding |
 |------|---------|
-| **Tokens** | Bare `--bind-->` (vs `--bind-->`) saves braces and kills `{}` dual-use. Port bags `name: {side=…}` cost more than a bare name but parse cleaner than colon piles. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows. Flowchart / parts / statechart sketches multiply rows fast. |
+| **Tokens** | Bare `--bind-->` (vs demoted `--{bind}-->`) saves braces and kills `{}` dual-use. Port bags `name: {side=…}` cost more than a bare name but parse cleaner than colon piles. LaTeX macros (`\mathbf{1}`, `\mathrm{…}`) and repeated `recycle=persistent` dominate long CST rows. Flowchart / parts / statechart sketches multiply rows fast. |
 | **Accuracy** | Soft law completeness is unenforced — agents invent orphan symbols. One kind `CST` + `role=`/`view=` is lean but easy to over-kind. Comma nesting (`ports=` vs attrs vs `$eq$,$eq$`) is parser-safe; LLMs still mis-join. Bi-directed `<--bind-->` ≠ with bare Dirac `<…\|…>` unless maths stays in `$…$`. |
 | **Pin map** | Shell-first + re-anchor works; dump-all interiors fails the mission. Prefer omit-default attrs (`side=` only when non-obvious) and short `law=` on the warm slice. |
 
