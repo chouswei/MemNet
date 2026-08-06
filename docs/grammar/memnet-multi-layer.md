@@ -261,6 +261,76 @@ Ef1 [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=Rf,Rin ; expr=-(
 
 Topology this encodes: `Vin -- Rin -- VMINUS -- Rf -- Vout` with feedback at `VMINUS`. An op-amp child Capsule (if present) would appear as `CAP_InvAmp --(contains)--> CAP_OpAmp` plus Port–Port `connects` **on the child shell** when that child is the anchor — not as renamed schematic pins inside the parent dump.
 
+#### Interior of CAP_OpAmp (child Capsule)
+
+**Question:** how do you express the interconnect **inside the op-amp** — not the InvAmp board with Rin/Rf?
+
+**Answer:** same grammar, different anchor. Re-anchor on `CAP_OpAmp` (or `pin_map(anchor=CAP_OpAmp, view=interior)`). Still only `view=shell|interior` — **no** new view name. The board’s InvAmp interior (§3.6 above) stays parent; the op-amp’s differential / gain / output atoms live under the child Capsule.
+
+**Shell** of the op-amp Capsule (contract only — three ports + open-loop summary):
+
+```text
+## Nodes
+CAP [CAP_OpAmp] ; name=opamp ; layer=net ; ports=PORT_Inm:Inm:in,PORT_Inp:Inp:in,PORT_Out:Out:out ; contains=NET_INM,NET_INP,NET_OUT,RES_a ; recycle=persistent
+CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; a_s=1000000 ; recycle=persistent
+
+## Edges
+Es_oa [CAP_OpAmp] --(summarises)--> [CLM_a_s]
+```
+
+Mutate sugar (create shell; engine desugars `ports=`):
+
+```text
++ CAP [NEW] ; name=opamp ; layer=net ; ports=Inm:in,Inp:in,Out:out ; recycle=persistent
+~ [CAP_InvAmp] ; contains=CAP_OpAmp
+```
+
+Parent–child shell wiring lands on Ports (not grandchild interiors): e.g. when InvAmp interior is open, board nets that feed the amp use `refines` into `PORT_Inm` / `PORT_Inp` / `PORT_Out`, or Port→Port `connects` once both Port ids are assigned. Do **not** paste those edges into the InvAmp **shell** dump.
+
+**Interior interconnect** after `pin_map(anchor=CAP_OpAmp, view=interior)` — behavioural finite-gain model (matches the app-note op-amp assumption; not transistor-level):
+
+```text
+## Nodes
+NET [NET_INM] ; net=INM ; layer=net ; recycle=persistent
+NET [NET_INP] ; net=INP ; layer=net ; recycle=persistent
+NET [NET_OUT] ; net=OUT ; layer=net ; recycle=persistent
+VAR [VAR_INM] ; symbol=V_INM ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
+VAR [VAR_INP] ; symbol=V_INP ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
+VAR [VAR_OUT] ; symbol=V_OUT ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
+RES [RES_a] ; a_s=1000000 ; Vdiff=0.0 ; Vout=0.0 ; domain=s ; recycle=persistent
+
+## Edges
+# ownership (immediate children)
+Ec_oa1 [CAP_OpAmp] --(contains)--> [NET_INM]
+Ec_oa2 [CAP_OpAmp] --(contains)--> [NET_INP]
+Ec_oa3 [CAP_OpAmp] --(contains)--> [NET_OUT]
+Ec_oa4 [CAP_OpAmp] --(contains)--> [RES_a]
+
+# shell Port -> interior net (boundary bridge)
+Er_inm [PORT_Inm] --(refines)--> [NET_INM]
+Er_inp [PORT_Inp] --(refines)--> [NET_INP]
+Er_out [PORT_Out] --(refines)--> [NET_OUT]
+
+# voltages of interior nets
+Ev1 [VAR_INM] --(voltage_of)--> [NET_INM]
+Ev2 [VAR_INP] --(voltage_of)--> [NET_INP]
+Ev3 [VAR_OUT] --(voltage_of)--> [NET_OUT]
+
+# finite open-loop gain a(s): Vout = a_s * (Vinp - Vinm)
+Ef_diff [RES_a] --(derives)--> [RES_a] ; tgt_field=Vdiff ; src_fields=Vinp,Vinm ; expr=Vinp-Vinm
+Ef_a [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ; expr=a_s*Vdiff
+```
+
+| Grain | Under CAP_OpAmp | Not here |
+|-------|-----------------|----------|
+| Differential inputs | `NET_INM` / `NET_INP` + `refines` from `PORT_Inm` / `PORT_Inp` | Board nets `NET_VMINUS` / `NET_VGND` (parent interior; linked via shell `connects`) |
+| Finite gain **a(s)** | `RES_a` + `derives` on `Vout` / `Vdiff`; shell may `summarises` → `CLM_a_s` | Closed-loop **A(s)** / Rin/Rf (`RES_A` stays on InvAmp) |
+| Output | `NET_OUT` + `PORT_Out --(refines)-->` | External load / feedback resistors |
+
+**Descend path:** `pin_map(CAP_InvAmp, view=shell)` → `pin_map(CAP_InvAmp, view=interior)` (see Rin/Rf) → `pin_map(CAP_OpAmp, view=shell)` → `pin_map(CAP_OpAmp, view=interior)` (this subsection). One Capsule-open step per turn when possible.
+
+**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`.
+
 #### Rel cheat-sheet (shell vs interior)
 
 | Rel | Where | Endpoints |
@@ -531,7 +601,7 @@ No change to `requirements.sysml` in this design task.
 | `docs/grammar/memnet-grammar-design.md` | Shared dialect SSOT; §3 = I/O/store/transport (different “layering”); points here for Capsule/Port |
 | `docs/grammar/memnet-field-formulas.md` | Same-node `derives` on shell/interior; cross-port later |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | Circuit interior application (flat atoms; optional capsule wrap) |
-| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata; flat atoms = Capsule interior when wrapped (§3.6) |
+| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Worked InvAmp; “Layer A/B” = circuitry vs formulas, not capsule strata; flat atoms = Capsule interior when wrapped (§3.6); op-amp child Capsule interior = §3.6 “Interior of CAP_OpAmp” |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Reserve = pin_map ego within active view |
 | `docs/grammar/memnet-security-multi-agent.md` | ACL before reserve; shell lease ≠ interior lease |
 | `docs/grammar/examples/` | Future golden fixtures for capsule/shell slices |
