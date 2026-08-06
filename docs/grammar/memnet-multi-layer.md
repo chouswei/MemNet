@@ -210,6 +210,28 @@ E_pipe [CST_Norm.y] --(bind)--> [CST_Gate.x] ; carries=token
 
 `x`/`y` are data ports; the directed bind is an ideal pipe for the token stream (`carries=token`). Norm: `$y=(x-\mu)/\sigma$` with params `mu=`/`sigma=`. Gate: `$y=\mathbf{1}(x>t)$` with param `t=` (1 when input exceeds threshold, else 0).
 
+### Application note: requirements view (agent memory)
+
+**Instance only** — bounded pin-map slice of requirement memory, **not** a SysML / MBSE requirements module. Prefer kind **`CST`** with `role=requirement` (law leaf + ports). Existing TagMap **`REQ`** stays a **SysML locator** pin (`requirementId=`, …); **`CLM`** stays soft claims/decisions — neither is the 1.x acceptance-criteria leaf. Traceability is an **ideal bind** between ports (`carries=trace`), not EDGE-as-relation and not `law=` on the arrow. Label stays **`bind`**; port names carry the roles (`stake` / `design` / optional `verify`).
+
+Mutate create (one requirement CST bound to a programme stage port):
+
+```text
++ CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake{side=in},design{side=out} ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
++ CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x{side=in},y{side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
++ E_tr [CST_R_lat.design] --(bind)--> [CST_Gate.x] ; carries=trace
+```
+
+Pin-map present (`layer=req`, or anchor on `CST_R_lat`):
+
+```text
+CST [CST_R_lat] ; role=requirement ; name=cmd_latency ; ports=stake{side=in},design{side=out} ; law=$t_{\mathrm{cmd}}<10\,\mathrm{ms}$ ; recycle=persistent
+CST [CST_Gate] ; name=threshold ; t=0.5 ; ports=x{side=in},y{side=out} ; law=$y=\mathbf{1}(x>t)$ ; recycle=persistent
+E_tr [CST_R_lat.design] --(bind)--> [CST_Gate.x] ; carries=trace
+```
+
+This view shows acceptance criteria on requirement CSTs and ideal binds that pin those criteria to design/programme ports.
+
 ### Application note: BJT + resistor (electronics instance)
 
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
@@ -281,7 +303,7 @@ pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior)
 3. If blocked → one descend (re-anchor or `view=interior`).  
 4. Ascend; do not keep nested shells in context.
 
-`layer=` = abstraction stratum (project-chosen labels). Shell vs interior = **`view=`**, not a new atom.
+`layer=` = abstraction stratum (project-chosen labels). Example: **`layer=req`** — bounded slice of `role=requirement` CSTs plus their design/programme binds (see §3 requirements view). Shell vs interior = **`view=`**, not a new atom. Do not invent a separate requirements kind zoo for this grain.
 
 **Goldfish:** re-read the current pin map each turn. Chat is not SSOT.
 
