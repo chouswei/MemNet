@@ -21,13 +21,14 @@
 //    inside maths is out of unquoted form — quote the whole field (STRING).
 // 3. Prefer quote when unquoted law would need ';' or a list-joining ',' that is
 //    not a segment boundary (locked in multi-layer.md delimiters).
-// 4. ports= entry: name: { attr=val, ... } — labelled record bag (TS/YAML-style).
-//    COLON joins name to bag; LBRACE/RBRACE hold attrs. Prefer one space after
-//    ':' (WS skips it). Demote bare name{...} and name(...).
+// 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
+//    name: {…} (COLON joins name to bag). Other attrs may take bare {…}
+//    (e.g. meta={…}). Demote bare name{...} and name(...).
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
-//    parser nesting resolves (portList vs attrList); no lexer mode needed.
-// 6. fieldValue: portList before atom — LL(*) needs COLON (then LBRACE) after
-//    IDENT to pick portList; single-atom values use the final atom alt.
+//    parser nesting resolves (portList vs attrList / recordBag); no lexer mode.
+// 6. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
+//    LBRACE) after IDENT to pick portList; bare LBRACE picks recordBag;
+//    single-atom values use the final atom alt.
 // 7. Recommended dialect tweak: forbid bare '|' in unquoted values (already
 //    prose MUST prefer \lvert/\rvert); keep STRING escape for awkward maths.
 // 8. Create-edge optional eid: '+ [A] --bind--> [B]' vs '+ Eid [A] ...' —
@@ -40,7 +41,8 @@
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
 //     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
 // 12. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
-//     {} is ports only — demote braced --{label}-->.
+//     {…} = brace-group / record (ports primary; other attrs may take {…}) —
+//     demote braced --{label}-->.
 //     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
@@ -84,7 +86,7 @@ patchNode
 // Dual EDGE: same three wire forms; grain from endpoints (semantic).
 // Bind: [Node.port] --bind--> [Node.port]  (pipe ≡ bind; carries= sense)
 // Relation: [NodeA] --knows--> [NodeB]     (label = sense; bare ids)
-// No law= on EDGE (semantic). {} ports only — not on arrows.
+// No law= on EDGE (semantic). {…} = brace-group / record — not on arrows.
 presentEdge
     : IDENT endpoint edgeWire endpoint (SEMI field)*
     ;
@@ -154,6 +156,7 @@ fieldValue
     : STRING                         # ValueString
     | lawList                        # ValueLawList
     | portList                       # ValuePortList
+    | recordBag                     # ValueRecord
     | atom (COMMA atom)+             # ValueAtomList
     | atom                           # ValueAtom
     ;
@@ -169,6 +172,11 @@ portList
 // Teach always name: {…}. Bare name / name{…} / name(…) are not portList entries.
 portToken
     : IDENT COLON LBRACE attrList? RBRACE
+    ;
+
+// Bare brace-group as a field value (e.g. meta={rev=1, src=doc}).
+recordBag
+    : LBRACE attrList? RBRACE
     ;
 
 attrList
@@ -207,11 +215,11 @@ MINUS        : '-' ;
 
 LBRACK       : '[' ;
 RBRACK       : ']' ;
-LBRACE       : '{' ;   // port bag after name: only (not arrow labels)
+LBRACE       : '{' ;   // brace-group / record (ports after name:; other attrs; not arrows)
 RBRACE       : '}' ;
 SEMI         : ';' ;
 ASSIGN       : '=' ;
-COLON        : ':' ;   // port name-to-bag join; also id:label elsewhere
+COLON        : ':' ;   // name-to-bag join (ports); also id:label elsewhere
 DOT          : '.' ;
 COMMA        : ',' ;
 

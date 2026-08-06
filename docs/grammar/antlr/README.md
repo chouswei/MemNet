@@ -27,9 +27,9 @@ python smoke_parse.py
 - Dual EDGE (same three wire forms):
   - **Bind:** `[Node.port] --bind--> [Node.port]` (also `--bind--`, `<--bind-->`; `pipe` ≡ `bind`; sense on `carries=`)
   - **Relation:** `[NodeA] --knows--> [NodeB]` (bare ids; label = sense)
-- Fields: `ports=name: {side=…, q=…}`, `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
+- Fields: `ports=name: {side=…, q=…}`, brace-group values (`meta={…}`), `law=$eq$,$eq$`, generic `key=value`, patch `+=` / `-=`
 - Drop: `- Eid`
 
-Port entry: labelled bag `name: {side=…, …}` (colon + braces). Soft-validate: same endpoint grain both ends; no `law=` on EDGE. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
+`{…}` = brace-group / record (ports primary teach; other attrs may take bare `{…}`). Soft-validate: same endpoint grain both ends; no `law=` on EDGE. Core syntax domain-generic; electronics `V`/`I` only in instance examples.
 
 British English.

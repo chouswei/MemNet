@@ -60,7 +60,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 
 **Omit defaults (wire):** session default `recycle=persistent` — **omit** `recycle=` on teachable lines when that is the default. Emit `recycle=` only when non-default. Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
 
-**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{}` is **ports only** — not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
+**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags; other attrs may take the same shape (e.g. `meta={rev=1, src=doc}`). Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
 **MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`.
 
@@ -77,7 +77,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `{…}` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
-| `{` `}` | **Port bag only** after `name:` — `x: {side=in, q=0}` (not on EDGE arrows) |
+| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`); also other field values (`meta={rev=1, src=doc}`). Not on EDGE arrows |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
@@ -88,7 +88,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Port vs EDGE:** `{}` = port bags only (`IDENT: {…}` inside `ports=`). EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
+**Record vs EDGE:** `{…}` = brace-group / record value (same shape everywhere). Primary teach: labelled port bags (`IDENT: {…}` inside `ports=`); other attrs may take bare `{…}` (e.g. `meta={…}`). EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -98,12 +98,12 @@ Compact map of ASCII punctuation for this slim dialect. **Do not** assign free m
 
 | Status | Characters | Notes |
 |--------|------------|--------|
-| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; port bags only; ids; ownership; LaTeX; STRING; comment; mutate |
+| **Used** | `;` `,` `=` `{` `}` `[` `]` `.` `:` `$` `"` `#` `+` `~` `-` | Fields; brace-group records (ports + other attrs); ids; ownership; LaTeX; STRING; comment; mutate |
 | **Used (arrow compounds)** | `--` `-->` `<--` | Dual EDGE wires; bare `IDENT` label between dashes |
 | **Demoted / avoid** | `\|` | No wire pipe; prefer `\lvert`/`\rvert` in maths; demote bare `x{…}` / `x(…)` ports; demote braced `--{label}-->` and paren `--(label)-->` (locked: bare `--label-->`) |
 | **Free (held)** | `(` `)` `&` `*` `^` `!` `?` `` ` `` `@` `%` `'` `\` | `()` fully free (not binds); others held |
 
-**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = EDGE arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = port name-to-bag; `{}` = **port bag only** after `name:` (not arrow labels). `()` is free — not locked to EDGE.
+**Collisions (do not reassign):** `$` = LaTeX `law=` / attr maths (Dirac bra-ket allowed inside `$…$` only); `<` `>` = EDGE arrow direction marks (`<--` / `-->` — not Dirac); `.` = `[Node.port]`; `:` = name-to-bag join (ports teach `name: {…}`); `{…}` = **brace-group / record** (ports primary; other attrs may take `{…}` — not arrow labels). `()` is free — not locked to EDGE.
 
 **Sparing recommendations (0–2):**
 
@@ -172,7 +172,7 @@ x: {side=in, q=0}
 |------|---------|
 | `x` | Port **name** (ties to symbols in `law=`) |
 | `:` | Name-to-bag join (prefer one space after) |
-| `{…}` | Record / attr bag: `attr=val` pairs, `,`-joined |
+| `{…}` | Brace-group / record: `attr=val` pairs, `,`-joined (same shape as other record field values) |
 | `side=` | Required in teachable bags: `in` / `out` / `inout` |
 | other attrs | Domain quantities (e.g. `q=`); omit when unused |
 
@@ -541,7 +541,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 | Axis | Finding |
 |------|---------|
 | **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). Session-default `recycle=` omitted. Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
-| **Accuracy** | `{}` is **ports only**. Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
+| **Accuracy** | `{…}` = brace-group / record (ports primary; other attrs may take `{…}`, e.g. `meta={…}`). Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
 | **Pin map** | Shell-first + re-anchor; flowchart/statechart shell ≤8/12 or decision-only. Warm BJT ~5 lines; relay omits idle V/I noise. |
 
 **Ranked cuts — applied:**
@@ -557,7 +557,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 ## 8. Open (three bullets max)
 
-- **`ports=` binding** — attrs in `{…}` vs params / `law=` idents; quantity keys still open.
+- **`ports=` / record binding** — attrs in brace-groups vs params / `law=` idents; which non-port fields take `{…}` (e.g. `meta=`); quantity keys still open.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
 - **Relation label vocabulary** — open set of `IDENT`s for now; optional SCHEMA / allow-list later (no flow type system here).
 
