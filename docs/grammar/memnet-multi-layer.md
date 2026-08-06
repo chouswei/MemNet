@@ -60,7 +60,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 
 **Omit defaults (wire):** session default `recycle=persistent` — **omit** `recycle=` on teachable lines when that is the default. Emit `recycle=` only when non-default. Same spirit for empty port attrs: `ports=x: {side=in}` not `ports=x: {side=in, q=}`.
 
-**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags; other attrs may take the same shape (e.g. `meta={rev=1, src=doc}`). Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
+**Endpoint lock:** `.` = ownership join inside `[…]` for bind. Prefer `[Node.port]` over EDGE `from=`/`to=` (hides grain). `{…}` = **brace-group / record** (`attr=val`, `,`-joined) — primary teachable use is port bags; other attrs may take the same shape (e.g. `meta={rev=1, src=doc}`). **Nesting depth capped at 2** (outer brace = depth 1; one nested bag = depth 2; depth 3+ rejected) — do **not** forbid `a={…}` inside a bag. Not on EDGE arrows. Demote braced `--{label}-->` and paren `--(label)-->`. `NEW` is mint-only, not a label. No `law=` on EDGE.
 
 **MUSTNOT:** mix endpoints (`[Node.port]` ↔ bare `[Node]`); put `law=` on an EDGE; treat **bind** as a **relation** (or vice versa — do not teach `--bind-->` on bare person ids, and do not use chart labels on port-grain pipes); treat EDGE as a function or multi-port device; invent causality on a bind; confuse non-directed with bi-directed; pile port facts as `name:side:value` colon chains; put braces or attrs on the arrow label; invent new KINDs instead of `role=` / `view=`.
 
@@ -77,7 +77,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `=` | `key=value` (present / create); `+=` / `-=` only on `~`; also attrs inside `{…}` |
 | `,` | **Sole** list joiner inside a field value (`ports=` entries, attrs in `{…}`, multi-eq `law=`, …) |
 | `:` | Name-to-bag join on ports: `name: {…}`; also other structured joins (`id:label`, `qty:unit`) — **not** `name:side:value` colon piles |
-| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`); also other field values (`meta={rev=1, src=doc}`). Not on EDGE arrows |
+| `{` `}` | **Brace-group / record** — `attr=val` pairs, `,`-joined. Primary teach: port bags after `name:` (`x: {side=in, q=0}`); also other field values (`meta={rev=1, src=doc}`). Nesting **allowed** up to **max depth = 2** (outer = 1; one nested bag = 2); depth 3+ rejected. OK: `meta={units={x=m,y=s}}`. Bad: `meta={a={b={c=1}}}`. Not on EDGE arrows |
 | `.` | Ownership join inside `[…]` for EDGE endpoints: `[NodeId.PortName]` |
 | `$…$` | LaTeX inline math **only** (not a field separator); Dirac bra-ket lives here (prefer `\langle`/`\rangle`) |
 | `[` `]` | Wrap Id, mint `NEW`, or qualified port ref `NodeId.PortName` |
@@ -88,7 +88,7 @@ Attrs use the same `=` / `,` as elsewhere. `side=` is required in teachable bags
 | `+` `~` `-` | Mutate ops (create / update / drop) — line prefix only |
 | `#` | Line comment to end of line (fixtures / notes; skipped by lexer) |
 
-**Record vs EDGE:** `{…}` = brace-group / record value (same shape everywhere). Primary teach: labelled port bags (`IDENT: {…}` inside `ports=`); other attrs may take bare `{…}` (e.g. `meta={…}`). EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
+**Record vs EDGE:** `{…}` = brace-group / record value (same shape everywhere). Primary teach: labelled port bags (`IDENT: {…}` inside `ports=`); other attrs may take bare `{…}` (e.g. `meta={…}`). Nested bags allowed to **max depth = 2** — OK `meta={units={x=m,y=s}}`; reject deeper. EDGE wire = bare `--label-->` / `--label--` / `<--label-->` after endpoint `]`. Grain from endpoints: both `.port` → bind/pipe; both bare → relation. `()` is **free** (held for later; not used on arrows).
 
 No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`. Same STRING rule for **`pseudo=`** bodies (steps often need `;` / `:` / spaces) — quote the whole value: `pseudo="…"`. No new punct for algorithms.
 
@@ -541,7 +541,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 | Axis | Finding |
 |------|---------|
 | **Tokens** | Locked bare `--label-->` (cheaper than demoted `--{label}-->` / `--(label)-->`). Session-default `recycle=` omitted. Port bags keep `side=`; skip unused attrs. Bind teach `bind` only (`pipe` synonym). Relation put sense in the label — no second `carries=` name. Relay `law=` stays the cautionary extreme — warm slice still short. |
-| **Accuracy** | `{…}` = brace-group / record (ports primary; other attrs may take `{…}`, e.g. `meta={…}`). Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
+| **Accuracy** | `{…}` = brace-group / record (ports primary; other attrs may take `{…}`, e.g. `meta={…}`). Nesting **capped at depth 2** — allow `meta={units={x=m,y=s}}`; reject depth 3+ (do **not** forbid nested bags outright). Soft-validate: `law=` symbols ⊆ ports∪params (optional lint). `role=`/`view=` only CST disambiguators. Dual EDGE: port↔port = bind; node↔node = relation; reject mixed endpoints. Sense: `carries=`/`event=` on bind; label on relation. |
 | **Pin map** | Shell-first + re-anchor; flowchart/statechart shell ≤8/12 or decision-only. Warm BJT ~5 lines; relay omits idle V/I noise. |
 
 **Ranked cuts — applied:**
@@ -552,12 +552,13 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 4. **Cap flowchart/statechart fan-out** — shell ≤8 NODEs / ≤12 EDGEs or decision-only; flowchart sketch trimmed to Dec+Yes+No.
 5. **`role=` / `view=` only CST disambiguators** — no kind zoo; instances use `role=requirement` / `role=person`.
 6. **Reject mixed endpoints** — soft-validate both ends same grain (port or bare); no port↔node EDGE.
+7. **Brace nesting depth cap = 2** — allow one nested bag (`meta={units={x=m,y=s}}`); reject depth 3+; do **not** forbid nested `{a={…}}` outright. Grammar: one nested `recordBag` in `attrValue` ([`MemNetLayer.g4`](antlr/MemNetLayer.g4)).
 
 ---
 
 ## 8. Open (three bullets max)
 
-- **`ports=` / record binding** — attrs in brace-groups vs params / `law=` idents; which non-port fields take `{…}` (e.g. `meta=`); quantity keys still open.
+- **`ports=` / record binding** — attrs in brace-groups vs params / `law=` idents; which non-port fields take `{…}` (e.g. `meta=`); quantity keys still open. Nesting depth locked at 2.
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
 - **Relation label vocabulary** — open set of `IDENT`s for now; optional SCHEMA / allow-list later (no flow type system here).
 

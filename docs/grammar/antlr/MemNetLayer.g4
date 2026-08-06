@@ -23,9 +23,12 @@
 //    not a segment boundary (locked in multi-layer.md delimiters).
 // 4. Brace-group / record: { attr=val, ... }. Primary teach: ports= entry
 //    name: {…} (COLON joins name to bag). Other attrs may take bare {…}
-//    (e.g. meta={…}). Demote bare name{...} and name(...).
+//    (e.g. meta={…}). Nesting allowed to max depth = 2 (outer = 1; one
+//    nested bag = 2) — grammar: nestedRecord inside attrValue; flat leaves
+//    only (depth 3+ rejected). OK: meta={units={x=m,y=s}}. Demote bare
+//    name{...} and name(...).
 // 5. COMMA dual role: between port entries vs between attrs inside {…} —
-//    parser nesting resolves (portList vs attrList / recordBag); no lexer mode.
+//    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 6. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then
 //    LBRACE) after IDENT to pick portList; bare LBRACE picks recordBag;
 //    single-atom values use the final atom alt.
@@ -41,8 +44,8 @@
 //     would steal mutate ops and k+=N). '#' = LINE_COMMENT. Free punct
 //     (() & * ^ ! ? ` @ …) held — see memnet-multi-layer.md delimiter inventory.
 // 12. Arrow label = bare IDENT (--label--> / --label-- / <--label-->).
-//     {…} = brace-group / record (ports primary; other attrs may take {…}) —
-//     demote braced --{label}-->.
+//     {…} = brace-group / record (ports primary; other attrs may take {…});
+//     max nesting depth = 2 — demote braced --{label}-->.
 //     Bind teach: bind (pipe synonym). Relation: any other IDENT as sense.
 //
 // Generate (optional): antlr4 -Dlanguage=Python3 -visitor -no-listener MemNetLayer.g4
@@ -175,6 +178,8 @@ portToken
     ;
 
 // Bare brace-group as a field value (e.g. meta={rev=1, src=doc}).
+// Max nesting depth = 2: outer recordBag (=1) may hold nestedRecord (=2);
+// nestedRecord attrs are flat only — depth 3+ fails parse.
 recordBag
     : LBRACE attrList? RBRACE
     ;
@@ -188,6 +193,28 @@ attr
     ;
 
 attrValue
+    : NUMBER
+    | IDENT
+    | LAW_SEG
+    | STRING
+    | BARE_ATOM
+    | nestedRecord
+    ;
+
+// Depth-2 bag only (e.g. units={x=m,y=s} inside meta={…}).
+nestedRecord
+    : LBRACE flatAttrList? RBRACE
+    ;
+
+flatAttrList
+    : flatAttr (COMMA flatAttr)*
+    ;
+
+flatAttr
+    : IDENT ASSIGN flatAttrValue
+    ;
+
+flatAttrValue
     : NUMBER
     | IDENT
     | LAW_SEG
