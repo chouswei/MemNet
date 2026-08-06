@@ -41,7 +41,63 @@ Do **not** celebrate a kind zoo. No `FN`. No `form=causal` essays on the wire �
 
 ---
 
-## 2. Worked BJT (complete)
+## 2. Syntax (cheat sheet)
+
+**Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine**). **1.x overlays** below (`ports=` / `law=` / `carries=` / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
+
+### Line shapes
+
+| Shape | Form |
+|-------|------|
+| NODE (pin map / bare) | `KIND [Id] ; key=value ; …` |
+| EDGE (pin map / bare) | `Eid [from] --(rel)--> [to] ; key=value ; …` |
+| Create | `+ KIND [NEW\|Id] ; …` · `+ [NEW\|Eid]? [from] --(rel)--> [to] ; …` |
+| Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
+| Drop | `- Eid` |
+
+Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only.
+
+### Delimiters
+
+| Char | Role |
+|------|------|
+| `;` | Join **fields** |
+| `=` | `key=value` (present / create); `+=` / `-=` only on `~` |
+| `[` `]` | Wrap Id or mint `NEW` |
+| `--(` `)-->` | Directed EDGE; `rel` between `--(` and `)-->` |
+| `,` | **1.x** list join **inside** `ports=` value |
+| `:` | **1.x** port token `name:side` **inside** `ports=` (not a field separator) |
+| `\|` | **1.x** join **inside** one field value (`law=` eqs; `carries=` / `view=` alts) — **not** a field separator |
+| `"` | STRING for awkward paths (shared dialect) |
+
+### Field forms (this doc)
+
+| Field | Form |
+|-------|------|
+| `ports=` | `name:side` tokens, `,`-joined — e.g. `ports=B:in,C:out,E:inout` |
+| `law=` | equation atom(s); several eqs → one field, joined by `\|` |
+| `name=` | short label |
+| `beta=` / `R=` / … | law params **on the NODE** |
+| `carries=` | optional on `connects`; `V` or `I` (alt spelling `V\|I` before SCHEMA lock) |
+| `recycle=` | shared-dialect visibility (`persistent`, …) |
+| `view=` / `layer=` | pin-map grain (`shell\|interior`; `system`/`board`/`net`/`equation`) — query/envelope; not ontology |
+
+### Port token (`ports=`)
+
+```text
+B:in
+```
+
+| Segment | Meaning |
+|---------|---------|
+| `B` | Port **name** (ties to quantities in `law=`, e.g. `I_b`) |
+| `in` | **Side:** `in` \| `out` \| `inout` |
+
+First-class PORT NODE (only when `connects` needs stable endpoints): Id like `[PORT_Q1_C]` — **not** a three-part `PORT_*:name:side` wire form here. Thin EDGE rels: `connects`, `contains`, `refines`.
+
+---
+
+## 3. Worked BJT (complete)
 
 One **`CST`** node owns B/C/E and both teachable laws. Wiring is one carrier line (endpoints need ids — mint `PORT` only when `connects` requires them; otherwise keep `ports=` on the node).
 
@@ -61,7 +117,7 @@ Omit E → truncated device and unowned KCL. Carrier `connects` does **not** own
 
 ---
 
-## 3. Wrong shapes (three)
+## 4. Wrong shapes (three)
 
 - **Law on EDGE** — e.g. `[B] --(derives)--> [C] ; expr=I_c=beta*I_b` (EDGE ≠ law; binary lie; no emitter).
 - **Orphan stamp mirrors** — `RES`/`VAR` with Vinp/Vdiff fields that are not graph endpoints.
@@ -69,7 +125,7 @@ Omit E → truncated device and unowned KCL. Carrier `connects` does **not** own
 
 ---
 
-## 4. Pin map grain
+## 5. Pin map grain
 
 Flat `depth` / `max_rows` alone fails at system → board → net → equation.
 
@@ -88,7 +144,7 @@ pin_map(session, anchor, depth, max_rows, layer?=board, view?=shell|interior)
 
 ---
 
-## 5. Migration (thin)
+## 6. Migration (thin)
 
 | Keep | Migrate into 1.x | Demote |
 |------|------------------|--------|
@@ -100,7 +156,7 @@ Engine: law-on-node + optional port sugar → **1.0**, not a silent 0.3.x patch.
 
 ---
 
-## 6. Open (three bullets max)
+## 7. Open (three bullets max)
 
 - **`ports=` binding** — port `name=` + quantity in `law=`, or qualified `PORT_x.V`; pick one rule on the node.
 - **When to mint first-class `PORT`** — only if carrier endpoints need stable ids independent of the owner; else fields stay on the node.
@@ -108,7 +164,7 @@ Engine: law-on-node + optional port sugar → **1.0**, not a silent 0.3.x patch.
 
 ---
 
-## 7. Related
+## 8. Related
 
 | Path | Role |
 |------|------|
