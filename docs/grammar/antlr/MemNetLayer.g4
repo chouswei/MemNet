@@ -27,11 +27,13 @@
 //    direc= ≡ direction= (prefer direc=). Discipline (not a domain-field
 //    allow-list): {…} = record of attrs; scalar = for singles; flat first;
 //    nest only to depth ≤2; no bag spam. Soft MUSTNOT bags on dialect
-//    keywords law/pseudo/recycle/role/view/layer.
+//    keywords law/def/uses/pseudo/recycle/role/view/layer.
 //    OK: meta={units={x=m,y=s}}. Demote bare name{...} and name(...).
 // 5. Quantity alias: ALIAS_REF = '@' IDENT as attrValue only (V=@va).
 //    Law keeps '@' in maths (opaque inside LAW_SEG): $@va-@vb=@ia*R$.
 //    Soft-validate: law @idents ⊆ bag @aliases ∪ params ∪ port.qty.
+//    Optional B sugar: def=/uses= are ordinary IDENT fields (lawList / atom);
+//    call forms inside LAW_SEG stay opaque — soft-validate name/arity only.
 // 6. COMMA dual role: between port entries vs between attrs inside {…} —
 //    parser nesting resolves (portList vs attrList / nestedRecord); no lexer mode.
 // 7. fieldValue: portList / recordBag before atom — LL(*) needs COLON (then

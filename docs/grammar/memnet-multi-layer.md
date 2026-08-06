@@ -135,8 +135,8 @@ Eid [NodeA] --rel_name--> [NodeB]
 - **Dirac:** bra-ket is a full citizen of `law=` maths — e.g. `law=$\langle\phi|\psi\rangle$`, `law=$|n\rangle$`. Lives **only** inside `$…$`; do **not** conflate with EDGE arrowheads `<--` / `-->` (direction marks on wires).
 - **Quantity symbols (two OK forms, locked):**
   1. **Qualified** (default when few ports): ASCII **`port.qty`** in maths matching bag keys — e.g. `$pin1.V = pin1.I * R$`.
-  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ **this NODE’s** bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params ∪ same-`law=` / reachable `def=` names.
-- **Completeness (soft-validate):** every quantity symbol in `law=` MUST bind via one of the two forms above, a node param, a bare **port name** under single-quantity discipline, a same-`law=` def, or a **B** call whose name is in reachable `def=` — no orphan bare `V`/`I` on multi-qty ports. Demote pretty-only `$V_{\mathrm{pin1}}$` for lint. Agents SHOULD fix before settle.
+  2. **Alias:** bag declares `V=@v1, I=@i1`; law **keeps `@`** — e.g. `$@v1 = @i1 \times R$`. `@ident` as bag quantity-key **value** only (not free text); same spelling inside `$…$`. Soft-validate: law `@idents` ⊆ **this NODE’s** bag `@aliases` ∪ `{port.qty}` ∪ port-names ∪ params. Call names from **B** are **not** `@idents` — resolve separately (below).
+- **Completeness (soft-validate):** every quantity symbol in `law=` MUST bind via one of the two forms above, a node param, or a bare **port name** under single-quantity discipline — no orphan bare `V`/`I` on multi-qty ports. If using **B** calls, each call name MUST ∈ reachable `def=` (same NODE’s `def=` and/or the single `uses=` lib) — demote undeclared calls. Demote pretty-only `$V_{\mathrm{pin1}}$` for lint. Agents SHOULD fix before settle.
 - **Binding (same node):** math idents resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), (2) **`port.qty`** ASCII (`pin1.V`) matching `ports=` name + bag attr, (3) an **`@alias`** declared as a quantity-key value and repeated with `@` in `law=` (`V=@va` → `$@va$`), or (4) a **bare port name** under single-quantity discipline (`x`/`y` data ports). **MUSTNOT** orphan bare `V` / `I` unless that single-port discipline holds; **MUSTNOT** `@spam` outside bag quantity values (law `@` only after bag declare).
 - **Alias scope (locked):** `@ident` lives on the **owning NODE** (the CST that declares it). Two nodes may both use `@va` without clash; each `law=` sees only that node’s `@` set ∪ params ∪ local ports. Cross-node coupling is via **port binds** (ideal-pipe continuity), **not** a shared `@` namespace — after bind, each law still uses local `@`. Need a global name → use **`port.qty`** (`a.V` / teach `CST_R.a.V` in prose) or distinct aliases by discipline (`@R_va` vs `@C_va`). **No** automatic merge of `@`.
 - **Alias naming (discipline, not SCHEMA-hard):** grammar accepts any free `IDENT` after `@` — **uniform spelling across nodes is not required**. LLMs **can** confuse reused short names (`@va` on two CSTs looks like one quantity in a multi-node `pin_map` even though scope is per-NODE). Prefer:
@@ -149,7 +149,7 @@ Eid [NodeA] --rel_name--> [NodeB]
 
 Want `z = sum(x, y) = x + y` reusable? Two complementary patterns. **Never** put the function on an EDGE.
 
-**A — Function as CST (composition / bind) — default, always valid.** Graph-honest: the formula is a law leaf with ports; callers **bind** ports. No call syntax in `law=`.
+**A — Function as CST (composition / bind) — default, always valid.** Graph-honest: the formula is a law leaf with ports; callers **bind** ports. No call syntax in `law=`. Prefer **A** for composition, multi-port devices, and anything that should survive off-slice libs.
 
 ```text
         [Caller]
@@ -170,14 +170,25 @@ E2 [CST_Caller.b] --bind--> [CST_Sum.y]
 E3 [CST_Sum.z] --bind--> [CST_Caller.out]
 ```
 
-**B — Named `def=` for textual reuse in `law=` — optional** (token save when many laws share one formula). Wire form locked: **`def=$…$`** (same `$…$` / `,`-joined segments as `law=` — not a brace bag). Point at a lib with **`uses=`**.
+**B — Named `def=` for textual reuse in `law=` — optional sugar** (token save only when many on-slice laws share one formula). Proposed wire: **`def=$…$`** (same `$…$` / `,`-joined segments as `law=` — not a brace bag); optional **`uses=`** = **one** lib NODE id. Not SCHEMA-hard; not an evaluator.
 
 ```text
 CST [CST_Lib] ; role=lib ; def=$sum(x,y)=x+y$
 CST [CST_Blk] ; ports=x: {direc=in, q=@x},y: {direc=in, q=@y},z: {direc=out, q=@z} ; law=$@z=sum(@x,@y)$ ; uses=CST_Lib
 ```
 
-**How to use in law (B):** call the declared name inside the caller’s `$…$` — e.g. `law=$@z=sum(@x,@y)$`. Soft-validate: call name ∈ reachable `def=` (own NODE or `uses=` lib); arity by discipline. Prefer **A** unless the same algebraic sugar is needed in many `law=` lines.
+**How to use in law (B):** call the declared name inside the caller’s `$…$` — e.g. `law=$@z=sum(@x,@y)$`. `LAW_SEG` stays **opaque** ([`MemNetLayer.g4`](antlr/MemNetLayer.g4)) — the call is not a parsed AST; soft-validate only. Expand-only textual sugar (substitute the RHS for display/lint); **not** a callable runtime and **not** a third EDGE grain (`uses=` is a NODE field pointer, not a relation).
+
+**B gates (tighten before locking):**
+
+| Gate | Rule |
+|------|------|
+| When | Same algebraic fragment repeats in **many** `law=` lines **and** the lib (or local `def=`) stays on the warm pin map |
+| Else | Use **A** (bind) — default |
+| Write=display | Caller + reachable `def=` source MUST appear together on the pin map; do not call off-slice names |
+| Resolve | Call name ∈ same-NODE `def=` ∪ single `uses=` lib’s `def=`; arity MUST match the LHS formals in that `def=` segment |
+| MUSTNOT | Invent undeclared calls; multi-`uses=`; treat `\mathrm{name}` / other LaTeX macros as B defs; put steps in `def=` (use `pseudo=` for informal algorithms) |
+| Deferred | Multi-lib import, name-collision policy, SCHEMA field list for `def`/`uses` |
 
 ### Line shapes
 
@@ -198,8 +209,8 @@ Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the
 |-------|------|
 | `ports=` | `name: {direc=…, …}`, `,`-joined — omit attrs beyond needed `direc=` / quantities |
 | `law=` | LaTeX `$…$` atom(s) on the **NODE** only; several → one field, `$eq$` segments `,`-joined — **forbidden** on EDGE |
-| `def=` | optional named formula(s) as `$…$` segments (same shape as `law=`) for B-style call reuse — on NODE only; see Named functions |
-| `uses=` | optional lib NODE id whose `def=` is in scope for this NODE’s `law=` calls (B) |
+| `def=` | optional named formula(s) as `$…$` segments (same shape as `law=`) for B textual reuse — on NODE only; soft-validate; see Named functions |
+| `uses=` | optional **single** lib NODE id whose `def=` is in scope for this NODE’s `law=` calls (B); not an EDGE |
 | `pseudo=` | algorithmic steps as a STRING on the **NODE** (prefer quoted); not LaTeX; not an evaluator — see §3 pseudocode note |
 | `name=` | short label |
 | `role=` | CST disambiguator only (`requirement`, `person`, `lib`, …) — **not** a new KIND |
@@ -644,7 +655,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 - **When to mint first-class `PORT`** — only if a port must be an independent atom; default binds use `[Node.port]`.
 - **Relation label vocabulary** — open set of `IDENT`s for now; optional SCHEMA / allow-list later (no flow type system here).
-- **Alias hygiene** — uniqueness / cross-node `@` collision rules deferred (soft-validate same-node for now).
+- **B multi-lib / SCHEMA** — single `uses=` only today; name collision, multi-lib, and SCHEMA listing of `def`/`uses` deferred (alias hygiene stays soft same-NODE).
 
 ---
 
