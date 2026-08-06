@@ -15,7 +15,7 @@
 | **NODE** | Kinded fact. Law leaf: prefer kind **`CST`** (or any NODE with `law=` + `ports=`). |
 | **EDGE** | Incidence / carrier only — never the law. |
 
-**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `|`.
+**Law leaf:** one shape. Put `law=` / params (`k=`, `gain=`, …) **on the node**. `law=` is **LaTeX** (storage/display for the LLM — no evaluator required to render). Several equations → one field, `$…$` segments joined by `,` (same list joiner as `ports=`).
 
 **Ports:** fields on the law node until separate atoms are proven necessary:
 
@@ -27,7 +27,7 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 
 **`PORT` as first-class NODE:** only if endpoints must be wired independently (carrier edges need stable ids). Until then, keep ports as fields; engine may desugar later.
 
-**`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell|interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Optional later sugar `CAP` + `contains=` is packaging, not ontology.
+**`CAP` / nesting:** deferred as metamodel. Pin-map **shell vs interior** is a **view budget** (`view=shell` or `view=interior` / re-anchor), not a chapter of kinds. Prefer compact shell first; descend one step when blocked; do not dump nested interiors in one call. Optional later sugar `CAP` + `contains=` is packaging, not ontology.
 
 **EDGE relations (thin):**
 
@@ -45,20 +45,34 @@ Do **not** celebrate a kind zoo. No `FN`. No essays of causal form on the wire �
 
 **Spine** = shared dialect Write=display ([`memnet-grammar-design.md`](memnet-grammar-design.md) §4–5; **in engine**). **1.x overlays** below (`ports=` / `law=` / `carries=` / stratified `view`/`layer`) = **proposed-1.x**, not in 0.3.x.
 
+### Delimiters (locked)
+
+| Char | Role |
+|------|------|
+| `;` | **Only** top-level field separator on a line |
+| `=` | `key=value` (present / create); `+=` / `-=` only on `~` |
+| `,` | **Sole** list joiner inside a field value (`ports=`, multi-eq `law=`, …) |
+| `:` | Port token `name:side` **only** (not a field separator) |
+| `$…$` | LaTeX inline math **only** (not a field separator) |
+| `[` `]` | Wrap Id or mint `NEW` |
+| `--(` `)-->` | Directed EDGE; `rel` between `--(` and `)-->` |
+| `"` | STRING for awkward values (shared dialect) |
+
+No wire `|`. Query enums (`view=shell` or `interior`) are exclusive choices, not joined lists. Prefer `\lvert`/`\rvert` over bare `|` inside maths; if a value contains `;` or a list-joining `,` that is not a segment boundary, quote the whole field: `law="…"`.
+
 ### Generic skeleton
 
 ```text
-CST [Id] ; name=… ; ports=name:side,… ; law=$eq$|$eq$ ; param=… ; recycle=persistent
+CST [Id] ; name=… ; ports=name:side,… ; law=$eq$,$eq$ ; param=… ; recycle=persistent
 Eid [PORT_A] --(connects)--> [PORT_B] ; carries=token
 ```
 
-`ports=` uses `name:side` with side ∈ `in|out|inout`. `law=` holds LaTeX maths on the NODE. `carries=` is an optional quantity/token name on a carrier edge (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
+`ports=` uses `name:side` with side ∈ {`in`, `out`, `inout`}. `law=` holds LaTeX maths on the NODE. `carries=` is an optional quantity/token name on a carrier edge (`signal`, `q`, or domain tokens such as `V`/`I` — dialect is not electrical).
 
 ### `law=` expression rules (LaTeX)
 
 - **Where:** one `law=` field on the **NODE** (prefer kind `CST`). Never on EDGE. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
-- **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those segments with `|` (prefer this over one `\begin{align}` blob). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
-- **Escapes:** prefer `\lvert`/`\rvert` over bare `|` inside maths; if the value contains `;` or a bare `|` that is not an eq-joiner, quote the whole field: `law="…"`.
+- **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port side only.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: `I_c` / `I_{c}` / `V_a` — port name is the subscript. Qualified `PORT_x.q` deferred.
 - **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on `connects`; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
 
@@ -72,32 +86,19 @@ Eid [PORT_A] --(connects)--> [PORT_B] ; carries=token
 | Update | `~ [Id] ; …` · `~ Eid ; …` · on `~` only: `key+=N` / `key-=N` |
 | Drop | `- Eid` |
 
-Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only.
-
-### Delimiters
-
-| Char | Role |
-|------|------|
-| `;` | Join **fields** |
-| `=` | `key=value` (present / create); `+=` / `-=` only on `~` |
-| `[` `]` | Wrap Id or mint `NEW` |
-| `--(` `)-->` | Directed EDGE; `rel` between `--(` and `)-->` |
-| `,` | **1.x** list join **inside** `ports=` value |
-| `:` | **1.x** port token `name:side` **inside** `ports=` (not a field separator) |
-| `\|` | **1.x** join **inside** one field value (`law=` eqs; `carries=` / `view=` alts) — **not** a field separator |
-| `"` | STRING for awkward paths (shared dialect) |
+Pin map = **bare present** (no leading `+`/`~`/`-`). Ops are mutate-only. In the Create row, `\|` is documentation “or”, not a wire delimiter.
 
 ### Field forms (this doc)
 
 | Field | Form |
 |-------|------|
 | `ports=` | `name:side` tokens, `,`-joined — e.g. `ports=in:in,out:out,state:inout` |
-| `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments joined by `\|` |
+| `law=` | LaTeX `$…$` atom(s) on the NODE; several → one field, `$eq$` segments `,`-joined |
 | `name=` | short label |
 | params | domain keys **on the NODE** (`k=`, `gain=`, …) |
 | `carries=` | optional on `connects`; quantity/token name (`signal`, `q`, `V`, `I`, …) |
 | `recycle=` | shared-dialect visibility (`persistent`, …) |
-| `view=` / `layer=` | pin-map grain (`shell\|interior`; coarse→fine strata) — query/envelope; not ontology |
+| `view=` / `layer=` | pin-map grain (exclusive: `shell` or `interior`; coarse→fine strata) — query/envelope; not ontology |
 
 ### Port token (`ports=`)
 
@@ -108,7 +109,7 @@ in:in
 | Segment | Meaning |
 |---------|---------|
 | `in` | Port **name** (ties to symbols in `law=`) |
-| `in` | **Side:** `in` \| `out` \| `inout` |
+| `in` | **Side:** `in` / `out` / `inout` |
 
 First-class PORT NODE (only when `connects` needs stable endpoints): Id like `[PORT_X_out]` — **not** a three-part wire form here. Thin EDGE rels: `connects`, `contains`, `refines`.
 
@@ -136,7 +137,7 @@ Carrier `connects` does **not** own the law or its params.
 One domain instance only — not the default frame. One **`CST`** owns B/C/E and both teachable laws:
 
 ```text
-CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=$I_c=\beta I_b$|$I_e=I_b+I_c$ ; recycle=persistent
+CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B:in,C:out,E:inout ; law=$I_c=\beta I_b$,$I_e=I_b+I_c$ ; recycle=persistent
 CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a:inout,b:inout ; law=$V_a-V_b=I_a R$ ; recycle=persistent
 E_c [PORT_Q1_C] --(connects)--> [PORT_Rc_a] ; carries=I
 ```
@@ -160,6 +161,8 @@ Flat `depth` / `max_rows` alone fails at coarse → fine strata.
 ```text
 pin_map(session, anchor, depth, max_rows, layer?=…, view?=shell|interior)
 ```
+
+(`shell|interior` above is API documentation “or”, not a wire list.)
 
 1. Read shell (or current layer) — few rows.  
 2. Reason / mutate at that grain.  
