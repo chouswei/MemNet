@@ -62,3 +62,7 @@ refs/novel-cut-grammar/*
 !refs/README.md
 third_party/antlr4/
 third_party/antlr4/**
+
+# Local ANTLR generate / tool jar (design .g4 stays under docs/grammar/antlr/)
+docs/grammar/antlr/generated/
+docs/grammar/antlr/.tool/
