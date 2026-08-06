@@ -259,7 +259,7 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | **5** | `:=` sugar → compile to EDGE; SCHEMA default derives | Convenience |
 | **6** | Qualified cross-node expr; field-port NODEs | Avoid unless forced |
 
-**Decision:** re-centre on **formula as EDGE relation** for the **flat same-node transitional MVP** only. Do **not** implement an expression engine yet. First concrete dialect candidate remains the **same-node self-loop** `derives` line with **`src_fields` as a multi-name list**. Keep `+=`/`-=` literal-only. **1.x ports-first ([`memnet-multi-layer.md`](memnet-multi-layer.md) Atoms):** laws live on **`FN`/`CST` nodes** (`FN` ⊂ `CST`); EDGE is a **carrier** between ports — do **not** treat formula-on-edge as the long-term teachable surface.
+**Decision:** re-centre on **formula as EDGE relation** for the **flat same-node transitional MVP** only. Do **not** implement an expression engine yet. First concrete dialect candidate remains the **same-node self-loop** `derives` line with **`src_fields` as a multi-name list**. Keep `+=`/`-=` literal-only. **1.x ([`memnet-multi-layer.md`](memnet-multi-layer.md)):** laws live on the **node** (`CST` + `law=` / `ports=`); EDGE is a **carrier** only — do **not** treat formula-on-edge as the long-term teachable surface.
 
 ---
 
@@ -268,7 +268,7 @@ If sugar exists later: compile `:=` into a self-loop `derives` EDGE + materialis
 | Path | Role |
 |------|------|
 | `docs/grammar/memnet-grammar-design.md` §4.2 / §4.2.0b | EDGE mutate; locked numeric `+=`/`-=` |
-| `docs/grammar/memnet-multi-layer.md` | Capsules / stratified pin maps; **`FN` ⊂ `CST`**, law on node; EDGE = **carrier** (in/out), not the function/constraint |
+| `docs/grammar/memnet-multi-layer.md` | Stratified pin maps; law on node (`CST` + `ports=`/`law=`); EDGE = **carrier**, not the law |
 | `docs/grammar/memnet-neighbourhood-reserve.md` | Lease both endpoints before cross-node |
 | `docs/grammar/memnet-security-multi-agent.md` | Session ACL before coop formula writes |
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | **Application** of this grammar: nodal circuit graph + KCL/Ohm (no solver; does not redefine formula EDGE) |
