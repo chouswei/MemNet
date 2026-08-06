@@ -1,7 +1,7 @@
 # Multi-layer MemNet and capsules (design)
 
 **Status:** design only — **no engine implementation** in 0.3.5 / 0.3.6.  
-**Thesis:** MemNet stays **NODE | EDGE** only; complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports compositions built *from* those atoms — including capsule-in-capsule). Port-hood is **shared-dialect structure** (kind `PORT` + `exposes`), not id punctuation.  
+**Thesis:** MemNet stays **NODE | EDGE** only in the store; agents use **compact capsule sugar** on the shell (`ports=` / `contains=` on `CAP`) that desugars 1:1 to those atoms. Complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports — including capsule-in-capsule). Port-hood is structure (store: kind `PORT` + `exposes`), not id punctuation.  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
 **Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal / InvAmp app notes under `docs/application-notes/` (flat interior; optional Capsule wrap).
@@ -113,18 +113,14 @@ Capsule = {
 }
 ```
 
-**Bare present** (what `pin_map` shows at **shell** — Capsule + Ports + thin edges; no interior dump):
+**Bare present** (default **shell** pin_map — compact capsule sugar §8.1; no interior dump):
 
 ```text
 ## Nodes
-CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; recycle=persistent
-PORT [PORT_Vin] ; name=Vin ; side=in ; recycle=persistent
-PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; recycle=persistent
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 
 ## Edges
-E1 [CAP_InvAmp] --(exposes)--> [PORT_Vin]
-E2 [CAP_InvAmp] --(exposes)--> [PORT_Vout]
 Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
 
@@ -143,22 +139,20 @@ E6 [PORT_Vin] --(refines)--> [NET_VIN]
 
 Prefer `contains` for **immediate** children (child Capsules, key nets/parts) — not a mandatory edge to every leaf (fan-out risk). Boundary descent uses `refines` from Ports.
 
-**Mutate** (same shapes; ops mutate-only):
+**Mutate** (compact sugar; ops mutate-only; desugars to store atoms §8.1):
 
 ```text
-+ CAP [NEW] ; name=inverting_amp ; layer=board ; recycle=persistent
-+ PORT [NEW] ; name=Vin ; side=in ; recycle=persistent
-+ NEW [CAP…] --(exposes)--> [PORT…]
-+ NEW [CAP…] --(contains)--> [ATO_Rf]
++ CAP [NEW] ; name=inverting_amp ; layer=board ; ports=Vin:in,Vout:out ; recycle=persistent
+~ [CAP_InvAmp] ; contains=ATO_Rf
 ```
 
-Kind tokens `CAP` / `PORT` are the **design preference**; final TagMap / SCHEMA is a later lock. The pattern does not depend on minting new conceptual kinds beyond NODE|EDGE.
+Kind tokens `CAP` / `PORT` remain the **store** kinds; agent shell prefers sugar fields on `CAP`. Final TagMap / SCHEMA is a later lock. No third conceptual primitive beyond NODE|EDGE.
 
 ### 3.4 Shell vs interior = view pair
 
 | View (`view=`) | What pin_map shows | Budget |
 |----------------|--------------------|--------|
-| **Shell** (default for a Capsule anchor) | Capsule node + Port nodes + `exposes` / `connects` / summary edges + sibling Capsules / LAW | Small — stays under `max_rows` |
+| **Shell** (default for a Capsule anchor) | Compact `CAP` sugar (`ports=` / `contains=`) + summary / `connects` / sibling Capsules / LAW — not full Port+`exposes` expand (§8.1) | Small — stays under `max_rows` |
 | **Interior** (descend) | Contained NODE\|EDGE ego from an interior anchor or `view=interior` | Still capped by `depth` / `max_rows` |
 
 **Descend = open the capsule** — change anchor to a Port / interior node, or pass an explicit view; do **not** paste the whole interior into the shell pin map. Stratum field `layer=` (system/board/…) is orthogonal to this view pair (§4).
@@ -183,21 +177,18 @@ CAP (Capsule system)
 | **Depth limits** | Hard budget remains `depth` / `max_rows` **within** the active shell/interior view. Design default: **one capsule-open step per turn** when possible; engine MVP may also cap nesting depth (e.g. refuse expand past N nested opens in one call) — exact N is an implementation lock |
 | **MUSTNOT** | Dump nested interiors in one pin map; treat nesting as prose in `note=`; invent a “nested capsule” AST kind outside NODE\|EDGE; encode nest level in the id |
 
-Illustrative nest sketch (**parent shell only** — child Capsule as contained id; child’s own `exposes` appear when that child is the anchor):
+Illustrative nest sketch (**parent shell only**, compact sugar — child’s own ports appear when that child is the anchor):
 
 ```text
 ## Nodes
-CAP [CAP_Pdu] ; name=pdu ; layer=system ; recycle=persistent
+CAP [CAP_Pdu] ; name=pdu ; layer=system ; ports=PORT_Vbus:Vbus:out ; contains=CAP_Rail12 ; recycle=persistent
 CAP [CAP_Rail12] ; name=rail_12v ; layer=board ; recycle=persistent
-PORT [PORT_Vbus] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
 
 ## Edges
-Ep [CAP_Pdu] --(exposes)--> [PORT_Vbus]
-Ec [CAP_Pdu] --(contains)--> [CAP_Rail12]
 Ef [PORT_Vbus] --(refines)--> [CAP_Rail12] ; note=descend_hint
 ```
 
-Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` (then child’s Ports via `exposes`) → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
+Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` (child’s `ports=` sugar) → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
 
 ---
 
@@ -297,12 +288,10 @@ Bare present (pin map) and mutate (`+` / `~` / `-`) use the same shapes.
 LAW [LAW_KCL] ; code=sum_i_at_net_zero ; recycle=persistent
 
 ## Nodes
-CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board
-PORT [PORT_Vin] ; name=Vin ; side=in ; layer=board
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out
 CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
 
 ## Edges
-Ea [CAP_InvAmp] --(exposes)--> [PORT_Vin]
 Eb [CLM_gain] --(derives)--> [CLM_gain] ; src_fields=Rf,Rg ; expr=-Rf/Rg ; tgt_field=gain_v
 Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 ```
@@ -310,59 +299,77 @@ Ec [CAP_InvAmp] --(summarises)--> [CLM_gain]
 Mutate examples:
 
 ```text
-+ CAP [NEW] ; name=pdu ; layer=system ; recycle=persistent
-+ PORT [NEW] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
-+ NEW [CAP…] --(exposes)--> [PORT…]
++ CAP [NEW] ; name=pdu ; layer=system ; ports=Vbus:out ; recycle=persistent
 ~ [CLM_gain] ; gain_v=-9.8
 ```
 
-**Forbidden on agent surface:** `@TAG|pipe`, TOON/TRON, embedding full SysML text as a field blob, dumping all layers in one pin map, encoding port-of-Capsule only in id punctuation (`_`, `__`, dotted id paths).
+**Forbidden on agent surface:** `@TAG|pipe`, TOON/TRON, embedding full SysML text as a field blob, dumping all layers in one pin map, encoding port-of-Capsule only in id punctuation (`_`, `__`, dotted id paths), teaching expanded Port+`exposes` as the default shell dialect when sugar applies.
 
-### 8.1 Syntax sugar vs atoms (recommendation)
+### 8.1 Capsule sugar (recommended agent surface)
+
+Expanded CAP + PORT + `exposes` / `contains` lines are **store atoms** (and the interior / debug expand). They are **not** the preferred agent shell surface — they burn tokens and invite inventing Port nodes without ownership edges.
 
 | Option | What it is | Verdict |
 |--------|------------|---------|
-| **A. Pattern only** | Capsule = `CAP` + `PORT` + `exposes` / `contains` / … over NODE\|EDGE | **MVP lock** — teach and emit this |
-| **B. Mutate sugar** | Compact create lines that **desugar** 1:1 into A (same family as optional `:=` → `derives`) | **Later, optional** — only if measured agent friction |
-| **C. Third primitive** | A real Capsule AST / non-NODE\|EDGE grammar object | **Rejected** — breaks MN-REQ-02; SysML-shaped wire creep |
+| **A. Expanded atoms only** | Agents always write/read every `PORT` row and `exposes` / `contains` EDGE | Demoted for agents — accurate store, costly context |
+| **B. Compact capsule sugar** | One (or few) `CAP` lines with `ports=` / `contains=`; engine **desugars 1:1** to A in the store | **Recommended agent surface (MVP design)** |
+| **C. Third primitive** | Capsule outside NODE\|EDGE | **Rejected** |
 
-**Why A stays easiest for MemNet’s mission**
+**Write ≈ display (locked for accuracy):** shell `pin_map` **emits the same compact sugar** agents mutate. Do **not** teach sugar-on-write + expanded-on-read — that second dialect is what confuses models. Interior `view=interior` stays ordinary NODE\|EDGE (nets, pins, `derives`). Optional later: `view=atoms` for expanded shell debug.
 
-| Concern | Why pure NODE\|EDGE wins |
-|---------|--------------------------|
-| **Write = display** | Pin map already shows shell as ordinary NODE/EDGE lines; sugar that is not re-shown forces a second dialect |
-| **Token budget** | Shell view is already the compression; inventing a denser *syntax* does not shrink ego expand — `view=` / `max_rows` do |
-| **LLM clarity** | One shape to copy; no “is this sugar or store truth?” fork |
-| **Parser / harness** | No new productions in `MemNet.g4` for MVP; soft lint stays kind/`rel` allowlists |
-| **SysML analogy** | Ingest maps part/port → atoms; agents never author SysML text or a parallel capsule language |
-| **Reserve / ACL** | Leases attach to ground ids; a collapsed sugar blob has no natural lease endpoints until expanded |
+| Concern | Why B for agents |
+|---------|------------------|
+| **Token thrift** | One `CAP` line replaces N Port rows + N `exposes` edges on the shell |
+| **LLM accuracy** | Ports and ownership travel together; harder to mint orphan `PORT`s or drop `exposes` |
+| **Write ≈ display** | Same compact lines both ways on the shell |
+| **Store fidelity** | Desugar always → `CAP` + `PORT` + `exposes` / `contains` (no third store kind) |
+| **Reserve / ACL** | Sugar lists **assigned** Port / child ids so leases still target ground ids |
 
-**When B would help:** bulk *create* of a shell (many ports) in one mutate turn — same niche as `:=` compile-to-EDGE. **MUST:** sugar is mutate-only; pin map and subsequent `~` / `-` use **expanded** CAP/PORT/`exposes`/`contains` only. **MUSTNOT:** leave `ports=…` / embedded id lists as standing present fields (same lint class as schematic `ports=` / `07_bad_embedded_relation`).
+**Sugar fields on `CAP` only** (compile away; not schematic `ports=` bags that never expand):
 
-Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@TAG|pipe`):
+| Field | Shape | Compiles to |
+|-------|-------|-------------|
+| `ports=` | `Id:name:side` list (comma-separated); on create, `name:side` and engine mints Port ids | `PORT` nodes + Capsule `--(exposes)-->` Port |
+| `contains=` | Comma-separated child Capsule or immediate-child ids | Capsule `--(contains)-->` Child (immediate only) |
+
+**MUST:** every sugar create/update expands 1:1 to store atoms before persist. **MUSTNOT:** store only the list with no Port nodes; invent `@TAG|pipe`; use sugar for PCBA `PIN` / SysML `POR` grains.
+
+#### Sugar vs expanded (ASCII sketch)
 
 ```text
-# Sugar (mutate compile — later optional)
-+ CAP [NEW] ; name=inverting_amp ; layer=board ; with_ports=Vin:in,Vout:out ; recycle=persistent
+# Agent shell — mutate (compact)
++ CAP [NEW] ; name=inverting_amp ; layer=board ; ports=Vin:in,Vout:out ; recycle=persistent
 
-# Must desugar to (what pin_map shows — Write = display)
-+ CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; recycle=persistent
-+ PORT [PORT_Vin] ; name=Vin ; side=in ; recycle=persistent
-+ PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
-+ NEW [CAP_InvAmp] --(exposes)--> [PORT_Vin]
-+ NEW [CAP_InvAmp] --(exposes)--> [PORT_Vout]
+# Agent shell — pin_map bare present (same compact shape; assigned ids)
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; ports=PORT_Vin:Vin:in,PORT_Vout:Vout:out ; recycle=persistent
+CLM [CLM_gain] ; layer=board ; gain_v=-10 ; recycle=persistent
+Ea [CAP_InvAmp] --(summarises)--> [CLM_gain]
+
+# Store atoms after desugar (not the default shell pin_map)
+CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; recycle=persistent
+PORT [PORT_Vin] ; name=Vin ; side=in ; recycle=persistent
+PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
+E1 [CAP_InvAmp] --(exposes)--> [PORT_Vin]
+E2 [CAP_InvAmp] --(exposes)--> [PORT_Vout]
 ```
 
 ```text
-# Optional second sugar: membership list → N contains edges
-+ CAP [CAP_InvAmp] ; with_contains=ATO_Rf,NET_VIN
+# Nest sugar (parent shell)
++ CAP [NEW] ; name=pdu ; layer=system ; ports=Vbus:out ; contains=CAP_Rail12 ; recycle=persistent
 
-# Desugars to
-+ NEW [CAP_InvAmp] --(contains)--> [ATO_Rf]
-+ NEW [CAP_InvAmp] --(contains)--> [NET_VIN]
+# pin_map shell (compact)
+CAP [CAP_Pdu] ; name=pdu ; layer=system ; ports=PORT_Vbus:Vbus:out ; contains=CAP_Rail12 ; recycle=persistent
+
+# Desugars to (store)
+CAP [CAP_Pdu] ; …
+PORT [PORT_Vbus] ; name=Vbus ; side=out ; …
+E_ex [CAP_Pdu] --(exposes)--> [PORT_Vbus]
+E_co [CAP_Pdu] --(contains)--> [CAP_Rail12]
 ```
 
-**Locked recommendation:** ship and teach **A**. Defer **B** until SCHEMA lock + golden fixtures prove agents need compact create; if added, mirror formula-sugar policy (compile on write, absolute expanded present). Never **C**.
+Patch a single Port when needed: `~ [PORT_Vin] ; name=Vin_p` (ids appear inside `ports=`). Inter-capsule wiring stays expanded EDGE: `[PORT_a] --(connects)--> [PORT_b]`.
+
+**Locked recommendation:** teach **B** as the agent shell dialect; keep **A** as store + interior + debug expand; never **C**.
 
 ---
 
@@ -379,7 +386,8 @@ Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@
 | `pin_map` | Honour `layer` and/or `view=shell\|interior` **or** document agent convention: shell = stop at `exposes` / do not auto-expand `contains` (including child capsules) |
 | Caps | Existing `depth` / `max_rows`; optional engine nest-open limit (N) when implementing |
 | Engine auto-summary | **No** — agents or ingest write `summarises` / shell fields |
-| Capsule syntax | **A only** — pattern over NODE\|EDGE; no sugar, no third primitive (§8.1) |
+| Capsule syntax | **B sugar on agent shell** (`ports=` / `contains=` on `CAP`); desugar to store atoms; no third primitive (§8.1) |
+| Shell pin_map | Emit **compact** sugar (Write ≈ display); not full Port+`exposes` expand by default |
 | SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
 
 ### Later
@@ -388,8 +396,8 @@ Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@
 |------|-------|
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
 | Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.5 limits in `pin_map` |
-| SCHEMA / TagMap formalisation of `CAP` / `PORT` | With golden fixtures |
-| Optional mutate sugar `with_ports=` / `with_contains=` → expand (§8.1 B) | Only if agent friction measured; pin map stays expanded |
+| SCHEMA / TagMap formalisation of `CAP` / `PORT` + sugar fields | With golden fixtures |
+| `view=atoms` expanded shell for debug | Optional |
 | `pin_map` multi-layer “breadcrumb” section (ancestors only, tiny) | Optional |
 | Automatic SysML part/port ingest → capsules | PinMapIngest path |
 | Cross-session layer catalogues | Out of scope until needed |
@@ -403,8 +411,9 @@ Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@
 | **Layer sprawl** | Small closed vocabulary for MVP (`system`, `board`, `net`, `equation`, `law`, `working`); reject free prose tokens in lint later |
 | **Stale summaries** | Shell fields and `summarises` targets are **explicit**; MVP = writer refreshes; later = materialise hooks. Prefer absolute shell numbers + visible `derives` over silent cache |
 | **Inconsistent cross-layer ids** | Same ground-id rules as grammar §4.2.1 — locators for artefact pins; `NEW` only for MemNet-only facts; re-id/merge under reserve/ACL. Ports keep stable ids when interior nets are reminted |
-| **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; capsule is a **pattern** (§8.1 C rejected) |
-| **Sugar as second dialect** | If B lands: mutate compile only; pin map never emits `with_ports=` / standing port lists (§8.1) |
+| **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; sugar desugars to atoms (§8.1 C rejected) |
+| **Sugar / expand mismatch** | Shell pin_map and mutate both use compact form; expanded only in store / interior / `view=atoms` (§8.1) |
+| **Orphan ports** | Reject stand-alone agent `+ PORT` without Capsule sugar or `exposes` ownership when shell sugar is in force |
 | **Accidental whole-interior expand** | Default shell view; `contains` not followed unless `view=interior` or anchor is interior |
 | **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.5) |
 | **`contains` fan-out** | Contain immediate children / child Capsules only; use Port `refines` for boundary nets — not one `contains` per leaf (§3.3) |
@@ -420,9 +429,9 @@ Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@
 
 | Aim | How this helps |
 |-----|----------------|
-| MN-REQ-00 tokens / wall-clock | Reason at shell; descend once |
-| MN-REQ-02 NODE\|EDGE | Capsule = composition of atoms |
-| MN-REQ-08 Write = display | Same lines; layer/view only change which bounded set appears |
+| MN-REQ-00 tokens / wall-clock | Compact shell sugar + descend once |
+| MN-REQ-02 NODE\|EDGE | Store = atoms; sugar desugars 1:1 (§8.1) |
+| MN-REQ-08 Write = display | Shell compact both ways; interior stays expanded atoms |
 | MN-REQ-10 / 11 pin caps | `depth`/`max_rows` + stratum filter |
 | MN-REQ-11.13 no corpus dump | Shell never embeds full interior source |
 
