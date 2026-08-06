@@ -287,7 +287,15 @@ Mutate sugar (create shell; engine desugars `ports=`):
 
 Parent–child shell wiring lands on Ports (not grandchild interiors): e.g. when InvAmp interior is open, board nets that feed the amp use `refines` into `PORT_Inm` / `PORT_Inp` / `PORT_Out`, or Port→Port `connects` once both Port ids are assigned. Do **not** paste those edges into the InvAmp **shell** dump.
 
-**Interior interconnect** after `pin_map(anchor=CAP_OpAmp, view=interior)` — behavioural finite-gain model (matches the app-note op-amp assumption; not transistor-level):
+**Interior interconnect** after `pin_map(anchor=CAP_OpAmp, view=interior)` — behavioural finite-gain model (matches the app-note op-amp assumption; not transistor-level).
+
+**Readable chain:** Port → Net → Var → stamp fields → formula → Out.
+
+1. `PORT_* --(refines)--> NET_*` (boundary bridge).
+2. `VAR_* --(voltage_of)--> NET_*` (nodal voltage of that net).
+3. Stamp `RES_a` holds **mirrors** of those voltages as local fields `Vinp` / `Vinm` (same pattern as InvAmp `RES_A.Vin` — agent copies `VAR_INP.V` → `Vinp`, `VAR_INM.V` → `Vinm`; cross-node `derives`/`feeds` remains later).
+4. Same-node `derives` **owns** `Vdiff` and `Vout` — they are not orphan scalars: `Vdiff=Vinp-Vinm`, then `Vout=a_s*Vdiff`.
+5. Agent mirrors `RES_a.Vout` → `VAR_OUT.V` for the output net.
 
 ```text
 ## Nodes
@@ -297,7 +305,7 @@ NET [NET_OUT] ; net=OUT ; layer=net ; recycle=persistent
 VAR [VAR_INM] ; symbol=V_INM ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
 VAR [VAR_INP] ; symbol=V_INP ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
 VAR [VAR_OUT] ; symbol=V_OUT ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
-RES [RES_a] ; a_s=1000000 ; Vdiff=0.0 ; Vout=0.0 ; domain=s ; recycle=persistent
+RES [RES_a] ; a_s=1000000 ; Vinp=0.0 ; Vinm=0.0 ; Vdiff=0.0 ; Vout=0.0 ; domain=s ; recycle=persistent
 
 ## Edges
 # ownership (immediate children)
@@ -311,25 +319,26 @@ Er_inm [PORT_Inm] --(refines)--> [NET_INM]
 Er_inp [PORT_Inp] --(refines)--> [NET_INP]
 Er_out [PORT_Out] --(refines)--> [NET_OUT]
 
-# voltages of interior nets
+# voltages of interior nets (Port -> Net -> Var)
 Ev1 [VAR_INM] --(voltage_of)--> [NET_INM]
 Ev2 [VAR_INP] --(voltage_of)--> [NET_INP]
 Ev3 [VAR_OUT] --(voltage_of)--> [NET_OUT]
 
-# finite open-loop gain a(s): Vout = a_s * (Vinp - Vinm)
+# finite open-loop gain a(s): sources = stamp mirrors of VAR_INP / VAR_INM
+# Vdiff and Vout are formula-owned (one derives EDGE per tgt_field; MVP self-loop)
 Ef_diff [RES_a] --(derives)--> [RES_a] ; tgt_field=Vdiff ; src_fields=Vinp,Vinm ; expr=Vinp-Vinm
-Ef_a [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ; expr=a_s*Vdiff
+Ef_gain [RES_a] --(derives)--> [RES_a] ; tgt_field=Vout ; src_fields=a_s,Vdiff ; expr=a_s*Vdiff
 ```
 
 | Grain | Under CAP_OpAmp | Not here |
 |-------|-----------------|----------|
-| Differential inputs | `NET_INM` / `NET_INP` + `refines` from `PORT_Inm` / `PORT_Inp` | Board nets `NET_VMINUS` / `NET_VGND` (parent interior; linked via shell `connects`) |
-| Finite gain **a(s)** | `RES_a` + `derives` on `Vout` / `Vdiff`; shell may `summarises` → `CLM_a_s` | Closed-loop **A(s)** / Rin/Rf (`RES_A` stays on InvAmp) |
-| Output | `NET_OUT` + `PORT_Out --(refines)-->` | External load / feedback resistors |
+| Differential inputs | `NET_INM` / `NET_INP` + `refines` from `PORT_Inm` / `PORT_Inp`; `VAR_*` via `voltage_of`; stamp mirrors `Vinp`/`Vinm` on `RES_a` | Board nets `NET_VMINUS` / `NET_VGND` (parent interior; linked via shell `connects`) |
+| Finite gain **a(s)** | `RES_a` + `derives` owning `Vdiff=Vinp-Vinm` then `Vout=a_s*Vdiff`; shell may `summarises` → `CLM_a_s` | Closed-loop **A(s)** / Rin/Rf (`RES_A` stays on InvAmp); do **not** leave `Vdiff`/`Vout` without those EDGEs |
+| Output | `NET_OUT` + `PORT_Out --(refines)-->`; mirror `Vout` → `VAR_OUT.V` | External load / feedback resistors |
 
 **Descend path:** `pin_map(CAP_InvAmp, view=shell)` → `pin_map(CAP_InvAmp, view=interior)` (see Rin/Rf) → `pin_map(CAP_OpAmp, view=shell)` → `pin_map(CAP_OpAmp, view=interior)` (this subsection). One Capsule-open step per turn when possible.
 
-**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`.
+**MUSTNOT:** invent `view=opamp` / `view=interconn`; dump op-amp interior into the InvAmp shell; put Rin/Rf inside `CAP_OpAmp`; rename Capsule Ports to schematic `PIN_*`; put orphan `Vdiff`/`Vout` on `RES_a` without matching `derives` EDGEs whose `src_fields` exist on that node.
 
 #### Rel cheat-sheet (shell vs interior)
 
