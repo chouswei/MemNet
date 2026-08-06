@@ -319,6 +319,52 @@ Mutate examples:
 
 **Forbidden on agent surface:** `@TAG|pipe`, TOON/TRON, embedding full SysML text as a field blob, dumping all layers in one pin map, encoding port-of-Capsule only in id punctuation (`_`, `__`, dotted id paths).
 
+### 8.1 Syntax sugar vs atoms (recommendation)
+
+| Option | What it is | Verdict |
+|--------|------------|---------|
+| **A. Pattern only** | Capsule = `CAP` + `PORT` + `exposes` / `contains` / … over NODE\|EDGE | **MVP lock** — teach and emit this |
+| **B. Mutate sugar** | Compact create lines that **desugar** 1:1 into A (same family as optional `:=` → `derives`) | **Later, optional** — only if measured agent friction |
+| **C. Third primitive** | A real Capsule AST / non-NODE\|EDGE grammar object | **Rejected** — breaks MN-REQ-02; SysML-shaped wire creep |
+
+**Why A stays easiest for MemNet’s mission**
+
+| Concern | Why pure NODE\|EDGE wins |
+|---------|--------------------------|
+| **Write = display** | Pin map already shows shell as ordinary NODE/EDGE lines; sugar that is not re-shown forces a second dialect |
+| **Token budget** | Shell view is already the compression; inventing a denser *syntax* does not shrink ego expand — `view=` / `max_rows` do |
+| **LLM clarity** | One shape to copy; no “is this sugar or store truth?” fork |
+| **Parser / harness** | No new productions in `MemNet.g4` for MVP; soft lint stays kind/`rel` allowlists |
+| **SysML analogy** | Ingest maps part/port → atoms; agents never author SysML text or a parallel capsule language |
+| **Reserve / ACL** | Leases attach to ground ids; a collapsed sugar blob has no natural lease endpoints until expanded |
+
+**When B would help:** bulk *create* of a shell (many ports) in one mutate turn — same niche as `:=` compile-to-EDGE. **MUST:** sugar is mutate-only; pin map and subsequent `~` / `-` use **expanded** CAP/PORT/`exposes`/`contains` only. **MUSTNOT:** leave `ports=…` / embedded id lists as standing present fields (same lint class as schematic `ports=` / `07_bad_embedded_relation`).
+
+Illustrative sugar → expand (ASCII shared dialect; not implemented; **not** `@TAG|pipe`):
+
+```text
+# Sugar (mutate compile — later optional)
++ CAP [NEW] ; name=inverting_amp ; layer=board ; with_ports=Vin:in,Vout:out ; recycle=persistent
+
+# Must desugar to (what pin_map shows — Write = display)
++ CAP [CAP_InvAmp] ; name=inverting_amp ; layer=board ; recycle=persistent
++ PORT [PORT_Vin] ; name=Vin ; side=in ; recycle=persistent
++ PORT [PORT_Vout] ; name=Vout ; side=out ; recycle=persistent
++ NEW [CAP_InvAmp] --(exposes)--> [PORT_Vin]
++ NEW [CAP_InvAmp] --(exposes)--> [PORT_Vout]
+```
+
+```text
+# Optional second sugar: membership list → N contains edges
++ CAP [CAP_InvAmp] ; with_contains=ATO_Rf,NET_VIN
+
+# Desugars to
++ NEW [CAP_InvAmp] --(contains)--> [ATO_Rf]
++ NEW [CAP_InvAmp] --(contains)--> [NET_VIN]
+```
+
+**Locked recommendation:** ship and teach **A**. Defer **B** until SCHEMA lock + golden fixtures prove agents need compact create; if added, mirror formula-sugar policy (compile on write, absolute expanded present). Never **C**.
+
 ---
 
 ## 9. MVP vs later
@@ -334,6 +380,7 @@ Mutate examples:
 | `pin_map` | Honour `layer` and/or `view=shell\|interior` **or** document agent convention: shell = stop at `exposes` / do not auto-expand `contains` (including child capsules) |
 | Caps | Existing `depth` / `max_rows`; optional engine nest-open limit (N) when implementing |
 | Engine auto-summary | **No** — agents or ingest write `summarises` / shell fields |
+| Capsule syntax | **A only** — pattern over NODE\|EDGE; no sugar, no third primitive (§8.1) |
 | SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
 
 ### Later
@@ -343,6 +390,7 @@ Mutate examples:
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
 | Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.5 limits in `pin_map` |
 | SCHEMA / TagMap formalisation of `CAP` / `PORT` | With golden fixtures |
+| Optional mutate sugar `with_ports=` / `with_contains=` → expand (§8.1 B) | Only if agent friction measured; pin map stays expanded |
 | `pin_map` multi-layer “breadcrumb” section (ancestors only, tiny) | Optional |
 | Automatic SysML part/port ingest → capsules | PinMapIngest path |
 | Cross-session layer catalogues | Out of scope until needed |
@@ -356,7 +404,8 @@ Mutate examples:
 | **Layer sprawl** | Small closed vocabulary for MVP (`system`, `board`, `net`, `equation`, `law`, `working`); reject free prose tokens in lint later |
 | **Stale summaries** | Shell fields and `summarises` targets are **explicit**; MVP = writer refreshes; later = materialise hooks. Prefer absolute shell numbers + visible `derives` over silent cache |
 | **Inconsistent cross-layer ids** | Same ground-id rules as grammar §4.2.1 — locators for artefact pins; `NEW` only for MemNet-only facts; re-id/merge under reserve/ACL. Ports keep stable ids when interior nets are reminted |
-| **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; capsule is a **pattern** |
+| **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; capsule is a **pattern** (§8.1 C rejected) |
+| **Sugar as second dialect** | If B lands: mutate compile only; pin map never emits `with_ports=` / standing port lists (§8.1) |
 | **Accidental whole-interior expand** | Default shell view; `contains` not followed unless `view=interior` or anchor is interior |
 | **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.5) |
 | **Id-as-grammar drift** | Port-hood = kind `PORT` + `exposes`; `_` in ids is KIND_rest only (§3.2) — reject `__` / dotted-id “port of CAP” conventions |
