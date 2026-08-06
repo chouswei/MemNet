@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -70,7 +71,12 @@ def test_example_fixture(path: Path) -> None:
 
 @pytest.mark.parametrize(
     "name",
-    ["01_warm_slice_good.txt", "04_pin_map_sysml_code_good.txt"],
+    [
+        "01_warm_slice_good.txt",
+        "04_pin_map_sysml_code_good.txt",
+        "22_inverting_amp_nodal_good.txt",
+        "23_formula_derives_good.txt",
+    ],
 )
 def test_round_trip_emit(name: str) -> None:
     text = (EXAMPLES / name).read_text(encoding="utf-8")
@@ -78,7 +84,7 @@ def test_round_trip_emit(name: str) -> None:
     doc = parse(text)
     emitted = emit(doc)
     assert "## Nodes" in emitted or "## Pins" in emitted or "## Edges" in emitted
-    assert "E77" in emitted or "E10" in emitted
+    assert re.search(r"\bE[A-Za-z0-9_]+\b", emitted), f"{name}: expected an edge id in emit"
 
 
 def test_law_first_field_no_leading_semi() -> None:

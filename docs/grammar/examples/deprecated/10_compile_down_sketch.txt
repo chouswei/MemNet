@@ -1,8 +1,8 @@
-# Compile-down sketch (not agent SSOT): Tier A line → store pipe
-# Source (Tier A):
-#   + TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
-#   + E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+# Compile-down sketch (not agent SSOT): shared-dialect line → store pipe
+# Source (shared dialect):
+#   + TSK [T42] ; goal=Seed inverting amp nodal example ; phase=2 ; status=in_progress ; recycle=persistent
+#   + E77 [N03] --(supports)--> [T42] ; note=nodal_review ; recycle=persistent
 #
-# Target (Tier B store codec, current):
-@TSK: T42|Clear warehouse|2|in_progress|persistent
-@EDG: E77|N03|helps|T42|labour|persistent
+# Target (Tier B store codec, legacy import only):
+@TSK: T42|Seed inverting amp nodal example|2|in_progress|persistent
+@EDG: E77|N03|supports|T42|nodal_review|persistent

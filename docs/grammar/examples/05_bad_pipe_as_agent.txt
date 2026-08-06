@@ -1,4 +1,4 @@
 # expect: parse-reject
 # Bad: legacy @TAG pipe as preferred agent-facing dialect (parse-reject).
-@TSK: T42|Clear the warehouse|2|in_progress|persistent
-@EDG: E77|N03|helps|T42|labour|persistent
+@TSK: T42|Seed inverting amp nodal example|2|in_progress|persistent
+@EDG: E77|N03|supports|T42|nodal_review|persistent

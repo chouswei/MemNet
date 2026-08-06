@@ -1,12 +1,14 @@
+# expect: parse-ok
+# Pin-map (bare present): laws, nodes, edges — MemNet / circuit analysis slice.
 ## Laws
 LAW01 kind=engine ; text=one_row_per_id_tag ; recycle=persistent
 LAW04 kind=engine ; text=agent_surface_no_pipe_split ; recycle=persistent
 
 ## Nodes
-TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
-NPC [N03] ; role=helper ; status=active ; recycle=persistent
-MOD [M_wh] ; path=parts/warehouse/store.py ; summary=stock ledger ; recycle=persistent
+TSK [T42] ; goal=Seed inverting amp nodal example ; phase=2 ; status=in_progress ; recycle=persistent
+AGT [N03] ; role=analyst ; status=active ; recycle=persistent
+MOD [M_memnet] ; path=parts/common/memnet/memnet/tier_a.py ; summary=shared dialect parser ; recycle=persistent
 
 ## Edges
-E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
-E78 [M_wh] --(documents)--> [T42] ; recycle=persistent
+E77 [N03] --(supports)--> [T42] ; note=nodal_review ; recycle=persistent
+E78 [M_memnet] --(documents)--> [T42] ; recycle=persistent

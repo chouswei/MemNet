@@ -1,3 +1,3 @@
 # expect: lint-reject
 # Bad: += / -= are update-only; create uses plain =.
-+ PLR [NEW] ; identity=Hero ; wealth+=1 ; cashflow=0 ; monopoly=0 ; reputation=0 ; inventory=bag
++ RES [NEW] ; Vout=0 ; Vin=1 ; Rf=100000 ; Rin=10000 ; gain+=1 ; recycle=persistent

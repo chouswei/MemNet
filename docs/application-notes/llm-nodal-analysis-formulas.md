@@ -17,6 +17,7 @@ This note also complements:
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — `CMP` / `PIN` / `NET`, s-domain `VAR` / `EQN`, golden rules
 - Grammar PCBA fixtures — `docs/grammar/examples/17_*.txt`, `18_*.txt`
+- Worked inverting amplifier (topology + `derives`) — [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md); golden seed `docs/grammar/examples/22_inverting_amp_nodal_good.txt`
 
 ---
 
@@ -192,7 +193,9 @@ E_sum [EQN_KCL_MID] --(derives)--> [EQN_KCL_MID] ; tgt_field=residual ; src_fiel
 
 | Path | Role |
 |------|------|
+| `docs/application-notes/examples/inverting-amplifier-memnet.md` | Trivial ideal inverting amp — both layers + MCP seed |
 | `docs/application-notes/llm-circuit-schematic.md` | Schematic grain, s-domain nodal `EQN`/`VAR` worked op-amp |
+| `docs/grammar/examples/22_inverting_amp_nodal_good.txt` | Parse-ok golden nodal + `derives` fixture |
 | `docs/grammar/memnet-field-formulas.md` | **Generic** formula EDGE SSOT (any domain; design; no evaluator) — this note only *uses* it |
 | `docs/grammar/memnet-grammar-design.md` | Atomisation, locators, `+=`/`-=` |
 | `.cursor/skills/memnet-reference/` | Repo dialect routing |

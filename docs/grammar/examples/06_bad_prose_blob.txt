@@ -1,3 +1,3 @@
 # expect: lint-reject
 # Bad: prose blob in a field (parse OK; soft lint rejects fat/prose atoms).
-+ NOTE [N01] ; text=The warehouse mission involves N03 helping T42 and also the lock on the east gate before dawn ; recycle=persistent
++ NOTE [N01] ; text=The nodal analysis session covers KCL at VMINUS and also the virtual ground constraint before closing the gain result ; recycle=persistent

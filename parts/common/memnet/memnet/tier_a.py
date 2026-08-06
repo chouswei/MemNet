@@ -541,7 +541,7 @@ def lint(doc: Document) -> list[LintIssue]:
                             )
                         )
             for f in it.fields:
-                issues.extend(_lint_value(f.value, it.raw))
+                issues.extend(_lint_value(f.value, it.raw, field_key=f.key))
             # Pipe dialect leaked into values
             if it.raw.startswith("@"):
                 issues.append(LintIssue("error", "pipe_dialect", "Tier B pipe on agent surface"))
@@ -566,11 +566,11 @@ def lint(doc: Document) -> list[LintIssue]:
                             )
                         )
             for f in it.fields:
-                issues.extend(_lint_value(f.value, it.raw))
+                issues.extend(_lint_value(f.value, it.raw, field_key=f.key))
     return _dedupe(issues)
 
 
-def _lint_value(value: str, raw: str) -> list[LintIssue]:
+def _lint_value(value: str, raw: str, *, field_key: str | None = None) -> list[LintIssue]:
     issues: list[LintIssue] = []
     if len(value) > SOFT_ATOM_CHARS:
         issues.append(
@@ -589,7 +589,10 @@ def _lint_value(value: str, raw: str) -> list[LintIssue]:
                 f"value looks like prose ({len(words)} words); atomise",
             )
         )
-    if "," in value and re.search(r"[A-Za-z0-9_]+,[A-Za-z0-9_]", value):
+    # Formula EDGE src_fields is a comma-separated name list (memnet-field-formulas.md).
+    if field_key != "src_fields" and "," in value and re.search(
+        r"[A-Za-z0-9_]+,[A-Za-z0-9_]", value
+    ):
         issues.append(
             LintIssue(
                 "error",

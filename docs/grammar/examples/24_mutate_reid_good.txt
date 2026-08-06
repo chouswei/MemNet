@@ -1,0 +1,4 @@
+# expect: parse-ok
+# Re-id patch: rename mistaken mint to locator ground id (design §4.2.0).
+~ [C_tmp] ; id=CLM_final ; recycle=persistent
+~ E_tmp ; id=E_final ; recycle=persistent

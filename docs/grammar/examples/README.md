@@ -2,6 +2,8 @@
 
 Harness / package names keep `tier_a` for continuity; fixtures teach **legal and illegal shapes** of the shared dialect (Write = display). **Do not delete** these fixtures when renaming prose — they are the precision benefit of `docs/grammar/`.
 
+Product context: **MemNet 0.3.6+** — generic agent memory graph; examples favour SysML, PCBA, circuit nodal analysis, and domain-neutral formula EDGEs (not novel-writer / game-economy tags).
+
 #
 # Header marker (first lines):
 #   # expect: parse-ok       — must parse; lint errors fail the test if present on *_good
@@ -11,16 +13,16 @@ Harness / package names keep `tier_a` for continuity; fixtures teach **legal and
 # Files without `# expect:`:
 #   *_good.txt  → parse-ok (default)
 #   *_bad.txt   → inferred: try parse; if OK then lint-reject else parse-reject
-#   10_compile_down_sketch.txt → skipped (legacy pipe illustration, not shared-dialect input)
+#   deprecated/10_compile_down_sketch.txt → skipped (legacy pipe illustration)
 #
 # Classification (R1):
 
 | File | Class | Notes |
 |------|-------|-------|
-| 01_warm_slice_good | parse-ok | Pin-map (bare present); laws without leading `;`; edge ids |
+| 01_warm_slice_good | parse-ok | Pin-map (bare present); laws; edge ids |
 | 02_mutate_create_good | parse-ok | `[NEW]` node mint; `NEW` edge-id mint |
 | 03_mutate_settle_good | parse-ok | Known ids only |
-| 04_pin_map_sysml_code_good | parse-ok | Pin map + edge ids |
+| 04_pin_map_sysml_code_good | parse-ok | Pin map + edge ids (SysML / code / skills) |
 | 05_bad_pipe_as_agent | parse-reject | `@TAG` pipe as agent I/O (illegal) |
 | 06_bad_prose_blob | lint-reject | Soft prose/fat-field lint |
 | 07_bad_embedded_relation | lint-reject | Comma id-list → use EDGE |
@@ -38,5 +40,12 @@ Harness / package names keep `tier_a` for continuity; fixtures teach **legal and
 | 19_schema_map_good | parse-ok | `SCHEMA` session map (not NODE/EDGE) |
 | 20_bad_numeric_op_on_create | lint-reject | `+=` / `-=` illegal on `+` create |
 | 21_bad_numeric_op_delta_not_number | parse-reject | non-number after `+=` / `-=` |
+| 22_inverting_amp_nodal_good | parse-ok | Circuit nodal slice + `derives` (Ohm, KCL, gain) |
+| 23_formula_derives_good | parse-ok | Domain-neutral self-loop `derives` |
+| 24_mutate_reid_good | parse-ok | Re-id node and edge on `~` |
 
-focus / caps are **not** in body fixtures (MCP/CLI envelope only).
+**Worked example (prose + MCP seed):** [`docs/application-notes/examples/inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md).
+
+`focus` / caps are **not** in body fixtures (MCP/CLI envelope only).
+
+Run harness: `python -m pytest tests/grammar/test_tier_a_golden.py -v`
