@@ -1,7 +1,7 @@
 # Multi-layer MemNet and capsules (design)
 
 **Status:** design only — **no engine implementation** in 0.3.5 / 0.3.6.  
-**Thesis:** MemNet stays **NODE | EDGE** only; complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports compositions built *from* those atoms).  
+**Thesis:** MemNet stays **NODE | EDGE** only; complex work zooms through **layers** and reusable **capsules** (SysML-like part-with-ports compositions built *from* those atoms — including capsule-in-capsule).  
 **Aims:** MN-REQ-00 — save wall-clock and tokens while keeping factual accuracy; bounded live **pin map** each turn; Write = display.  
 **Dialect:** shared dialect (ASCII; no `|` pipe on the agent surface). British English.  
 **Related:** [`memnet-grammar-design.md`](memnet-grammar-design.md) (§3 store layering ≠ this doc), [`memnet-field-formulas.md`](memnet-field-formulas.md), [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md), [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md), nodal app note `docs/application-notes/llm-nodal-analysis-formulas.md`.
@@ -49,7 +49,7 @@ Agents need to **reason at layer L**, then **descend only when needed** — fini
 
 **Ports** are boundary **NODEs** (or typed pin nodes with locator fields). **Internal structure** is nested NODE|EDGE owned by / reachable under the capsule. **Connections between capsules** are EDGEs whose endpoints are **ports** (not arbitrary interior nodes), so the shell stays a stable contract.
 
-SysML v2 **part with ports** is the **analogy and ingest target** — map part/port/connection into MemNet NODE|EDGE on ingest. **Do not** embed SysML textual syntax in the agent wire.
+SysML v2 **part with ports** is the **analogy and ingest target** — map part/port/connection into MemNet NODE|EDGE on ingest. **Do not** embed SysML textual syntax in the agent wire. Nested SysML parts map to **capsule-in-capsule** (§3.4); the wire still shows only NODE|EDGE.
 
 ### 3.2 Anatomy (pattern, not new AST kinds)
 
@@ -58,7 +58,7 @@ Capsule = {
   shell_node:     NODE,              // e.g. CAP [CAP_InvAmp] ; layer=board ; …
   ports:          NODE[],            // boundary; e.g. PRT / PIN / POR kinds
   shell_edges:    EDGE[],            // owns / exposes / connects_at_shell
-  interior:       NODE[] + EDGE[],   // refined graph (nets, stamps, tasks, …)
+  interior:       NODE[] + EDGE[],   // refined graph — may include child capsules
   cross_links:    EDGE[],            // summarises | refines | exposes (shell <-> interior)
 }
 ```
@@ -93,6 +93,44 @@ E6 [POR_Vin] --(refines)--> [NET_n_in] ;   # descend: port -> interior net
 
 **Descend = open the capsule** — change anchor to a port / interior node, or pass an explicit view; do **not** paste the whole interior into the shell pin map.
 
+### 3.4 Nested capsules (capsule-in-capsule)
+
+**Yes — recursive composition is allowed.** A capsule’s interior may contain child capsules (and leaf atoms). Analogy: SysML v2 **nested parts** — each child is again a part-with-ports; MemNet expresses the same idea as NODE|EDGE with `contains` / `exposes` / `refines` / `summarises`, not a new primitive.
+
+```text
+CAP_System
+  exposes → POR_…          # system shell ports
+  contains → CAP_Board     # child capsule (shell visible when parent opens interior)
+               exposes → POR_…
+               contains → CAP_Stage / NET / CMP …
+```
+
+| Rule | Detail |
+|------|--------|
+| **Composition** | Parent `--(contains)-->` child capsule shell; child keeps its own ports via `exposes`; parent–child or sibling wiring still lands on **ports**, not arbitrary grandchild interiors |
+| **Descend** | Parent port or child shell `--(refines)-->` / is reached via `contains` — same thin cross-links as §5.1 |
+| **pin_map** | **One shell at a time.** Default view for a capsule anchor = that capsule’s shell only. Opening the parent does **not** auto-expand grandchild interiors. Re-anchor (or `view=interior` one step) to open the next capsule |
+| **Depth limits** | Hard budget remains `depth` / `max_rows` **within** the active shell/interior view. Design default: **one capsule-open step per turn** when possible; engine MVP may also cap nesting depth (e.g. refuse expand past N nested opens in one call) — exact N is an implementation lock |
+| **MUSTNOT** | Dump nested interiors in one pin map; treat nesting as prose in `note=`; invent a “nested capsule” AST kind outside NODE\|EDGE |
+
+Illustrative nest sketch:
+
+```text
+## Nodes
+CAP [CAP_Pdu] ; name=pdu ; layer=system ; role=capsule ; recycle=persistent
+CAP [CAP_Rail12] ; name=rail_12v ; layer=board ; role=capsule ; recycle=persistent
+POR [POR_Vbus] ; name=Vbus ; side=out ; layer=system ; recycle=persistent
+POR [POR_RailOut] ; name=Vout ; side=out ; layer=board ; recycle=persistent
+
+## Edges
+Ep [CAP_Pdu] --(exposes)--> [POR_Vbus] ; layer=shell
+Ec [CAP_Pdu] --(contains)--> [CAP_Rail12] ; layer=interior
+Er [CAP_Rail12] --(exposes)--> [POR_RailOut] ; layer=shell
+Ef [POR_Vbus] --(refines)--> [POR_RailOut] ; note=descend_hint
+```
+
+Workflow: `pin_map(CAP_Pdu, view=shell)` → reason → if needed `pin_map(CAP_Rail12, view=shell)` → only then interior leaves. Goldfish: re-read the **current** shell each turn; do not keep the whole nest in context.
+
 ---
 
 ## 4. What a “layer” is
@@ -126,9 +164,10 @@ pin_map(session, anchor, depth, max_rows, layer?=board, view?=shell|interior)
 |------|--------|
 | **Default** | Expand within the anchor’s layer / capsule **shell** only |
 | **Up** | Follow `summarises` / parent `contains` inverse → coarser stratum (few rows) |
-| **Down** | Follow `refines` / `exposes` → port → interior; **one step** per turn when possible |
+| **Down** | Follow `refines` / `exposes` → port → interior **or** child capsule shell; **one step** per turn when possible |
+| **Nested open** | Parent shell → child shell → grandchild …; never flatten the whole nest in one call (§3.4) |
 | **Caps unchanged** | Existing `depth` / `max_rows` still apply **inside** the chosen stratum |
-| **No whole-graph dump** | Multi-layer expand in one call is **out of MVP** |
+| **No whole-graph dump** | Multi-layer / multi-capsule expand in one call is **out of MVP** |
 
 Cross-layer links on the pin map are **thin**: endpoints + `rel` + short fields — enough to choose the next anchor, not enough to substitute for a descend.
 
@@ -155,10 +194,10 @@ Same spirit as nodal / formula work: settle the coarse model before refining.
 ```text
 1. pin_map(anchor=system_or_capsule, view=shell, layer=L)
 2. Reason and mutate at L only (absolute fields; short pins)
-3. If blocked or inconsistent → follow one refines/exposes edge
-4. pin_map(anchor=child_or_port, view=interior) — still depth/max_rows capped
+3. If blocked or inconsistent → follow one refines/exposes/contains edge
+4. pin_map(anchor=child_capsule_or_port, view=shell|interior) — one open step; still depth/max_rows capped
 5. Write interior facts; optionally refresh shell via summarises / materialised fields
-6. Ascend; settle tasks; do not keep all layers in context
+6. Ascend; settle tasks; do not keep nested shells or all layers in context
 ```
 
 **Goldfish:** chat is not SSOT; re-read the **current** layer’s pin map each turn. Do not reason on a stale multi-layer dump from an earlier turn.
@@ -221,18 +260,19 @@ Mutate examples:
 |------|-----|
 | Atoms | NODE \| EDGE only |
 | Capsule pattern | Documented; kinds may start as `CAP` + port nodes + `contains` / `exposes` / `summarises` / `refines` |
+| Nested capsules | **Design-locked** (§3.4): recursive `contains` of child capsules; pin_map one shell at a time; one open-step preference |
 | `layer=` field | Optional filter + display field |
-| `pin_map` | Honour `layer` and/or `view=shell\|interior` **or** document agent convention: shell = stop at `exposes` / do not auto-expand `contains` |
-| Caps | Existing `depth` / `max_rows` |
+| `pin_map` | Honour `layer` and/or `view=shell\|interior` **or** document agent convention: shell = stop at `exposes` / do not auto-expand `contains` (including child capsules) |
+| Caps | Existing `depth` / `max_rows`; optional engine nest-open limit (N) when implementing |
 | Engine auto-summary | **No** — agents or ingest write `summarises` / shell fields |
-| SysML | Analogy + future ingest mapping only |
+| SysML | Analogy + future ingest mapping only (nested parts → nested capsules) |
 
 ### Later
 
 | Item | Later |
 |------|-------|
 | Engine-maintained summary refresh when interior mutates | Consistency job / hooks |
-| Nested capsules (capsule-in-capsule) with depth-limited open | Yes |
+| Engine nest-open depth cap + breadcrumb ancestors | Enforce §3.4 limits in `pin_map` |
 | SCHEMA / TagMap formalisation of `CAP` / `POR` | With golden fixtures |
 | `pin_map` multi-layer “breadcrumb” section (ancestors only, tiny) | Optional |
 | Automatic SysML part/port ingest → capsules | PinMapIngest path |
@@ -249,6 +289,7 @@ Mutate examples:
 | **Inconsistent cross-layer ids** | Same ground-id rules as grammar §4.2.1 — locators for artefact pins; `NEW` only for MemNet-only facts; re-id/merge under reserve/ACL. Ports keep stable ids when interior nets are reminted |
 | **Third-primitive drift** | Reviewers reject any AST that is not NODE\|EDGE; capsule is a **pattern** |
 | **Accidental whole-interior expand** | Default shell view; `contains` not followed unless `view=interior` or anchor is interior |
+| **Deep nest blow-up** | One shell per pin_map; one open-step preference; optional engine nest-open cap (§3.4) |
 | **Name collision with SysML / `parts/`** | Use **capsule** in MemNet doctrine; say “SysML part (ingest)” when mapping |
 
 ---
