@@ -1,11 +1,21 @@
-"""PinMapComposer — live pin map emit as Tier A Write=display."""
+"""PinMapComposer — live pin map emit as Tier A Write=display.
+
+Layer (1.x) rows with ``src_port`` / ``dist_port`` / non-default ``wire`` emit
+Layer wire forms; other rows stay on the 0.3 Tier A paren-label surface.
+"""
 
 from __future__ import annotations
 
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
 from memnet.exceptions import MemNetError
+from memnet.layer import (
+    emit_item as emit_layer_item,
+    is_layer_edge_record,
+    record_to_layer_edge,
+    record_to_layer_node,
+)
 from memnet.models import Record
-from memnet.tier_a import Document, EdgeRec, Field, NodeRec, Op, Section, emit
+from memnet.tier_a import EdgeRec, Field, NodeRec, Op, emit_item
 
 
 def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
@@ -14,7 +24,8 @@ def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
         fields = [
             Field(key=k, op="=", value=v)
             for k, v in rec.fields.items()
-            if k not in ("id", "src", "relation", "dist") and v
+            if k not in ("id", "src", "relation", "dist", "src_port", "dist_port", "wire", "carries")
+            and v
         ]
         return EdgeRec(
             op=Op.PRESENT,
@@ -39,8 +50,19 @@ def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
     return NodeRec(op=Op.PRESENT, kind=rec.tag, id=rec.id, fields=fields)
 
 
+def _emit_record_line(rec: Record) -> str:
+    """Emit one present line — Layer wire when ports/wire marked, else Tier A."""
+    if rec.tag == "EDG" and is_layer_edge_record(rec):
+        return emit_layer_item(record_to_layer_edge(rec))
+    if rec.tag != "EDG" and (
+        rec.fields.get("ports") or rec.fields.get("law") or rec.tag == "CST"
+    ):
+        return emit_layer_item(record_to_layer_node(rec))
+    return emit_item(record_to_tier_a_item(rec))
+
+
 class PinMapComposer:
-    """Compose anchored live pin map; emit Tier A (CLI: query pin-map)."""
+    """Compose anchored live pin map; emit Tier A / Layer Write=display."""
 
     def __init__(self, session_store) -> None:
         self.ss = session_store
@@ -55,7 +77,7 @@ class PinMapComposer:
         require_anchor: bool = True,
         law_prepend: bool = True,
     ) -> tuple[list[Record], str]:
-        """Return (records, tier_a_text)."""
+        """Return (records, shared-dialect text)."""
         del law_prepend  # store.context_pack already prepends laws
         if require_anchor and not anchor:
             raise MemNetError("no_anchor", "pin map requires --anchor")
@@ -85,14 +107,14 @@ class PinMapComposer:
                 edges.append(rec)
             else:
                 nodes.append(rec)
-        items: list = []
+        lines: list[str] = []
         if laws:
-            items.append(Section(name="Laws"))
-            items.extend(record_to_tier_a_item(r) for r in laws)
+            lines.append("## Laws")
+            lines.extend(_emit_record_line(r) for r in laws)
         if nodes:
-            items.append(Section(name="Nodes"))
-            items.extend(record_to_tier_a_item(r) for r in nodes)
+            lines.append("## Nodes")
+            lines.extend(_emit_record_line(r) for r in nodes)
         if edges:
-            items.append(Section(name="Edges"))
-            items.extend(record_to_tier_a_item(r) for r in edges)
-        return emit(Document(items=items))
+            lines.append("## Edges")
+            lines.extend(_emit_record_line(r) for r in edges)
+        return "\n".join(lines) + ("\n" if lines else "")

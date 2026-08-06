@@ -6,6 +6,19 @@ from dataclasses import dataclass, field
 
 from memnet.exceptions import MemNetError
 from memnet.id_allocator import AssignedIdMap, IdAllocator
+from memnet.layer import (
+    LayerEdgeRec,
+    LayerNodeRec,
+    ensure_layer_schema,
+    edge_to_store_fields,
+    emit_item as emit_layer_item,
+    looks_like_layer,
+    mint_layer_document,
+    node_to_fields,
+    parse as parse_layer,
+    soft_validate as soft_validate_layer,
+)
+from memnet.layer import ParseError as LayerParseError
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
@@ -58,7 +71,7 @@ def looks_like_tier_a(line: str) -> bool:
 
 
 def classify_batch(lines: list[str]) -> str:
-    """Return 'tier_a', 'pipe', or 'empty'. Reject mixed dialect."""
+    """Return 'layer', 'tier_a', 'pipe', or 'empty'. Reject mixed dialect."""
     kinds: set[str] = set()
     for line in lines:
         s = line.strip()
@@ -66,17 +79,24 @@ def classify_batch(lines: list[str]) -> str:
             continue
         if looks_like_pipe(s):
             kinds.add("pipe")
+        elif looks_like_layer(s):
+            kinds.add("layer")
         elif looks_like_tier_a(s):
             kinds.add("tier_a")
         else:
             raise MemNetError("invalid_line", f"unrecognised ingest line: {s[:80]}")
     if not kinds:
         return "empty"
+    if kinds == {"layer"}:
+        return "layer"
     if kinds == {"tier_a"}:
         return "tier_a"
     if kinds == {"pipe"}:
         return "pipe"
-    raise MemNetError("mixed_dialect", "do not mix Tier A and legacy @TAG pipe in one batch")
+    raise MemNetError(
+        "mixed_dialect",
+        "do not mix Layer / Tier A / legacy @TAG pipe in one batch",
+    )
 
 
 @dataclass
@@ -115,6 +135,14 @@ class MutateGate:
                 allow_new_relation=allow_new_relation,
                 agent=agent,
             )
+        if dialect == "layer":
+            return self._apply_layer(
+                lines,
+                mode=mode,
+                dry_run=dry_run,
+                allow_new_relation=allow_new_relation,
+                agent=agent,
+            )
         return self._apply_tier_a(
             lines,
             mode=mode,
@@ -122,6 +150,207 @@ class MutateGate:
             allow_new_relation=allow_new_relation,
             agent=agent,
         )
+
+    def _apply_layer(
+        self,
+        lines: list[str],
+        *,
+        mode: str,
+        dry_run: bool,
+        allow_new_relation: bool,
+        agent: str | None,
+    ) -> MutateResult:
+        """Layer (1.x) path: parse → soft-validate → mint → commit.
+
+        Bare present lines are accepted on ``add`` as seed/create (fixture ingest).
+        """
+        ensure_layer_schema(self.ss.tag_map)
+        text = "\n".join(lines)
+        try:
+            doc = parse_layer(text)
+        except LayerParseError as exc:
+            raise MemNetError(
+                "parse_error",
+                str(exc),
+                example=f"line {exc.line}" if exc.line else None,
+            ) from exc
+
+        errors = [i for i in soft_validate_layer(doc) if i.severity == "error"]
+        if errors:
+            first = errors[0]
+            raise MemNetError(
+                first.code,
+                first.message,
+                example=f"line {first.line}" if first.line else None,
+            )
+
+        for it in doc.items:
+            if isinstance(it, LayerNodeRec) and it.op == Op.PRESENT:
+                if mode != "add":
+                    raise MemNetError(
+                        "present_on_mutate",
+                        "bare pin-map lines are display-only; use + / ~ / - to mutate",
+                    )
+                it.op = Op.CREATE
+            if isinstance(it, LayerEdgeRec) and it.op == Op.PRESENT:
+                if mode != "add":
+                    raise MemNetError(
+                        "present_on_mutate",
+                        "bare pin-map lines are display-only; use + / ~ / - to mutate",
+                    )
+                it.op = Op.CREATE
+            if mode == "add" and it.op in (Op.PATCH, Op.DROP):
+                raise MemNetError(
+                    "op_mode_mismatch",
+                    f"{it.op.value} illegal on add; use update",
+                )
+            if mode == "update" and it.op == Op.CREATE:
+                raise MemNetError(
+                    "op_mode_mismatch",
+                    "+ create illegal on update; use add",
+                )
+
+        existing = set(self.ss.store.by_id.keys())
+        assigned = mint_layer_document(doc, existing)
+
+        drops: list[str] = []
+        records: list[Record] = []
+        ack_items: list[LayerNodeRec | LayerEdgeRec] = []
+        for it in doc.items:
+            if isinstance(it, LayerEdgeRec) and it.op == Op.DROP:
+                drops.append(it.edge_id or "")
+                ack_items.append(it)
+                continue
+            if isinstance(it, (LayerNodeRec, LayerEdgeRec)) and it.op == Op.CREATE:
+                for f in it.fields:
+                    if f.op in ("+=", "-="):
+                        raise MemNetError(
+                            "invalid_field",
+                            f"{f.key}{f.op} illegal on create; use =",
+                            example=f"{f.key}={f.value}",
+                        )
+            rec = self._layer_item_to_record(it)
+            records.append(rec)
+            ack_items.append(it)
+
+        if dry_run:
+            ack = [emit_layer_item(x) for x in ack_items]
+            return MutateResult(
+                records=records,
+                ack_lines=ack,
+                assigned=assigned,
+                dialect="layer",
+            )
+
+        warnings: list[str] = []
+        added: list[str] = []
+        replaced: list[Record] = []
+        deleted_backup: list[Record] = []
+        try:
+            for eid in drops:
+                old = self.ss.store.delete(eid)
+                if old is None:
+                    raise MemNetError("not_found", f"id {eid}|use add")
+                deleted_backup.append(old)
+            for rec in records:
+                old = self.ss.store.get(rec.id)
+                if old is None:
+                    added.append(rec.id)
+                else:
+                    replaced.append(old)
+                if mode == "update" and old is not None:
+                    merged = dict(old.fields)
+                    merged.update(
+                        {k: v for k, v in rec.fields.items() if v != "" or k == "id"}
+                    )
+                    rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged)
+                    apply = self.ss.store.replace_row
+                else:
+                    apply = (
+                        self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
+                    )
+                warns = apply(
+                    rec,
+                    agent=agent,
+                    allow_new_relation=allow_new_relation,
+                    relations=self.ss.relations,
+                )
+                warnings.extend(warns)
+            self.ss.mark_written()
+        except MemNetError:
+            for rid in added:
+                self.ss.store.delete(rid)
+            for old in replaced:
+                self.ss.store.by_id[old.id] = old
+                if old.tag == "EDG":
+                    self.ss.store._index_edge(old)
+            for old in deleted_backup:
+                self.ss.store.by_id[old.id] = old
+                self.ss.store.write_order.append(old.id)
+                self.ss.store._index_tag(old)
+                if old.tag == "EDG":
+                    self.ss.store._index_edge(old)
+            raise
+
+        ack = [emit_layer_item(x) for x in ack_items]
+        return MutateResult(
+            records=records,
+            ack_lines=ack,
+            assigned=assigned,
+            warnings=warnings,
+            dialect="layer",
+        )
+
+    def _layer_item_to_record(self, it: LayerNodeRec | LayerEdgeRec) -> Record:
+        if isinstance(it, LayerEdgeRec):
+            fields = edge_to_store_fields(it)
+            eid = fields.get("id")
+            if not eid:
+                raise MemNetError("invalid_id", "edge id missing after mint")
+            tag_def = self.ss.tag_map.get("EDG")
+            if not tag_def:
+                raise MemNetError("unknown_tag", "EDG not in schema")
+            # Fill schema defaults without wiping Layer free fields
+            for fname in tag_def.fields:
+                fields.setdefault(fname, "")
+            return Record(tag="EDG", fields=fields)
+
+        kind = it.kind
+        if it.op == Op.PATCH and not kind:
+            existing = self.ss.store.get(it.id)
+            if existing is None:
+                raise MemNetError("not_found", f"id {it.id}|use add")
+            kind = existing.tag
+        if not kind:
+            raise MemNetError("unknown_tag", "node kind missing")
+        tag_def = self.ss.tag_map.get(kind)
+        if not tag_def:
+            known = ",".join(self.ss.tag_map.tag_names())
+            raise MemNetError("unknown_tag", f"{kind} not in schema known: {known}")
+
+        fields = node_to_fields(it)
+        existing = self.ss.store.get(it.id) if it.op == Op.PATCH else None
+        base = dict(existing.fields) if existing else {}
+        for f in it.fields:
+            if f.op in ("+=", "-="):
+                cur = base.get(f.key, fields.get(f.key, "0"))
+                try:
+                    cur_n = float(cur)
+                    delta = float(f.value)
+                except ValueError as exc:
+                    raise MemNetError(
+                        "bad_numeric",
+                        f"{f.key}{f.op}{f.value} requires numeric field",
+                        example=f"~ [{it.id}] ; {f.key}=<number>",
+                    ) from exc
+                result = cur_n + delta if f.op == "+=" else cur_n - delta
+                fields[f.key] = str(result).rstrip("0").rstrip(".")
+                if fields[f.key] == "-0":
+                    fields[f.key] = "0"
+        for fname in tag_def.fields:
+            fields.setdefault(fname, base.get(fname, ""))
+        fields["id"] = it.id
+        return Record(tag=kind, fields=fields)
 
     def _apply_pipe(
         self,

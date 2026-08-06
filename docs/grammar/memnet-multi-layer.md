@@ -1,6 +1,9 @@
 # Multi-layer MemNet (design, slim)
 
-**Status:** design only — **not** in 0.3.x. Target **MemNet 1.x**.  
+**Status:** design + **engine vertical slice (step 3)** — Layer codec / MutateGate /
+store ports on NODE + dual EDGE (`src_port`/`dist_port`/`wire`) land in 0.3.x
+additively; MCP `pin_map(view=)` and full formula-on-EDGE migration still target
+**MemNet 1.x**.  
 **Mission:** agent memory graph (any domain), Write = display, bounded `pin_map`, tokens — **not** MBSE.  
 **Store:** **NODE | EDGE** only. No third AST primitive.  
 **Mission freeze:** A only for named functions; teach `direc=` / `bind` / `view=` only; no B (`def=`/`uses=`/`role=lib`); no `CAP`/`contains=`/`carries=member`; membership = node↔node relation.

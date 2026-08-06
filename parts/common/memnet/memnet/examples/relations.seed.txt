@@ -7,6 +7,13 @@ binds
 produces
 links
 #
+# Layer 1.x dual EDGE (teach bind; chart labels = relation sense)
+bind
+pipe
+knows
+reports_to
+member_of
+#
 # Doctrine / coding (memnet-format + workflow.coding.example.txt)
 owns
 contains
