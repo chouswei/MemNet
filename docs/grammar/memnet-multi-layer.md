@@ -105,6 +105,7 @@ Eid [Id.port] <--(bind)--> [Id.port] ; carries=token
 
 - **Where:** one `law=` field on the **NODE** (prefer kind `CST`). Never on EDGE. **Proposed-1.x** — store/show the LaTeX string for agents; no render/eval engine required.
 - **Wire:** each equation is **inline math** wrapped in `$…$`. Multi-eq: join those `$…$` segments with `,` (same joiner as `ports=`). Function and equation are the same shape — no `FN` kind; optional causality via port `side=` only.
+- **Completeness:** every symbol in `law=` MUST appear as a port quantity (name / attr / subscript), a node param, or be defined in the same `law=` list — no orphan predicates or hand-wavy stubs.
 - **Binding (same node):** math idents / macros resolve to (1) **params** (`k=`, `beta=` ← `\beta`, `R=`, …), or (2) a **port name** when the ident equals a `ports=` name. Multi-quantity at one port: domain attrs in the bag (`q=`, …) or subscripts in `law=` — port name is the subscript. Qualified `PORT_x.q` deferred.
 - **MUSTNOT:** ASCII-only ad-hoc `expr=` on EDGE; `law=` on a bind; fake `derives`/`feeds` as the 1.x law surface (transitional: [`memnet-field-formulas.md`](memnet-field-formulas.md)).
 
@@ -190,16 +191,16 @@ A bind does **not** own the law or its params; it only names the ports it joins.
 **Instance only** — not the default frame. Kind stays **`CST`** (no `FN`). Electrical attr keys (`V`, `I`) and `beta=` are domain spellings. Mutate create (teachable assign):
 
 ```text
-+ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B{side=in, V=0.7, I=0.001},C{side=out},E{side=inout} ; law=$I_c=\beta I_b$,$I_e=I_b+I_c$ ; recycle=persistent
-+ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a{side=inout},b{side=inout} ; law=$V_a-V_b=I_a R$ ; recycle=persistent
++ CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B{side=in, V=0.7, I=0.001},C{side=out},E{side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
++ CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a{side=inout},b{side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
 + E_c [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=I
 ```
 
 Pin-map present (same facts, no leading `+`):
 
 ```text
-CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B{side=in, V=0.7, I=0.001},C{side=out},E{side=inout} ; law=$I_c=\beta I_b$,$I_e=I_b+I_c$ ; recycle=persistent
-CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a{side=inout},b{side=inout} ; law=$V_a-V_b=I_a R$ ; recycle=persistent
+CST [CST_Q1] ; name=bjt_npn ; beta=100 ; ports=B{side=in, V=0.7, I=0.001},C{side=out},E{side=inout} ; law=$I_C=\beta I_B$,$I_E=I_B+I_C$ ; recycle=persistent
+CST [CST_Rc] ; name=Rc ; R=1000 ; ports=a{side=inout},b{side=inout} ; law=$V_a-V_b=I_a R$,$I_a=-I_b$ ; recycle=persistent
 E_ab [CST_Rc.a] --(bind)-- [CST_Rc.b] ; carries=I
 E_c [CST_Q1.C] --(bind)--> [CST_Rc.a] ; carries=I
 E_ea [CST_Q1.E] <--(bind)--> [CST_Rc.b] ; carries=I
@@ -209,12 +210,12 @@ Collector current rides the **directed** bind `[CST_Q1.C]→[CST_Rc.a]`; resisto
 
 ### Application note: relay SPDT (electronics instance)
 
-**Instance only** — same grain as the BJT note. One **`CST`** owns coil + contact ports; galvanic isolation is **two domains on one NODE** (port attr `domain=coil` vs `domain=contact`), not a second kind. Contact path is **state-dependent bind**: `law=` states the condition; the live EDGE is whichever path is present; the agent **updates** that EDGE when `state=` flips — do **not** fake switching as EDGE-as-function.
+**Instance only** — same grain as the BJT note. One **`CST`** owns coil + contact ports; galvanic isolation is **two domains on one NODE** (port attr `domain=coil` vs `domain=contact`), not a second kind. Contact path is **state-dependent bind**: `law=` states coil threshold, energised flag `s`, and COM–NO / COM–NC continuity; the live EDGE is whichever path is present; the agent **updates** that EDGE when `s` / `state=` flips — do **not** fake switching as EDGE-as-function.
 
 Mutate create (teachable assign):
 
 ```text
-+ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=0, I=0},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$path=\mathrm{NO}\ \mathrm{if}\ s=1\ \mathrm{else}\ \mathrm{NC}$ ; recycle=persistent
++ CST [CST_K1] ; name=relay_spdt ; state=deenergised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=0, I=0},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
 + E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
 + E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
 + E_path [CST_K1.COM] --(bind)-- [CST_K1.NC] ; carries=I
@@ -223,13 +224,13 @@ Mutate create (teachable assign):
 Pin-map present after energise (`state=energised`; contact EDGE retargeted COM↔NO):
 
 ```text
-CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=12, I=0.02},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$path=\mathrm{NO}\ \mathrm{if}\ s=1\ \mathrm{else}\ \mathrm{NC}$ ; recycle=persistent
+CST [CST_K1] ; name=relay_spdt ; state=energised ; I_th=0.01 ; ports=A1{side=in, domain=coil, V=12, I=0.02},A2{side=in, domain=coil},COM{side=inout, domain=contact},NO{side=inout, domain=contact},NC{side=inout, domain=contact} ; law=$I_{A1}=-I_{A2}$,$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$,$s=1\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NO}}\land I_{\mathrm{COM}}+I_{\mathrm{NO}}=0\land I_{\mathrm{NC}}=0$,$s=0\Rightarrow V_{\mathrm{COM}}=V_{\mathrm{NC}}\land I_{\mathrm{COM}}+I_{\mathrm{NC}}=0\land I_{\mathrm{NO}}=0$ ; recycle=persistent
 E_coil [CST_Drv.out] --(bind)--> [CST_K1.A1] ; carries=I
 E_ret [CST_K1.A2] --(bind)-- [CST_Gnd.a] ; carries=I
 E_path [CST_K1.COM] --(bind)-- [CST_K1.NO] ; carries=I
 ```
 
-**State / contact switching:** when coil current exceeds `I_th`, set `state=energised` and replace the contact bind `COM--NC` with `COM--NO` (else the reverse); `law=` records the rule, EDGE records the present path.
+**State / contact switching:** `s=1` means energised (`state=energised`); `s=0` means deenergised (`state=deenergised`). Coil: `$I_{A1}=-I_{A2}$` and `$s=\mathbf{1}(\lvert I_{A1}\rvert>I_{th})$`. Contacts: `$s=1$` closes COM–NO (equal voltage, KCL on that pair, `$I_{\mathrm{NC}}=0$`); `$s=0$` closes COM–NC (same for NC; `$I_{\mathrm{NO}}=0$`). Live EDGE must match: `$s=1$` → `COM--NO`, `$s=0$` → `COM--NC`.
 
 ---
 
