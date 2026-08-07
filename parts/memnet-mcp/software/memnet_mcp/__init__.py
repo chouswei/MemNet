@@ -1,4 +1,4 @@
-"""MemNet MCP adapter — stdio tools over memnet serve."""
+"""MemNet MCP adapter — stdio (default) or opt-in streamable-http."""
 
 from memnet import __version__
 

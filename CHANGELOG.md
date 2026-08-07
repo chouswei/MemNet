@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-08-07
+
+### Added
+- **MCP streamable-http** — opt-in remote Cursor `"url"` transport on dedicated port **18766** path `/mcp` (`memnet-mcp --transport streamable-http`). Env: `MEMNET_MCP_HTTP_HOST` / `PORT` / `PATH`; LAN bind requires `MEMNET_MCP_ALLOW_REMOTE=1` (mirrors serve allow-remote); optional `MEMNET_MCP_HTTP_TOKEN` bearer gate. Stdio and TCP `memnet serve` `:18765` unchanged. Docs: `parts/memnet-mcp/README.md`, `.cursor/mcp.json.example`.
+
 ## [0.4.0] — 2026-08-06
 
 ### Added
@@ -492,7 +497,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/chouswei/MemNet/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/chouswei/MemNet/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/chouswei/MemNet/compare/v0.3.5...v0.3.6
 [0.2.30]: https://github.com/chouswei/MemNet/compare/v0.2.29...v0.2.30

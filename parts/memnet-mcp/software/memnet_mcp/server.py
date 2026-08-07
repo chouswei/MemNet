@@ -1,9 +1,11 @@
-"""MemNet MCP server — stdio tools over memnet serve."""
+"""MemNet MCP server — stdio (default) or opt-in streamable-http."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import sys
 
 try:
     import anyio
@@ -16,6 +18,16 @@ except ImportError as exc:
 from memnet.config import serve_host, serve_port
 from memnet.serve import probe
 from memnet_mcp.client import MemNetResponse, run_memnet
+from memnet_mcp.http_transport import (
+    DEFAULT_MCP_HTTP_HOST,
+    DEFAULT_MCP_HTTP_PATH,
+    DEFAULT_MCP_HTTP_PORT,
+    McpHttpBindError,
+    mcp_http_host,
+    mcp_http_path,
+    mcp_http_port,
+    run_streamable_http,
+)
 from memnet_mcp.seed import supplement_seed_lines
 
 mcp = FastMCP("memnet")
@@ -286,8 +298,55 @@ async def housekeep_stats(session: str | None = None) -> str:
     return await _run(["housekeep", "stats"], session=session)
 
 
-def main() -> None:
-    mcp.run(transport="stdio")
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="memnet-mcp",
+        description=(
+            "MemNet MCP server. Default transport is stdio (in-process graph). "
+            "Use --transport streamable-http for remote Cursor url clients "
+            f"(default {DEFAULT_MCP_HTTP_HOST}:{DEFAULT_MCP_HTTP_PORT}"
+            f"{DEFAULT_MCP_HTTP_PATH})."
+        ),
+    )
+    parser.add_argument(
+        "--transport",
+        choices=("stdio", "streamable-http"),
+        default="stdio",
+        help="MCP transport (default: stdio; streamable-http is opt-in remote)",
+    )
+    parser.add_argument(
+        "--host",
+        default=None,
+        help=f"HTTP bind host (default: env MEMNET_MCP_HTTP_HOST or {DEFAULT_MCP_HTTP_HOST})",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help=f"HTTP bind port (default: env MEMNET_MCP_HTTP_PORT or {DEFAULT_MCP_HTTP_PORT})",
+    )
+    parser.add_argument(
+        "--path",
+        default=None,
+        help=f"HTTP MCP path (default: env MEMNET_MCP_HTTP_PATH or {DEFAULT_MCP_HTTP_PATH})",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
+    if args.transport == "stdio":
+        mcp.run(transport="stdio")
+        return
+
+    host = args.host if args.host is not None else mcp_http_host()
+    port = args.port if args.port is not None else mcp_http_port()
+    path = args.path if args.path is not None else mcp_http_path()
+    try:
+        run_streamable_http(mcp, host=host, port=port, path=path)
+    except McpHttpBindError as exc:
+        sys.stderr.write(f"@ERR: mcp_http_bind|{exc}\n")
+        raise SystemExit(2) from exc
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 | Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
 | MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
 | Live pin map | `PinMapComposer` via `pin_map` / `query pin-map` (shared-dialect emit) | Done |
-| Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve | In-process primary; local IPC; TCP fallback |
+| Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve; opt-in HTTP `:18766` | In-process primary; local IPC; TCP fallback; remote streamable-http |
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
 
@@ -132,7 +132,7 @@ Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unle
 
 **Serve safety (0.3.6+):** default bind is **localhost only** (`127.0.0.1:18765`). Binding to `0.0.0.0` or any non-loopback address (e.g. `10.0.0.10`) requires `MEMNET_SERVE_ALLOW_REMOTE=1`. There is no session token or ACL on TCP yet — remote bind is LAN-trust exposure. Request/response frames are capped (default 4 MiB; `MEMNET_SERVE_MAX_FRAME_BYTES`). See `docs/grammar/memnet-security-multi-agent.md`.
 
-**MCP (as-is):** run `memnet serve`, then `memnet-mcp`. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. Envelope is JSON; memory payload is still pipe lines today.
+**MCP (as-is):** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`** (not `:80`/`:443`). LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth. TCP `memnet serve` remains **`:18765`**. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
 
 Forward reading order for agents:
 
