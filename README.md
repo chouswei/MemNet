@@ -132,7 +132,7 @@ Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unle
 
 **Serve safety (0.3.6+):** default bind is **localhost only** (`127.0.0.1:18765`). Binding to `0.0.0.0` or any non-loopback address (e.g. `10.0.0.10`) requires `MEMNET_SERVE_ALLOW_REMOTE=1`. There is no session token or ACL on TCP yet — remote bind is LAN-trust exposure. Request/response frames are capped (default 4 MiB; `MEMNET_SERVE_MAX_FRAME_BYTES`). See `docs/grammar/memnet-security-multi-agent.md`.
 
-**MCP (as-is):** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`** (not `:80`/`:443`). LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth. TCP `memnet serve` remains **`:18765`**. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
+**MCP (as-is):** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`** (not `:80`/`:443`). LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth; for `0.0.0.0` set `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (e.g. `10.0.0.10`) so Cursor Host headers pass FastMCP DNS-rebinding checks. TCP `memnet serve` remains **`:18765`**. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
 
 Forward reading order for agents:
 
