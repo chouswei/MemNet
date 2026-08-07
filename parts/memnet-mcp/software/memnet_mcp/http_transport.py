@@ -4,6 +4,10 @@ Default bind is loopback ``127.0.0.1:18766`` path ``/mcp``. Non-loopback bind
 requires ``MEMNET_MCP_ALLOW_REMOTE=1``. Optional shared bearer
 ``MEMNET_MCP_HTTP_TOKEN`` — when set, unauthenticated requests are rejected.
 Empty token plus LAN bind is unsafe (documented warning).
+
+FastMCP DNS-rebinding protection (Host / Origin allowlist) is refreshed for the
+actual bind host. Override with ``MEMNET_MCP_HTTP_TRUSTED_HOSTS`` (comma list;
+``*`` disables the Host check for LAN opt-in).
 """
 
 from __future__ import annotations
@@ -17,10 +21,19 @@ from memnet.serve import is_loopback_bind_host
 
 if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
+    from mcp.server.transport_security import TransportSecuritySettings
 
 DEFAULT_MCP_HTTP_HOST = "127.0.0.1"
 DEFAULT_MCP_HTTP_PORT = 18766
 DEFAULT_MCP_HTTP_PATH = "/mcp"
+
+# Loopback patterns FastMCP uses when host is localhost.
+_LOOPBACK_HOST_PATTERNS = ("127.0.0.1:*", "localhost:*", "[::1]:*")
+_LOOPBACK_ORIGIN_PATTERNS = (
+    "http://127.0.0.1:*",
+    "http://localhost:*",
+    "http://[::1]:*",
+)
 
 
 class McpHttpBindError(RuntimeError):
@@ -68,10 +81,123 @@ def mcp_http_allow_remote() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
+def mcp_http_trusted_hosts() -> list[str] | None:
+    """Extra Host allowlist entries from MEMNET_MCP_HTTP_TRUSTED_HOSTS.
+
+    Returns ``None`` when unset. A sole entry of ``*`` / ``off`` / ``disable``
+    means disable DNS-rebinding Host checks (LAN escape hatch).
+    """
+    raw = os.environ.get("MEMNET_MCP_HTTP_TRUSTED_HOSTS")
+    if raw is None:
+        return None
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    return parts
+
+
+def _is_wildcard_disable(hosts: list[str] | None) -> bool:
+    if not hosts or len(hosts) != 1:
+        return False
+    return hosts[0].lower() in {"*", "off", "disable", "none"}
+
+
+def _host_pattern(host: str) -> str:
+    """Normalise a host or host:port to an allowed_hosts pattern."""
+    h = host.strip()
+    if not h:
+        return h
+    if h.endswith(":*") or ":" in h.split("]")[-1]:
+        # Already has a port (or IPv6 with port), or explicit :* wildcard.
+        return h
+    return f"{h}:*"
+
+
+def _origin_pattern(host: str) -> str:
+    """Build an http:// origin pattern from a host or Host-header pattern."""
+    h = host.strip()
+    if h.lower().startswith("http://") or h.lower().startswith("https://"):
+        if h.endswith(":*") or ":" in h.rsplit("/", 1)[-1].split("]")[-1]:
+            return h
+        return f"{h}:*"
+    # Strip :* or :port for origin base, then re-add :*
+    base = h
+    if base.endswith(":*"):
+        base = base[:-2]
+    elif ":" in base.split("]")[-1]:
+        # host:port → host
+        if base.startswith("["):
+            # [ipv6]:port
+            end = base.rfind("]:")
+            if end != -1:
+                base = base[: end + 1]
+        else:
+            base = base.rsplit(":", 1)[0]
+    return f"http://{base}:*"
+
+
+def _is_unspecified_bind(host: str) -> bool:
+    return host.strip().lower() in {"0.0.0.0", "::", "[::]"}
+
+
+def build_transport_security(
+    bind_host: str,
+    *,
+    trusted_hosts: list[str] | None = None,
+) -> TransportSecuritySettings | None:
+    """Build FastMCP TransportSecuritySettings for the bind host.
+
+    FastMCP defaults ``transport_security`` for localhost at construction time.
+    When we later rebind to LAN / ``0.0.0.0``, that localhost-only allowlist must
+    be replaced — otherwise clients with ``Host: 10.0.0.10:18766`` get 421
+    ``Invalid Host header``.
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    extra = trusted_hosts if trusted_hosts is not None else mcp_http_trusted_hosts()
+    if _is_wildcard_disable(extra):
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+    # 0.0.0.0 / :: with no allowlist: Host is the client-facing address (e.g.
+    # 10.0.0.10:18766), not the bind address. Keep protection only when the
+    # operator listed hosts; otherwise disable (LAN already requires ALLOW_REMOTE).
+    if _is_unspecified_bind(bind_host) and not extra:
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+    allowed_hosts: list[str] = list(_LOOPBACK_HOST_PATTERNS)
+    allowed_origins: list[str] = list(_LOOPBACK_ORIGIN_PATTERNS)
+
+    if not is_loopback_bind_host(bind_host) and not _is_unspecified_bind(bind_host):
+        allowed_hosts.append(_host_pattern(bind_host))
+        allowed_origins.append(_origin_pattern(bind_host))
+
+    if extra:
+        for entry in extra:
+            if entry.lower() in {"*", "off", "disable", "none"}:
+                continue
+            allowed_hosts.append(_host_pattern(entry))
+            allowed_origins.append(_origin_pattern(entry))
+
+    # Deduplicate while preserving order
+    def _uniq(items: list[str]) -> list[str]:
+        seen: set[str] = set()
+        out: list[str] = []
+        for item in items:
+            if item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
+
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=_uniq(allowed_hosts),
+        allowed_origins=_uniq(allowed_origins),
+    )
+
+
 def validate_mcp_http_bind_host(host: str, *, token: str | None = None) -> None:
     """Refuse non-loopback binds unless MEMNET_MCP_ALLOW_REMOTE is set.
 
     Warns when LAN bind is allowed with an empty token (unsafe).
+    Warns when binding ``0.0.0.0`` without MEMNET_MCP_HTTP_TRUSTED_HOSTS.
     """
     if is_loopback_bind_host(host):
         return
@@ -89,6 +215,14 @@ def validate_mcp_http_bind_host(host: str, *, token: str | None = None) -> None:
         sys.stderr.write(
             "WARNING: MEMNET_MCP_HTTP_TOKEN is empty — LAN MCP HTTP has no "
             "bearer gate. Set a shared token before advertising this URL.\n"
+        )
+    trusted = mcp_http_trusted_hosts()
+    if _is_unspecified_bind(host) and not trusted:
+        sys.stderr.write(
+            "WARNING: bind is 0.0.0.0/:: without MEMNET_MCP_HTTP_TRUSTED_HOSTS — "
+            "DNS-rebinding Host checks are off. Prefer "
+            "MEMNET_MCP_HTTP_TRUSTED_HOSTS=10.0.0.10 (comma-separated) to pin "
+            "allowed Host headers.\n"
         )
     sys.stderr.flush()
 
@@ -137,10 +271,11 @@ def apply_http_settings(
     port: int,
     path: str,
 ) -> None:
-    """Mutate FastMCP settings for streamable-http bind."""
+    """Mutate FastMCP settings for streamable-http bind + Host allowlist."""
     mcp.settings.host = host
     mcp.settings.port = port
     mcp.settings.streamable_http_path = path
+    mcp.settings.transport_security = build_transport_security(host)
 
 
 def build_streamable_http_app(
@@ -191,10 +326,18 @@ def run_streamable_http(
         token=effective_token,
     )
 
+    security = getattr(mcp.settings, "transport_security", None)
+    if security is None or not getattr(security, "enable_dns_rebinding_protection", True):
+        host_note = "dns_rebinding=off"
+    else:
+        hosts = ",".join(getattr(security, "allowed_hosts", ()) or ())
+        host_note = f"trusted_hosts={hosts}"
+
     sys.stderr.write(
         f"MEMNET_MCP_HTTP={bind_host}:{bind_port}{bind_path} "
         f"transport=streamable-http "
-        f"auth={'bearer' if effective_token else 'off'}\n"
+        f"auth={'bearer' if effective_token else 'off'} "
+        f"{host_note}\n"
     )
     sys.stderr.flush()
 

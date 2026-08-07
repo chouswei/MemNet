@@ -34,10 +34,13 @@ HTTP is **not** the default. Doctrine remains **in-process first**; HTTP is for 
 | `MEMNET_MCP_HTTP_PATH` | `/mcp` | Cursor URL path |
 | `MEMNET_MCP_ALLOW_REMOTE` | unset | Required for non-loopback bind (mirrors `MEMNET_SERVE_ALLOW_REMOTE`) |
 | `MEMNET_MCP_HTTP_TOKEN` | empty | When set, require `Authorization: Bearer <token>`; reject otherwise |
+| `MEMNET_MCP_HTTP_TRUSTED_HOSTS` | unset | Comma-separated Host allowlist for FastMCP DNS-rebinding checks (e.g. `10.0.0.10`). Always includes loopback. Sole `*` / `off` disables Host checks. Binding `0.0.0.0` without this env disables Host checks (with warning). |
 
 CLI overrides: `--host`, `--port`, `--path`.
 
 **Unsafe:** empty `MEMNET_MCP_HTTP_TOKEN` plus LAN bind (`MEMNET_MCP_ALLOW_REMOTE=1`). Prefer a long shared secret before advertising the URL.
+
+**Host header:** FastMCP rejects unknown `Host` values (`Invalid Host header` / 421) when DNS-rebinding protection is on. A specific LAN bind (e.g. `MEMNET_MCP_HTTP_HOST=10.0.0.10`) is added to the allowlist automatically; for `0.0.0.0` set `MEMNET_MCP_HTTP_TRUSTED_HOSTS=10.0.0.10`.
 
 Same tool surface as stdio; the HTTP process owns the graph via InProcessEngine (do not dual-write to TCP unless you deliberately set `MEMNET_MCP_TRANSPORT=tcp`).
 
@@ -85,10 +88,11 @@ pip install -e ".[mcp]"
 # memnet serve
 
 # MCP HTTP for remote Cursor (LAN bind + bearer)
-export MEMNET_MCP_HTTP_HOST=10.0.0.10
+export MEMNET_MCP_HTTP_HOST=0.0.0.0
 export MEMNET_MCP_HTTP_PORT=18766
 export MEMNET_MCP_HTTP_PATH=/mcp
 export MEMNET_MCP_ALLOW_REMOTE=1
+export MEMNET_MCP_HTTP_TRUSTED_HOSTS=10.0.0.10
 export MEMNET_MCP_HTTP_TOKEN='generate-a-long-shared-secret'
 memnet-mcp --transport streamable-http
 ```
@@ -103,9 +107,10 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/home/pi/MemNet
-Environment=MEMNET_MCP_HTTP_HOST=10.0.0.10
+Environment=MEMNET_MCP_HTTP_HOST=0.0.0.0
 Environment=MEMNET_MCP_HTTP_PORT=18766
 Environment=MEMNET_MCP_ALLOW_REMOTE=1
+Environment=MEMNET_MCP_HTTP_TRUSTED_HOSTS=10.0.0.10
 EnvironmentFile=-/home/pi/MemNet/.env.memnet-mcp
 ExecStart=/home/pi/MemNet/.venv/bin/memnet-mcp --transport streamable-http
 Restart=on-failure

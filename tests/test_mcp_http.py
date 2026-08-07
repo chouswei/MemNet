@@ -15,11 +15,13 @@ from memnet_mcp.http_transport import (
     McpHttpBindError,
     SharedBearerASGI,
     build_streamable_http_app,
+    build_transport_security,
     mcp_http_allow_remote,
     mcp_http_host,
     mcp_http_path,
     mcp_http_port,
     mcp_http_token,
+    mcp_http_trusted_hosts,
     validate_mcp_http_bind_host,
 )
 
@@ -36,11 +38,65 @@ def test_mcp_http_env_defaults(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.delenv("MEMNET_MCP_HTTP_PATH", raising=False)
     monkeypatch.delenv("MEMNET_MCP_HTTP_TOKEN", raising=False)
     monkeypatch.delenv("MEMNET_MCP_ALLOW_REMOTE", raising=False)
+    monkeypatch.delenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", raising=False)
     assert mcp_http_host() == "127.0.0.1"
     assert mcp_http_port() == DEFAULT_MCP_HTTP_PORT == 18766
     assert mcp_http_path() == "/mcp"
     assert mcp_http_token() is None
     assert not mcp_http_allow_remote()
+    assert mcp_http_trusted_hosts() is None
+
+
+def test_trusted_hosts_parse(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", "10.0.0.10, localhost")
+    assert mcp_http_trusted_hosts() == ["10.0.0.10", "localhost"]
+
+
+def test_transport_security_loopback():
+    pytest.importorskip("mcp")
+    sec = build_transport_security("127.0.0.1")
+    assert sec is not None
+    assert sec.enable_dns_rebinding_protection
+    assert "127.0.0.1:*" in sec.allowed_hosts
+    assert "localhost:*" in sec.allowed_hosts
+
+
+def test_transport_security_lan_ip_adds_bind_host(monkeypatch: pytest.MonkeyPatch):
+    pytest.importorskip("mcp")
+    monkeypatch.delenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", raising=False)
+    sec = build_transport_security("10.0.0.10")
+    assert sec is not None
+    assert sec.enable_dns_rebinding_protection
+    assert "10.0.0.10:*" in sec.allowed_hosts
+    assert "http://10.0.0.10:*" in sec.allowed_origins
+
+
+def test_transport_security_unspecified_without_allowlist_disables(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    pytest.importorskip("mcp")
+    monkeypatch.delenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", raising=False)
+    sec = build_transport_security("0.0.0.0")
+    assert sec is not None
+    assert not sec.enable_dns_rebinding_protection
+
+
+def test_transport_security_unspecified_with_allowlist(monkeypatch: pytest.MonkeyPatch):
+    pytest.importorskip("mcp")
+    monkeypatch.setenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", "10.0.0.10")
+    sec = build_transport_security("0.0.0.0")
+    assert sec is not None
+    assert sec.enable_dns_rebinding_protection
+    assert "10.0.0.10:*" in sec.allowed_hosts
+    assert "127.0.0.1:*" in sec.allowed_hosts
+
+
+def test_transport_security_star_disables(monkeypatch: pytest.MonkeyPatch):
+    pytest.importorskip("mcp")
+    monkeypatch.setenv("MEMNET_MCP_HTTP_TRUSTED_HOSTS", "*")
+    sec = build_transport_security("10.0.0.10")
+    assert sec is not None
+    assert not sec.enable_dns_rebinding_protection
 
 
 def test_mcp_http_path_normalises(monkeypatch: pytest.MonkeyPatch):

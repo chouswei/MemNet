@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-08-07
+
+### Fixed
+- **MCP streamable-http Host header** — FastMCP DNS-rebinding allowlist was left at localhost after LAN/`0.0.0.0` rebind, causing Cursor `Invalid Host header` (421) for `Host: 10.0.0.10:18766`. Refresh `transport_security` on HTTP start; add `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (comma list; `*` disables). Binding `0.0.0.0` without an allowlist disables Host checks (with warning).
+
 ## [0.4.1] — 2026-08-07
 
 ### Added
