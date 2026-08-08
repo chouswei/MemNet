@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **MN-VER-12-G00** — group verification case for organisational parent MN-REQ-12 (`sysml-models/models/verify.sysml`).
+- **`docs/application-notes/llm-system-dev-multitask.md`** — Multitask pattern for downstream `modelbasedPrj-*` system repos (MemNet mission SSOT + product SysML structural SSOT).
+
+### Changed
+- **Multitask doc trail** — `docs/multi-agent-sessions.md`, `AGENTS.md`, `README.md`, and repo skill cross-link MN-REQ-12, verify package, and case study; product backlog table for deferred ACL / reserve / ingest / WorkerWriteScope (MN-REQ-12.7, MN-VER-12-S09).
+
 ## [0.4.2] — 2026-08-07
 
 ### Fixed

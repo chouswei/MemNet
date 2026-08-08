@@ -3,8 +3,9 @@
   Allocates toward GraphStore / TierACodec / IdAllocator / PinMapComposer /
   SessionLifecycle / SnapshotStore / pin-map ingest stubs /
   InProcessEngine / LocalIpcGateway / TcpServeBridge / McpFacade /
-  CliFacade. Today's Python modules inform feasibility; see
-  outputs/system-design-notes.md for as-is -> target map. Novel-writer out of scope.
+  CliFacade / MultitaskOperatingModel (agent doctrine). Today's Python
+  modules inform feasibility; see outputs/system-design-notes.md for
+  as-is -> target map. Novel-writer out of scope.
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
   Nested requirement paths: MN_REQ_00_MissionBridge::Group::Leaf.
@@ -310,7 +311,9 @@ package MemNet {
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
-      localhost. Not the conceptual core binding (MN-REQ-06.3).
+      localhost. Not the conceptual core binding for single-agent use
+      (MN-REQ-06.3). Under Multitask Mode this path (or streamable-http /
+      LocalIpc) is the shared-store binding (MN-REQ-12.2).
       As-is: memnet.serve (default host 127.0.0.1:18765).
     */
     port cmdIn : ServeCommandInPort;
@@ -319,6 +322,7 @@ package MemNet {
     attribute listenPort : Integer = 18765;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
   part def CliFacade {
@@ -351,12 +355,16 @@ package MemNet {
 
   part def ServeBridge {
     doc /*
-      Optional TCP client to TcpServeBridge (migration). Prefer in-process
-      or LocalIpcGateway. As-is: memnet_mcp.client + memnet.serve_client.
+      Optional TCP client to TcpServeBridge (migration / Multitask shared
+      store). Prefer in-process for single-agent; under Multitask MUST use
+      this path, streamable-http, or LocalIpc (MN-REQ-12.2).
+      As-is: memnet_mcp.client + memnet.serve_client.
     */
     port cmdOut : ServeCommandOutPort;
     port envelopeIn : JsonEnvelopeInPort;
     port sessionOut : SessionIdOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
   part def LawSeedHelper {
@@ -510,13 +518,80 @@ package MemNet {
   }
 
   // =====================================================================
+  // Multitask Mode (MN-REQ-12) -- agent operating roles, not Python modules
+  // =====================================================================
+
+  part def MultitaskCoordinator {
+    doc /*
+      Logical parent agent role under Cursor Multitask Mode / Task spawn.
+      Hosts ParentTaskLifecycle / MultitaskMissionCycle for relevant tasks
+      (MN-REQ-12.8): MissionTaskPin mint/settle, WorkerWriteScope assign,
+      end-turn after delegate. As-is: agent doctrine; not a Python module.
+    */
+    attribute doctrineAsIs : Boolean = true;
+    port sessionOut : SessionIdOutPort;
+    port tierAOut : TierAOutPort;
+    port pinIn : PinMapInPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_3_ParentOwnsTaskLifecycle;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_5_PreferOneWorkerOrDisjoint;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_6_ParentEndTurnNoPoll;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+  }
+
+  part def MultitaskWorker {
+    doc /*
+      Logical background worker agent role. Hosts WorkerScopedTurn: pin_map
+      first; mutate only under WorkerWriteScope on shared session.
+      As-is: agent doctrine; not a Python module. Engine does not enforce
+      write-scope ACL in 0.4.x (MN-REQ-12.7).
+    */
+    attribute doctrineAsIs : Boolean = true;
+    port sessionIn : SessionIdInPort;
+    port pinIn : PinMapInPort;
+    port tierAOut : TierAOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+  }
+
+  part def MultitaskSharedStoreBinding {
+    doc /*
+      Multitask missions MUST bind MCP/CLI clients to one shared store:
+      TcpServeBridge (MEMNET_MCP_TRANSPORT=tcp), streamable-http MCP, or
+      LocalIpcGateway when implemented. Isolated default in-process MCP is
+      forbidden for shared Multitask (MN-REQ-12.2). As-is transport paths
+      already exist on MemNetMcpServer.bridge / TcpServeBridge.
+    */
+    attribute doctrineAsIs : Boolean = true;
+    attribute prefersTcpOrHttp : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
+  }
+
+  part def MultitaskOperatingModel {
+    doc /*
+      Agent-host Multitask topology for MN-REQ-12. Doctrine-level roles nested
+      for satisfy coverage; engine ACL/reserve remain to-be (not nested here).
+    */
+    part coordinator : MultitaskCoordinator;
+    part worker : MultitaskWorker;
+    part sharedStore : MultitaskSharedStoreBinding;
+  }
+
+  // =====================================================================
   // System composite
   // =====================================================================
 
   part def MemNetSystem {
     doc /*
       Target MemNet software system: core library (in-process primary) +
-      MCP + TCP migration + pin-map roadmap stubs. Novel-writer out of scope.
+      MCP + TCP migration + pin-map roadmap stubs + Multitask operating
+      model (agent doctrine). Novel-writer out of scope.
       LocalIpcFlow is intentionally unallocated until LocalIpcGateway is
       implemented (ports on CliFacade / LocalIpcGateway ready). LegacyPipeImport
       is deprecated and not nested here.
@@ -525,6 +600,7 @@ package MemNet {
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
     part pinMaps : PinMapRoadmap;
+    part multitask : MultitaskOperatingModel;
 
     connection mcpInProcess : InProcessFlow {
       end port source ::> mcp.tools.apiOut;

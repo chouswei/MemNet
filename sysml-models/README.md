@@ -11,25 +11,26 @@ Design authority: rebuilt requirements + `docs/grammar/memnet-grammar-design.md`
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | Tier A/B/C items, ports, connection defs |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…11 (no parts) |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (no parts) |
 | `models/deploy.sysml` | `MemNet` | Target parts + system composite + satisfy |
-| `models/behaviour.sysml` | `MemNetBehaviour` | Session, goldfish, NEW mint, pin-map ingest |
+| `models/behaviour.sysml` | `MemNetBehaviour` | Session, goldfish, NEW mint, pin-map ingest, Multitask |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 (group) + S01…S09 verify cases (Multitask case-study trace) |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Target subsystems
 
 - **Core:** CapsPolicy, SchemaRegistry, TierACodec, IdAllocator, GraphStore, MutateGate, PinMapComposer, WalkQuery, HousekeepSettle, SnapshotStore, SessionLifecycle, InProcessEngine, LocalIpcGateway, TcpServeBridge, CliFacade
 - **MCP:** McpFacade (in-process default), ServeBridge (optional TCP), LawSeedHelper
+- **Multitask (MN-REQ-12):** MultitaskOperatingModel — coordinator / worker roles + shared-store binding (agent doctrine; not Python modules)
 - **Deprecated (not in target composition):** LegacyPipeImport (one-shot `@TAG` pipe)
 - **Roadmap:** PinMapIngest_Sysml / Codebase / PcbaAto / SkillsRules (MN-REQ-11; `.ato` = PCBA)
 - **Out of scope:** novel-writer and other domain-product tools
 
-## Transport (MN-REQ-06)
+## Transport (MN-REQ-06 / MN-REQ-12)
 
-1. **InProcessEngine** — primary (MCP / library)
+1. **InProcessEngine** — primary single-agent (MCP / library)
 2. **LocalIpcGateway** — named pipe / AF_UNIX when CLI + MCP share a registry
-3. **TcpServeBridge** — TCP localhost migration / fallback only
-
+3. **TcpServeBridge** / streamable-http — TCP localhost migration; **MUST** for Multitask shared store (MN-REQ-12.2)
 ## Live pin map (MN-REQ-04)
 
 Turn-facing agent payload = **pin map** (ego digest). Composer: **PinMapComposer**. MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` = deprecated aliases.

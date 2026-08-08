@@ -122,10 +122,11 @@ async def session_load(
     keep_id: bool = True,
     ttl: int | None = None,
 ) -> str:
-    """Load a snapshot file into memnet serve (restores graph state).
+    """Load a snapshot file into the MemNet graph (restores session state).
 
+    Works in-process (default) or via TCP ``memnet serve`` when configured.
     Returns session id in stdout/stderr. Does not require an existing session.
-    Use before pin_map / add / update when resuming mid-story.
+    Use before pin_map / add / update when resuming mid-task.
     """
     argv = ["session", "load", "--file", file]
     if keep_id:
@@ -154,7 +155,7 @@ async def _pin_map(
 ) -> str:
     argv = [
         "query",
-        "warm",
+        "pin-map",
         "--anchor",
         anchor,
         "--depth",
@@ -179,7 +180,7 @@ async def pin_map(
 
     Optional ``view``: ``shell`` | ``interior`` (teach); ``flowchart`` | ``parts`` |
     ``statechart`` accepted with soft shell caps (grain filters deferred).
-    Omit ``view`` for 0.3 Tier A depth/max_rows behaviour.
+    Omit ``view`` for default depth/max_rows behaviour.
 
     Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
     """

@@ -38,11 +38,15 @@ MemNetSystem
 │   ├── McpFacade                  // in-process by default
 │   ├── ServeBridge                // optional TCP client
 │   └── LawSeedHelper
-└── PinMapRoadmap
-    ├── PinMapIngest_Sysml
-    ├── PinMapIngest_Codebase
-    ├── PinMapIngest_PcbaAto       // .ato == PCBA
-    └── PinMapIngest_SkillsRules
+├── PinMapRoadmap
+│   ├── PinMapIngest_Sysml
+│   ├── PinMapIngest_Codebase
+│   ├── PinMapIngest_PcbaAto       // .ato == PCBA
+│   └── PinMapIngest_SkillsRules
+└── MultitaskOperatingModel        // MN-REQ-12 agent doctrine
+    ├── MultitaskCoordinator
+    ├── MultitaskWorker
+    └── MultitaskSharedStoreBinding
 
 (not nested) LegacyPipeImport     // DEPRECATED import-once
 ```
@@ -57,13 +61,16 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 | `GoldfishLoop` | awaitingPinMap → presentingPinMap → applyingMutate → settling |
 | `MutateWithNew` | idle → parsing → minting (no-op if no NEW) → committing |
 | `PinMapIngestCycle` | pinIdle → selectingPins → projecting (deterministic locators; reject client NEW) |
+| `ParentTaskLifecycle` | taskAbsent → taskMinted → taskScoped → taskDelegated → taskReconciling → taskSettled (TSK_*; relevant tasks) |
+| `WorkerScopedTurn` | workerAwaitingPinMap → workerPresentingPinMap → workerApplyingScopedMutate → workerTurnDone |
+| `MultitaskMissionCycle` | missionIdle → parentPreparing → workersDelegated → parentReconciling → missionComplete (MN-REQ-12.8 gate) |
 
 ## Interfaces
 
 | Connection | From → To | Status |
 |------------|-----------|--------|
-| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary; MCP default) |
-| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (`MEMNET_MCP_TRANSPORT=tcp`) |
+| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary; MCP default; single-agent) |
+| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (`MEMNET_MCP_TRANSPORT=tcp`; Multitask shared store) |
 | LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** |
 | GraphRecordFlow | TierACodec → MutateGate → GraphStore | **Wired** via MutateGate |
 | LivePinMapFlow / TierAFlow | PinMapComposer / facades | **Wired** (`query warm` → Tier A) |
@@ -83,7 +90,9 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 | PinMapComposer | `pin_map_composer.py` | `query warm` emits Tier A LivePinMap |
 | InProcessEngine | `in_process_engine.py` | MCP/CLI primary |
 | LocalIpcGateway | `local_ipc_gateway.py` | Stub |
-| TcpServeBridge | `serve.py` / `tcp_serve_bridge.py` | Migration fallback |
+| TcpServeBridge | `serve.py` / `tcp_serve_bridge.py` | Migration fallback; Multitask shared store |
+| ServeBridge | `memnet_mcp` TCP client | Multitask shared-store client path |
+| MultitaskOperatingModel | agent doctrine (not a Python package) | As-is MN-REQ-12; no engine ACL |
 | PinMapIngest_* | `pin_map_ingest.py` | Roadmap stubs |
 
 ## Satisfy coverage
@@ -102,6 +111,11 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 | MN-REQ-09 | TierACodec, CliFacade, McpFacade |
 | MN-REQ-10 | GraphStore, CapsPolicy, PinMapComposer, CliFacade, TierACodec, IdAllocator, McpFacade |
 | MN-REQ-11 | PinMapIngest_* stubs + PinMapComposer (11.13) + IdAllocator (11.16) + SnapshotStore |
+| MN-REQ-12 | MultitaskCoordinator, MultitaskWorker, MultitaskSharedStoreBinding, TcpServeBridge, ServeBridge; **verify** MN-VER-12-G00 + S01…S09 (`MemNetVerification`) |
+
+## Multitask case study
+
+Worked scenario (parent delegates a multi-step SysML review to one worker), step trace against MN-REQ-12 and behaviour states: [multitask-case-study.md](multitask-case-study.md).
 
 ## Gaps / next steps
 
@@ -110,3 +124,5 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 - PinMapIngest_* deterministic locators (reject client NEW on projecting)
 - Optional ANTLR codegen; LegacyPipeImport remains one-shot only
 - Migrate `docs/LLM-GUIDE.md` off pipe-centric warm examples
+- **To-be (not MN-REQ-12 as-is):** session ACL, neighbourhood reserve, Path-B ingest engines, engine WorkerWriteScope enforcement — design docs only; MultitaskOperatingModel does not claim them shipped (MN-REQ-12.7; MN-VER-12-S09). See also `docs/multi-agent-sessions.md` § Not implemented.
+- Typed fields on `MissionTaskPin` / `WorkerWriteScope`

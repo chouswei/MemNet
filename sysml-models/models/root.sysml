@@ -6,4 +6,5 @@ package ProjectMemNet {
   private import MemNetRequirements::*;
   private import MemNet::*;
   private import MemNetBehaviour::*;
+  private import MemNetVerification::*;
 }

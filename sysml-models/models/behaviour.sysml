@@ -1,7 +1,9 @@
 /*
   MemNet behaviours - target architecture.
   Session lifecycle; goldfish loop (pin map->mutate->settle);
-  mutate with NEW mint; pin-map ingest roadmap.
+  mutate with NEW mint; pin-map ingest roadmap;
+  Multitask Mode for relevant tasks only (MN-REQ-12): parent task
+  lifecycle, worker scoped turns, mission cycle -- not trivial one-shots.
 */
 package MemNetBehaviour {
   private import ScalarValues::*;
@@ -52,6 +54,42 @@ package MemNetBehaviour {
   }
   attribute def EvPinMapDone {
     doc /* Pin-map ingest/export finished or cancelled. */
+  }
+  attribute def EvMintParentTask {
+    doc /*
+      Parent creates MissionTaskPin (TSK_*) / USR_* in the shared session
+      (status=active). Relevant Multitask tasks only (MN-REQ-12.8).
+    */
+  }
+  attribute def EvAssignWorkerScope {
+    doc /*
+      Parent binds WorkerWriteScope (anchors + relation types) for a worker
+      on a parent-owned MissionTaskPin (MN-REQ-12.4 / 12.5).
+    */
+  }
+  attribute def EvDelegateWorker {
+    doc /*
+      Parent spawns a background worker with shared session id, anchors,
+      and write scope (MN-REQ-12); then ends the turn (MN-REQ-12.6).
+    */
+  }
+  attribute def EvWorkerReturn {
+    doc /*
+      Worker durable facts are visible in the shared session; parent may
+      re-pin_map on the next coordinator turn (no same-turn poll).
+    */
+  }
+  attribute def EvSettleMissionTask {
+    doc /*
+      Parent settles owned MissionTaskPin (TSK_*) / USR_* from shared-session
+      pin-map facts (MN-REQ-12.3); not from worker chat prose.
+    */
+  }
+  attribute def EvTrivialSingleAgent {
+    doc /*
+      Work is a trivial one-shot; Multitask Mode does not apply
+      (MN-REQ-12.8). Use GoldfishLoop only; shared TCP not required.
+    */
   }
 
   // --- 1. Session lifecycle ---
@@ -338,5 +376,298 @@ package MemNetBehaviour {
       first projecting
       accept EvError
       then pinIdle;
+  }
+
+  // --- 5. Parent-owned MissionTaskPin lifecycle (TSK_*; MN-REQ-12.3) ---
+
+  state def ParentTaskLifecycle {
+    doc /*
+      Lifecycle of one parent-owned MissionTaskPin (TSK_*) under Multitask.
+      Applies only to relevant tasks (MN-REQ-12.8). Parent settles from
+      shared-session pin map; workers do not own settle. Hosted by
+      MultitaskCoordinator. As-is: no ACL/reserve enforcement.
+    */
+    entry;
+    then taskAbsent;
+
+    state taskAbsent {
+      doc /* No MissionTaskPin yet; trivial work stays here via EvTrivialSingleAgent. */
+    }
+    transition absent_trivial
+      first taskAbsent
+      accept EvTrivialSingleAgent
+      then taskAbsent;
+    transition absent_to_minting
+      first taskAbsent
+      accept EvMintParentTask
+      then taskMinted;
+
+    state taskMinted {
+      doc /* TSK_* created (status=active) in shared session; not yet delegated. */
+    }
+    transition minted_pin_map
+      first taskMinted
+      accept EvPinMapRead
+      then taskMinted;
+    transition minted_assign_scope
+      first taskMinted
+      accept EvAssignWorkerScope
+      then taskScoped;
+    transition minted_settle_early
+      first taskMinted
+      accept EvSettleMissionTask
+      then taskSettled;
+
+    state taskScoped {
+      doc /* WorkerWriteScope assigned; ready to EvDelegateWorker. */
+    }
+    transition scoped_to_delegated
+      first taskScoped
+      accept EvDelegateWorker
+      then taskDelegated;
+    transition scoped_reassign
+      first taskScoped
+      accept EvAssignWorkerScope
+      then taskScoped;
+
+    state taskDelegated {
+      doc /*
+        Worker(s) running under assigned scope. Parent ended turn
+        (MN-REQ-12.6). Parallel only if disjoint scopes (MN-REQ-12.5).
+      */
+    }
+    transition delegated_worker_return
+      first taskDelegated
+      accept EvWorkerReturn
+      then taskReconciling;
+    transition delegated_parent_repin
+      first taskDelegated
+      accept EvPinMapRead
+      then taskReconciling;
+
+    state taskReconciling {
+      doc /*
+        Parent next turn: pin_map first; act from shared slice; settle or
+        re-delegate. Chat is never SSOT (MN-REQ-12.1).
+      */
+    }
+    transition parent_reconcile_pin_map
+      first taskReconciling
+      accept EvPinMapRead
+      then taskReconciling;
+    transition parent_reconcile_mutate
+      first taskReconciling
+      accept EvMutateGraph
+      then taskReconciling;
+    transition parent_reconcile_settle
+      first taskReconciling
+      accept EvSettleMissionTask
+      then taskSettled;
+    transition parent_reconcile_redelegate
+      first taskReconciling
+      accept EvDelegateWorker
+      then taskDelegated;
+
+    state taskSettled {
+      doc /* status=settled; optional led_to_success edges; recyclable. */
+    }
+    transition settled_to_absent
+      first taskSettled
+      accept EvSettleRecycle
+      then taskAbsent;
+    transition settled_new_task
+      first taskSettled
+      accept EvMintParentTask
+      then taskMinted;
+  }
+
+  // --- 6. Worker scoped turn (assigned MissionTaskPin subgraph) ---
+
+  state def WorkerScopedTurn {
+    doc /*
+      One MultitaskWorker turn on a parent-assigned WorkerWriteScope.
+      MUST pin_map first; mutate only under scope; durable facts in session
+      not chat (MN-REQ-12.4). Reuses engine GoldfishLoop / MutateWithNew
+      under the shared store (MN-REQ-12.2). Hosted by MultitaskWorker.
+    */
+    entry;
+    then workerAwaitingPinMap;
+
+    state workerAwaitingPinMap {
+      doc /* Idle; next action MUST be live pin map on shared session. */
+    }
+    transition worker_pin_map_start
+      first workerAwaitingPinMap
+      accept EvPinMapRead
+      then workerPresentingPinMap;
+    transition worker_wrong_session
+      first workerAwaitingPinMap
+      accept EvError
+      then workerAwaitingPinMap;
+
+    state workerPresentingPinMap {
+      doc /* Copy assigned ids from pin map; reason outside MemNet. */
+    }
+    transition worker_to_mutate
+      first workerPresentingPinMap
+      accept EvMutateGraph
+      then workerApplyingScopedMutate;
+    transition worker_pin_map_repeat
+      first workerPresentingPinMap
+      accept EvPinMapRead
+      then workerPresentingPinMap;
+    transition worker_return_readonly
+      first workerPresentingPinMap
+      accept EvWorkerReturn
+      then workerTurnDone;
+
+    state workerApplyingScopedMutate {
+      doc /*
+        Mutate under WorkerWriteScope only. MUST NOT invent parent-minted
+        ids; MUST NOT settle parent TSK_* / USR_* unless delegated.
+      */
+    }
+    transition worker_mutate_ok
+      first workerApplyingScopedMutate
+      accept EvCommitOk
+      then workerTurnDone;
+    transition worker_mutate_to_return
+      first workerApplyingScopedMutate
+      accept EvWorkerReturn
+      then workerTurnDone;
+    transition worker_mutate_error
+      first workerApplyingScopedMutate
+      accept EvError
+      then workerAwaitingPinMap;
+
+    state workerTurnDone {
+      doc /* Facts in shared session; concise return to parent; no parent poll. */
+    }
+    transition worker_next_turn
+      first workerTurnDone
+      accept EvPinMapRead
+      then workerPresentingPinMap;
+  }
+
+  // --- 7. Multitask mission cycle (relevant tasks; MN-REQ-12) ---
+
+  state def MultitaskMissionCycle {
+    doc /*
+      Coordinator mission over one shared session for relevant tasks only
+      (MN-REQ-12.8): multi-step, delegated, or parallelisable work.
+      Composes ParentTaskLifecycle + WorkerScopedTurn. Hosted by
+      MultitaskOperatingModel. Engine does not enforce ACL/reserve.
+      Trivial one-shots take EvTrivialSingleAgent and stay on GoldfishLoop.
+    */
+    entry;
+    then missionIdle;
+
+    state missionIdle {
+      doc /* No Multitask mission; single-agent GoldfishLoop may still run. */
+    }
+    transition idle_trivial
+      first missionIdle
+      accept EvTrivialSingleAgent
+      then missionIdle;
+    transition idle_to_opening_mission
+      first missionIdle
+      accept EvOpenSession
+      then parentPreparing;
+    transition idle_to_loading_mission
+      first missionIdle
+      accept EvLoadSnapshot
+      then parentPreparing;
+
+    state parentPreparing {
+      doc /*
+        Shared store transport (MN-REQ-12.2); pin_map; mint MissionTaskPin /
+        USR_* (EvMintParentTask); assign WorkerWriteScope; self-contained
+        worker prompt. Aligns ParentTaskLifecycle taskMinted/taskScoped.
+      */
+    }
+    transition prepare_pin_map
+      first parentPreparing
+      accept EvPinMapRead
+      then parentPreparing;
+    transition prepare_mint_task
+      first parentPreparing
+      accept EvMintParentTask
+      then parentPreparing;
+    transition prepare_assign_scope
+      first parentPreparing
+      accept EvAssignWorkerScope
+      then parentPreparing;
+    transition prepare_mutate
+      first parentPreparing
+      accept EvMutateGraph
+      then parentPreparing;
+    transition prepare_to_delegated
+      first parentPreparing
+      accept EvDelegateWorker
+      then workersDelegated;
+    transition prepare_abort
+      first parentPreparing
+      accept EvError
+      then missionIdle;
+
+    state workersDelegated {
+      doc /*
+        Parent ended turn after spawn (MN-REQ-12.6). Each worker runs
+        WorkerScopedTurn on the shared session. Prefer one worker;
+        parallel only if disjoint scopes (MN-REQ-12.5). No same-turn poll.
+      */
+    }
+    transition delegated_worker_facts
+      first workersDelegated
+      accept EvWorkerReturn
+      then parentReconciling;
+    transition delegated_parent_next_turn
+      first workersDelegated
+      accept EvPinMapRead
+      then parentReconciling;
+    transition delegated_error
+      first workersDelegated
+      accept EvError
+      then parentReconciling;
+
+    state parentReconciling {
+      doc /*
+        Next coordinator turn: pin_map first; act from shared-session slice;
+        EvSettleMissionTask on parent-owned TSK_* (MN-REQ-12.3); do not redo
+        worker investigation from chat.
+      */
+    }
+    transition mission_reconcile_pin_map
+      first parentReconciling
+      accept EvPinMapRead
+      then parentReconciling;
+    transition mission_reconcile_mutate
+      first parentReconciling
+      accept EvMutateGraph
+      then parentReconciling;
+    transition mission_reconcile_settle
+      first parentReconciling
+      accept EvSettleMissionTask
+      then missionComplete;
+    transition mission_reconcile_redelegate
+      first parentReconciling
+      accept EvDelegateWorker
+      then workersDelegated;
+    transition mission_reconcile_error
+      first parentReconciling
+      accept EvError
+      then parentReconciling;
+
+    state missionComplete {
+      doc /* Parent tasks settled; session may remain open for further work. */
+    }
+    transition complete_to_idle
+      first missionComplete
+      accept EvCloseOrExpire
+      then missionIdle;
+    transition complete_new_wave
+      first missionComplete
+      accept EvMintParentTask
+      then parentPreparing;
   }
 }

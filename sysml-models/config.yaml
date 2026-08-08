@@ -15,4 +15,5 @@ model_files:
   - requirements.sysml
   - deploy.sysml
   - behaviour.sysml
+  - verify.sysml
   - root.sysml

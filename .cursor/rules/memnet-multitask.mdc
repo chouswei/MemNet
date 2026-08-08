@@ -1,0 +1,26 @@
+---
+description: >-
+  Cursor Multitask Mode or Task sub-agents with MemNet — shared session SSOT,
+  parent/worker MUST/MUSTNOT, TCP or HTTP transport. Load when delegating
+  background workers or coordinating parallel MemNet writes.
+alwaysApply: false
+---
+
+# MemNet + Multitask Mode
+
+SSOT: `docs/multi-agent-sessions.md`. SysML trail: MN-REQ-12 → MN-VER-12-G00 + S01…S09 (`sysml-models/models/verify.sysml`) → `sysml-models/outputs/multitask-case-study.md`. Chat is never mission SSOT.
+
+## MUST
+
+- Use **one shared session id** across parent and workers for one mission.
+- Use **TCP serve** or **streamable-http** MCP — not default in-process stdio — so all agents share one graph.
+- Parent: mint/settle `TSK_*` / `USR_*`; pass session + anchors + write scope in worker prompts; **end turn** after delegate; `pin_map` on next coordinator turn.
+- Workers: `pin_map` first each turn; mutate only under assigned subgraph; copy ids from pin map.
+
+## MUST NOT
+
+- Treat chat or sub-agent prose as durable state.
+- Use in-process MCP for shared Multitask missions (isolated graph per process).
+- Poll or await workers in the parent turn; redo worker investigation from chat on return.
+- Assume ACL, neighbourhood reserve, or PinMapIngest_* — design-only in 0.4.x.
+- Run parallel workers on the same anchor slice without disjoint scope or separate sessions.

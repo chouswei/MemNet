@@ -7,6 +7,7 @@
     MN-REQ-NN.M        atomic leaf (one SHALL/SHOULD idea)
     MN-REQ-10          LLM assumed properties + limitation leaves
     MN-REQ-11          Snapshot / interoperability (map of pins)
+    MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -772,6 +773,108 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-11.16";
       }
     }
+
+    // ----- Multitask Mode (as-is 0.4.x agent operating model) -----
+    // Enforceable parent/worker doctrine over a shared session.
+    // Session ACL, neighbourhood reserve, and Path-B ingest engines are
+    // design-only (see docs/grammar); MN-REQ-12.7 forbids assuming them shipped.
+
+    requirement def MN_REQ_12_MultitaskMode {
+      doc /*
+        Group: when Multitask Mode (or Task sub-agents) is active, MemNet
+        SHALL be operated as a shared mission store with a parent coordinator
+        and scoped workers. Chat is never mission SSOT. As-is product
+        constraints for 0.4.x -- engine ACL/reserve/ingest are not claimed here.
+      */
+      attribute requirementId : String = "MN-REQ-12";
+
+      requirement def MN_REQ_12_1_SharedSessionMissionSsot {
+        doc /*
+          Under Multitask, SHALL use one shared named MemNet session id as the
+          mission source of truth for ids, paths, and task state. Chat,
+          tool transcripts, and sub-agent prose SHALL NOT be treated as
+          durable mission SSOT (extends MN-REQ-10.1).
+        */
+        attribute requirementId : String = "MN-REQ-12.1";
+      }
+
+      requirement def MN_REQ_12_2_SharedStoreTransport {
+        doc /*
+          Under Multitask, parent and workers SHALL bind to the same shared
+          GraphStore/session registry via TCP serve, streamable-http MCP, or
+          local IPC when available. Default isolated in-process MCP (one
+          graph per host process) SHALL NOT be used for shared Multitask
+          missions. Single-agent goldfish MAY still use in-process (MN-REQ-06.1).
+        */
+        attribute requirementId : String = "MN-REQ-12.2";
+      }
+
+      requirement def MN_REQ_12_3_ParentOwnsTaskLifecycle {
+        doc /*
+          The parent coordinator SHALL mint and own house task and user-
+          constraint lifecycle rows (TSK_* / USR_*): create, status=active,
+          status=settled, and optional led_to_success edges. Workers SHALL NOT
+          settle parent-owned TSK_* / USR_* unless the parent explicitly
+          delegated that settle.
+        */
+        attribute requirementId : String = "MN-REQ-12.3";
+      }
+
+      requirement def MN_REQ_12_4_WorkerPinMapAndScopedWrite {
+        doc /*
+          Each worker turn SHALL begin with a live pin map on the shared
+          session, copy assigned ids from that pin map, and mutate only under
+          the parent-assigned subgraph (anchors and relation scope). Workers
+          SHALL NOT invent ids the parent already minted, and SHALL NOT open a
+          different session id unless the parent assigned a separate mission.
+        */
+        attribute requirementId : String = "MN-REQ-12.4";
+      }
+
+      requirement def MN_REQ_12_5_PreferOneWorkerOrDisjoint {
+        doc /*
+          Multitask missions SHOULD prefer one worker per coherent workstream.
+          Parallel workers SHALL use disjoint anchor subtrees or separate
+          session ids. Two writers SHALL NOT mutate the same anchor slice
+          without explicit serialisation (0.4.x is last-write-wins; no
+          neighbourhood reserve).
+        */
+        attribute requirementId : String = "MN-REQ-12.5";
+      }
+
+      requirement def MN_REQ_12_6_ParentEndTurnNoPoll {
+        doc /*
+          After spawning background workers, the parent SHALL end the turn
+          (Multitask gate). The parent SHALL NOT poll or await worker
+          completion in the same turn, and SHALL NOT redo worker investigation
+          from chat memory. On the next coordinator turn the parent SHALL
+          pin_map first and act from the refreshed shared-session slice.
+        */
+        attribute requirementId : String = "MN-REQ-12.6";
+      }
+
+      requirement def MN_REQ_12_7_NoAssumeAclReserveIngest {
+        doc /*
+          As-is 0.4.x: agents and Multitask doctrine SHALL NOT assume session
+          ACL modes, neighbourhood reserve (RSV), or Path-B PinMapIngest_*
+          engines are shipped or enforced. Those remain design/roadmap
+          (MN-REQ-11 stubs; grammar security/reserve docs). Seed external pins
+          via session_open seed_lines or add with explicit locator ids.
+        */
+        attribute requirementId : String = "MN-REQ-12.7";
+      }
+
+      requirement def MN_REQ_12_8_AppliesToRelevantTasks {
+        doc /*
+          Multitask Mode (MN-REQ-12.1 through 12.7) SHALL apply when mission
+          work is multi-step, coordinator-delegated to workers, or
+          parallelisable across disjoint workers. Trivial one-shot
+          single-agent turns SHALL use the ordinary goldfish loop without
+          Multitask shared-store or parent/worker obligations.
+        */
+        attribute requirementId : String = "MN-REQ-12.8";
+      }
+    }
   }
 
   // --- Requirement usages + #derivation (SysML v2 deriveReqt) ---
@@ -944,6 +1047,25 @@ package MemNetRequirements {
   requirement pinIngestDeterministicIdsReq
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
 
+  requirement multitaskModeReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode;
+  requirement sharedSessionMissionSsotReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
+  requirement sharedStoreTransportReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
+  requirement parentOwnsTaskLifecycleReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_3_ParentOwnsTaskLifecycle;
+  requirement workerPinMapAndScopedWriteReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
+  requirement preferOneWorkerOrDisjointReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_5_PreferOneWorkerOrDisjoint;
+  requirement parentEndTurnNoPollReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_6_ParentEndTurnNoPoll;
+  requirement noAssumeAclReserveIngestReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+  requirement appliesToRelevantTasksReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
     end #original ::> missionReq;
@@ -958,6 +1080,7 @@ package MemNetRequirements {
     end #derive ::> humanInspectReq;
     end #derive ::> llmPropertiesAndLimitsReq;
     end #derive ::> snapshotInteropReq;
+    end #derive ::> multitaskModeReq;
   }
 
   // Leaves derive from their group
@@ -1069,6 +1192,18 @@ package MemNetRequirements {
     end #derive ::> pcbaAtoNodesAreNetsComponentsPinsReq;
     end #derive ::> pcbaAtoEdgesAreConnectivityReq;
     end #derive ::> pinIngestDeterministicIdsReq;
+  }
+
+  #derivation connection deriveMultitaskLeaves {
+    end #original ::> multitaskModeReq;
+    end #derive ::> sharedSessionMissionSsotReq;
+    end #derive ::> sharedStoreTransportReq;
+    end #derive ::> parentOwnsTaskLifecycleReq;
+    end #derive ::> workerPinMapAndScopedWriteReq;
+    end #derive ::> preferOneWorkerOrDisjointReq;
+    end #derive ::> parentEndTurnNoPollReq;
+    end #derive ::> noAssumeAclReserveIngestReq;
+    end #derive ::> appliesToRelevantTasksReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {
@@ -1187,5 +1322,29 @@ package MemNetRequirements {
     end #original ::> saveSessionSnapshotReq;
     end #original ::> loadSessionSnapshotReq;
     end #derive ::> distinctFromSessionSnapshotReq;
+  }
+
+  // Cross-derive: Multitask from no-chat-store, process boundary, pin map
+  #derivation connection deriveMultitaskFromNoChatStore {
+    end #original ::> noChatAsDurableStoreReq;
+    end #derive ::> multitaskModeReq;
+    end #derive ::> sharedSessionMissionSsotReq;
+  }
+
+  #derivation connection deriveMultitaskFromProcessBoundary {
+    end #original ::> processBoundaryReq;
+    end #original ::> localIpcShareReq;
+    end #original ::> tcpServeMigrationReq;
+    end #derive ::> sharedStoreTransportReq;
+  }
+
+  #derivation connection deriveWorkerFromPinMap {
+    end #original ::> anchoredPinMapReq;
+    end #derive ::> workerPinMapAndScopedWriteReq;
+  }
+
+  #derivation connection deriveNoAssumeFromIngestRoadmap {
+    end #original ::> pinIngestDeterministicIdsReq;
+    end #derive ::> noAssumeAclReserveIngestReq;
   }
 }

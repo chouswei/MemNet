@@ -20,7 +20,10 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Multi-layer (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; law on node; dual EDGE bind/relation; nesting = view budget) |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` |
-| Agent playbook (as-is pipe) | `docs/LLM-GUIDE.md` |
+| Multi-agent / Multitask (as-is 0.4.x) | `docs/multi-agent-sessions.md` |
+| Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` |
+| MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
+| Agent playbook (0.4.x) | `docs/LLM-GUIDE.md` |
 | Domain worked examples | `docs/application-notes/` (schematic; nodal note *applies* formula grammar to circuits) |
 | Core library | `parts/common/memnet/` |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` |
@@ -33,6 +36,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Intent | Path |
 |--------|------|
 | MemNet work (pin map / MCP session / mutate / parts) | `.cursor/skills/memnet-reference/` |
+| Multitask Mode + MemNet (enforceable) | `docs/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
 | Doctrine / grammar / models | `README.md`, `docs/grammar/`, `sysml-models/` |
 | Generic MCP implementation | `parts/memnet-mcp/` |
 
@@ -44,3 +48,4 @@ Personal Cursor skills (user pack) are out of scope for this repo.
 2. **Novel-writer is dropped** — do not restore `parts/novel-writer/` or novel MCP extras; see `DROP-NOVEL-WRITER.md`.
 3. Keep `AGENT-CONTEXT.md` thin; durable state lives in MemNet sessions when used.
 4. British English in new docs written for this repo.
+5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, or assume ACL / reserve / ingest (design-only in 0.4.x).

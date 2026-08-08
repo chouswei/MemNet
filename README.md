@@ -16,7 +16,7 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 | One agent dialect | **Shared dialect** (Write = display) — same shapes for live read and mutate; design docs may still say “Tier A” |
 | Live **pin map** | Bounded ego/anchor digest for the turn (not a session dump) |
 | `NEW` vs locators | LLM creates use mint token `NEW`; pin-map ingest uses **stable locators** (no client `NEW` for source pins). PCBA schematics use Atopile **`.ato`** |
-| Transport | **In-process first**; local IPC next; TCP localhost as migration fallback |
+| Transport | **In-process first** (MCP stdio default); CLI + TCP `memnet serve` as shared-process fallback; opt-in streamable-http for remote |
 | Persistence | Optional snapshots (`session save` / `session load`); sessions are RAM + TTL |
 
 **Primary term:** pin map. MCP tool `pin_map` / CLI `query pin-map`. Legacy aliases: `query_warm` / `query warm`.
@@ -67,11 +67,23 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 | Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
 | MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
 | Live pin map | `PinMapComposer` via `pin_map` / `query pin-map` (shared-dialect emit) | Done |
-| Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve; opt-in HTTP `:18766` | In-process primary; local IPC; TCP fallback; remote streamable-http |
+| Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve; opt-in HTTP `:18766` | In-process primary; TCP fallback; remote streamable-http |
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
 
-[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is still largely **pipe-centric** (goldfish loop, `query warm`). Prefer the grammar design + SysML notes for the forward dialect; treat the GUIDE as operational until it is migrated.
+[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is the agent playbook (**0.4.x shared dialect first**; legacy `@TAG` pipe in appendix).
+
+---
+
+## Transport
+
+| Mode | Entry | Graph store | Typical use |
+|------|-------|-------------|-------------|
+| **MCP in-process** (primary) | `memnet-mcp` stdio in Cursor | In-process engine in the MCP host | Local agents; no `memnet serve` required |
+| **CLI + `memnet serve`** | `memnet` CLI → TCP `:18765` | Shared serve process | Scripts, multi-client, migration from pre-0.4 |
+| **MCP streamable-http** (opt-in) | `memnet-mcp --transport streamable-http` → `:18766/mcp` | Shared remote process | Remote Cursor `url` clients; bearer token optional |
+
+Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead of the in-process graph. Multitask / parallel workers sharing one graph need TCP or HTTP — default in-process isolates per process. See [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md).
 
 ---
 
@@ -105,9 +117,17 @@ PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project).
 
 ---
 
-## Quick start (as-is CLI)
+## Quick start (MCP in-process — primary)
 
-Until the shared dialect is universal at every boundary, CLI sessions still use serve; agent mutate prefers the shared dialect.
+```powershell
+pip install memnet-llm[mcp]
+```
+
+Register `memnet-mcp` in `.cursor/mcp.json` (see `parts/memnet-mcp/README.md`). Open a session via MCP `session_open`, then `pin_map(anchor=…)` / `add` / `update` — shared dialect, no separate serve terminal.
+
+## Quick start (CLI + serve — fallback)
+
+For shell scripts or a shared TCP graph:
 
 **Terminal 1:**
 
@@ -128,18 +148,21 @@ memnet query pin-map --anchor PLR01   # live pin map (bare present; query warm i
 memnet session close $env:MEMNET_SESSION
 ```
 
-Without `memnet serve`, stateful commands fail with `@ERR: serve_required` (unless `MEMNET_TEST_INLINE=1` for tests/scripts).
+Without `memnet serve`, the **CLI** fails with `@ERR: serve_required` (unless `MEMNET_TEST_INLINE=1` for tests/scripts). **MCP in-process** does not need serve.
 
-**Serve safety (0.3.6+):** default bind is **localhost only** (`127.0.0.1:18765`). Binding to `0.0.0.0` or any non-loopback address (e.g. `10.0.0.10`) requires `MEMNET_SERVE_ALLOW_REMOTE=1`. There is no session token or ACL on TCP yet — remote bind is LAN-trust exposure. Request/response frames are capped (default 4 MiB; `MEMNET_SERVE_MAX_FRAME_BYTES`). See `docs/grammar/memnet-security-multi-agent.md`.
+**Serve safety:** default bind is **localhost only** (`127.0.0.1:18765`). Non-loopback bind requires `MEMNET_SERVE_ALLOW_REMOTE=1`. No session token or ACL on TCP yet — remote bind is LAN-trust exposure. Frame cap default 4 MiB (`MEMNET_SERVE_MAX_FRAME_BYTES`). See `docs/grammar/memnet-security-multi-agent.md`.
 
-**MCP (as-is):** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`** (not `:80`/`:443`). LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth; for `0.0.0.0` set `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (e.g. `10.0.0.10`) so Cursor Host headers pass FastMCP DNS-rebinding checks. TCP `memnet serve` remains **`:18765`**. Tools include `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
+**MCP:** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`**. LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth; for `0.0.0.0` set `MEMNET_MCP_HTTP_TRUSTED_HOSTS`. TCP `memnet serve` remains **`:18765`**. Tools: `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
 
 Forward reading order for agents:
 
-1. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — shared dialect (Write = display), pin map, `NEW` vs locators  
-2. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps; 1.x = NODE\|EDGE, law on node (`CST` + `ports=`/`law=`), nesting as view budget (design)   
-3. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
-4. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — current goldfish loop (pipe; migration pending)
+1. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — goldfish loop, shared dialect, MCP primary  
+2. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — Write = display, pin map, `NEW` vs locators  
+3. [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) — single-writer / Multitask guidance (as-is); links **MN-REQ-12** verify trail  
+4. [`docs/application-notes/llm-system-dev-multitask.md`](docs/application-notes/llm-system-dev-multitask.md) — Multitask pattern for downstream `modelbasedPrj-*` repos  
+5. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps (design)  
+6. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
+7. [`sysml-models/outputs/multitask-case-study.md`](sysml-models/outputs/multitask-case-study.md) — MN-REQ-12 worked scenario (MN-VER-12-G00, S01…S09)
 
 ---
 

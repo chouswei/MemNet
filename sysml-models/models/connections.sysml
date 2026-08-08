@@ -113,6 +113,20 @@ package MemNetConnections {
     */
   }
 
+  item def MissionTaskPin {
+    doc /*
+      House task row (TSK_*) in the shared session for Multitask missions.
+      Parent mints and settles; workers may mutate under assigned scope but
+      SHALL NOT own parent TSK_* settle (MN-REQ-12.3). Chat is not SSOT.
+    */
+  }
+  item def WorkerWriteScope {
+    doc /*
+      Parent-assigned anchors and relation scope for one MultitaskWorker.
+      Parallel workers require disjoint scopes or separate sessions
+      (MN-REQ-12.5). As-is: doctrine only; no engine ACL/reserve.
+    */
+  }
   item def HousekeepStats {
     doc /* Row counts and cap utilisation from housekeep stats. */
   }
