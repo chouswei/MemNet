@@ -50,6 +50,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 |------|------|------------|
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
+| One-path / 0.5.0 plan | `docs/ROADMAP-0.5.md` | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |
@@ -62,6 +63,8 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 | Tests | `tests/` | -- |
 | Layout / hub | `LAYOUT.md`, `AGENTS.md` | -- |
 | Novel-writer drop | `DROP-NOVEL-WRITER.md` | -- |
+
+**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** Layer = 1.x; Tier A = legacy alias. Detail: `docs/ROADMAP-0.5.md`.
 
 Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 

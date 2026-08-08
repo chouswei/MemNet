@@ -44,7 +44,9 @@ CLI overrides: `--host`, `--port`, `--path`.
 
 Same tool surface as stdio; the HTTP process owns the graph via InProcessEngine (do not dual-write to TCP unless you deliberately set `MEMNET_MCP_TRANSPORT=tcp`).
 
-### Cursor `url` example
+### Cursor `url` example (default remote — one path)
+
+Teach **`memnet-pi`** only for remote / shared graph. Project **`memnet-local`** (stdio) is **optional / dev-only** — omit by default; do not run it alongside Pi HTTP as a second writer. See [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) and [`.cursor/mcp.json.example`](../../.cursor/mcp.json.example).
 
 ```json
 {
@@ -59,7 +61,7 @@ Same tool surface as stdio; the HTTP process owns the graph via InProcessEngine 
 }
 ```
 
-Local stdio remains:
+Optional local stdio (dev-only; not Multitask / not default teach):
 
 ```json
 {
@@ -73,7 +75,6 @@ Local stdio remains:
   }
 }
 ```
-
 ### Pi install / restart (paste-friendly)
 
 Do **not** bind `:80` / `:443` (Inventree). Use **18766** for MCP HTTP and **18765** for optional TCP serve.

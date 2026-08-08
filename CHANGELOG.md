@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **docs: one-path / 0.5.0 plan** — `docs/ROADMAP-0.5.md`; README “How to run (one path)” + known gaps; multi-layer Open § aligned; `memnet-pi` HTTP as default remote teach; Layer = 1.x teach / Tier A = legacy alias; Pi one graph owner (HTTP bridged to serve).
+
 ## [0.4.2] - 2026-08-08
 
 ### Added

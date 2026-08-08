@@ -1,11 +1,5 @@
 {
   "mcpServers": {
-    "memnet-local": {
-      "command": "memnet-mcp",
-      "env": {
-        "MEMNET_WORKSPACE_ROOT": "c:\\Projects\\MemNet"
-      }
-    },
     "memnet-pi": {
       "url": "http://10.0.0.10:18766/mcp",
       "headers": {
@@ -14,3 +8,4 @@
     }
   }
 }
+

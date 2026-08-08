@@ -636,11 +636,13 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 ---
 
-## 8. Open (three bullets max)
+## 8. Open (aligned with one-path / 0.5.0)
 
-- **First-class `PORT` NODE** — deferred / no until forced; default binds use `[Node.port]`.
-- **SCHEMA freeze** — relation labels stay open `IDENT` (no vocab now); fat field allow-list deferred — small core later; soft denylist now (`law`/`pseudo`/`recycle`/`role`/`view`).
-- **Deferred teach** — `state=` (statechart/instance only); bind `event=`/`guard=` (flowchart/statechart only); bi-directed wire (accept, demote teach); `direction=` / `pipe` (accept-only).
+Plan SSOT: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). Grammar Open stays thin — transport/entry live in the roadmap.
+
+- **Dialect teach (0.5 → 1.x)** — **Layer** is the teach path; **Tier A** = legacy alias only (not a second peer story). Full codec merge / formula-on-EDGE retirement still **1.x**; do not forever dual-teach.
+- **Grain / SCHEMA deferred** — first-class `PORT` NODE (no until forced); SCHEMA vocab freeze + fat field allow-list later; soft denylist now (`law`/`pseudo`/`recycle`/`role`/`view`). Deferred teach: `state=` (statechart/instance); bind `event=`/`guard=` (flowchart/statechart); bi-directed / `direction=` / `pipe` (accept, demote teach).
+- **Not this doc** — one remote entry (`memnet-pi`), one Pi graph owner (HTTP → `memnet serve`), Host/token/`view=` footguns → roadmap; reserve / ACL / ingest → their design docs + MN-REQ-12.
 
 ---
 
@@ -648,6 +650,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 
 | Path | Role |
 |------|------|
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared dialect SSOT; §3 ≠ this doc |
 | [`memnet-field-formulas.md`](memnet-field-formulas.md) | Flat `derives` (**transitional**); 1.x → law on node |
 | [`../application-notes/examples/inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md) | Flat InvAmp today (electronics app note) |

@@ -16,7 +16,7 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 | One agent dialect | **Shared dialect** (Write = display) — same shapes for live read and mutate; design docs may still say “Tier A” |
 | Live **pin map** | Bounded ego/anchor digest for the turn (not a session dump) |
 | `NEW` vs locators | LLM creates use mint token `NEW`; pin-map ingest uses **stable locators** (no client `NEW` for source pins). PCBA schematics use Atopile **`.ato`** |
-| Transport | **In-process first** (MCP stdio default); CLI + TCP `memnet serve` as shared-process fallback; opt-in streamable-http for remote |
+| Transport | Local single-agent: in-process stdio OK. **Remote / Multitask teach:** `memnet-pi` HTTP → one `memnet serve` (see one-path / 0.5.0) |
 | Persistence | Optional snapshots (`session save` / `session load`); sessions are RAM + TTL |
 
 **Primary term:** pin map. MCP tool `pin_map` / CLI `query pin-map`. Legacy aliases: `query_warm` / `query warm`.
@@ -75,15 +75,34 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 
 ---
 
-## Transport
+## How to run (one path)
+
+**Remote / shared graph (default teach):** Cursor MCP **`memnet-pi`** via `"url"` → Pi streamable-http `:18766/mcp` (token + trusted Host). On the Pi, HTTP MCP **MUST** bridge to one `memnet serve` (TCP `:18765`) — **one graph owner**, never two writers. See [`.cursor/mcp.json.example`](.cursor/mcp.json.example) and [`parts/memnet-mcp/README.md`](parts/memnet-mcp/README.md).
+
+**Local stdio (`memnet-local`):** optional / **dev-only** — omit or disable by default; not the Multitask path.
+
+**Dialect teach:** **Layer** is the 1.x story; **Tier A** is a legacy alias — not a second peer dialect. Detail: [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
+
+## Transport (as-is 0.4.x)
 
 | Mode | Entry | Graph store | Typical use |
 |------|-------|-------------|-------------|
-| **MCP in-process** (primary) | `memnet-mcp` stdio in Cursor | In-process engine in the MCP host | Local agents; no `memnet serve` required |
-| **CLI + `memnet serve`** | `memnet` CLI → TCP `:18765` | Shared serve process | Scripts, multi-client, migration from pre-0.4 |
-| **MCP streamable-http** (opt-in) | `memnet-mcp --transport streamable-http` → `:18766/mcp` | Shared remote process | Remote Cursor `url` clients; bearer token optional |
+| **MCP in-process** | `memnet-mcp` stdio | In-process engine in the MCP host | Local single-agent; no serve |
+| **CLI + `memnet serve`** | `memnet` CLI → TCP `:18765` | Shared serve process | Scripts, multi-client |
+| **MCP streamable-http** | `memnet-mcp --transport streamable-http` → `:18766/mcp` | Own process today (bridge to serve = **0.5.0**) | Remote Cursor `url` (`memnet-pi`) |
 
-Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead of the in-process graph. Multitask / parallel workers sharing one graph need TCP or HTTP — default in-process isolates per process. See [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md).
+Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead of a separate in-process graph. Multitask / parallel workers sharing one graph need TCP or HTTP — default in-process isolates per process. See [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md).
+
+## Known gaps → 0.5.0
+
+Plan (docs only until implemented): [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
+
+1. **One remote entry** — teach `memnet-pi` HTTP; demote project `memnet-local`.
+2. **One dialect teach** — Layer = 1.x; Tier A = legacy alias.
+3. **One graph owner on Pi** — HTTP MCP bridged to `memnet serve`; never two writers.
+4. **Footguns** — Host / token / `view=` defaults so Cursor just works.
+
+Deferred elsewhere (not 0.5.0 scope): neighbourhood reserve, session ACL, Path-B ingest, first-class `PORT` NODE — grammar Open + MN-REQ-12 backlog.
 
 ---
 
@@ -117,15 +136,19 @@ PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project).
 
 ---
 
-## Quick start (MCP in-process — primary)
+## Quick start (remote `memnet-pi` — default teach)
+
+On the Pi: run streamable-http MCP bridged to one `memnet serve` (0.5.0 target; today set `MEMNET_MCP_TRANSPORT=tcp` when serve is up). Cursor: copy [`.cursor/mcp.json.example`](.cursor/mcp.json.example) (`memnet-pi` `"url"` + bearer). Then `session_open` → `pin_map` → `add` / `update`. Full env paste: [`parts/memnet-mcp/README.md`](parts/memnet-mcp/README.md). Plan: [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
+
+## Quick start (MCP in-process — local / optional)
 
 ```powershell
 pip install memnet-llm[mcp]
 ```
 
-Register `memnet-mcp` in `.cursor/mcp.json` (see `parts/memnet-mcp/README.md`). Open a session via MCP `session_open`, then `pin_map(anchor=…)` / `add` / `update` — shared dialect, no separate serve terminal.
+Register stdio `memnet-mcp` only for **dev-only** local graphs (not default remote; omit `memnet-local` when using Pi). See `parts/memnet-mcp/README.md`. Open a session via MCP `session_open`, then `pin_map(anchor=…)` / `add` / `update` — shared dialect.
 
-## Quick start (CLI + serve — fallback)
+## Quick start (CLI + serve)
 
 For shell scripts or a shared TCP graph:
 

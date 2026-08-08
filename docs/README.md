@@ -13,6 +13,7 @@ MemNet engine / generic MCP / shared dialect / operating the product as an agent
 | Doc | Role |
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (0.4.x goldfish loop, shared dialect, MCP primary) |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan (remote entry, dialect teach, Pi graph owner) |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x): shared session, parent/worker MUST/MUSTNOT, transport |
 | [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | Shared dialect SSOT (Write = display, pin map, `NEW` vs locators) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Generic formula EDGE relations (any domain) |
