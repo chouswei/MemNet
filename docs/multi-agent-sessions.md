@@ -1,5 +1,8 @@
 # Multitask operating model (as-is 0.4.x)
 
+**Class:** developers — MemNet engine / MCP / agent operating doctrine.  
+**Application adoption** (`modelbasedPrj-*`): [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Index: [`docs/README.md`](README.md).
+
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task sub-agents. Session ACL, neighbourhood reserve, and ingest engines are **not shipped** — see `docs/grammar/memnet-security-multi-agent.md` and `docs/grammar/memnet-neighbourhood-reserve.md`.
 
 **SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S09** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md).
@@ -90,11 +93,13 @@ Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models
 
 ## Related
 
+- [`docs/README.md`](README.md) — docs index (developers vs applications)
 - `docs/grammar/memnet-security-multi-agent.md` — target ACL model
 - `docs/grammar/memnet-neighbourhood-reserve.md` — target reserve model
 - `sysml-models/models/requirements.sysml` — **MN-REQ-12** group + leaves 12.1–12.8
 - `sysml-models/models/verify.sysml` — **MN-VER-12-G00** (group) + **S01…S09** (step / 12.7 gate)
 - `sysml-models/outputs/multitask-case-study.md` — worked scenario + verify table
 - `docs/application-notes/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` system repos
-- `.cursor/skills/memnet-reference/SKILL.md` — repo skill + pre-write checklist
+- `.cursor/skills/memnet-reference/SKILL.md` — product development skill
+- `~/.cursor/skills/memnet-multitask/` — application Multitask skill (user pack)
 - `AGENTS.md` — hub policy

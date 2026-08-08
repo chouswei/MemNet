@@ -2,7 +2,7 @@
 
 Evidence walk against the on-disk SysML under `sysml-models/models/`.  
 Companion architecture summary: [system-design-notes.md](system-design-notes.md).  
-Operational doctrine (agents): `docs/multi-agent-sessions.md` (not rewritten here).
+Operational doctrine (developers): `docs/multi-agent-sessions.md`. Application adoption (`modelbasedPrj-*`): `docs/application-notes/llm-system-dev-multitask.md`. Index: `docs/README.md`.
 
 ## 1. Model examination (fitness)
 

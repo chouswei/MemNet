@@ -95,7 +95,7 @@ Part-based tree ([`LAYOUT.md`](LAYOUT.md), [`AGENTS.md`](AGENTS.md)):
 |------|------|
 | `parts/common/memnet/` | Core library + CLI (`memnet`) |
 | `parts/memnet-mcp/` | Generic MCP server (`memnet-mcp`) |
-| `docs/` | LLM-GUIDE, grammar, application notes |
+| `docs/` | Docs index [`docs/README.md`](docs/README.md): developers + applications |
 | `sysml-models/` | Requirements and deploy/behaviour models |
 | `tests/` | Engine, MCP, shared-dialect golden tests |
 
@@ -154,13 +154,13 @@ Without `memnet serve`, the **CLI** fails with `@ERR: serve_required` (unless `M
 
 **MCP:** local Cursor uses stdio `memnet-mcp` (in-process graph by default). Opt-in remote: `memnet-mcp --transport streamable-http` on **`:18766/mcp`**. LAN bind needs `MEMNET_MCP_ALLOW_REMOTE=1`; set `MEMNET_MCP_HTTP_TOKEN` for bearer auth; for `0.0.0.0` set `MEMNET_MCP_HTTP_TRUSTED_HOSTS`. TCP `memnet serve` remains **`:18765`**. Tools: `serve_status`, `session_open`, `session_current`, `session_load`, `session_save`, `pin_map` (`query_warm` alias), `query_walk`, `add`, `update`, `read_get`, `housekeep_stats`. See `parts/memnet-mcp/README.md`.
 
-Forward reading order for agents:
+Forward reading order for agents (full index: [`docs/README.md`](docs/README.md)):
 
-1. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — goldfish loop, shared dialect, MCP primary  
-2. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — Write = display, pin map, `NEW` vs locators  
-3. [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) — single-writer / Multitask guidance (as-is); links **MN-REQ-12** verify trail  
-4. [`docs/application-notes/llm-system-dev-multitask.md`](docs/application-notes/llm-system-dev-multitask.md) — Multitask pattern for downstream `modelbasedPrj-*` repos  
-5. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps (design)  
+1. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — goldfish loop, shared dialect, MCP primary **(developers)**  
+2. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — Write = display, pin map, `NEW` vs locators **(developers)**  
+3. [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) — Multitask operating doctrine (as-is); links **MN-REQ-12** verify trail **(developers)**  
+4. [`docs/application-notes/llm-system-dev-multitask.md`](docs/application-notes/llm-system-dev-multitask.md) — Multitask pattern for downstream `modelbasedPrj-*` repos **(applications)**  
+5. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps (design) **(developers)**  
 6. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
 7. [`sysml-models/outputs/multitask-case-study.md`](sysml-models/outputs/multitask-case-study.md) — MN-REQ-12 worked scenario (MN-VER-12-G00, S01…S09)
 

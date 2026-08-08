@@ -124,5 +124,5 @@ Worked scenario (parent delegates a multi-step SysML review to one worker), step
 - PinMapIngest_* deterministic locators (reject client NEW on projecting)
 - Optional ANTLR codegen; LegacyPipeImport remains one-shot only
 - Migrate `docs/LLM-GUIDE.md` off pipe-centric warm examples
-- **To-be (not MN-REQ-12 as-is):** session ACL, neighbourhood reserve, Path-B ingest engines, engine WorkerWriteScope enforcement — design docs only; MultitaskOperatingModel does not claim them shipped (MN-REQ-12.7; MN-VER-12-S09). See also `docs/multi-agent-sessions.md` § Not implemented.
+- **To-be (not MN-REQ-12 as-is):** session ACL, neighbourhood reserve, Path-B ingest engines, engine WorkerWriteScope enforcement — design docs only; MultitaskOperatingModel does not claim them shipped (MN-REQ-12.7; MN-VER-12-S09). See also `docs/multi-agent-sessions.md` § Not implemented and `docs/README.md` (developers vs applications).
 - Typed fields on `MissionTaskPin` / `WorkerWriteScope`

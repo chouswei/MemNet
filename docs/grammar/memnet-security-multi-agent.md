@@ -453,6 +453,7 @@ Do not ship pin-map `SES`/`ACL`/`RSV` display without enforcing the gates.
 | [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) | SSOT for lease semantics (inside ACL) |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) §4.2.0 / §9a | Re-id / merge; concurrency ranking |
 | `README.md` | Doctrine / transport |
-| `.cursor/skills/memnet-reference/SKILL.md` | Repo agent pointer |
+| `.cursor/skills/memnet-reference/SKILL.md` | Product development skill (repo) |
+| `~/.cursor/skills/mcp-memnet/` | MCP application skill (user pack) |
 | `parts/memnet-mcp/` | Tool SSOT when implementing |
 | `parts/common/memnet/memnet/config.py` | `serve_host` / `serve_port` defaults |

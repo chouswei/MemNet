@@ -8,7 +8,7 @@ This repository follows [SYSTEM-REPO-LAYOUT.md](../SYSTEM-REPO-LAYOUT.md) for **
 |--------------|---------------|
 | `parts/common/<lib>/` | Core Python library `parts/common/memnet/` (shared by MCP hosts) |
 | `parts/<part>/software/` | Product surface: `memnet-mcp` |
-| `docs/` | Cross-part guides: `docs/LLM-GUIDE.md`, `docs/grammar/`, `docs/application-notes/` |
+| `docs/` | Cross-part guides — index [`docs/README.md`](docs/README.md): **developers** (`LLM-GUIDE`, `grammar/`, `multi-agent-sessions`) and **applications** (`application-notes/`) |
 | `sysml-models/` | System SysML (`models/`, design notes under `outputs/`); libs pin may still be local |
 | `pcba-libs/` | **N/A** — no hardware boards |
 | `project.toml` | System identity + SemVer; Python packaging remains in `pyproject.toml` |

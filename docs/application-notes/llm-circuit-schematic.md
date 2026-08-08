@@ -409,6 +409,6 @@ Then ingest or hand-seed `CMP`/`PIN`/`NET` with **explicit locator ids**, bind `
 | `docs/application-notes/llm-nodal-analysis-formulas.md` | KCL / Ohm as multi-field formula EDGEs |
 | `docs/grammar/memnet-field-formulas.md` | Formula EDGE design |
 | `docs/LLM-GUIDE.md` | Goldfish loop (operational) |
-| `.cursor/skills/memnet-reference/` | Engine dialect routing (keep thin — this note is the circuit SSOT) |
+| `~/.cursor/skills/memnet-format/` | Shared dialect (user pack; this note is the circuit SSOT) |
 
 **This file is one documented application example.** Use it for schematic subgraphs, s-domain golden-rule scoping, and nodal equation atoms on MemNet. For SysML system ports see `llm-sysml-v2-modeling.md`; for engine behaviour see `docs/LLM-GUIDE.md` and `docs/grammar/`.

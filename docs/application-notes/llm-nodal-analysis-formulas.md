@@ -198,6 +198,6 @@ E_sum [EQN_KCL_MID] --(derives)--> [EQN_KCL_MID] ; tgt_field=residual ; src_fiel
 | `docs/grammar/examples/22_inverting_amp_nodal_good.txt` | Parse-ok golden nodal + `derives` fixture |
 | `docs/grammar/memnet-field-formulas.md` | **Generic** formula EDGE SSOT (any domain; design; no evaluator) — this note only *uses* it |
 | `docs/grammar/memnet-grammar-design.md` | Atomisation, locators, `+=`/`-=` |
-| `.cursor/skills/memnet-reference/` | Repo dialect routing |
+| `~/.cursor/skills/memnet-format/` | Shared dialect (user pack) |
 
 **This file is documentation only.** Use it to place KCL/Ohm as multi-field formula relations beside stable schematic pins — without building a circuit solver into MemNet.

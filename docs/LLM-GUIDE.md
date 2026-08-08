@@ -1,5 +1,7 @@
 # MemNet — Agent Playbook (for LLMs)
 
+**Class:** developers — MemNet engine / MCP / shared dialect / agent operating doctrine. Index: [`docs/README.md`](README.md).
+
 **Product 0.4.x.** Read this file at the start of any non-trivial MemNet task.
 
 **You are a goldfish.** Your working memory is unreliable. MemNet is external structured scratch space — durable state lives in the graph for this session, not in chat.
@@ -42,7 +44,7 @@ E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
 
 - **Create:** `[NEW]` — engine mints ids; copy from the next pin map.
 - **Update / settle:** known ids only; `NEW` illegal on patch.
-- **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`. See `.cursor/skills/memnet-reference/SKILL.md`.
+- **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`. User-pack: `~/.cursor/skills/memnet-format/SKILL.md`.
 
 Formal grammar: `docs/grammar/memnet-grammar-design.md`.
 
@@ -190,10 +192,13 @@ pin_map(anchor=PLR01, depth=2)
 
 ### Application notes
 
+**Class:** applications. Full index: [`docs/README.md`](README.md).
+
 Under `docs/application-notes/` — domain examples (some still show legacy `@TAG` / `query warm`; translate to shared dialect + `pin_map`):
 
 | # | Note | Summary |
 |---|------|---------|
+| 0 | `llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` repos (mission + SysML two-store) |
 | 1 | `llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `llm-daily-news.md` | Batch RSS digest |
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
@@ -202,6 +207,8 @@ Under `docs/application-notes/` — domain examples (some still show legacy `@TA
 | 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ formulas |
 | 6 | `llm-mud.md` | Multiplayer MUD (shared serve) |
 | 7 | `llm-build-on-memnet.md` | Builder guide for custom MCP |
+
+Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](multi-agent-sessions.md).
 
 ---
 
