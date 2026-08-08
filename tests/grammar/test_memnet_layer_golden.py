@@ -93,6 +93,7 @@ def test_fixtures_directory_populated() -> None:
         "layer_06_bad_law_on_edge.txt",
         "layer_07_bad_bag_on_law.txt",
         "layer_08_bad_brace_depth3.txt",
+        "layer_09_inv_amp_good.txt",
     }
     assert required <= names, f"missing fixtures: {required - names}"
     assert LAYER_EXAMPLES.is_dir()

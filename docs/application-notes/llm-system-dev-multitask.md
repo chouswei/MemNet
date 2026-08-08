@@ -6,6 +6,8 @@
 
 **Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
 
+**Dialect:** workers mutate **Write = display** / **Layer** (`pin_map` first). Electrical law leaves use `ports=` / `law=` / `--bind-->` — see [`llm-circuit-schematic.md`](llm-circuit-schematic.md). Do not teach `@TAG` pipe as the agent surface.
+
 This note complements:
 
 - [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.4.x)

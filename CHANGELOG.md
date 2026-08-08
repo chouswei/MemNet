@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **docs: one-path / 0.5.0 plan** — `docs/ROADMAP-0.5.md`; README “How to run (one path)” + known gaps; multi-layer Open § aligned; `memnet-pi` HTTP as default remote teach; Layer = 1.x teach / Tier A = legacy alias; Pi one graph owner (HTTP bridged to serve).
+- **docs: application-notes Layer teach** — circuit notes + InvAmp example use CST `ports=` / `law=` / `--bind-->` as primary; Tier A `derives` / `connects_to` / paren arrows / `@TAG` pipe demoted to legacy pointers; `docs/README.md` + `LLM-GUIDE.md` Layer pointers; golden `docs/grammar/examples/layer/layer_09_inv_amp_good.txt`.
 
 ## [0.4.2] - 2026-08-08
 

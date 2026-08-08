@@ -653,7 +653,7 @@ Plan SSOT: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). Grammar Open stays thin —
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared dialect SSOT; §3 ≠ this doc |
 | [`memnet-field-formulas.md`](memnet-field-formulas.md) | Flat `derives` (**transitional**); 1.x → law on node |
-| [`../application-notes/examples/inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md) | Flat InvAmp today (electronics app note) |
+| [`../application-notes/examples/inverting-amplifier-memnet.md`](../application-notes/examples/inverting-amplifier-memnet.md) | Layer InvAmp teach (ports / law / bind) |
 | [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) | Reserve within active view |
 | [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) | ACL before reserve |
 | [`antlr/MemNetLayer.g4`](antlr/MemNetLayer.g4) | Proposed ANTLR4 for this slim dialect |

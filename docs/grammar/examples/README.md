@@ -66,5 +66,6 @@ Proposed **1.x** multi-layer dialect ([`../memnet-multi-layer.md`](../memnet-mul
 | layer_06_bad_law_on_edge | lint-reject | `law=` on EDGE |
 | layer_07_bad_bag_on_law | lint-reject | Bag on denylist key `law=` |
 | layer_08_bad_brace_depth3 | parse-reject | Brace nesting depth 3 (grammar cap 2) |
+| layer_09_inv_amp_good | parse-ok | Inverting amp CST ports/law + binds (app-note twin) |
 
 Run: `python -m pytest tests/grammar/test_memnet_layer_golden.py -v`

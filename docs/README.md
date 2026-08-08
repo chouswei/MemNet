@@ -39,12 +39,13 @@ Downstream system development and domain patterns — MemNet as working memory i
 | [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML v2 modeling (single-agent) |
 | [`application-notes/llm-build-on-memnet.md`](application-notes/llm-build-on-memnet.md) | Custom MCP + Cursor skill pack on MemNet |
 | [`application-notes/llm-tech-docs-decomposition.md`](application-notes/llm-tech-docs-decomposition.md) | Manual / SCPI decomposition |
-| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic / s-domain |
-| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Nodal method ↔ formula edges |
+| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic / s-domain (**Layer** ports / law / bind) |
+| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Nodal method ↔ NODE `law=` + binds |
 | [`application-notes/llm-daily-news.md`](application-notes/llm-daily-news.md) | Batch RSS digest |
 | [`application-notes/llm-mud.md`](application-notes/llm-mud.md) | Multiplayer MUD (shared serve) |
-| [`application-notes/examples/`](application-notes/examples/) | Worked prose examples (e.g. inverting amplifier) |
+| [`application-notes/`](application-notes/) | Application-notes index (**Layer** teach) |
+| [`application-notes/examples/`](application-notes/examples/) | Worked Layer examples (e.g. inverting amplifier) |
 
 **Multitask (application):** user-pack skill `~/.cursor/skills/memnet-multitask/`; adopt MN-REQ-12 in a system repo via [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); operational MUST/MUSTNOT still comes from developer doc [`multi-agent-sessions.md`](multi-agent-sessions.md).
 
-Application notes may still show legacy `@TAG` pipe or `query warm` — translate to shared dialect + `pin_map` when implementing.
+Application notes teach **Layer** as the primary agent surface (`ports=` / `law=` / `--bind-->` where electrical; bare-id relations for chart rows). Legacy `@TAG` pipe, paren `--(rel)-->`, and formula-on-EDGE are accept-only pointers — do not dual-teach.

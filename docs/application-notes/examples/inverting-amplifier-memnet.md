@@ -1,10 +1,10 @@
-# Inverting amplifier — from first principles to MemNet
+# Inverting amplifier — Layer dialect (ports / law / bind)
 
-Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. Then encode topology and formula relations in MemNet shared dialect (NODE | EDGE). MemNet **states** stamps and results; it does **not** solve them.
+Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. Encode topology as MemNet **Layer** wire: **CST** nodes with `ports=` + `law=` on the NODE, and port↔port **`--bind-->`** (dual EDGE). MemNet **states** stamps and results; it does **not** solve them.
 
-**Notation:** **a(s)** — open-loop gain, \(V_\mathrm{OUT} = a(s)\,(V_+ - V_-)\). **A(s)** — closed-loop stage transfer, \(V_\mathrm{OUT}/V_\mathrm{IN}\). Pin-map field **`A_s`** stores the numeric value of A(s); **`a_s`** stores a(s) when the finite form is kept. `domain=s` marks the Laplace frame.
+**Notation:** **a(s)** — open-loop gain, \(V_\mathrm{OUT} = a(s)\,(V_+ - V_-)\). **A(s)** — closed-loop stage transfer, \(V_\mathrm{OUT}/V_\mathrm{IN}\). Param **`a_s`** / field **`A_s`** hold numeric values; `domain=s` marks the Laplace frame.
 
-British English. ASCII. No `|` pipe on the agent surface. See [`memnet-field-formulas.md`](../../grammar/memnet-field-formulas.md), [`llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md).
+**Teach:** Layer ([`memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md)). Tier A `derives` / CMP·PIN·NET — legacy only (§6). British English. ASCII. No `|` pipe on the agent surface.
 
 ---
 
@@ -19,7 +19,7 @@ Vin -- Rin -- VMINUS ---- U1 ---- Vout
 (IN+) ---------- VGND (reference)
 ```
 
-Nets: `VIN`, `VMINUS`, `VOUT`, `VGND`. `(IN+)` is tied to reference. Resistive feedback from `VOUT` to `VMINUS` is **negative** (output opposes the input-driven current at the inverting node).
+Nets meet at port binds: `VIN`, `VMINUS`, `VOUT`, `VGND`. `(IN+)` is tied to reference. Resistive feedback from `VOUT` to `VMINUS` is **negative**.
 
 Worked values: \(R_\mathrm{in}=10\,\mathrm{k\Omega}\), \(R_f=100\,\mathrm{k\Omega}\), \(V_\mathrm{IN}=1\,\mathrm{V}\) (DC).
 
@@ -45,11 +45,11 @@ I_{R_\mathrm{in}}(s)+I_{R_f}(s)+I_-(s)=0.
 | Finite open-loop gain | \(V_\mathrm{OUT}(s)=a(s)\,\bigl(V_+(s)-V_-(s)\bigr)\) | **a(s) is finite** throughout the algebra |
 | High input impedance | \(I_+=I_-=0\) | Op-amp current absent from KCL |
 | `(IN+)` at reference | \(V_+(s)=0\) | Non-inverting input on `VGND` |
-| Negative feedback | Topology §1.1 | Required for stable linear closure; not a substitute for algebra |
+| Negative feedback | Topology §1.1 | Required for stable linear closure |
 
 With \(V_+=0\): \(V_\mathrm{OUT}(s)=-a(s)\,V_-(s)\).
 
-**Not assumed at the start:** infinite \(a(s)\), virtual short \(V_+=V_-\), or \(V_-=0\). Those appear in §2.5 as **limits**.
+**Not assumed at the start:** infinite \(a(s)\), virtual short, or \(V_-=0\). Those appear in §2 as **limits**.
 
 **Out of scope:** saturation, slew, GBW rolloff inside \(a(s)\), bias current, clipping.
 
@@ -57,42 +57,27 @@ With \(V_+=0\): \(V_\mathrm{OUT}(s)=-a(s)\,V_-(s)\).
 
 ## 2. Derivation of A(s)
 
-Write everything with finite \(a(s)\) and finite \(V_-\).
-
-**Step 1 — KCL with \(I_-=0\).** From §1.2–1.3:
+**Step 1 — KCL with \(I_-=0\):**
 
 \[
 \frac{V_--V_\mathrm{IN}}{R_\mathrm{in}}+\frac{V_--V_\mathrm{OUT}}{R_f}=0.
 \]
 
-**Step 2 — Eliminate \(V_\mathrm{OUT}\) via the op-amp.** Substitute \(V_\mathrm{OUT}=-a(s)\,V_-\):
-
-\[
-\frac{V_--V_\mathrm{IN}}{R_\mathrm{in}}+\frac{V_-+a(s)\,V_-}{R_f}=0
-\;\Rightarrow\;
-V_-\!\left(\frac{1}{R_\mathrm{in}}+\frac{1}{R_f}+\frac{a(s)}{R_f}\right)=\frac{V_\mathrm{IN}}{R_\mathrm{in}}.
-\]
-
-**Step 3 — Solve for \(V_-\).** Multiply through by \(R_\mathrm{in}R_f\):
+**Step 2 — Eliminate \(V_\mathrm{OUT}\) via \(V_\mathrm{OUT}=-a(s)\,V_-\):**
 
 \[
 V_-(s)=\frac{V_\mathrm{IN}(s)\,R_f}{R_f+R_\mathrm{in}+a(s)\,R_\mathrm{in}}.
 \]
 
-**Step 4 — Closed-loop transfer.** Use \(V_\mathrm{OUT}=-a(s)\,V_-\) and \(A(s)=V_\mathrm{OUT}/V_\mathrm{IN}\):
+**Step 3 — Closed-loop transfer \(A(s)=V_\mathrm{OUT}/V_\mathrm{IN}\):**
 
 \[
-\boxed{A(s)=\frac{V_\mathrm{OUT}}{V_\mathrm{IN}}
-=-\,\frac{a(s)\,R_f}{R_f+R_\mathrm{in}+a(s)\,R_\mathrm{in}}
+\boxed{A(s)=-\,\frac{a(s)\,R_f}{R_f+R_\mathrm{in}+a(s)\,R_\mathrm{in}}
 =-\frac{R_f}{R_\mathrm{in}}\cdot
 \frac{a(s)}{a(s)+1+R_f/R_\mathrm{in}}.}
 \]
 
-Equivalent form: \(A(s)=-\dfrac{a(s)\,R_f}{R_f+R_\mathrm{in}\bigl(1+a(s)\bigr)}\).
-
-This is exact for the finite-gain linear model. No virtual ground was used.
-
-**Step 5 — Ideal limit (final stage only).** Push the limit **after** the closed form:
+**Step 4 — Ideal limit (final stage only):**
 
 \[
 \lim_{a(s)\to\infty}A(s)=-\frac{R_f}{R_\mathrm{in}},
@@ -100,92 +85,76 @@ This is exact for the finite-gain linear model. No virtual ground was used.
 \lim_{a(s)\to\infty}V_-(s)=0.
 \]
 
-Only here does **virtual ground** appear: \(V_+\) is fixed at 0 and \(|a(s)|\) forces \(V_-\to V_+\). For the worked values, \(A(s)=-10\) and \(V_\mathrm{OUT}=-10\,\mathrm{V}\).
-
-**Step 6 — Consistency check (limit).** With \(V_-=0\): \(I_{R_\mathrm{in}}=-0.1\,\mathrm{mA}\), \(I_{R_f}=+0.1\,\mathrm{mA}\); KCL sum is zero.
+For the worked values, \(A(s)=-10\) and \(V_\mathrm{OUT}=-10\,\mathrm{V}\). With \(V_-=0\): \(I_{R_\mathrm{in}}=-0.1\,\mathrm{mA}\), \(I_{R_f}=+0.1\,\mathrm{mA}\); KCL sum is zero.
 
 ---
 
-## 3. MemNet encoding
+## 3. Layer encoding
 
-Two layers: **circuitry** (topology + nodal atoms) and **formula relations** (`derives` EDGEs). Write = display.
-
-### 3.1 Layer A — node method
-
-| Idea | Kind | Id |
-|------|------|-----|
-| Net | `NET` | `NET_VMINUS`, … |
-| Resistor | `CMP` | `ATO_Rin`, `ATO_Rf` |
-| Node voltage | `VAR` | `VAR_VMINUS` (`V` holds \(V_-\), not assumed zero in the stamp) |
-| KCL locus | `EQN` | `EQN_KCL_VMINUS` |
-| Open-loop gain fact | `CLM` | `CLM_a_s` with field `a_s` |
-| Limit result | `CLM` | `CLM_VIRT` — virtual ground **as limit**, not an upfront axiom |
-
-Do **not** seed `EQN_VIRT` with `code=V_VMINUS_eq_0` as if it were independent of \(a(s)\). Prefer `CLM_VIRT` with `code=V_minus_to_zero_as_a_s_to_infinity` linked to the finite derivation.
-
-### 3.2 Layer B — `derives` relations
-
-| Step | Shape |
+| Idea | Shape |
 |------|--------|
-| Ohm | `BR_*`: `I=(Va-Vb)/R` |
-| KCL | `EQN_KCL_VMINUS`: `residual=I_Rin+I_Rf` |
-| **Finite A(s)** | `RES_A`: `A_s=-(Rf/Rin)*a_s/(a_s+1+Rf/Rin)` |
-| **Limit A(s)** | `RES_A`: `A_s_lim=-(Rf/Rin)` (valid when `a_s` is large) |
-| Output | `RES_A`: `Vout=A_s*Vin` |
+| Device / law leaf | **`CST`** with `ports=` + `law=` (LaTeX on NODE) |
+| Terminal | One port bag: `name: {direc=…, V=@…, I=@…}` — across + through on **one** port |
+| Copper / ideal pipe | Port↔port **`--bind-->`** / **`--bind--`** — **no** `law=` on EDGE |
+| Chart / semantic | Bare-id relation (not used for copper here) |
+| Params | `R=`, `a_s=`, `A_s=` on the NODE |
 
-Node **`RES_A`** holds `a_s`, `A_s` (evaluated transfer), `A_s_lim`, `Vin`, `Vout`, `Rf`, `Rin`. **`A_s`** is always the pin-map name for A(s); store the finite evaluation in `A_s` and the ideal limit in `A_s_lim` when both are useful.
+**MUSTNOT:** formula-on-EDGE (`derives`); mix `[Node.port]` ↔ bare `[Node]`; invent B (`def=`/`uses=`).
 
-No expression engine in 0.3.6+ — agents evaluate and `update` absolutes.
+### 3.1 Devices (present form)
 
----
-
-## 4. Shared-dialect seed
-
-Golden fixture: [`22_inverting_amp_nodal_good.txt`](../../grammar/examples/22_inverting_amp_nodal_good.txt).
-
-Mutate block (`a_s=1e6` ≈ ideal; `A_s` and `Vout` at the limit):
+Alias primary teach — keep `@` in bag and in `law=`:
 
 ```text
-+ NET [NET_VGND] ; net=VGND ; role=reference ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ NET [NET_VIN] ; net=VIN ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ NET [NET_VMINUS] ; net=VMINUS ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ NET [NET_VOUT] ; net=VOUT ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ CMP [ATO_Rin] ; refdes=R1 ; value=10k ; R=10000 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ CMP [ATO_Rf] ; refdes=R2 ; value=100k ; R=100000 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ PIN [PIN_R1_a] ; refdes=R1 ; pin=1 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ PIN [PIN_R1_b] ; refdes=R1 ; pin=2 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ PIN [PIN_R2_a] ; refdes=R2 ; pin=1 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ PIN [PIN_R2_b] ; refdes=R2 ; pin=2 ; path=boards/demo/inverting_amp.ato ; recycle=persistent
-+ NEW [PIN_R1_a] --(connects_to)--> [NET_VIN] ; recycle=persistent
-+ NEW [PIN_R1_b] --(connects_to)--> [NET_VMINUS] ; recycle=persistent
-+ NEW [PIN_R2_a] --(connects_to)--> [NET_VOUT] ; recycle=persistent
-+ NEW [PIN_R2_b] --(connects_to)--> [NET_VMINUS] ; recycle=persistent
-+ CLM [CLM_a_s] ; type=assumption ; code=Vout_eq_a_s_times_Vdiff ; domain=s ; a_s=1000000 ; recycle=persistent
-+ CLM [CLM_NFB] ; type=fact ; code=neg_feedback ; domain=s ; recycle=persistent
-+ CLM [CLM_VIRT] ; type=result ; code=V_minus_to_zero_as_a_s_to_infinity ; domain=s ; recycle=persistent
-+ NEW [CLM_VIRT] --(derived_from)--> [CLM_a_s] ; recycle=persistent
-+ VAR [VAR_VIN] ; symbol=V_VIN ; unit=V ; domain=s ; V=1.0 ; recycle=persistent
-+ VAR [VAR_VOUT] ; symbol=V_VOUT ; unit=V ; domain=s ; V=-10.0 ; recycle=persistent
-+ VAR [VAR_VMINUS] ; symbol=V_VMINUS ; unit=V ; domain=s ; V=0.0 ; recycle=persistent
-+ NEW [VAR_VIN] --(voltage_of)--> [NET_VIN] ; recycle=persistent
-+ NEW [VAR_VOUT] --(voltage_of)--> [NET_VOUT] ; recycle=persistent
-+ NEW [VAR_VMINUS] --(voltage_of)--> [NET_VMINUS] ; recycle=persistent
-+ BR [BR_Rin] ; Va=1.0 ; Vb=0.0 ; R=10000 ; I=-0.0001 ; recycle=persistent
-+ BR [BR_Rf] ; Va=0.0 ; Vb=-10.0 ; R=100000 ; I=0.0001 ; recycle=persistent
-+ NEW [BR_Rin] --(derives)--> [BR_Rin] ; tgt_field=I ; src_fields=Va,Vb,R ; expr=(Va-Vb)/R ; recycle=persistent
-+ NEW [BR_Rf] --(derives)--> [BR_Rf] ; tgt_field=I ; src_fields=Va,Vb,R ; expr=(Va-Vb)/R ; recycle=persistent
-+ EQN [EQN_KCL_VMINUS] ; method=nodal ; form=KCL ; I_Rin=-0.0001 ; I_Rf=0.0001 ; residual=0.0 ; domain=s ; recycle=persistent
-+ NEW [EQN_KCL_VMINUS] --(kcl_at)--> [NET_VMINUS] ; recycle=persistent
-+ NEW [EQN_KCL_VMINUS] --(derives)--> [EQN_KCL_VMINUS] ; tgt_field=residual ; src_fields=I_Rin,I_Rf ; expr=I_Rin+I_Rf ; recycle=persistent
-+ RES [RES_A] ; a_s=1000000 ; A_s=-10.0 ; A_s_lim=-10.0 ; Vin=1.0 ; Vout=-10.0 ; Rf=100000 ; Rin=10000 ; domain=s ; recycle=persistent
-+ NEW [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s ; src_fields=a_s,Rf,Rin ; expr=-(Rf/Rin)*a_s/(a_s+1+Rf/Rin) ; recycle=persistent
-+ NEW [RES_A] --(derives)--> [RES_A] ; tgt_field=A_s_lim ; src_fields=Rf,Rin ; expr=-(Rf/Rin) ; recycle=persistent
-+ NEW [RES_A] --(derives)--> [RES_A] ; tgt_field=Vout ; src_fields=A_s,Vin ; expr=A_s*Vin ; recycle=persistent
-+ CLM [CLM_A] ; type=result ; code=A_s_finite_then_limit ; domain=s ; A_s=-10.0 ; recycle=persistent
-+ NEW [CLM_A] --(derived_from)--> [RES_A] ; recycle=persistent
+CST [CST_Vin] ; name=Vin ; Vin=1.0 ; ports=p: {direc=out, V=@vin, I=@iin} ; law=$@vin=Vin$
+CST [CST_Rin] ; name=Rin ; R=10000 ; ports=a: {direc=inout, V=@va_r, I=@ia_r},b: {direc=inout, V=@vb_r, I=@ib_r} ; law=$@va_r-@vb_r=@ia_r*R$,$@ia_r=-@ib_r$
+CST [CST_Rf] ; name=Rf ; R=100000 ; ports=a: {direc=inout, V=@va_f, I=@ia_f},b: {direc=inout, V=@vb_f, I=@ib_f} ; law=$@va_f-@vb_f=@ia_f*R$,$@ia_f=-@ib_f$
+CST [CST_U1] ; name=opamp ; a_s=1000000 ; ports=inp: {direc=in, V=@vp, I=@ip},inm: {direc=in, V=@vm, I=@im},out: {direc=out, V=@vo, I=@io} ; law=$@ip=0$,$@im=0$,$@vo=a_s*(@vp-@vm)$
+CST [CST_Gnd] ; name=VGND ; ports=a: {direc=inout, V=@vg, I=@ig} ; law=$@vg=0$
+CST [CST_A] ; name=closed_loop ; a_s=1000000 ; Rin=10000 ; Rf=100000 ; A_s=-10.0 ; A_s_lim=-10.0 ; Vin=1.0 ; Vout=-10.0 ; ports=in: {direc=in, V=@vin_a},out: {direc=out, V=@vout_a} ; law=$@vout_a=@vin_a*A_s$,$A_s=-(Rf/Rin)*a_s/(a_s+1+Rf/Rin)$,$A_s_lim=-(Rf/Rin)$
 ```
 
-`VAR_VMINUS.V=0.0` is the **limit** value after \(a_s\to\infty\), not an independent constraint.
+Finite \(a_s\) lives on **`CST_U1`** and **`CST_A`**. Virtual ground is the **limit** \(V_-\to 0\) as \(a_s\to\infty\) — do not seed it as an independent axiom before the limit.
+
+### 3.2 Binds (topology)
+
+```text
+E_vin [CST_Vin.p] --bind--> [CST_Rin.a] ; carries=I
+E_sum_r [CST_Rin.b] --bind-- [CST_U1.inm] ; carries=I
+E_sum_f [CST_Rf.b] --bind-- [CST_U1.inm] ; carries=I
+E_out_f [CST_U1.out] --bind-- [CST_Rf.a] ; carries=I
+E_inp [CST_U1.inp] --bind-- [CST_Gnd.a] ; carries=I
+E_A_in [CST_Vin.p] --bind--> [CST_A.in]
+E_A_out [CST_U1.out] --bind--> [CST_A.out]
+```
+
+Star at `VMINUS`: both `Rin.b` and `Rf.b` bind to `U1.inm` (voltage continuity on the bind; KCL from \(I_-=0\) + resistor laws). Optional named-function **A** (Sum-style CST + binds) is unused here — Ohm / gain stay on device CSTs.
+
+Golden fixture: [`layer_09_inv_amp_good.txt`](../../grammar/examples/layer/layer_09_inv_amp_good.txt).
+
+---
+
+## 4. Mutate seed (create)
+
+Omit session-default `recycle=persistent`. Prefix `+` for create:
+
+```text
++ CST [CST_Vin] ; name=Vin ; Vin=1.0 ; ports=p: {direc=out, V=@vin, I=@iin} ; law=$@vin=Vin$
++ CST [CST_Rin] ; name=Rin ; R=10000 ; ports=a: {direc=inout, V=@va_r, I=@ia_r},b: {direc=inout, V=@vb_r, I=@ib_r} ; law=$@va_r-@vb_r=@ia_r*R$,$@ia_r=-@ib_r$
++ CST [CST_Rf] ; name=Rf ; R=100000 ; ports=a: {direc=inout, V=@va_f, I=@ia_f},b: {direc=inout, V=@vb_f, I=@ib_f} ; law=$@va_f-@vb_f=@ia_f*R$,$@ia_f=-@ib_f$
++ CST [CST_U1] ; name=opamp ; a_s=1000000 ; ports=inp: {direc=in, V=@vp, I=@ip},inm: {direc=in, V=@vm, I=@im},out: {direc=out, V=@vo, I=@io} ; law=$@ip=0$,$@im=0$,$@vo=a_s*(@vp-@vm)$
++ CST [CST_Gnd] ; name=VGND ; ports=a: {direc=inout, V=@vg, I=@ig} ; law=$@vg=0$
++ CST [CST_A] ; name=closed_loop ; a_s=1000000 ; Rin=10000 ; Rf=100000 ; A_s=-10.0 ; A_s_lim=-10.0 ; Vin=1.0 ; Vout=-10.0 ; ports=in: {direc=in, V=@vin_a},out: {direc=out, V=@vout_a} ; law=$@vout_a=@vin_a*A_s$,$A_s=-(Rf/Rin)*a_s/(a_s+1+Rf/Rin)$,$A_s_lim=-(Rf/Rin)$
++ E_vin [CST_Vin.p] --bind--> [CST_Rin.a] ; carries=I
++ E_sum_r [CST_Rin.b] --bind-- [CST_U1.inm] ; carries=I
++ E_sum_f [CST_Rf.b] --bind-- [CST_U1.inm] ; carries=I
++ E_out_f [CST_U1.out] --bind-- [CST_Rf.a] ; carries=I
++ E_inp [CST_U1.inp] --bind-- [CST_Gnd.a] ; carries=I
++ E_A_in [CST_Vin.p] --bind--> [CST_A.in]
++ E_A_out [CST_U1.out] --bind--> [CST_A.out]
+```
+
+At \(a_s=10^6\) the pin-map absolutes match the ideal limit (`A_s=-10`, `Vout=-10`).
 
 ---
 
@@ -193,24 +162,31 @@ Mutate block (`a_s=1e6` ≈ ideal; `A_s` and `Vout` at the limit):
 
 1. **`session_open`** — `session=inv_amp_demo`; optional `seed_lines` from §4.
 2. **`add`** — if not seeded at open.
-3. **`pin_map`** — `anchor=RES_A`: finite `derives` on `A_s`, limit `derives` on `A_s_lim`, `a_s=1000000`, `A_s=-10.0`.
-4. **`pin_map`** — `anchor=EQN_KCL_VMINUS`: KCL residual and branch currents at the limit.
-5. **`update`** — lower `a_s` (e.g. `~ [CLM_a_s] ; a_s=1000`), re-evaluate §2 Step 4, write new `A_s` and `Vout`; virtual ground fails if \(a_s\) is too small.
+3. **`pin_map`** — `anchor=CST_A` (optional `view=shell`): closed-loop `law=`, binds into `in`/`out`.
+4. **`pin_map`** — `anchor=CST_U1`: finite-gain law + binds at `inm` / `out` / `inp`.
+5. **`update`** — `~ [CST_U1] ; a_s=1000` and re-evaluate §2; write new `A_s` / `Vout` on `CST_A`; virtual ground fails if \(a_s\) is too small.
 
-CLI: `memnet query pin-map --anchor RES_A`.
+CLI: `memnet query pin-map --anchor CST_A`.
 
 ---
 
-## 6. What MemNet does not do
+## 6. Legacy Tier A (pointer only)
+
+Flat CMP/PIN/NET + self-loop `derives` remains accepted through 0.5.x as a **legacy alias**. Do **not** dual-teach it here. Fixture: [`22_inverting_amp_nodal_good.txt`](../../grammar/examples/22_inverting_amp_nodal_good.txt). Migration: law → NODE; `connects_to` → `bind`; formula-on-EDGE → retire toward 1.x ([`memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md) §6).
+
+---
+
+## 7. What MemNet does not do
 
 - Take limits or solve algebra; no SPICE.
-- Evaluate `derives` `expr` (design-only until an engine lands).
+- Evaluate `law=` LaTeX (storage/display for the agent).
 - Treat virtual ground as an axiom independent of \(a(s)\).
 
 ---
 
 ## Related
 
-- [`llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md)
-- [`llm-circuit-schematic.md`](../llm-circuit-schematic.md)
-- [`22_inverting_amp_nodal_good.txt`](../../grammar/examples/22_inverting_amp_nodal_good.txt)
+- [`../llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md) — node method in Layer
+- [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) — schematic / s-domain Layer grain
+- [`../../grammar/memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md) — Layer SSOT
+- [`../../grammar/examples/layer/layer_09_inv_amp_good.txt`](../../grammar/examples/layer/layer_09_inv_amp_good.txt)

@@ -22,31 +22,40 @@
 
 > **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session.
 
-> **Atomise** — one idea per row; wire relationships as **edges** (`[src] --(rel)--> [dst]`). No prose blobs in fields.
+> **Atomise** — one idea per row; wire relationships as **edges**. No prose blobs in fields.
 
 ### Shared dialect (Write = display)
 
-**Mutate in** (ops required):
+**1.x teach = Layer** — law leaves: `CST` + `ports=` + `law=` on NODE; copper / pipes: port↔port `--bind-->`; chart links: bare-id `--rel_name-->`. Doctrine: [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md). Application notes under `docs/application-notes/` follow Layer. Paren `--(rel)-->` and formula-on-EDGE are **legacy accept** (Appendix A / field-formulas) — do not dual-teach.
+
+**Mutate in** (ops required; relation-grain example):
 
 ```text
-+ TSK [NEW] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
-+ E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
++ TSK [NEW] ; goal=Clear warehouse ; status=in_progress
++ E77 [N03] --helps--> [T42] ; note=labour
 ~ TSK [T42] ; status=settled ; recycle=delete_on_settle
 ```
 
 **Live pin map out** (bare present — copy ids from here):
 
 ```text
-TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
-NPC [N03] ; role=helper ; status=active ; recycle=persistent
-E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+TSK [T42] ; goal=Clear warehouse ; status=in_progress
+NPC [N03] ; role=helper ; status=active
+E77 [N03] --helps--> [T42] ; note=labour
+```
+
+Electrical / law-leaf sketch (ports + bind):
+
+```text
+CST [CST_R] ; R=50 ; ports=a: {direc=inout, V=@va, I=@ia},b: {direc=inout, V=@vb, I=@ib} ; law=$@va-@vb=@ia*R$,$@ia=-@ib$
+E1 [CST_Src.p] --bind--> [CST_R.a] ; carries=I
 ```
 
 - **Create:** `[NEW]` — engine mints ids; copy from the next pin map.
-- **Update / settle:** known ids only; `NEW` illegal on patch.
+- **Update / settle:** known ids only; `NEW` illegal on patch. Omit session-default `recycle=persistent`.
 - **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`. User-pack: `~/.cursor/skills/memnet-format/SKILL.md`.
 
-Formal grammar: `docs/grammar/memnet-grammar-design.md`.
+Formal grammar: `docs/grammar/memnet-grammar-design.md` (spine) + `docs/grammar/memnet-multi-layer.md` (Layer teach).
 
 ### Transport (default: in-process MCP)
 
@@ -194,7 +203,7 @@ pin_map(anchor=PLR01, depth=2)
 
 **Class:** applications. Full index: [`docs/README.md`](README.md).
 
-Under `docs/application-notes/` — domain examples (some still show legacy `@TAG` / `query warm`; translate to shared dialect + `pin_map`):
+Under `docs/application-notes/` — domain examples (**Layer** primary; `pin_map`; legacy pipe only as appendix pointers):
 
 | # | Note | Summary |
 |---|------|---------|
@@ -203,8 +212,9 @@ Under `docs/application-notes/` — domain examples (some still show legacy `@TA
 | 2 | `llm-daily-news.md` | Batch RSS digest |
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
 | 4 | `llm-sysml-v2-modeling.md` | SysML v2 modeling |
-| 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain |
-| 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ formulas |
+| 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (**Layer** ports / law / bind) |
+| 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ NODE `law=` + binds |
+| 5c | `examples/inverting-amplifier-memnet.md` | InvAmp derivation + Layer seed |
 | 6 | `llm-mud.md` | Multiplayer MUD (shared serve) |
 | 7 | `llm-build-on-memnet.md` | Builder guide for custom MCP |
 

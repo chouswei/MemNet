@@ -4,6 +4,8 @@
 
 **Primary worked example:** the **`mcp-memnet` skill pack** that ships in the user pack at `~/.cursor/skills/mcp-memnet/`, paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
 
+**Dialect teach for agents:** Write = display / **Layer** (`pin_map`, bare `--rel_name-->`, electrical `ports=` / `law=` / `--bind-->`). Do not teach `@TAG` pipe or `query_warm` as the primary surface — see [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md) and circuit notes under this folder.
+
 Unlike the other application notes (which document wire-format **schemas**), this note documents **code structure and routing artefacts** — there is no new tag map.
 
 This note complements:
@@ -17,8 +19,8 @@ This note complements:
 
 `memnet serve` is a TCP daemon. Raw consumers must:
 
-- Spell out CLI argv (`memnet add --stdin`, `memnet query warm --anchor ...`)
-- Parse `@TAG:` lines and `@WRN:` warnings off stdout/stderr
+- Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --anchor ...`)
+- Parse Write = display / Layer lines and warnings off stdout/stderr
 - Track session ids manually
 - Re-discover atomisation discipline, LAW invariants, and the goldfish loop every chat
 
@@ -86,14 +88,15 @@ async def _run(argv, *, stdin=None, session=None) -> str:
     return resp.to_json()
 
 @mcp.tool()
-async def query_warm(anchor: str, depth: int = 2, max_rows: int = 50,
-                     session: str | None = None) -> str:
-    """Read the live graph slice (LAW-prepended) anchored on a node id."""
+async def pin_map(anchor: str, depth: int = 2, max_rows: int = 50,
+                  session: str | None = None) -> str:
+    """Read the live pin-map slice anchored on a node id (primary teach)."""
     return await _run(
-        ["query", "warm", "--anchor", anchor,
+        ["query", "pin-map", "--anchor", anchor,
          "--depth", str(depth), "--max-rows", str(max_rows)],
         session=session,
     )
+# Legacy alias query_warm / query warm still accepted in 0.4.x — do not teach as primary.
 
 def main() -> None:
     mcp.run(transport="stdio")
@@ -106,7 +109,7 @@ Three building blocks:
 | `server.py` | `@mcp.tool()` wrappers; no graph mutation logic | ~200 |
 | `client.py` | `run_memnet(argv)` CLI bridge; `MemNetResponse` dataclass; serve probe; inline-test mode | ~145 |
 | `seed.py` | `supplement_seed_lines()` — auto-add engine LAW01–LAW05 on `session_open` | ~30 |
-| `parse.py` | Extract `session_id` and `@ERR:` lines from CLI stderr | ~40 |
+| `parse.py` | Extract `session_id` and error lines from CLI stderr | ~40 |
 
 ### JSON envelope
 
@@ -115,14 +118,14 @@ Every tool returns the same shape (`MemNetResponse.to_json()`):
 ```json
 {
   "exit_code": 0,
-  "stdout": "@LAW: ...\n@TSK: ...\n",
-  "stderr": "@WRN: ...\n",
+  "stdout": "TSK [T42] ; goal=… ; status=in_progress\nE77 [N03] --helps--> [T42]\n",
+  "stderr": "",
   "session_id": "mn_abcd",
   "errors": []
 }
 ```
 
-Agents branch on `errors[]` and `exit_code`; parse `stdout` for `@TAG:` rows. Wire-format text is **passed through verbatim** — no JSON-graph translation. This is the entire reason MemNet is token-efficient on the wire.
+Agents branch on `errors[]` and `exit_code`; parse `stdout` for Write = display / Layer rows. Wire-format text is **passed through verbatim** — no JSON-graph translation. This is the entire reason MemNet is token-efficient on the wire. Legacy `@TAG` pipe may still appear in older snapshots — accept, do not teach.
 
 ### LAW supplementation
 
@@ -130,12 +133,13 @@ Agents branch on `errors[]` and `exit_code`; parse `stdout` for `@TAG:` rows. Wi
 
 ```python
 # parts/memnet-mcp/software/memnet_mcp/seed.py
+# Engine may still seed LAW rows as Write=display or legacy pipe (accept path).
+# Prefer pin_map-first discipline in agent docs; do not teach pipe as primary.
 DEFAULT_LAW_LINES = (
-    "@LAW: LAW01|EDG|on_context|hide|settled_edg_unless_anchor",
-    "@LAW: LAW02|*|on_add|unique|one_id_add_then_update",
-    "@LAW: LAW03|EDG|on_add|validate|src_dist_exist_first",
-    "@LAW: LAW04|*|on_add|use_backslash|backslash_pipe_not_bare",
-    "@LAW: LAW05|*|on_turn|read_warm|warm_before_add_or_update",
+    "LAW [LAW01] ; name=edge_recycle ; cycle=on_context ; mechanism=hide ; constraint=settled_edg_unless_anchor",
+    "LAW [LAW02] ; name=unique ; cycle=on_add ; mechanism=unique ; constraint=one_id_add_then_update",
+    "LAW [LAW03] ; name=validate ; cycle=on_add ; mechanism=validate ; constraint=src_dist_exist_first",
+    "LAW [LAW05] ; name=read_pin_map ; cycle=on_turn ; mechanism=read ; constraint=pin_map_before_add_or_update",
 )
 
 def supplement_seed_lines(seed_lines):
@@ -146,7 +150,7 @@ def supplement_seed_lines(seed_lines):
     return prefix + seed
 ```
 
-If your domain MCP wraps `session_open`, do the same: agents should never have to type `@LAW: LAW02 ...`.
+If your domain MCP wraps `session_open`, do the same: agents should never have to type engine LAW rows by hand.
 
 ### Console-script registration
 
@@ -180,7 +184,7 @@ parts/
 | Separate MCP key in `mcp.json`? | `memnet` | your product name |
 | Optional-dep group | `mcp` | your extra |
 
-**Rule of thumb:** graph **primitives** (`query_warm`, `add`, `update`, `session_*`) → `memnet-mcp`.
+**Rule of thumb:** graph **primitives** (`pin_map`, `add`, `update`, `session_*`) → `memnet-mcp`.
 Domain **orchestration** → a separate MCP package.
 
 ---
@@ -208,27 +212,25 @@ mcp-memnet/
 ---
 name: mcp-memnet
 description: >-
-  Cursor MCP MemNet: token-efficient wire-format knowledge graph
-  (pipe rows, not JSON) — atomise, query_warm from anchor, goldfish
-  loop via memnet serve. Coding, articles, user constraints,
-  SysML/MUD.
-  Triggers: memnet, memnet mcp, query warm, goldfish loop, atomise,
-  wire format, token efficient, knowledge graph, breakdown article,
-  summarise article, article claims, remember function, user preference.
+  Cursor MCP MemNet: token-efficient Write=display / Layer graph
+  (not JSON) — atomise, pin_map from anchor, goldfish loop via
+  memnet serve or HTTP. Coding, articles, user constraints, SysML/MUD.
+  Triggers: memnet, memnet mcp, pin_map, goldfish loop, atomise,
+  wire format, token efficient, knowledge graph, Layer dialect.
 metadata:
   pattern: tool-wrapper
   specialization: mcp-integration
   domain: memnet
   mcp_key: memnet
-  version: "1.3"
+  version: "1.4"
 token_guardrails: |
-  - **Wire format:** pipe-separated @TAG: lines; short fields, no prose.
-  - **Atomise first:** one fact per row; @EDG for relations.
-  - **Read:** query_warm with anchor — never bare query context.
-  - **Write:** add new ids; update changes; copy ids from warm output.
-  - **Coding:** grep/LSP to verify — then store compact @MOD/@SYM atoms.
+  - **Wire format:** Write=display / Layer; short fields, no prose.
+  - **Atomise first:** one fact per row; edges for relations; electrical ports/law/bind.
+  - **Read:** pin_map with anchor — never bare full-session dump.
+  - **Write:** add new ids; update changes; copy ids from pin_map.
+  - **Coding:** grep/LSP to verify — then store compact MOD/SYM atoms.
   - **Session:** pass session on tools or MEMNET_SESSION in mcp.json.
-  - **Server:** memnet serve reachable; MCP does not auto-start it.
+  - **Server:** memnet serve / HTTP reachable when sharing a graph.
 ---
 ```
 
@@ -345,13 +347,13 @@ The `mcp_key` field in `SKILL.md` frontmatter **must match** the top-level key i
 
 ```python
 # tests/test_mcp.py
-def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
+def test_pin_map_tool_envelope(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
-    from memnet_mcp.server import query_warm, session_open
+    from memnet_mcp.server import pin_map, session_open
 
     open_raw = asyncio.run(session_open(map_lines=schema_lines))
     sid = json.loads(open_raw)["session_id"]
-    warm_raw = asyncio.run(query_warm(anchor="PLR55", depth=1, session=sid))
+    warm_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
     payload = json.loads(warm_raw)
     assert payload["exit_code"] == 0
     assert payload["errors"] == []
@@ -382,7 +384,7 @@ If step 3 fails: `description` triggers are too narrow or YAML frontmatter has a
 | No `token_guardrails` in frontmatter | Agent will not self-limit on prose / verbosity |
 | Skill triggers too generic (`"agent"`) | Auto-router collides with other skills; use domain phrases |
 | Skipping `supplement_seed_lines` in custom `session_open` wrapper | Agents lose LAW01–LAW05; goldfish loop breaks |
-| Embedding `@LAW:` rows in `description` | Wrong artefact — guardrails go in `token_guardrails`, LAW in the seed |
+| Embedding LAW dump rows in `description` | Wrong artefact — guardrails go in `token_guardrails`, LAW in the seed |
 | Forgetting to bump `metadata.version` on breaking reference changes | Stale local installs continue with old guardrails |
 | Skill references the wrong `mcp_key` | Agent looks for a server that doesn't exist |
 | `MEMNET_TEST_INLINE=1` in production `mcp.json` | All graph state lives in MCP process; lost on restart |
@@ -395,7 +397,7 @@ If step 3 fails: `description` triggers are too narrow or YAML frontmatter has a
 |------|--------------|
 | [`llm-software-development.md`](llm-software-development.md) | Consumer side — uses `memnet-mcp` for coding sessions |
 | [`llm-mud.md`](llm-mud.md) | Consumer side — shared-world graph pattern |
-| [`llm-tech-docs-decomposition.md`](llm-tech-docs-decomposition.md) | Future application MCP (`rto-mcp`?) could expose `@CMD` lookup as typed tools |
+| [`llm-tech-docs-decomposition.md`](llm-tech-docs-decomposition.md) | Future application MCP (`rto-mcp`?) could expose `CMD` lookup as typed tools |
 | [`llm-daily-news.md`](llm-daily-news.md) | Python bridge (not MCP) — alternative integration style |
 
 ---
@@ -415,14 +417,14 @@ pytest tests/test_mcp.py -v
 # Skill pack — manual
 # 1. Edit ~/.cursor/skills/mcp-memnet/SKILL.md
 # 2. Restart Cursor
-# 3. Trigger phrase "query warm" should surface the skill
+# 3. Trigger phrase "pin_map" / "memnet mcp" should surface the skill
 ```
 
 Expected:
 
 - `memnet-mcp` connects without auto-starting serve; `serve_required` error if serve is down
 - Tool JSON envelope has all five fields (`exit_code`, `stdout`, `stderr`, `session_id`, `errors`)
-- Settled rows do not appear in subsequent `query_warm` (LAW01)
+- Settled rows do not appear in subsequent `pin_map` (LAW01)
 - New agent invocation surfaces the skill within one turn of a trigger phrase
 
 ---
