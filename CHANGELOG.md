@@ -7,23 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-08
+
 ### Added
-- **MN-VER-12-G00** — group verification case for organisational parent MN-REQ-12 (`sysml-models/models/verify.sysml`).
-- **`docs/application-notes/llm-system-dev-multitask.md`** — Multitask pattern for downstream `modelbasedPrj-*` system repos (MemNet mission SSOT + product SysML structural SSOT).
+- **MN-VER-12-G00** - group verification case for organisational parent MN-REQ-12 (`sysml-models/models/verify.sysml`).
+- **`docs/application-notes/llm-system-dev-multitask.md`** - Multitask pattern for downstream `modelbasedPrj-*` system repos (MemNet mission SSOT + product SysML structural SSOT).
+- **`docs/README.md`** - developers vs applications docs index.
 
 ### Changed
-- **Multitask doc trail** — `docs/multi-agent-sessions.md`, `AGENTS.md`, `README.md`, and repo skill cross-link MN-REQ-12, verify package, and case study; product backlog table for deferred ACL / reserve / ingest / WorkerWriteScope (MN-REQ-12.7, MN-VER-12-S09).
-
-## [0.4.2] — 2026-08-07
+- **Multitask doc trail** - `docs/multi-agent-sessions.md`, `AGENTS.md`, `README.md`, and repo skill cross-link MN-REQ-12, verify package, and case study; product backlog table for deferred ACL / reserve / ingest / WorkerWriteScope (MN-REQ-12.7, MN-VER-12-S09).
+- **Skill routing** - slim repo `memnet-reference` to product development; thin `memnet-multitask` rule; application notes point at user-pack `memnet-format` / `memnet-multitask`.
 
 ### Fixed
-- **MCP streamable-http Host header** — FastMCP DNS-rebinding allowlist was left at localhost after LAN/`0.0.0.0` rebind, causing Cursor `Invalid Host header` (421) for `Host: 10.0.0.10:18766`. Refresh `transport_security` on HTTP start; add `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (comma list; `*` disables). Binding `0.0.0.0` without an allowlist disables Host checks (with warning).
+- **MCP streamable-http Host header** - FastMCP DNS-rebinding allowlist was left at localhost after LAN/`0.0.0.0` rebind, causing Cursor `Invalid Host header` (421) for `Host: 10.0.0.10:18766`. Refresh `transport_security` on HTTP start; add `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (comma list; `*` disables). Binding `0.0.0.0` without an allowlist disables Host checks (with warning).
 
-## [0.4.1] — 2026-08-07
+## [0.4.1] - 2026-08-07
 
 ### Added
-- **MCP streamable-http** — opt-in remote Cursor `"url"` transport on dedicated port **18766** path `/mcp` (`memnet-mcp --transport streamable-http`). Env: `MEMNET_MCP_HTTP_HOST` / `PORT` / `PATH`; LAN bind requires `MEMNET_MCP_ALLOW_REMOTE=1` (mirrors serve allow-remote); optional `MEMNET_MCP_HTTP_TOKEN` bearer gate. Stdio and TCP `memnet serve` `:18765` unchanged. Docs: `parts/memnet-mcp/README.md`, `.cursor/mcp.json.example`.
-
+- **MCP streamable-http** - opt-in remote Cursor `"url"` transport on dedicated port **18766** path `/mcp` (`memnet-mcp --transport streamable-http`). Env: `MEMNET_MCP_HTTP_HOST` / `PORT` / `PATH`; LAN bind requires `MEMNET_MCP_ALLOW_REMOTE=1` (mirrors serve allow-remote); optional `MEMNET_MCP_HTTP_TOKEN` bearer gate. Stdio and TCP `memnet serve` `:18765` unchanged. Docs: `parts/memnet-mcp/README.md`, `.cursor/mcp.json.example`.
 ## [0.4.0] — 2026-08-06
 
 ### Added
