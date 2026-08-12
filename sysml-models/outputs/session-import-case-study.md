@@ -1,29 +1,35 @@
-# Case study: Session import — lead imports member working memory
+# Case study: Session import - lead receives member working memory
 
 Evidence walk against `sysml-models/models/`.  
 Companion: [system-design-notes.md](system-design-notes.md), [multitask-case-study.md](multitask-case-study.md).
 
 ## 1. Metaphor (binding)
 
-**Session import = team lead imports a team member's working memory.**
+**Colloquial "session merge" = a team lead receives the working memory of a team member** (`SessionMergeFraming`). Product verbs: **receive** / **import**.
 
 | Role | MemNet locus |
 |------|----------------|
-| Lead | `MultitaskCoordinator` + mission session (SSOT) |
-| Member | `MultitaskWorker` session or scoped slice |
-| Import | Durable pins into lead session — **not** chat/transcript |
+| Lead (mission SSOT) | `MultitaskCoordinator` + mission session = `MissionWorkingSet` |
+| Member | `MultitaskWorker` session **or** scoped slice (`WorkingMemorySlice`) |
+| Receive | Durable graph pins into lead session - **not** chat/transcript |
 
-**Not this behaviour:** Cypher `MERGE` (upsert by id); micro in-session id re-id (`merge=true` security design).
+| Path | When | What "receive" means |
+|------|------|----------------------|
+| A (prefer) | Already one shared Multitask session | Lead re-`pin_map` - **no** second store, import nest skipped |
+| B | Separate sessions | Settle-time fold: bounded slice -> ImportGuard -> ImportAbsorb + id policy |
+
+**Not this behaviour:** Cypher `MERGE` (upsert-by-id mechanics); micro in-session id re-id (`merge=true` security design). Macro = session-union receive; micro = in-session node re-id.
 
 ## 2. Nest (deploy)
 
 ```text
 MultitaskOperatingModel
 ├── MultitaskCoordinator                 // team lead
-│   └── SessionImportReceive             // path B
+│   └── SessionImportReceive             // path B; SessionMergeFraming
 │       ├── ImportGuard                  // cheap LLM soft review
-│       └── ImportAbsorb                 // hard gates + import + settle
-├── MultitaskWorker                      // handoff in + WorkingMemorySlice export
+│       └── ImportAbsorb                 // hard gates + settle-time fold
+├── WorkerPool
+│   └── MultitaskWorker[1..*]            // handoff in + slice export
 └── MultitaskSharedStoreBinding
 ```
 
@@ -31,9 +37,10 @@ MultitaskOperatingModel
 |---------|-------------|
 | Shared LLM memory | `SharedLlmMemory` / `AgentMemory` |
 | Handoff by session id | `SessionHandoff`, `SessionHandoffById`; MN-REQ-01.7 / 01.8 / 12.1 |
-| Import receive | `SessionImportReceive` → Guard → Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
-| Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) — same soft-gate class as an evidence librarian |
-| When import skipped | Path A shared session — re-`pin_map` only |
+| Session merge framing | `SessionMergeFraming` item; behaviour `SessionImportReceive` |
+| Import receive | Guard -> Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
+| Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) |
+| When import skipped | Path A shared session - re-`pin_map` only |
 
 ```mermaid
 flowchart TB
@@ -43,7 +50,8 @@ flowchart TB
   A --> Lead[Lead mission session SSOT]
 ```
 
-**Librarian analogy:** ImportGuard ≈ cheap evidence librarian (soft yes/no/trim) before catalog/absorb; engine schema/caps/id policy remain hard gates.
+**Librarian analogy:** ImportGuard = cheap evidence librarian (soft yes/no/trim) before catalog/absorb; engine schema/caps/id policy remain hard gates.
+
 
 ## 3. Fake mission
 
@@ -61,7 +69,7 @@ CREATE (t:Tsk {id: 'TSK_mission_amp_inventory'})-[:about]->(n)
 
 ---
 
-## 4. Scenario A — Shared session (no import)
+## 4. Scenario A - Shared session (no import)
 
 Lead and member already share `ses_mission_amp` via `SessionHandoffById`.
 
@@ -69,23 +77,23 @@ Lead and member already share `ses_mission_amp` via `SessionHandoffById`.
 |------|----------------|-------|-----|
 | A1 | Lead mints TSK; handoff session id + scope | `SessionHandoffById` | 12.1, 12.3, 01.7 |
 | A2 | Member pin_map + scoped mutate | `WorkerScopedTurn` | 12.4 |
-| A3 | Lead **receives** by `EvSharedSessionRepin` / re-`pin_map` | `pathASharedRepin` — **import nest skipped** | **12.9 path A** |
+| A3 | Lead **receives** by `EvSharedSessionRepin` / re-`pin_map` | `pathASharedRepin` - **import nest skipped** | **12.9 path A** |
 | A4 | Lead settles TSK from session | `EvSettleMissionTask` | 12.3 |
 
-**Verdict A:** Prefer shared session — no `WorkingMemorySlice`, no `ImportGuard`.
+**Verdict A:** Prefer shared session - no `WorkingMemorySlice`, no `ImportGuard`.
 
 ---
 
-## 5. Scenario B — Separate sessions → import at settle
+## 5. Scenario B - Separate sessions -> receive at settle
 
 Member session `ses_member_amp`; lead `ses_mission_amp`.
 
 | Step | What happens | Locus | Req |
 |------|----------------|-------|-----|
 | B1 | Lead `SessionImportRequest` | `EvRequestSessionImport` | **12.9** |
-| B2 | Member exports bounded `WorkingMemorySlice` | `EvExportWorkingMemorySlice` → `guard.sliceIn` | 12.10 |
+| B2 | Member exports bounded `WorkingMemorySlice` | `EvExportWorkingMemorySlice` -> `guard.sliceIn` | 12.10 |
 | B3 | **ImportGuard** soft review | `pathBGuarding` | **12.11** |
-| B4 | **ImportAbsorb** (after allow/trim): id policy, nodes then edges | `pathBImporting` / `EvImportWorkingMemorySlice` | 12.9 |
+| B4 | **ImportAbsorb** settle-time fold (after allow/trim): owner-gated id policy, nodes then edges | `pathBImporting` / `EvImportWorkingMemorySlice` | 12.9 |
 | B5 | Lead settles TSK | `pathBSettling` | 12.3 |
 
 ### Guard examples
@@ -100,14 +108,14 @@ ImportGuardDecision { outcome: allow; reason: 'slice under MOD_amp_note scope; i
 
 ```text
 ImportGuardDecision { outcome: trim; reason: 'drop off-mission SYM_scratch_* settle noise' }
-// ImportAbsorb imports reduced slice only; decision atoms recorded — not guard chat as SSOT
+// ImportAbsorb imports reduced slice only; decision atoms recorded - not guard chat as SSOT
 ```
 
 **Reject:**
 
 ```text
 ImportGuardDecision { outcome: reject; reason: 'invented ids not on member pin_map; refuse import' }
-// → importRejected; lead session unchanged
+// -> importRejected; lead session unchanged
 ```
 
 Hard gates (schema/caps/id conflict/owner) still apply after allow/trim.
@@ -118,11 +126,11 @@ Hard gates (schema/caps/id conflict/owner) still apply after allow/trim.
 
 | Anti-pattern | Violates |
 |--------------|----------|
-| Chat/transcript as import payload | 12.10 (`EvImportFromChat`) |
+| Chat/transcript as received memory | 12.10 (`EvImportFromChat`) |
 | Whole-store dump as slice | 12.10 / 01.8 |
 | Member settles `TSK_mission_*` | 12.3 / 12.9 |
 | Treat guard chat as SSOT | 12.11 |
-| Confuse Cypher MERGE / micro `merge=true` with this import | Scope error |
+| Confuse Cypher MERGE / micro `merge=true` with macro session receive | Scope error (SessionMergeFraming) |
 
 ## 7. Verify
 

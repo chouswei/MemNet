@@ -37,9 +37,10 @@ package MemNetConnections {
 
   item def MissionWorkingSet {
     doc /*
-      Opaque mission / programme SOMETHING whose SSOT is a named session.
-      Thin handle only — do not invent a large ontology; content is the
-      session graph (Node|Edge) peers re-discover via pin_map.
+      Team lead / parent mission working memory: opaque mission SOMETHING
+      whose SSOT is the named mission session. Thin handle only — content is
+      the session graph (Node|Edge) peers re-discover via pin_map. Under
+      Multitask this is the lead session the member slice is received into.
     */
   }
 
@@ -56,9 +57,10 @@ package MemNetConnections {
 
   item def WorkingMemorySlice {
     doc /*
-      Bounded export of a member's working memory for lead import (path B).
-      Carries source sessionId, anchors, depth/view budget, and shaped pin
-      payload — not a whole-store dump. Macro session-import vehicle.
+      Bounded export of a team member's working memory (worker session or
+      scoped subgraph) for lead receive / import (path B). Carries source
+      sessionId, anchors, depth/view budget, and shaped pin payload — not a
+      whole-store dump. Macro session-union vehicle at settle time.
     */
     attribute sourceSessionId : String;
     attribute anchors : String;
@@ -66,12 +68,30 @@ package MemNetConnections {
     attribute view : String;
   }
 
+  item def SessionMergeFraming {
+    doc /*
+      Binding metaphor (2026-08-13): colloquial "session merge" is just like
+      a team lead receiving the working memory of a team member.
+      Product behaviour = SessionImportReceive (verbs: receive / import).
+      Parent mission session = lead WM (MissionWorkingSet SSOT).
+      Worker session or scoped slice = member WM.
+      Path A (prefer): already one shared session — "receive" is re-pin_map,
+      not a second store. Path B: separate sessions — lead absorbs a bounded
+      WorkingMemorySlice into the mission session at settle (id conflict
+      policy: reject / remint / Cypher MERGE upsert; owner-gated).
+      Chat is never the received memory.
+      MUST NOT confuse with micro in-session node re-id (merge=true) or with
+      Cypher MERGE as the product name for this behaviour.
+      See outputs/session-import-case-study.md.
+    */
+  }
+
   item def SessionImportRequest {
     doc /*
-      Lead-owned request to import a member WorkingMemorySlice into the
-      mission (lead) session. Metaphor: team lead imports member WM.
+      Lead-owned request to receive / import a member WorkingMemorySlice into
+      the mission (lead) session. Realises SessionMergeFraming path B.
       Id policy may use Cypher MERGE (upsert by id) / reject conflict /
-      remint NEW — that is GQL upsert, not the product verb "session merge".
+      remint NEW — that is GQL upsert mechanics, not the product name.
       Distinct from micro in-session node re-id (merge=true security design).
     */
     attribute leadSessionId : String;

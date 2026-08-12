@@ -91,7 +91,7 @@ sequenceDiagram
 |--|------------------|----------------|
 | Anchors | Distinct egos | Same ego |
 | Parallel | Allowed (12.5 / 12.12) | Forbidden without serialisation |
-| Lead next turn | Clean merge via pin_map | Ambiguous / lost updates |
+| Lead next turn | Clean receive via pin_map | Ambiguous / lost updates |
 | Verify | S13 happy constraint | S13 anti narrative |
 
 ## 4. Checklist for agents

@@ -11,7 +11,7 @@ Novel-writer is out of scope.
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; chat never SSOT.
 3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**.
-4. **Lead imports member WM** — path A re-`pin_map` (skip import nest); path B `WorkingMemorySlice` → nested `ImportGuard` → `ImportAbsorb`. Product verb = **import**. Cypher `MERGE` and micro `merge=true` are not this behaviour.
+4. **Lead receives member WM** — colloquial "session merge" = team lead receives member working memory (`SessionMergeFraming`). Path A re-`pin_map` (skip import nest); path B `WorkingMemorySlice` → nested `ImportGuard` → `ImportAbsorb` (settle-time fold). Product verbs = **receive** / **import**. Cypher `MERGE` and micro `merge=true` are not this behaviour.
 
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
@@ -23,7 +23,7 @@ Novel-writer is out of scope.
 |---------|----------------|
 | Company analytical SSOT | `CompanyAnalyticalSsot` → [company-memory-case-study.md](company-memory-case-study.md) |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
-| Lead imports member WM | Nested ImportGuard/Absorb → [session-import-case-study.md](session-import-case-study.md) |
+| Lead receives member WM (session merge framing) | `SessionMergeFraming` / ImportGuard/Absorb → [session-import-case-study.md](session-import-case-study.md) |
 | Async parallel Multitask | AsyncTaskDispatch + WorkerPool → [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) |
 | Durable hydrate/flush | DurableBuffer M2.5 → [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Snapshot passport | SnapshotStore save/load → [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |

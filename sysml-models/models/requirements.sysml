@@ -931,24 +931,30 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_9_LeadOwnsSessionImport {
         doc /*
-          When a team lead imports a member's working memory (SessionImportReceive),
-          the lead / parent SHALL own the import into the mission session.
-          Path A (shared session): lead re-pin_map only — no WorkingMemorySlice
-          import. Path B (separate sessions): lead imports a bounded
-          WorkingMemorySlice under an explicit id policy (may use Cypher MERGE
-          for upsert-by-id); edges after nodes; lead settles parent TSK_*.
+          Colloquial "session merge" SHALL mean: a team lead receives a team
+          member's working memory into the mission session (SessionMergeFraming;
+          SessionImportReceive). The lead / parent SHALL own that receive.
+          Prefer one shared mission session (Multitask default): "receive" is
+          re-pin_map only — no second store and no WorkingMemorySlice import.
+          When sessions are separate: lead SHALL import a bounded
+          WorkingMemorySlice at settle-time fold under an explicit owner-gated
+          id conflict policy (reject / remint / Cypher MERGE upsert-by-id);
+          edges after nodes; lead settles parent TSK_*. Chat and tool
+          transcripts SHALL NOT be the received memory (see MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
-          Distinct from micro in-session node re-id (merge=true security design).
+          Macro session-union (this req) SHALL NOT be confused with micro
+          in-session node re-id (merge=true security design) or with naming
+          the product behaviour after Cypher MERGE.
         */
         attribute requirementId : String = "MN-REQ-12.9";
       }
 
       requirement def MN_REQ_12_10_NoChatOrWholeStoreImport {
         doc /*
-          Session import / receive SHALL NOT use chat or tool transcripts as
-          the import payload (EvImportFromChat forbidden). SHALL NOT import a
-          whole-store dump. Dual-writer on the target slice during import
-          SHALL NOT be assumed safe (0.4.x last-write-wins; MN-REQ-12.7).
+          Lead receive / session import SHALL NOT use chat or tool transcripts
+          as the received working memory (EvImportFromChat forbidden). SHALL
+          NOT import a whole-store dump. Dual-writer on the target slice during
+          import SHALL NOT be assumed safe (0.4.x last-write-wins; MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.10";
       }
