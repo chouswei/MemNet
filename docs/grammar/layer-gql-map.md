@@ -80,7 +80,17 @@ Adapters / GQL profile **MUST** preserve grain (or encode port incidence in dura
 
 ## 6. SysML / model alignment
 
-Product SysML (`sysml-models/`) still names internal records **NODE** \| **EDGE**. Map stereotypes in `MemNetConnections` document **Node**, **Edge**, **Property**, **Label**. Agent behaviour events should move toward GQL mutate + shaped pin-map-class read (follow-on model edits — not this pass).
+Product SysML (`sysml-models/`) centres a **property-graph / GQL** agent memory:
+
+| Nest | Role |
+|------|------|
+| `AgentMemory` → `SessionLifecycle` | Working graph + codecs |
+| `GqlCodec` | 1.x primary wire |
+| `PinMapShapedRead` | Shaped `pin_map` (Write = display redefined) |
+| `TierACodec` | Legacy Layer accept |
+| `MemNetConnections` | First-class Node / Edge / Property / Label; Bind vs Relation; LawOnNode |
+
+Exam: [`gql-model-exam.md`](gql-model-exam.md). Case study: [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md).
 
 ---
 

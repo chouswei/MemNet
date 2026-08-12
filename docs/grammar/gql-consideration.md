@@ -35,7 +35,7 @@ GQL remains a **declarative property-graph query language**. MemNet remains the 
 
 **Replacement accepted (product decision):** use openCypher-shaped GQL **instead of** Layer as the LLM teach/wire. Layer grammar sources (`MemNetLayer.g4`) are **not** deleted in the first cut — see migration in ADR-001.
 
-**Model alignment:** ontology and map stereotypes still speak **Node / Edge / Property / Label**. Agent events and MCP move toward GQL mutate + shaped pin-map-equivalent read. Detail: [`layer-gql-map.md`](layer-gql-map.md).
+**Model alignment:** SysML nested under `AgentMemory` with first-class **Node / Edge / Property / Label**, `GqlCodec`, `PinMapShapedRead`, and legacy `TierACodec`. Exam: [`gql-model-exam.md`](gql-model-exam.md). Detail: [`layer-gql-map.md`](layer-gql-map.md).
 
 ---
 

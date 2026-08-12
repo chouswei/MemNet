@@ -17,13 +17,19 @@ package MemNetBehaviour {
     doc /* session_load from SessionSnapshotBlob (MN-REQ-01). */
   }
   attribute def EvPinMapRead {
-    doc /* Fetch live pin map (PinMapComposer). Legacy alias: query_warm. */
+    doc /*
+      Fetch shaped pin_map (PinMapShapedRead wraps GQL; emits ShapedSubgraph).
+      Legacy alias: query_warm / PinMapComposer.
+    */
   }
   attribute def EvWalkRead {
     doc /* query_walk hop lines. */
   }
   attribute def EvMutateGraph {
-    doc /* add/update Tier A batch (may include NEW). */
+    doc /*
+      add/update openCypher-shaped GQL batch (primary; may include NEW).
+      Legacy Layer / Tier A accept until M4.
+    */
   }
   attribute def EvSaveSnapshot {
     doc /* session_save to SessionSnapshotBlob. */
@@ -41,7 +47,7 @@ package MemNetBehaviour {
     doc /* IdAllocator finished minting NEW -> real ids. */
   }
   attribute def EvParseOk {
-    doc /* TierACodec accepted batch. */
+    doc /* GqlCodec (or legacy TierACodec) accepted batch. */
   }
   attribute def EvCommitOk {
     doc /* GraphStore create/replace succeeded. */

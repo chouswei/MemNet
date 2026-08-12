@@ -1,14 +1,21 @@
 /*
-  MemNet deploy - TARGET architecture (requirements + grammar doctrine win).
-  Allocates toward GraphStore / TierACodec / IdAllocator / PinMapComposer /
-  SessionLifecycle / SnapshotStore / pin-map ingest stubs /
-  InProcessEngine / LocalIpcGateway / TcpServeBridge / McpFacade /
-  CliFacade / MultitaskOperatingModel (agent doctrine). Today's Python
-  modules inform feasibility; see outputs/system-design-notes.md for
-  as-is -> target map. Novel-writer out of scope.
+  MemNet deploy — TARGET architecture after ADR-001.
+
+  Nesting (coarse → fine):
+    MemNetSystem
+    ├── AgentMemory          property-graph working set + GQL wire
+    │   ├── GraphStore
+    │   ├── GqlWire          1.x primary codec (openCypher-shaped)
+    │   ├── PinMapShapedRead shaped pin_map (Write = display redefined)
+    │   ├── MutateGate / SessionLifecycle / Schema / Caps / …
+    │   └── LegacyLayerCodec migration accept only (Tier A / Layer)
+    ├── TransportBoundary    InProcess / LocalIpc / TcpServe
+    ├── MemNetMcpServer
+    ├── DurableBuffer        AgensGraphAdapter (roadmap)
+    ├── PinMapRoadmap
+    └── MultitaskOperatingModel
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
-  Nested requirement paths: MN_REQ_00_MissionBridge::Group::Leaf.
 */
 package MemNet {
   private import ScalarValues::*;
@@ -16,7 +23,7 @@ package MemNet {
   private import MemNetRequirements::*;
 
   // =====================================================================
-  // Caps / policy
+  // Caps / schema / identity (leaves under AgentMemory)
   // =====================================================================
 
   part def CapsPolicy {
@@ -38,13 +45,9 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
   }
 
-  // =====================================================================
-  // Grammar / schema / identity
-  // =====================================================================
-
   part def SchemaRegistry {
     doc /*
-      Session schema: NODE kinds (tags) and fields; EDGE relation set;
+      Session schema: node Labels and Properties; relationship-type set;
       validate ingest; reject unknown/reserved kinds.
       As-is: memnet.tag_map + fixed_tags (positional TagMap is legacy surface).
     */
@@ -55,18 +58,17 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   }
 
-  part def TierACodec {
+  part def GqlCodec {
     doc /*
-      Canonical agent grammar SSOT: parse and emit Layer / Tier A
-      Write=display NODE|EDGE lines (ANTLR path target; Layer = 1.x teach,
-      Tier A = legacy alias). Owns both directions so live pin map emit
-      and mutate input share one dialect. Reject invalid wire; no ad-hoc
-      consumer splits; MUST NOT accept GQL/Cypher as primary mutate.
-      As-is: memnet.tier_a pure-Python twin; ANTLR codegen deferred.
-      Legacy pipe is import-once only (not a standing part).
+      Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
+      GQL under MemNet gates. Mutate accepts GQL patterns; pin_map emit is a
+      shaped subgraph (same graph family — redefined Write = display).
+      MUST NOT treat raw tabular RETURN as primary goldfish read.
+      Target; engine accept path lands in ADR migration M2.
     */
-    port tierAIn : TierAInPort;
-    port tierAOut : TierAOutPort;
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
+    port shapedOut : ShapedSubgraphOutPort;
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port errOut : ErrorSignalOutPort;
@@ -92,11 +94,26 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_7_HumanVerifyViaParser;
   }
 
+  part def TierACodec {
+    doc /*
+      LEGACY / migration — LegacyLayerCodec role. Accept Layer / Tier A
+      NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a) until M4.
+      MUST NOT be 1.x teach; primary wire is GqlCodec.
+      As-is 0.4.x still uses this path in Python.
+    */
+    port tierAIn : TierAInPort;
+    port tierAOut : TierAOutPort;
+    port recordsOut : GraphRecordOutPort;
+    port recordsIn : GraphRecordInPort;
+    port errOut : ErrorSignalOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_4_BoundaryFriendlyIfInternalDiffers;
+  }
+
   part def LegacyPipeImport {
     doc /*
       DEPRECATED — not in MemNetSystem target composition. One-shot import
-      of historical @TAG pipe session blobs; convert then discard. Not a
-      standing store codec or agent dialect.
+      of historical @TAG pipe session blobs; convert then discard.
     */
     port legacyIn : LegacyPipeInPort;
     port recordsOut : GraphRecordOutPort;
@@ -106,11 +123,9 @@ package MemNet {
 
   part def IdAllocator {
     doc /*
-      Two mint paths: (1) LLM goldfish mutate -- NEW / [NEW] -> engine id;
-      (2) PinMapIngest_* -- deterministic id from locator key (refdes, net,
-      pin, path, qname, skill_id) or engine key plus required locator
-      fields. Pin ingest never accepts client NEW for source elements.
-      As-is: memnet.id_allocator (goldfish path); pin-key path on ingest.
+      Two mint paths: (1) LLM goldfish mutate -- NEW -> engine id;
+      (2) PinMapIngest_* -- deterministic id from locator key.
+      As-is: memnet.id_allocator.
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
@@ -123,15 +138,16 @@ package MemNet {
   }
 
   // =====================================================================
-  // Graph store / query / housekeep
+  // Graph store / shaped read / mutate
   // =====================================================================
 
   part def GraphStore {
     doc /*
-      In-memory Net of Memory: property-graph working set with exactly
-      NODE and EDGE indexes, adjacency, strict create/replace (no silent
-      upsert). Recycle flags on rows. GQL-aligned ontology (Node/Edge/
-      Property/Label map); agent I/O stays Layer — not Cypher strings.
+      In-memory Net of Memory: property-graph working set with Node and
+      Edge indexes, adjacency, properties, labels; strict create/replace.
+      Dual EDGE: bind vs relation as relationship types / endpoint grain.
+      Law-on-node as node properties (+ port structure). Agent wire is GQL
+      via GqlCodec — not Layer ASCII as primary.
       As-is: memnet.mem_store.MemStore (+ models).
     */
     port recordsIn : GraphRecordInPort;
@@ -152,13 +168,14 @@ package MemNet {
 
   part def MutateGate {
     doc /*
-      Orchestrates Tier A parse -> schema validate -> NEW mint -> strict
-      add/update into GraphStore -> emit assigned ids + Tier A ack.
-      Owns IdAllocator; uses sibling SchemaRegistry / TierACodec /
-      GraphStore via SessionLifecycle wiring (not a second store).
-      As-is: memnet.mutate_gate (+ cli ingest); Tier A preferred; legacy
-      pipe only for one-shot import.
+      Orchestrates GQL (primary) or legacy Layer parse -> schema validate ->
+      NEW mint -> strict add/update into GraphStore -> assigned ids + ack.
+      Owns IdAllocator; uses sibling SchemaRegistry / GqlCodec /
+      LegacyLayerCodec / GraphStore via AgentMemory wiring.
+      As-is: memnet.mutate_gate (Layer-first until M2).
     */
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
     port recordsOut : GraphRecordOutPort;
@@ -173,15 +190,17 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   }
 
-  part def PinMapComposer {
+  part def PinMapShapedRead {
     doc /*
-      Compose anchored live pin map: hide recyclable rows, apply depth/row
-      caps, prepend engine-law rows, emit Tier A Write=display via TierACodec
-      (same grammar as MutateGate input). Legacy CLI/MCP name: query_warm.
-      As-is: converging on memnet live pin map Tier A emit.
+      pin_map-class tool (ADR-001 recommendation B+A): wraps GQL internally;
+      emits bounded shaped subgraph (ShapedSubgraph / LivePinMap) — redefined
+      Write = display. Hide recyclable rows; depth/row/view caps; prepend
+      engine-law rows. As-is name: PinMapComposer / query pin-map.
+      MUST NOT emit raw unbounded RETURN tables as primary agent read.
     */
     port pinMapOut : LivePinMapOutPort;
-    port tierAOut : TierAOutPort;
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
     attribute lawPrepend : Boolean = true;
 
@@ -199,7 +218,7 @@ package MemNet {
 
   part def WalkQuery {
     doc /*
-      Anchored walk hop lines over NODE|EDGE without loading whole graph.
+      Anchored walk hop lines over Node|Edge without loading whole graph.
       As-is: mem_store query walk.
     */
     port walkOut : WalkSliceOutPort;
@@ -212,24 +231,18 @@ package MemNet {
   part def HousekeepSettle {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
-      Recycle policy feeds PinMapComposer hide rules.
-      As-is: memnet.housekeep.
+      Recycle policy feeds PinMapShapedRead hide rules.
     */
-    port statsOut : TierAOutPort;
+    port statsOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
   }
 
-  // =====================================================================
-  // Session / snapshot (file) - not MN-REQ-11 pin maps
-  // =====================================================================
-
   part def SnapshotStore {
     doc /*
       Named-session durable file: save/load schema + records + relations
       (MN-REQ-01.4--01.6). MUST NOT be taken as MN-REQ-11 pin-map export.
-      As-is: memnet.snapshot.
     */
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
@@ -241,11 +254,15 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
   }
 
+  // =====================================================================
+  // AgentMemory — nested working-memory product heart
+  // =====================================================================
+
   part def SessionLifecycle {
     doc /*
       Process-wide registry of named sessions with TTL purge; per-session
       GraphStore + SchemaRegistry + query/mutate facades.
-      As-is: memnet.registry + session.SessionStore + open_session.
+      Nested under AgentMemory. As-is: memnet.registry + session.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -255,16 +272,21 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
     part schema : SchemaRegistry;
-    part codec : TierACodec;
+    part gqlWire : GqlCodec;
+    part legacyLayer : TierACodec;
     part store : GraphStore;
     part mutate : MutateGate;
-    part livePinMap : PinMapComposer;
+    part shapedRead : PinMapShapedRead;
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
 
-    connection parseToMutate : GraphRecordFlow {
-      end port source ::> codec.recordsOut;
+    connection gqlParseToMutate : GraphRecordFlow {
+      end port source ::> gqlWire.recordsOut;
+      end port sink ::> mutate.recordsIn;
+    }
+    connection legacyParseToMutate : GraphRecordFlow {
+      end port source ::> legacyLayer.recordsOut;
       end port sink ::> mutate.recordsIn;
     }
     connection mutateToStore : GraphRecordFlow {
@@ -281,19 +303,31 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
   }
 
+  part def AgentMemory {
+    doc /*
+      Nested product heart: property-graph agent memory with GQL wire.
+      Coarse container for GraphStore, GqlWire, PinMapShapedRead,
+      LegacyLayerCodec, and SessionLifecycle. Brand = MemNet.
+    */
+    part sessions : SessionLifecycle;
+    port sessionOut : SessionIdOutPort;
+    port gqlIn : GqlWireInPort;
+    port shapedOut : ShapedSubgraphOutPort;
+    port pinMapOut : LivePinMapOutPort;
+  }
+
   // =====================================================================
-  // Transport: in-process primary / local IPC / TCP migration
+  // Transport boundary
   // =====================================================================
 
   part def InProcessEngine {
     doc /*
-      Primary binding: GraphStore + SessionLifecycle in the same process as
-      the caller (MCP or library). Lowest latency; no serialised hop.
-      As-is: MEMNET_TEST_INLINE / direct cli app() path; becoming default.
+      Primary binding: AgentMemory / SessionLifecycle in the same process
+      as the caller (MCP or library). Lowest latency; no serialised hop.
     */
     port apiIn : InProcessInPort;
     port envelopeOut : JsonEnvelopeOutPort;
-    part sessions : SessionLifecycle;
+    part memory : AgentMemory;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
   }
@@ -301,9 +335,7 @@ package MemNet {
   part def LocalIpcGateway {
     doc /*
       Secondary: share one session registry across CLI + MCP processes via
-      named pipe (Windows) or AF_UNIX (POSIX). Same argv+stdin payload shape.
-      As-is: not implemented. UNALLOCATED on MemNetSystem — no LocalIpcFlow
-      connection yet; CliFacade.ipcOut / gateway ports exist for future wiring.
+      named pipe (Windows) or AF_UNIX (POSIX). As-is: not implemented.
     */
     port ipcIn : LocalIpcInPort;
     port envelopeOut : JsonEnvelopeOutPort;
@@ -315,10 +347,8 @@ package MemNet {
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
-      localhost. Not the conceptual core binding for single-agent use
-      (MN-REQ-06.3). Under Multitask Mode this path (or streamable-http /
-      LocalIpc) is the shared-store binding (MN-REQ-12.2).
-      As-is: memnet.serve (default host 127.0.0.1:18765).
+      localhost. Under Multitask this path (or streamable-http / LocalIpc)
+      is the shared-store binding (MN-REQ-12.2).
     */
     port cmdIn : ServeCommandInPort;
     port envelopeOut : JsonEnvelopeOutPort;
@@ -329,16 +359,30 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
+  part def TransportBoundary {
+    doc /*
+      How clients bind to AgentMemory: in-process primary, local IPC,
+      TCP/http for shared Multitask.
+    */
+    part inProcess : InProcessEngine;
+    part ipc : LocalIpcGateway;
+    part tcp : TcpServeBridge;
+  }
+
+  // =====================================================================
+  // Facades / MCP
+  // =====================================================================
+
   part def CliFacade {
     doc /*
-      Agent/human CLI: session_*, query_*, add/update, read_*, housekeep_*.
-      Attaches in-process by default; MAY use LocalIpcGateway or
-      TcpServeBridge when sharing a registry across processes.
-      Presents Tier A on stdio (target). As-is: memnet.cli (+ serve_client).
+      Agent/human CLI. Presents GQL wire on stdio (target); Layer accept
+      retained for migration. As-is: memnet.cli (+ serve_client).
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
     port cmdOut : ServeCommandOutPort;
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
     port sessionOut : SessionIdOutPort;
@@ -359,10 +403,7 @@ package MemNet {
 
   part def ServeBridge {
     doc /*
-      Optional TCP client to TcpServeBridge (migration / Multitask shared
-      store). Prefer in-process for single-agent; under Multitask MUST use
-      this path, streamable-http, or LocalIpc (MN-REQ-12.2).
-      As-is: memnet_mcp.client + memnet.serve_client.
+      Optional TCP client to TcpServeBridge (Multitask shared store).
     */
     port cmdOut : ServeCommandOutPort;
     port envelopeIn : JsonEnvelopeInPort;
@@ -374,8 +415,9 @@ package MemNet {
   part def LawSeedHelper {
     doc /*
       On MCP session_open, auto-seed engine-law rows when missing.
-      As-is: memnet_mcp.seed.supplement_seed_lines.
+      Target emit via GQL/shaped path; as-is may still seed Layer lines.
     */
+    port gqlOut : GqlWireOutPort;
     port tierAOut : TierAOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_4_McpLawSeedOnOpen;
@@ -383,15 +425,13 @@ package MemNet {
 
   part def McpFacade {
     doc /*
-      Generic FastMCP stdio tools only: status probe, session_*, query_*,
-      add, update, read_*, housekeep_stats. Binds InProcessEngine by
-      default; TCP ServeBridge is optional fallback. Structured JSON
-      envelopes. No domain-product tools (novel-writer out of scope).
-      As-is: memnet_mcp.server.
+      Generic FastMCP tools. Agent memory payloads: GQL mutate + shaped
+      pin_map (target). Structured JSON envelopes. No domain-product tools.
     */
     port apiOut : InProcessOutPort;
     port hostOut : JsonEnvelopeOutPort;
-    port fromHost : TierAInPort;
+    port fromHost : GqlWireInPort;
+    port legacyFromHost : TierAInPort;
     port errOut : ErrorSignalOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
@@ -414,35 +454,51 @@ package MemNet {
 
   part def MemNetCoreLibrary {
     doc /*
-      Target core composite allocated to parts/common/memnet (evolving).
-      Grammar doctrine and GraphStore are first-class; transport attaches.
+      Target core composite allocated to parts/common/memnet.
+      Nest: TransportBoundary (InProcessEngine owns AgentMemory) + CliFacade.
+      AgentMemory lives under transport.inProcess.memory — one instance.
     */
-    part codec : TierACodec;
-    part engine : InProcessEngine;
-    part ipc : LocalIpcGateway;
-    part tcp : TcpServeBridge;
+    part transport : TransportBoundary;
     part cli : CliFacade;
   }
 
   part def MemNetMcpServer {
     doc /*
-      Product surface parts/memnet-mcp - generic tools only.
-      Default path is in-process into core.engine; ServeBridge optional.
+      Product surface parts/memnet-mcp — generic tools only.
     */
     part tools : McpFacade;
     part bridge : ServeBridge;
     part seed : LawSeedHelper;
-    port fromHost : TierAInPort;
+    port fromHost : GqlWireInPort;
   }
 
   // =====================================================================
-  // MN-REQ-11 pin-map roadmap stubs (selective pins, not corpus)
+  // Durable buffer (roadmap) — AgensGraph
+  // =====================================================================
+
+  part def AgensGraphAdapter {
+    doc /*
+      ROADMAP: optional hydrate/flush between AgentMemory and durable
+      AgensGraph (same GQL family). Not required for 0.5 one-path.
+      MUST NOT dual-write without a single sync owner.
+    */
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
+    attribute implemented : Boolean = false;
+  }
+
+  part def DurableBuffer {
+    doc /* Optional durable property-graph buffer behind MemNet. */
+    part agens : AgensGraphAdapter;
+  }
+
+  // =====================================================================
+  // MN-REQ-11 pin-map roadmap stubs
   // =====================================================================
 
   part def PinMapIngest_Sysml {
     doc /*
-      ROADMAP stub: export/import selective SysML v2 pin maps as NODE|EDGE.
-      Not implemented in code yet. Distinct from session file SnapshotStore.
+      ROADMAP stub: export/import selective SysML v2 pin maps as Node|Edge.
     */
     port pinOut : PinMapOutPort;
     port pinIn : PinMapInPort;
@@ -460,8 +516,7 @@ package MemNet {
 
   part def PinMapIngest_Codebase {
     doc /*
-      ROADMAP stub: ingest selective codebase pins (modules/symbols) and
-      relation EDGEs. As-is: skills such as memnet-codebase-snap inform shape.
+      ROADMAP stub: ingest selective codebase pins (modules/symbols).
     */
     port pinIn : PinMapInPort;
     port recordsOut : GraphRecordOutPort;
@@ -477,9 +532,7 @@ package MemNet {
 
   part def PinMapIngest_PcbaAto {
     doc /*
-      ROADMAP stub: PCBA schematic pin maps from Atopile .ato (nets,
-      components, pins + connectivity EDGEs). .ato == PCBA source.
-      Ids from deterministic locators (refdes/net/pin/path); not client NEW.
+      ROADMAP stub: PCBA schematic (.ato) pins + connectivity.
     */
     port pinIn : PinMapInPort;
     port recordsOut : GraphRecordOutPort;
@@ -495,8 +548,7 @@ package MemNet {
 
   part def PinMapIngest_SkillsRules {
     doc /*
-      ROADMAP stub: agent skills/rules pin maps (SKILL.md, .mdc) as NODE
-      pins and relation EDGEs (paired_with, triggers, governs, and similar).
+      ROADMAP stub: agent skills/rules pin maps.
     */
     port pinIn : PinMapInPort;
     port recordsOut : GraphRecordOutPort;
@@ -511,10 +563,7 @@ package MemNet {
   }
 
   part def PinMapRoadmap {
-    doc /*
-      Composite of MN-REQ-11 roadmap stubs - unallocated in code; nested
-      for system topology only. Not novel-writer.
-    */
+    doc /* Composite of MN-REQ-11 roadmap stubs. */
     part sysml : PinMapIngest_Sysml;
     part codebase : PinMapIngest_Codebase;
     part pcbaAto : PinMapIngest_PcbaAto;
@@ -522,19 +571,17 @@ package MemNet {
   }
 
   // =====================================================================
-  // Multitask Mode (MN-REQ-12) -- agent operating roles, not Python modules
+  // Multitask Mode (MN-REQ-12)
   // =====================================================================
 
   part def MultitaskCoordinator {
     doc /*
-      Logical parent agent role under Cursor Multitask Mode / Task spawn.
-      Hosts ParentTaskLifecycle / MultitaskMissionCycle for relevant tasks
-      (MN-REQ-12.8): MissionTaskPin mint/settle, WorkerWriteScope assign,
-      end-turn after delegate. As-is: agent doctrine; not a Python module.
+      Logical parent agent role. Hosts ParentTaskLifecycle for relevant
+      tasks. Wire payloads: GQL + shaped pin_map (target).
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
-    port tierAOut : TierAOutPort;
+    port gqlOut : GqlWireOutPort;
     port pinIn : PinMapInPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
@@ -547,15 +594,12 @@ package MemNet {
 
   part def MultitaskWorker {
     doc /*
-      Logical background worker agent role. Hosts WorkerScopedTurn: pin_map
-      first; mutate only under WorkerWriteScope on shared session.
-      As-is: agent doctrine; not a Python module. Engine does not enforce
-      write-scope ACL in 0.4.x (MN-REQ-12.7).
+      Logical worker: pin_map first; mutate under WorkerWriteScope.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
     port pinIn : PinMapInPort;
-    port tierAOut : TierAOutPort;
+    port gqlOut : GqlWireOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
@@ -565,11 +609,7 @@ package MemNet {
 
   part def MultitaskSharedStoreBinding {
     doc /*
-      Multitask missions MUST bind MCP/CLI clients to one shared store:
-      TcpServeBridge (MEMNET_MCP_TRANSPORT=tcp), streamable-http MCP, or
-      LocalIpcGateway when implemented. Isolated default in-process MCP is
-      forbidden for shared Multitask (MN-REQ-12.2). As-is transport paths
-      already exist on MemNetMcpServer.bridge / TcpServeBridge.
+      Multitask MUST bind to one shared store (TCP / streamable-http / IPC).
     */
     attribute doctrineAsIs : Boolean = true;
     attribute prefersTcpOrHttp : Boolean = true;
@@ -578,10 +618,7 @@ package MemNet {
   }
 
   part def MultitaskOperatingModel {
-    doc /*
-      Agent-host Multitask topology for MN-REQ-12. Doctrine-level roles nested
-      for satisfy coverage; engine ACL/reserve remain to-be (not nested here).
-    */
+    doc /* Agent-host Multitask topology for MN-REQ-12. */
     part coordinator : MultitaskCoordinator;
     part worker : MultitaskWorker;
     part sharedStore : MultitaskSharedStoreBinding;
@@ -593,38 +630,36 @@ package MemNet {
 
   part def MemNetSystem {
     doc /*
-      Target MemNet software system: core library (in-process primary) +
-      MCP + TCP migration + pin-map roadmap stubs + Multitask operating
-      model (agent doctrine). Novel-writer out of scope.
-      LocalIpcFlow is intentionally unallocated until LocalIpcGateway is
-      implemented (ports on CliFacade / LocalIpcGateway ready). LegacyPipeImport
-      is deprecated and not nested here.
-      Only MN-REQ-00 is satisfied here; leaves are on implementing parts.
+      Target MemNet software system — nested until clear:
+      AgentMemory (via core) + Transport + MCP + DurableBuffer +
+      pin-map roadmap + Multitask doctrine. Novel-writer out of scope.
+      LegacyPipeImport not nested. Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
+    part durable : DurableBuffer;
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
 
     connection mcpInProcess : InProcessFlow {
       end port source ::> mcp.tools.apiOut;
-      end port sink ::> core.engine.apiIn;
+      end port sink ::> core.transport.inProcess.apiIn;
     }
     connection cliInProcess : InProcessFlow {
       end port source ::> core.cli.apiOut;
-      end port sink ::> core.engine.apiIn;
+      end port sink ::> core.transport.inProcess.apiIn;
     }
     connection mcpTcpFallback : ServeCommandFlow {
       end port source ::> mcp.bridge.cmdOut;
-      end port sink ::> core.tcp.cmdIn;
+      end port sink ::> core.transport.tcp.cmdIn;
     }
     connection tcpToMcp : JsonEnvelopeFlow {
-      end port source ::> core.tcp.envelopeOut;
+      end port source ::> core.transport.tcp.envelopeOut;
       end port sink ::> mcp.bridge.envelopeIn;
     }
     connection cliTcpFallback : ServeCommandFlow {
       end port source ::> core.cli.cmdOut;
-      end port sink ::> core.tcp.cmdIn;
+      end port sink ::> core.transport.tcp.cmdIn;
     }
 
     satisfy MN_REQ_00_MissionBridge;

@@ -3,6 +3,8 @@
 **Status:** plan only (docs). **MUST NOT** treat this as shipped behaviour.  
 **Audience:** product developers. Agent ops still follow [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md).
 
+**Model (this notch):** SysML + grammar **refactored for GQL wire** (nested `AgentMemory` / `GqlCodec` / `PinMapShapedRead`; Layer → legacy). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md). **Next: implement M1** (GQL wire profile + shaped-read contract).
+
 **Problem (0.4.x):** dual remote MCP entries, dual dialect stories (Tier A vs Layer), and on Pi a risk of **two graph writers** (HTTP MCP `InProcessEngine` ≠ TCP `memnet serve`).
 
 ---
@@ -69,6 +71,9 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 | [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: adopt GQL wire; Layer migration |
 | [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (migration) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
+| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam after GQL nesting |
+| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
+| [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary; local optional |

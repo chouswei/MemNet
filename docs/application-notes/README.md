@@ -2,13 +2,15 @@
 
 Domain patterns for **using** MemNet (not engine internals). Index: [`../README.md`](../README.md).
 
-**Primary dialect teach:** **Layer** — `CST` + `ports=` + `law=` on NODE; port↔port `--bind-->`; chart links as bare-id `--rel_name-->`; `pin_map` + optional `view=`. Doctrine: [`../grammar/memnet-multi-layer.md`](../grammar/memnet-multi-layer.md). Roadmap: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
+**1.x dialect teach (ADR-001):** openCypher-shaped **GQL** + shaped `pin_map` — see [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
+**Legacy (migration / most notes until M3):** **Layer** — `CST` + `ports=` + `law=` on NODE; port↔port `--bind-->`; bare-id relations. Doctrine: [`../grammar/memnet-multi-layer.md`](../grammar/memnet-multi-layer.md). Roadmap: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
-Legacy `@TAG` pipe, paren `--(rel)-->`, and formula-on-EDGE (`derives`) appear only as **accept / pointer** notes — do not dual-teach.
+Legacy `@TAG` pipe, paren `--(rel)-->`, and formula-on-EDGE (`derives`) appear only as **accept / pointer** notes — do not dual-teach Layer + GQL as peer 1.x surfaces.
 
 | Note | Role |
 |------|------|
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp derivation + Layer seed |
+| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp derivation + Layer seed (legacy teach) |
+| [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** model (ADR-001) |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain Layer |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method ↔ NODE `law=` + binds |
 | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML v2 session memory |

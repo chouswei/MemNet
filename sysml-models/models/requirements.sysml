@@ -34,13 +34,14 @@
   data kinds: NODE | EDGE.
 
   Current realisation notes (not eternal identity):
-    Target agent grammar is Tier A Write=display (NODE|EDGE lines).
+    Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
+    redefined as bounded shaped pin_map subgraph wrapping GQL.
+    Layer / Tier A = legacy accept / migration only (MemNetLayer.g4).
     Legacy @TAG pipe may still appear in old session files (import once).
-    Session schema often TagMap; store is in-memory NODE|EDGE records;
-    process binding prefers in-process, then local IPC, TCP as fallback;
-    fixed engine laws often LAW01-LAW05. Requirements state behavioural
-    contracts; those spellings may change if the boundary still meets
-    the contract.
+    Store is in-memory Node|Edge property-graph records; process binding
+    prefers in-process, then local IPC, TCP as fallback; fixed engine laws
+    often LAW01-LAW05. Requirements state behavioural contracts; surface
+    spellings may change if the boundary still meets the contract.
 
   Stakeholders (comment only -- no structural defs in this file):
     LLM pipelines; data-search steps; MCP host; human inspectors who verify
@@ -128,12 +129,12 @@ package MemNetRequirements {
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
         Group: the Net of Memory information model is exactly two conceptual
-        data kinds -- NODE and EDGE -- in the property-graph family (GQL
-        Node / Relationship analogues; see docs/grammar/layer-gql-map.md).
-        Tags or surface spellings may realise node kinds; they are not
-        additional conceptual kinds. Agent wire remains Layer / Tier A
-        lines, not GQL MATCH/RETURN. Current realisation often emits nodes
-        as @TAG pipe rows and edges as @EDG (legacy).
+        data kinds -- NODE and EDGE -- as a first-class property graph
+        (Node / Relationship / Property / Label; see layer-gql-map.md and
+        ADR-001). Tags or surface spellings may realise node labels; they
+        are not additional conceptual kinds. Agent wire is openCypher-shaped
+        GQL; primary read is shaped pin_map (not raw MATCH/RETURN tables).
+        Layer ASCII and @TAG pipe are legacy accept / import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
@@ -166,15 +167,18 @@ package MemNetRequirements {
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
           Pin map, walk, and query SHALL operate over the NODE and EDGE
-          graph. Primary agent read remains bounded pin_map (not GQL MATCH).
+          graph. Primary agent read is bounded shaped pin_map wrapping GQL
+          (not unbounded raw MATCH/RETURN dumps).
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
 
       requirement def MN_REQ_02_5_GrammarExpressesNodeAndEdge {
         doc /*
-          Agent-facing grammar and I/O SHALL express both NODE and EDGE
-          (Layer Write = display). SHALL NOT require GQL as the agent dialect.
+          Agent-facing grammar and I/O SHALL express both NODE and EDGE as
+          openCypher-shaped GQL (labels, relationship types, properties).
+          Write = display means shaped subgraph emit matches mutate family.
+          Layer ASCII MAY be accepted as legacy only.
         */
         attribute requirementId : String = "MN-REQ-02.5";
       }
@@ -391,8 +395,9 @@ package MemNetRequirements {
         Group: LLM-friendly grammar on agent-facing I/O. MemNet agent I/O
         (stdio pin-map emit; MCP tool args/results that carry memory language)
         is produced and consumed by an LLM, so presentation SHALL follow
-        prompt rules. One agent dialect both directions (Write = display).
-        Legacy @TAG pipe is import-once only, not a second agent-facing dialect.
+        prompt rules. One agent dialect teach = openCypher-shaped GQL
+        (ADR-001); Write = display = shaped pin_map subgraph both ways.
+        Layer / Tier A and @TAG pipe are legacy accept / import-once only.
       */
       attribute requirementId : String = "MN-REQ-08";
 
@@ -471,9 +476,10 @@ package MemNetRequirements {
 
       requirement def MN_REQ_08_9_PinMapEmitSameAsMutate {
         doc /*
-          Live pin map and other agent-facing read/emit payloads SHALL use
-          the same Tier A grammar as accepted mutate/write input (Write =
-          display). SHALL NOT present a second agent dialect on read vs write.
+          Live pin map emit SHALL be a shaped subgraph in the same GQL /
+          property-graph family as accepted mutate input (redefined Write =
+          display). SHALL NOT present raw tabular RETURN as primary read, nor
+          a peer Layer dialect on read vs GQL on write.
         */
         attribute requirementId : String = "MN-REQ-08.9";
       }

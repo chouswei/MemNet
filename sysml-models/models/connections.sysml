@@ -1,66 +1,114 @@
 /*
   MemNet logical ports, connection defs, and conveyed items.
-  Target architecture: Layer / Tier A agent grammar, GraphStore NODE|EDGE
-  (property-graph family), serve/MCP/CLI transport envelopes, pin-map
-  projections. GQL/Cypher = durable/adapter map vocabulary only — not
-  agent wire (see docs/grammar/layer-gql-map.md).
+
+  Target (ADR-001): property-graph / openCypher-shaped GQL agent memory.
+  First-class constructs: Node, Edge (relationship), Property, Label.
+  pin_map = shaped subgraph read wrapping GQL (Write = display redefined).
+  Layer / Tier A = legacy migration accept only — not 1.x teach.
 */
 package MemNetConnections {
   private import ScalarValues::*;
 
-  // --- Property-graph map stereotypes (durable / adapter vocabulary) ---
-  // Align ontology with ISO GQL property-graph terms. MUST NOT model
-  // MATCH / RETURN / MERGE as agent ops; agent I/O stays Layer lines.
+  // =====================================================================
+  // Property-graph ontology (first-class conceptual model)
+  // =====================================================================
 
   item def PropertyGraphNode {
     doc /*
-      Map stereotype: GQL/property-graph node. Realises MemNet NODE
-      (kind ≈ label; fields ≈ properties; id ≈ stable key). Adapter /
-      AgensGraph side only — agents read/write Layer NODE lines.
+      First-class GQL/property-graph node. Kind → primary Label; id → stable
+      key/property; fields → Property map. Constitutive law (if any) lives on
+      the node as property `law` (and linked port structure), never on an edge.
     */
   }
 
   item def PropertyGraphEdge {
     doc /*
-      Map stereotype: GQL/property-graph relationship (edge). Realises
-      MemNet EDGE (label ≈ relationship type; fields ≈ properties;
-      direction from wire form). Preserves dual EDGE grain (bind vs
-      relation) when syncing. Not a GQL path pattern on the agent wire.
+      First-class GQL relationship (edge). Relationship type + Property map +
+      direction. Dual grain (bind vs relation) is encoded in GQL-compatible
+      terms — see BindRelationship vs RelationRelationship — not as a second
+      Layer teach surface.
     */
   }
 
   item def PropertyGraphProperty {
     doc /*
-      Map stereotype: key=value property on a node or relationship.
-      Realises MemNet fields after ';' on NODE|EDGE lines. Omit defaults
-      on Layer wire; no nested graph-valued properties.
+      First-class key=value property on a node or relationship.
+      Omit defaults on agent wire; no nested graph-valued properties.
     */
   }
 
   item def PropertyGraphLabel {
     doc /*
-      Map stereotype: type/tag on a node or relationship. Realises NODE
-      kind (+ thin role=) and EDGE label. Prefer single kind; avoid
-      multi-label zoo on the agent teach surface.
+      First-class type/tag on a node or relationship type name.
+      Prefer a single primary node label; avoid multi-label zoo on teach.
     */
   }
 
-  // --- Flow items ---
-
-  item def TierABatch {
+  item def BindRelationship {
     doc /*
-      Agent-facing Write=display dialect: NODE and EDGE lines (Layer = 1.x
-      teach; Tier A = legacy alias), optional section headers, mint token
-      NEW. Live pin map emit and mutate stdin share shapes (MN-REQ-08.7).
-      Not a prose blob, corpus dump, or GQL MATCH/RETURN table.
+      Dual-EDGE grain: bind. Both ends port-qualified (node.port).
+      GQL: relationship type `bind` (or equivalent) with port-qualified
+      endpoints / properties. Preserves ideal continuity at port incidence.
+    */
+  }
+
+  item def RelationRelationship {
+    doc /*
+      Dual-EDGE grain: relation. Both ends bare node ids.
+      GQL: ordinary node–node relationship; type = sense (knows, owns, …).
+    */
+  }
+
+  item def LawOnNode {
+    doc /*
+      Constitutive / causal law carried as a node Property (`law`, often
+      LaTeX) plus optional linked port bag structure on the same node.
+      MUST NOT place law on a relationship. Replaces Layer-era law-on-NODE
+      without keeping Layer ASCII as primary teach.
+    */
+  }
+
+  item def PortIncidence {
+    doc /*
+      Port grain on a node (qualified endpoint for bind). Modelled as node
+      properties / nested structure — not a third conceptual kind beside
+      Node and Edge. Open detail in GQL wire profile (ADR-001 M1).
+    */
+  }
+
+  // =====================================================================
+  // Agent wire batches (GQL primary; Layer legacy)
+  // =====================================================================
+
+  item def GqlWireBatch {
+    doc /*
+      Primary agent-facing wire (1.x teach): openCypher-shaped GQL mutate
+      patterns (CREATE/MERGE/SET/DELETE under MemNet gates). Same family as
+      AgensGraph. Not an unbounded DBA RETURN table.
+    */
+  }
+
+  item def ShapedSubgraph {
+    doc /*
+      Redefined Write = display emit: bounded ego/view subgraph as
+      openCypher-family graph text (nodes + relationships), produced by a
+      pin_map-class tool that wraps GQL internally. Primary goldfish read.
+      SHALL NOT be a raw tabular MATCH/RETURN dump.
+    */
+  }
+
+  item def LegacyLayerBatch {
+    doc /*
+      LEGACY / migration only: former Layer / Tier A NODE|EDGE ASCII lines
+      (MemNetLayer.g4 / tier_a). Accept path until M4; MUST NOT be 1.x teach.
+      Alias names in code: TierABatch, shared dialect (0.4.x).
     */
   }
 
   item def GraphRecordBatch {
     doc /*
-      Internal NODE|EDGE record batch after parse / before emit.
-      Conceptual kinds remain exactly NODE and EDGE — the MemNet reading
-      of a property graph (PropertyGraphNode | PropertyGraphEdge).
+      Internal Node|Edge record batch after parse / before emit.
+      Conceptual kinds remain exactly Node and Edge (property graph).
     */
   }
 
@@ -85,33 +133,30 @@ package MemNetConnections {
 
   item def SchemaSpec {
     doc /*
-      Session schema: allowed NODE kinds (tags / PropertyGraphLabel) and
-      fields (PropertyGraphProperty); EDGE relation vocabulary. Realises
-      TagMap role without implying positional I/O or GQL DDL teach.
+      Session schema: allowed node Labels and Properties; relationship-type
+      vocabulary. Realises TagMap role without GQL DDL teach in first cut.
     */
   }
 
   item def LivePinMap {
     doc /*
-      Turn-facing live pin map (MN-REQ-04): ego/anchor digest; engine-law
-      rows prepended when present; reachable active pins within
-      depth/max_rows. Same Layer / Tier A shapes as mutate (Write = display).
-      Deliberate non-analogue to GQL binding-table RETURN. Not a full
-      session dump. Legacy alias: query_warm.
+      Turn-facing pin_map-class payload (MN-REQ-04): shaped subgraph
+      (ShapedSubgraph) for an ego/anchor within depth/max_rows/view budget;
+      engine-law rows prepended when present. Wraps GQL; emit is graph-shaped
+      Write = display. Legacy alias: query_warm. Not a full session dump.
     */
   }
 
   item def WalkSlice {
     doc /*
-      Hop lines over NODE|EDGE: src -[relation]-> dst.
-      Product-ops path enumeration — not GQL variable-length path algebra
-      on the agent teach surface.
+      Hop lines over Node|Edge. Product-ops path enumeration — unbounded
+      GQL variable-length algebra stays off the default agent teach surface.
     */
   }
 
   item def JsonEnvelope {
     doc /*
-      Transport envelope: exit_code, stdout (Tier A wire),
+      Transport envelope: exit_code, stdout (agent wire payload),
       stderr (@ERR/@WRN), optional session_id, errors list.
     */
     attribute exitCode : Integer;
@@ -134,7 +179,7 @@ package MemNetConnections {
 
   item def PinMapProjection {
     doc /*
-      Selective NODE|EDGE pin map into/out of SysML, codebase, PCBA
+      Selective Node|Edge pin map into/out of SysML, codebase, PCBA
       (.ato), or skills/rules. Short anchors and locators only.
     */
   }
@@ -178,23 +223,43 @@ package MemNetConnections {
     doc /* Row counts and cap utilisation from housekeep stats. */
   }
 
-  // --- Ports ---
+  // =====================================================================
+  // Ports — GQL primary, Layer legacy, internal records
+  // =====================================================================
+
+  port def GqlWireOutPort {
+    doc /* Emit openCypher-shaped GQL agent wire. */
+    out item payload : GqlWireBatch;
+  }
+  port def GqlWireInPort {
+    doc /* Consume openCypher-shaped GQL agent wire. */
+    in item payload : GqlWireBatch;
+  }
+
+  port def ShapedSubgraphOutPort {
+    doc /* Emit bounded shaped subgraph (pin_map Write = display). */
+    out item slice : ShapedSubgraph;
+  }
+  port def ShapedSubgraphInPort {
+    doc /* Accept shaped subgraph. */
+    in item slice : ShapedSubgraph;
+  }
 
   port def TierAOutPort {
-    doc /* Emit Tier A agent grammar. */
-    out item payload : TierABatch;
+    doc /* LEGACY: emit Layer / Tier A batch (migration accept). */
+    out item payload : LegacyLayerBatch;
   }
   port def TierAInPort {
-    doc /* Consume Tier A agent grammar. */
-    in item payload : TierABatch;
+    doc /* LEGACY: consume Layer / Tier A batch (migration accept). */
+    in item payload : LegacyLayerBatch;
   }
 
   port def GraphRecordOutPort {
-    doc /* Emit internal NODE|EDGE records. */
+    doc /* Emit internal Node|Edge records. */
     out item records : GraphRecordBatch;
   }
   port def GraphRecordInPort {
-    doc /* Consume internal NODE|EDGE records. */
+    doc /* Consume internal Node|Edge records. */
     in item records : GraphRecordBatch;
   }
 
@@ -262,7 +327,7 @@ package MemNetConnections {
   }
 
   port def LivePinMapOutPort {
-    doc /* Emit live pin map (turn-facing). */
+    doc /* Emit live pin map (shaped subgraph envelope). */
     out item slice : LivePinMap;
   }
   port def LivePinMapInPort {
@@ -315,16 +380,30 @@ package MemNetConnections {
     in item err : ErrorSignal;
   }
 
-  // --- Connection defs ---
+  // =====================================================================
+  // Connection defs
+  // =====================================================================
+
+  connection def GqlWireFlow {
+    doc /* Primary agent GQL wire between codec, facades, and mutate. */
+    end port source : GqlWireOutPort;
+    end port sink : GqlWireInPort;
+  }
+
+  connection def ShapedSubgraphFlow {
+    doc /* Bounded shaped subgraph from PinMapShapedRead to consumer. */
+    end port source : ShapedSubgraphOutPort;
+    end port sink : ShapedSubgraphInPort;
+  }
 
   connection def TierAFlow {
-    doc /* Agent grammar between codec, facades, and live pin map emit. */
+    doc /* LEGACY Layer / Tier A flow (migration accept only). */
     end port source : TierAOutPort;
     end port sink : TierAInPort;
   }
 
   connection def GraphRecordFlow {
-    doc /* Internal NODE|EDGE records between codec, mutate, store. */
+    doc /* Internal Node|Edge records between codec, mutate, store. */
     end port source : GraphRecordOutPort;
     end port sink : GraphRecordInPort;
   }
@@ -372,7 +451,7 @@ package MemNetConnections {
   }
 
   connection def LivePinMapFlow {
-    doc /* Live pin map from PinMapComposer to consumer. */
+    doc /* Live pin map from PinMapShapedRead to consumer. */
     end port source : LivePinMapOutPort;
     end port sink : LivePinMapInPort;
   }

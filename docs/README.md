@@ -22,6 +22,8 @@ MemNet engine / generic MCP / shared dialect / operating the product as an agent
 | [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | ISO GQL vs Layer: adopt GQL as agent wire |
 | [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (**migration**) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
+| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam (pass + issues) |
+| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 | [`grammar/memnet-grammar-antlr.md`](grammar/memnet-grammar-antlr.md) | ANTLR grammar notes |
