@@ -4,9 +4,9 @@
 
 ## Summary
 
-Net of Memory: agent memory graph (NODE|EDGE) between LLM call pipelines and data search. This repo is **engine + generic memnet-mcp** only (part layout under `parts/`). Novel-writer is out of scope — see `DROP-NOVEL-WRITER.md`.
+Net of Memory: shared LLM working memory (session-scoped graph) between LLM call pipelines and data search. This repo is **engine + generic memnet-mcp** only (part layout under `parts/`). Novel-writer is out of scope — see `DROP-NOVEL-WRITER.md`.
 
-Doctrine (shared read/write dialect = **Tier A** Write=display; live **pin map**; in-process first; `NEW` vs locators): `README.md` → `docs/grammar/` → `sysml-models/`. Operational loop still in `docs/LLM-GUIDE.md` (pipe migration pending; prefer pin map over “warm” as the primary term).
+Doctrine (**GQL only** agent wire; shaped **`pin_map`** read; gated mutate; in-process first; `NEW` vs locators; handoff = **session id**; prefer **import** over session merge): `docs/grammar/gql-wire-profile.md` → `docs/LLM-GUIDE.md` → `docs/adr/ADR-001-gql-agent-wire.md` → `sysml-models/`. Historical Layer / Tier A sources are quarantined under `docs/grammar/archive/` — not product teach.
 
 ## MemNet
 

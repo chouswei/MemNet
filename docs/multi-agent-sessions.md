@@ -62,7 +62,7 @@ No neighbourhood reserve or ACL enforcement. Coordination options:
 | Pattern | When |
 |---------|------|
 | **Disjoint anchors** | Parallel workers; each owns a non-overlapping anchor subtree |
-| **Separate session ids** | Independent missions; parent merges at settle time if needed |
+| **Separate session ids** | Independent missions; parent **imports** a member slice at settle if needed |
 | **Serial single writer** | Default when scopes overlap |
 
 **MUST NOT** have two writers mutate the same anchor slice without explicit serialisation.

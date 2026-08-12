@@ -42,7 +42,7 @@ CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
 - **Update / settle:** known ids only; `NEW` illegal on patch.
 - **Pin-map ingest** (SysML, codebase, PCBA `.ato`, skills): deterministic ids from locators; reject client `NEW` for those pins.
 
-**As-is 0.4.x engine** may still speak an older line dialect until **M2** — not the teach surface. SysML: [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md).
+**M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Layer / Tier A are retired from product accept. SysML: [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md).
 
 ---
 
@@ -50,16 +50,16 @@ CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
 
 | Area | Today (as-is) | Target |
 |------|---------------|--------|
-| Agent wire | As-is line codec in engine; docs teach **GQL** | GQL accept + shaped `pin_map` emit (M2); profile [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) |
-| Codec | Pure-Python `memnet/tier_a.py` (as-is) + golden tests | `GqlCodec` / `PinMapShapedRead`; retire Tier A path |
-| Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
-| MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
-| Live pin map | `PinMapComposer` via `pin_map` / `query pin-map` (shared-dialect emit) | Done |
+| Agent wire | **GQL** accept (M2) + docs teach GQL | profile [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) |
+| Codec | `GqlCodec` / `PinMapShapedRead` on product path | Tier A / Layer retired from accept |
+| Id mint | `IdAllocator` wired through `MutateGate` on GQL batches | Same |
+| MutateGate | `mutate_gate.py` — gated GQL parse → mint → commit | GQL only |
+| Live pin map | `PinMapComposer` shaped emit via `pin_map` / `query pin-map` | Done |
 | Transport | MCP **in-process** by default; `MEMNET_MCP_TRANSPORT=tcp` for serve; opt-in HTTP `:18766` | In-process primary; TCP fallback; remote streamable-http |
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
 
-[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is the agent playbook (**dialect teach = GQL**; as-is engine notes until M2).
+[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is the agent playbook (**dialect teach = GQL** + shaped `pin_map` + gated mutate).
 
 ---
 
@@ -86,7 +86,7 @@ Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead 
 Plan (docs only until implemented): [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
 
 1. **One remote entry** — teach `memnet-pi` HTTP; demote project `memnet-local`.
-2. **One dialect teach** — GQL only (M1 profile done; M2 engine).
+2. **One dialect teach** — GQL only (M1 profile + M2 engine done; M3 playbooks rewritten).
 3. **One graph owner on Pi** — HTTP MCP bridged to `memnet serve`; never two writers.
 4. **Footguns** — Host / token / `view=` defaults so Cursor just works.
 
@@ -104,7 +104,7 @@ Part-based tree ([`LAYOUT.md`](LAYOUT.md), [`AGENTS.md`](AGENTS.md)):
 | `parts/memnet-mcp/` | Generic MCP server (`memnet-mcp`) |
 | `docs/` | Docs index [`docs/README.md`](docs/README.md): developers + applications |
 | `sysml-models/` | Requirements and deploy/behaviour models |
-| `tests/` | Engine, MCP, shared-dialect golden tests |
+| `tests/` | Engine, MCP, GQL / archive golden tests |
 
 Do not recreate top-level `src/` or `applications/`. Do not restore `parts/novel-writer/`.
 
@@ -134,7 +134,7 @@ On the Pi: run streamable-http MCP bridged to one `memnet serve` (0.5.0 target; 
 pip install memnet-llm[mcp]
 ```
 
-Register stdio `memnet-mcp` only for **dev-only** local graphs (not default remote; omit `memnet-local` when using Pi). See `parts/memnet-mcp/README.md`. Open a session via MCP `session_open`, then `pin_map(anchor=…)` / `add` / `update` — shared dialect.
+Register stdio `memnet-mcp` only for **dev-only** local graphs (not default remote; omit `memnet-local` when using Pi). See `parts/memnet-mcp/README.md`. Open a session via MCP `session_open`, then `pin_map(anchor=…)` / `add` / `update` — **GQL** wire.
 
 ## Quick start (CLI + serve)
 
@@ -167,11 +167,11 @@ Without `memnet serve`, the **CLI** fails with `@ERR: serve_required` (unless `M
 
 Forward reading order for agents (full index: [`docs/README.md`](docs/README.md)):
 
-1. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — goldfish loop, shared dialect, MCP primary **(developers)**  
-2. [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md) — Write = display, pin map, `NEW` vs locators **(developers)**  
-3. [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) — Multitask operating doctrine (as-is); links **MN-REQ-12** verify trail **(developers)**  
+1. [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) — goldfish loop, GQL wire, MCP primary **(developers)**  
+2. [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) — GQL wire SSOT, shaped `pin_map`, `NEW` vs locators **(developers)**  
+3. [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) — Multitask operating doctrine; session-id handoff; **MN-REQ-12** verify trail **(developers)**  
 4. [`docs/application-notes/llm-system-dev-multitask.md`](docs/application-notes/llm-system-dev-multitask.md) — Multitask pattern for downstream `modelbasedPrj-*` repos **(applications)**  
-5. [`docs/grammar/memnet-multi-layer.md`](docs/grammar/memnet-multi-layer.md) — stratified pin maps (design) **(developers)**  
+5. [`docs/application-notes/examples/inverting-amplifier-gql-case-study.md`](docs/application-notes/examples/inverting-amplifier-gql-case-study.md) — worked GQL case study **(applications)**  
 6. [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md) — target part tree and gaps  
 7. [`sysml-models/outputs/multitask-case-study.md`](sysml-models/outputs/multitask-case-study.md) — MN-REQ-12 worked scenario (MN-VER-12-G00, S01…S09)
 

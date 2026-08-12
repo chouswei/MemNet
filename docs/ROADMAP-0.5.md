@@ -6,7 +6,7 @@
 **Product:** MemNet is **shared working memory for LLMs** — multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
 
 **Model:** SysML + grammar for **GQL wire** (`GqlCodec` / `PinMapShapedRead`). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).  
-**M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **M2 done (engine/MCP):** GQL accept + shaped `pin_map` emit; Layer/Tier A retired from product accept. **Next: M2.5** durable online GQL store adapter (AgensGraph / openCypher-family). **Then: M3** in-repo playbook / app-note rewrites.
+**M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **M2 done (engine/MCP):** GQL accept + shaped `pin_map` emit; Layer/Tier A retired from product accept. **M2.5 in progress:** durable-store client hydrate/flush landed; Fake always-on; **live AgensGraph path not verified** (external cabinet not installed). **M3 done (docs scope):** in-repo `LLM-GUIDE` + application-notes bodies teach GQL + shaped `pin_map` + gated mutate.
 
 **Problem (0.4.x):** dual remote MCP entries, dual dialect stories, and on Pi a risk of **two graph writers** (HTTP MCP `InProcessEngine` ≠ TCP `memnet serve`).
 
@@ -19,7 +19,7 @@
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | **Done** |
 | **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **In progress** — client hydrate/flush landed; Fake always-on; live path needs external AgensGraph |
-| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | Plan |
+| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done (docs)** |
 
 **Order:** M1 → M2 → **M2.5** → M3. M2.5 does **not** wait on M3. User promotion (2026-08-13): durable store adapter sits **immediately after M2**, not deferred past all of 0.5.
 
@@ -73,7 +73,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog.
 
-**GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M2.5** schedules the durable store adapter; **M3** rewrites in-repo playbook / app-note bodies.
+**GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** accept/emit done; **M2.5** client landed (live cabinet deferred); **M3** in-repo playbook / app-note bodies rewritten to GQL (docs scope).
 
 **AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). Backing graph for MemNet sessions / shared LLM working memory — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** claim fully shipped until the live external-cabinet path is proven; client adapter alone is not enough. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
 

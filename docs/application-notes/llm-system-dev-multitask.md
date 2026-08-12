@@ -1,6 +1,6 @@
 # System development with Multitask — A MemNet application note
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
 **Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
@@ -63,7 +63,7 @@ Parent and every worker **MUST** bind to the **same** GraphStore via **TCP serve
 | Pattern | When |
 |---------|------|
 | **One mission session id** | Default: parent passes `session` in every worker prompt |
-| **Separate session ids** | Independent missions only; parent merges at settle if needed |
+| **Separate session ids** | Independent missions only; parent **imports** a member slice at settle if needed (prefer **import** over session merge) |
 
 Probe with `serve_status` before delegating if transport is uncertain.
 

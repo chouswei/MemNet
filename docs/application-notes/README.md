@@ -2,18 +2,18 @@
 
 Domain patterns for **using** MemNet (not engine internals). Index: [`../README.md`](../README.md).
 
-**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).  
+**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Roadmap: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
-Note **bodies** below may still show older ASCII seeds until **M3** — intros point at GQL; do **not** treat historical Layer/Tier A lines as agent wire.
+Note **bodies teach GQL**. Historical Layer / Tier A ASCII lives under [`../grammar/archive/`](../grammar/archive/) only — not agent wire.
 
 | Note | Role |
 |------|------|
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** model |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp derivation + historical seed (math SSOT; wire → GQL case study) |
-| [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain (M3 body) |
-| [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method (M3 body) |
+| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT + retired Layer encoding (wire → GQL case study) |
+| [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain (GQL) |
+| [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method (GQL) |
 | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML v2 session memory |
 | [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` |
 | [`llm-software-development.md`](llm-software-development.md) | Multi-turn coding memory |

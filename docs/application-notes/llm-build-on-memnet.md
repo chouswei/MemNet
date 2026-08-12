@@ -1,6 +1,6 @@
 # LLM Build on MemNet — A MemNet Application Note
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
@@ -22,7 +22,7 @@ This note complements:
 `memnet serve` is a TCP daemon. Raw consumers must:
 
 - Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --anchor ...`)
-- Parse Write = display / Layer lines and warnings off stdout/stderr
+- Parse shaped GQL / `pin_map` lines and warnings off stdout/stderr
 - Track session ids manually
 - Re-discover atomisation discipline, LAW invariants, and the goldfish loop every chat
 
@@ -37,7 +37,7 @@ A skill without an MCP only documents; an MCP without a skill is invisible to th
 
 ---
 
-## 2. Two-layer architecture
+## 2. Two-surface architecture
 
 ```mermaid
 flowchart LR
@@ -58,7 +58,7 @@ flowchart LR
   APP3 --> SERVE
 ```
 
-| Layer | Owns | Does **not** own |
+| Surface | Owns | Does **not** own |
 |-------|------|------------------|
 | **Engine** (`memnet serve`) | Graph state, LAW enforcement, TCP | MCP knowledge, domain logic |
 | **`memnet-mcp`** | CLI argv shape, JSON envelope, LAW supplementation on `session_open` | Domain-specific tools |
@@ -127,7 +127,7 @@ Every tool returns the same shape (`MemNetResponse.to_json()`):
 }
 ```
 
-Agents branch on `errors[]` and `exit_code`; parse `stdout` for Write = display / Layer rows. Wire-format text is **passed through verbatim** — no JSON-graph translation. This is the entire reason MemNet is token-efficient on the wire. Legacy `@TAG` pipe may still appear in older snapshots — accept, do not teach.
+Agents branch on `errors[]` and `exit_code`; parse `stdout` for shaped GQL / `pin_map` rows. Wire-format text is **passed through verbatim** — no JSON-graph translation. This is the entire reason MemNet is token-efficient on the wire. Retired Layer / `@TAG` pipe may appear only in archive / old snapshots — do not teach.
 
 ### LAW supplementation
 
@@ -169,7 +169,7 @@ Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull
 
 ---
 
-## 4. Application-layer MCP (optional)
+## 4. Application-surface MCP (optional)
 
 Keep domain orchestration in a **separate package** when it owns side-effects that are not graph primitives (local files, gates, product-specific tools). That package should call `run_memnet` with the **same session id** as `memnet-mcp` (shared `memnet serve`).
 
@@ -214,11 +214,11 @@ mcp-memnet/
 ---
 name: mcp-memnet
 description: >-
-  Cursor MCP MemNet: token-efficient Write=display / Layer graph
+  Cursor MCP MemNet: token-efficient GQL + shaped pin_map graph
   (not JSON) — atomise, pin_map from anchor, goldfish loop via
   memnet serve or HTTP. Coding, articles, user constraints, SysML/MUD.
   Triggers: memnet, memnet mcp, pin_map, goldfish loop, atomise,
-  wire format, token efficient, knowledge graph, Layer dialect.
+  wire format, token efficient, knowledge graph, GQL dialect.
 metadata:
   pattern: tool-wrapper
   specialization: mcp-integration
@@ -226,7 +226,7 @@ metadata:
   mcp_key: memnet
   version: "1.4"
 token_guardrails: |
-  - **Wire format:** Write=display / Layer; short fields, no prose.
+  - **Wire format:** GQL + shaped pin_map; short fields, no prose.
   - **Atomise first:** one fact per row; edges for relations; electrical ports/law/bind.
   - **Read:** pin_map with anchor — never bare full-session dump.
   - **Write:** add new ids; update changes; copy ids from pin_map.
