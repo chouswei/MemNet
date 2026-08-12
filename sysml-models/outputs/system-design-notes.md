@@ -11,7 +11,7 @@ Requirements and grammar doctrine win over today's Python layout. Novel-writer i
 
 ## Mission
 
-**MemNet = Net of Memory** — durable **NODE | EDGE** network between LLM pipelines and data search; aims to save wall-clock time and tokens while keeping factual accuracy. Agent I/O is Tier A Write=display both ways; humans inspect via canonical parser (ANTLR path).
+**MemNet = Net of Memory** — durable **NODE | EDGE** property-graph working memory between LLM pipelines and data search; aims to save wall-clock time and tokens while keeping factual accuracy. Agent I/O is Layer / Tier A Write=display both ways (not GQL); humans inspect via canonical parser (ANTLR path). Ontology map: `docs/grammar/layer-gql-map.md`.
 
 ## Target part tree
 

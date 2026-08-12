@@ -17,6 +17,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Layout adaptation notes | `LAYOUT.md` | — |
 | SysML models | `sysml-models/` | — |
 | Shared-dialect grammar design | `docs/grammar/` | developers |
+| Layer ↔ GQL construct map (model; wire stays Layer) | `docs/grammar/layer-gql-map.md` | developers |
 | Field formulas (generic EDGE relations) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
 | Multi-layer (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; law on node; dual EDGE bind/relation; nesting = view budget) | developers |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |

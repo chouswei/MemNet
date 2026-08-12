@@ -57,11 +57,13 @@ package MemNet {
 
   part def TierACodec {
     doc /*
-      Canonical agent grammar SSOT: parse and emit Tier A Write=display
-      NODE|EDGE lines (ANTLR path target). Owns both directions so live pin map
-      emit and mutate input share one dialect. Reject invalid wire; no
-      ad-hoc consumer splits. As-is: memnet.tier_a pure-Python twin;
-      ANTLR codegen deferred. Legacy pipe is import-once only (not a standing part).
+      Canonical agent grammar SSOT: parse and emit Layer / Tier A
+      Write=display NODE|EDGE lines (ANTLR path target; Layer = 1.x teach,
+      Tier A = legacy alias). Owns both directions so live pin map emit
+      and mutate input share one dialect. Reject invalid wire; no ad-hoc
+      consumer splits; MUST NOT accept GQL/Cypher as primary mutate.
+      As-is: memnet.tier_a pure-Python twin; ANTLR codegen deferred.
+      Legacy pipe is import-once only (not a standing part).
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
@@ -126,8 +128,10 @@ package MemNet {
 
   part def GraphStore {
     doc /*
-      In-memory Net of Memory: exactly NODE and EDGE indexes, adjacency,
-      strict create/replace (no silent upsert). Recycle flags on rows.
+      In-memory Net of Memory: property-graph working set with exactly
+      NODE and EDGE indexes, adjacency, strict create/replace (no silent
+      upsert). Recycle flags on rows. GQL-aligned ontology (Node/Edge/
+      Property/Label map); agent I/O stays Layer — not Cypher strings.
       As-is: memnet.mem_store.MemStore (+ models).
     */
     port recordsIn : GraphRecordInPort;

@@ -123,51 +123,58 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Memory net information model: NODE | EDGE -----
+    // ----- Memory net information model: NODE | EDGE (property graph) -----
 
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
         Group: the Net of Memory information model is exactly two conceptual
-        data kinds -- NODE and EDGE. Tags or surface spellings may realise
-        node kinds; they are not additional conceptual kinds. Current
-        realisation often emits nodes as @TAG pipe rows and edges as @EDG.
+        data kinds -- NODE and EDGE -- in the property-graph family (GQL
+        Node / Relationship analogues; see docs/grammar/layer-gql-map.md).
+        Tags or surface spellings may realise node kinds; they are not
+        additional conceptual kinds. Agent wire remains Layer / Tier A
+        lines, not GQL MATCH/RETURN. Current realisation often emits nodes
+        as @TAG pipe rows and edges as @EDG (legacy).
       */
       attribute requirementId : String = "MN-REQ-02";
 
       requirement def MN_REQ_02_1_ExactlyNodeAndEdge {
         doc /*
           SHALL model the Net of Memory as exactly two conceptual data kinds:
-          NODE and EDGE (relations between nodes).
+          NODE and EDGE (relations between nodes) -- the MemNet reading of
+          a property graph (nodes + relationships).
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
 
       requirement def MN_REQ_02_2_NodesHoldAtomisedFacts {
         doc /*
-          NODEs SHALL hold atomised facts and attributes -- one idea per
-          field set -- not free-form prose or merged multi-idea blobs.
+          NODEs SHALL hold atomised facts and attributes (properties) --
+          one idea per field set -- not free-form prose or merged
+          multi-idea blobs.
         */
         attribute requirementId : String = "MN-REQ-02.2";
       }
 
       requirement def MN_REQ_02_3_EdgesAreFirstClass {
         doc /*
-          EDGEs SHALL be first-class relations between nodes, not buried in
-          node attribute fields or narrative.
+          EDGEs SHALL be first-class relations between nodes (property-graph
+          relationships), not buried in node attribute fields or narrative.
         */
         attribute requirementId : String = "MN-REQ-02.3";
       }
 
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
-          Pin map, walk, and query SHALL operate over the NODE and EDGE graph.
+          Pin map, walk, and query SHALL operate over the NODE and EDGE
+          graph. Primary agent read remains bounded pin_map (not GQL MATCH).
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
 
       requirement def MN_REQ_02_5_GrammarExpressesNodeAndEdge {
         doc /*
-          Agent-facing grammar and I/O SHALL express both NODE and EDGE.
+          Agent-facing grammar and I/O SHALL express both NODE and EDGE
+          (Layer Write = display). SHALL NOT require GQL as the agent dialect.
         */
         attribute requirementId : String = "MN-REQ-02.5";
       }

@@ -88,7 +88,7 @@ MemNet’s mission is already “between LLM call pipelines and data search.” 
 
 ## 5. GQL map stance (store-side only)
 
-Uses [`gql-consideration.md`](gql-consideration.md):
+Construct crosswalk: [`layer-gql-map.md`](layer-gql-map.md). Stance: [`gql-consideration.md`](gql-consideration.md).
 
 | Construct | Where it lives |
 |-----------|----------------|
@@ -126,6 +126,7 @@ Uses [`gql-consideration.md`](gql-consideration.md):
 | Path | Role |
 |------|------|
 | [`gql-consideration.md`](gql-consideration.md) | GQL vs Layer: map, not teach; replacement rejected |
+| [`layer-gql-map.md`](layer-gql-map.md) | Layer ↔ GQL construct map (adapter vocabulary) |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; Open pointer |
 | [`memnet-multi-layer.md`](memnet-multi-layer.md) | Layer / stratified pin maps |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (Layer teach) |

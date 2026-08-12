@@ -19,6 +19,7 @@ MemNet engine / generic MCP / shared dialect / operating the product as an agent
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Generic formula EDGE relations (any domain) |
 | [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) | Stratified pin maps (design) |
 | [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | ISO GQL vs Layer: map, not teach as wire |
+| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (model alignment; wire stays Layer) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; MUST NOT replace Layer with GQL as wire (Open) |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |

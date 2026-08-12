@@ -1,25 +1,66 @@
 /*
   MemNet logical ports, connection defs, and conveyed items.
-  Target architecture: Tier A agent grammar, GraphStore NODE|EDGE,
-  serve/MCP/CLI transport envelopes, pin-map projections.
+  Target architecture: Layer / Tier A agent grammar, GraphStore NODE|EDGE
+  (property-graph family), serve/MCP/CLI transport envelopes, pin-map
+  projections. GQL/Cypher = durable/adapter map vocabulary only — not
+  agent wire (see docs/grammar/layer-gql-map.md).
 */
 package MemNetConnections {
   private import ScalarValues::*;
+
+  // --- Property-graph map stereotypes (durable / adapter vocabulary) ---
+  // Align ontology with ISO GQL property-graph terms. MUST NOT model
+  // MATCH / RETURN / MERGE as agent ops; agent I/O stays Layer lines.
+
+  item def PropertyGraphNode {
+    doc /*
+      Map stereotype: GQL/property-graph node. Realises MemNet NODE
+      (kind ≈ label; fields ≈ properties; id ≈ stable key). Adapter /
+      AgensGraph side only — agents read/write Layer NODE lines.
+    */
+  }
+
+  item def PropertyGraphEdge {
+    doc /*
+      Map stereotype: GQL/property-graph relationship (edge). Realises
+      MemNet EDGE (label ≈ relationship type; fields ≈ properties;
+      direction from wire form). Preserves dual EDGE grain (bind vs
+      relation) when syncing. Not a GQL path pattern on the agent wire.
+    */
+  }
+
+  item def PropertyGraphProperty {
+    doc /*
+      Map stereotype: key=value property on a node or relationship.
+      Realises MemNet fields after ';' on NODE|EDGE lines. Omit defaults
+      on Layer wire; no nested graph-valued properties.
+    */
+  }
+
+  item def PropertyGraphLabel {
+    doc /*
+      Map stereotype: type/tag on a node or relationship. Realises NODE
+      kind (+ thin role=) and EDGE label. Prefer single kind; avoid
+      multi-label zoo on the agent teach surface.
+    */
+  }
 
   // --- Flow items ---
 
   item def TierABatch {
     doc /*
-      Agent-facing Write=display dialect (Tier A): NODE and EDGE lines,
-      optional section headers, mint token NEW. Live pin map emit and mutate stdin
-      share shapes (MN-REQ-08.7). Not a prose blob or corpus dump.
+      Agent-facing Write=display dialect: NODE and EDGE lines (Layer = 1.x
+      teach; Tier A = legacy alias), optional section headers, mint token
+      NEW. Live pin map emit and mutate stdin share shapes (MN-REQ-08.7).
+      Not a prose blob, corpus dump, or GQL MATCH/RETURN table.
     */
   }
 
   item def GraphRecordBatch {
     doc /*
       Internal NODE|EDGE record batch after parse / before emit.
-      Conceptual kinds remain exactly NODE and EDGE.
+      Conceptual kinds remain exactly NODE and EDGE — the MemNet reading
+      of a property graph (PropertyGraphNode | PropertyGraphEdge).
     */
   }
 
@@ -44,8 +85,9 @@ package MemNetConnections {
 
   item def SchemaSpec {
     doc /*
-      Session schema: allowed NODE kinds (tags) and fields; EDGE relation
-      vocabulary. Realises TagMap role without implying positional I/O.
+      Session schema: allowed NODE kinds (tags / PropertyGraphLabel) and
+      fields (PropertyGraphProperty); EDGE relation vocabulary. Realises
+      TagMap role without implying positional I/O or GQL DDL teach.
     */
   }
 
@@ -53,13 +95,18 @@ package MemNetConnections {
     doc /*
       Turn-facing live pin map (MN-REQ-04): ego/anchor digest; engine-law
       rows prepended when present; reachable active pins within
-      depth/max_rows. Same Tier A shapes as mutate. Not a full session dump.
-      Legacy alias: query_warm.
+      depth/max_rows. Same Layer / Tier A shapes as mutate (Write = display).
+      Deliberate non-analogue to GQL binding-table RETURN. Not a full
+      session dump. Legacy alias: query_warm.
     */
   }
 
   item def WalkSlice {
-    doc /* Hop lines over NODE|EDGE: src -[relation]-> dst. */
+    doc /*
+      Hop lines over NODE|EDGE: src -[relation]-> dst.
+      Product-ops path enumeration — not GQL variable-length path algebra
+      on the agent teach surface.
+    */
   }
 
   item def JsonEnvelope {

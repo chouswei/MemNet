@@ -35,6 +35,10 @@ Design authority: rebuilt requirements + `docs/grammar/memnet-grammar-design.md`
 
 Turn-facing agent payload = **pin map** (ego digest). Composer: **PinMapComposer**. MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` = deprecated aliases.
 
+## Property-graph map (GQL-aligned ontology)
+
+`MemNetConnections` includes map stereotypes (`PropertyGraphNode` / `Edge` / `Property` / `Label`) for durable-side / AgensGraph adapter vocabulary. Construct crosswalk: [`docs/grammar/layer-gql-map.md`](../docs/grammar/layer-gql-map.md). **Agent wire stays Layer** (Write = display); GQL/`MATCH`/`RETURN` are not agent ops.
+
 ## Libs
 
 `libs/omg` is expected as the OMG SysML v2 Release tree (Kernel). Local checkouts may use a directory junction until `[deps.sysml_libs]` is pinned in `project.toml`.

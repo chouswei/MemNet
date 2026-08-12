@@ -2,7 +2,8 @@
 
 **Status:** consideration only — **not** a wire dialect, **not** shipped behaviour.  
 **Audience:** product developers.  
-**Verdict (0.5):** **map** — keep ISO GQL on the radar; map constructs to Layer analogues or deliberate non-analogues. **Do not teach GQL as agent wire.**  
+**Verdict (0.5):** **map** — keep ISO GQL on the radar; align the **model / ontology** with property-graph terms; keep **Layer** as the only agent teach surface. **Do not teach GQL as agent wire.**  
+**Construct crosswalk SSOT:** [`layer-gql-map.md`](layer-gql-map.md) (Layer ↔ Node / Edge / Property / Label / direction / paths).  
 **Later (post one-path):** selective **borrow** of naming / mental models where Layer already aligns; **partial adopt** only if a future export/interop path is justified. **MUST NOT** invent a third teach dialect.
 
 **Mission constraints (unchanged):** agent memory graph; Write = display; bounded `pin_map`; NODE | EDGE only; Layer = 1.x teach; ROADMAP 0.5 one-path (one remote, one dialect teach, one graph owner); tokens + factual accuracy; LLM-consumed wire — not DBA tooling.
@@ -28,7 +29,7 @@
 | Option | Fit for MemNet |
 |--------|----------------|
 | **Watch** | Too thin — ISO + Cypher priors will keep reshaping tooling and LLM defaults |
-| **Map** (chosen for 0.5) | Honest crosswalk; protects one-path teach; documents deliberate non-analogues |
+| **Map** (chosen for 0.5) | Honest crosswalk; protects one-path teach; documents deliberate non-analogues; **model** stays property-graph-aware |
 | **Borrow** | Later — reuse *ideas* (direction marks, label-as-type) without GQL clauses on the wire |
 | **Partial adopt** | Only with an explicit interop/export story; never as a second agent surface in 0.5 |
 
@@ -36,9 +37,13 @@ GQL is a **declarative database query language** (SQL’s cousin for property gr
 
 **Replacement rejected:** using GQL/Cypher **instead of** Layer as the LLM wire is **technically possible** but **wrong for MemNet’s mission**. GQL `RETURN` tables are not Write = display pin maps; a DBA query language is not an agent mutate dialect (dual EDGE, law-on-NODE, view budgets); and speaking store dialect directly **collapses** the MemNet-as-buffer thesis into a thin proxy. **MUST NOT** replace Layer teach with GQL for 0.5 (or as the 1.x agent surface). GQL belongs on the durable store / sync-adapter side — see [`agensgraph-buffer.md`](agensgraph-buffer.md).
 
+**Model alignment (done in docs / SysML):** ontology and map stereotypes speak **Node / Edge / Property / Label** on the durable side; agent events and MCP stay Layer / `pin_map` / mutate. Detail: [`layer-gql-map.md`](layer-gql-map.md).
+
 ---
 
-## 3. Consideration matrix
+## 3. Layer ↔ GQL construct map (summary)
+
+Full table: [`layer-gql-map.md`](layer-gql-map.md). Summary:
 
 | GQL / Cypher-family construct | MemNet analogue | Deliberate non-analogue? |
 |-------------------------------|-----------------|---------------------------|
@@ -92,11 +97,11 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 
 ## 6. Stance for ROADMAP 0.5 / multi-layer Open
 
-**GQL: consider / map, not teach as wire.**
+**GQL: model map aligned; wire stays Layer.**
 
 - 0.5 delivery stays one-path (remote, dialect, graph owner) — unchanged.
 - Layer remains the only 1.x teach surface.
-- This doc is the SSOT crosswalk; refresh when ISO practice or Layer locks move.
+- Ontology / SysML / adapter docs stay **property-graph-aware** via [`layer-gql-map.md`](layer-gql-map.md); this doc keeps the stance and risk narrative.
 - Optional later: **borrow** glossary phrases in contributor docs (“undirected edge”, “property graph”) without GQL keywords in agent skills; LLM-assisted Layer ↔ Cypher sync stays **adapter-side** ([`agensgraph-buffer.md`](agensgraph-buffer.md)).
 
 ---
@@ -105,8 +110,10 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 
 | Path | Role |
 |------|------|
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; Open pointer |
+| [`layer-gql-map.md`](layer-gql-map.md) | Layer ↔ GQL construct map (Node / Edge / Property / Label / …) |
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; model GQL-aligned (map); wire stays Layer |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | AgensGraph buffer; MUST NOT replace Layer with GQL as agent wire |
 | [`memnet-multi-layer.md`](memnet-multi-layer.md) | Layer SSOT; §8 Open |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared-dialect spine |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (Layer teach) |
+| [`../../sysml-models/models/connections.sysml`](../../sysml-models/models/connections.sysml) | Property-graph map stereotypes |
