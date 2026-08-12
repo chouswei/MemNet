@@ -1,10 +1,13 @@
-# Inverting amplifier — Layer dialect (ports / law / bind)
+# Inverting amplifier — math SSOT (+ retired Layer encoding)
 
-Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. Encode topology as MemNet **Layer** wire: **CST** nodes with `ports=` + `law=` on the NODE, and port↔port **`--bind-->`** (dual EDGE). MemNet **states** stamps and results; it does **not** solve them.
+> **Wire teach (1.x):** **GQL only** — [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) and [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
+> **This file:** closed-loop transfer **math derivation** remains SSOT for §§1–2. The Layer ASCII encoding below is **retired historical** (not agent wire). Do **not** teach Layer / Tier A.
+
+Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. MemNet **states** stamps and results; it does **not** solve them.
 
 **Notation:** **a(s)** — open-loop gain, \(V_\mathrm{OUT} = a(s)\,(V_+ - V_-)\). **A(s)** — closed-loop stage transfer, \(V_\mathrm{OUT}/V_\mathrm{IN}\). Param **`a_s`** / field **`A_s`** hold numeric values; `domain=s` marks the Laplace frame.
 
-**Teach:** Layer ([`memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md)). Tier A `derives` / CMP·PIN·NET — legacy only (§6). British English. ASCII. No `|` pipe on the agent surface.
+**British English.** ASCII. Historical Layer sections below are archive-flavoured only.
 
 ---
 
@@ -89,7 +92,7 @@ For the worked values, \(A(s)=-10\) and \(V_\mathrm{OUT}=-10\,\mathrm{V}\). With
 
 ---
 
-## 3. Layer encoding
+## 3. Retired Layer encoding (historical)
 
 | Idea | Shape |
 |------|--------|
@@ -130,7 +133,7 @@ E_A_out [CST_U1.out] --bind--> [CST_A.out]
 
 Star at `VMINUS`: both `Rin.b` and `Rf.b` bind to `U1.inm` (voltage continuity on the bind; KCL from \(I_-=0\) + resistor laws). Optional named-function **A** (Sum-style CST + binds) is unused here — Ohm / gain stay on device CSTs.
 
-Golden fixture: [`layer_09_inv_amp_good.txt`](../../grammar/examples/layer/layer_09_inv_amp_good.txt).
+Historical Layer golden (archive only): [`../../grammar/archive/examples-layer/`](../../grammar/archive/examples-layer/).
 
 ---
 
@@ -170,9 +173,9 @@ CLI: `memnet query pin-map --anchor CST_A`.
 
 ---
 
-## 6. Legacy Tier A (pointer only)
+## 6. Retired Tier A / Layer (archive only)
 
-Flat CMP/PIN/NET + self-loop `derives` remains accepted through 0.5.x as a **legacy alias**. Do **not** dual-teach it here. Fixture: [`22_inverting_amp_nodal_good.txt`](../../grammar/examples/22_inverting_amp_nodal_good.txt). Migration: law → NODE; `connects_to` → `bind`; formula-on-EDGE → retire toward 1.x ([`memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md) §6).
+Flat CMP/PIN/NET + self-loop `derives` and Layer ASCII are **not** product accept or teach. Quarantine: [`../../grammar/archive/`](../../grammar/archive/). **1.x wire:** [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md).
 
 ---
 
@@ -186,7 +189,7 @@ Flat CMP/PIN/NET + self-loop `derives` remains accepted through 0.5.x as a **leg
 
 ## Related
 
-- [`../llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md) — node method in Layer
-- [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) — schematic / s-domain Layer grain
-- [`../../grammar/memnet-multi-layer.md`](../../grammar/memnet-multi-layer.md) — Layer SSOT
-- [`../../grammar/examples/layer/layer_09_inv_amp_good.txt`](../../grammar/examples/layer/layer_09_inv_amp_good.txt)
+- [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) — **primary GQL wire teach**
+- [`../llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md) — node method (GQL)
+- [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) — schematic / s-domain (GQL)
+- [`../../grammar/archive/`](../../grammar/archive/) — quarantined Layer sources

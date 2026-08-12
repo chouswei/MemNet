@@ -3,7 +3,7 @@
 **Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md).
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
-**As-is note:** 0.4.x engine may still accept an older line dialect until **M2**; do **not** teach Layer / Tier A.
+**M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
 
 **You are a goldfish.** Your working memory is unreliable. MemNet is external structured scratch space — durable state lives in the graph for this session, not in chat.
 
@@ -18,6 +18,7 @@
 - Each turn you re-inject only the live slice via **`pin_map`** (MCP) or **`query pin-map`** (CLI).
 - When a sub-task is done, **settle** it (`status` / recycle policy) so it disappears from future pin maps.
 - Never rely on your own previous messages for durable ids or facts.
+- Handoff between agents = **session id** (+ anchors / write scope). Prefer **import** for absorbing a member slice — chat is never SSOT.
 
 ### Non-negotiable rules
 
@@ -35,7 +36,7 @@
 CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
 MATCH (n:NPC {id:'NPC_03'}), (t:TSK {id:'TSK_42'})
 CREATE (n)-[:helps {id:'NEW', note:'labour'}]->(t)
-MATCH (t:TSK {id:'TSK_42'}) SET t.status = 'settled'
+MATCH (t:TSK {id:'TSK_42'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'
 ```
 
 **Shaped `pin_map` out** (copy ids from here):
@@ -46,7 +47,7 @@ MATCH (t:TSK {id:'TSK_42'}) SET t.status = 'settled'
 (:NPC {id:'NPC_03'})-[:helps {id:'E_77', note:'labour'}]->(:TSK {id:'TSK_42'})
 ```
 
-Electrical / law-leaf sketch:
+Circuit / law-leaf sketch:
 
 ```cypher
 (:CST {id:'CST_R', R:50, ports:{a:{direc:'inout', V:'@va', I:'@ia'}, b:{direc:'inout', V:'@vb', I:'@ib'}}, law:'$@va-@vb=@ia*R$,$@ia=-@ib$'})
@@ -74,16 +75,16 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 1. **Think** what you need to remember or act on.
 2. **Mutate** (batch preferred; atomise):
 
-   MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])`  
+   MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])` with openCypher-shaped GQL  
    CLI: `memnet add --stdin` / `memnet update --stdin`
 
 3. **Read the live slice** (always anchored):
 
-   MCP: `pin_map(anchor=T42, depth=2)`  
-   CLI: `memnet query pin-map --anchor T42 --depth 2`
+   MCP: `pin_map(anchor=TSK_42, depth=2)`  
+   CLI: `memnet query pin-map --anchor TSK_42 --depth 2`
 
 4. **Act / reason** using only pin-map data + the current user request.
-5. **Settle** finished work via `update` (`~` lines).
+5. **Settle** finished work via `update` (`MATCH … SET status/recycle`).
 6. (Occasionally) prune recyclable rows.
 
 Repeat. Each new turn starts with `pin_map` / `query pin-map`.
@@ -95,7 +96,7 @@ Repeat. Each new turn starts with `pin_map` / `query pin-map`.
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = legacy alias) |
-| `add` / `update` | Mutate — GQL / wire lines (M2: openCypher-shaped) |
+| `add` / `update` | Mutate — openCypher-shaped GQL (gated) |
 | `read_get` / `read_list` | Lookup / enumerate |
 | `housekeep_stats` | Caps and row counts |
 | `serve_status` | TCP serve probe (optional in-process) |
@@ -126,9 +127,9 @@ Copy ids from pin map output — never retype from memory. There is no upsert.
 
 **Settlement pattern:**
 
-```text
-~ TSK [T01] ; status=settled ; recycle=delete_on_settle
-~ E01 [N01] --(seeks_help)--> [PLR01] ; recycle=delete_on_settle
+```cypher
+MATCH (t:TSK {id:'TSK_01'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'
+MATCH ()-[e {id:'E_01'}]->() SET e.recycle = 'delete_on_settle'
 ```
 
 Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `housekeep prune recyclable --apply`.
@@ -149,10 +150,11 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 - Milestones: `session_save` / `session_load` (MCP or CLI).
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing ids need `update` not `add`.
+- Agent handoff: deliver **session id** (+ anchors / write scope); peers **re-pin_map**. Prefer **import** when absorbing a member working-memory slice.
 
 ### Path B ingest (deferred in 0.4.x)
 
-**PinMapIngest_*** (SysML, codebase, PCBA `.ato`, skills) are **stubs** — not shippable. Do not wait for ingest tools. Bootstrap external pins with explicit ids + locators via `seed_lines` or `add`. See `docs/grammar/memnet-grammar-design.md` §4.2.1.
+**PinMapIngest_*** (SysML, codebase, PCBA `.ato`, skills) are **stubs** — not shippable. Do not wait for ingest tools. Bootstrap external pins with explicit ids + locators via `seed_lines` or `add`. See `docs/grammar/memnet-grammar-design.md` §4.2.1 (as-is harness notes; wire teach = GQL profile).
 
 ### Multi-agent / Multitask
 
@@ -166,7 +168,7 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 - LocalIpcGateway transport
 - Field-formula auto-emit from law nodes
 
-See `docs/grammar/` for targets.
+See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (client hydrate/flush in tree; live AgensGraph path needs an external cabinet — do not claim live verified).
 
 ### Common failure modes
 
@@ -177,15 +179,17 @@ See `docs/grammar/` for targets.
 | `update` with typo id | Copy id from pin map |
 | Settled but `recycle=persistent` | Set `delete_on_settle` on settle |
 | Ignoring stderr `@WRN:` | Read warnings (caps, staleness) |
-| Teaching `@TAG` pipe to users | Shared dialect only for agent I/O |
+| Teaching Layer / `@TAG` pipe / Tier A | **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) |
+| Unbounded tabular `MATCH`/`RETURN` as goldfish read | Shaped `pin_map` only |
+| Chat / graph dump as handoff | Session id + re-`pin_map` (import for path B) |
 
 ### Minimal complete turn (MCP)
 
 ```text
-# 1. Add (first time)
+# 1. Add (first time) — GQL clauses in wire_lines
 add(wire_lines=[
-  "+ TSK [NEW] ; goal=Negotiate with the guild ; status=in_progress ; recycle=persistent",
-  "+ E19 [B01] --(seeks_help)--> [T07] ; note=terms ; recycle=persistent",
+  "CREATE (t:TSK {id:'NEW', goal:'Negotiate with the guild', status:'in_progress', recycle:'persistent'})",
+  "MATCH (b {id:'B01'}), (t {id:'T07'}) CREATE (b)-[:seeks_help {id:'NEW', note:'terms', recycle:'persistent'}]->(t)",
 ])
 
 # 2. Read
@@ -193,8 +197,8 @@ pin_map(anchor=T07, depth=2, max_rows=30)
 
 # 3. Later — settle
 update(wire_lines=[
-  "~ TSK [T07] ; status=settled ; recycle=delete_on_settle",
-  "~ E19 [B01] --(seeks_help)--> [T07] ; recycle=delete_on_settle",
+  "MATCH (t:TSK {id:'T07'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
+  "MATCH ()-[e {id:'E19'}]->() SET e.recycle = 'delete_on_settle'",
 ])
 
 # 4. Next turn — T07 absent from pin map
@@ -205,7 +209,7 @@ pin_map(anchor=PLR01, depth=2)
 
 **Class:** applications. Full index: [`docs/README.md`](README.md).
 
-Under `docs/application-notes/` — domain examples (**GQL teach**; note bodies migrate in M3; prefer GQL case study):
+Under `docs/application-notes/` — domain examples (**GQL teach**):
 
 | # | Note | Summary |
 |---|------|---------|
@@ -215,7 +219,7 @@ Under `docs/application-notes/` — domain examples (**GQL teach**; note bodies 
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
 | 4 | `llm-sysml-v2-modeling.md` | SysML v2 modeling |
 | 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
-| 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ NODE `law=` + binds |
+| 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
 | 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |
 | 6 | `llm-mud.md` | Multiplayer MUD (shared serve) |
 | 7 | `llm-build-on-memnet.md` | Builder guide for custom MCP |
@@ -224,48 +228,23 @@ Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](mul
 
 ---
 
-## Appendix A — Legacy `@TAG` pipe dialect
+## Appendix A — Retired dialects (pointer only)
 
-**Historical.** Still accepted on `add`/`update` and in snapshots until M2 cleanup. **Do not use for new agent work** — teach GQL ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
+**Layer / Tier A ASCII and `@TAG` pipe are retired from product accept and teach** (ADR-001 supersession; M2). Do **not** use them for new agent work.
 
-Pipe shape: `@TAG: id|field|field|…` (pipes escaped as `\|` inside values).
+- Historical grammar / fixtures: [`grammar/archive/`](grammar/archive/)
+- Wire teach: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)
 
-Example mutate batch:
+Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@WRN:` stderr lines (caps, staleness, TTL) still apply; read them.
 
-```powershell
-memnet add --stdin @"
-@TSK: T42|Clear the warehouse|2|in_progress|persistent
-@NPC: N03|helper|labour|1|0|0|active|persistent
-@EDG: E77|N03|helps|T42|labour|persistent
-"@
-```
-
-Relations use `@EDG: E99|src|relation|dist||recycle`.
-
-### Legacy goldfish loop (CLI + serve)
-
-1. **Terminal 1:** `memnet serve` (or use in-process MCP instead).
-2. **Terminal 2:** `memnet session open --map-file …`; set `MEMNET_SESSION`.
-3. Mutate with `add` / `update` (pipe or shared dialect).
-4. Read: `memnet query pin-map --anchor T42 --depth 2` (alias: `query warm`).
-5. Settle with `update` and `recycle=delete_on_*`.
-
-### Legacy CLI quick reference
+### CLI quick reference
 
 - `memnet serve` — TCP daemon (`127.0.0.1:18765`); required for CLI unless `MEMNET_TEST_INLINE=1`
 - `memnet query pin-map --anchor <id>` — live pin map (`query warm` = deprecated alias)
-- `memnet query warm` — same as pin-map (deprecated)
-- `memnet tagmap fields` / `memnet examples map` — schema discovery
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
 - `memnet guide --loose` — short cheat sheet
 
-### Legacy MCP note
-
-Older docs said "Production use requires `memnet serve`". **0.4.x default:** in-process stdio needs no serve. Use serve or streamable-http when you need a **shared** graph across processes.
-
-### Legacy warnings (stderr)
-
-`@WRN:` lines (caps, `stale_in_store`, `mission_settled`, `ttl_expiring`) apply to both dialects. Read them.
+**0.4.x / 0.5 default:** in-process stdio MCP needs no serve. Use serve or streamable-http when you need a **shared** graph across processes.
 
 ---
 
@@ -278,7 +257,7 @@ memnet tagmap show
 memnet relations list
 ```
 
-Never guess field order. Session maps may use shared-dialect `SCHEMA` lines or legacy `@TAG` headers.
+Never guess field order. Prefer copying property shapes from shaped `pin_map` / the GQL profile.
 
 ---
 

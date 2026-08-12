@@ -10,10 +10,10 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoffById`); peers re-`pin_map`; chat never SSOT.
-3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — planned **M2.5**; LLM↔store direct out of teach.
+3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5** client hydrate/flush landed; live AgensGraph path needs external cabinet (not claimed verified). LLM↔store direct out of teach.
 4. **Lead imports member working memory** - path A shared session -> re-`pin_map` (no second store); path B -> `WorkingMemorySlice` through nested `ImportGuard` (cheap LLM soft) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 
-**Sequence:** M1 (done) → M2 (engine GQL; remove as-is codecs) → **M2.5** (durable adapter) → M3.
+**Sequence:** M1 (done) → M2 (done) → **M2.5** (client landed; live cabinet deferred) → **M3** (in-repo playbook/app-note GQL rewrite).
 
 ## Packages
 
@@ -40,7 +40,7 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │           ├── PinMapShapedRead
 │   │   │           ├── MutateGate
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
-│   │   │               (TierACodec quarantined — remove in M2; not nested)
+│   │   │               (TierACodec retired — M2 done; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade                            // LLM <-> MemNet (GQL)
@@ -68,7 +68,7 @@ MemNetSystem                                 // SharedLlmMemory product
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter planned **M2.5**
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
-- **Quarantined:** TierACodec (remove in M2); LegacyPipeImport
+- **Retired / quarantined:** TierACodec (M2 done); LegacyPipeImport
 - **Out of scope:** novel-writer
 
 ## Case studies

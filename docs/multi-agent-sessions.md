@@ -1,6 +1,7 @@
 # Multitask operating model (as-is 0.4.x)
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
+**Dialect teach:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id**; prefer **import** over session merge.
 **Application adoption** (`modelbasedPrj-*`): [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Index: [`docs/README.md`](README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task sub-agents. Session ACL, neighbourhood reserve, and ingest engines are **not shipped** — see `docs/grammar/memnet-security-multi-agent.md` and `docs/grammar/memnet-neighbourhood-reserve.md`.
@@ -62,7 +63,7 @@ No neighbourhood reserve or ACL enforcement. Coordination options:
 | Pattern | When |
 |---------|------|
 | **Disjoint anchors** | Parallel workers; each owns a non-overlapping anchor subtree |
-| **Separate session ids** | Independent missions; parent merges at settle time if needed |
+| **Separate session ids** | Independent missions; parent **imports** a member slice at settle if needed |
 | **Serial single writer** | Default when scopes overlap |
 
 **MUST NOT** have two writers mutate the same anchor slice without explicit serialisation.
