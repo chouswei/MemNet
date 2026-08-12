@@ -1,61 +1,63 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / shared dialect / agent operating doctrine. Index: [`docs/README.md`](README.md).
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md).
 
-**Product 0.4.x.** Read this file at the start of any non-trivial MemNet task.
+**Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
+**As-is note:** 0.4.x engine may still accept an older line dialect until **M2**; do **not** teach Layer / Tier A.
 
 **You are a goldfish.** Your working memory is unreliable. MemNet is external structured scratch space — durable state lives in the graph for this session, not in chat.
 
 ---
 
-## 0.4.x essentials (read this first)
+## Essentials (read this first)
 
 ### Core contract
 
 - Everything you need for the current task lives in the MemNet graph for this session.
-- You **add** (`+`) new facts and **update** (`~`) / **drop** (`-`) existing ones in the **shared dialect** (Write = display).
+- You **mutate** with openCypher-shaped GQL under MemNet gates; you **read** a bounded shaped subgraph via **`pin_map`**.
 - Each turn you re-inject only the live slice via **`pin_map`** (MCP) or **`query pin-map`** (CLI).
-- When a sub-task is done, **settle** it (`status=settled` + appropriate `recycle`) so it disappears from future pin maps.
+- When a sub-task is done, **settle** it (`status` / recycle policy) so it disappears from future pin maps.
 - Never rely on your own previous messages for durable ids or facts.
 
 ### Non-negotiable rules
 
-> **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session.
+> **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
 
-> **Atomise** — one idea per row; wire relationships as **edges**. No prose blobs in fields.
+> **Atomise** — one idea per node/edge; wire relationships as relationships. No prose blobs in properties.
 
-### Shared dialect (Write = display)
+### GQL wire (Write = display redefined)
 
-**1.x teach = Layer** — law leaves: `CST` + `ports=` + `law=` on NODE; copper / pipes: port↔port `--bind-->`; chart links: bare-id `--rel_name-->`. Doctrine: [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md). Application notes under `docs/application-notes/` follow Layer. Paren `--(rel)-->` and formula-on-EDGE are **legacy accept** (Appendix A / field-formulas) — do not dual-teach.
+**1.x teach = GQL** — primary label ≈ kind (`:TSK`, `:CST`, …); bind = `:bind` + `fromPort`/`toPort`; chart links = other rel types on bare node ids; law = node property `law`. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).
 
-**Mutate in** (ops required; relation-grain example):
+**Mutate sketch:**
 
-```text
-+ TSK [NEW] ; goal=Clear warehouse ; status=in_progress
-+ E77 [N03] --helps--> [T42] ; note=labour
-~ TSK [T42] ; status=settled ; recycle=delete_on_settle
+```cypher
+CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
+MATCH (n:NPC {id:'NPC_03'}), (t:TSK {id:'TSK_42'})
+CREATE (n)-[:helps {id:'NEW', note:'labour'}]->(t)
+MATCH (t:TSK {id:'TSK_42'}) SET t.status = 'settled'
 ```
 
-**Live pin map out** (bare present — copy ids from here):
+**Shaped `pin_map` out** (copy ids from here):
 
-```text
-TSK [T42] ; goal=Clear warehouse ; status=in_progress
-NPC [N03] ; role=helper ; status=active
-E77 [N03] --helps--> [T42] ; note=labour
+```cypher
+(:TSK {id:'TSK_42', goal:'Clear warehouse', status:'in_progress'})
+(:NPC {id:'NPC_03', role:'helper', status:'active'})
+(:NPC {id:'NPC_03'})-[:helps {id:'E_77', note:'labour'}]->(:TSK {id:'TSK_42'})
 ```
 
-Electrical / law-leaf sketch (ports + bind):
+Electrical / law-leaf sketch:
 
-```text
-CST [CST_R] ; R=50 ; ports=a: {direc=inout, V=@va, I=@ia},b: {direc=inout, V=@vb, I=@ib} ; law=$@va-@vb=@ia*R$,$@ia=-@ib$
-E1 [CST_Src.p] --bind--> [CST_R.a] ; carries=I
+```cypher
+(:CST {id:'CST_R', R:50, ports:{a:{direc:'inout', V:'@va', I:'@ia'}, b:{direc:'inout', V:'@vb', I:'@ib'}}, law:'$@va-@vb=@ia*R$,$@ia=-@ib$'})
+(:CST {id:'CST_Src'})-[:bind {id:'E_1', fromPort:'p', toPort:'a', carries:'I'}]->(:CST {id:'CST_R'})
 ```
 
-- **Create:** `[NEW]` — engine mints ids; copy from the next pin map.
-- **Update / settle:** known ids only; `NEW` illegal on patch. Omit session-default `recycle=persistent`.
-- **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`. User-pack: `~/.cursor/skills/memnet-format/SKILL.md`.
+- **Create:** `id: 'NEW'` — engine mints; copy from the next pin map.
+- **Update / settle:** known ids only; `NEW` illegal on patch.
+- **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`.
 
-Formal grammar: `docs/grammar/memnet-grammar-design.md` (spine) + `docs/grammar/memnet-multi-layer.md` (Layer teach).
+Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 ### Transport (default: in-process MCP)
 
@@ -93,7 +95,7 @@ Repeat. Each new turn starts with `pin_map` / `query pin-map`.
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = legacy alias) |
-| `add` / `update` | Mutate — shared dialect in `wire_lines` |
+| `add` / `update` | Mutate — GQL / wire lines (M2: openCypher-shaped) |
 | `read_get` / `read_list` | Lookup / enumerate |
 | `housekeep_stats` | Caps and row counts |
 | `serve_status` | TCP serve probe (optional in-process) |
@@ -203,7 +205,7 @@ pin_map(anchor=PLR01, depth=2)
 
 **Class:** applications. Full index: [`docs/README.md`](README.md).
 
-Under `docs/application-notes/` — domain examples (**Layer** primary; `pin_map`; legacy pipe only as appendix pointers):
+Under `docs/application-notes/` — domain examples (**GQL teach**; note bodies migrate in M3; prefer GQL case study):
 
 | # | Note | Summary |
 |---|------|---------|
@@ -212,9 +214,9 @@ Under `docs/application-notes/` — domain examples (**Layer** primary; `pin_map
 | 2 | `llm-daily-news.md` | Batch RSS digest |
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
 | 4 | `llm-sysml-v2-modeling.md` | SysML v2 modeling |
-| 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (**Layer** ports / law / bind) |
+| 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
 | 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ NODE `law=` + binds |
-| 5c | `examples/inverting-amplifier-memnet.md` | InvAmp derivation + Layer seed |
+| 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |
 | 6 | `llm-mud.md` | Multiplayer MUD (shared serve) |
 | 7 | `llm-build-on-memnet.md` | Builder guide for custom MCP |
 
@@ -224,7 +226,7 @@ Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](mul
 
 ## Appendix A — Legacy `@TAG` pipe dialect
 
-**Historical.** Still accepted on `add`/`update` and in snapshots. **Do not use for new agent work** — prefer shared dialect above.
+**Historical.** Still accepted on `add`/`update` and in snapshots until M2 cleanup. **Do not use for new agent work** — teach GQL ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
 Pipe shape: `@TAG: id|field|field|…` (pipes escaped as `\|` inside values).
 

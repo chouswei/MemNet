@@ -1,6 +1,6 @@
 # MemNet documentation
 
-Two classes only. **Developers** — engine, MCP, shared dialect, and agent operating doctrine for this product. **Applications** — how to apply MemNet in downstream work (system repos, domains, custom MCP).
+Two classes only. **Developers** — engine, MCP, GQL wire, and agent operating doctrine for this product. **Applications** — how to apply MemNet in downstream work (system repos, domains, custom MCP).
 
 Hub: [`AGENTS.md`](../AGENTS.md) · layout: [`LAYOUT.md`](../LAYOUT.md) · doctrine entry: [`README.md`](../README.md).
 
@@ -8,50 +8,47 @@ Hub: [`AGENTS.md`](../AGENTS.md) · layout: [`LAYOUT.md`](../LAYOUT.md) · doctr
 
 ## For developers
 
-MemNet engine / generic MCP / shared dialect / operating the product as an agent.
+MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 
 | Doc | Role |
 |-----|------|
-| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (0.4.x goldfish loop, shared dialect, MCP primary) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan (remote entry, dialect teach, Pi graph owner) |
-| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL as agent wire; MemNet brand; Layer legacy |
-| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x): shared session, parent/worker MUST/MUSTNOT, transport |
-| [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | Shared dialect SSOT — **Layer legacy** until GQL profile (M1) |
-| [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Generic formula EDGE relations (any domain) |
-| [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) | Stratified pin maps (design; Layer ontology legacy) |
-| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | ISO GQL vs Layer: adopt GQL as agent wire |
-| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (**migration**) |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
-| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam (pass + issues) |
-| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
+| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; as-is engine until M2) |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2** |
+| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
+| [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
+| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x) |
+| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer sketch |
+| [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
-| [`grammar/memnet-grammar-antlr.md`](grammar/memnet-grammar-antlr.md) | ANTLR grammar notes |
-| [`grammar/examples/`](grammar/examples/) | Golden fixtures (shared dialect + layer) |
-| [`grammar/antlr/`](grammar/antlr/) | Layer grammar sources and smoke parse |
+| [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | As-is line-codec harness notes (not 1.x teach) |
+| [`grammar/archive/`](grammar/archive/) | Quarantined historical Layer / Tier A sources |
+| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
+| [`grammar/examples/`](grammar/examples/) | As-is golden fixtures (harness until M2) |
 
-**Multitask (developer):** enforceable doctrine lives in [`multi-agent-sessions.md`](multi-agent-sessions.md). Product development skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → MN-VER-12-G00 + S01…S09 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
+**Multitask (developer):** [`multi-agent-sessions.md`](multi-agent-sessions.md). Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 
 ---
 
 ## For applications
 
-Downstream system development and domain patterns — MemNet as working memory in a product or pipeline.
+Downstream system development and domain patterns — MemNet as working memory.
+
+**Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Application-note **bodies** still being migrated (M3); prefer the GQL case study and profile for wire shapes.
 
 | Doc | Role |
 |-----|------|
-| [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` repos (mission SSOT + product SysML structural SSOT) |
-| [`application-notes/llm-software-development.md`](application-notes/llm-software-development.md) | Multi-turn coding in Cursor |
-| [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML v2 modeling (single-agent) |
-| [`application-notes/llm-build-on-memnet.md`](application-notes/llm-build-on-memnet.md) | Custom MCP + Cursor skill pack on MemNet |
+| [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` |
+| [`application-notes/llm-software-development.md`](application-notes/llm-software-development.md) | Multi-turn coding |
+| [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML v2 modeling |
+| [`application-notes/llm-build-on-memnet.md`](application-notes/llm-build-on-memnet.md) | Custom MCP + skill pack |
 | [`application-notes/llm-tech-docs-decomposition.md`](application-notes/llm-tech-docs-decomposition.md) | Manual / SCPI decomposition |
-| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic / s-domain (**Layer** ports / law / bind) |
-| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Nodal method ↔ NODE `law=` + binds |
+| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic (body M3; see GQL case study) |
+| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Nodal method (body M3; see GQL case study) |
 | [`application-notes/llm-daily-news.md`](application-notes/llm-daily-news.md) | Batch RSS digest |
-| [`application-notes/llm-mud.md`](application-notes/llm-mud.md) | Multiplayer MUD (shared serve) |
-| [`application-notes/`](application-notes/) | Application-notes index (**Layer** teach) |
-| [`application-notes/examples/`](application-notes/examples/) | Worked Layer examples (e.g. inverting amplifier) |
+| [`application-notes/llm-mud.md`](application-notes/llm-mud.md) | Multiplayer MUD |
+| [`application-notes/`](application-notes/) | Application-notes index |
+| [`application-notes/examples/`](application-notes/examples/) | Worked examples (GQL case study + historical seeds) |
 
-**Multitask (application):** user-pack skill `~/.cursor/skills/memnet-multitask/`; adopt MN-REQ-12 in a system repo via [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); operational MUST/MUSTNOT still comes from developer doc [`multi-agent-sessions.md`](multi-agent-sessions.md).
-
-Application notes teach **Layer** as the primary agent surface (`ports=` / `law=` / `--bind-->` where electrical; bare-id relations for chart rows). Legacy `@TAG` pipe, paren `--(rel)-->`, and formula-on-EDGE are accept-only pointers — do not dual-teach.
+**Multitask (application):** user-pack `~/.cursor/skills/memnet-multitask/`; [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); ops MUST from [`multi-agent-sessions.md`](multi-agent-sessions.md).

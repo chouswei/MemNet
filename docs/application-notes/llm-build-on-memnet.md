@@ -1,10 +1,12 @@
 # LLM Build on MemNet — A MemNet Application Note
 
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
 **Primary worked example:** the **`mcp-memnet` skill pack** that ships in the user pack at `~/.cursor/skills/mcp-memnet/`, paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
 
-**Dialect teach for agents:** Write = display / **Layer** (`pin_map`, bare `--rel_name-->`, electrical `ports=` / `law=` / `--bind-->`). Do not teach `@TAG` pipe or `query_warm` as the primary surface — see [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md) and circuit notes under this folder.
+**Dialect teach for agents:** GQL + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 Unlike the other application notes (which document wire-format **schemas**), this note documents **code structure and routing artefacts** — there is no new tag map.
 

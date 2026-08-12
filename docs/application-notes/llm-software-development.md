@@ -1,8 +1,10 @@
-# LLM software development — Layer / Write=display
+# LLM software development
+
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
 
 **Application example (documentation only).** Multi-turn coding in Cursor — task scope, verified symbol locators, user constraints, and open decisions in MemNet so the agent can **`pin_map`** a small slice each turn without stuffing paths into chat.
 
-**Teach:** Write = display; chart links as bare-id **`--rel_name-->`**. Law leaves (when needed) use `CST` + `ports=` + `law=` — see [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md). Electrical ports/bind: [`llm-circuit-schematic.md`](llm-circuit-schematic.md). **Do not** teach `@TAG` pipe or paren `--(rel)-->` as primary.
+**Teach:** Write = display; chart links as bare-id **`--rel_name-->`**. Law leaves (when needed) use `CST` + `ports=` + `law=` — see [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Electrical ports/bind: [`llm-circuit-schematic.md`](llm-circuit-schematic.md). **Do not** teach `@TAG` pipe or paren `--(rel)-->` as primary.
 
 **Primary worked example (retrospective):** shipping **`session_load`** / **`session_save`** on `memnet-mcp` (release v0.2.12, commit `7440aee`).
 

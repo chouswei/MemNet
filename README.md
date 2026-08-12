@@ -13,8 +13,8 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 | Idea | Meaning |
 |------|---------|
 | NODE \| EDGE only | Conceptual kinds are nodes and edges; tags realise node kinds |
-| One agent dialect | **Shared dialect** (Write = display) — same shapes for live read and mutate; design docs may still say “Tier A” |
-| Live **pin map** | Bounded ego/anchor digest for the turn (not a session dump) |
+| One agent dialect | **GQL (openCypher-shaped)** only — shaped `pin_map` read + gated mutate ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)) |
+| Live **pin map** | Bounded ego/anchor shaped subgraph for the turn (not a session dump; not raw `RETURN` tables) |
 | `NEW` vs locators | LLM creates use mint token `NEW`; pin-map ingest uses **stable locators** (no client `NEW` for source pins). PCBA schematics use Atopile **`.ato`** |
 | Transport | Local single-agent: in-process stdio OK. **Remote / Multitask teach:** `memnet-pi` HTTP → one `memnet serve` (see one-path / 0.5.0) |
 | Persistence | Optional snapshots (`session save` / `session load`); sessions are RAM + TTL |
@@ -23,38 +23,26 @@ Version: see `project.toml` / package `memnet-llm` (CLI command remains `memnet`
 
 ---
 
-## Agent I/O (shared dialect)
+## Agent I/O (GQL wire)
 
-Target surface (not `@TAG` pipe). Shared NODE | EDGE field shapes (**Write = display**). **Mutate** uses ops (`+` create, `~` update, `-` drop). **Live pin map** emits bare present lines — no leading ops (ops are mutate-only; a pin-map `+` would look like “please add”).
+**1.x teach:** openCypher-shaped **GQL** — SSOT [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Primary read = shaped subgraph via **`pin_map`** (anchor / depth / view). Mutate = gated `CREATE` / `MERGE` / `SET` / `DELETE` patterns; mint with `id: 'NEW'`.
 
-**Mutate input** (LLM → MemNet) — may use `[NEW]`; engine mints ids:
+Illustrative shaped read / mutate family:
 
-```text
-## Nodes
-+ CLM [NEW] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
-+ TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
-
-## Edges
-+ E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+```cypher
+(:TSK {id:'TSK_42', goal:'Clear warehouse', status:'in_progress'})
+(:NPC {id:'NPC_03', role:'helper'})-[:helps {id:'E_77'}]->(:TSK {id:'TSK_42'})
 ```
 
-**Live pin map output** (MemNet → LLM) — assigned ids, no `NEW`; copyable for the next mutate:
-
-```text
-## Nodes
-CLM [C12] ; type=decision ; code=bitrate cap 2000 bps ; recycle=persistent
-TSK [T42] ; goal=Clear warehouse ; phase=2 ; status=in_progress ; recycle=persistent
-NPC [N03] ; role=helper ; status=active ; recycle=persistent
-
-## Edges
-E77 [N03] --(helps)--> [T42] ; note=labour ; recycle=persistent
+```cypher
+CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
 ```
 
-- **Create:** `[NEW]` / leading `NEW` — engine allocates ids; copy them afterwards.
+- **Create:** `id: 'NEW'` — engine allocates; copy from next `pin_map` / response.
 - **Update / settle:** known ids only; `NEW` illegal on patch.
-- **Pin-map ingest** (SysML, codebase, PCBA `.ato`, skills): deterministic ids from locators (`refdes=`, `path=`, `qname=`, …); reject client `NEW` for those pins.
+- **Pin-map ingest** (SysML, codebase, PCBA `.ato`, skills): deterministic ids from locators; reject client `NEW` for those pins.
 
-Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memnet-grammar-design.md), [`docs/grammar/examples/`](docs/grammar/examples/). SysML notes: [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md).
+**As-is 0.4.x engine** may still speak an older line dialect until **M2** — not the teach surface. SysML: [`sysml-models/outputs/system-design-notes.md`](sysml-models/outputs/system-design-notes.md).
 
 ---
 
@@ -62,8 +50,8 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 
 | Area | Today (as-is) | Target |
 |------|---------------|--------|
-| Agent wire | Mutate + live pin map prefer **shared dialect**; legacy `@TAG` pipe still accepted on add/update and used in snapshots / `read` | Shared shapes; pin map bare present; mutate keeps ops |
-| Shared-dialect codec | Pure-Python codec in `memnet/tier_a.py` + golden tests | SSOT parse/emit; ANTLR optional later |
+| Agent wire | As-is line codec in engine; docs teach **GQL** | GQL accept + shaped `pin_map` emit (M2); profile [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) |
+| Codec | Pure-Python `memnet/tier_a.py` (as-is) + golden tests | `GqlCodec` / `PinMapShapedRead`; retire Tier A path |
 | Id mint | `IdAllocator` wired through `MutateGate` on shared-dialect batches | Same |
 | MutateGate | `mutate_gate.py` — shared-dialect parse → mint → commit; pipe import-once | Same dialect only |
 | Live pin map | `PinMapComposer` via `pin_map` / `query pin-map` (shared-dialect emit) | Done |
@@ -71,7 +59,7 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 | MCP | Generic tools; in-process engine | Same |
 | Novel-writer | **Removed** — see [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md) | Stay out of this repo |
 
-[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is the agent playbook (**0.4.x shared dialect first**; legacy `@TAG` pipe in appendix).
+[`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) is the agent playbook (**dialect teach = GQL**; as-is engine notes until M2).
 
 ---
 
@@ -81,7 +69,7 @@ Design and examples: [`docs/grammar/memnet-grammar-design.md`](docs/grammar/memn
 
 **Local stdio (`memnet-local`):** optional / **dev-only** — omit or disable by default; not the Multitask path.
 
-**Dialect teach:** **Layer** is the 1.x story; **Tier A** is a legacy alias — not a second peer dialect. Detail: [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
+**Dialect teach:** **GQL only** — [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Detail: [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
 
 ## Transport (as-is 0.4.x)
 
@@ -98,7 +86,7 @@ Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead 
 Plan (docs only until implemented): [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md).
 
 1. **One remote entry** — teach `memnet-pi` HTTP; demote project `memnet-local`.
-2. **One dialect teach** — Layer = 1.x; Tier A = legacy alias.
+2. **One dialect teach** — GQL only (M1 profile done; M2 engine).
 3. **One graph owner on Pi** — HTTP MCP bridged to `memnet serve`; never two writers.
 4. **Footguns** — Host / token / `view=` defaults so Cursor just works.
 

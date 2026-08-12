@@ -1,8 +1,10 @@
-# LLM SysML v2 modeling — Layer / Write=display
+# LLM SysML v2 modeling
+
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
 
 **Single-file application example.** Drive a long-form SysML v2 textual modeling session where session memory lives in MemNet, following `sysml-memnet-documentation` (user pack) and its 6-step snap loop.
 
-**Teach:** Write = display; cross-file / trace links as bare-id **`--declaredIn-->`** / **`--typedBy-->`** / **`--about-->`**. Electrical analysis uses Layer **ports / law / bind** — see [`llm-circuit-schematic.md`](llm-circuit-schematic.md). Pipe `@TAG` — legacy only (§9). Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md).
+**Teach:** GQL wire profile + shaped `pin_map`. Historical body examples below are M3-bound.
 
 MemNet holds the symbol index (`MOD`/`SYM`), design atoms (`PRT`/`CON`/`REQ`/`CLM`), locators, rationale and backlog; authoritative structure and satisfy links live in split `models/*.sysml` files.
 

@@ -1,8 +1,10 @@
-# LLM technical docs decomposition — Layer / Write=display
+# LLM technical docs decomposition
+
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
 
 **Application example (documentation only).** Atomise long instrument manuals (PDFs, SCPI references) into a MemNet graph so an agent can **`pin_map`** one remote-mode subsection and drive the instrument — without storing manual prose in row fields.
 
-**Teach:** Write = display; procedure links as bare-id **`--precedes-->`** / **`--requires-->`**. Pipe `@TAG` — legacy only (§8). Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md).
+**Teach:** Write = display; procedure links as bare-id **`--precedes-->`** / **`--requires-->`**. Pipe `@TAG` — legacy only (§8). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **Primary worked example:** [R&S RTO User Manual en rev 29](https://scdn.rohde-schwarz.com/ur/pws/dl_downloads/pdm/cl_manuals/user_manual/1332_9725_01/RTO_UserManual_en_29.pdf) — remote mode (SCPI over LAN).
 

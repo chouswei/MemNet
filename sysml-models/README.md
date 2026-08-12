@@ -30,8 +30,8 @@ MemNetSystem
 │   │   │           ├── GqlCodec              // 1.x primary wire
 │   │   │           ├── PinMapShapedRead      // shaped pin_map
 │   │   │           ├── MutateGate
-│   │   │           ├── TierACodec            // LEGACY Layer accept
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
+│   │   │               (as-is line codecs → delete in M2)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade
@@ -44,7 +44,7 @@ MemNetSystem
 
 ## Target subsystems
 
-- **AgentMemory:** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle, **TierACodec (legacy)**
+- **AgentMemory:** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle (remove as-is TierA codecs in M2)
 - **Transport:** InProcessEngine, LocalIpcGateway, TcpServeBridge
 - **MCP:** McpFacade, ServeBridge, LawSeedHelper
 - **DurableBuffer:** AgensGraphAdapter (roadmap)
@@ -58,7 +58,7 @@ Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_m
 
 ## Property-graph ontology (first-class)
 
-`MemNetConnections`: Node / Edge / Property / Label; BindRelationship vs RelationRelationship; LawOnNode / PortIncidence. Crosswalk: [`docs/grammar/layer-gql-map.md`](../docs/grammar/layer-gql-map.md). **Agent wire = GQL**; Layer = legacy.
+**Property-graph ontology:** Node / Edge / Property / Label; bind vs relation; law on node / ports — [`docs/grammar/gql-wire-profile.md`](../docs/grammar/gql-wire-profile.md). **Agent wire = GQL only.**
 
 ## Validate
 

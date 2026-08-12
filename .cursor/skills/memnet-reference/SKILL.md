@@ -64,7 +64,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 | Layout / hub | `LAYOUT.md`, `AGENTS.md` | -- |
 | Novel-writer drop | `DROP-NOVEL-WRITER.md` | -- |
 
-**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** GQL (openCypher-shaped) = 1.x; Layer / Tier A = legacy — [`docs/adr/ADR-001-gql-agent-wire.md`](../../../docs/adr/ADR-001-gql-agent-wire.md). Detail: `docs/ROADMAP-0.5.md`.
+**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** **GQL only** — [`docs/grammar/gql-wire-profile.md`](../../../docs/grammar/gql-wire-profile.md); ADR [`docs/adr/ADR-001-gql-agent-wire.md`](../../../docs/adr/ADR-001-gql-agent-wire.md). Detail: `docs/ROADMAP-0.5.md`.
 
 Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 
@@ -72,15 +72,15 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 
 | Component | Path | Notes |
 |-----------|------|-------|
-| Shared-dialect codec | `parts/common/memnet/memnet/tier_a.py` | SSOT parse/emit; golden tests in `tests/` |
-| MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Shared-dialect parse -> mint -> commit |
-| PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit |
+| As-is line codec | `parts/common/memnet/memnet/tier_a.py` | Engine lag until M2; **not** agent teach |
+| MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path = M2) |
+| PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL (M2) |
 | IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | `NEW` minting |
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765` |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
 | Path-B ingest stubs | `parts/common/memnet/memnet/pin_map_ingest.py` | Roadmap only in 0.4.x |
 
-Formal grammar: `docs/grammar/MemNet.g4`, `docs/grammar/memnet-grammar-design.md`.
+Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/grammar/memnet-grammar-design.md`.
 
 ## Development checks
 
@@ -94,10 +94,10 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 ## MUSTNOT (contributors)
 
 - Restore `parts/novel-writer/` or novel MCP extras.
-- Invent a third peer agent wire dialect — 1.x teach is GQL (ADR-001); Layer is legacy only (`docs/grammar/` + `docs/adr/`).
+- Invent a third peer agent wire dialect — teach is **GQL only** (ADR-001 + `gql-wire-profile.md`).
 - Ship or document **PinMapIngest_*** as available (stubs only in 0.4.x).
 - Duplicate user-pack application skills in `.cursor/skills/` beyond this dev reference.
-- Delete `MemNetLayer.g4` before migration M4 / parity tests.
+- Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
 
 ## Related
 

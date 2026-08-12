@@ -1,24 +1,19 @@
-# Shared-dialect grammar tools
+# Shared-dialect grammar tools (as-is harness)
 
-Package / file names keep `tier_a` for harness continuity; they implement the **shared dialect** (Write = display). **Keep** the twin, fixtures, and golden tests — they are the formal benefit of this folder.
+Package / file names keep `tier_a` for **as-is engine harness** continuity until **M2**.  
+**Agent teach = GQL only:** [`../gql-wire-profile.md`](../gql-wire-profile.md). Do **not** teach Tier A / Layer as wire.
 
 | Path | Role |
 |------|------|
-| `tier_a.py` | Pure-Python parse / emit / soft lint mirroring `MemNet.g4` (R1 atoms-only) |
-| `layer_soft_validate.py` | ANTLR `MemNetLayer` parse + soft-validate (proposed 1.x; not in 0.3 engine) |
-| `../MemNet.g4` | ANTLR4 stub (teaching / future codegen) |
-| `../antlr/MemNetLayer.g4` | Proposed 1.x multi-layer grammar |
-| `../examples/` | Golden fixtures — see `examples/README.md` |
-| `../examples/layer/` | MemNetLayer golden fixtures (`layer_*.txt`) |
+| `tier_a.py` | As-is pure-Python parse / emit (legacy line dialect in engine) |
+| `../MemNet.g4` | ANTLR4 stub for that harness |
+| `../examples/` | Golden fixtures for as-is harness |
+| [`../archive/tools/layer_soft_validate.py`](../archive/tools/layer_soft_validate.py) | Quarantined Layer soft-validate |
 
 ## Run golden tests
-
-From repo root (PowerShell):
 
 ```powershell
 python -m pytest tests/grammar -q
 ```
 
-Round-trip check for pin-map fixtures is included (`01_`, `04_`).
-
-Tier A twin does **not** require `antlr4-python3-runtime`. Layer soft-validate / `test_memnet_layer_golden.py` need the `dev` extra (`antlr4-python3-runtime`) and committed `docs/grammar/antlr/generated/*.py`.
+`tests/grammar/archive/` is **not** part of the default teach path; do not re-add Layer golden as product CI without an explicit revive decision.

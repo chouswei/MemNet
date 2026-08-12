@@ -7,14 +7,14 @@ Requirements and grammar doctrine win over today's Python layout. Novel-writer i
 **GQL case study:** [`../../docs/application-notes/examples/inverting-amplifier-gql-case-study.md`](../../docs/application-notes/examples/inverting-amplifier-gql-case-study.md).
 
 **Primary term:** **pin map** = shaped subgraph read wrapping GQL (Write = display redefined).  
-**Items:** `LivePinMap` / `ShapedSubgraph` (turn payload), `GqlWireBatch` (mutate), `LegacyLayerBatch` (migration).  
+**Items:** `LivePinMap` / `ShapedSubgraph` (turn payload), `GqlWireBatch` (mutate). Historical Layer batch types are **not** product doctrine.  
 **Composer:** `PinMapShapedRead` (as-is `PinMapComposer` / `query_warm`).  
-**Primary codec:** `GqlCodec`. **Legacy:** `TierACodec` (Layer / Tier A).  
-**Removed from target nest:** standing Tier B pipe. **Deprecated stub:** `LegacyPipeImport`.
+**Primary codec:** `GqlCodec`. As-is `tier_a` codecs = **implementation lag → remove in M2** (not an accept teach path).  
+**Removed from target nest:** standing Tier B pipe; Layer/Tier A teach. **Deprecated stub:** `LegacyPipeImport`.
 
 ## Mission
 
-**MemNet = Net of Memory** — durable **Node | Edge** property-graph working memory between LLM pipelines and data search. Agent I/O is **openCypher-shaped GQL** with **shaped pin_map** emit (ADR-001). Layer ASCII is legacy accept only. Ontology: `docs/grammar/layer-gql-map.md`.
+**MemNet = Net of Memory** — durable **Node | Edge** property-graph working memory between LLM pipelines and data search. Agent I/O is **openCypher-shaped GQL only** with **shaped pin_map** emit ([`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md)).
 
 ## Nesting outline
 
@@ -27,11 +27,11 @@ MemNetSystem
 │   │   │       └── SessionLifecycle
 │   │   │           ├── CapsPolicy / SchemaRegistry
 │   │   │           ├── GqlCodec                 // 1.x primary
-│   │   │           ├── TierACodec               // LEGACY
 │   │   │           ├── GraphStore
 │   │   │           ├── MutateGate → IdAllocator
 │   │   │           ├── PinMapShapedRead
 │   │   │           ├── WalkQuery / HousekeepSettle / SnapshotStore
+│   │   │           └── (as-is TierACodec → delete in M2)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade
@@ -60,7 +60,7 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 | InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary) |
 | ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (Multitask) |
 | LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** |
-| GraphRecordFlow | GqlCodec / TierACodec → MutateGate → GraphStore | **Target wired** |
+| GraphRecordFlow | GqlCodec → MutateGate → GraphStore | **Target wired** |
 | LivePinMapFlow / ShapedSubgraphFlow / GqlWireFlow | PinMapShapedRead / facades | **Target** |
 | SessionSnapshotFlow | SnapshotStore ↔ file | MN-REQ-01 |
 | PinMapFlow | PinMapIngest_* | MN-REQ-11 stubs |
@@ -71,9 +71,9 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 |-------------|-------------------|--------|
 | GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
 | GqlCodec | *(target; M2)* | Not shipped |
-| TierACodec | `tier_a.py` / `tier_a_codec.py` | **Legacy accept** (as-is primary) |
-| PinMapShapedRead | `pin_map_composer.py` | As-is Layer emit; target shaped GQL |
-| MutateGate | `mutate_gate.py` | Layer-first until M2 |
+| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | **Remove in M2** — not doctrine |
+| PinMapShapedRead | `pin_map_composer.py` | As-is emit; target shaped GQL |
+| MutateGate | `mutate_gate.py` | GQL path in M2 |
 | AgensGraphAdapter | — | Roadmap |
 | MultitaskOperatingModel | agent doctrine | As-is MN-REQ-12 |
 
@@ -97,9 +97,9 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 
 ## Gaps / next steps
 
-- **M1:** GQL wire profile (clauses, dual-EDGE encoding, mint) — model ready; profile doc next
-- **M2:** Engine/MCP accept openCypher-shaped mutate + shaped pin_map emit; keep Layer accept
-- As-is still Layer-primary in Python — expected doctrine drift until M2/M3
+- **M1:** GQL wire profile — **done** ([`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md)); Layer docs archived
+- **M2:** Engine/MCP GQL accept + shaped pin_map emit; **remove** as-is Layer/Tier A codec from product path
+- As-is Python still on old line codec — implementation lag until M2 (not dual-teach)
 - `LocalIpcFlow` when LocalIpcGateway is implemented
 - PinMapIngest_* deterministic locators
 - **To-be:** session ACL, neighbourhood reserve, Path-B ingest — MN-REQ-12.7
