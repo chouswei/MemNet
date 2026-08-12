@@ -64,7 +64,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 | Layout / hub | `LAYOUT.md`, `AGENTS.md` | -- |
 | Novel-writer drop | `DROP-NOVEL-WRITER.md` | -- |
 
-**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** Layer = 1.x; Tier A = legacy alias. Detail: `docs/ROADMAP-0.5.md`.
+**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** GQL (openCypher-shaped) = 1.x; Layer / Tier A = legacy — [`docs/adr/ADR-001-gql-agent-wire.md`](../../../docs/adr/ADR-001-gql-agent-wire.md). Detail: `docs/ROADMAP-0.5.md`.
 
 Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 
@@ -94,9 +94,10 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 ## MUSTNOT (contributors)
 
 - Restore `parts/novel-writer/` or novel MCP extras.
-- Invent a second agent wire dialect -- shared dialect SSOT is `docs/grammar/`.
+- Invent a third peer agent wire dialect — 1.x teach is GQL (ADR-001); Layer is legacy only (`docs/grammar/` + `docs/adr/`).
 - Ship or document **PinMapIngest_*** as available (stubs only in 0.4.x).
 - Duplicate user-pack application skills in `.cursor/skills/` beyond this dev reference.
+- Delete `MemNetLayer.g4` before migration M4 / parity tests.
 
 ## Related
 

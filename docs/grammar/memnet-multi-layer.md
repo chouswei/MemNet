@@ -641,7 +641,7 @@ Engine: law-on-node + dual EDGE → **1.0**, not a silent 0.3.x patch. Flat same
 Plan SSOT: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). Grammar Open stays thin — transport/entry live in the roadmap.
 
 - **Dialect teach (0.5 → 1.x)** — **Layer** is the teach path; **Tier A** = legacy alias only (not a second peer story). Full codec merge / formula-on-EDGE retirement still **1.x**; do not forever dual-teach.
-- **GQL: model map aligned; wire stays Layer** — ISO Graph Query Language (property graphs; Cypher-like `MATCH`/`RETURN`) stays on the map for analogues and deliberate non-analogues. Construct map: [`layer-gql-map.md`](layer-gql-map.md); stance: [`gql-consideration.md`](gql-consideration.md). **MUST NOT** teach GQL as agent wire or as a peer dialect to Layer in 0.5.
+- **GQL: agent wire adopted; Layer legacy** — ISO Graph Query Language / openCypher-shaped patterns are **1.x agent teach** (ADR-001). This Layer ontology doc remains the legacy SSOT until the GQL wire profile (M1) lands. Construct map (migration): [`layer-gql-map.md`](layer-gql-map.md); stance: [`gql-consideration.md`](gql-consideration.md); decision: [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). **MUST NOT** dual-teach Layer + GQL as peer 1.x surfaces; **MUST NOT** delete `MemNetLayer.g4` in the first cut.
 - **Grain / SCHEMA deferred** — first-class `PORT` NODE (no until forced); SCHEMA vocab freeze + fat field allow-list later; soft denylist now (`law`/`pseudo`/`recycle`/`role`/`view`). Deferred teach: `state=` (statechart/instance); bind `event=`/`guard=` (flowchart/statechart); bi-directed / `direction=` / `pipe` (accept, demote teach).
 - **Not this doc** — one remote entry (`memnet-pi`), one Pi graph owner (HTTP → `memnet serve`), Host/token/`view=` footguns → roadmap; reserve / ACL / ingest → their design docs + MN-REQ-12.
 
@@ -652,7 +652,8 @@ Plan SSOT: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). Grammar Open stays thin —
 | Path | Role |
 |------|------|
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan |
-| [`gql-consideration.md`](gql-consideration.md) | GQL vs Layer: map, not teach as wire |
+| [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | GQL agent wire decision; Layer legacy |
+| [`gql-consideration.md`](gql-consideration.md) | GQL vs Layer: adopt GQL wire; Layer migration |
 | [`layer-gql-map.md`](layer-gql-map.md) | Layer ↔ GQL construct map (Node / Edge / Property / Label) |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared dialect SSOT; §3 ≠ this doc |
 | [`memnet-field-formulas.md`](memnet-field-formulas.md) | Flat `derives` (**transitional**); 1.x → law on node |

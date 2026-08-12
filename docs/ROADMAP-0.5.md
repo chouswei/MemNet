@@ -22,10 +22,11 @@ Local single-agent may still use in-process stdio when no shared graph is needed
 
 | MUST | MUST NOT |
 |------|----------|
-| Teach **Layer** as the **1.x** shared dialect (Write = display; dual EDGE; law on NODE) | Teach Tier A and Layer as two peer stories |
-| Keep **Tier A** as a **legacy alias** / accept path through 0.5.x | Invent a third wire dialect |
+| Teach **GQL (openCypher-shaped)** as the **1.x** agent wire (ADR-001) | Teach Layer and GQL as two peer 1.x stories |
+| Keep **Layer** / **Tier A** as **legacy** accept / migration only through 0.5.x | Invent a third peer wire dialect; delete `MemNetLayer.g4` in the first cut |
+| Redefine **Write = display** as **bounded shaped GQL subgraph** / `pin_map`-class wrapper (not raw `RETURN` dumps) | Ship unbounded tabular `MATCH`/`RETURN` as the primary goldfish read |
 
-Engine unification (single codec path) may land after teach docs; teach order does not wait for full merge.
+Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md). Engine/MCP GQL accept + shaped emit may land after teach docs; teach order does not wait for full merge.
 
 ### 3. One graph owner on Pi
 
@@ -52,9 +53,9 @@ CLI clients and Cursor `url` clients **MUST** see one session graph.
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog. Not blocked by one-path, not claimed here.
 
-**GQL (ISO/IEC 39075):** **model GQL-aligned (map); wire stays Layer.** Ontology / SysML / adapter docs speak property-graph terms (Node / Edge / Property / Label) via [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md); stance SSOT: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). Verdict for 0.5 = **map** (later selective borrow only). **MUST NOT** add GQL/`MATCH`/`RETURN` as a third dialect beside Layer. **MUST NOT** replace Layer teach with GQL as agent wire (replacement rejected in the same crosswalk + [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) §1). **MUST NOT** rewrite `MemNetLayer.g4` to Cypher or make MCP primary mutate accept GQL strings.
+**GQL (ISO/IEC 39075):** **adopt as agent teach/wire** (openCypher-shaped, AgensGraph-compatible). **MemNet** brand retained; **Layer** → legacy migration. Decision: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md). Crosswalk: [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md); stance: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). **MUST NOT** dual-teach Layer + GQL as peer 1.x surfaces. **MUST NOT** use raw tabular `RETURN` as primary agent read. **MUST NOT** delete `MemNetLayer.g4` or rewrite all application-notes in the first cut — migration plan in ADR-001 (M0–M4).
 
-**AgensGraph (durable buffer thesis):** MemNet as working-memory / pin-map buffer in front of a durable Postgres+property-graph store is a **strong mission fit**, deferred past one-path. Correct stack remains LLM ↔ Layer/`pin_map` ↔ optional sync ↔ AgensGraph (GQL/Cypher **store-side only**). Sketch SSOT: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
+**AgensGraph (durable buffer thesis):** MemNet as working-memory / pin-map buffer in front of a durable Postgres+property-graph store remains a **strong mission fit**, deferred past one-path. Stack: LLM ↔ MemNet (**GQL wire**, shaped `pin_map`-class read) ↔ optional sync ↔ AgensGraph (same GQL family). Sketch SSOT: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
 
 ---
 
@@ -64,9 +65,10 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 |------|------|
 | [`../README.md`](../README.md) | How to run (one path) + gaps pointer |
 | [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) §8 Open | Dialect / grain deferred bullets |
-| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: map, not teach as wire |
-| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (model alignment) |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; reject GQL as Layer replacement (Open) |
+| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL agent wire; Layer legacy; `pin_map` open question |
+| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: adopt GQL wire; Layer migration |
+| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (migration) |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary; local optional |

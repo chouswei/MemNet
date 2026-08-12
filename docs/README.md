@@ -14,13 +14,14 @@ MemNet engine / generic MCP / shared dialect / operating the product as an agent
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (0.4.x goldfish loop, shared dialect, MCP primary) |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 gap-closure plan (remote entry, dialect teach, Pi graph owner) |
+| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL as agent wire; MemNet brand; Layer legacy |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x): shared session, parent/worker MUST/MUSTNOT, transport |
-| [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | Shared dialect SSOT (Write = display, pin map, `NEW` vs locators) |
+| [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | Shared dialect SSOT — **Layer legacy** until GQL profile (M1) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Generic formula EDGE relations (any domain) |
-| [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) | Stratified pin maps (design) |
-| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | ISO GQL vs Layer: map, not teach as wire |
-| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (model alignment; wire stays Layer) |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; MUST NOT replace Layer with GQL as wire (Open) |
+| [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) | Stratified pin maps (design; Layer ontology legacy) |
+| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | ISO GQL vs Layer: adopt GQL as agent wire |
+| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (**migration**) |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 | [`grammar/memnet-grammar-antlr.md`](grammar/memnet-grammar-antlr.md) | ANTLR grammar notes |
