@@ -1,7 +1,7 @@
 # GQL wire profile (MemNet 1.x agent teach)
 
 **Status:** **M1 SSOT** — agent teach / wire profile. Docs-only until **M2** (engine/MCP).  
-**Audience:** product developers; M2 implementers; M3 skill / playbook authors.  
+**Audience:** product developers; M2 implementers; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
 **Brand:** MemNet (Net of Memory). **Dialect:** **GQL only** (openCypher-shaped, AgensGraph-compatible).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
 **British English.** ASCII ids.
@@ -191,12 +191,13 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 | Phase | Owns | This file does **not** |
 |-------|------|-------------------------|
-| **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, skill rewrite, app-note marathon |
+| **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon |
 | **M2** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; retire as-is Layer/Tier A **codec** from product path | — |
-| **M3** | `LLM-GUIDE` full playbook, user-pack skills, application-notes body rewrite to GQL examples | — |
+| **M3** | In-repo `LLM-GUIDE` full playbook + application-notes body rewrite to GQL examples | — |
+| **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
 
-**As-is note (honest):** 0.4.x Python may still parse legacy line dialects until M2 lands. That is **implementation lag**, not doctrine. Docs and skills **MUST** teach GQL only from M1 forward.
+**As-is note (honest):** 0.4.x Python may still parse legacy line dialects until M2 lands. That is **implementation lag**, not doctrine. In-repo docs **MUST** teach GQL only from M1 forward.
 
 ---
 

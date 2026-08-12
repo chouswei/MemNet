@@ -54,7 +54,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog.
 
-**GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M3** rewrites playbook/skills/app-note bodies.
+**GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M3** rewrites in-repo playbook / app-note bodies. User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
 **AgensGraph (durable buffer thesis):** deferred past one-path. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
 

@@ -45,7 +45,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 **Harder / honest costs**
 
 - As-is 0.4.x Python may still parse old line dialects until **M2** removes them — implementation lag, not doctrine.
-- Skills and application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL.
+- In-repo playbook / application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL. **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) are migrating to GQL-only in `chouswei/cursor-user-skills` **in flight separately** — not owned by this product-repo PR.
 - Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **Non-goals for first cut**
@@ -62,7 +62,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
-| **M3** | `LLM-GUIDE` body, user-pack skills, application-notes examples → GQL. |
+| **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
