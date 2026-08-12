@@ -20,10 +20,10 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff, WorkingMemorySlice, SessionImportRequest, ImportGuardDecision |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.11 import + guard) |
-| `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/member spine |
-| `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S12 |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.12 import + guard + async) |
+| `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/dispatch/WorkerPool spine |
+| `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S13 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Nesting outline (target)
@@ -50,21 +50,24 @@ MemNetSystem                                 // SharedLlmMemory product
 ├── PinMapRoadmap
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
+    │   ├── SessionHandoffEmit
+    │   ├── AsyncTaskDispatch                // spawn N; end turn
     │   └── SessionImportReceive             // path B only
     │       ├── ImportGuard                  // cheap LLM soft review
     │       └── ImportAbsorb                 // hard gates + import + settle
-    ├── MultitaskWorker                      // team member (handoff in + slice export)
+    ├── WorkerPool
+    │   └── MultitaskWorker[1..*]            // async parallel members
     └── MultitaskSharedStoreBinding
 ```
 
-**Story:** `SessionHandoffById` → (shared re-`pin_map` | `SessionImportReceive` → Guard → Absorb → Settle).
+**Story:** `SessionHandoffById` → `AsyncTaskDispatch` (end turn) → workers async → host `EvWorkerReturn` → (shared re-`pin_map` | `SessionImportReceive` → Guard → Absorb → Settle).
 
 ## Target subsystems
 
 - **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter planned **M2.5**
-- **Multitask:** nested lead import spine + member export; MN-REQ-12
+- **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Quarantined:** TierACodec (remove in M2); LegacyPipeImport
 - **Out of scope:** novel-writer
 
@@ -74,6 +77,10 @@ MemNetSystem                                 // SharedLlmMemory product
 |-------|------|
 | Multitask Mode (GQL pins + optional import) | [outputs/multitask-case-study.md](outputs/multitask-case-study.md) |
 | Session import + ImportGuard | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
+| Async parallel (disjoint vs conflict) | [outputs/async-parallel-conflict-case-study.md](outputs/async-parallel-conflict-case-study.md) |
+| Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
+| Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
+| SysML modelling goldfish | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |
 | Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
 | Prose RPG beat (novel-cut patterns → GQL) | [outputs/prose-rpg-session-case-study.md](outputs/prose-rpg-session-case-study.md) |
 

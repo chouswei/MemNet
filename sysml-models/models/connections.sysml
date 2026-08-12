@@ -305,8 +305,9 @@ package MemNetConnections {
   item def WorkerWriteScope {
     doc /*
       Parent-assigned anchors and relation scope for one MultitaskWorker.
-      Parallel workers require disjoint scopes or separate sessions
-      (MN-REQ-12.5). As-is: doctrine only; no engine ACL/reserve.
+      Asynchronous parallel workers require disjoint scopes or separate
+      sessions (MN-REQ-12.5 / 12.12). As-is: doctrine only; no engine
+      ACL/reserve — 0.4.x last-write-wins if violated.
     */
   }
   item def HousekeepStats {

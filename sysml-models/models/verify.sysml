@@ -1,8 +1,9 @@
 /*
-  MemNet verification cases — MN-REQ-12 Multitask Mode + session import.
-  Aligned to outputs/multitask-case-study.md and
-  outputs/session-import-case-study.md.
-  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S12.
+  MemNet verification cases — MN-REQ-12 Multitask Mode + session import +
+  async parallel. Aligned to outputs/multitask-case-study.md,
+  outputs/session-import-case-study.md,
+  outputs/async-parallel-conflict-case-study.md.
+  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S13.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; does not claim engine ACL/reserve/ingest enforcement.
 */
@@ -18,10 +19,11 @@ package MemNetVerification {
   verification def MN_VER_12_G00_MultitaskModeGroup {
     doc /*
       Organisational parent MN-REQ-12 — Multitask Mode group.
-      Composite inspection: MultitaskOperatingModel (coordinator, worker,
-      sharedStore) carries doctrineAsIs; deploy satisfy covers leaves
-      12.1–12.8; behaviour hosts ParentTaskLifecycle, WorkerScopedTurn,
-      MultitaskMissionCycle. Step-level leaf coverage: MN-VER-12-S01…S09.
+      Composite inspection: MultitaskOperatingModel (coordinator,
+      workerPool, sharedStore) carries doctrineAsIs; deploy satisfy covers
+      leaves 12.1–12.12; behaviour hosts ParentTaskLifecycle,
+      WorkerScopedTurn, MultitaskMissionCycle, AsyncTaskDispatch.
+      Step-level leaf coverage: MN-VER-12-S01…S13.
       Does not claim engine ACL / reserve / Path-B ingest (12.7; see S09).
     */
     attribute verificationId : String = "MN-VER-12-G00";
@@ -32,7 +34,7 @@ package MemNetVerification {
       verify multitaskModeReq;
       require constraint {
         multitask.coordinator.doctrineAsIs == true
-          and multitask.worker.doctrineAsIs == true
+          and multitask.workerPool.doctrineAsIs == true
           and multitask.sharedStore.doctrineAsIs == true
           and multitask.sharedStore.prefersTcpOrHttp == true
       }
@@ -120,10 +122,11 @@ package MemNetVerification {
   verification def MN_VER_12_S05_ScopeDelegateEndTurn {
     doc /*
       Case-study step 5 — Assign scope, delegate, end turn
-      (MN-REQ-12.4, MN-REQ-12.5, MN-REQ-12.6).
+      (MN-REQ-12.4, MN-REQ-12.5, MN-REQ-12.6, MN-REQ-12.12).
       EvAssignWorkerScope → taskScoped; EvDelegateWorker → taskDelegated /
-      workersDelegated; parent ends turn (no same-turn poll). Prefer one
-      worker; parallel only with disjoint WorkerWriteScope.
+      workersDelegated; EvEndCoordinatorTurn (AsyncTaskDispatch); parent
+      ends turn (no same-turn poll). Prefer one worker; parallel only with
+      disjoint WorkerWriteScope or separate sessions.
     */
     attribute verificationId : String = "MN-VER-12-S05";
 
@@ -203,7 +206,7 @@ package MemNetVerification {
   verification def MN_VER_12_S09_NoAssumeAclReserveIngest {
     doc /*
       MN-REQ-12.7 gate — must not assume shipped ACL / reserve / Path-B.
-      Inspection: MultitaskOperatingModel and coordinator/worker parts
+      Inspection: MultitaskOperatingModel and coordinator/workerPool parts
       carry doctrineAsIs only; no engine ACL, neighbourhood reserve (RSV),
       or PinMapIngest_* enforcement. Counter-example: treating ACL/RSV as
       available violates MN-REQ-12.7.
@@ -216,7 +219,8 @@ package MemNetVerification {
       verify noAssumeAclReserveIngestReq;
       require constraint {
         multitask.coordinator.doctrineAsIs == true
-          and multitask.worker.doctrineAsIs == true
+          and multitask.workerPool.doctrineAsIs == true
+          and multitask.coordinator.dispatch.doctrineAsIs == true
       }
     }
   }
@@ -284,6 +288,36 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_12_S13_AsyncParallelDisjoint {
+    doc /*
+      Async-parallel case study — happy path + anti (MN-REQ-12.5 / 12.6 /
+      12.12). Happy: two WorkerPool members with disjoint WorkerWriteScope
+      (or separate sessions); EvDelegateWorker x2; EvEndCoordinatorTurn;
+      both EvWorkerReturn (host-driven); lead EvPinMapRead / optional
+      SessionImportReceive. Anti: overlapping anchors on one session —
+      EvOverlapScopeForbidden / MUST NOT dual-write (0.4.x last-write-wins;
+      doctrineAsIs — engine does not enforce WorkerWriteScope).
+      Subjects: AsyncTaskDispatch, WorkerPool. See
+      outputs/async-parallel-conflict-case-study.md.
+    */
+    attribute verificationId : String = "MN-VER-12-S13";
+
+    subject multitask : MultitaskOperatingModel;
+    item writeScope : WorkerWriteScope;
+
+    objective step13AsyncParallel {
+      verify preferOneWorkerOrDisjointReq;
+      verify parentEndTurnNoPollReq;
+      verify hostDrivenAsyncParallelReq;
+      require constraint {
+        multitask.coordinator.dispatch.allowsParallelWhenDisjointOrSeparate
+          == true
+          and multitask.coordinator.dispatch.doctrineAsIs == true
+          and multitask.workerPool.doctrineAsIs == true
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -299,4 +333,5 @@ package MemNetVerification {
   verification sharedSessionReceiveVerify : MN_VER_12_S10_SharedSessionReceive;
   verification separateSessionImportVerify : MN_VER_12_S11_SeparateSessionImport;
   verification importGuardSoftVerify : MN_VER_12_S12_ImportGuardSoft;
+  verification asyncParallelDisjointVerify : MN_VER_12_S13_AsyncParallelDisjoint;
 }

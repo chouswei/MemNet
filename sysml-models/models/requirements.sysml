@@ -884,21 +884,25 @@ package MemNetRequirements {
       requirement def MN_REQ_12_5_PreferOneWorkerOrDisjoint {
         doc /*
           Multitask missions SHOULD prefer one worker per coherent workstream.
-          Parallel workers SHALL use disjoint anchor subtrees or separate
-          session ids. Two writers SHALL NOT mutate the same anchor slice
-          without explicit serialisation (0.4.x is last-write-wins; no
-          neighbourhood reserve).
+          Asynchronous parallel workers SHALL use disjoint anchor subtrees on
+          one shared session OR separate parent-assigned session ids.
+          Two writers SHALL NOT mutate the same anchor slice without explicit
+          serialisation (MUST NOT dual-write in parallel). 0.4.x is
+          last-write-wins; no neighbourhood reserve; engine does not enforce
+          WorkerWriteScope (doctrineAsIs).
         */
         attribute requirementId : String = "MN-REQ-12.5";
       }
 
       requirement def MN_REQ_12_6_ParentEndTurnNoPoll {
         doc /*
-          After spawning background workers, the parent SHALL end the turn
+          After AsyncTaskDispatch (spawning background workers via
+          EvDelegateWorker), the parent SHALL EvEndCoordinatorTurn
           (Multitask gate). The parent SHALL NOT poll or await worker
           completion in the same turn, and SHALL NOT redo worker investigation
           from chat memory. On the next coordinator turn the parent SHALL
-          pin_map first and act from the refreshed shared-session slice.
+          pin_map first and act from the refreshed shared-session slice
+          (or SessionImportReceive when sessions were separate).
         */
         attribute requirementId : String = "MN-REQ-12.6";
       }
@@ -960,6 +964,22 @@ package MemNetRequirements {
           SSOT after import. costTier is a cost/latency class, not a vendor id.
         */
         attribute requirementId : String = "MN-REQ-12.11";
+      }
+
+      requirement def MN_REQ_12_12_HostDrivenAsyncParallel {
+        doc /*
+          Asynchronous parallel Multitask: parent opens/loads one mission
+          session (or explicitly separate sessions), mints TSK_*, assigns
+          WorkerWriteScope, emits SessionHandoff, spawns workers via
+          AsyncTaskDispatch, then MUST end the turn (EvEndCoordinatorTurn).
+          Worker completion SHALL be host-driven EvWorkerReturn / async
+          revival on a later coordinator turn — NOT a blocking await on the
+          spawn turn. Parallel waves SHALL obey MN-REQ-12.5 (disjoint
+          anchors or separate sessions; MUST NOT overlapping dual-write).
+          Engine 0.4.x SHALL NOT be assumed to enforce WorkerWriteScope
+          (doctrineAsIs; see MN-REQ-12.7).
+        */
+        attribute requirementId : String = "MN-REQ-12.12";
       }
     }
   }
@@ -1164,6 +1184,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   requirement cheapLlmImportGuardSoftReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
+  requirement hostDrivenAsyncParallelReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -1309,6 +1331,7 @@ package MemNetRequirements {
     end #derive ::> leadOwnsSessionImportReq;
     end #derive ::> noChatOrWholeStoreImportReq;
     end #derive ::> cheapLlmImportGuardSoftReq;
+    end #derive ::> hostDrivenAsyncParallelReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {

@@ -19,10 +19,13 @@
     ├── PinMapRoadmap
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
+        │   ├── SessionHandoffEmit        // session id + scope handoff
+        │   ├── AsyncTaskDispatch         // spawn N workers; end turn
         │   └── SessionImportReceive
         │       ├── ImportGuard           // cheap LLM soft review
         │       └── ImportAbsorb          // hard gates + import + settle
-        ├── MultitaskWorker               // team member (handoff in + slice export)
+        ├── WorkerPool                    // logical parallel members
+        │   └── MultitaskWorker[1..*]     // async; WorkerScopedTurn host
         └── MultitaskSharedStoreBinding
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
@@ -670,11 +673,48 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
   }
 
+  part def SessionHandoffEmit {
+    doc /*
+      Lead stage: emit SessionHandoff (session id + optional anchors /
+      WorkerWriteScope). Hosts SessionHandoffById. MUST NOT dump the graph
+      into chat (EvDumpGraphInChat forbidden).
+    */
+    attribute doctrineAsIs : Boolean = true;
+    port handoffOut : SessionHandoffOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
+  }
+
+  part def AsyncTaskDispatch {
+    doc /*
+      Lead stage: spawn N background MultitaskWorker members via
+      EvDelegateWorker after WorkerWriteScope assignment; then MUST
+      EvEndCoordinatorTurn (no same-turn poll/await). Asynchronous
+      parallel only when scopes are disjoint anchors OR separate session
+      ids (MN-REQ-12.5 / 12.12). Overlapping shared-session scopes →
+      serial / single writer (MUST NOT dual-write). Engine 0.4.x does not
+      enforce WorkerWriteScope (doctrineAsIs; last-write-wins if violated).
+      EvWorkerReturn is host-driven async completion on a later turn.
+    */
+    attribute doctrineAsIs : Boolean = true;
+    attribute allowsParallelWhenDisjointOrSeparate : Boolean = true;
+    port handoffIn : SessionHandoffInPort;
+    port handoffOut : SessionHandoffOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_5_PreferOneWorkerOrDisjoint;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_6_ParentEndTurnNoPoll;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+  }
+
   part def MultitaskCoordinator {
     doc /*
-      Team lead. Delivers SessionHandoff (session id only). Owns nested
-      SessionImportReceive (ImportGuard + ImportAbsorb) for path B import.
-      Path A: re-pin_map on shared session — import nest skipped.
+      Team lead. Nest: SessionHandoffEmit → AsyncTaskDispatch → (workers
+      run async) → next turn pin_map; path B SessionImportReceive
+      (ImportGuard + ImportAbsorb). Path A shared session: re-pin_map only
+      (import nest skipped). Owns parent TSK_* / USR_* settle.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
@@ -682,8 +722,17 @@ package MemNet {
     port importReqOut : SessionImportRequestOutPort;
     port gqlOut : GqlWireOutPort;
     port pinIn : PinMapInPort;
+    part handoffEmit : SessionHandoffEmit;
+    part dispatch : AsyncTaskDispatch;
     part importReceive : SessionImportReceive;
 
+    connection emitToDispatch : SessionHandoffFlow {
+      end port source ::> handoffEmit.handoffOut;
+      end port sink ::> dispatch.handoffIn;
+    }
+    // Lead handoffOut is the mission-facing SessionHandoff emit (same
+    // doctrine as handoffEmit / dispatch); OperatingModel wires it to
+    // WorkerPool.handoffIn.
     connection leadImportReqToAbsorb : SessionImportRequestFlow {
       end port source ::> importReqOut;
       end port sink ::> importReceive.absorb.importReqIn;
@@ -697,15 +746,17 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
   }
 
   part def MultitaskWorker {
     doc /*
-      Team member. Accepts SessionHandoff; pin_map first; mutate under
-      WorkerWriteScope; path B exports WorkingMemorySlice for lead import.
-      MUST NOT settle parent TSK_* unless delegated; chat is not SSOT.
+      Team member. Accepts SessionHandoff; hosts WorkerScopedTurn
+      (pin_map first → mutate under WorkerWriteScope). Path B exports
+      WorkingMemorySlice for lead import. MUST NOT settle parent TSK_*
+      unless delegated; chat is not SSOT. Engine does not enforce scope.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -713,14 +764,35 @@ package MemNet {
     port sliceOut : WorkingMemorySliceOutPort;
     port pinIn : PinMapInPort;
     port gqlOut : GqlWireOutPort;
+    // Behavioural host marker for WorkerScopedTurn (see behaviour.sysml).
+    attribute hostsWorkerScopedTurn : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+  }
+
+  part def WorkerPool {
+    doc /*
+      Logical pool of MultitaskWorker[1..*] under MultitaskOperatingModel.
+      Members run asynchronously in parallel when WorkerWriteScope anchors
+      are disjoint OR each has a separate session id; otherwise serial /
+      single writer (MN-REQ-12.5 / 12.12). Fan-in WorkingMemorySlice for
+      path B lead import. doctrineAsIs: no engine ACL/reserve.
+    */
+    attribute doctrineAsIs : Boolean = true;
+    port handoffIn : SessionHandoffInPort;
+    port sliceOut : WorkingMemorySliceOutPort;
+    part members : MultitaskWorker[1..*];
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_5_PreferOneWorkerOrDisjoint;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
   part def MultitaskSharedStoreBinding {
@@ -735,26 +807,30 @@ package MemNet {
 
   part def MultitaskOperatingModel {
     doc /*
-      Nested Multitask spine (MN-REQ-12):
+      Nested Multitask spine (MN-REQ-12) — asynchronous parallel doctrine:
         coordinator (lead)
+          ├── handoffEmit     // SessionHandoff by id
+          ├── dispatch        // spawn N; EvEndCoordinatorTurn
           └── importReceive
                 ├── guard     // cheap LLM soft review
                 └── absorb    // hard gates + import + settle
-        worker (member) — handoff in + WorkingMemorySlice export
+        workerPool
+          └── members[1..*]   // MultitaskWorker; WorkerScopedTurn each
         sharedStore
-      Story: SessionHandoffById → (shared re-pin_map | ImportReceive →
-      Guard → Absorb → Settle).
+      Story: SessionHandoffById → AsyncTaskDispatch (end turn) → workers
+      async → host EvWorkerReturn → lead pin_map / optional ImportReceive.
+      Parallel only if disjoint scopes or separate sessions.
     */
     part coordinator : MultitaskCoordinator;
-    part worker : MultitaskWorker;
+    part workerPool : WorkerPool;
     part sharedStore : MultitaskSharedStoreBinding;
 
     connection sessionHandoff : SessionHandoffFlow {
       end port source ::> coordinator.handoffOut;
-      end port sink ::> worker.handoffIn;
+      end port sink ::> workerPool.handoffIn;
     }
     connection memberSliceToLeadImport : WorkingMemorySliceFlow {
-      end port source ::> worker.sliceOut;
+      end port source ::> workerPool.sliceOut;
       end port sink ::> coordinator.importReceive.guard.sliceIn;
     }
   }
@@ -767,8 +843,8 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core) + Transport + MCP
       (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap + MultitaskOperatingModel
-      (Coordinator → SessionImportReceive → ImportGuard / ImportAbsorb;
-      Worker handoff + slice export). TierACodec / LegacyPipeImport not nested.
+      (Coordinator → HandoffEmit / AsyncTaskDispatch / SessionImportReceive;
+      WorkerPool MultitaskWorker[1..*]). TierACodec / LegacyPipeImport not nested.
       Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;

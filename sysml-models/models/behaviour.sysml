@@ -151,15 +151,35 @@ package MemNetBehaviour {
   }
   attribute def EvDelegateWorker {
     doc /*
-      Parent spawns a background worker with SessionHandoff (shared session
-      id, anchors, write scope) (MN-REQ-12); then ends the turn (MN-REQ-12.6).
-      Uses SessionHandoffById — not EvDumpGraphInChat.
+      Parent spawns one background worker with SessionHandoff (shared
+      session id or separate assigned session, anchors, write scope)
+      (MN-REQ-12). May fire once per worker in a parallel wave. Parent
+      MUST follow with EvEndCoordinatorTurn (MN-REQ-12.6 / 12.12) — no
+      same-turn poll. Uses SessionHandoffById — not EvDumpGraphInChat.
+    */
+  }
+  attribute def EvEndCoordinatorTurn {
+    doc /*
+      Parent ends the Multitask coordinator turn after AsyncTaskDispatch
+      (MN-REQ-12.6 / 12.12). MUST NOT poll or await EvWorkerReturn in the
+      same turn. Next coordinator turn: pin_map first.
+    */
+  }
+  attribute def EvOverlapScopeForbidden {
+    doc /*
+      Two workers would mutate overlapping WorkerWriteScope anchors on one
+      shared session without serialisation (MN-REQ-12.5 / 12.12). MUST NOT
+      dual-write in parallel; prefer one worker, disjoint anchors, separate
+      session ids, or serial dispatch. Engine does not enforce (doctrineAsIs;
+      0.4.x last-write-wins if violated).
     */
   }
   attribute def EvWorkerReturn {
     doc /*
-      Worker durable facts are visible in the shared session; parent may
-      re-pin_map on the next coordinator turn (no same-turn poll).
+      Host-driven asynchronous completion: worker durable facts are visible
+      in the shared (or exportable) session; the agent host may revive the
+      parent on a later turn. NOT a blocking await on the spawn turn
+      (MN-REQ-12.12). Parent then pin_map / optional SessionImportReceive.
     */
   }
   attribute def EvSettleMissionTask {
@@ -516,10 +536,15 @@ package MemNetBehaviour {
 
     state taskDelegated {
       doc /*
-        Worker(s) running under assigned scope. Parent ended turn
-        (MN-REQ-12.6). Parallel only if disjoint scopes (MN-REQ-12.5).
+        Worker(s) running under assigned scope after EvEndCoordinatorTurn
+        (MN-REQ-12.6 / 12.12). Parallel only if disjoint scopes or separate
+        sessions (MN-REQ-12.5). EvWorkerReturn is host-driven async revival.
       */
     }
+    transition delegated_end_turn
+      first taskDelegated
+      accept EvEndCoordinatorTurn
+      then taskDelegated;
     transition delegated_worker_return
       first taskDelegated
       accept EvWorkerReturn
@@ -625,7 +650,10 @@ package MemNetBehaviour {
       then workerAwaitingPinMap;
 
     state workerTurnDone {
-      doc /* Facts in shared session; concise return to parent; no parent poll. */
+      doc /*
+        Facts in session; concise return. EvWorkerReturn is raised by the
+        agent host when the worker finishes (async), not by parent poll.
+      */
     }
     transition worker_next_turn
       first workerTurnDone
@@ -637,11 +665,13 @@ package MemNetBehaviour {
 
   state def MultitaskMissionCycle {
     doc /*
-      Coordinator mission over one shared session for relevant tasks only
-      (MN-REQ-12.8): multi-step, delegated, or parallelisable work.
-      Composes ParentTaskLifecycle + WorkerScopedTurn. Hosted by
-      MultitaskOperatingModel. Engine does not enforce ACL/reserve.
-      Trivial one-shots take EvTrivialSingleAgent and stay on GoldfishLoop.
+      Coordinator mission over one shared session (or explicitly separate
+      sessions) for relevant tasks only (MN-REQ-12.8): multi-step,
+      delegated, or asynchronous parallel work. Composes
+      ParentTaskLifecycle + WorkerScopedTurn + AsyncTaskDispatch.
+      Hosted by MultitaskOperatingModel. Engine does not enforce
+      ACL/reserve/WorkerWriteScope. Trivial one-shots take
+      EvTrivialSingleAgent and stay on GoldfishLoop.
     */
     entry;
     then missionIdle;
@@ -665,8 +695,9 @@ package MemNetBehaviour {
     state parentPreparing {
       doc /*
         Shared store transport (MN-REQ-12.2); pin_map; mint MissionTaskPin /
-        USR_* (EvMintParentTask); assign WorkerWriteScope; self-contained
-        worker prompt. Aligns ParentTaskLifecycle taskMinted/taskScoped.
+        USR_* (EvMintParentTask); assign WorkerWriteScope; SessionHandoffEmit;
+        self-contained worker prompts. Aligns ParentTaskLifecycle
+        taskMinted/taskScoped. Overlapping scopes → EvOverlapScopeForbidden.
       */
     }
     transition prepare_pin_map
@@ -681,9 +712,17 @@ package MemNetBehaviour {
       first parentPreparing
       accept EvAssignWorkerScope
       then parentPreparing;
+    transition prepare_handoff
+      first parentPreparing
+      accept EvHandoffSessionId
+      then parentPreparing;
     transition prepare_mutate
       first parentPreparing
       accept EvMutateGraph
+      then parentPreparing;
+    transition prepare_overlap_forbidden
+      first parentPreparing
+      accept EvOverlapScopeForbidden
       then parentPreparing;
     transition prepare_to_delegated
       first parentPreparing
@@ -696,11 +735,21 @@ package MemNetBehaviour {
 
     state workersDelegated {
       doc /*
-        Parent ended turn after spawn (MN-REQ-12.6). Each worker runs
-        WorkerScopedTurn on the shared session. Prefer one worker;
-        parallel only if disjoint scopes (MN-REQ-12.5). No same-turn poll.
+        AsyncTaskDispatch: parent spawned one or more background workers
+        then EvEndCoordinatorTurn (MN-REQ-12.6 / 12.12). Each member runs
+        WorkerScopedTurn asynchronously. Prefer one worker; parallel only
+        if disjoint scopes or separate session ids (MN-REQ-12.5). No
+        same-turn poll/await of EvWorkerReturn.
       */
     }
+    transition delegated_end_turn
+      first workersDelegated
+      accept EvEndCoordinatorTurn
+      then workersDelegated;
+    transition delegated_spawn_more
+      first workersDelegated
+      accept EvDelegateWorker
+      then workersDelegated;
     transition delegated_worker_facts
       first workersDelegated
       accept EvWorkerReturn
@@ -716,14 +765,23 @@ package MemNetBehaviour {
 
     state parentReconciling {
       doc /*
-        Next coordinator turn: pin_map first; act from shared-session slice;
-        EvSettleMissionTask on parent-owned TSK_* (MN-REQ-12.3); do not redo
-        worker investigation from chat.
+        Next coordinator turn (host revival after async workers): pin_map
+        first; optional SessionImportReceive if separate sessions; act from
+        shared-session slice; EvSettleMissionTask on parent-owned TSK_*
+        (MN-REQ-12.3); do not redo worker investigation from chat.
       */
     }
     transition mission_reconcile_pin_map
       first parentReconciling
       accept EvPinMapRead
+      then parentReconciling;
+    transition mission_reconcile_shared_repin
+      first parentReconciling
+      accept EvSharedSessionRepin
+      then parentReconciling;
+    transition mission_reconcile_import
+      first parentReconciling
+      accept EvRequestSessionImport
       then parentReconciling;
     transition mission_reconcile_mutate
       first parentReconciling
