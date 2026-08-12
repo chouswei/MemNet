@@ -1,48 +1,71 @@
-# AgensGraph as durable store — MemNet as pin-map buffer
+# AgensGraph buffer — and why GQL must not replace Layer
 
 **Status:** consideration / architecture sketch — **not** shipped behaviour.  
 **Audience:** product developers.  
-**Thesis:** [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph) (Postgres + property graph / openCypher / partial GQL) is a natural **durable** graph store; MemNet stays the **working-memory buffer** (bounded live pin map, Write = display) between that store and the LLM. Neither replaces the other.  
-**Verdict (mission):** **strong fit.**  
-**Verdict (0.5 product):** **conditional / deferred** — optional sync adapter only after ROADMAP one-path (one remote, one dialect teach, one MemNet graph owner). **MUST NOT** teach Cypher/GQL as agent wire.
+**Buffer thesis:** [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph) (Postgres + property graph / openCypher / partial GQL) is a natural **durable** graph store; MemNet stays the **working-memory buffer** (bounded live pin map, Write = display) between that store and the LLM. Neither replaces the other.  
+**Replacement proposal:** use GQL/Cypher as the LLM wire **instead of** MemNet Layer.  
+**Verdicts:**
+
+| Question | Answer |
+|----------|--------|
+| **Can** GQL be the LLM wire? | **Technically yes** — an agent can emit Cypher/GQL straight at AgensGraph. |
+| **Should** it replace Layer for MemNet’s mission? | **No.** **MUST NOT** replace Layer teach with GQL as agent wire. |
+| Buffer + AgensGraph (store-side only) | **Strong mission fit**; **deferred** past ROADMAP 0.5 one-path. |
+
+Mission constraints (unchanged): agent memory; Write = display; bounded `pin_map`; Layer NODE \| EDGE as 1.x teach; one dialect teach in 0.5.
 
 ---
 
-## 1. Why strong fit
+## 1. MUST NOT replace Layer with GQL as agent wire
 
-| Layer | Job | Surface |
-|-------|-----|---------|
-| **LLM** | Turn reasoning | Reads bounded pin-map text; writes mutate lines |
-| **MemNet** | Agent working memory | Session graph; `pin_map` / `add` / `update`; Layer dialect |
-| **AgensGraph** | Durable multi-model DB | ACID Postgres + graph labels; SQL + openCypher (+ partial GQL) |
+**Can:** yes. LLMs already know Cypher-shaped ASCII; AgensGraph accepts openCypher (+ partial GQL). Nothing stops a thin “run this query” MCP.
 
-MemNet’s mission is already “between LLM call pipelines and data search.” AgensGraph is a concrete **search / persistence** backend: enterprise transactions, relational+graph coexistence, indexes, bulk load — not an LLM turn dialect. Putting MemNet in the middle preserves Write = display and token-bounded ego slices while leaving long-lived topology and analytics where they belong.
+**Should (for MemNet):** **no as replacement.** Crisp reasons:
+
+1. **GQL `RETURN` tables ≠ Write = display.** Binding tables are DBA/analytics I/O. MemNet’s primary read is **graph lines** in the same shapes agents write — a bounded pin map, not columnar result sets.
+2. **DBA query language ≠ agent mutate dialect.** Layer carries dual EDGE (bind / relation), law-on-NODE, view budgets (`shell` / `interior`), `NEW` mint, and goldfish re-read. GQL/`MATCH`/`MERGE` do not teach that contract; forcing them onto the agent collapses mission semantics into general graph SQL.
+3. **Replacement collapses the buffer thesis.** If the LLM speaks store dialect directly, MemNet becomes a thin proxy — or disappears. The product value is the **working-memory buffer**, not a Cypher relay.
+4. **ROADMAP 0.5 one dialect teach.** Layer is the 1.x surface; Tier A is legacy alias only. GQL-as-wire is a third dialect (or a hostile overwrite of Layer).
+
+**Where GQL does belong:** AgensGraph / durable store side; optional sync adapter that **maps** Layer ↔ property-graph rows; contributor crosswalk in [`gql-consideration.md`](gql-consideration.md). **Never** primary agent teach for 0.5.
 
 ---
 
-## 2. Architecture sketch
+## 2. Correct architecture (keep)
 
 ```text
-  LLM  ←→  MemNet MCP (pin_map / mutate / session)
+  LLM  ←→  MemNet (Layer: pin_map / mutate / session)
               │
               │  optional sync / hydrate / flush
-              │  (adapter owns mapping; not agent wire)
+              │  (adapter owns GQL/Cypher; not agent wire)
               ▼
          AgensGraph (durable property graph)
 ```
 
 | Path | Role |
 |------|------|
-| **LLM ↔ MemNet** | Always: goldfish loop; Layer lines only |
+| **LLM ↔ MemNet** | Always: goldfish loop; **Layer lines only** |
 | **MemNet → AgensGraph** | Optional **flush** of settled / durable subgraphs |
 | **AgensGraph → MemNet** | Optional **hydrate** / re-anchor into a session pin budget |
-| **LLM ↔ AgensGraph direct** | Out of MemNet teach — DBA / app / AgensGraph-AI tooling |
+| **LLM ↔ AgensGraph (GQL direct)** | Out of MemNet teach — DBA / app / AgensGraph-AI tooling |
 
-Sync is an **engine or sidecar adapter**, not a third teach dialect and not a second MCP story for agents.
+Sync is an **engine or sidecar adapter**, not a second teach dialect and not “GQL skills for agents.”
 
 ---
 
-## 3. What stays where
+## 3. Why the buffer still fits (when Layer stays)
+
+| Surface | Job |
+|---------|-----|
+| **LLM** | Turn reasoning from bounded pin-map text; mutate in Layer |
+| **MemNet** | Agent working memory — session graph; Write = display |
+| **AgensGraph** | Durable multi-model DB — ACID, SQL + openCypher (+ partial GQL) |
+
+MemNet’s mission is already “between LLM call pipelines and data search.” AgensGraph is a concrete persistence/search backend. Keeping Layer on the LLM side preserves tokens and Write = display; GQL stays where it earns its keep.
+
+---
+
+## 4. What stays where
 
 | Stays in **MemNet** | Stays in **AgensGraph** |
 |---------------------|-------------------------|
@@ -50,54 +73,53 @@ Sync is an **engine or sidecar adapter**, not a third teach dialect and not a se
 | Session / mission working set (`TSK_*`, turn state) | Cross-session durable domain graph |
 | Write = display mutate (`+` / `~` / `-`, `NEW` mint) | Cypher/`MERGE`, SQL, constraints, triggers |
 | Multitask shared session on one MemNet owner | Multi-client ACID writes, backups, PostGIS, etc. |
-| Token-shaped ego reads | Analytics, multi-hop search, unlabelled scans (planner) |
+| Token-shaped ego reads | Analytics, multi-hop search, unlabelled scans |
 
-**MUST NOT** dump AgensGraph query result tables into the agent as primary read — that fights Write = display (same non-analogue as GQL `RETURN`).
+**MUST NOT** dump AgensGraph `RETURN` tables into the agent as primary read.
 
 ---
 
-## 4. GQL **map** stance (not teach as wire)
+## 5. GQL map stance (store-side only)
 
-This buffer story **uses** the GQL map stance in [`gql-consideration.md`](gql-consideration.md):
+Uses [`gql-consideration.md`](gql-consideration.md):
 
 | Construct | Where it lives |
 |-----------|----------------|
 | Property graph NODE \| EDGE | Both — same family |
 | `MATCH` / path algebra / binding `RETURN` | **AgensGraph** (and tooling) only |
 | Bounded `pin_map(anchor=…)` | **MemNet** agent wire only |
-| Label / property crosswalk | Adapter map (ids, kinds, edge labels) — documented, not taught as Layer syntax |
+| Label / property crosswalk | Adapter map — not Layer teach syntax |
 | ASCII `(n)-[:R]->(m)` vs MemNet `[Id]` / `--label-->` | **Do not harmonise** agent wire toward Cypher parentheses |
-
-AgensGraph (and ISO GQL / openCypher) remain the **durable query language** story. Layer remains the **only 1.x agent teach surface.** Mapping happens in the sync adapter.
 
 ---
 
-## 5. Risks
+## 6. Risks
 
 | Risk | Mitigation |
 |------|------------|
-| **Two writers** | One **authoritative write path per concern**: LLM mutates MemNet; durable flush is single-writer (or explicit conflict policy). Do not dual-write the same mission from HTTP MCP *and* TCP serve *and* AgensGraph clients without an owner. Aligns with ROADMAP “one graph owner” for the MemNet side. |
-| **Sync lag / identity drift** | Stable external keys in AgensGraph; MemNet session ids may be ephemeral. Adapter records locator map; settle before flush. |
-| **Token blow-up** | Hydrate only into pin budget; never “SELECT * then paste.” Prefer re-anchor + bounded `pin_map`. |
-| **Third dialect** | Agents never see Cypher/GQL in skills as wire. ROADMAP 0.5 one-path unchanged. |
-| **Scope creep into 0.5** | Buffer + AgensGraph adapter = **Open / post one-path**. Ship one-path (remote, Layer teach, MemNet store owner) first. |
+| **Replace Layer with GQL** | Rejected — see §1. Map only. |
+| **Two writers** | LLM mutates MemNet; durable flush single-writer (or explicit conflict policy). Aligns with ROADMAP one MemNet graph owner. |
+| **Sync lag / identity drift** | Stable external keys in AgensGraph; adapter locator map; settle before flush. |
+| **Token blow-up** | Hydrate into pin budget only; never paste full query tables. |
+| **Scope creep into 0.5** | Buffer adapter = Open / post one-path. Ship Layer teach + one remote first. |
 
 ---
 
-## 6. Stance for ROADMAP / Open
+## 7. Stance for ROADMAP / Open
 
-- **Mission:** strong fit — MemNet as working-memory buffer; AgensGraph as optional durable graph DB.  
-- **0.5:** do not implement or teach AgensGraph sync as part of one-path.  
-- **Later:** optional adapter (hydrate / flush) under grammar Open; keep GQL/Cypher off agent wire.
+- **Replacement:** **no** — GQL/Cypher **MUST NOT** replace Layer as agent wire.  
+- **Buffer:** strong mission fit; AgensGraph optional durable store behind MemNet.  
+- **0.5:** one dialect teach = Layer; no AgensGraph sync required to ship one-path.  
+- **Later:** optional adapter (hydrate / flush); GQL remains store-side / map-doc only.
 
 ---
 
-## 7. Related
+## 8. Related
 
 | Path | Role |
 |------|------|
-| [`gql-consideration.md`](gql-consideration.md) | GQL vs Layer: map, not teach as wire |
+| [`gql-consideration.md`](gql-consideration.md) | GQL vs Layer: map, not teach; replacement rejected |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; Open pointer |
 | [`memnet-multi-layer.md`](memnet-multi-layer.md) | Layer / stratified pin maps |
-| [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (MemNet-only surface) |
+| [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (Layer teach) |
 | [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph) | Durable Postgres + property/openCypher graph |

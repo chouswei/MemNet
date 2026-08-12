@@ -52,9 +52,9 @@ CLI clients and Cursor `url` clients **MUST** see one session graph.
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog. Not blocked by one-path, not claimed here.
 
-**GQL (ISO/IEC 39075):** **consider / map, not teach as wire.** Crosswalk SSOT: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). Verdict for 0.5 = **map** (later selective borrow only). **MUST NOT** add GQL/`MATCH`/`RETURN` as a third dialect beside Layer.
+**GQL (ISO/IEC 39075):** **consider / map, not teach as wire.** Crosswalk SSOT: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). Verdict for 0.5 = **map** (later selective borrow only). **MUST NOT** add GQL/`MATCH`/`RETURN` as a third dialect beside Layer. **MUST NOT** replace Layer teach with GQL as agent wire (replacement rejected in the same crosswalk + [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) §1).
 
-**AgensGraph (durable buffer thesis):** MemNet as working-memory / pin-map buffer in front of a durable Postgres+property-graph store is a **strong mission fit**, deferred past one-path. Sketch SSOT: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** teach Cypher/GQL as agent wire or dual-write without a single sync owner.
+**AgensGraph (durable buffer thesis):** MemNet as working-memory / pin-map buffer in front of a durable Postgres+property-graph store is a **strong mission fit**, deferred past one-path. Correct stack remains LLM ↔ Layer/`pin_map` ↔ optional sync ↔ AgensGraph (GQL/Cypher **store-side only**). Sketch SSOT: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
 
 ---
 
@@ -65,7 +65,7 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 | [`../README.md`](../README.md) | How to run (one path) + gaps pointer |
 | [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) §8 Open | Dialect / grain deferred bullets |
 | [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: map, not teach as wire |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph durable store; MemNet pin-map buffer (Open) |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; reject GQL as Layer replacement (Open) |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary; local optional |

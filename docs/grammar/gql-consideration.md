@@ -22,6 +22,8 @@
 
 GQL is a **declarative database query language** (SQL’s cousin for property graphs). MemNet Layer is an **LLM shared dialect** for the same shapes on read and write. Same family of graphs; different job.
 
+**Replacement rejected:** using GQL/Cypher **instead of** Layer as the LLM wire is **technically possible** but **wrong for MemNet’s mission**. GQL `RETURN` tables are not Write = display pin maps; a DBA query language is not an agent mutate dialect (dual EDGE, law-on-NODE, view budgets); and speaking store dialect directly **collapses** the MemNet-as-buffer thesis into a thin proxy. **MUST NOT** replace Layer teach with GQL for 0.5 (or as the 1.x agent surface). GQL belongs on the durable store / sync-adapter side — see [`agensgraph-buffer.md`](agensgraph-buffer.md).
+
 ---
 
 ## 2. Consideration matrix
@@ -90,7 +92,7 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 | Path | Role |
 |------|------|
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; Open pointer |
-| [`agensgraph-buffer.md`](agensgraph-buffer.md) | AgensGraph durable store; MemNet as pin-map buffer (map stance applied) |
+| [`agensgraph-buffer.md`](agensgraph-buffer.md) | AgensGraph buffer; MUST NOT replace Layer with GQL as agent wire |
 | [`memnet-multi-layer.md`](memnet-multi-layer.md) | Layer SSOT; §8 Open |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared-dialect spine |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (Layer teach) |
