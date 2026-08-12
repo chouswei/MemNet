@@ -13,12 +13,12 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | Doc | Role |
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; as-is engine until M2) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2** |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2**, then **M2.5** durable store |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer sketch |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter sketch (**planned M2.5**) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |

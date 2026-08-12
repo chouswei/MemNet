@@ -8,23 +8,24 @@
 
 **Context**
 
-MemNet (Net of Memory) is an agent memory product: bounded live pin map, goldfish re-read, Multitask shared sessions. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / Tier A alias), with ISO GQL / openCypher held to a map and to the durable-store side (AgensGraph buffer sketch).
+MemNet (Net of Memory) is **shared working memory for LLMs**: multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A MemNet **session** can be SSOT for a mission / that shared memory — LLM handoff = **session id** (+ anchors / write scope); peers re-`pin_map`; chat is never SSOT ([`../multi-agent-sessions.md`](../multi-agent-sessions.md)). A durable online GQL store may sit **behind** sessions; it does not replace MemNet or the session handle for handoff, and is not the default agent teach surface. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / Tier A alias), with ISO GQL / openCypher held to a map and to the durable-store side (AgensGraph buffer sketch).
 
 Three pressures reversed the prior “map only; MUST NOT teach GQL as wire” stance:
 
 1. **Training priors.** LLMs already know Cypher-shaped ASCII (`MATCH` / `CREATE` / `(n)-[:R]->(m)`). Invent-syntax errors and teach cost for Layer remain higher than for openCypher-shaped GQL.
-2. **AgensGraph buffer.** The durable thesis (MemNet as working-memory buffer in front of Postgres + property graph) is stronger when agent and store speak the **same family** of query language.
+2. **Durable backing alignment.** Shared LLM memory plus optional AgensGraph backing is stronger when agent wire and store speak the **same family** of query language — without collapsing MemNet into a store proxy.
 3. **Layer cost.** Maintaining Layer as teach (ANTLR, skills, application notes, codec paths) is real product cost — now **retired from doctrine**, not kept as a soft accept story.
 
-This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as agent wire** with **GQL (openCypher-shaped, AgensGraph-compatible)**. Brand and product remain MemNet.
+This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as agent wire** with **GQL (openCypher-shaped, AgensGraph-compatible)**. Brand and product remain MemNet — shared LLM working memory, not a Cypher proxy.
 
 **Decision**
 
 1. **Agent teach / wire = GQL (openCypher-shaped) only.**
-2. **MemNet remains the product name** (engine, MCP, sessions, Multitask ops). Pin-map *concept* = bounded shaped GQL subgraph via `pin_map`-class tool.
+2. **MemNet remains the product** — shared working memory for LLMs (engine, MCP, sessions, Multitask). Pin-map *concept* = bounded shaped GQL subgraph via `pin_map`-class tool. A **session** is the SSOT handle for a mission: handoff = session id (+ anchors / scope); peers re-`pin_map`; chat is never SSOT.
 3. **Layer / Tier A = archived historical only** — not 1.x teach, not legacy-accept dual path. Sources under `docs/grammar/archive/`.
 4. **Write = display redefined on GQL:** shaped subgraph emit — not raw tabular `RETURN`. Locked: **B with A’s emit shape** ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)).
 5. **Do not invent a third peer dialect.**
+6. **Durable store (M2.5) backs sessions** — hydrate/flush with one sync owner; **MUST NOT** replace the session handle for agent handoff, teach LLM↔store direct, or MemNet-as-Cypher-proxy as the goldfish path.
 
 **Alternatives Considered**
 
@@ -32,7 +33,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 |--------|----------------|
 | **Keep Layer as 1.x wire; GQL map/store-side only** | Rejected — training prior + AgensGraph alignment. |
 | **Dual teach / long Layer-accept era** | Rejected by supersession — doubles skills and error modes; user directed **no Layer**. |
-| **Thin Cypher relay only (drop MemNet buffer)** | Collapses product value. |
+| **Thin Cypher relay only (drop MemNet / “just a proxy”)** | Collapses shared LLM working memory — product value gone. |
 | **Full ISO GQL DDL on agent wire in first cut** | Deferred. First cut = openCypher-shaped CRUD + bounded shaped read. |
 
 **Consequences**
@@ -48,21 +49,26 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 - In-repo playbook / application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL. **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) are migrating to GQL-only in `chouswei/cursor-user-skills` **in flight separately** — not owned by this product-repo PR.
 - Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
-**Non-goals for first cut**
+**Non-goals for first cut (M1–M2 wire)**
 
 - Full application-notes body rewrite (M3).
-- Ship AgensGraph sync adapter.
 - Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
 - Revive Layer as accept path.
+- Ship AgensGraph sync as required for **M1/M2** wire (adapter is **M2.5**, not M1/M2).
 
-**Migration plan (updated)**
+**Migration plan (updated 2026-08-13)**
+
+User promotion (2026-08-13): durable online GQL store adapter is the **next notch after M2** — named **M2.5** so M3 (in-repo playbook / app-notes) does not block it.
 
 | Phase | Action |
 |-------|--------|
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
+| **M2.5** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Not shipped** until implemented. **MUST NOT** reframe MemNet as a Cypher proxy. |
 | **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
+
+**Order:** M1 → M2 → **M2.5** → M3. **MUST NOT** bury the adapter past all of 0.5 or treat it as deferred forever.
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
@@ -70,7 +76,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT**
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
-- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable buffer sketch
-- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan
+- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
+- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; phase order M2 → M2.5 → M3
 - [ISO/IEC 39075:2024 GQL](https://www.iso.org/standard/76120.html)
 - [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph)

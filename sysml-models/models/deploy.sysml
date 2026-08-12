@@ -11,7 +11,7 @@
     │   └── LegacyLayerCodec migration accept only (Tier A / Layer)
     ├── TransportBoundary    InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer
-    ├── DurableBuffer        AgensGraphAdapter (roadmap)
+    ├── DurableBuffer        AgensGraphAdapter (planned M2.5, after M2)
     ├── PinMapRoadmap
     └── MultitaskOperatingModel
 

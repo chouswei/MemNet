@@ -1,12 +1,12 @@
 # GQL wire profile (MemNet 1.x agent teach)
 
 **Status:** **M1 SSOT** — agent teach / wire profile. Docs-only until **M2** (engine/MCP).  
-**Audience:** product developers; M2 implementers; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
+**Audience:** product developers; M2 implementers; M2.5 durable-store authors; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
 **Brand:** MemNet (Net of Memory). **Dialect:** **GQL only** (openCypher-shaped, AgensGraph-compatible).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
 **British English.** ASCII ids.
 
-**Pointer chain:** ADR-001 → **this file** → (optional) AgensGraph buffer sketch [`agensgraph-buffer.md`](agensgraph-buffer.md).
+**Pointer chain:** ADR-001 → **this file** → AgensGraph / durable store sketch [`agensgraph-buffer.md`](agensgraph-buffer.md) (**M2.5**).
 
 ---
 
@@ -145,7 +145,8 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.
 - Dual-teach two agent dialects.
 - Delete mission budgets (sessions, view, Multitask owner) in favour of raw store access.
-- Ship AgensGraph sync or DDL teach as required for M1/M2 wire.
+- Ship AgensGraph sync as required for **M1/M2** wire (sync = **M2.5**; plan only until then).
+- Teach full GQL DDL as agent surface in first cut.
 
 ---
 
@@ -187,17 +188,20 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 ---
 
-## 6. Boundary vs M2 / M3 / archive
+## 6. Boundary vs M2 / M2.5 / M3 / archive
+
+**Order:** M1 → M2 → **M2.5** → M3. Durable store adapter is **next after M2** (user promotion 2026-08-13).
 
 | Phase | Owns | This file does **not** |
 |-------|------|-------------------------|
-| **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon |
+| **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; retire as-is Layer/Tier A **codec** from product path | — |
+| **M2.5** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach |
 | **M3** | In-repo `LLM-GUIDE` full playbook + application-notes body rewrite to GQL examples | — |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
 
-**As-is note (honest):** 0.4.x Python may still parse legacy line dialects until M2 lands. That is **implementation lag**, not doctrine. In-repo docs **MUST** teach GQL only from M1 forward.
+**As-is note (honest):** 0.4.x Python may still parse legacy line dialects until M2 lands. That is **implementation lag**, not doctrine. In-repo docs **MUST** teach GQL only from M1 forward. **M2.5** is plan-only until the adapter ships.
 
 ---
 
@@ -208,7 +212,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path; dialect = GQL |
 | [`gql-model-exam.md`](gql-model-exam.md) | SysML nesting exam |
-| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable buffer sketch |
+| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |

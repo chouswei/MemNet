@@ -37,7 +37,7 @@ MemNetSystem
 │   └── CliFacade
 ├── MemNetMcpServer
 ├── DurableBuffer
-│   └── AgensGraphAdapter                     // roadmap
+│   └── AgensGraphAdapter                     // planned M2.5 (after M2)
 ├── PinMapRoadmap
 └── MultitaskOperatingModel
 ```
@@ -47,7 +47,7 @@ MemNetSystem
 - **AgentMemory:** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle (remove as-is TierA codecs in M2)
 - **Transport:** InProcessEngine, LocalIpcGateway, TcpServeBridge
 - **MCP:** McpFacade, ServeBridge, LawSeedHelper
-- **DurableBuffer:** AgensGraphAdapter (roadmap)
+- **DurableBuffer:** AgensGraphAdapter (planned **M2.5**, after M2)
 - **Multitask (MN-REQ-12):** MultitaskOperatingModel
 - **Deprecated:** LegacyPipeImport (not nested)
 - **Out of scope:** novel-writer
