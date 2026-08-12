@@ -28,7 +28,7 @@ MemNetSystem
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter      ← roadmap
+├── DurableBuffer → AgensGraphAdapter      ← planned M2.5
 ├── PinMapRoadmap
 └── MultitaskOperatingModel
 ```
@@ -42,7 +42,7 @@ MemNetSystem
 | **GQL-only wire unambiguous?** | **Pass** | Profile + ADR supersession: no Layer teach/accept. |
 | **Write=display / shaped pin_map?** | **Pass** | `PinMapShapedRead` + shaped subgraph; no raw `RETURN` primary. |
 | **Dual EDGE / law / ports frozen?** | **Pass** | `:bind` + `fromPort`/`toPort`; `law` on node — [`gql-wire-profile.md`](gql-wire-profile.md). |
-| **Gaps?** | **M2** | As-is Python still old codec until M2; skills/app-note bodies until M3. |
+| **Gaps?** | **M2 → M2.5 → M3** | As-is Python until M2; durable store adapter **M2.5**; app-note bodies until M3. |
 
 ---
 
@@ -50,7 +50,7 @@ MemNetSystem
 
 **Pass** for model + M1 profile clarity: GQL is the only agent wire; shaped `pin_map` owns redefined Write = display.
 
-**Next:** **M2** (engine/MCP GQL accept + shaped emit).
+**Next:** **M2** (engine/MCP GQL accept + shaped emit), then **M2.5** durable GQL store adapter, then **M3** in-repo docs.
 
 ## Related
 
@@ -58,5 +58,6 @@ MemNetSystem
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | M1 SSOT |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Next: M2 |
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Next: M2 → M2.5 → M3 |
+| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable store sketch (**M2.5**) |
 | [`archive/README.md`](archive/README.md) | Quarantined Layer sources |

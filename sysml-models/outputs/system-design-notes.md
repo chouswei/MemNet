@@ -36,7 +36,7 @@ MemNetSystem
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer → McpFacade / ServeBridge / LawSeedHelper
-├── DurableBuffer → AgensGraphAdapter            // roadmap
+├── DurableBuffer → AgensGraphAdapter            // planned M2.5
 ├── PinMapRoadmap → PinMapIngest_*
 └── MultitaskOperatingModel
 ```
@@ -74,7 +74,7 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | **Remove in M2** — not doctrine |
 | PinMapShapedRead | `pin_map_composer.py` | As-is emit; target shaped GQL |
 | MutateGate | `mutate_gate.py` | GQL path in M2 |
-| AgensGraphAdapter | — | Roadmap |
+| AgensGraphAdapter | — | Planned **M2.5** (after M2) |
 | MultitaskOperatingModel | agent doctrine | As-is MN-REQ-12 |
 
 ## Satisfy coverage
@@ -99,6 +99,7 @@ Code module map: [`parts/README.md`](../../parts/README.md).
 
 - **M1:** GQL wire profile — **done** ([`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md)); Layer docs archived
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; **remove** as-is Layer/Tier A codec from product path
+- **M2.5:** Durable online GQL store adapter (AgensGraph hydrate/flush) — [`../../docs/grammar/agensgraph-buffer.md`](../../docs/grammar/agensgraph-buffer.md); plan only
 - As-is Python still on old line codec — implementation lag until M2 (not dual-teach)
 - `LocalIpcFlow` when LocalIpcGateway is implemented
 - PinMapIngest_* deterministic locators

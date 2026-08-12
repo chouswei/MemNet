@@ -48,21 +48,26 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 - In-repo playbook / application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL. **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) are migrating to GQL-only in `chouswei/cursor-user-skills` **in flight separately** — not owned by this product-repo PR.
 - Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
-**Non-goals for first cut**
+**Non-goals for first cut (M1–M2 wire)**
 
 - Full application-notes body rewrite (M3).
-- Ship AgensGraph sync adapter.
 - Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
 - Revive Layer as accept path.
+- Ship AgensGraph sync as required for **M1/M2** wire (adapter is **M2.5**, not M1/M2).
 
-**Migration plan (updated)**
+**Migration plan (updated 2026-08-13)**
+
+User promotion (2026-08-13): durable online GQL store adapter is the **next notch after M2** — named **M2.5** so M3 (in-repo playbook / app-notes) does not block it.
 
 | Phase | Action |
 |-------|--------|
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
+| **M2.5** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Not shipped** until implemented. |
 | **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
+
+**Order:** M1 → M2 → **M2.5** → M3. **MUST NOT** bury the adapter past all of 0.5 or treat it as deferred forever.
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
@@ -70,7 +75,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT**
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
-- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable buffer sketch
-- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan
+- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable GQL store sketch (**M2.5**)
+- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; phase order M2 → M2.5 → M3
 - [ISO/IEC 39075:2024 GQL](https://www.iso.org/standard/76120.html)
 - [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph)
