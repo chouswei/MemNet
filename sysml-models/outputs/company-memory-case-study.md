@@ -1,5 +1,7 @@
 # Case study: Company analytical SSOT (SharedLlmMemory application)
 
+**Shelf:** application example (on SharedLlmMemory)
+
 Evidence walk for **application Role D** — MemNet as company analytical memory — against `sysml-models/models/`.  
 Companion: [system-design-notes.md](system-design-notes.md), [session-import-case-study.md](session-import-case-study.md).  
 **Wire:** GQL / shaped `pin_map` only (ADR-001). No Layer ASCII.

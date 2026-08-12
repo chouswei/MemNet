@@ -1,5 +1,7 @@
 # Case study: durable hydrate / flush (M2.5 roadmap)
 
+**Shelf:** product canon
+
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 

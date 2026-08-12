@@ -4,7 +4,11 @@ Target architecture notes from nested `deploy.sysml` / `behaviour.sysml` / `conn
 Novel-writer is out of scope.
 
 **Exam:** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).  
-**Case studies:** [multitask](multitask-case-study.md) · [session-import](session-import-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [snapshot passport](snapshot-passport-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [company-memory](company-memory-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md).
+**Case-study shelves:** [outputs/README.md](README.md) — **product canon** (mechanism) vs **application examples** (patterns on SharedLlmMemory). Do not flatten application studies as peer product cores.
+
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [NEW mint](new-mint-batch-case-study.md).
+
+**Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md).
 
 ## Product framing (2026-08-13)
 
@@ -21,15 +25,28 @@ Novel-writer is out of scope.
 
 ## Application patterns (not second products)
 
+Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism studies (Multitask, import, mint, snapshot, durable, TCP) are listed separately in [README.md](README.md); do not treat them as peer “extra products.”
+
 | Pattern | Item / study |
 |---------|----------------|
 | Company analytical SSOT | `CompanyAnalyticalSsot` → [company-memory-case-study.md](company-memory-case-study.md) |
+| Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
-| Lead imports member WM | Nested ImportGuard/Absorb -> [session-import-case-study.md](session-import-case-study.md) |
-| Async parallel Multitask | AsyncTaskDispatch + WorkerPool → [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) |
-| Durable hydrate/flush | DurableBuffer M2.5 → [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
-| Snapshot passport | SnapshotStore save/load → [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
-| SysML modelling goldfish | TSK_model_memnet loop → [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |
+| Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
+| Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
+| SysML modelling goldfish (MBSE meta) | TSK_model_memnet loop → [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |
+
+### Product-canon pointers (mechanism)
+
+| Mechanism | Study |
+|-----------|--------|
+| Goldfish / chat ≠ SSOT | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) |
+| Multitask + async companion | [multitask-case-study.md](multitask-case-study.md) · [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) |
+| Multitask transport | [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) |
+| Lead imports member WM (path B) | [session-import-case-study.md](session-import-case-study.md) |
+| Snapshot passport | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
+| Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
+| `NEW` mint batch | [new-mint-batch-case-study.md](new-mint-batch-case-study.md) |
 
 ## Nesting outline
 

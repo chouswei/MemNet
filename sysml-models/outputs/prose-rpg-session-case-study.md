@@ -1,5 +1,7 @@
 # Case study: Prose RPG beat on SharedLlmMemory (novel-cut patterns)
 
+**Shelf:** application example (on SharedLlmMemory)
+
 Evidence walk translating **novel-cut** goldfish / beat-pipeline patterns onto MemNet product SysML.  
 **MUST NOT** revive md_triple / Layer / novel-writer dialect. Agent wire = **GQL + shaped pin_map** only (ADR-001).  
 Companion: [system-design-notes.md](system-design-notes.md), [session-import-case-study.md](session-import-case-study.md), [company-memory-case-study.md](company-memory-case-study.md).
