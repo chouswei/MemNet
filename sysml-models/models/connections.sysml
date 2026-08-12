@@ -25,6 +25,16 @@ package MemNetConnections {
     */
   }
 
+  item def CompanyAnalyticalSsot {
+    doc /*
+      Application pattern (not a second product): SharedLlmMemory hosts a
+      company analytical SSOT ego (e.g. COM_2330_TPE) — news, findings, and
+      analyse-loop writes accumulate in-session. Dual SSOT: MemNet = agent
+      analytical memory; user ledger / price bars stay out of MemNet.
+      See outputs/company-memory-case-study.md.
+    */
+  }
+
   item def MissionWorkingSet {
     doc /*
       Opaque mission / programme SOMETHING whose SSOT is a named session.

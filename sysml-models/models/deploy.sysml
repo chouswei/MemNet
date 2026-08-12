@@ -71,13 +71,14 @@ package MemNet {
   part def GqlCodec {
     doc /*
       Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
-      GQL under MemNet gates. External dialect authority = openCypher CIP tree
-      + oC9 baseline (adopted/testable CIPs); ISO/IEC 39075 for GQL-native
-      features — agent surface remains MemNet-gated (pin_map + mutate subset),
-      not full openCypher / every CIP. Mutate accepts GQL patterns; pin_map
-      emit is a shaped subgraph (same graph family — redefined Write = display).
-      MUST NOT treat raw tabular RETURN as primary goldfish read.
-      Target; engine accept path lands in ADR migration M2.
+      GQL under MemNet gates. External dialect authority:
+        - openCypher CIP tree (github.com/opencypher/openCypher/tree/main/cip)
+        - oC9 baseline under cip/0.baseline (adopted/testable CIPs)
+        - ISO/IEC 39075 for GQL-native features
+      Agent surface remains MemNet-gated (pin_map + mutate subset) — not full
+      openCypher / every CIP. Mutate accepts GQL patterns; pin_map emit is a
+      shaped subgraph (Write = display). MUST NOT treat raw tabular RETURN as
+      primary goldfish read. Target; engine accept path lands in M2.
       Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
     */
     port gqlIn : GqlWireInPort;
@@ -626,10 +627,11 @@ package MemNet {
   part def ImportGuard {
     doc /*
       Cheap-LLM soft reviewer nested under SessionImportReceive, before
-      ImportAbsorb. Soft checks: assigned scope?, junk/off-mission?, invented
-      ids vs copy-from-pin_map?, oversized / settle noise?. Outcomes: allow /
-      trim / reject + short reason (ImportGuardDecision). MUST NOT replace
-      engine hard gates. MUST NOT make guard chat the SSOT. costTier =
+      ImportAbsorb — same role class as an evidence librarian (soft gate
+      before catalog/absorb). Soft checks: assigned scope?, junk/off-mission?,
+      invented ids vs copy-from-pin_map?, oversized / settle noise?. Outcomes:
+      allow / trim / reject + short reason (ImportGuardDecision). MUST NOT
+      replace engine hard gates. MUST NOT make guard chat the SSOT. costTier =
       cost/latency class only (no vendor model id).
     */
     attribute doctrineAsIs : Boolean = true;
@@ -763,10 +765,10 @@ package MemNet {
 
   part def MemNetSystem {
     doc /*
-      SharedLlmMemory product: MemNet software system — nested until clear.
-      AgentMemory (via core) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (M2.5 behind sessions) + pin-map roadmap + Multitask (session-id handoff).
-      Novel-writer out of scope. LegacyPipeImport / TierACodec not nested.
+      SharedLlmMemory product. Nest: AgentMemory (via core) + Transport + MCP
+      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap + MultitaskOperatingModel
+      (Coordinator → SessionImportReceive → ImportGuard / ImportAbsorb;
+      Worker handoff + slice export). TierACodec / LegacyPipeImport not nested.
       Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;

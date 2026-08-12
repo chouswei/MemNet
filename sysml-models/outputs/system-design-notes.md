@@ -4,8 +4,7 @@ Target architecture notes from nested `deploy.sysml` / `behaviour.sysml` / `conn
 Novel-writer is out of scope.
 
 **Exam:** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).  
-**Multitask case study:** [`multitask-case-study.md`](multitask-case-study.md).  
-**Session import case study:** [`session-import-case-study.md`](session-import-case-study.md).
+**Case studies:** [multitask](multitask-case-study.md) · [session-import](session-import-case-study.md) · [company-memory](company-memory-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md).
 
 ## Product framing (2026-08-13)
 

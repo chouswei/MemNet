@@ -32,8 +32,18 @@ MultitaskOperatingModel
 | Shared LLM memory | `SharedLlmMemory` / `AgentMemory` |
 | Handoff by session id | `SessionHandoff`, `SessionHandoffById`; MN-REQ-01.7 / 01.8 / 12.1 |
 | Import receive | `SessionImportReceive` → Guard → Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
-| Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) |
+| Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) — same soft-gate class as an evidence librarian |
 | When import skipped | Path A shared session — re-`pin_map` only |
+
+```mermaid
+flowchart TB
+  W[MultitaskWorker.sliceOut] --> G[ImportGuard soft]
+  G -->|allow/trim| A[ImportAbsorb hard]
+  G -->|reject| X[importRejected]
+  A --> Lead[Lead mission session SSOT]
+```
+
+**Librarian analogy:** ImportGuard ≈ cheap evidence librarian (soft yes/no/trim) before catalog/absorb; engine schema/caps/id policy remain hard gates.
 
 ## 3. Fake mission
 
