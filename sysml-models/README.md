@@ -83,6 +83,11 @@ MemNetSystem                                 // SharedLlmMemory product
 | SysML modelling goldfish | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |
 | Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
 | Prose RPG beat (novel-cut patterns → GQL) | [outputs/prose-rpg-session-case-study.md](outputs/prose-rpg-session-case-study.md) |
+| Inverting amp bind vs relation (ego `CST_U1`) | [outputs/inverting-amp-bind-relation-case-study.md](outputs/inverting-amp-bind-relation-case-study.md) |
+| Tech docs / SCPI atomisation | [outputs/tech-docs-scpi-case-study.md](outputs/tech-docs-scpi-case-study.md) |
+| TCP / streamable-http shared Multitask | [outputs/tcp-shared-multitask-case-study.md](outputs/tcp-shared-multitask-case-study.md) |
+| `NEW` mint batch (IdAllocator) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
+| Goldfish chat desync → re-pin | [outputs/goldfish-chat-desync-case-study.md](outputs/goldfish-chat-desync-case-study.md) |
 
 ## Live pin map (MN-REQ-04)
 

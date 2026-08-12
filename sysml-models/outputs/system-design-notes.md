@@ -4,7 +4,7 @@ Target architecture notes from nested `deploy.sysml` / `behaviour.sysml` / `conn
 Novel-writer is out of scope.
 
 **Exam:** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).  
-**Case studies:** [multitask](multitask-case-study.md) · [session-import](session-import-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [snapshot passport](snapshot-passport-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [company-memory](company-memory-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md).
+**Case studies:** [multitask](multitask-case-study.md) · [session-import](session-import-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [snapshot passport](snapshot-passport-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [company-memory](company-memory-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [TCP shared Multitask](tcp-shared-multitask-case-study.md) · [NEW mint](new-mint-batch-case-study.md) · [chat desync](goldfish-chat-desync-case-study.md).
 
 ## Product framing (2026-08-13)
 
@@ -30,6 +30,11 @@ Novel-writer is out of scope.
 | Durable hydrate/flush | DurableBuffer M2.5 → [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Snapshot passport | SnapshotStore save/load → [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
 | SysML modelling goldfish | TSK_model_memnet loop → [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |
+| Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
+| Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
+| Multitask shared transport | TcpServeBridge / MN-REQ-12.2 → [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) |
+| `NEW` mint batch | IdAllocator / MutateWithNew → [new-mint-batch-case-study.md](new-mint-batch-case-study.md) |
+| Chat desync recovery | Re-pin after stale chat → [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) |
 
 ## Nesting outline
 

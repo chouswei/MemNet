@@ -18,5 +18,10 @@ Derived views from `sysml-models/models/`. Model-first; sync here after structur
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | `TSK_model_memnet` pin_map -> edit -> validate -> MemNet delta | `GoldfishLoop` + SharedLlmMemory; serve_down skip |
 | [company-memory-case-study.md](company-memory-case-study.md) | Company analytical SSOT on SharedLlmMemory (`COM_*`) | Investor Role D; dual SSOT; analyse loop |
 | [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | One RPG beat: pin_map -> option -> validate -> mutate -> re-pin_map | Novel-cut goldfish / beat pipeline (GQL only) |
+| [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) | Dual-EDGE `:bind`+ports vs bare relation; law on node; ego `CST_U1` | `BindRelationship` / `LawOnNode` / `PinMapShapedRead` |
+| [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) | Atomise SCPI manual; pin_map one subsection | SharedLlmMemory doc working set; GQL `:precedes` |
+| [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | Parent+worker on TCP / streamable-http; in-process anti | MN-VER-12-S02; `TcpServeBridge` / handoff |
+| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | `id: 'NEW'` create → response ids → rels; NEW illegal on settle | `IdAllocator` / `MutateWithNew`; wire §2.2 |
+| [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat trusted over pin_map; recover by re-pin | MN-REQ-10.1; Write=display |
 
 **Wire for all studies:** openCypher-shaped GQL + shaped `pin_map` (ADR-001). No Layer / md_triple teach.

@@ -91,3 +91,5 @@ flowchart TD
 | [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) | When this task fans out to workers |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Cold-start another host mid-modelling |
 | [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | Same goldfish shape in a narrative domain |
+| [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | When chat is trusted over the live pin map |
+| [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | When this task fans out over shared TCP |
