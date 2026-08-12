@@ -3,6 +3,8 @@
 **Status:** plan only (docs). **MUST NOT** treat this as shipped behaviour.  
 **Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
+**Product:** MemNet is **shared working memory for LLMs** — multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A durable online GQL store (M2.5) is **backing behind** that shared memory, not a replacement and not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
+
 **Model:** SysML + grammar for **GQL wire** (`GqlCodec` / `PinMapShapedRead`). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).  
 **M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **Next: M2** (engine/MCP GQL accept + shaped emit). **Then: M2.5** durable online GQL store adapter (AgensGraph / openCypher-family). **Then: M3** in-repo playbook / app-note rewrites.
 
@@ -16,7 +18,7 @@
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | Plan |
-| **M2.5** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | Plan — **next after M2** |
+| **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | Plan — **next after M2** |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | Plan |
 
 **Order:** M1 → M2 → **M2.5** → M3. M2.5 does **not** wait on M3. User promotion (2026-08-13): durable store adapter sits **immediately after M2**, not deferred past all of 0.5.
@@ -73,7 +75,7 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 
 **GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M2.5** schedules the durable store adapter; **M3** rewrites in-repo playbook / app-note bodies.
 
-**AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). **MUST NOT** claim shipped until the adapter lands. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct as default agent path.
+**AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). Backing graph for MemNet’s shared LLM working memory — **not** a MemNet substitute. **MUST NOT** claim shipped until the adapter lands. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, or MemNet-as-Cypher-proxy, as default agent path.
 
 ---
 
