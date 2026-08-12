@@ -1,49 +1,69 @@
-# Tier A coding seed for schema.coding.example.txt (agent-facing; not a goldfish pipe dump).
+# GQL coding seed for schema.coding.example.txt (agent dialect: gated openCypher-shaped; not a goldfish pipe dump).
 # Domain LAWs are project-local (not MCP engine LAW01–LAW05). Stable ids for docs/tests.
 
 ## Laws
-LAW-CODE01 name=SYM ; cycle=on_add ; mechanism=verify_first ; constraint=grep_or_lsp_before_first_sym_row
-LAW-CODE02 name=SYM ; cycle=on_turn ; mechanism=refresh_line ; constraint=update_line_after_every_edit
-LAW-CODE03 name=* ; cycle=on_add ; mechanism=no_bodies ; constraint=path_line_signature_not_file_text
-LAW-CODE04 name=TSK ; cycle=on_turn ; mechanism=one_active ; constraint=one_in_progress_tsk_per_session
-LAW-MEMNET01 name=* ; cycle=on_turn ; mechanism=cli_before_mcp ; constraint=wrap_existing_cli_not_reimplement
+CREATE (:LAW {id: 'LAW-CODE01', name: 'SYM', cycle: 'on_add', mechanism: 'verify_first', constraint: 'grep_or_lsp_before_first_sym_row'})
+CREATE (:LAW {id: 'LAW-CODE02', name: 'SYM', cycle: 'on_turn', mechanism: 'refresh_line', constraint: 'update_line_after_every_edit'})
+CREATE (:LAW {id: 'LAW-CODE03', name: '*', cycle: 'on_add', mechanism: 'no_bodies', constraint: 'path_line_signature_not_file_text'})
+CREATE (:LAW {id: 'LAW-CODE04', name: 'TSK', cycle: 'on_turn', mechanism: 'one_active', constraint: 'one_in_progress_tsk_per_session'})
+CREATE (:LAW {id: 'LAW-MEMNET01', name: '*', cycle: 'on_turn', mechanism: 'cli_before_mcp', constraint: 'wrap_existing_cli_not_reimplement'})
 
 ## Nodes
-+ CFG [CFG01] ; repo=MemNet ; anchor=MOD_repo_root ; version=0.2.12 ; notes=coding_session_v0_2_12
-+ MOD [MOD_repo_root] ; path=. ; summary=MemNet repo root ; status=active ; recycle=persistent
-+ MOD [MOD_cli] ; path=parts/common/memnet/memnet/cli.py ; summary=Typer CLI session commands ; status=active ; recycle=persistent
-+ MOD [MOD_mcp_server] ; path=parts/memnet-mcp/software/memnet_mcp/server.py ; summary=FastMCP tool wrappers ; status=active ; recycle=persistent
-+ MOD [MOD_mcp_client] ; path=parts/memnet-mcp/software/memnet_mcp/client.py ; summary=CLI subprocess bridge ; status=active ; recycle=persistent
-+ MOD [MOD_test_snapshot] ; path=tests/test_snapshot.py ; summary=CLI snapshot tests ; status=active ; recycle=persistent
-+ MOD [MOD_test_mcp] ; path=tests/test_mcp.py ; summary=MCP integration tests ; status=active ; recycle=persistent
-+ SYM [SYM_cli_session_save] ; name=session_save ; kind=fn ; path=parts/common/memnet/memnet/cli.py ; line=339 ; signature=def session_save(file, session=None) ; status=active ; recycle=persistent
-+ SYM [SYM_cli_session_load] ; name=session_load ; kind=fn ; path=parts/common/memnet/memnet/cli.py ; line=351 ; signature=def session_load(file, ttl, keep_id) ; status=active ; recycle=persistent
-+ SYM [SYM_mcp_session_load] ; name=session_load ; kind=fn ; path=parts/memnet-mcp/software/memnet_mcp/server.py ; line=100 ; signature=async def session_load(file, keep_id=True) ; status=active ; recycle=persistent
-+ SYM [SYM_mcp_session_save] ; name=session_save ; kind=fn ; path=parts/memnet-mcp/software/memnet_mcp/server.py ; line=120 ; signature=async def session_save(file, session=None) ; status=active ; recycle=persistent
-+ SYM [SYM_run_memnet] ; name=run_memnet ; kind=fn ; path=parts/memnet-mcp/software/memnet_mcp/client.py ; line=128 ; signature=def run_memnet(argv, stdin, session) ; status=active ; recycle=persistent
-+ TSK [TSK_mcp_session_load] ; goal=Expose session_load on memnet-mcp ; anchor=MOD_cli ; status=done ; recycle=delete_on_settle
-+ TSK [TSK_mcp_session_save] ; goal=Add session_save MCP and tests ; anchor=MOD_mcp_server ; status=done ; recycle=delete_on_settle
-+ USR [USR_keep_id] ; topic=api ; content=keep_id default true on session_load ; status=active ; recycle=persistent
-+ DEC [DEC_mcp_keep_id] ; task=TSK_mcp_session_load ; question=keep_id default on session_load ; options=true / false ; chosen=true ; recycle=delete_on_settle
+CREATE (:CFG {id: 'CFG01', repo: 'MemNet', anchor: 'MOD_repo_root', version: '0.2.12', notes: 'coding_session_v0_2_12'})
+CREATE (:MOD {id: 'MOD_repo_root', path: '.', summary: 'MemNet repo root', status: 'active', recycle: 'persistent'})
+CREATE (:MOD {id: 'MOD_cli', path: 'parts/common/memnet/memnet/cli.py', summary: 'Typer CLI session commands', status: 'active', recycle: 'persistent'})
+CREATE (:MOD {id: 'MOD_mcp_server', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', summary: 'FastMCP tool wrappers', status: 'active', recycle: 'persistent'})
+CREATE (:MOD {id: 'MOD_mcp_client', path: 'parts/memnet-mcp/software/memnet_mcp/client.py', summary: 'CLI subprocess bridge', status: 'active', recycle: 'persistent'})
+CREATE (:MOD {id: 'MOD_test_snapshot', path: 'tests/test_snapshot.py', summary: 'CLI snapshot tests', status: 'active', recycle: 'persistent'})
+CREATE (:MOD {id: 'MOD_test_mcp', path: 'tests/test_mcp.py', summary: 'MCP integration tests', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_cli_session_save', name: 'session_save', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '339', signature: 'def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_cli_session_load', name: 'session_load', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '351', signature: 'def session_load(file, ttl, keep_id)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_mcp_session_load', name: 'session_load', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '100', signature: 'async def session_load(file, keep_id=True)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_mcp_session_save', name: 'session_save', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '120', signature: 'async def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_run_memnet', name: 'run_memnet', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/client.py', line: '128', signature: 'def run_memnet(argv, stdin, session)', status: 'active', recycle: 'persistent'})
+CREATE (:TSK {id: 'TSK_mcp_session_load', goal: 'Expose session_load on memnet-mcp', anchor: 'MOD_cli', status: 'done', recycle: 'delete_on_settle'})
+CREATE (:TSK {id: 'TSK_mcp_session_save', goal: 'Add session_save MCP and tests', anchor: 'MOD_mcp_server', status: 'done', recycle: 'delete_on_settle'})
+CREATE (:USR {id: 'USR_keep_id', topic: 'api', content: 'keep_id default true on session_load', status: 'active', recycle: 'persistent'})
+CREATE (:DEC {id: 'DEC_mcp_keep_id', task: 'TSK_mcp_session_load', question: 'keep_id default on session_load', options: 'true / false', chosen: 'true', recycle: 'delete_on_settle'})
 
 ## Edges
-+ E_cfg_root [CFG01] --(contains)--> [MOD_repo_root] ; note=struct ; recycle=persistent
-+ E_cli_def_save [MOD_cli] --(defines)--> [SYM_cli_session_save] ; note=handler ; recycle=persistent
-+ E_cli_def_load [MOD_cli] --(defines)--> [SYM_cli_session_load] ; note=handler ; recycle=persistent
-+ E_srv_def_load [MOD_mcp_server] --(defines)--> [SYM_mcp_session_load] ; note=mcp_tool ; recycle=persistent
-+ E_srv_def_save [MOD_mcp_server] --(defines)--> [SYM_mcp_session_save] ; note=mcp_tool ; recycle=persistent
-+ E_client_def [MOD_mcp_client] --(defines)--> [SYM_run_memnet] ; note=bridge ; recycle=persistent
-+ E_mcp_impl_load [SYM_mcp_session_load] --(implements)--> [SYM_cli_session_load] ; note=wraps_cli ; recycle=persistent
-+ E_mcp_impl_save [SYM_mcp_session_save] --(implements)--> [SYM_cli_session_save] ; note=wraps_cli ; recycle=persistent
-+ E_mcp_calls [SYM_mcp_session_load] --(calls)--> [SYM_run_memnet] ; note=subprocess ; recycle=persistent
-+ E_mcp_save_calls [SYM_mcp_session_save] --(calls)--> [SYM_run_memnet] ; note=subprocess ; recycle=persistent
-+ E_tsk_load_owns_cli [TSK_mcp_session_load] --(owns)--> [MOD_cli] ; note=scope ; recycle=persistent
-+ E_tsk_load_owns_srv [TSK_mcp_session_load] --(owns)--> [MOD_mcp_server] ; note=scope ; recycle=persistent
-+ E_tsk_load_owns_dec [TSK_mcp_session_load] --(owns)--> [DEC_mcp_keep_id] ; note=decision ; recycle=persistent
-+ E_tsk_save_owns_srv [TSK_mcp_session_save] --(owns)--> [MOD_mcp_server] ; note=scope ; recycle=persistent
-+ E_tsk_save_owns_test [TSK_mcp_session_save] --(owns)--> [MOD_test_mcp] ; note=scope ; recycle=persistent
-+ E_tsk_load_usr [TSK_mcp_session_load] --(constrained_by)--> [USR_keep_id] ; note=user_stated ; recycle=persistent
-+ E_test_load [MOD_test_mcp] --(tests)--> [SYM_mcp_session_load] ; note=integration ; recycle=persistent
-+ E_test_save [MOD_test_mcp] --(tests)--> [SYM_mcp_session_save] ; note=integration ; recycle=persistent
-+ E_cli_snap [MOD_test_snapshot] --(tests)--> [SYM_cli_session_save] ; note=cli ; recycle=persistent
-+ E_cli_snap_load [MOD_test_snapshot] --(tests)--> [SYM_cli_session_load] ; note=cli ; recycle=persistent
+MATCH (a {id: 'CFG01'}), (b {id: 'MOD_repo_root'})
+CREATE (a)-[:contains {id: 'E_cfg_root', note: 'struct', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_cli'}), (b {id: 'SYM_cli_session_save'})
+CREATE (a)-[:defines {id: 'E_cli_def_save', note: 'handler', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_cli'}), (b {id: 'SYM_cli_session_load'})
+CREATE (a)-[:defines {id: 'E_cli_def_load', note: 'handler', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_mcp_server'}), (b {id: 'SYM_mcp_session_load'})
+CREATE (a)-[:defines {id: 'E_srv_def_load', note: 'mcp_tool', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_mcp_server'}), (b {id: 'SYM_mcp_session_save'})
+CREATE (a)-[:defines {id: 'E_srv_def_save', note: 'mcp_tool', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_mcp_client'}), (b {id: 'SYM_run_memnet'})
+CREATE (a)-[:defines {id: 'E_client_def', note: 'bridge', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'SYM_mcp_session_load'}), (b {id: 'SYM_cli_session_load'})
+CREATE (a)-[:implements {id: 'E_mcp_impl_load', note: 'wraps_cli', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'SYM_mcp_session_save'}), (b {id: 'SYM_cli_session_save'})
+CREATE (a)-[:implements {id: 'E_mcp_impl_save', note: 'wraps_cli', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'SYM_mcp_session_load'}), (b {id: 'SYM_run_memnet'})
+CREATE (a)-[:calls {id: 'E_mcp_calls', note: 'subprocess', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'SYM_mcp_session_save'}), (b {id: 'SYM_run_memnet'})
+CREATE (a)-[:calls {id: 'E_mcp_save_calls', note: 'subprocess', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_load'}), (b {id: 'MOD_cli'})
+CREATE (a)-[:owns {id: 'E_tsk_load_owns_cli', note: 'scope', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_load'}), (b {id: 'MOD_mcp_server'})
+CREATE (a)-[:owns {id: 'E_tsk_load_owns_srv', note: 'scope', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_load'}), (b {id: 'DEC_mcp_keep_id'})
+CREATE (a)-[:owns {id: 'E_tsk_load_owns_dec', note: 'decision', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_save'}), (b {id: 'MOD_mcp_server'})
+CREATE (a)-[:owns {id: 'E_tsk_save_owns_srv', note: 'scope', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_save'}), (b {id: 'MOD_test_mcp'})
+CREATE (a)-[:owns {id: 'E_tsk_save_owns_test', note: 'scope', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'TSK_mcp_session_load'}), (b {id: 'USR_keep_id'})
+CREATE (a)-[:constrained_by {id: 'E_tsk_load_usr', note: 'user_stated', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_test_mcp'}), (b {id: 'SYM_mcp_session_load'})
+CREATE (a)-[:tests {id: 'E_test_load', note: 'integration', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_test_mcp'}), (b {id: 'SYM_mcp_session_save'})
+CREATE (a)-[:tests {id: 'E_test_save', note: 'integration', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_test_snapshot'}), (b {id: 'SYM_cli_session_save'})
+CREATE (a)-[:tests {id: 'E_cli_snap', note: 'cli', recycle: 'persistent'}]->(b)
+MATCH (a {id: 'MOD_test_snapshot'}), (b {id: 'SYM_cli_session_load'})
+CREATE (a)-[:tests {id: 'E_cli_snap_load', note: 'cli', recycle: 'persistent'}]->(b)
