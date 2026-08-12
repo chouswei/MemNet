@@ -44,6 +44,10 @@ mcp = [
     "mcp>=1.2,<2",
     "uvicorn>=0.30",
 ]
+# Client driver only — does NOT install or vendor an AgensGraph server.
+agensgraph = [
+    "psycopg[binary]>=3.1",
+]
 
 [project.scripts]
 memnet = "memnet.cli:main"
@@ -79,6 +83,7 @@ pythonpath = [
 ]
 markers = [
     "scheme(id): integration scheme identifier from plan S01-S115",
+    "agensgraph_live: needs MEMNET_AGENSGRAPH_URL pointing at external AgensGraph",
 ]
 
 [tool.ruff]

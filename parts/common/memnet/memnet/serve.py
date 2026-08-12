@@ -180,6 +180,15 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
     port = port or serve_port()
     validate_serve_bind_host(host)
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
+    # Bind the process-wide durable sync owner once (factory semantics).
+    # URL set → AgensGraphAdapter client; else Fake seam — not dual-write.
+    try:
+        from memnet.durable import get_sync_owner
+
+        owner = get_sync_owner()
+        _LOG.info("durable sync owner bound: adapter=%s", owner.adapter_name)
+    except Exception:  # noqa: BLE001 — serve must start even if durable bind logs fail
+        _LOG.exception("durable sync owner bind skipped")
     with _Server((host, port), _Handler) as server:
         server.serve_forever()
 

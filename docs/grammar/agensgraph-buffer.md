@@ -1,6 +1,6 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** **planned M2.5** — architecture sketch; **not** shipped behaviour.  
+**Status:** **M2.5 in progress** — client hydrate/flush implemented; **not** fully shipped (needs an external AgensGraph cabinet to exercise the live path).  
 **Audience:** product developers.  
 **Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
@@ -59,6 +59,72 @@
 | Dual-write without a single sync owner | Two writers → split brain |
 | Claim adapter shipped before M2.5 lands | Plan only until implemented |
 | Revive Layer / Tier A | ADR-001 supersession |
+
+
+---
+
+## Implementation status (client slice)
+
+**Not M2.5 complete.** Client/adapter hydrate+flush is implemented against an **external** AgensGraph; Fake remains the always-on test path. **MUST NOT** claim M2.5 fully shipped until a live cabinet has been exercised in the operator's environment.
+
+| Piece | Status |
+|-------|--------|
+| `DurableStoreAdapter` ABC (`hydrate` / `flush` + `HydrateBudget`) | Landed |
+| `DurableSyncOwner` (one process owner; rejects dual bind) | Landed |
+| `FakeDurableAdapter` + hydrate → live session → shaped `pin_map` tests | Landed (always-on CI path) |
+| `AgensGraphAdapter` env config (`MEMNET_AGENSGRAPH_*`) | Landed |
+| `AgensGraphAdapter.hydrate` / `flush` via `psycopg` + openCypher | Landed (client only) |
+| Optional extra `memnet-llm[agensgraph]` (`psycopg`, not the DB server) | Landed |
+| serve / MCP bind `get_sync_owner(make_adapter_from_env())` once | Landed |
+| Live integration test | Skip unless `MEMNET_AGENSGRAPH_URL` set |
+| Claim adapter / M2.5 shipped | **MUST NOT** — needs external store to prove |
+
+Agents continue to use MemNet GQL `pin_map` / mutate only. Durable calls go through `DurableSyncOwner` / `SessionLifecycle.hydrate_from_durable` — never as the LLM primary path.
+
+### Pointing MemNet at an external cabinet
+
+```bash
+# Client driver only (does not install AgensGraph server):
+pip install 'memnet-llm[agensgraph]'
+
+export MEMNET_AGENSGRAPH_URL='postgresql://host:5432/memnet'
+export MEMNET_AGENSGRAPH_USER='agens'          # optional if in URL
+export MEMNET_AGENSGRAPH_PASSWORD='…'         # optional if in URL
+export MEMNET_AGENSGRAPH_GRAPH='memnet'       # optional; default memnet
+
+# Force Fake seam even when URL is set (CI / local spike):
+export MEMNET_DURABLE_FAKE=1
+```
+
+Factory / startup semantics:
+
+| Env | Adapter bound by `get_sync_owner()` |
+|-----|-------------------------------------|
+| `MEMNET_DURABLE_FAKE` truthy | `FakeDurableAdapter` |
+| else `MEMNET_AGENSGRAPH_URL` set | `AgensGraphAdapter` (client) |
+| else | `FakeDurableAdapter` (dev/test seam — not a production cabinet) |
+
+`memnet serve` and `memnet-mcp` bind the owner once at process start using those rules.
+
+### Hydrate / flush Cypher (sketch)
+
+- **Hydrate nodes:** `MATCH (ego {id}) OPTIONAL MATCH (ego)-[*0..depth]-(n) RETURN label(n), properties(n) LIMIT max_nodes`
+- **Hydrate edges:** among nodes in that ego ball, `MATCH (a)-[r]->(b) RETURN label(r), properties(r), a.id, b.id LIMIT max_edges`
+- **Flush nodes:** `MERGE (n:TAG {id}) SET n.field = …, n._memnet_tag = 'TAG'`
+- **Flush edges:** `MATCH (a {id: src}), (b {id: dist}) MERGE (a)-[r:REL {id}]->(b) SET …`
+
+MemNet tags become vertex labels; `EDG.relation` becomes the edge label. Mapping back uses `_memnet_tag` when present.
+
+### Developer note: optional local AgensGraph (docs only)
+
+This repo does **not** vendor AgensGraph or require docker-compose for tests. Developers who want a local cabinet can run any upstream AgensGraph image themselves and export `MEMNET_AGENSGRAPH_URL`. Example (illustrative — not a product dependency):
+
+```bash
+# Operator-owned; not started by MemNet tests/CI:
+docker run --rm -p 5432:5432 <your-agensgraph-image>
+export MEMNET_AGENSGRAPH_URL='postgresql://agens:agens@127.0.0.1:5432/memnet'
+pytest -m agensgraph_live
+```
 
 ---
 

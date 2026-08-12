@@ -18,12 +18,12 @@
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | **Done** |
-| **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | Plan — **next after M2** |
+| **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **In progress** — client hydrate/flush landed; Fake always-on; live path needs external AgensGraph |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | Plan |
 
 **Order:** M1 → M2 → **M2.5** → M3. M2.5 does **not** wait on M3. User promotion (2026-08-13): durable store adapter sits **immediately after M2**, not deferred past all of 0.5.
 
-**0.5 one-path vs M2.5:** 0.5.0 one-path locks (remote entry, dialect teach, Pi graph owner, footguns) are **M1–M2** product gates. **M2.5** is the scheduled **next notch after M2** — same GQL family, still plan-only until implemented. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+**0.5 one-path vs M2.5:** 0.5.0 one-path locks (remote entry, dialect teach, Pi graph owner, footguns) are **M1–M2** product gates. **M2.5** is the scheduled **next notch after M2** — same GQL family; client hydrate/flush is in tree, but **MUST NOT** claim complete without a proven external cabinet. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
 
 User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
@@ -75,7 +75,7 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 
 **GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M2.5** schedules the durable store adapter; **M3** rewrites in-repo playbook / app-note bodies.
 
-**AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). Backing graph for MemNet sessions / shared LLM working memory — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** claim shipped until the adapter lands. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
+**AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). Backing graph for MemNet sessions / shared LLM working memory — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** claim fully shipped until the live external-cabinet path is proven; client adapter alone is not enough. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
 
 ---
 
