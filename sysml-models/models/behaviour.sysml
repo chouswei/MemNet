@@ -937,19 +937,19 @@ package MemNetBehaviour {
 
   state def SessionImportReceive {
     doc /*
-      Binding metaphor: colloquial "session merge" = team lead receives a
-      team member's working memory (SessionMergeFraming). Product verbs:
-      receive / import. Parent mission session = lead WM (SSOT). Worker
-      session or scoped slice = member WM. Path A (preferred Multitask
-      default): already shared session → EvSharedSessionRepin (lead
-      re-pin_map; no second store; import nest skipped). Path B: separate
-      sessions → export WorkingMemorySlice → ImportGuard soft review →
-      owner-gated id policy (reject/remint/Cypher MERGE upsert) → edges
-      after nodes → settle-time fold of durable pins into lead session.
-      Chat is never the received memory (EvImportFromChat forbidden).
+      Team lead imports a team member's working memory into the mission
+      session (product verb = import; colloquial "session merge" means this
+      import only — no SessionMerge* type names). Parent mission session =
+      lead WM (SSOT). Worker session or scoped slice = member WM.
+      Path A (preferred Multitask default): already shared session →
+      EvSharedSessionRepin (lead re-pin_map; no second store; import nest
+      skipped). Path B: separate sessions → export WorkingMemorySlice →
+      ImportGuard (cheap LLM soft) → owner-gated id policy (reject/remint/
+      Cypher MERGE upsert) → ImportAbsorb → settle TSK_* in lead session.
+      Chat is never the import payload (EvImportFromChat forbidden).
       Whole-store dump and dual-writer during import forbidden. Distinct
       from micro in-session node re-id (merge=true) and from naming this
-      behaviour "Cypher MERGE". Hosted by MultitaskOperatingModel.
+      behaviour after Cypher MERGE. Hosted by MultitaskOperatingModel.
       Case study: outputs/session-import-case-study.md.
     */
     entry;

@@ -11,7 +11,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoffById`); peers re-`pin_map`; chat never SSOT.
 3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — planned **M2.5**; LLM↔store direct out of teach.
-4. **Lead receives member working memory** — colloquial "session merge" = team lead receives member WM (`SessionMergeFraming`). Path A shared session → re-`pin_map` (no second store); path B → `WorkingMemorySlice` through nested `ImportGuard` then `ImportAbsorb` (settle-time fold). Product verbs = **receive** / **import**. Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
+4. **Lead imports member working memory** - path A shared session -> re-`pin_map` (no second store); path B -> `WorkingMemorySlice` through nested `ImportGuard` (cheap LLM soft) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 
 **Sequence:** M1 (done) → M2 (engine GQL; remove as-is codecs) → **M2.5** (durable adapter) → M3.
 

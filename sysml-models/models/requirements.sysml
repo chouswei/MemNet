@@ -931,30 +931,32 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_9_LeadOwnsSessionImport {
         doc /*
-          Colloquial "session merge" SHALL mean: a team lead receives a team
-          member's working memory into the mission session (SessionMergeFraming;
-          SessionImportReceive). The lead / parent SHALL own that receive.
-          Prefer one shared mission session (Multitask default): "receive" is
-          re-pin_map only — no second store and no WorkingMemorySlice import.
-          When sessions are separate: lead SHALL import a bounded
-          WorkingMemorySlice at settle-time fold under an explicit owner-gated
+          When a team lead imports a member's working memory
+          (SessionImportReceive), the lead / parent SHALL own the import into
+          the mission session. Prefer one shared mission session (Multitask
+          default): import is re-pin_map only — no second store and no
+          WorkingMemorySlice. When sessions are separate: lead SHALL import a
+          bounded WorkingMemorySlice at settle under an explicit owner-gated
           id conflict policy (reject / remint / Cypher MERGE upsert-by-id);
           edges after nodes; lead settles parent TSK_*. Chat and tool
-          transcripts SHALL NOT be the received memory (see MN-REQ-12.10).
+          transcripts SHALL NOT be the import payload (see MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
-          Macro session-union (this req) SHALL NOT be confused with micro
-          in-session node re-id (merge=true security design) or with naming
-          the product behaviour after Cypher MERGE.
+          Product verb = import. Colloquial "session merge" means this import
+          behaviour only — SHALL NOT name product types SessionMerge*.
+          Macro session-import SHALL NOT be confused with micro in-session
+          node re-id (merge=true security design) or with Cypher MERGE as the
+          product name.
         */
         attribute requirementId : String = "MN-REQ-12.9";
       }
 
       requirement def MN_REQ_12_10_NoChatOrWholeStoreImport {
         doc /*
-          Lead receive / session import SHALL NOT use chat or tool transcripts
-          as the received working memory (EvImportFromChat forbidden). SHALL
-          NOT import a whole-store dump. Dual-writer on the target slice during
-          import SHALL NOT be assumed safe (0.4.x last-write-wins; MN-REQ-12.7).
+          Session import (SessionImportReceive) SHALL NOT use chat or tool
+          transcripts as the import payload (EvImportFromChat forbidden).
+          SHALL NOT import a whole-store dump. Dual-writer on the target
+          slice during import SHALL NOT be assumed safe (0.4.x
+          last-write-wins; MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.10";
       }

@@ -604,19 +604,17 @@ package MemNet {
 
   // =====================================================================
   // Multitask Mode (MN-REQ-12) — nested until clear
-  // Colloquial "session merge" = team lead receives member working memory
-  // (SessionMergeFraming / SessionImportReceive; product verb = import).
+  // Team lead imports member working memory (SessionImportReceive).
+  // Colloquial "session merge" means this import — no SessionMerge* types.
   // =====================================================================
 
   part def ImportAbsorb {
     doc /*
       Hard-gate absorb of an allowed/trimmed WorkingMemorySlice into the
-      lead/mission session (settle-time fold of member durable pins):
-      schema, caps, owner-gated id policy (Cypher MERGE upsert / reject /
-      remint NEW), nodes then edges, then lead may settle TSK_*. Realises
-      SessionMergeFraming path B. Product verb = import / receive.
-      Cypher MERGE mechanics and micro merge=true are not this part.
-      Runs after ImportGuard soft allow/trim.
+      lead/mission session: schema, caps, owner-gated id policy (Cypher
+      MERGE upsert / reject / remint NEW), nodes then edges, then lead may
+      settle TSK_*. Product verb = import. Cypher MERGE mechanics and micro
+      merge=true are not this part. Runs after ImportGuard soft allow/trim.
     */
     attribute doctrineAsIs : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
@@ -653,12 +651,12 @@ package MemNet {
 
   part def SessionImportReceive {
     doc /*
-      Team-lead nest: receive a member's working memory into the mission
-      session (SessionMergeFraming — colloquial "session merge").
-      Path B spine: ImportGuard (soft) → ImportAbsorb (hard) → settle.
-      Path A shared-session skips this nest (re-pin_map only — no second
-      store). Slice enters at guard.sliceIn; decision+slice pass to absorb.
-      Hosts behaviour SessionImportReceive states.
+      Team-lead nest: import a member's working memory into the mission
+      session (SessionImportReceive). Path B spine: ImportGuard (cheap LLM
+      soft) → ImportAbsorb (hard) → settle. Path A shared-session skips this
+      nest (re-pin_map only — no second store). Slice enters at
+      guard.sliceIn; decision+slice pass to absorb. Hosts behaviour
+      SessionImportReceive states.
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;

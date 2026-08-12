@@ -227,11 +227,10 @@ package MemNetVerification {
 
   verification def MN_VER_12_S10_SharedSessionReceive {
     doc /*
-      Session-import case study scenario A — shared session receive
-      (MN-REQ-12.9 path A; SessionMergeFraming). Lead + member on one
-      session id; lead receives via EvSharedSessionRepin / re-pin_map;
-      SessionImportReceive.pathASharedRepin. No macro WorkingMemorySlice
-      import; not a second store.
+      Session-import case study scenario A — shared session import path
+      (MN-REQ-12.9 path A). Lead + member on one session id; lead imports
+      via EvSharedSessionRepin / re-pin_map; SessionImportReceive.pathASharedRepin.
+      No macro WorkingMemorySlice import; not a second store.
     */
     attribute verificationId : String = "MN-VER-12-S10";
 
@@ -248,12 +247,12 @@ package MemNetVerification {
 
   verification def MN_VER_12_S11_SeparateSessionImport {
     doc /*
-      Session-import case study scenario B — separate sessions → settle-time
-      receive / import (MN-REQ-12.9 / 12.10; SessionMergeFraming path B).
-      Lead SessionImportRequest; member WorkingMemorySlice; ImportGuard then
-      ImportAbsorb under owner-gated id policy; settle TSK_* in lead session.
-      Forbidden EvImportFromChat / whole-store dump. Distinct from micro
-      merge=true.
+      Session-import case study scenario B — separate sessions → import
+      (MN-REQ-12.9 / 12.10). Lead SessionImportRequest; member
+      WorkingMemorySlice; ImportGuard then ImportAbsorb under owner-gated
+      id policy; settle TSK_* in lead session. Forbidden EvImportFromChat /
+      whole-store dump. Distinct from micro merge=true and from Cypher
+      MERGE as product name.
     */
     attribute verificationId : String = "MN-VER-12-S11";
 
