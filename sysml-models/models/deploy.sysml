@@ -61,10 +61,14 @@ package MemNet {
   part def GqlCodec {
     doc /*
       Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
-      GQL under MemNet gates. Mutate accepts GQL patterns; pin_map emit is a
-      shaped subgraph (same graph family — redefined Write = display).
+      GQL under MemNet gates. External dialect authority = openCypher CIP tree
+      + oC9 baseline (adopted/testable CIPs); ISO/IEC 39075 for GQL-native
+      features — agent surface remains MemNet-gated (pin_map + mutate subset),
+      not full openCypher / every CIP. Mutate accepts GQL patterns; pin_map
+      emit is a shaped subgraph (same graph family — redefined Write = display).
       MUST NOT treat raw tabular RETURN as primary goldfish read.
       Target; engine accept path lands in ADR migration M2.
+      Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;

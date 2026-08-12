@@ -44,7 +44,7 @@ Local single-agent may still use in-process stdio when no shared graph is needed
 
 | MUST | MUST NOT |
 |------|----------|
-| Teach **GQL (openCypher-shaped)** as the **only** agent wire ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)) | Teach Layer / Tier A as wire, peer, or accept path |
+| Teach **GQL (openCypher-shaped)** as the **only** agent wire ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md); family authority = openCypher CIP / oC9) | Teach Layer / Tier A as wire, peer, or accept path |
 | Redefine **Write = display** as **bounded shaped GQL subgraph** via `pin_map`-class tool | Ship unbounded tabular `MATCH`/`RETURN` as primary goldfish read |
 | Point historical Layer sources only at [`grammar/archive/`](grammar/archive/) | Invent a third peer dialect |
 

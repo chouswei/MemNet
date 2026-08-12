@@ -10,6 +10,7 @@ Requirements and grammar doctrine win over today's Python layout. Novel-writer i
 **Items:** `LivePinMap` / `ShapedSubgraph` (turn payload), `GqlWireBatch` (mutate). Historical Layer batch types are **not** product doctrine.  
 **Composer:** `PinMapShapedRead` (as-is `PinMapComposer` / `query_warm`).  
 **Primary codec:** `GqlCodec`. As-is `tier_a` codecs = **implementation lag → remove in M2** (not an accept teach path).  
+**Dialect authority:** `GqlCodec` / wire profile are **openCypher CIP + oC9**-backed (family refs); ISO GQL for GQL-native features; agent surface stays MemNet-gated — not “implement every CIP”. See [`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) (External dialect authority) and ADR-001.  
 **Removed from target nest:** standing Tier B pipe; Layer/Tier A teach. **Deprecated stub:** `LegacyPipeImport`.
 
 ## Mission
