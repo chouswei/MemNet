@@ -1,8 +1,8 @@
 /*
-  MemNet verification cases — MN-REQ-12 Multitask Mode + session merge.
+  MemNet verification cases — MN-REQ-12 Multitask Mode + session import.
   Aligned to outputs/multitask-case-study.md and
-  outputs/session-merge-case-study.md.
-  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S11.
+  outputs/session-import-case-study.md.
+  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S12.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; does not claim engine ACL/reserve/ingest enforcement.
 */
@@ -223,9 +223,9 @@ package MemNetVerification {
 
   verification def MN_VER_12_S10_SharedSessionReceive {
     doc /*
-      Session-merge case study scenario A — shared session receive
+      Session-import case study scenario A — shared session receive
       (MN-REQ-12.9 path A). Lead + member on one session id; lead receives
-      via EvSharedSessionRepin / re-pin_map; SessionMergeReceive.pathASharedRepin.
+      via EvSharedSessionRepin / re-pin_map; SessionImportReceive.pathASharedRepin.
       No macro WorkingMemorySlice import.
     */
     attribute verificationId : String = "MN-VER-12-S10";
@@ -233,7 +233,7 @@ package MemNetVerification {
     subject coordinator : MultitaskCoordinator;
 
     objective step10SharedReceive {
-      verify leadOwnsSessionMergeReq;
+      verify leadOwnsSessionImportReq;
       verify sharedSessionMissionSsotReq;
       require constraint {
         coordinator.doctrineAsIs == true
@@ -241,24 +241,45 @@ package MemNetVerification {
     }
   }
 
-  verification def MN_VER_12_S11_SeparateSessionMerge {
+  verification def MN_VER_12_S11_SeparateSessionImport {
     doc /*
-      Session-merge case study scenario B — separate sessions → receive
-      (MN-REQ-12.9 / 12.10). Lead SessionMergeRequest; member
-      WorkingMemorySlice; absorb under id policy; settle TSK_* in lead
-      session. Forbidden EvMergeFromChat / whole-store dump.
+      Session-import case study scenario B — separate sessions → import
+      (MN-REQ-12.9 / 12.10). Lead SessionImportRequest; member
+      WorkingMemorySlice; ImportGuard then import under id policy; settle
+      TSK_* in lead session. Forbidden EvImportFromChat / whole-store dump.
     */
     attribute verificationId : String = "MN-VER-12-S11";
 
     subject multitask : MultitaskOperatingModel;
-    item mergeReq : SessionMergeRequest;
+    item importReq : SessionImportRequest;
     item slice : WorkingMemorySlice;
 
-    objective step11SeparateMerge {
-      verify leadOwnsSessionMergeReq;
-      verify noChatOrWholeStoreMergeReq;
+    objective step11SeparateImport {
+      verify leadOwnsSessionImportReq;
+      verify noChatOrWholeStoreImportReq;
       require constraint {
         multitask.coordinator.doctrineAsIs == true
+      }
+    }
+  }
+
+  verification def MN_VER_12_S12_ImportGuardSoft {
+    doc /*
+      MN-REQ-12.11 — ImportGuard cheap-LLM soft review nested under
+      SessionImportReceive before ImportAbsorb. Outcomes allow/trim/reject;
+      MUST NOT replace hard gates; guard chat not SSOT.
+      Subject path: MultitaskOperatingModel.coordinator.importReceive.guard.
+    */
+    attribute verificationId : String = "MN-VER-12-S12";
+
+    subject multitask : MultitaskOperatingModel;
+    item decision : ImportGuardDecision;
+
+    objective step12ImportGuard {
+      verify cheapLlmImportGuardSoftReq;
+      require constraint {
+        multitask.coordinator.importReceive.guard.costTier == "cheap"
+          and multitask.coordinator.importReceive.guard.doctrineAsIs == true
       }
     }
   }
@@ -276,5 +297,6 @@ package MemNetVerification {
   verification settleMissionTaskVerify : MN_VER_12_S08_SettleMissionTask;
   verification noAssumeAclReserveVerify : MN_VER_12_S09_NoAssumeAclReserveIngest;
   verification sharedSessionReceiveVerify : MN_VER_12_S10_SharedSessionReceive;
-  verification separateSessionMergeVerify : MN_VER_12_S11_SeparateSessionMerge;
+  verification separateSessionImportVerify : MN_VER_12_S11_SeparateSessionImport;
+  verification importGuardSoftVerify : MN_VER_12_S12_ImportGuardSoft;
 }

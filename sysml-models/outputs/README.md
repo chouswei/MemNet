@@ -1,7 +1,7 @@
 # Outputs
 
-Derived views from `sysml-models/models/`. Prefer model-first edits; sync notes here after structural changes (see sysml-view-doc-sync).
+Derived views from `sysml-models/models/`. Model-first; sync here after structural changes.
 
-- [system-design-notes.md](system-design-notes.md) — architecture summary: SharedLlmMemory, handoff, merge, M2.5 durable
-- [multitask-case-study.md](multitask-case-study.md) — Multitask Mode worked scenario; MN-VER-12-G00, S01…S09
-- [session-merge-case-study.md](session-merge-case-study.md) — lead receives member WM (path A/B); MN-VER-12-S10/S11
+- [system-design-notes.md](system-design-notes.md) — SharedLlmMemory, handoff, nested import + ImportGuard, M2.5
+- [multitask-case-study.md](multitask-case-study.md) — Multitask Mode; MN-VER-12-G00, S01…S09
+- [session-import-case-study.md](session-import-case-study.md) — lead imports member WM; S10…S12

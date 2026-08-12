@@ -925,27 +925,41 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-12.8";
       }
 
-      requirement def MN_REQ_12_9_LeadOwnsSessionMerge {
+      requirement def MN_REQ_12_9_LeadOwnsSessionImport {
         doc /*
-          When a team lead receives a member's working memory (SessionMergeReceive),
-          the lead / parent SHALL own the merge into the mission session.
-          Path A (shared session): lead re-pin_map only — no macro-merge.
-          Path B (separate sessions): lead absorbs a bounded WorkingMemorySlice
-          under an explicit id policy; edges after nodes; lead settles parent
-          TSK_*. Members SHALL NOT settle parent-owned TSK_* unless delegated.
+          When a team lead imports a member's working memory (SessionImportReceive),
+          the lead / parent SHALL own the import into the mission session.
+          Path A (shared session): lead re-pin_map only — no WorkingMemorySlice
+          import. Path B (separate sessions): lead imports a bounded
+          WorkingMemorySlice under an explicit id policy (may use Cypher MERGE
+          for upsert-by-id); edges after nodes; lead settles parent TSK_*.
+          Members SHALL NOT settle parent-owned TSK_* unless delegated.
           Distinct from micro in-session node re-id (merge=true security design).
         */
         attribute requirementId : String = "MN-REQ-12.9";
       }
 
-      requirement def MN_REQ_12_10_NoChatOrWholeStoreMerge {
+      requirement def MN_REQ_12_10_NoChatOrWholeStoreImport {
         doc /*
-          Session merge / receive SHALL NOT use chat or tool transcripts as
-          the merge payload (EvMergeFromChat forbidden). SHALL NOT import a
-          whole-store dump. Dual-writer on the target slice during merge
+          Session import / receive SHALL NOT use chat or tool transcripts as
+          the import payload (EvImportFromChat forbidden). SHALL NOT import a
+          whole-store dump. Dual-writer on the target slice during import
           SHALL NOT be assumed safe (0.4.x last-write-wins; MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.10";
+      }
+
+      requirement def MN_REQ_12_11_CheapLlmImportGuardSoft {
+        doc /*
+          Path B WorkingMemorySlice import SHOULD pass a cheap-LLM ImportGuard
+          soft review before lead mutate (allow / trim / reject + short reason).
+          Soft checks only (scope fit, junk/off-mission, invented ids, size).
+          ImportGuard SHALL NOT replace engine hard gates (schema, caps, id
+          conflict policy, owner-gated import). Guard chat SHALL NOT be SSOT —
+          record ImportGuardDecision as structured atoms; lead session remains
+          SSOT after import. costTier is a cost/latency class, not a vendor id.
+        */
+        attribute requirementId : String = "MN-REQ-12.11";
       }
     }
   }
@@ -1144,10 +1158,12 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   requirement appliesToRelevantTasksReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
-  requirement leadOwnsSessionMergeReq
-    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
-  requirement noChatOrWholeStoreMergeReq
-    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+  requirement leadOwnsSessionImportReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+  requirement noChatOrWholeStoreImportReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  requirement cheapLlmImportGuardSoftReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -1290,8 +1306,9 @@ package MemNetRequirements {
     end #derive ::> parentEndTurnNoPollReq;
     end #derive ::> noAssumeAclReserveIngestReq;
     end #derive ::> appliesToRelevantTasksReq;
-    end #derive ::> leadOwnsSessionMergeReq;
-    end #derive ::> noChatOrWholeStoreMergeReq;
+    end #derive ::> leadOwnsSessionImportReq;
+    end #derive ::> noChatOrWholeStoreImportReq;
+    end #derive ::> cheapLlmImportGuardSoftReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {
@@ -1419,8 +1436,9 @@ package MemNetRequirements {
     end #derive ::> sharedSessionMissionSsotReq;
     end #derive ::> sessionAsSsotHandleReq;
     end #derive ::> noGraphDumpHandoffReq;
-    end #derive ::> leadOwnsSessionMergeReq;
-    end #derive ::> noChatOrWholeStoreMergeReq;
+    end #derive ::> leadOwnsSessionImportReq;
+    end #derive ::> noChatOrWholeStoreImportReq;
+    end #derive ::> cheapLlmImportGuardSoftReq;
   }
 
   #derivation connection deriveMultitaskFromProcessBoundary {

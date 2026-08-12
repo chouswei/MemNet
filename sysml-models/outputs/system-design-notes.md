@@ -1,31 +1,22 @@
 # MemNet - system design notes (from SysML)
 
-Target architecture notes for nested `deploy.sysml` / `behaviour.sysml` / `connections.sysml` after **ADR-001**.
-Requirements and grammar doctrine win over today's Python layout. Novel-writer is out of scope.
+Target architecture notes from nested `deploy.sysml` / `behaviour.sysml` / `connections.sysml` after **ADR-001**.
+Novel-writer is out of scope.
 
 **Exam:** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).  
-**GQL case study:** [`../../docs/application-notes/examples/inverting-amplifier-gql-case-study.md`](../../docs/application-notes/examples/inverting-amplifier-gql-case-study.md).  
 **Multitask case study:** [`multitask-case-study.md`](multitask-case-study.md).  
-**Session merge case study:** [`session-merge-case-study.md`](session-merge-case-study.md).
+**Session import case study:** [`session-import-case-study.md`](session-import-case-study.md).
 
 ## Product framing (2026-08-13)
 
-1. **MemNet = shared LLM memory** (`SharedLlmMemory`) — session-scoped goldfish buffer for multi-agent work.
-2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); peers re-`pin_map`; chat never SSOT.
-3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**; LLM ↔ store direct out of default teach.
-4. **Session merge = lead receives member WM** — path A shared re-`pin_map`; path B bounded `WorkingMemorySlice` (`SessionMergeReceive`).
+1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
+2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; chat never SSOT.
+3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**.
+4. **Lead imports member WM** — path A re-`pin_map` (skip import nest); path B `WorkingMemorySlice` → nested `ImportGuard` → `ImportAbsorb`. Product verb = **import**. Cypher `MERGE` and micro `merge=true` are not this behaviour.
 
-**Sequence:** M1 (done) → M2 (engine GQL; remove as-is codecs) → **M2.5** (durable adapter) → M3.
+**Sequence:** M1 → M2 → **M2.5** → M3.
 
-**Primary term:** **pin map** = shaped subgraph read wrapping GQL (Write = display redefined).  
-**Items:** `LivePinMap` / `ShapedSubgraph` / `GqlWireBatch`; also `SessionHandoff`, `WorkingMemorySlice`, `SessionMergeRequest`. Historical Layer batches are **quarantined** (remove in M2) — not accept doctrine.  
-**Composer:** `PinMapShapedRead` (as-is `PinMapComposer` / `query_warm`).  
-**Primary codec:** `GqlCodec` — dialect authority openCypher **CIP + oC9** (MemNet-gated subset); ISO GQL for GQL-native features. See wire profile External dialect authority.  
-**Removed from target nest:** TierACodec accept path; standing Tier B pipe. **Deprecated stub:** `LegacyPipeImport`.
-
-## Mission
-
-**MemNet = Net of Memory / shared LLM memory** — durable **Node | Edge** property-graph working memory between LLM pipelines and data search. Agent I/O is **openCypher-shaped GQL only** with **shaped pin_map** emit ([`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md)).
+**Primary codec:** `GqlCodec` (CIP/oC9 authority; MemNet-gated). As-is TierA codecs quarantined — remove in M2.
 
 ## Nesting outline
 
@@ -33,93 +24,57 @@ Requirements and grammar doctrine win over today's Python layout. Novel-writer i
 MemNetSystem                                 // SharedLlmMemory
 ├── MemNetCoreLibrary
 │   ├── TransportBoundary
-│   │   ├── InProcessEngine
-│   │   │   └── AgentMemory
-│   │   │       └── SessionLifecycle         // session id = SSOT handle
-│   │   │           ├── CapsPolicy / SchemaRegistry
-│   │   │           ├── GqlCodec             // CIP/oC9 authority
-│   │   │           ├── GraphStore
-│   │   │           ├── MutateGate → IdAllocator
-│   │   │           ├── PinMapShapedRead
-│   │   │           ├── WalkQuery / HousekeepSettle / SnapshotStore
-│   │   │           └── (TierACodec quarantined — remove in M2; not nested)
+│   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
+│   │   │     ├── GqlCodec / GraphStore / MutateGate / PinMapShapedRead / …
+│   │   │     └── (TierACodec quarantined — not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
-│   └── CliFacade                            // LLM <-> MemNet
-├── MemNetMcpServer → McpFacade / ServeBridge / LawSeedHelper
-├── DurableBuffer → AgensGraphAdapter        // planned M2.5 hydrate/flush
-├── PinMapRoadmap → PinMapIngest_*
-└── MultitaskOperatingModel                  // handoff + SessionMergeReceive
+│   └── CliFacade
+├── MemNetMcpServer
+├── DurableBuffer → AgensGraphAdapter        // M2.5
+├── PinMapRoadmap
+└── MultitaskOperatingModel
+    ├── MultitaskCoordinator                 // team lead
+    │   └── SessionImportReceive             // path B
+    │       ├── ImportGuard                  // cheap LLM — where the soft review sits
+    │       └── ImportAbsorb                 // hard gates + import + settle
+    ├── MultitaskWorker                      // member: handoff in + slice export
+    └── MultitaskSharedStoreBinding
 ```
 
-Code module map: [`parts/README.md`](../../parts/README.md).
+**How lead gets member WM:** shared session → re-`pin_map`; else export slice → `ImportGuard` → `ImportAbsorb` into lead session.
 
 ## Behaviours
 
 | State machine | Role |
 |---------------|------|
-| `SessionLifecycleStates` | closed → opening/loading → active → saving → closed |
-| `GoldfishLoop` | awaitingPinMap → presentingPinMap → applyingMutate → settling |
-| `MutateWithNew` | idle → parsing → minting → committing |
-| `PinMapIngestCycle` | pinIdle → selectingPins → projecting |
-| `ParentTaskLifecycle` / `WorkerScopedTurn` / `MultitaskMissionCycle` | MN-REQ-12 Multitask |
-| `SessionHandoffById` | deliver session id → worker pin_map → scoped mutate (vs `EvDumpGraphInChat`) |
-| `SessionMergeReceive` | path A re-pin_map; path B slice absorb + settle (vs `EvMergeFromChat`) |
-| `DurableHydrateFlushRoadmap` | M2.5 hydrate/flush (not shipped) |
+| `GoldfishLoop` / `MutateWithNew` / `SessionLifecycleStates` | Engine goldfish |
+| `SessionHandoffById` | Pass session id (vs `EvDumpGraphInChat`) |
+| `SessionImportReceive` | path A repin; path B Guard → Absorb → Settle (vs `EvImportFromChat`) |
+| `ParentTaskLifecycle` / `WorkerScopedTurn` / `MultitaskMissionCycle` | MN-REQ-12 |
+| `DurableHydrateFlushRoadmap` | M2.5 (not shipped) |
 
-## Interfaces
+## Interfaces (selected)
 
 | Connection | From → To | Status |
 |------------|-----------|--------|
-| InProcessFlow | McpFacade/CliFacade → InProcessEngine | **Wired** (primary) |
-| ServeCommandFlow / JsonEnvelopeFlow | Facades ↔ TcpServeBridge | **Wired** (Multitask) |
-| LocalIpcFlow | CliFacade.ipcOut → LocalIpcGateway | **Unallocated stub** |
-| GraphRecordFlow | GqlCodec → MutateGate → GraphStore | **Target wired** |
-| LivePinMapFlow / ShapedSubgraphFlow / GqlWireFlow | PinMapShapedRead / facades | **Target** |
-| SessionHandoffFlow | MultitaskCoordinator → MultitaskWorker | **Target** |
-| WorkingMemorySliceFlow | MultitaskWorker → MultitaskCoordinator | **Target** (path B merge) |
-| DurableHydrateFlow / DurableFlushFlow | AgensGraphAdapter ↔ SessionLifecycle | **Roadmap M2.5** |
-| SessionSnapshotFlow | SnapshotStore ↔ file | MN-REQ-01 |
-| PinMapFlow | PinMapIngest_* | MN-REQ-11 stubs |
+| SessionHandoffFlow | Coordinator → Worker | Target |
+| WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
+| ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
+| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | Roadmap M2.5 |
+| InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
-## As-is → target map
+## Satisfy (MN-REQ-12 import)
 
-| Target part | Today's module(s) | Status |
-|-------------|-------------------|--------|
-| GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
-| GqlCodec | *(target; M2)* | Not shipped; CIP/oC9 authority modelled |
-| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | **Remove in M2** — quarantined |
-| PinMapShapedRead | `pin_map_composer.py` | As-is emit; target shaped GQL |
-| MutateGate | `mutate_gate.py` | GQL path in M2 |
-| AgensGraphAdapter | — | Planned **M2.5** (after M2) |
-| MultitaskOperatingModel | agent doctrine | As-is MN-REQ-12 + merge doctrine |
-| SessionMergeReceive | — | Doctrine / behaviour modelled; engine not claimed |
+| Leaf | Parts |
+|------|-------|
+| 12.9 LeadOwnsSessionImport | Coordinator, SessionImportReceive, ImportAbsorb, SessionLifecycle |
+| 12.10 NoChatOrWholeStoreImport | Coordinator, Worker, ImportGuard, ImportAbsorb |
+| 12.11 CheapLlmImportGuardSoft | ImportGuard, SessionImportReceive |
 
-## Satisfy coverage
+## Gaps
 
-| Group | Coverage |
-|-------|----------|
-| MN-REQ-00 | `MemNetSystem` |
-| MN-REQ-01 | SessionLifecycle (+ 01.7/01.8), SnapshotStore, CliFacade, McpFacade, MultitaskCoordinator/Worker |
-| MN-REQ-02 | GraphStore, GqlCodec, PinMapShapedRead, WalkQuery, MutateGate, SchemaRegistry, McpFacade |
-| MN-REQ-03 | GraphStore, MutateGate, IdAllocator |
-| MN-REQ-04 | PinMapShapedRead, WalkQuery, HousekeepSettle |
-| MN-REQ-05 | CapsPolicy |
-| MN-REQ-06 | InProcessEngine, LocalIpcGateway, TcpServeBridge, SessionLifecycle, McpFacade, DurableBuffer (06.4) |
-| MN-REQ-07 | McpFacade, LawSeedHelper |
-| MN-REQ-08 | GqlCodec, CliFacade, McpFacade, PinMapShapedRead |
-| MN-REQ-09 | GqlCodec, CliFacade, McpFacade |
-| MN-REQ-10 | GraphStore, CapsPolicy, PinMapShapedRead, CliFacade, GqlCodec, IdAllocator, McpFacade |
-| MN-REQ-11 | PinMapIngest_* stubs + PinMapShapedRead + IdAllocator + SnapshotStore |
-| MN-REQ-12 | MultitaskCoordinator/Worker/SharedStoreBinding, TcpServeBridge, ServeBridge, SessionLifecycle (12.9/12.10) |
-
-## Gaps / next steps
-
-- **M1:** GQL wire profile — **done**; Layer docs archived; CIP/oC9 cited as dialect authority
-- **M2:** Engine/MCP GQL accept + shaped pin_map emit; **remove** as-is Tier A codec from product path
-- **M2.5:** Durable online GQL store adapter (AgensGraph hydrate/flush) — [`../../docs/grammar/agensgraph-buffer.md`](../../docs/grammar/agensgraph-buffer.md); plan only
-- SessionMergeReceive engine enforcement — doctrine modelled; not claimed shipped
-- As-is Python still on old line codec — implementation lag until M2 (not dual-teach)
-- `LocalIpcFlow` when LocalIpcGateway is implemented
-- PinMapIngest_* deterministic locators
-- **To-be:** session ACL, neighbourhood reserve, Path-B ingest — MN-REQ-12.7
+- M2 engine GQL; remove TierA codec
+- M2.5 AgensGraph adapter — plan only
+- ImportGuard / ImportAbsorb — doctrine nested; engine not claimed shipped
+- MN-REQ-12.7 ACL/reserve/ingest still to-be

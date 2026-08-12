@@ -17,7 +17,13 @@
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
     ├── PinMapRoadmap
-    └── MultitaskOperatingModel     // SessionHandoffById + SessionMergeReceive
+    └── MultitaskOperatingModel
+        ├── MultitaskCoordinator          // team lead
+        │   └── SessionImportReceive
+        │       ├── ImportGuard           // cheap LLM soft review
+        │       └── ImportAbsorb          // hard gates + import + settle
+        ├── MultitaskWorker               // team member (handoff in + slice export)
+        └── MultitaskSharedStoreBinding
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -277,7 +283,7 @@ package MemNet {
     port snapIn : SessionSnapshotInPort;
     port hydrateIn : DurableHydrateInPort;
     port flushOut : DurableFlushOutPort;
-    port mergeReqIn : SessionMergeRequestInPort;
+    port importReqIn : SessionImportRequestInPort;
     port sliceIn : WorkingMemorySliceInPort;
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
@@ -308,8 +314,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   }
 
   part def AgentMemory {
@@ -593,22 +599,93 @@ package MemNet {
   }
 
   // =====================================================================
-  // Multitask Mode (MN-REQ-12)
+  // Multitask Mode (MN-REQ-12) — nested until clear
+  // Team lead imports member working memory (not "session merge").
   // =====================================================================
+
+  part def ImportAbsorb {
+    doc /*
+      Hard-gate absorb of an allowed/trimmed WorkingMemorySlice into the
+      lead/mission session: schema, caps, id policy (Cypher MERGE upsert /
+      reject / remint NEW), nodes then edges, then lead may settle TSK_*.
+      Product verb = import. Cypher MERGE and micro merge=true are not this
+      part. Runs after ImportGuard soft allow/trim.
+    */
+    attribute doctrineAsIs : Boolean = true;
+    port sliceIn : WorkingMemorySliceInPort;
+    port decisionIn : ImportGuardDecisionInPort;
+    port importReqIn : SessionImportRequestInPort;
+    port gqlOut : GqlWireOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+  }
+
+  part def ImportGuard {
+    doc /*
+      Cheap-LLM soft reviewer nested under SessionImportReceive, before
+      ImportAbsorb. Soft checks: assigned scope?, junk/off-mission?, invented
+      ids vs copy-from-pin_map?, oversized / settle noise?. Outcomes: allow /
+      trim / reject + short reason (ImportGuardDecision). MUST NOT replace
+      engine hard gates. MUST NOT make guard chat the SSOT. costTier =
+      cost/latency class only (no vendor model id).
+    */
+    attribute doctrineAsIs : Boolean = true;
+    attribute costTier : String = "cheap";
+    attribute implemented : Boolean = false;
+    port sliceIn : WorkingMemorySliceInPort;
+    port sliceOut : WorkingMemorySliceOutPort;
+    port decisionOut : ImportGuardDecisionOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  }
+
+  part def SessionImportReceive {
+    doc /*
+      Team-lead nest: import a member's working memory into the mission
+      session. Path B spine: ImportGuard (soft) → ImportAbsorb (hard) →
+      settle. Path A shared-session skips this nest (re-pin_map only).
+      Slice enters at guard.sliceIn; decision+slice pass to absorb.
+      Hosts behaviour SessionImportReceive states.
+    */
+    part guard : ImportGuard;
+    part absorb : ImportAbsorb;
+
+    connection guardSliceToAbsorb : WorkingMemorySliceFlow {
+      end port source ::> guard.sliceOut;
+      end port sink ::> absorb.sliceIn;
+    }
+    connection guardDecisionToAbsorb : ImportGuardDecisionFlow {
+      end port source ::> guard.decisionOut;
+      end port sink ::> absorb.decisionIn;
+    }
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
+  }
 
   part def MultitaskCoordinator {
     doc /*
-      Logical parent / team-lead role. Hosts ParentTaskLifecycle; delivers
-      SessionHandoff; owns SessionMergeReceive (lead receives member WM).
-      Wire payloads: GQL + shaped pin_map (target).
+      Team lead. Delivers SessionHandoff (session id only). Owns nested
+      SessionImportReceive (ImportGuard + ImportAbsorb) for path B import.
+      Path A: re-pin_map on shared session — import nest skipped.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
     port handoffOut : SessionHandoffOutPort;
-    port mergeReqOut : SessionMergeRequestOutPort;
-    port sliceIn : WorkingMemorySliceInPort;
+    port importReqOut : SessionImportRequestOutPort;
     port gqlOut : GqlWireOutPort;
     port pinIn : PinMapInPort;
+    part importReceive : SessionImportReceive;
+
+    connection leadImportReqToAbsorb : SessionImportRequestFlow {
+      end port source ::> importReqOut;
+      end port sink ::> importReceive.absorb.importReqIn;
+    }
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_3_ParentOwnsTaskLifecycle;
@@ -616,18 +693,17 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_6_ParentEndTurnNoPoll;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
   }
 
   part def MultitaskWorker {
     doc /*
-      Logical worker / team member: receive SessionHandoff; pin_map first;
-      mutate under WorkerWriteScope; may export WorkingMemorySlice for path B
-      merge. MUST NOT settle parent TSK_* unless delegated; MUST NOT treat
-      chat as SSOT.
+      Team member. Accepts SessionHandoff; pin_map first; mutate under
+      WorkerWriteScope; path B exports WorkingMemorySlice for lead import.
+      MUST NOT settle parent TSK_* unless delegated; chat is not SSOT.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -640,7 +716,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
   }
@@ -657,8 +733,15 @@ package MemNet {
 
   part def MultitaskOperatingModel {
     doc /*
-      Agent-host Multitask topology for MN-REQ-12. SessionHandoffById plus
-      SessionMergeReceive (lead receives member working memory).
+      Nested Multitask spine (MN-REQ-12):
+        coordinator (lead)
+          └── importReceive
+                ├── guard     // cheap LLM soft review
+                └── absorb    // hard gates + import + settle
+        worker (member) — handoff in + WorkingMemorySlice export
+        sharedStore
+      Story: SessionHandoffById → (shared re-pin_map | ImportReceive →
+      Guard → Absorb → Settle).
     */
     part coordinator : MultitaskCoordinator;
     part worker : MultitaskWorker;
@@ -668,9 +751,9 @@ package MemNet {
       end port source ::> coordinator.handoffOut;
       end port sink ::> worker.handoffIn;
     }
-    connection memberSliceToLead : WorkingMemorySliceFlow {
+    connection memberSliceToLeadImport : WorkingMemorySliceFlow {
       end port source ::> worker.sliceOut;
-      end port sink ::> coordinator.sliceIn;
+      end port sink ::> coordinator.importReceive.guard.sliceIn;
     }
   }
 

@@ -3,7 +3,7 @@
   Session lifecycle; goldfish loop (pin map->mutate->settle);
   mutate with NEW mint; pin-map ingest roadmap;
   SessionHandoffById (pass session id, not graph dump);
-  SessionMergeReceive (lead receives member working memory);
+  SessionImportReceive (lead imports member working memory; ImportGuard);
   Multitask Mode for relevant tasks only (MN-REQ-12);
   optional DurableBuffer hydrate/flush roadmap (M2.5).
 */
@@ -75,16 +75,17 @@ package MemNetBehaviour {
       via chat / tool prose instead of session id + re-pin_map.
     */
   }
-  attribute def EvMergeFromChat {
+  attribute def EvImportFromChat {
     doc /*
-      FORBIDDEN anti-pattern: merge / receive member working memory from
-      chat or tool transcripts instead of shared pin_map or WorkingMemorySlice.
+      FORBIDDEN anti-pattern: import member working memory from chat or tool
+      transcripts instead of shared pin_map or WorkingMemorySlice.
     */
   }
-  attribute def EvRequestSessionMerge {
+  attribute def EvRequestSessionImport {
     doc /*
-      Lead issues SessionMergeRequest (path B separate sessions). Macro
-      session cup session — not micro in-session node re-id merge=true.
+      Lead issues SessionImportRequest (path B separate sessions). Macro
+      session import — not micro in-session node re-id (merge=true), and not
+      Cypher MERGE (upsert-by-id) as the product verb.
     */
   }
   attribute def EvExportWorkingMemorySlice {
@@ -93,16 +94,35 @@ package MemNetBehaviour {
       MUST NOT be a whole-store dump.
     */
   }
-  attribute def EvAbsorbWorkingMemorySlice {
+  attribute def EvGuardReviewSlice {
     doc /*
-      Lead absorbs WorkingMemorySlice into mission session under id policy
-      (MERGE same id / reject conflict / remint NEW); edges after nodes.
+      ImportGuard (cheap LLM) soft-reviews WorkingMemorySlice before lead
+      mutate: scope fit, junk/off-mission, invented ids, size/settle noise.
+    */
+  }
+  attribute def EvGuardAllow {
+    doc /* ImportGuardDecision outcome=allow; proceed to import mutate. */
+  }
+  attribute def EvGuardTrim {
+    doc /*
+      ImportGuardDecision outcome=trim; lead imports reduced slice (reason
+      recorded as structured atoms — not guard chat as SSOT).
+    */
+  }
+  attribute def EvGuardReject {
+    doc /* ImportGuardDecision outcome=reject; do not mutate lead session. */
+  }
+  attribute def EvImportWorkingMemorySlice {
+    doc /*
+      Lead imports WorkingMemorySlice into mission session under id policy
+      (Cypher MERGE same id / reject conflict / remint NEW); edges after nodes.
+      Runs only after ImportGuard allow/trim (path B) or skip when disabled.
     */
   }
   attribute def EvSharedSessionRepin {
     doc /*
       Path A: lead and member already share one session; lead "receives"
-      member WM by re-pin_map only — no macro-merge.
+      member WM by re-pin_map only — no WorkingMemorySlice import.
     */
   }
   attribute def EvHydrateFromDurable {
@@ -855,60 +875,66 @@ package MemNetBehaviour {
       then handoffIdle;
   }
 
-  // --- 9. Session merge receive (team lead receives member WM) ---
+  // --- 9. Session import receive (team lead imports member WM) ---
 
-  state def SessionMergeReceive {
+  state def SessionImportReceive {
     doc /*
-      Metaphor: team lead receives a team member's working memory.
+      Metaphor: team lead imports a team member's working memory.
       Path A (preferred): already shared session → EvSharedSessionRepin
-      (lead re-pin_map; no macro-merge). Path B: separate sessions → export
-      WorkingMemorySlice → id policy → edges after nodes → settle TSK_* in
-      lead session. Lead owns merge; member does not settle parent tasks
-      unless delegated. Forbidden: EvMergeFromChat, whole-store dump,
-      dual-writer during merge. Distinct from micro in-session node re-id
-      (merge=true security design). Hosted by MultitaskCoordinator /
-      SessionLifecycle. Case study: outputs/session-merge-case-study.md.
+      (lead re-pin_map; no slice import). Path B: separate sessions → export
+      WorkingMemorySlice → ImportGuard soft review → id policy → edges after
+      nodes → settle TSK_* in lead session. Lead owns import; member does not
+      settle parent tasks unless delegated. Forbidden: EvImportFromChat,
+      whole-store dump, dual-writer during import. Distinct from micro
+      in-session node re-id (merge=true) and from Cypher MERGE upsert.
+      Hosted by MultitaskOperatingModel. Case study:
+      outputs/session-import-case-study.md.
     */
     entry;
-    then mergeIdle;
+    then importIdle;
 
-    state mergeIdle {
-      doc /* No receive in flight; Multitask or single-agent goldfish may run. */
+    state importIdle {
+      doc /* No import in flight; Multitask or single-agent goldfish may run. */
     }
     transition idle_path_a_repin
-      first mergeIdle
+      first importIdle
       accept EvSharedSessionRepin
       then pathASharedRepin;
     transition idle_path_b_request
-      first mergeIdle
-      accept EvRequestSessionMerge
+      first importIdle
+      accept EvRequestSessionImport
       then pathBRequesting;
-    transition idle_reject_chat_merge
-      first mergeIdle
-      accept EvMergeFromChat
-      then mergeRejected;
+    transition idle_reject_chat_import
+      first importIdle
+      accept EvImportFromChat
+      then importRejected;
 
     state pathASharedRepin {
       doc /*
         Path A: whiteboard already shared. Lead re-pin_map on mission
-        session; member facts already visible. No SessionMergeRequest.
+        session; member facts already visible. No SessionImportRequest.
+        ImportGuard optional only if an audit slice is exported.
       */
     }
     transition path_a_pin_map
       first pathASharedRepin
       accept EvPinMapRead
       then pathASharedRepin;
+    transition path_a_optional_guard
+      first pathASharedRepin
+      accept EvGuardReviewSlice
+      then pathBGuarding;
     transition path_a_settle
       first pathASharedRepin
       accept EvSettleMissionTask
-      then mergeComplete;
+      then importComplete;
     transition path_a_done
       first pathASharedRepin
       accept EvCommitOk
-      then mergeComplete;
+      then importComplete;
 
     state pathBRequesting {
-      doc /* Lead SessionMergeRequest; freeze dual-writer on target slice. */
+      doc /* Lead SessionImportRequest; freeze dual-writer on target slice. */
     }
     transition path_b_to_export
       first pathBRequesting
@@ -917,11 +943,11 @@ package MemNetBehaviour {
     transition path_b_reject_dump
       first pathBRequesting
       accept EvDumpGraphInChat
-      then mergeRejected;
+      then importRejected;
     transition path_b_reject_chat
       first pathBRequesting
-      accept EvMergeFromChat
-      then mergeRejected;
+      accept EvImportFromChat
+      then importRejected;
 
     state pathBExporting {
       doc /*
@@ -929,29 +955,59 @@ package MemNetBehaviour {
         depth/view, shaped pins) — not whole store.
       */
     }
-    transition export_to_absorb
+    transition export_to_guard
       first pathBExporting
-      accept EvAbsorbWorkingMemorySlice
-      then pathBAbsorbing;
+      accept EvGuardReviewSlice
+      then pathBGuarding;
     transition export_fail
       first pathBExporting
       accept EvError
-      then mergeIdle;
+      then importIdle;
 
-    state pathBAbsorbing {
+    state pathBGuarding {
       doc /*
-        Lead applies id policy: MERGE same id / reject conflict / remint
-        NEW; commit nodes then edges into mission GraphStore.
+        ImportGuard (cheap LLM) soft-reviews slice before lead mutate.
+        Soft checks only: assigned scope?, junk/off-mission?, invented ids?,
+        oversized/settle noise?. MUST NOT replace schema/caps/id-policy/owner
+        hard gates. Decision recorded as ImportGuardDecision atoms.
       */
     }
-    transition absorb_ok
-      first pathBAbsorbing
+    transition guard_allow
+      first pathBGuarding
+      accept EvGuardAllow
+      then pathBImporting;
+    transition guard_trim
+      first pathBGuarding
+      accept EvGuardTrim
+      then pathBImporting;
+    transition guard_reject
+      first pathBGuarding
+      accept EvGuardReject
+      then importRejected;
+    transition guard_fail
+      first pathBGuarding
+      accept EvError
+      then importIdle;
+
+    state pathBImporting {
+      doc /*
+        Lead imports (after allow/trim): id policy may apply Cypher MERGE
+        same id / reject conflict / remint NEW; commit nodes then edges into
+        mission GraphStore.
+      */
+    }
+    transition import_ok
+      first pathBImporting
       accept EvCommitOk
       then pathBSettling;
-    transition absorb_fail
-      first pathBAbsorbing
+    transition import_via_event
+      first pathBImporting
+      accept EvImportWorkingMemorySlice
+      then pathBSettling;
+    transition import_fail
+      first pathBImporting
       accept EvError
-      then mergeIdle;
+      then importIdle;
 
     state pathBSettling {
       doc /* Lead settles parent-owned TSK_* from mission session pin map. */
@@ -959,46 +1015,46 @@ package MemNetBehaviour {
     transition path_b_settle
       first pathBSettling
       accept EvSettleMissionTask
-      then mergeComplete;
+      then importComplete;
     transition path_b_repin
       first pathBSettling
       accept EvPinMapRead
       then pathBSettling;
 
-    state mergeComplete {
-      doc /* Lead session holds received durable pins; chat was never SSOT. */
+    state importComplete {
+      doc /* Lead session holds imported durable pins; chat was never SSOT. */
     }
     transition complete_to_idle
-      first mergeComplete
+      first importComplete
       accept EvSettleRecycle
-      then mergeIdle;
+      then importIdle;
     transition complete_path_a_again
-      first mergeComplete
+      first importComplete
       accept EvSharedSessionRepin
       then pathASharedRepin;
     transition complete_path_b_again
-      first mergeComplete
-      accept EvRequestSessionMerge
+      first importComplete
+      accept EvRequestSessionImport
       then pathBRequesting;
 
-    state mergeRejected {
+    state importRejected {
       doc /*
-        EvMergeFromChat / graph-dump / dual-writer violation rejected.
-        Recover via path A repin or path B bounded slice.
+        EvImportFromChat / graph-dump / dual-writer / ImportGuard reject.
+        Recover via path A repin or path B bounded slice + guard allow/trim.
       */
     }
     transition rejected_to_path_a
-      first mergeRejected
+      first importRejected
       accept EvSharedSessionRepin
       then pathASharedRepin;
     transition rejected_to_path_b
-      first mergeRejected
-      accept EvRequestSessionMerge
+      first importRejected
+      accept EvRequestSessionImport
       then pathBRequesting;
     transition rejected_to_idle
-      first mergeRejected
+      first importRejected
       accept EvError
-      then mergeIdle;
+      then importIdle;
   }
 
   // --- 10. Durable buffer hydrate/flush (roadmap M2.5; not shipped) ---

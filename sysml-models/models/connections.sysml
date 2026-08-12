@@ -46,9 +46,9 @@ package MemNetConnections {
 
   item def WorkingMemorySlice {
     doc /*
-      Bounded export of a member's working memory for lead receive (path B).
+      Bounded export of a member's working memory for lead import (path B).
       Carries source sessionId, anchors, depth/view budget, and shaped pin
-      payload — not a whole-store dump. Macro session-merge vehicle.
+      payload — not a whole-store dump. Macro session-import vehicle.
     */
     attribute sourceSessionId : String;
     attribute anchors : String;
@@ -56,16 +56,27 @@ package MemNetConnections {
     attribute view : String;
   }
 
-  item def SessionMergeRequest {
+  item def SessionImportRequest {
     doc /*
-      Lead-owned request to receive a member WorkingMemorySlice into the
-      mission (lead) session. Metaphor: team lead receives member WM.
-      Id policy: MERGE same id / reject conflict / remint NEW.
+      Lead-owned request to import a member WorkingMemorySlice into the
+      mission (lead) session. Metaphor: team lead imports member WM.
+      Id policy may use Cypher MERGE (upsert by id) / reject conflict /
+      remint NEW — that is GQL upsert, not the product verb "session merge".
       Distinct from micro in-session node re-id (merge=true security design).
     */
     attribute leadSessionId : String;
     attribute memberSessionId : String;
     attribute idPolicy : String;
+  }
+
+  item def ImportGuardDecision {
+    doc /*
+      Soft outcome from ImportGuard (cheap LLM) before lead mutate on path B:
+      allow / trim / reject plus a short reason. Recorded as structured atoms —
+      MUST NOT make guard chat the SSOT. Does not replace engine hard gates.
+    */
+    attribute outcome : String;
+    attribute reason : String;
   }
 
   item def DurableGraphStore {
@@ -333,21 +344,30 @@ package MemNetConnections {
   }
 
   port def WorkingMemorySliceOutPort {
-    doc /* Emit bounded WorkingMemorySlice (member export for merge). */
+    doc /* Emit bounded WorkingMemorySlice (member export for import). */
     out item slice : WorkingMemorySlice;
   }
   port def WorkingMemorySliceInPort {
-    doc /* Lead accepts WorkingMemorySlice for SessionMergeReceive. */
+    doc /* Lead / ImportGuard accepts WorkingMemorySlice for SessionImportReceive. */
     in item slice : WorkingMemorySlice;
   }
 
-  port def SessionMergeRequestOutPort {
-    doc /* Emit lead-owned SessionMergeRequest. */
-    out item mergeReq : SessionMergeRequest;
+  port def SessionImportRequestOutPort {
+    doc /* Emit lead-owned SessionImportRequest. */
+    out item importReq : SessionImportRequest;
   }
-  port def SessionMergeRequestInPort {
-    doc /* Accept SessionMergeRequest into SessionLifecycle / lead session. */
-    in item mergeReq : SessionMergeRequest;
+  port def SessionImportRequestInPort {
+    doc /* Accept SessionImportRequest into SessionLifecycle / lead session. */
+    in item importReq : SessionImportRequest;
+  }
+
+  port def ImportGuardDecisionOutPort {
+    doc /* Emit soft ImportGuardDecision (allow / trim / reject + reason). */
+    out item decision : ImportGuardDecision;
+  }
+  port def ImportGuardDecisionInPort {
+    doc /* Lead SessionImportReceive consumes ImportGuardDecision. */
+    in item decision : ImportGuardDecision;
   }
 
   port def DurableHydrateOutPort {
@@ -527,17 +547,27 @@ package MemNetConnections {
 
   connection def WorkingMemorySliceFlow {
     doc /*
-      Macro merge path B: member exports bounded WorkingMemorySlice; lead
-      absorbs into mission session (SessionMergeReceive). Not chat merge.
+      Macro import path B: member exports bounded WorkingMemorySlice; lead
+      imports into mission session (SessionImportReceive), after optional
+      ImportGuard soft review. Not chat import.
     */
     end port source : WorkingMemorySliceOutPort;
     end port sink : WorkingMemorySliceInPort;
   }
 
-  connection def SessionMergeRequestFlow {
-    doc /* Lead-owned SessionMergeRequest into SessionLifecycle. */
-    end port source : SessionMergeRequestOutPort;
-    end port sink : SessionMergeRequestInPort;
+  connection def SessionImportRequestFlow {
+    doc /* Lead-owned SessionImportRequest into SessionLifecycle. */
+    end port source : SessionImportRequestOutPort;
+    end port sink : SessionImportRequestInPort;
+  }
+
+  connection def ImportGuardDecisionFlow {
+    doc /*
+      Soft guard outcome into SessionImportReceive. MUST NOT replace schema /
+      caps / id-policy / owner gates. Guard chat is not SSOT.
+    */
+    end port source : ImportGuardDecisionOutPort;
+    end port sink : ImportGuardDecisionInPort;
   }
 
   connection def DurableHydrateFlow {
