@@ -52,6 +52,8 @@ CLI clients and Cursor `url` clients **MUST** see one session graph.
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog. Not blocked by one-path, not claimed here.
 
+**GQL (ISO/IEC 39075):** **consider / map, not teach as wire.** Crosswalk SSOT: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). Verdict for 0.5 = **map** (later selective borrow only). **MUST NOT** add GQL/`MATCH`/`RETURN` as a third dialect beside Layer.
+
 ---
 
 ## Related
@@ -60,6 +62,7 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 |------|------|
 | [`../README.md`](../README.md) | How to run (one path) + gaps pointer |
 | [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) §8 Open | Dialect / grain deferred bullets |
+| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: map, not teach as wire |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary; local optional |
