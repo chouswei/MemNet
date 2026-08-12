@@ -8,8 +8,9 @@ from memnet.durable.adapter import DurableStoreAdapter
 from memnet.durable.agensgraph import AgensGraphAdapter
 from memnet.durable.fake import FakeDurableAdapter
 
-# When set to "1"/"true", make_adapter_from_env returns Fake even without URL
-# (explicit local spike). Default without URL is also Fake for tests/dev.
+# When set to "1"/"true", make_adapter_from_env returns Fake even if URL is set
+# (explicit local spike / CI). Without URL, Fake is also the default *seam*
+# stand-in — not a production durable cabinet.
 ENV_USE_FAKE = "MEMNET_DURABLE_FAKE"
 
 
@@ -20,8 +21,14 @@ def _truthy(val: str | None) -> bool:
 def make_adapter_from_env() -> DurableStoreAdapter:
     """Return AgensGraphAdapter when URL set; else FakeDurableAdapter.
 
-    Fake is a *seam* stand-in, not a production durable store. Agents still
-    MUST NOT talk to either adapter directly.
+    Semantics (serve / MCP bind the result once via ``get_sync_owner()``):
+
+    - ``MEMNET_DURABLE_FAKE`` truthy → Fake (even if URL is set)
+    - else ``MEMNET_AGENSGRAPH_URL`` set → ``AgensGraphAdapter`` (client only)
+    - else → Fake seam stand-in for tests/dev
+
+    Fake is **not** a production durable store. Agents still MUST NOT talk to
+    either adapter directly — only ``DurableSyncOwner`` / SessionLifecycle ports.
     """
     if _truthy(os.environ.get(ENV_USE_FAKE)):
         seed = _truthy(os.environ.get("MEMNET_DURABLE_FAKE_SEED_COMPANY"))
