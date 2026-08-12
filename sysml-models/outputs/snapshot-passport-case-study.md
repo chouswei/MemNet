@@ -1,5 +1,7 @@
 # Case study: snapshot passport (session save / load)
 
+**Shelf:** product canon
+
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md), [session-import-case-study.md](session-import-case-study.md).
 

@@ -1,5 +1,7 @@
 # Case study: inverting amplifier — bind vs relation (SysML evidence)
 
+**Shelf:** application example (on SharedLlmMemory)
+
 Evidence walk of the dual-EDGE topology against `sysml-models/models/`.  
 Application wire sketch (same circuit): `docs/application-notes/examples/inverting-amplifier-gql-case-study.md`.  
 Derivation (math): `docs/application-notes/examples/inverting-amplifier-memnet.md`.  

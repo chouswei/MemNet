@@ -1,5 +1,7 @@
 # Case study: Session import - lead imports member working memory
 
+**Shelf:** product canon
+
 Evidence walk against `sysml-models/models/`.  
 Companion: [system-design-notes.md](system-design-notes.md), [multitask-case-study.md](multitask-case-study.md).
 

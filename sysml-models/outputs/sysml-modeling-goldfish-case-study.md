@@ -1,5 +1,7 @@
 # Case study: SysML modelling goldfish (design memory)
 
+**Shelf:** application example (on SharedLlmMemory)
+
 Evidence walk against SysML under `sysml-models/models/`.  
 Skills spirit: `sysml-modeling-session-checklist` -> workflow -> nested structure / view-doc-sync.  
 Companions: [multitask-case-study.md](multitask-case-study.md), [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md).

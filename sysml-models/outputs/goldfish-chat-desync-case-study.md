@@ -1,5 +1,7 @@
 # Case study: goldfish chat desync — recover by re-pin
 
+**Shelf:** product canon
+
 Evidence walk reinforcing **Write = display** and **chat never SSOT** against `sysml-models/models/`.  
 Companions: [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md), [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md), [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md).
 

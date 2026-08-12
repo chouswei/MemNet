@@ -1,5 +1,7 @@
 # Case study: asynchronous parallel Multitask (disjoint vs conflict)
 
+**Shelf:** product canon
+
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [multitask-case-study.md](multitask-case-study.md), [session-import-case-study.md](session-import-case-study.md).  
 Doctrine: `docs/multi-agent-sessions.md`.

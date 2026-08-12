@@ -73,21 +73,31 @@ MemNetSystem                                 // SharedLlmMemory product
 
 ## Case studies
 
+Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Product canon** = MemNet mechanism. **Application examples** = patterns on SharedLlmMemory — not extra product cores.
+
+### Product canon
+
 | Study | Path |
 |-------|------|
+| Goldfish chat desync → re-pin | [outputs/goldfish-chat-desync-case-study.md](outputs/goldfish-chat-desync-case-study.md) |
 | Multitask Mode (GQL pins + optional import) | [outputs/multitask-case-study.md](outputs/multitask-case-study.md) |
-| Session import + ImportGuard | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
-| Async parallel (disjoint vs conflict) | [outputs/async-parallel-conflict-case-study.md](outputs/async-parallel-conflict-case-study.md) |
-| Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
+| Async parallel (canon companion) | [outputs/async-parallel-conflict-case-study.md](outputs/async-parallel-conflict-case-study.md) |
+| TCP / streamable-http shared Multitask (transport) | [outputs/tcp-shared-multitask-case-study.md](outputs/tcp-shared-multitask-case-study.md) |
+| Session import + ImportGuard (path B detail) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
-| SysML modelling goldfish | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |
+| Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
+| `NEW` mint batch (mutate discipline) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
+
+### Application examples (on SharedLlmMemory)
+
+| Study | Path |
+|-------|------|
 | Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
+| Evidence Centre (ai-investor librarian / MissionDock) | [outputs/evidence-centre-case-study.md](outputs/evidence-centre-case-study.md) |
 | Prose RPG beat (novel-cut patterns → GQL) | [outputs/prose-rpg-session-case-study.md](outputs/prose-rpg-session-case-study.md) |
 | Inverting amp bind vs relation (ego `CST_U1`) | [outputs/inverting-amp-bind-relation-case-study.md](outputs/inverting-amp-bind-relation-case-study.md) |
 | Tech docs / SCPI atomisation | [outputs/tech-docs-scpi-case-study.md](outputs/tech-docs-scpi-case-study.md) |
-| TCP / streamable-http shared Multitask | [outputs/tcp-shared-multitask-case-study.md](outputs/tcp-shared-multitask-case-study.md) |
-| `NEW` mint batch (IdAllocator) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
-| Goldfish chat desync → re-pin | [outputs/goldfish-chat-desync-case-study.md](outputs/goldfish-chat-desync-case-study.md) |
+| SysML modelling goldfish (MBSE meta) | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |
 
 ## Live pin map (MN-REQ-04)
 

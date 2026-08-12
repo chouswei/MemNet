@@ -1,5 +1,7 @@
 # Case study: TCP / streamable-http shared Multitask store
 
+**Shelf:** product canon
+
 Evidence walk focused on **MN-REQ-12.2 transport** against `sysml-models/models/`.  
 Companions: [multitask-case-study.md](multitask-case-study.md) (full mission), [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) (dispatch).  
 Doctrine: `docs/multi-agent-sessions.md`. Application: `docs/application-notes/llm-system-dev-multitask.md`.

@@ -1,5 +1,7 @@
 # Case study: technical docs / SCPI atomisation (SharedLlmMemory)
 
+**Shelf:** application example (on SharedLlmMemory)
+
 Evidence walk for **instrument-manual working set** against `sysml-models/models/`.  
 Application patterns: `docs/application-notes/llm-tech-docs-decomposition.md`.  
 Companion: [system-design-notes.md](system-design-notes.md), [company-memory-case-study.md](company-memory-case-study.md).

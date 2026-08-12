@@ -1,5 +1,7 @@
 # Case study: `id: 'NEW'` mint batch (IdAllocator / MutateGate)
 
+**Shelf:** product canon
+
 Evidence walk of the **NEW mint policy** against `sysml-models/models/` and wire profile §2.2.  
 Companion: [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) (ground ids), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md).  
 SSOT: [`docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) §2.2.
