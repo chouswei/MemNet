@@ -18,14 +18,21 @@ Mission constraints (unchanged): agent memory; Write = display; bounded `pin_map
 
 ## 1. MUST NOT replace Layer with GQL as agent wire
 
+**Concede:** ISO GQL / Cypher-like syntax is in LLM training data — fewer invent-syntax errors and less teach cost *if* the agent spoke GQL.
+
 **Can:** yes. LLMs already know Cypher-shaped ASCII; AgensGraph accepts openCypher (+ partial GQL). Nothing stops a thin “run this query” MCP.
 
 **Should (for MemNet):** **no as replacement.** Crisp reasons:
 
-1. **GQL `RETURN` tables ≠ Write = display.** Binding tables are DBA/analytics I/O. MemNet’s primary read is **graph lines** in the same shapes agents write — a bounded pin map, not columnar result sets.
-2. **DBA query language ≠ agent mutate dialect.** Layer carries dual EDGE (bind / relation), law-on-NODE, view budgets (`shell` / `interior`), `NEW` mint, and goldfish re-read. GQL/`MATCH`/`MERGE` do not teach that contract; forcing them onto the agent collapses mission semantics into general graph SQL.
-3. **Replacement collapses the buffer thesis.** If the LLM speaks store dialect directly, MemNet becomes a thin proxy — or disappears. The product value is the **working-memory buffer**, not a Cypher relay.
-4. **ROADMAP 0.5 one dialect teach.** Layer is the 1.x surface; Tier A is legacy alias only. GQL-as-wire is a third dialect (or a hostile overwrite of Layer).
+1. **Familiar ≠ fit.** MemNet optimises Write = display + bounded `pin_map` + dual EDGE + law-on-NODE — not training priors. Tabular `MATCH`/`RETURN` fights turn token budgets and accuracy.
+2. **GQL `RETURN` tables ≠ Write = display.** Binding tables are DBA/analytics I/O. MemNet’s primary read is **graph lines** in the same shapes agents write — a bounded pin map, not columnar result sets.
+3. **DBA query language ≠ agent mutate dialect.** Layer carries dual EDGE (bind / relation), law-on-NODE, view budgets (`shell` / `interior`), `NEW` mint, and goldfish re-read. GQL/`MATCH`/`MERGE` do not teach that contract; forcing them onto the agent collapses mission semantics into general graph SQL.
+4. **Replacement collapses the buffer thesis.** If the LLM speaks store dialect directly, MemNet becomes a thin proxy — or disappears. The product value is the **working-memory buffer**, not a Cypher relay.
+5. **ROADMAP 0.5 one dialect teach.** Layer is the 1.x surface; Tier A is legacy alias only. GQL-as-wire is a third dialect (or a hostile overwrite of Layer).
+
+**Harvest the prior:** GQL/Cypher stay **behind** the adapter. Optional later: LLM-assisted Layer ↔ Cypher sync that uses the training prior — agent still only sees Layer / `pin_map`.
+
+**MUST NOT:** use “LLM already knows GQL” as a reason to drop Layer as agent wire for 0.5.
 
 **Where GQL does belong:** AgensGraph / durable store side; optional sync adapter that **maps** Layer ↔ property-graph rows; contributor crosswalk in [`gql-consideration.md`](gql-consideration.md). **Never** primary agent teach for 0.5.
 
@@ -49,7 +56,7 @@ Mission constraints (unchanged): agent memory; Write = display; bounded `pin_map
 | **AgensGraph → MemNet** | Optional **hydrate** / re-anchor into a session pin budget |
 | **LLM ↔ AgensGraph (GQL direct)** | Out of MemNet teach — DBA / app / AgensGraph-AI tooling |
 
-Sync is an **engine or sidecar adapter**, not a second teach dialect and not “GQL skills for agents.”
+Sync is an **engine or sidecar adapter**, not a second teach dialect and not “GQL skills for agents.” Optional later: LLM-assisted translate Layer ↔ Cypher inside the adapter — harvest the training prior without putting GQL on the agent wire.
 
 ---
 

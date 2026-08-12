@@ -11,7 +11,19 @@
 
 ---
 
-## 1. Why map (not ignore, not adopt)
+## 1. Training prior vs mission fit
+
+**Concede:** ISO GQL / Cypher-like syntax is heavily represented in LLM training data. If the agent spoke GQL, invent-syntax errors would likely fall and teach cost would drop versus a bespoke Layer dialect.
+
+**Counter (mission):** MemNet optimises for Write = display, bounded `pin_map`, dual EDGE, and law-on-NODE — **not** for matching training priors. Familiar ≠ fit. Tabular `MATCH` / `RETURN` fights token budgets and factual accuracy on agent turns.
+
+**Harvest the prior without replacing Layer:** keep GQL/Cypher **behind** the sync adapter (AgensGraph side). Optional later: LLM-assisted sync that translates Layer ↔ Cypher using that prior — the agent still only sees Layer / `pin_map`.
+
+**MUST NOT:** treat “the LLM already knows GQL” as a reason to drop Layer as agent wire for 0.5 (or as the 1.x surface).
+
+---
+
+## 2. Why map (not ignore, not adopt)
 
 | Option | Fit for MemNet |
 |--------|----------------|
@@ -26,7 +38,7 @@ GQL is a **declarative database query language** (SQL’s cousin for property gr
 
 ---
 
-## 2. Consideration matrix
+## 3. Consideration matrix
 
 | GQL / Cypher-family construct | MemNet analogue | Deliberate non-analogue? |
 |-------------------------------|-----------------|---------------------------|
@@ -50,12 +62,13 @@ GQL is a **declarative database query language** (SQL’s cousin for property gr
 
 ---
 
-## 3. Risks if we ignore GQL entirely
+## 4. Risks if we ignore GQL entirely
 
 | Risk | Why it matters |
 |------|----------------|
 | **Interop gravity** | ISO GQL + SQL/PGQ become the default “graph query” story in industry docs and tools |
 | **LLM / hiring priors** | Models and engineers default to `MATCH`/`RETURN` Cypher; unexplained divergence looks like ignorance |
+| **Training-prior temptation** | “LLM already knows GQL” can be misread as licence to replace Layer — see §1 |
 | **Silent drift** | Contributors may paste Cypher into fixtures or skills without a written non-analogue |
 | **Missed free alignment** | Directed/undirected, no nested graphs, property-vs-topology split — we already rhyme; mapping records that on purpose |
 
@@ -63,7 +76,7 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 
 ---
 
-## 4. Risks if we adopt GQL naively
+## 5. Risks if we adopt GQL naively
 
 | Risk | Why it hurts MemNet |
 |------|---------------------|
@@ -73,21 +86,22 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 | **SCHEMA / type bloat** | GQL graph types + multi-label cardinality debates pull us into allow-lists we deferred |
 | **Syntax collision** | `(node)` / `[rel]` vs MemNet `[Id]` / bare `--label-->` — dual ASCII art in one product |
 | **Wrong audience** | GQL targets database applications; MemNet targets LLM turn I/O |
+| **Prior ≠ mission** | Training familiarity does not deliver dual EDGE, law-on-NODE, or Write = display |
 
 ---
 
-## 5. Stance for ROADMAP 0.5 / multi-layer Open
+## 6. Stance for ROADMAP 0.5 / multi-layer Open
 
 **GQL: consider / map, not teach as wire.**
 
 - 0.5 delivery stays one-path (remote, dialect, graph owner) — unchanged.
 - Layer remains the only 1.x teach surface.
 - This doc is the SSOT crosswalk; refresh when ISO practice or Layer locks move.
-- Optional later: **borrow** glossary phrases in contributor docs (“undirected edge”, “property graph”) without GQL keywords in agent skills.
+- Optional later: **borrow** glossary phrases in contributor docs (“undirected edge”, “property graph”) without GQL keywords in agent skills; LLM-assisted Layer ↔ Cypher sync stays **adapter-side** ([`agensgraph-buffer.md`](agensgraph-buffer.md)).
 
 ---
 
-## 6. Related
+## 7. Related
 
 | Path | Role |
 |------|------|
