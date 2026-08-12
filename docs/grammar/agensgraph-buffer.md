@@ -60,6 +60,23 @@
 | Claim adapter shipped before M2.5 lands | Plan only until implemented |
 | Revive Layer / Tier A | ADR-001 supersession |
 
+
+---
+
+## Implementation status (first slice)
+
+**Not M2.5 complete.** First seam landed in `memnet.durable`:
+
+| Piece | Status |
+|-------|--------|
+| `DurableStoreAdapter` ABC (`hydrate` / `flush` + `HydrateBudget`) | Landed |
+| `DurableSyncOwner` (one process owner; rejects dual bind) | Landed |
+| `FakeDurableAdapter` + hydrate → live session → shaped `pin_map` tests | Landed |
+| `AgensGraphAdapter` env config (`MEMNET_AGENSGRAPH_*`) | Stub — needs `psycopg` + Cypher hydrate/flush |
+| Claim adapter / M2.5 shipped | **MUST NOT** |
+
+Agents continue to use MemNet GQL `pin_map` / mutate only. Durable calls go through `DurableSyncOwner` / `SessionLifecycle.hydrate_from_durable` — never as the LLM primary path.
+
 ---
 
 ## Related

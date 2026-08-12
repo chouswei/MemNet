@@ -32,6 +32,16 @@ def _inline_mode() -> bool:
     return bool(os.environ.get("MEMNET_SERVE_INTERNAL") or os.environ.get("MEMNET_TEST_INLINE"))
 
 
+def _stdin_for_proxy(argv: list[str]) -> str | None:
+    """Forward process stdin when CLI asked for --stdin (match TCP API)."""
+    if "--stdin" not in argv:
+        return None
+    if hasattr(sys.stdin, "buffer"):
+        raw = sys.stdin.buffer.read()
+        return raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else str(raw)
+    return sys.stdin.read()
+
+
 def dispatch(argv: list[str] | None = None) -> int:
     argv = list(argv if argv is not None else sys.argv[1:])
     if argv and argv[0] == "serve":
@@ -39,7 +49,8 @@ def dispatch(argv: list[str] | None = None) -> int:
     if not _stateful(argv) or _inline_mode():
         return _run_app(argv)
     if probe():
-        return _emit_proxy_response(send_command(argv))
+        stdin_text = _stdin_for_proxy(argv)
+        return _emit_proxy_response(send_command(argv, stdin=stdin_text))
     emit_err(MemNetError("serve_required", "run memnet serve in another terminal first"))
     return 2
 

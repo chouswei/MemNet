@@ -18,7 +18,7 @@
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | **Done** |
-| **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | Plan — **next after M2** |
+| **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **In progress** — adapter seam + Fake hydrate→pin_map; AgensGraph Cypher TBD |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | Plan |
 
 **Order:** M1 → M2 → **M2.5** → M3. M2.5 does **not** wait on M3. User promotion (2026-08-13): durable store adapter sits **immediately after M2**, not deferred past all of 0.5.
