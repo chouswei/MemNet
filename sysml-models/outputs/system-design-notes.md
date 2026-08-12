@@ -15,7 +15,15 @@ Novel-writer is out of scope.
 
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
-**Primary codec:** `GqlCodec` (CIP/oC9 authority; MemNet-gated). As-is TierA codecs quarantined — remove in M2.
+**Primary codec:** `GqlCodec` — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs quarantined — remove in M2.
+
+## Application patterns (not second products)
+
+| Pattern | Item / study |
+|---------|----------------|
+| Company analytical SSOT | `CompanyAnalyticalSsot` → [company-memory-case-study.md](company-memory-case-study.md) |
+| Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
+| Lead imports member WM | Nested ImportGuard/Absorb → [session-import-case-study.md](session-import-case-study.md) |
 
 ## Nesting outline
 
