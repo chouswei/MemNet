@@ -1,19 +1,23 @@
 /*
   MemNet deploy — TARGET architecture after ADR-001.
 
+  Product framing (2026-08-13): MemNet = shared LLM memory (SharedLlmMemory);
+  session id = pass-by-reference handle for a MissionWorkingSet; durable GQL
+  store (DurableBuffer / AgensGraphAdapter) planned M2.5 behind MemNet.
+
   Nesting (coarse → fine):
-    MemNetSystem
-    ├── AgentMemory          property-graph working set + GQL wire
+    MemNetSystem                    // SharedLlmMemory product
+    ├── AgentMemory                 // session-scoped working set + GQL wire
     │   ├── GraphStore
-    │   ├── GqlWire          1.x primary codec (openCypher-shaped)
-    │   ├── PinMapShapedRead shaped pin_map (Write = display redefined)
+    │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
+    │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
     │   ├── MutateGate / SessionLifecycle / Schema / Caps / …
-    │   └── LegacyLayerCodec migration accept only (Tier A / Layer)
-    ├── TransportBoundary    InProcess / LocalIpc / TcpServe
-    ├── MemNetMcpServer
-    ├── DurableBuffer        AgensGraphAdapter (planned M2.5, after M2)
+    │   └── (TierACodec quarantined — remove in M2; not nested accept)
+    ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
+    ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
+    ├── DurableBuffer               // AgensGraphAdapter planned M2.5
     ├── PinMapRoadmap
-    └── MultitaskOperatingModel
+    └── MultitaskOperatingModel     // SessionHandoffById + SessionMergeReceive
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -100,18 +104,16 @@ package MemNet {
 
   part def TierACodec {
     doc /*
-      LEGACY / migration — LegacyLayerCodec role. Accept Layer / Tier A
-      NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a) until M4.
-      MUST NOT be 1.x teach; primary wire is GqlCodec.
-      As-is 0.4.x still uses this path in Python.
+      QUARANTINED — as-is engine lag (memnet.tier_a). Former Layer / Tier A
+      NODE|EDGE ASCII. MUST NOT be nested as target accept or 1.x teach.
+      Remove from product path in M2. Primary wire is GqlCodec.
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port errOut : ErrorSignalOutPort;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_4_BoundaryFriendlyIfInternalDiffers;
+    attribute quarantineRemoveInM2 : Boolean = true;
   }
 
   part def LegacyPipeImport {
@@ -151,7 +153,7 @@ package MemNet {
       Edge indexes, adjacency, properties, labels; strict create/replace.
       Dual EDGE: bind vs relation as relationship types / endpoint grain.
       Law-on-node as node properties (+ port structure). Agent wire is GQL
-      via GqlCodec — not Layer ASCII as primary.
+      via GqlCodec. Realises session-scoped SharedLlmMemory content.
       As-is: memnet.mem_store.MemStore (+ models).
     */
     port recordsIn : GraphRecordInPort;
@@ -172,16 +174,14 @@ package MemNet {
 
   part def MutateGate {
     doc /*
-      Orchestrates GQL (primary) or legacy Layer parse -> schema validate ->
-      NEW mint -> strict add/update into GraphStore -> assigned ids + ack.
-      Owns IdAllocator; uses sibling SchemaRegistry / GqlCodec /
-      LegacyLayerCodec / GraphStore via AgentMemory wiring.
-      As-is: memnet.mutate_gate (Layer-first until M2).
+      Orchestrates GQL parse -> schema validate -> NEW mint -> strict
+      add/update into GraphStore -> assigned ids + ack. Owns IdAllocator;
+      uses sibling SchemaRegistry / GqlCodec / GraphStore via AgentMemory
+      wiring. As-is may still parse line codecs until M2 remove — not target
+      accept doctrine.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
-    port tierAIn : TierAInPort;
-    port tierAOut : TierAOutPort;
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port idsOut : AssignedIdOutPort;
@@ -265,19 +265,24 @@ package MemNet {
   part def SessionLifecycle {
     doc /*
       Process-wide registry of named sessions with TTL purge; per-session
-      GraphStore + SchemaRegistry + query/mutate facades.
-      Nested under AgentMemory. As-is: memnet.registry + session.
+      GraphStore + SchemaRegistry + query/mutate facades. Each session id is
+      the pass-by-reference handle for a MissionWorkingSet (SOMETHING).
+      Nested under AgentMemory (SharedLlmMemory). As-is: memnet.registry +
+      session. Optional M2.5 hydrate/flush ports to DurableBuffer.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
     port schemaIn : SchemaInPort;
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
+    port hydrateIn : DurableHydrateInPort;
+    port flushOut : DurableFlushOutPort;
+    port mergeReqIn : SessionMergeRequestInPort;
+    port sliceIn : WorkingMemorySliceInPort;
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
     part schema : SchemaRegistry;
     part gqlWire : GqlCodec;
-    part legacyLayer : TierACodec;
     part store : GraphStore;
     part mutate : MutateGate;
     part shapedRead : PinMapShapedRead;
@@ -287,10 +292,6 @@ package MemNet {
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
-      end port sink ::> mutate.recordsIn;
-    }
-    connection legacyParseToMutate : GraphRecordFlow {
-      end port source ::> legacyLayer.recordsOut;
       end port sink ::> mutate.recordsIn;
     }
     connection mutateToStore : GraphRecordFlow {
@@ -303,21 +304,27 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
   }
 
   part def AgentMemory {
     doc /*
-      Nested product heart: property-graph agent memory with GQL wire.
-      Coarse container for GraphStore, GqlWire, PinMapShapedRead,
-      LegacyLayerCodec, and SessionLifecycle. Brand = MemNet.
+      SharedLlmMemory realisation: session-scoped property-graph working
+      memory with GQL wire. Nested GraphStore, GqlCodec, PinMapShapedRead,
+      MutateGate, SessionLifecycle. Brand = MemNet. TierACodec not nested.
     */
     part sessions : SessionLifecycle;
     port sessionOut : SessionIdOutPort;
     port gqlIn : GqlWireInPort;
     port shapedOut : ShapedSubgraphOutPort;
     port pinMapOut : LivePinMapOutPort;
+    port hydrateIn : DurableHydrateInPort;
+    port flushOut : DurableFlushOutPort;
   }
 
   // =====================================================================
@@ -379,16 +386,15 @@ package MemNet {
 
   part def CliFacade {
     doc /*
-      Agent/human CLI. Presents GQL wire on stdio (target); Layer accept
-      retained for migration. As-is: memnet.cli (+ serve_client).
+      Agent/human CLI. Presents GQL wire on stdio (target). As-is may still
+      speak line codecs until M2 remove — not target accept doctrine.
+      As-is: memnet.cli (+ serve_client).
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
     port cmdOut : ServeCommandOutPort;
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
-    port tierAIn : TierAInPort;
-    port tierAOut : TierAOutPort;
     port sessionOut : SessionIdOutPort;
     port errOut : ErrorSignalOutPort;
 
@@ -398,6 +404,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_1_LlmFriendlyStdio;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_3_NoHostilePositionalDump;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_4_BoundaryFriendlyIfInternalDiffers;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_5_IoActorIsLlm;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_6_FollowPromptRules;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
@@ -419,10 +426,9 @@ package MemNet {
   part def LawSeedHelper {
     doc /*
       On MCP session_open, auto-seed engine-law rows when missing.
-      Target emit via GQL/shaped path; as-is may still seed Layer lines.
+      Target emit via GQL/shaped path.
     */
     port gqlOut : GqlWireOutPort;
-    port tierAOut : TierAOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_4_McpLawSeedOnOpen;
   }
@@ -431,11 +437,11 @@ package MemNet {
     doc /*
       Generic FastMCP tools. Agent memory payloads: GQL mutate + shaped
       pin_map (target). Structured JSON envelopes. No domain-product tools.
+      LLM agents connect here to MemNet — not to DurableBuffer.
     */
     port apiOut : InProcessOutPort;
     port hostOut : JsonEnvelopeOutPort;
     port fromHost : GqlWireInPort;
-    port legacyFromHost : TierAInPort;
     port errOut : ErrorSignalOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
@@ -477,23 +483,35 @@ package MemNet {
   }
 
   // =====================================================================
-  // Durable buffer (roadmap) — AgensGraph
+  // Durable buffer (planned M2.5) — AgensGraph behind SharedLlmMemory
   // =====================================================================
 
   part def AgensGraphAdapter {
     doc /*
-      ROADMAP: optional hydrate/flush between AgentMemory and durable
-      AgensGraph (same GQL family). Not required for 0.5 one-path.
-      MUST NOT dual-write without a single sync owner.
+      PLANNED M2.5: hydrate/flush between SessionLifecycle / GraphStore and
+      DurableGraphStore (AgensGraph-class). Same GQL family. Not shipped.
+      MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
+      primary path (LLM ↔ MemNet only).
     */
+    port hydrateOut : DurableHydrateOutPort;
+    port flushIn : DurableFlushInPort;
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
     attribute implemented : Boolean = false;
+    attribute phase : String = "M2.5";
   }
 
   part def DurableBuffer {
-    doc /* Optional durable property-graph buffer behind MemNet. */
+    doc /*
+      Optional durable property-graph buffer behind MemNet SharedLlmMemory.
+      Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
+      LLM agents as primary. Planned M2.5 after engine GQL (M2).
+    */
     part agens : AgensGraphAdapter;
+    port hydrateOut : DurableHydrateOutPort;
+    port flushIn : DurableFlushInPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }
 
   // =====================================================================
@@ -580,11 +598,15 @@ package MemNet {
 
   part def MultitaskCoordinator {
     doc /*
-      Logical parent agent role. Hosts ParentTaskLifecycle for relevant
-      tasks. Wire payloads: GQL + shaped pin_map (target).
+      Logical parent / team-lead role. Hosts ParentTaskLifecycle; delivers
+      SessionHandoff; owns SessionMergeReceive (lead receives member WM).
+      Wire payloads: GQL + shaped pin_map (target).
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
+    port handoffOut : SessionHandoffOutPort;
+    port mergeReqOut : SessionMergeRequestOutPort;
+    port sliceIn : WorkingMemorySliceInPort;
     port gqlOut : GqlWireOutPort;
     port pinIn : PinMapInPort;
 
@@ -594,14 +616,23 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_6_ParentEndTurnNoPoll;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
   }
 
   part def MultitaskWorker {
     doc /*
-      Logical worker: pin_map first; mutate under WorkerWriteScope.
+      Logical worker / team member: receive SessionHandoff; pin_map first;
+      mutate under WorkerWriteScope; may export WorkingMemorySlice for path B
+      merge. MUST NOT settle parent TSK_* unless delegated; MUST NOT treat
+      chat as SSOT.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
+    port handoffIn : SessionHandoffInPort;
+    port sliceOut : WorkingMemorySliceOutPort;
     port pinIn : PinMapInPort;
     port gqlOut : GqlWireOutPort;
 
@@ -609,6 +640,9 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
   }
 
   part def MultitaskSharedStoreBinding {
@@ -622,10 +656,22 @@ package MemNet {
   }
 
   part def MultitaskOperatingModel {
-    doc /* Agent-host Multitask topology for MN-REQ-12. */
+    doc /*
+      Agent-host Multitask topology for MN-REQ-12. SessionHandoffById plus
+      SessionMergeReceive (lead receives member working memory).
+    */
     part coordinator : MultitaskCoordinator;
     part worker : MultitaskWorker;
     part sharedStore : MultitaskSharedStoreBinding;
+
+    connection sessionHandoff : SessionHandoffFlow {
+      end port source ::> coordinator.handoffOut;
+      end port sink ::> worker.handoffIn;
+    }
+    connection memberSliceToLead : WorkingMemorySliceFlow {
+      end port source ::> worker.sliceOut;
+      end port sink ::> coordinator.sliceIn;
+    }
   }
 
   // =====================================================================
@@ -634,10 +680,11 @@ package MemNet {
 
   part def MemNetSystem {
     doc /*
-      Target MemNet software system — nested until clear:
-      AgentMemory (via core) + Transport + MCP + DurableBuffer +
-      pin-map roadmap + Multitask doctrine. Novel-writer out of scope.
-      LegacyPipeImport not nested. Only MN-REQ-00 satisfied here.
+      SharedLlmMemory product: MemNet software system — nested until clear.
+      AgentMemory (via core) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
+      (M2.5 behind sessions) + pin-map roadmap + Multitask (session-id handoff).
+      Novel-writer out of scope. LegacyPipeImport / TierACodec not nested.
+      Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -664,6 +711,14 @@ package MemNet {
     connection cliTcpFallback : ServeCommandFlow {
       end port source ::> core.cli.cmdOut;
       end port sink ::> core.transport.tcp.cmdIn;
+    }
+    connection durableHydrate : DurableHydrateFlow {
+      end port source ::> durable.agens.hydrateOut;
+      end port sink ::> core.transport.inProcess.memory.sessions.hydrateIn;
+    }
+    connection durableFlush : DurableFlushFlow {
+      end port source ::> core.transport.inProcess.memory.sessions.flushOut;
+      end port sink ::> durable.agens.flushIn;
     }
 
     satisfy MN_REQ_00_MissionBridge;

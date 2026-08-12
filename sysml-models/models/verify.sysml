@@ -1,7 +1,8 @@
 /*
-  MemNet verification cases — MN-REQ-12 Multitask Mode.
-  Aligned to outputs/multitask-case-study.md 8-step trace (+ 12.7 gate).
-  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S09.
+  MemNet verification cases — MN-REQ-12 Multitask Mode + session merge.
+  Aligned to outputs/multitask-case-study.md and
+  outputs/session-merge-case-study.md.
+  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S11.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; does not claim engine ACL/reserve/ingest enforcement.
 */
@@ -220,6 +221,48 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_12_S10_SharedSessionReceive {
+    doc /*
+      Session-merge case study scenario A — shared session receive
+      (MN-REQ-12.9 path A). Lead + member on one session id; lead receives
+      via EvSharedSessionRepin / re-pin_map; SessionMergeReceive.pathASharedRepin.
+      No macro WorkingMemorySlice import.
+    */
+    attribute verificationId : String = "MN-VER-12-S10";
+
+    subject coordinator : MultitaskCoordinator;
+
+    objective step10SharedReceive {
+      verify leadOwnsSessionMergeReq;
+      verify sharedSessionMissionSsotReq;
+      require constraint {
+        coordinator.doctrineAsIs == true
+      }
+    }
+  }
+
+  verification def MN_VER_12_S11_SeparateSessionMerge {
+    doc /*
+      Session-merge case study scenario B — separate sessions → receive
+      (MN-REQ-12.9 / 12.10). Lead SessionMergeRequest; member
+      WorkingMemorySlice; absorb under id policy; settle TSK_* in lead
+      session. Forbidden EvMergeFromChat / whole-store dump.
+    */
+    attribute verificationId : String = "MN-VER-12-S11";
+
+    subject multitask : MultitaskOperatingModel;
+    item mergeReq : SessionMergeRequest;
+    item slice : WorkingMemorySlice;
+
+    objective step11SeparateMerge {
+      verify leadOwnsSessionMergeReq;
+      verify noChatOrWholeStoreMergeReq;
+      require constraint {
+        multitask.coordinator.doctrineAsIs == true
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -232,4 +275,6 @@ package MemNetVerification {
   verification parentReconcileVerify : MN_VER_12_S07_ParentReconcile;
   verification settleMissionTaskVerify : MN_VER_12_S08_SettleMissionTask;
   verification noAssumeAclReserveVerify : MN_VER_12_S09_NoAssumeAclReserveIngest;
+  verification sharedSessionReceiveVerify : MN_VER_12_S10_SharedSessionReceive;
+  verification separateSessionMergeVerify : MN_VER_12_S11_SeparateSessionMerge;
 }

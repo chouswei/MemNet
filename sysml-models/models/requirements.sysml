@@ -36,12 +36,14 @@
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
     redefined as bounded shaped pin_map subgraph wrapping GQL.
-    Layer / Tier A = legacy accept / migration only (MemNetLayer.g4).
+    As-is line codecs (former Layer / Tier A) = implementation lag → remove
+    in M2; MUST NOT be agent teach or target accept path.
     Legacy @TAG pipe may still appear in old session files (import once).
     Store is in-memory Node|Edge property-graph records; process binding
     prefers in-process, then local IPC, TCP as fallback; fixed engine laws
-    often LAW01-LAW05. Requirements state behavioural contracts; surface
-    spellings may change if the boundary still meets the contract.
+    often LAW01-LAW05. Durable AgensGraph-class store planned M2.5 behind
+    MemNet (not LLM-direct). Requirements state behavioural contracts;
+    surface spellings may change if the boundary still meets the contract.
 
   Stakeholders (comment only -- no structural defs in this file):
     LLM pipelines; data-search steps; MCP host; human inspectors who verify
@@ -122,6 +124,26 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-01.6";
       }
+
+      requirement def MN_REQ_01_7_SessionAsSsotHandle {
+        doc /*
+          A named session MAY be the SSOT for a mission SOMETHING
+          (MissionWorkingSet). When so, an LLM SHALL pass that SOMETHING by
+          delivering the session id only (plus anchors / write scope as
+          today). Peers SHALL re-pin_map; chat SHALL NOT be treated as SSOT
+          (extends MN-REQ-10.1; Multitask MN-REQ-12.1).
+        */
+        attribute requirementId : String = "MN-REQ-01.7";
+      }
+
+      requirement def MN_REQ_01_8_NoGraphDumpHandoff {
+        doc /*
+          Session handoff SHALL NOT carry a full graph dump (or mission SSOT
+          prose blob) as the handoff payload. SessionHandoff carries session
+          id plus optional anchors / writeScope only.
+        */
+        attribute requirementId : String = "MN-REQ-01.8";
+      }
     }
 
     // ----- Memory net information model: NODE | EDGE (property graph) -----
@@ -130,11 +152,11 @@ package MemNetRequirements {
       doc /*
         Group: the Net of Memory information model is exactly two conceptual
         data kinds -- NODE and EDGE -- as a first-class property graph
-        (Node / Relationship / Property / Label; see layer-gql-map.md and
-        ADR-001). Tags or surface spellings may realise node labels; they
-        are not additional conceptual kinds. Agent wire is openCypher-shaped
-        GQL; primary read is shaped pin_map (not raw MATCH/RETURN tables).
-        Layer ASCII and @TAG pipe are legacy accept / import-once only.
+        (Node / Relationship / Property / Label; ADR-001). Tags or surface
+        spellings may realise node labels; they are not additional conceptual
+        kinds. Agent wire is openCypher-shaped GQL; primary read is shaped
+        pin_map (not raw MATCH/RETURN tables). As-is line codecs and @TAG
+        pipe are quarantined / import-once only — remove codecs in M2.
       */
       attribute requirementId : String = "MN-REQ-02";
 
@@ -178,7 +200,8 @@ package MemNetRequirements {
           Agent-facing grammar and I/O SHALL express both NODE and EDGE as
           openCypher-shaped GQL (labels, relationship types, properties).
           Write = display means shaped subgraph emit matches mutate family.
-          Layer ASCII MAY be accepted as legacy only.
+          Former Layer ASCII MUST NOT be taught or accepted as target path;
+          as-is codecs remove in M2.
         */
         attribute requirementId : String = "MN-REQ-02.5";
       }
@@ -344,6 +367,17 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-06.3";
       }
+
+      requirement def MN_REQ_06_4_DurableStoreBehindMemNet {
+        doc /*
+          When a durable online GQL store (AgensGraph-class) is present,
+          MemNet SHALL remain the sole agent-facing shared memory. The store
+          SHALL sit behind MemNet (hydrate/flush). LLM ↔ store direct SHALL
+          NOT be the default teach path. Adapter planned post-M2 (M2.5) —
+          SHALL NOT be claimed shipped until implemented.
+        */
+        attribute requirementId : String = "MN-REQ-06.4";
+      }
     }
 
     // ----- MCP agent boundary -----
@@ -397,7 +431,8 @@ package MemNetRequirements {
         is produced and consumed by an LLM, so presentation SHALL follow
         prompt rules. One agent dialect teach = openCypher-shaped GQL
         (ADR-001); Write = display = shaped pin_map subgraph both ways.
-        Layer / Tier A and @TAG pipe are legacy accept / import-once only.
+        Former Layer / Tier A codecs are quarantined (remove in M2); @TAG
+        pipe is import-once only.
       */
       attribute requirementId : String = "MN-REQ-08";
 
@@ -479,7 +514,7 @@ package MemNetRequirements {
           Live pin map emit SHALL be a shaped subgraph in the same GQL /
           property-graph family as accepted mutate input (redefined Write =
           display). SHALL NOT present raw tabular RETURN as primary read, nor
-          a peer Layer dialect on read vs GQL on write.
+          a second peer dialect on read vs GQL on write.
         */
         attribute requirementId : String = "MN-REQ-08.9";
       }
@@ -804,9 +839,11 @@ package MemNetRequirements {
       requirement def MN_REQ_12_1_SharedSessionMissionSsot {
         doc /*
           Under Multitask, SHALL use one shared named MemNet session id as the
-          mission source of truth for ids, paths, and task state. Chat,
-          tool transcripts, and sub-agent prose SHALL NOT be treated as
-          durable mission SSOT (extends MN-REQ-10.1).
+          mission source of truth for ids, paths, and task state (session as
+          SSOT handle for the MissionWorkingSet). Handoff SHALL be by session
+          id (SessionHandoff); peers re-pin_map. Chat, tool transcripts, and
+          sub-agent prose SHALL NOT be treated as durable mission SSOT
+          (extends MN-REQ-10.1 / MN-REQ-01.7 / MN-REQ-01.8).
         */
         attribute requirementId : String = "MN-REQ-12.1";
       }
@@ -887,6 +924,29 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-12.8";
       }
+
+      requirement def MN_REQ_12_9_LeadOwnsSessionMerge {
+        doc /*
+          When a team lead receives a member's working memory (SessionMergeReceive),
+          the lead / parent SHALL own the merge into the mission session.
+          Path A (shared session): lead re-pin_map only — no macro-merge.
+          Path B (separate sessions): lead absorbs a bounded WorkingMemorySlice
+          under an explicit id policy; edges after nodes; lead settles parent
+          TSK_*. Members SHALL NOT settle parent-owned TSK_* unless delegated.
+          Distinct from micro in-session node re-id (merge=true security design).
+        */
+        attribute requirementId : String = "MN-REQ-12.9";
+      }
+
+      requirement def MN_REQ_12_10_NoChatOrWholeStoreMerge {
+        doc /*
+          Session merge / receive SHALL NOT use chat or tool transcripts as
+          the merge payload (EvMergeFromChat forbidden). SHALL NOT import a
+          whole-store dump. Dual-writer on the target slice during merge
+          SHALL NOT be assumed safe (0.4.x last-write-wins; MN-REQ-12.7).
+        */
+        attribute requirementId : String = "MN-REQ-12.10";
+      }
     }
   }
 
@@ -909,6 +969,10 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
   requirement optionalKeepSessionIdReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+  requirement sessionAsSsotHandleReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
+  requirement noGraphDumpHandoffReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;
@@ -964,6 +1028,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_2_LocalIpcShare;
   requirement tcpServeMigrationReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
+  requirement durableStoreBehindMemNetReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1078,6 +1144,10 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   requirement appliesToRelevantTasksReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_8_AppliesToRelevantTasks;
+  requirement leadOwnsSessionMergeReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionMerge;
+  requirement noChatOrWholeStoreMergeReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreMerge;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -1105,6 +1175,8 @@ package MemNetRequirements {
     end #derive ::> saveSessionSnapshotReq;
     end #derive ::> loadSessionSnapshotReq;
     end #derive ::> optionalKeepSessionIdReq;
+    end #derive ::> sessionAsSsotHandleReq;
+    end #derive ::> noGraphDumpHandoffReq;
   }
 
   #derivation connection deriveMemoryNetGraphLeaves {
@@ -1145,6 +1217,7 @@ package MemNetRequirements {
     end #derive ::> inProcessPrimaryReq;
     end #derive ::> localIpcShareReq;
     end #derive ::> tcpServeMigrationReq;
+    end #derive ::> durableStoreBehindMemNetReq;
   }
 
   #derivation connection deriveMcpLeaves {
@@ -1217,6 +1290,8 @@ package MemNetRequirements {
     end #derive ::> parentEndTurnNoPollReq;
     end #derive ::> noAssumeAclReserveIngestReq;
     end #derive ::> appliesToRelevantTasksReq;
+    end #derive ::> leadOwnsSessionMergeReq;
+    end #derive ::> noChatOrWholeStoreMergeReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {
@@ -1342,6 +1417,10 @@ package MemNetRequirements {
     end #original ::> noChatAsDurableStoreReq;
     end #derive ::> multitaskModeReq;
     end #derive ::> sharedSessionMissionSsotReq;
+    end #derive ::> sessionAsSsotHandleReq;
+    end #derive ::> noGraphDumpHandoffReq;
+    end #derive ::> leadOwnsSessionMergeReq;
+    end #derive ::> noChatOrWholeStoreMergeReq;
   }
 
   #derivation connection deriveMultitaskFromProcessBoundary {
