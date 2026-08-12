@@ -1,39 +1,29 @@
-"""MutateGate — Tier A parse → NEW mint → schema validate → strict commit."""
+"""MutateGate — GQL parse → NEW mint → schema validate → strict commit."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 from memnet.exceptions import MemNetError
-from memnet.id_allocator import AssignedIdMap, IdAllocator
-from memnet.layer import (
-    LayerEdgeRec,
-    LayerNodeRec,
-    ensure_layer_schema,
-    edge_to_store_fields,
-    emit_item as emit_layer_item,
-    looks_like_layer,
-    mint_layer_document,
-    node_to_fields,
-    parse as parse_layer,
-    soft_validate as soft_validate_layer,
+from memnet.gql import (
+    ParseError,
+    emit_item,
+    looks_like_gql,
+    looks_like_legacy_layer_or_tier_a,
+    soft_validate,
 )
-from memnet.layer import ParseError as LayerParseError
+from memnet.gql_codec import GqlCodec
+from memnet.id_allocator import AssignedIdMap, IdAllocator
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
-from memnet.tier_a import (
-    EdgeRec,
-    Field,
-    NodeRec,
-    Op,
-    ParseError,
-    Section,
-    emit_item,
-)
-from memnet.tier_a_codec import TierACodec
+from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
 
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
+_LEGACY_HINT = (
+    "Layer / Tier A agent wire is retired (ADR-001 M2). "
+    "Use gated openCypher-shaped GQL — see docs/grammar/gql-wire-profile.md"
+)
 
 
 def _split_rename_fields(
@@ -55,23 +45,12 @@ def _split_rename_fields(
 
 
 def looks_like_tier_a(line: str) -> bool:
-    s = line.strip().lstrip("\ufeff")
-    if not s or s.startswith("#"):
-        return False
-    if s.startswith("@"):
-        return False
-    if s.startswith("##"):
-        return True
-    if s.startswith(("+", "~", "-")):
-        return True
-    # Engine LAW01… or domain LAW-CODE01 / LAW_SNAP01
-    if s.startswith("LAW") and len(s) > 3 and (s[3].isdigit() or s[3] in "-_"):
-        return True
-    return False
+    """Deprecated detector — retained for seed dialect helpers only."""
+    return looks_like_legacy_layer_or_tier_a(line)
 
 
 def classify_batch(lines: list[str]) -> str:
-    """Return 'layer', 'tier_a', 'pipe', or 'empty'. Reject mixed dialect."""
+    """Return 'gql', 'pipe', or 'empty'. Reject Layer/Tier A and mixed."""
     kinds: set[str] = set()
     for line in lines:
         s = line.strip()
@@ -79,23 +58,31 @@ def classify_batch(lines: list[str]) -> str:
             continue
         if looks_like_pipe(s):
             kinds.add("pipe")
-        elif looks_like_layer(s):
-            kinds.add("layer")
-        elif looks_like_tier_a(s):
-            kinds.add("tier_a")
+        elif looks_like_legacy_layer_or_tier_a(s):
+            raise MemNetError(
+                "legacy_dialect_retired",
+                _LEGACY_HINT,
+                example=(
+                    "CREATE (:TSK {id: 'NEW', goal: '…', status: 'in_progress'})"
+                ),
+            )
+        elif looks_like_gql(s):
+            kinds.add("gql")
         else:
-            raise MemNetError("invalid_line", f"unrecognised ingest line: {s[:80]}")
+            raise MemNetError(
+                "invalid_line",
+                f"unrecognised ingest line (expect GQL or @TAG pipe): {s[:80]}",
+                example="CREATE (:PLR {id: 'NEW', identity: 'Hero'})",
+            )
     if not kinds:
         return "empty"
-    if kinds == {"layer"}:
-        return "layer"
-    if kinds == {"tier_a"}:
-        return "tier_a"
+    if kinds == {"gql"}:
+        return "gql"
     if kinds == {"pipe"}:
         return "pipe"
     raise MemNetError(
         "mixed_dialect",
-        "do not mix Layer / Tier A / legacy @TAG pipe in one batch",
+        "do not mix GQL and legacy @TAG pipe in one batch",
     )
 
 
@@ -105,15 +92,15 @@ class MutateResult:
     ack_lines: list[str] = field(default_factory=list)
     assigned: AssignedIdMap = field(default_factory=AssignedIdMap)
     warnings: list[str] = field(default_factory=list)
-    dialect: str = "pipe"
+    dialect: str = "gql"
 
 
 class MutateGate:
-    """Orchestrate mutate: parse → mint → commit into GraphStore."""
+    """Orchestrate mutate: GQL parse → mint → commit into GraphStore."""
 
-    def __init__(self, session_store, *, codec: TierACodec | None = None) -> None:
+    def __init__(self, session_store, *, codec: GqlCodec | None = None) -> None:
         self.ss = session_store
-        self.codec = codec or TierACodec()
+        self.codec = codec or GqlCodec()
 
     def apply(
         self,
@@ -135,222 +122,13 @@ class MutateGate:
                 allow_new_relation=allow_new_relation,
                 agent=agent,
             )
-        if dialect == "layer":
-            return self._apply_layer(
-                lines,
-                mode=mode,
-                dry_run=dry_run,
-                allow_new_relation=allow_new_relation,
-                agent=agent,
-            )
-        return self._apply_tier_a(
+        return self._apply_gql(
             lines,
             mode=mode,
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
         )
-
-    def _apply_layer(
-        self,
-        lines: list[str],
-        *,
-        mode: str,
-        dry_run: bool,
-        allow_new_relation: bool,
-        agent: str | None,
-    ) -> MutateResult:
-        """Layer (1.x) path: parse → soft-validate → mint → commit.
-
-        Bare present lines are accepted on ``add`` as seed/create (fixture ingest).
-        """
-        ensure_layer_schema(self.ss.tag_map)
-        text = "\n".join(lines)
-        try:
-            doc = parse_layer(text)
-        except LayerParseError as exc:
-            raise MemNetError(
-                "parse_error",
-                str(exc),
-                example=f"line {exc.line}" if exc.line else None,
-            ) from exc
-
-        errors = [i for i in soft_validate_layer(doc) if i.severity == "error"]
-        if errors:
-            first = errors[0]
-            raise MemNetError(
-                first.code,
-                first.message,
-                example=f"line {first.line}" if first.line else None,
-            )
-
-        for it in doc.items:
-            if isinstance(it, LayerNodeRec) and it.op == Op.PRESENT:
-                if mode != "add":
-                    raise MemNetError(
-                        "present_on_mutate",
-                        "bare pin-map lines are display-only; use + / ~ / - to mutate",
-                    )
-                it.op = Op.CREATE
-            if isinstance(it, LayerEdgeRec) and it.op == Op.PRESENT:
-                if mode != "add":
-                    raise MemNetError(
-                        "present_on_mutate",
-                        "bare pin-map lines are display-only; use + / ~ / - to mutate",
-                    )
-                it.op = Op.CREATE
-            if mode == "add" and it.op in (Op.PATCH, Op.DROP):
-                raise MemNetError(
-                    "op_mode_mismatch",
-                    f"{it.op.value} illegal on add; use update",
-                )
-            if mode == "update" and it.op == Op.CREATE:
-                raise MemNetError(
-                    "op_mode_mismatch",
-                    "+ create illegal on update; use add",
-                )
-
-        existing = set(self.ss.store.by_id.keys())
-        assigned = mint_layer_document(doc, existing)
-
-        drops: list[str] = []
-        records: list[Record] = []
-        ack_items: list[LayerNodeRec | LayerEdgeRec] = []
-        for it in doc.items:
-            if isinstance(it, LayerEdgeRec) and it.op == Op.DROP:
-                drops.append(it.edge_id or "")
-                ack_items.append(it)
-                continue
-            if isinstance(it, (LayerNodeRec, LayerEdgeRec)) and it.op == Op.CREATE:
-                for f in it.fields:
-                    if f.op in ("+=", "-="):
-                        raise MemNetError(
-                            "invalid_field",
-                            f"{f.key}{f.op} illegal on create; use =",
-                            example=f"{f.key}={f.value}",
-                        )
-            rec = self._layer_item_to_record(it)
-            records.append(rec)
-            ack_items.append(it)
-
-        if dry_run:
-            ack = [emit_layer_item(x) for x in ack_items]
-            return MutateResult(
-                records=records,
-                ack_lines=ack,
-                assigned=assigned,
-                dialect="layer",
-            )
-
-        warnings: list[str] = []
-        added: list[str] = []
-        replaced: list[Record] = []
-        deleted_backup: list[Record] = []
-        try:
-            for eid in drops:
-                old = self.ss.store.delete(eid)
-                if old is None:
-                    raise MemNetError("not_found", f"id {eid}|use add")
-                deleted_backup.append(old)
-            for rec in records:
-                old = self.ss.store.get(rec.id)
-                if old is None:
-                    added.append(rec.id)
-                else:
-                    replaced.append(old)
-                if mode == "update" and old is not None:
-                    merged = dict(old.fields)
-                    merged.update(
-                        {k: v for k, v in rec.fields.items() if v != "" or k == "id"}
-                    )
-                    rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged)
-                    apply = self.ss.store.replace_row
-                else:
-                    apply = (
-                        self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
-                    )
-                warns = apply(
-                    rec,
-                    agent=agent,
-                    allow_new_relation=allow_new_relation,
-                    relations=self.ss.relations,
-                )
-                warnings.extend(warns)
-            self.ss.mark_written()
-        except MemNetError:
-            for rid in added:
-                self.ss.store.delete(rid)
-            for old in replaced:
-                self.ss.store.by_id[old.id] = old
-                if old.tag == "EDG":
-                    self.ss.store._index_edge(old)
-            for old in deleted_backup:
-                self.ss.store.by_id[old.id] = old
-                self.ss.store.write_order.append(old.id)
-                self.ss.store._index_tag(old)
-                if old.tag == "EDG":
-                    self.ss.store._index_edge(old)
-            raise
-
-        ack = [emit_layer_item(x) for x in ack_items]
-        return MutateResult(
-            records=records,
-            ack_lines=ack,
-            assigned=assigned,
-            warnings=warnings,
-            dialect="layer",
-        )
-
-    def _layer_item_to_record(self, it: LayerNodeRec | LayerEdgeRec) -> Record:
-        if isinstance(it, LayerEdgeRec):
-            fields = edge_to_store_fields(it)
-            eid = fields.get("id")
-            if not eid:
-                raise MemNetError("invalid_id", "edge id missing after mint")
-            tag_def = self.ss.tag_map.get("EDG")
-            if not tag_def:
-                raise MemNetError("unknown_tag", "EDG not in schema")
-            # Fill schema defaults without wiping Layer free fields
-            for fname in tag_def.fields:
-                fields.setdefault(fname, "")
-            return Record(tag="EDG", fields=fields)
-
-        kind = it.kind
-        if it.op == Op.PATCH and not kind:
-            existing = self.ss.store.get(it.id)
-            if existing is None:
-                raise MemNetError("not_found", f"id {it.id}|use add")
-            kind = existing.tag
-        if not kind:
-            raise MemNetError("unknown_tag", "node kind missing")
-        tag_def = self.ss.tag_map.get(kind)
-        if not tag_def:
-            known = ",".join(self.ss.tag_map.tag_names())
-            raise MemNetError("unknown_tag", f"{kind} not in schema known: {known}")
-
-        fields = node_to_fields(it)
-        existing = self.ss.store.get(it.id) if it.op == Op.PATCH else None
-        base = dict(existing.fields) if existing else {}
-        for f in it.fields:
-            if f.op in ("+=", "-="):
-                cur = base.get(f.key, fields.get(f.key, "0"))
-                try:
-                    cur_n = float(cur)
-                    delta = float(f.value)
-                except ValueError as exc:
-                    raise MemNetError(
-                        "bad_numeric",
-                        f"{f.key}{f.op}{f.value} requires numeric field",
-                        example=f"~ [{it.id}] ; {f.key}=<number>",
-                    ) from exc
-                result = cur_n + delta if f.op == "+=" else cur_n - delta
-                fields[f.key] = str(result).rstrip("0").rstrip(".")
-                if fields[f.key] == "-0":
-                    fields[f.key] = "0"
-        for fname in tag_def.fields:
-            fields.setdefault(fname, base.get(fname, ""))
-        fields["id"] = it.id
-        return Record(tag=kind, fields=fields)
 
     def _apply_pipe(
         self,
@@ -371,7 +149,7 @@ class MutateGate:
             dialect="pipe",
         )
 
-    def _apply_tier_a(
+    def _apply_gql(
         self,
         lines: list[str],
         *,
@@ -390,30 +168,55 @@ class MutateGate:
                 example=f"line {exc.line}" if exc.line else None,
             ) from exc
 
+        errors = [i for i in soft_validate(doc) if i.severity == "error"]
+        if errors:
+            first = errors[0]
+            raise MemNetError(
+                first.code,
+                first.message,
+                example=f"line {first.line}" if first.line else None,
+            )
+
         for it in doc.items:
             if isinstance(it, Section):
                 continue
             if it.op == Op.PRESENT:
                 raise MemNetError(
                     "present_on_mutate",
-                    "bare pin-map lines are display-only; use + / ~ / - to mutate",
+                    "shaped pin-map lines are display-only; "
+                    "use CREATE / MATCH…SET / MERGE / DELETE to mutate",
                 )
-            if mode == "add" and it.op in (Op.PATCH, Op.DROP):
+            is_merge = isinstance(it, NodeRec) and it.raw.upper().lstrip().startswith(
+                "MERGE"
+            )
+            if mode == "add" and it.op in (Op.PATCH, Op.DROP) and not is_merge:
                 raise MemNetError(
                     "op_mode_mismatch",
-                    f"{it.op.value} illegal on add; use update",
+                    f"{it.op.name} illegal on add; use update "
+                    "(or MERGE for upsert)",
                 )
             if mode == "update" and it.op == Op.CREATE:
                 raise MemNetError(
                     "op_mode_mismatch",
-                    "+ create illegal on update; use add",
+                    "CREATE illegal on update; use add (or MERGE / SET)",
                 )
-            if mode == "update" and it.op == Op.LAW:
-                raise MemNetError("op_mode_mismatch", "LAW lines are create-only via add")
 
         existing = set(self.ss.store.by_id.keys())
         alloc = IdAllocator(existing)
         assigned = alloc.mint_document(doc)
+
+        # Expand MERGE into CREATE when id absent; track upsert patches
+        merge_upsert_ids: set[str] = set()
+        for it in doc.items:
+            if (
+                isinstance(it, NodeRec)
+                and it.op == Op.PATCH
+                and it.raw.upper().lstrip().startswith("MERGE")
+            ):
+                if self.ss.store.get(it.id) is None:
+                    it.op = Op.CREATE
+                else:
+                    merge_upsert_ids.add(it.id)
 
         drops: list[str] = []
         records: list[Record] = []
@@ -426,20 +229,11 @@ class MutateGate:
                 drops.append(it.edge_id or "")
                 ack_items.append(it)
                 continue
-            if isinstance(it, NodeRec) and it.op == Op.CREATE:
-                if any(f.key == "id" for f in it.fields):
-                    raise MemNetError(
-                        "invalid_field",
-                        "id= illegal on create; put id in [brackets]",
-                    )
-                for f in it.fields:
-                    if f.op in ("+=", "-="):
-                        raise MemNetError(
-                            "invalid_field",
-                            f"{f.key}{f.op} illegal on create; use =",
-                            example=f"{f.key}={f.value}",
-                        )
-            if isinstance(it, EdgeRec) and it.op == Op.CREATE:
+            if isinstance(it, NodeRec) and it.op == Op.DROP:
+                drops.append(it.id)
+                ack_items.append(it)
+                continue
+            if isinstance(it, (NodeRec, EdgeRec)) and it.op == Op.CREATE:
                 for f in it.fields:
                     if f.op in ("+=", "-="):
                         raise MemNetError(
@@ -507,15 +301,14 @@ class MutateGate:
             ack_items.append(it)
 
         if dry_run:
-            ack = [emit_item(x) for x in ack_items]
+            ack = [emit_item(x, as_mutate=True) for x in ack_items]
             return MutateResult(
                 records=records,
                 ack_lines=ack,
                 assigned=assigned,
-                dialect="tier_a",
+                dialect="gql",
             )
 
-        # Commit drops first on update
         warnings: list[str] = []
         added: list[str] = []
         replaced: list[Record] = []
@@ -532,17 +325,27 @@ class MutateGate:
                     added.append(rec.id)
                 else:
                     replaced.append(old)
-                if mode == "add" or (mode == "update" and old is None and rec.tag):
-                    # Tier A CREATE after mint always uses add_row
-                    apply = self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
+                if rec.id in merge_upsert_ids and old is not None:
+                    apply = self.ss.store.replace_row
+                elif mode == "add" or (mode == "update" and old is None and rec.tag):
+                    apply = (
+                        self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
+                    )
                 else:
-                    apply = self.ss.store.replace_row if mode == "update" else self.ss.store.add_row
-                # Patch: merge fields onto existing
-                if mode == "update" and old is not None:
+                    apply = (
+                        self.ss.store.replace_row
+                        if mode == "update"
+                        else self.ss.store.add_row
+                    )
+                if (mode == "update" or rec.id in merge_upsert_ids) and old is not None:
                     merged = dict(old.fields)
-                    merged.update({k: v for k, v in rec.fields.items() if v != "" or k == "id"})
-                    # Apply += / -= already resolved into absolute values in _item_to_record
+                    merged.update(
+                        {k: v for k, v in rec.fields.items() if v != "" or k == "id"}
+                    )
                     rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged)
+                # MERGE expanded to CREATE uses add_row even when mode=update
+                if rec.id in added and mode == "update":
+                    apply = self.ss.store.add_row
                 warns = apply(
                     rec,
                     agent=agent,
@@ -559,10 +362,8 @@ class MutateGate:
                 old = self.ss.store.get(old_id)
                 if old is None:
                     raise MemNetError("not_found", f"id {old_id}|use add")
-                # Only wire-explicit fields (not TagMap defaults filled by _node_to_record).
                 field_keys = {k for k in explicit if k != "id"}
                 if merge_flag:
-                    # Merge first (drop source); then patch surviving target.
                     warns = self.ss.store.rename_id(old_id, new_id, merge=True)
                     warnings.extend(warns)
                     if field_keys:
@@ -581,7 +382,6 @@ class MutateGate:
                         )
                         warnings.extend(warns)
                 else:
-                    # Patch source in place, then re-key (fields travel with the row).
                     if field_keys:
                         merged = dict(old.fields)
                         for k in field_keys:
@@ -612,14 +412,13 @@ class MutateGate:
                     self.ss.store._index_edge(old)
             raise
 
-        ack = [emit_item(x) for x in ack_items]
-        # Rewrite ack with assigned ground ids (already on items after mint)
+        ack = [emit_item(x, as_mutate=True) for x in ack_items]
         return MutateResult(
             records=records,
             ack_lines=ack,
             assigned=assigned,
             warnings=warnings,
-            dialect="tier_a",
+            dialect="gql",
         )
 
     def _item_to_record(self, it: NodeRec | EdgeRec) -> Record:
@@ -657,7 +456,10 @@ class MutateGate:
                     raise MemNetError(
                         "bad_numeric",
                         f"{f.key}{f.op}{f.value} requires numeric field",
-                        example=f"~ [{node.id}] ; {f.key}=<number>",
+                        example=(
+                            f"MATCH (n {{id: '{node.id}'}}) "
+                            f"SET n.{f.key} = <number>"
+                        ),
                     ) from exc
                 result = cur_n + delta if f.op == "+=" else cur_n - delta
                 fields[f.key] = str(result).rstrip("0").rstrip(".")
@@ -689,13 +491,22 @@ class MutateGate:
             "attrs": base.get("attrs", ""),
             "recycle": base.get("recycle", "persistent"),
         }
+        # Preserve bind ports / carries from base on patch
+        for k in ("src_port", "dist_port", "carries", "wire"):
+            if k in base and base[k]:
+                fields[k] = base[k]
         for f in edge.fields:
             if f.key in ("src", "relation", "dist", "at", "attrs", "recycle"):
+                fields[f.key] = f.value
+            elif f.key in ("fromPort", "src_port"):
+                fields["src_port"] = f.value
+            elif f.key in ("toPort", "dist_port"):
+                fields["dist_port"] = f.value
+            elif f.key in ("carries", "wire"):
                 fields[f.key] = f.value
             elif f.key == "note":
                 fields["attrs"] = f.value
             else:
-                # stash unknown into attrs lightly
                 if fields["attrs"]:
                     fields["attrs"] = f"{fields['attrs']};{f.key}={f.value}"
                 else:
@@ -742,7 +553,7 @@ class MutateGate:
                     and (old is None or old.fields.get("status") != "settled")
                 ):
                     warnings.append(
-                        f"mission_settled|{rec.id}|next read use query warm --anchor <focus>"
+                        f"mission_settled|{rec.id}|next read use query pin-map --anchor <focus>"
                     )
             self.ss.mark_written()
         except MemNetError:

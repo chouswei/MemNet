@@ -29,6 +29,7 @@ def test_guide_loose():
     result = runner.invoke(app, ["guide", "--loose"])
     assert result.exit_code == 0
     assert "query pin-map" in result.stdout
+    assert "GQL" in result.stdout or "openCypher" in result.stdout
 
 
 def test_query_pin_map_cli(memnet_temp, schema_file):
@@ -57,6 +58,8 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
     )
     assert warm_result.exit_code == 0
     assert "PLR77" in warm_result.stdout
+    assert "(:PLR" in warm_result.stdout
+    assert "CREATE" not in warm_result.stdout
 
     shell_result = runner.invoke(
         app,
@@ -74,6 +77,7 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
     )
     assert shell_result.exit_code == 0
     assert "PLR77" in shell_result.stdout
+    assert "(:PLR" in shell_result.stdout
 
 
 def test_examples_map():

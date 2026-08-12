@@ -188,7 +188,7 @@ def serve(
 def guide(
     loose: Annotated[bool, typer.Option("--loose")] = False,
 ) -> None:
-    """Tier A / pin-map overview (honest about legacy pipe)."""
+    """GQL / pin-map overview (honest about legacy pipe)."""
     emit_stdout(guide_text(loose=loose))
 
 
@@ -512,10 +512,10 @@ def _query_context(
     max_rows: int,
     active_only: bool,
     require_anchor: bool,
-    tier_a: bool = False,
+    shaped_gql: bool = False,
     view: str | None = None,
 ) -> None:
-    if tier_a:
+    if shaped_gql:
         composer = PinMapComposer(ss)
         try:
             _rows, text = composer.compose(
@@ -637,7 +637,7 @@ def _run_pin_map(
             max_rows=max_rows,
             active_only=True,
             require_anchor=True,
-            tier_a=True,
+            shaped_gql=True,
             view=view,
         )
 
@@ -656,7 +656,7 @@ def query_pin_map(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Live pin map (PinMapComposer). Emits Tier A / Layer Write=display."""
+    """Live pin map (PinMapShapedRead). Emits shaped openCypher-family subgraph."""
     _run_pin_map(
         anchor=anchor, depth=depth, max_rows=max_rows, session=session, view=view
     )

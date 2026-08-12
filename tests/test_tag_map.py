@@ -114,7 +114,7 @@ def test_techdocs_schema_and_workflow_parse():
 
 
 def test_coding_schema_and_workflow_parse(memnet_temp):
-    """Coding TagMap + Tier A workflow ingest without field errors."""
+    """Coding TagMap + GQL workflow ingest without field errors."""
     from pathlib import Path
 
     from memnet.mutate_gate import MutateGate
@@ -130,7 +130,7 @@ def test_coding_schema_and_workflow_parse(memnet_temp):
         workflow_path.read_text(encoding="utf-8").splitlines(),
         mode="add",
     )
-    assert result.dialect == "tier_a"
+    assert result.dialect == "gql"
     assert ss.store.get("CFG01") is not None
     assert ss.store.get("MOD_cli") is not None
     assert ss.store.get("E_cfg_root") is not None

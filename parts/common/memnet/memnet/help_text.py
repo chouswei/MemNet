@@ -32,51 +32,53 @@ def guide_text(*, loose: bool = False) -> str:
     if loose:
         bullets = [
             "MemNet (Net of Memory): in-memory NODE|EDGE working graph for agents.",
-            "Agent dialect: Tier A NODE|EDGE shapes; mutate uses +/~/-; live pin map is bare present (no ops).",
-            "Create with [NEW]; engine mints ids. Patch/settle: known ids only (no NEW).",
+            "Agent dialect: gated openCypher-shaped GQL only (docs/grammar/gql-wire-profile.md).",
+            "Mutate: CREATE / MATCH…SET / MERGE / DELETE; live pin map emits shaped subgraph.",
+            "Create with id: 'NEW'; engine mints ids. Patch/settle: known ids only (no NEW).",
             "Live pin map: memnet query pin-map --anchor <id> (query warm is legacy alias).",
             "Pin-map ingest: stable locators (path=, qname=, ...) - no client NEW for those pins.",
             "Transport: MCP in-process first; memnet serve / TCP is migration fallback.",
-            "Legacy: @TAG pipe still accepted on add/update; snapshots and read may be pipe.",
-            "MCP LawSeedHelper: Tier A LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
+            "Legacy @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
+            "MCP LawSeedHelper: GQL LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
             "Reuse ids; never invent new ids for the same entity.",
-            "Forward docs: docs/grammar/. LLM-GUIDE.md is still partly pipe-era.",
+            "Forward docs: docs/grammar/gql-wire-profile.md; ADR-001.",
         ]
         return "\n".join(f"- {b}" for b in bullets)
     return """MemNet - Net of Memory: in-memory NODE|EDGE working graph for LLM agents.
 
 Doctrine:
-  Tier A: mutate uses +/~/-; live pin map emits bare present lines (no ops)
-  Live pin map = bounded ego digest (query pin-map; query warm is legacy)
-  Create with NEW; pin-map ingest uses locators, not client NEW
+  Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
+  Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
+  Create with id: 'NEW'; pin-map ingest uses locators, not client NEW
   Transport: in-process MCP first; serve/TCP as fallback
 
 Quick start (CLI sessions still need serve today):
   memnet serve
   memnet session open --map-file schema.example.txt
-  memnet add --file workflow.example.txt   # Tier A preferred; @TAG pipe still accepted
-  memnet query pin-map --anchor ...        # live pin map (query warm is legacy)
+  memnet add --file workflow.example.txt   # GQL preferred; @TAG pipe import-once
+  memnet query pin-map --anchor ...        # shaped GQL subgraph
 
-Tier A sketch:
-  + TSK [NEW] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
-  + E77 [N03] --(helps)--> [T42] ; recycle=persistent
-  # live pin map (emit): bare — no leading +
-  TSK [T42] ; goal=Clear warehouse ; status=in_progress ; recycle=persistent
-  E77 [N03] --(helps)--> [T42] ; recycle=persistent
+GQL sketch:
+  CREATE (:TSK {id: 'NEW', goal: 'Clear warehouse', status: 'in_progress'})
+  MATCH (a {id: 'N03'}), (b {id: 'T42'})
+  CREATE (a)-[:helps {id: 'NEW'}]->(b)
+  # live pin map (emit): shaped present — no CREATE
+  (:TSK {id: 'T42', goal: 'Clear warehouse', status: 'in_progress'})
+  (:NPC {id: 'N03'})-[:helps {id: 'E77'}]->(:TSK {id: 'T42'})
 
 TagMap maps (schema.*.example.txt) use shared-dialect SCHEMA lines for session_open.
 Legacy @TAG: id|field pipe maps remain accepted on load. Not agent mutate dialect.
-MCP LawSeedHelper defaults to Tier A; pipe only when seed_lines are @TAG.
-See: docs/grammar/, examples/README.md, README.md, memnet guide --loose
+MCP LawSeedHelper defaults to GQL; pipe only when seed_lines are @TAG.
+See: docs/grammar/gql-wire-profile.md, examples/README.md, README.md, memnet guide --loose
 """
 
 
 def agent_guide_text() -> str:
     return (
         "Agent playbook pointer (British English docs in-repo).\n"
-        "Forward dialect: docs/grammar/ - Tier A, pin map, NEW vs locators.\n"
-        "Operational loop: LLM-GUIDE.md (still partly pipe-era; prefer grammar when they conflict).\n"
-        "Turn habit: query pin-map --anchor before inventing ids; mutate with Tier A; reuse ids.\n"
+        "Forward dialect: docs/grammar/gql-wire-profile.md - GQL only, pin map, NEW vs locators.\n"
+        "Operational loop: LLM-GUIDE.md (M3 body rewrite pending; prefer grammar when they conflict).\n"
+        "Turn habit: query pin-map --anchor before inventing ids; mutate with GQL; reuse ids.\n"
         "See also: memnet guide, memnet guide --loose, README.md."
     )
 
@@ -111,7 +113,7 @@ def examples_path_text() -> str:
     if readme.exists():
         paths.append(str(readme))
     paths.append(
-        "(Tier A fixtures: docs/grammar/examples/; memnet examples agent-guide)"
+        "(GQL wire: docs/grammar/gql-wire-profile.md; memnet examples agent-guide)"
     )
     return "\n".join(paths)
 

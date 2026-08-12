@@ -19,7 +19,7 @@ def test_s01_goldfish_refresh(memnet_temp, schema_file, workflow_file):
     assert warm.exit_code == 0
     assert "LAW" in warm.stdout or "LAW01" in warm.stdout
     assert "PLR01" in warm.stdout
-    assert "+ PLR" in warm.stdout or "[PLR01]" in warm.stdout
+    assert "(:PLR" in warm.stdout or "id: 'PLR01'" in warm.stdout
 
 
 @pytest.mark.scheme("S08")

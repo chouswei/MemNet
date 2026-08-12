@@ -1,26 +1,16 @@
-"""Input sanitiser for add/update batches (pipe + Tier A)."""
+"""Input sanitiser for add/update batches (GQL + legacy @TAG pipe)."""
 
 from __future__ import annotations
 
 import re
 
 from memnet.exceptions import MemNetError
+from memnet.gql import looks_like_gql, looks_like_legacy_layer_or_tier_a
 
 _THINK_RE = re.compile(
     r"^<think>.*?</think>\s*",
     re.DOTALL | re.IGNORECASE,
 )
-
-
-def _looks_like_tier_a(line: str) -> bool:
-    if line.startswith("##"):
-        return True
-    if line.startswith(("+", "~", "-")):
-        return True
-    # Match mutate_gate.looks_like_tier_a: LAW01… / LAW-CODE01 / LAW_SNAP01
-    if line.startswith("LAW") and len(line) > 3 and (line[3].isdigit() or line[3] in "-_"):
-        return True
-    return False
 
 
 def sanitise_line(line: str) -> str | None:
@@ -31,15 +21,28 @@ def sanitise_line(line: str) -> str | None:
     line = line.strip("`").strip()
     if not line:
         return None
-    if line[0] in "{[":
+    if line[0] in "{[" and not line.startswith("[:"):
+        # Allow Cypher list/map only inside statements; bare JSON rejected
+        if line[0] == "{" or (line[0] == "[" and not line.upper().startswith("[NEW")):
+            raise MemNetError(
+                "json_not_supported",
+                "MemNet uses GQL wire format not JSON objects",
+                example="CREATE (:PLR {id: 'P01', identity: 'Alice'})",
+            )
+    if looks_like_legacy_layer_or_tier_a(line):
         raise MemNetError(
-            "json_not_supported",
-            "MemNet uses wire format not JSON",
-            example="@PLR: P01|Alice|10",
+            "legacy_dialect_retired",
+            "Layer / Tier A agent wire is retired (ADR-001 M2). "
+            "Use gated openCypher-shaped GQL — see docs/grammar/gql-wire-profile.md",
+            example="CREATE (:TSK {id: 'NEW', goal: '…', status: 'in_progress'})",
         )
-    if line.startswith("@") or _looks_like_tier_a(line):
+    if line.startswith("@") or looks_like_gql(line):
         return line
-    raise MemNetError("invalid_line", "line must start with @TAG: or Tier A op")
+    raise MemNetError(
+        "invalid_line",
+        "line must be gated GQL (CREATE/MATCH/MERGE/…) or @TAG pipe",
+        example="CREATE (:PLR {id: 'NEW', identity: 'Hero'})",
+    )
 
 
 def _to_text(raw: str | bytes) -> str:

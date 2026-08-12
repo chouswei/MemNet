@@ -6,7 +6,7 @@
 **Product:** MemNet is **shared working memory for LLMs** — multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
 
 **Model:** SysML + grammar for **GQL wire** (`GqlCodec` / `PinMapShapedRead`). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).  
-**M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **Next: M2** (engine/MCP GQL accept + shaped emit). **Then: M2.5** durable online GQL store adapter (AgensGraph / openCypher-family). **Then: M3** in-repo playbook / app-note rewrites.
+**M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **M2 done (engine/MCP):** GQL accept + shaped `pin_map` emit; Layer/Tier A retired from product accept. **Next: M2.5** durable online GQL store adapter (AgensGraph / openCypher-family). **Then: M3** in-repo playbook / app-note rewrites.
 
 **Problem (0.4.x):** dual remote MCP entries, dual dialect stories, and on Pi a risk of **two graph writers** (HTTP MCP `InProcessEngine` ≠ TCP `memnet serve`).
 
@@ -17,7 +17,7 @@
 | Phase | Owns | Shipped? |
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
-| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | Plan |
+| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A codec from product path | **Done** |
 | **M2.5** | Durable online GQL store adapter behind shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | Plan — **next after M2** |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | Plan |
 

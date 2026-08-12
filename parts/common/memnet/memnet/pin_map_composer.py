@@ -1,38 +1,28 @@
-"""PinMapComposer — live pin map emit as Tier A Write=display.
+"""PinMapComposer / PinMapShapedRead — live pin map as shaped GQL subgraph.
 
-Layer (1.x) rows with ``src_port`` / ``dist_port`` / non-default ``wire`` emit
-Layer wire forms; other rows stay on the 0.3 Tier A paren-label surface.
-
-Optional ``view=`` (multi-layer grain): ``shell`` / ``interior`` taught;
-``flowchart`` / ``parts`` / ``statechart`` accepted with soft shell caps
-(grain-specific filters deferred).
+Emits openCypher-family node and relationship lines (gql-wire-profile §5).
+Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
+``parts`` / ``statechart`` accepted with soft shell caps.
 """
 
 from __future__ import annotations
 
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
 from memnet.exceptions import MemNetError
-from memnet.layer import (
-    emit_item as emit_layer_item,
-    is_layer_edge_record,
-    record_to_layer_edge,
-    record_to_layer_node,
-)
+from memnet.gql import emit_edge_shaped, emit_node_shaped
 from memnet.models import Record
-from memnet.tier_a import EdgeRec, Field, NodeRec, Op, emit_item
 
-# Soft shell caps (docs/grammar/memnet-multi-layer.md §3 flowchart / §5).
+# Soft shell caps (docs/grammar — view budget).
 SHELL_MAX_NODES = 8
 SHELL_MAX_EDGES = 12
 
-# Teachable grains first; soft = accept param, shell-like budget for now.
 PIN_MAP_VIEWS_TEACH = frozenset({"shell", "interior"})
 PIN_MAP_VIEWS_SOFT = frozenset({"flowchart", "parts", "statechart"})
 PIN_MAP_VIEWS = PIN_MAP_VIEWS_TEACH | PIN_MAP_VIEWS_SOFT
 
 
 def normalize_view(view: str | None) -> str | None:
-    """Return canonical view token, or None for default 0.3 Tier A behaviour."""
+    """Return canonical view token, or None for default depth/max_rows behaviour."""
     if view is None:
         return None
     text = str(view).strip().lower()
@@ -53,18 +43,10 @@ def resolve_view_budget(
     depth: int,
     max_rows: int,
 ) -> tuple[int, int, bool]:
-    """Map ``view=`` to (depth, max_rows, apply_shell_soft_cap).
-
-    * omit / default — honour caller depth/max_rows; no soft shell cap
-    * ``interior`` — same; no soft shell cap (fuller neighbourhood)
-    * ``shell`` — depth capped at 1; soft 8 NODE / 12 EDGE after pack
-    * ``flowchart`` / ``parts`` / ``statechart`` — soft: shell-like budget
-      (grain filters deferred)
-    """
+    """Map ``view=`` to (depth, max_rows, apply_shell_soft_cap)."""
     v = normalize_view(view)
     if v is None or v == "interior":
         return depth, max_rows, False
-    # shell + soft grain aliases
     return min(depth, 1), max_rows, True
 
 
@@ -112,51 +94,36 @@ def apply_shell_soft_cap(
     return laws + nodes + filtered
 
 
-def record_to_tier_a_item(rec: Record) -> NodeRec | EdgeRec:
-    """Project an internal Record to a Tier A display item (ground ids)."""
+def _endpoint_label(store, node_id: str) -> str:
+    rec = store.get(node_id) if store is not None else None
+    if rec is not None and rec.tag and rec.tag != "EDG":
+        return rec.tag
+    return "NODE"
+
+
+def record_to_gql_line(rec: Record, *, store=None) -> str:
+    """Project an internal Record to one shaped GQL present line."""
     if rec.tag == "EDG":
-        fields = [
-            Field(key=k, op="=", value=v)
-            for k, v in rec.fields.items()
-            if k not in ("id", "src", "relation", "dist", "src_port", "dist_port", "wire", "carries")
-            and v
-        ]
-        return EdgeRec(
-            op=Op.PRESENT,
+        src = rec.fields.get("src", "")
+        dist = rec.fields.get("dist", "")
+        return emit_edge_shaped(
+            src_kind=_endpoint_label(store, src),
+            src_id=src,
+            rel=rec.fields.get("relation", "related") or "related",
+            dst_kind=_endpoint_label(store, dist),
+            dst_id=dist,
             edge_id=rec.id,
-            frm=rec.fields.get("src", ""),
-            rel=rec.fields.get("relation", ""),
-            to=rec.fields.get("dist", ""),
-            fields=fields,
+            fields=dict(rec.fields),
         )
-    if rec.tag == "LAW":
-        fields = [
-            Field(key=k, op="=", value=v)
-            for k, v in rec.fields.items()
-            if k != "id" and v
-        ]
-        return NodeRec(op=Op.LAW, kind="LAW", id=rec.id, fields=fields)
-    fields = [
-        Field(key=k, op="=", value=v)
-        for k, v in rec.fields.items()
-        if k != "id" and v
-    ]
-    return NodeRec(op=Op.PRESENT, kind=rec.tag, id=rec.id, fields=fields)
-
-
-def _emit_record_line(rec: Record) -> str:
-    """Emit one present line — Layer wire when ports/wire marked, else Tier A."""
-    if rec.tag == "EDG" and is_layer_edge_record(rec):
-        return emit_layer_item(record_to_layer_edge(rec))
-    if rec.tag != "EDG" and (
-        rec.fields.get("ports") or rec.fields.get("law") or rec.tag == "CST"
-    ):
-        return emit_layer_item(record_to_layer_node(rec))
-    return emit_item(record_to_tier_a_item(rec))
+    fields = {k: v for k, v in rec.fields.items() if k != "id"}
+    return emit_node_shaped(rec.tag, rec.id, fields)
 
 
 class PinMapComposer:
-    """Compose anchored live pin map; emit Tier A / Layer Write=display."""
+    """Compose anchored live pin map; emit shaped openCypher-family subgraph.
+
+    SysML target name: PinMapShapedRead.
+    """
 
     def __init__(self, session_store) -> None:
         self.ss = session_store
@@ -172,10 +139,7 @@ class PinMapComposer:
         law_prepend: bool = True,
         view: str | None = None,
     ) -> tuple[list[Record], str]:
-        """Return (records, shared-dialect text).
-
-        ``view`` is optional/additive — omit for 0.3 Tier A depth/max_rows behaviour.
-        """
+        """Return (records, shaped GQL text)."""
         del law_prepend  # store.context_pack already prepends laws
         if require_anchor and not anchor:
             raise MemNetError("no_anchor", "pin map requires --anchor")
@@ -196,10 +160,11 @@ class PinMapComposer:
         )
         if soft_cap:
             rows = apply_shell_soft_cap(rows, anchor=anchor)
-        text = self.emit_tier_a(rows)
+        text = self.emit_gql(rows)
         return rows, text
 
-    def emit_tier_a(self, rows: list[Record]) -> str:
+    def emit_gql(self, rows: list[Record]) -> str:
+        """Emit shaped subgraph lines (laws, then nodes, then edges)."""
         laws: list[Record] = []
         nodes: list[Record] = []
         edges: list[Record] = []
@@ -211,13 +176,19 @@ class PinMapComposer:
             else:
                 nodes.append(rec)
         lines: list[str] = []
-        if laws:
-            lines.append("## Laws")
-            lines.extend(_emit_record_line(r) for r in laws)
-        if nodes:
-            lines.append("## Nodes")
-            lines.extend(_emit_record_line(r) for r in nodes)
-        if edges:
-            lines.append("## Edges")
-            lines.extend(_emit_record_line(r) for r in edges)
+        store = self.ss.store
+        for r in laws:
+            lines.append(record_to_gql_line(r, store=store))
+        for r in nodes:
+            lines.append(record_to_gql_line(r, store=store))
+        for r in edges:
+            lines.append(record_to_gql_line(r, store=store))
         return "\n".join(lines) + ("\n" if lines else "")
+
+    # Back-compat alias used by older call sites / tests during M2 cutover
+    def emit_tier_a(self, rows: list[Record]) -> str:
+        return self.emit_gql(rows)
+
+
+# SysML-facing alias
+PinMapShapedRead = PinMapComposer

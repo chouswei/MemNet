@@ -1,24 +1,27 @@
-# Tier A seed for schema.example.txt (agent dialect: Write = display mutate ops).
+# GQL seed for schema.example.txt (agent dialect: gated openCypher-shaped).
 # Stable ids kept for CLI/MCP integration tests (PLR01, N01, T01, LAW01…).
-# Live pin map omits leading +; mutate uses + / ~ / - (see README Agent I/O).
+# Live pin map emits shaped present lines; mutate uses CREATE / MATCH…SET / DELETE.
 
 ## Laws
-LAW01 name=EDG ; cycle=on_context ; mechanism=hide ; constraint=settled_edg_unless_anchor
-LAW02 name=* ; cycle=on_add ; mechanism=unique ; constraint=one_id_add_then_update
-LAW03 name=EDG ; cycle=on_add ; mechanism=validate ; constraint=src_dist_exist_first
-LAW04 name=* ; cycle=on_add ; mechanism=use_backslash ; constraint=backslash_pipe_not_bare
+CREATE (:LAW {id: 'LAW01', name: 'EDG', cycle: 'on_context', mechanism: 'hide', constraint: 'settled_edg_unless_anchor'})
+CREATE (:LAW {id: 'LAW02', name: '*', cycle: 'on_add', mechanism: 'unique', constraint: 'one_id_add_then_update'})
+CREATE (:LAW {id: 'LAW03', name: 'EDG', cycle: 'on_add', mechanism: 'validate', constraint: 'src_dist_exist_first'})
+CREATE (:LAW {id: 'LAW04', name: '*', cycle: 'on_add', mechanism: 'use_backslash', constraint: 'backslash_pipe_not_bare'})
 
 ## Nodes
-+ CFG [CFG01] ; world=Ming Syndicate ; economy=Late Ming economy ; identity=Beggar ; core_ability=Soul Library (21C tech) ; crisis=Faction warlords
-+ SYS [SYS01] ; round=1 ; time=Autumn Year 38 ; deficit=0 ; revenue=0 ; chaos=15 ; exchange_rate=1 tael:750 cash
-+ PLR [PLR01] ; identity=Vagrant beggar ; wealth=3 ; cashflow=-5 ; monopoly=0 ; reputation=0 ; inventory=Soul Library (21C tech),wheat cake
-+ BIZ [B01] ; name=Unfound ; type=none ; location=none ; profit=0 ; cashflow=0 ; employees=0 ; recycle=persistent
-+ NPC [N01] ; name=Shen Tiexin ; traits=female(12) ; corruption=0 ; craft=traditional ; funding_gap=80 ; status=active ; recycle=persistent
-+ TSK [T01] ; goal=Upgrade workshop ; deadline=1 ; status=urgent ; recycle=persistent
-+ TEC [TEC01] ; name=21C coke blast furnace ; domain=thermal metallurgy ; status=locked ; effect=output+500%
-+ PRD [PRD01] ; name=Industrial pig iron ; type=goods ; cost=0 ; price=0 ; status=not_in_production
+CREATE (:CFG {id: 'CFG01', world: 'Ming Syndicate', economy: 'Late Ming economy', identity: 'Beggar', core_ability: 'Soul Library (21C tech)', crisis: 'Faction warlords'})
+CREATE (:SYS {id: 'SYS01', round: '1', time: 'Autumn Year 38', deficit: '0', revenue: '0', chaos: '15', exchange_rate: '1 tael:750 cash'})
+CREATE (:PLR {id: 'PLR01', identity: 'Vagrant beggar', wealth: '3', cashflow: '-5', monopoly: '0', reputation: '0', inventory: 'Soul Library (21C tech),wheat cake'})
+CREATE (:BIZ {id: 'B01', name: 'Unfound', type: 'none', location: 'none', profit: '0', cashflow: '0', employees: '0', recycle: 'persistent'})
+CREATE (:NPC {id: 'N01', name: 'Shen Tiexin', traits: 'female(12)', corruption: '0', craft: 'traditional', funding_gap: '80', status: 'active', recycle: 'persistent'})
+CREATE (:TSK {id: 'T01', goal: 'Upgrade workshop', deadline: '1', status: 'urgent', recycle: 'persistent'})
+CREATE (:TEC {id: 'TEC01', name: '21C coke blast furnace', domain: 'thermal metallurgy', status: 'locked', effect: 'output+500%'})
+CREATE (:PRD {id: 'PRD01', name: 'Industrial pig iron', type: 'goods', cost: '0', price: '0', status: 'not_in_production'})
 
 ## Edges
-+ E01 [N01] --(seeks_help)--> [PLR01] ; note=unlock ; recycle=delete_on_expire
-+ E02 [PLR01] --(binds)--> [TEC01] ; note=unlock ; recycle=delete_on_expire
-+ E03 [TEC01] --(produces)--> [PRD01] ; note=output ; recycle=persistent
+MATCH (a {id: 'N01'}), (b {id: 'PLR01'})
+CREATE (a)-[:seeks_help {id: 'E01', note: 'unlock', recycle: 'delete_on_expire'}]->(b)
+MATCH (a {id: 'PLR01'}), (b {id: 'TEC01'})
+CREATE (a)-[:binds {id: 'E02', note: 'unlock', recycle: 'delete_on_expire'}]->(b)
+MATCH (a {id: 'TEC01'}), (b {id: 'PRD01'})
+CREATE (a)-[:produces {id: 'E03', note: 'output', recycle: 'persistent'}]->(b)

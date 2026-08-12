@@ -67,7 +67,7 @@ async def session_open(
     """Open a new MemNet session with a tag map (map_lines preferred over map_file).
 
     Optional seed_lines are added via add --stdin immediately after open (e.g. CFG/domain
-    rows). Core LAW01–LAW05 are auto-included when missing (Tier A by default; pipe only
+    rows). Core LAW01–LAW05 are auto-included when missing (GQL by default; pipe only
     when seed_lines are legacy @TAG) so every warm/pin map carries engine invariants.
 
     Set allow_new_relation=True when seed_lines include EDG relations beyond

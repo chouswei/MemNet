@@ -178,8 +178,8 @@ def test_mcp_tool_names(monkeypatch):
 def test_supplement_seed_lines():
     out = supplement_seed_lines(None)
     assert len(out) == 5
-    assert all(line.startswith("LAW") and not line.startswith("@") for line in out)
-    assert "name=EDG" in out[0]
+    assert all(line.startswith("CREATE (:LAW") for line in out)
+    assert "name: 'EDG'" in out[0] or "name: \"EDG\"" in out[0]
     custom = [
         "@LAW: LAW01|custom|on_add|x|y",
         "@CFG: CFG01|a|CFG01|1|b|c",
@@ -188,13 +188,14 @@ def test_supplement_seed_lines():
     assert out2[0].startswith("@LAW: LAW02")
     assert any("LAW01|custom" in line for line in out2)
     assert any("CFG01" in line for line in out2)
-    tier_custom = [
-        "LAW01 name=custom ; cycle=on_add ; mechanism=x ; constraint=y",
+    gql_custom = [
+        "CREATE (:LAW {id: 'LAW01', name: 'custom', cycle: 'on_add', "
+        "mechanism: 'x', constraint: 'y'})",
     ]
-    out3 = supplement_seed_lines(tier_custom)
-    assert out3[0].startswith("LAW02")
-    assert not out3[0].startswith("@")
-    assert any(line.startswith("LAW01 ") for line in out3)
+    out3 = supplement_seed_lines(gql_custom)
+    assert out3[0].startswith("CREATE (:LAW")
+    assert "LAW02" in out3[0]
+    assert any("LAW01" in line and "custom" in line for line in out3)
 
 
 def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
