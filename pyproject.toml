@@ -72,7 +72,7 @@ only-include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --ignore=tests/grammar/archive --ignore=tests/archive"
 pythonpath = [
     "parts/common/memnet",
     "parts/memnet-mcp/software",

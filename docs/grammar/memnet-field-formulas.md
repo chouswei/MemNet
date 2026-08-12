@@ -1,12 +1,12 @@
 # Field formulas (design)
 
+> **Not primary 1.x teach.** Prefer **law on node** + GQL relationships per [`gql-wire-profile.md`](gql-wire-profile.md).  
+> This doc is historical formula-as-EDGE design; do **not** dual-teach with GQL wire.
+
 **Status:** design only — **no expression engine** in 0.3.6+.  
-**Layer:** **generic formula grammar** — domain-agnostic relations (`derives` / `feeds`, multi `src_fields`, `tgt_field`, `expr`) for **any** domain.  
-**Not this doc:** circuit nodal analysis (NET/CMP/PIN, KCL/Ohm stamps) — that is an **application** of this grammar + topology; see `docs/application-notes/llm-nodal-analysis-formulas.md`. Do not conflate the two.  
-**Thesis:** a formula is a **relation** (EDGE), not primarily an inline field expression on a NODE.  
-**MVP is multi-source:** one `derives` EDGE carries `src_fields=a,b,c` (comma list) plus `expr` over those names and one `tgt_field` — **not** single-source-only.  
-**Aligns with:** Write = display; NODE|EDGE only; locked `+=`/`-=` (§4.2.0b in `memnet-grammar-design.md`).  
-**British English.** Paths ASCII. No `|` pipe on the agent surface.
+**Scope:** domain-agnostic formula relations (`derives` / `feeds`, …) for **any** domain.  
+**Not this doc:** circuit nodal analysis — see application notes + GQL case study.  
+**British English.** Paths ASCII.
 
 ### Two layers (do not conflate)
 

@@ -2,7 +2,7 @@
 
 **Status:** design for next minor / follow-ons; **partial MVP in 0.3.6** (localhost bind default, remote opt-in, frame cap — not session token/ACL).  
 **Builds on:** [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) (coop leases), re-id §4.2.0 in [`memnet-grammar-design.md`](memnet-grammar-design.md).  
-**Dialect:** agent-facing I/O is **shared dialect only** (Write = display). No new `@TAG|pipe` surfaces. ASCII field values.  
+**Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](gql-wire-profile.md)). No `@TAG|pipe` teach; no Layer. ASCII property values.  
 **Product context:** ~0.3.6; primary read `pin_map`; transport **in-process first**, TCP `memnet serve` (default `127.0.0.1:18765`) as fallback.
 
 ## How the pieces fit

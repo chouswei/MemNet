@@ -1,12 +1,15 @@
 # MemNet grammar design
 
-**Status:** design proposal (not yet implemented as SSOT parser)  
-**Audience:** LLM agents, human inspectors, future ANTLR / codec owners  
-**Aligns with:** MN-REQ-00, MN-REQ-02, MN-REQ-08, MN-REQ-09, MN-REQ-10, MN-REQ-11  
-**Lineage:** `refs/novel-cut-grammar/` (`md_triple` Write = display; G_n digest) + legacy store `@TAG` pipe (import-once)  
+> **Not 1.x agent teach.** Agent wire SSOT: [`gql-wire-profile.md`](gql-wire-profile.md) (**GQL only**).  
+> This file documents the **as-is** line-codec / harness (`tier_a` package names) until **M2** retires that path. Do **not** teach Tier A / Layer as wire.
+
+**Status:** as-is harness / historical design (not GQL teach SSOT)  
+**Audience:** codec owners migrating to M2  
+**Aligns with:** MN-REQ-00, MN-REQ-02, MN-REQ-08, MN-REQ-09, MN-REQ-10, MN-REQ-11 (as implemented in 0.4.x)  
+**Lineage:** legacy line dialect + `@TAG` pipe (import-once)  
 **British English.** Paths ASCII.
 
-**Naming (locked for agent prose):** the LLM-facing dialect is the **shared dialect** (Write = display). Older design text and code names (**Tier A**, package `memnet.tier_a`, `tools/tier_a.py`) refer to the **same** dialect — keep those identifiers for harness/parser continuity; prefer **shared dialect** in new agent-facing sentences. Formal value of this folder (`MemNet.g4`, golden fixtures, soft lint, round-trip tests) is **preserved**; renaming must not drop productions or coverage.
+**Naming:** package `memnet.tier_a` / `tools/tier_a.py` are **as-is engine** identifiers — not agent teach names.
 
 ---
 

@@ -1,11 +1,12 @@
 # Roadmap 0.5.0 — one path
 
 **Status:** plan only (docs). **MUST NOT** treat this as shipped behaviour.  
-**Audience:** product developers. Agent ops still follow [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md).
+**Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
-**Model (this notch):** SysML + grammar **refactored for GQL wire** (nested `AgentMemory` / `GqlCodec` / `PinMapShapedRead`; Layer → legacy). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md). **Next: implement M1** (GQL wire profile + shaped-read contract).
+**Model:** SysML + grammar for **GQL wire** (`GqlCodec` / `PinMapShapedRead`). Exam: [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).  
+**M1 done (docs):** GQL wire profile + shaped-read contract + Layer doctrine purge / archive. **Next: M2** (engine/MCP GQL accept + shaped emit).
 
-**Problem (0.4.x):** dual remote MCP entries, dual dialect stories (Tier A vs Layer), and on Pi a risk of **two graph writers** (HTTP MCP `InProcessEngine` ≠ TCP `memnet serve`).
+**Problem (0.4.x):** dual remote MCP entries, dual dialect stories, and on Pi a risk of **two graph writers** (HTTP MCP `InProcessEngine` ≠ TCP `memnet serve`).
 
 ---
 
@@ -16,7 +17,7 @@
 | MUST | MUST NOT |
 |------|----------|
 | Teach Cursor remote as **`memnet-pi`** via `"url"` → streamable-http (`:18766/mcp`) | Treat project **`memnet-local`** (stdio) as the default remote/shared path |
-| Keep stdio local MCP **optional / dev-only** (disabled or omitted by default in examples) | Document stdio and HTTP as equal “primary” remotes |
+| Keep stdio local MCP **optional / dev-only** | Document stdio and HTTP as equal “primary” remotes |
 
 Local single-agent may still use in-process stdio when no shared graph is needed. Multitask / shared graph → HTTP or TCP only.
 
@@ -24,28 +25,26 @@ Local single-agent may still use in-process stdio when no shared graph is needed
 
 | MUST | MUST NOT |
 |------|----------|
-| Teach **GQL (openCypher-shaped)** as the **1.x** agent wire (ADR-001) | Teach Layer and GQL as two peer 1.x stories |
-| Keep **Layer** / **Tier A** as **legacy** accept / migration only through 0.5.x | Invent a third peer wire dialect; delete `MemNetLayer.g4` in the first cut |
-| Redefine **Write = display** as **bounded shaped GQL subgraph** / `pin_map`-class wrapper (not raw `RETURN` dumps) | Ship unbounded tabular `MATCH`/`RETURN` as the primary goldfish read |
+| Teach **GQL (openCypher-shaped)** as the **only** agent wire ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)) | Teach Layer / Tier A as wire, peer, or accept path |
+| Redefine **Write = display** as **bounded shaped GQL subgraph** via `pin_map`-class tool | Ship unbounded tabular `MATCH`/`RETURN` as primary goldfish read |
+| Point historical Layer sources only at [`grammar/archive/`](grammar/archive/) | Invent a third peer dialect |
 
-Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md). Engine/MCP GQL accept + shaped emit may land after teach docs; teach order does not wait for full merge.
+Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) (supersession: no Layer).
 
 ### 3. One graph owner on Pi
 
 | MUST | MUST NOT |
 |------|----------|
 | Bridge HTTP MCP to **`memnet serve`** (TCP `:18765`) so one process owns the store | Run HTTP MCP with a separate `InProcessEngine` **and** TCP serve as two writers |
-| Default remote HTTP so tools share the serve graph (`MEMNET_MCP_TRANSPORT=tcp` or equivalent bridge) | Dual-write the same mission across two engines |
-
-CLI clients and Cursor `url` clients **MUST** see one session graph.
+| Default remote HTTP so tools share the serve graph | Dual-write the same mission across two engines |
 
 ### 4. Footguns (Cursor just works)
 
 | Concern | Default / gate |
 |---------|----------------|
-| Host | LAN bind + `MEMNET_MCP_HTTP_TRUSTED_HOSTS` (or specific host bind) so Cursor does not hit `Invalid Host header` |
+| Host | LAN bind + `MEMNET_MCP_HTTP_TRUSTED_HOSTS` |
 | Token | Non-empty `MEMNET_MCP_HTTP_TOKEN`; Cursor `Authorization: Bearer …` |
-| `view=` | Teach omit → shell-safe default; document `shell` / `interior` only as first grains |
+| `view=` | Omit → shell-safe default; teach `shell` / `interior` first |
 
 **MUST NOT** advertise empty-token LAN MCP as safe.
 
@@ -53,11 +52,11 @@ CLI clients and Cursor `url` clients **MUST** see one session graph.
 
 ## Out of 0.5.0 (stay deferred)
 
-Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog. Not blocked by one-path, not claimed here.
+Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog.
 
-**GQL (ISO/IEC 39075):** **adopt as agent teach/wire** (openCypher-shaped, AgensGraph-compatible). **MemNet** brand retained; **Layer** → legacy migration. Decision: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md). Crosswalk: [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md); stance: [`grammar/gql-consideration.md`](grammar/gql-consideration.md). **MUST NOT** dual-teach Layer + GQL as peer 1.x surfaces. **MUST NOT** use raw tabular `RETURN` as primary agent read. **MUST NOT** delete `MemNetLayer.g4` or rewrite all application-notes in the first cut — migration plan in ADR-001 (M0–M4).
+**GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** implements accept/emit; **M3** rewrites playbook/skills/app-note bodies.
 
-**AgensGraph (durable buffer thesis):** MemNet as working-memory / pin-map buffer in front of a durable Postgres+property-graph store remains a **strong mission fit**, deferred past one-path. Stack: LLM ↔ MemNet (**GQL wire**, shaped `pin_map`-class read) ↔ optional sync ↔ AgensGraph (same GQL family). Sketch SSOT: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
+**AgensGraph (durable buffer thesis):** deferred past one-path. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). **MUST NOT** dual-write without a single sync owner.
 
 ---
 
@@ -65,15 +64,13 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 
 | Path | Role |
 |------|------|
-| [`../README.md`](../README.md) | How to run (one path) + gaps pointer |
-| [`grammar/memnet-multi-layer.md`](grammar/memnet-multi-layer.md) §8 Open | Dialect / grain deferred bullets |
-| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL agent wire; Layer legacy; `pin_map` open question |
-| [`grammar/gql-consideration.md`](grammar/gql-consideration.md) | GQL vs Layer: adopt GQL wire; Layer migration |
-| [`grammar/layer-gql-map.md`](grammar/layer-gql-map.md) | Layer ↔ GQL construct map (migration) |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer; agent wire GQL-aligned |
-| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam after GQL nesting |
-| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
+| [`../README.md`](../README.md) | How to run (one path) |
+| [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
+| [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | AgensGraph buffer sketch |
+| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam |
+| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |
 | [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
-| [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary; local optional |
+| [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary |

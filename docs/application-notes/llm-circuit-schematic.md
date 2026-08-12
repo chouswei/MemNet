@@ -1,10 +1,11 @@
-# LLM circuit schematic and s-domain analysis — Layer dialect
+# LLM circuit schematic and s-domain analysis — circuit domain
 
-**Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** as MemNet **Layer** wire so an agent can warm a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+
+**Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can warm a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row. **Wire shapes:** GQL case study / profile — not Layer ASCII.
 
 For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analysis frame**: DC, steady-state sinusoid (phasor), and linear transient results are specialisations or inversions of the same \(V(s)\) / \(H(s)\) model. Prefer one s-domain atom set (`domain=s`); recover other views by evaluation or inverse Laplace.
 
-**Primary teach:** Layer — `CST` + `ports=` + `law=` on NODE + port↔port **`--bind-->`**. Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md).
 
 **Primary worked example:** inverting op-amp with resistive negative feedback — [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
 
@@ -12,9 +13,9 @@ Complements:
 
 - [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) — node method ↔ NODE `law=` / binds
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML locators (logical grain; relation EDGEs)
-- Layer goldens — `docs/grammar/examples/layer/`
+- Layer goldens — `docs/grammar/archive/examples-layer/` (historical only)
 
-British English. ASCII. No `|` pipe on the agent surface. Tier A CMP/PIN/NET + `connects_to` / `derives` — **legacy only** (§10).
+British English. ASCII. Historical CMP/PIN/NET sketches in §10 are **not** agent teach.
 
 ---
 

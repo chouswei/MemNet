@@ -1,8 +1,10 @@
-# LLM daily news digest — Layer / Write=display
+# LLM daily news digest
+
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
 
 **Application example (documentation only).** Multi-stage RSS digest pipeline with session-scoped working memory — not part of the MemNet engine. The graph is built during one run, queried for analysis, and drives final prose; readers see Markdown/HTML, not raw wires.
 
-**Teach:** Write = display; keyword / story links as bare-id **`--rel_name-->`**. **`pin_map`** (not `query warm`). Pipe `@TAG` — legacy only (§8). Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md).
+**Teach:** Write = display; keyword / story links as bare-id **`--rel_name-->`**. **`pin_map`** (not `query warm`). Pipe `@TAG` — legacy only (§8). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **Project sketch:** `daily-news` — RSS digest with fact-checking; bridge `memnet_bridge.py`; schema `memnet_schema.txt`; orchestrator `generate.py`.
 

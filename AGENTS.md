@@ -4,7 +4,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Mission
 
-**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write with the same shapes — that **shared dialect** (**Write = display**). Design docs may still say “Tier A” for this dialect. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
+**MemNet** (Net of Memory) is an **agent memory graph** (NODE | EDGE) between LLM call pipelines and data search. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
 
 ## Where to look
 
@@ -16,10 +16,9 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Python packaging | `pyproject.toml` | — |
 | Layout adaptation notes | `LAYOUT.md` | — |
 | SysML models | `sysml-models/` | — |
-| Shared-dialect grammar design | `docs/grammar/` | developers |
-| Layer ↔ GQL construct map (model; wire stays Layer) | `docs/grammar/layer-gql-map.md` | developers |
-| Field formulas (generic EDGE relations) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
-| Multi-layer (design) | `docs/grammar/memnet-multi-layer.md` (stratified pin maps; law on node; dual EDGE bind/relation; nesting = view budget) | developers |
+| Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT) | developers |
+| Field formulas (design; formula-as-EDGE) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
+| Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` (archive: former multi-layer Layer doc) | developers |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` | developers |
 | Multi-agent / Multitask (as-is 0.4.x) | `docs/multi-agent-sessions.md` | developers |

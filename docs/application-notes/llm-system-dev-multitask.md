@@ -1,12 +1,14 @@
 # System development with Multitask — A MemNet application note
 
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
 **Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
 **Application skill:** `~/.cursor/skills/memnet-multitask/`. Index: [`docs/README.md`](../README.md).
 
 **Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
 
-**Dialect:** workers mutate **Write = display** / **Layer** (`pin_map` first). Electrical law leaves use `ports=` / `law=` / `--bind-->` — see [`llm-circuit-schematic.md`](llm-circuit-schematic.md). Do not teach `@TAG` pipe as the agent surface.
+**Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md)).
 
 This note complements:
 

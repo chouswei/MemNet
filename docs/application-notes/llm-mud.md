@@ -1,8 +1,10 @@
-# LLM MUD — Layer / Write=display
+# LLM MUD
+
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
 
 **Application example (documentation only).** Multiplayer text MUD backed by MemNet — not part of the engine. Sample world: Lewis Carroll's *Alice's Adventures in Wonderland* (1865, public domain).
 
-**Teach:** Write = display; room exits / containment as bare-id **`--exit-->`** / **`--contains-->`** / **`--located-->`** (relation grain). **`pin_map`** from the player's current `ROM`. Pipe `@TAG` — legacy only (§8). Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md).
+**Teach:** Write = display; room exits / containment as bare-id **`--exit-->`** / **`--contains-->`** / **`--located-->`** (relation grain). **`pin_map`** from the player's current `ROM`. Pipe `@TAG` — legacy only (§8). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). Warm stays small if you anchor on the current room.
 

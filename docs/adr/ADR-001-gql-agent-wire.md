@@ -1,88 +1,76 @@
 # ADR-001: GQL as agent wire (MemNet brand retained)
 
-**Status:** Accepted
+**Status:** Accepted — **superseded on Layer** (see below)
 
 **Date:** 2026-08-12
 
+**Supersession (user direction, 2026-08-12):** **No Layer / Tier A** as agent wire, peer teach, or product accept path. One dialect only: **GQL (openCypher-shaped)**. Historical Layer grammar is **quarantined** under [`../grammar/archive/`](../grammar/archive/) — not doctrine. Wire profile SSOT: [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). The original migration table’s “Layer accept until M4” schedule is **withdrawn**.
+
 **Context**
 
-MemNet (Net of Memory) is an agent memory product: bounded live pin map, goldfish re-read, Multitask shared sessions. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / legacy Tier A alias), with ISO GQL / openCypher held to a **model map** and to the durable-store side (AgensGraph buffer sketch).
+MemNet (Net of Memory) is an agent memory product: bounded live pin map, goldfish re-read, Multitask shared sessions. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / Tier A alias), with ISO GQL / openCypher held to a map and to the durable-store side (AgensGraph buffer sketch).
 
 Three pressures reversed the prior “map only; MUST NOT teach GQL as wire” stance:
 
 1. **Training priors.** LLMs already know Cypher-shaped ASCII (`MATCH` / `CREATE` / `(n)-[:R]->(m)`). Invent-syntax errors and teach cost for Layer remain higher than for openCypher-shaped GQL.
-2. **AgensGraph buffer.** The durable thesis (MemNet as working-memory buffer in front of Postgres + property graph) is stronger when agent and store speak the **same family** of query language. Keeping a private Layer dialect forever forces a permanent translation tax and invites dual-dialect drift.
-3. **Layer cost.** Maintaining Layer as 1.x teach (ANTLR, skills, application notes, codec paths) is real product cost. Prior docs already conceded “familiar ≠ fit”; the explicit product decision is that **training-prior + store alignment now outweigh Layer uniqueness** for agent wire — without abandoning the MemNet product name or the pin-map *mission*.
+2. **AgensGraph buffer.** The durable thesis (MemNet as working-memory buffer in front of Postgres + property graph) is stronger when agent and store speak the **same family** of query language.
+3. **Layer cost.** Maintaining Layer as teach (ANTLR, skills, application notes, codec paths) is real product cost — now **retired from doctrine**, not kept as a soft accept story.
 
 This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as agent wire** with **GQL (openCypher-shaped, AgensGraph-compatible)**. Brand and product remain MemNet.
 
 **Decision**
 
-1. **Agent teach / wire = GQL (openCypher-shaped).** Primary agent read/write dialect for 1.x planning is ISO GQL / openCypher patterns compatible with AgensGraph — not Layer lines as the teach surface.
-2. **MemNet remains the product name** for agent memory (engine, MCP, sessions, Multitask ops). “Net of Memory” / pin-map *concept* may be redefined around bounded GQL result shaping (see Open question below).
-3. **Layer becomes legacy.** `MemNetLayer.g4`, Layer fixtures, and Layer-first application notes stay in-tree for migration; they are no longer the forward teach SSOT. Do not delete grammar sources in the first cut.
-4. **Write = display must be redefined on GQL** (or the mission changes). Raw tabular `MATCH`/`RETURN` dumps are **not** an acceptable primary agent read. The product either (a) reshapes GQL results into a bounded, agent-stable graph view, or (b) honestly drops Write = display as a Layer-era slogan. This ADR chooses (a) — see recommendation under Open question.
-5. **One dialect teach (updated):** GQL = 1.x teach; Layer / Tier A = legacy accept / migration path only. Do not invent a third peer dialect beside GQL + Layer-legacy.
+1. **Agent teach / wire = GQL (openCypher-shaped) only.**
+2. **MemNet remains the product name** (engine, MCP, sessions, Multitask ops). Pin-map *concept* = bounded shaped GQL subgraph via `pin_map`-class tool.
+3. **Layer / Tier A = archived historical only** — not 1.x teach, not legacy-accept dual path. Sources under `docs/grammar/archive/`.
+4. **Write = display redefined on GQL:** shaped subgraph emit — not raw tabular `RETURN`. Locked: **B with A’s emit shape** ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)).
+5. **Do not invent a third peer dialect.**
 
 **Alternatives Considered**
 
 | Option | Why not chosen |
 |--------|----------------|
-| **Keep Layer as 1.x wire; GQL map/store-side only** | Prior stance. Rejected by explicit product decision — training prior + AgensGraph alignment outweigh Layer uniqueness. |
-| **Dual teach (Layer + GQL peer surfaces)** | Breaks one-path / one dialect teach; doubles skills and error modes. |
-| **Thin Cypher relay only (drop MemNet buffer)** | Collapses product value; loses session goldfish, Multitask shared graph owner, and token-shaped reads. Brand without buffer is not MemNet. |
-| **Full ISO GQL DDL / graph-types on agent wire in first cut** | Schema/type bloat; deferred with other Open items. First cut = openCypher-shaped CRUD + bounded read. |
+| **Keep Layer as 1.x wire; GQL map/store-side only** | Rejected — training prior + AgensGraph alignment. |
+| **Dual teach / long Layer-accept era** | Rejected by supersession — doubles skills and error modes; user directed **no Layer**. |
+| **Thin Cypher relay only (drop MemNet buffer)** | Collapses product value. |
+| **Full ISO GQL DDL on agent wire in first cut** | Deferred. First cut = openCypher-shaped CRUD + bounded shaped read. |
 
 **Consequences**
 
 **Easier**
 
-- Agents reuse Cypher priors; teach docs and skills can cite openCypher patterns.
-- AgensGraph sync / durable buffer needs less conceptual translation.
-- Contributors stop defending a private ASCII dialect against industry defaults.
+- Agents reuse Cypher priors; one teach surface.
+- AgensGraph sync needs less conceptual translation.
 
 **Harder / honest costs**
 
-- **Write = display is broken as Layer defined it.** Layer “same graph lines on read and write” does not transfer to raw GQL binding tables. Mission continuity requires a **redefinition**: bounded shaped subgraph (or equivalent) as the primary read contract — not free-form `RETURN` columns.
-- Dual EDGE (bind vs relation), law-on-NODE, `view=` grains, and `NEW` mint must be **re-expressed** as GQL conventions (labels, properties, port-qualified endpoints) or intentionally narrowed.
-- Skills (`memnet-format`, `mcp-memnet`), `LLM-GUIDE`, and application notes remain Layer-first until a migration pass — temporary doctrine drift is expected and must be labelled **legacy**.
-- Engine / MCP mutate and `pin_map` paths need a GQL accept + shaped-emit plan; Layer codec becomes accept-only then retire.
+- As-is 0.4.x Python may still parse old line dialects until **M2** removes them — implementation lag, not doctrine.
+- Skills and application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL.
+- Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **Non-goals for first cut**
 
-- Delete `MemNetLayer.g4` / Layer ANTLR tree or golden Layer fixtures.
-- Rewrite all `docs/application-notes/` to GQL in this pass — migration plan only.
-- Ship AgensGraph sync adapter or dual-write.
-- Teach full GQL schema/DDL, multi-label cardinality debates, or unbounded analytic `MATCH` as agent primary read.
-- Rewrite user-pack skills in the same commit as this ADR (follow-on).
-- Harmonise historical Layer `[Id]` ASCII into Cypher in stored 0.4.x snapshots without an explicit migrate tool.
+- Full application-notes body rewrite (M3).
+- Ship AgensGraph sync adapter.
+- Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
+- Revive Layer as accept path.
 
-**Migration plan (docs-only this pass)**
+**Migration plan (updated)**
 
 | Phase | Action |
 |-------|--------|
-| **M0 (this ADR)** | Reverse stance docs; Layer map becomes migration crosswalk; flag `pin_map` open question. |
-| **M1** | Define GQL wire profile (allowed clauses, id/property conventions, dual-EDGE encoding) + shaped-read contract replacing Layer Write = display. |
-| **M2** | Engine/MCP: accept openCypher-shaped mutate; emit shaped subgraph for pin-map-equivalent tool; Layer accept path retained. |
-| **M3** | Update `LLM-GUIDE`, user-pack skills, then application notes; mark Layer examples deprecated. |
-| **M4** | Optional: retire Layer teach from ROADMAP; keep `.g4` / fixtures until parity tests pass; then archive. |
+| **M0** | ADR accept; reverse “map only” stance. |
+| **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
+| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
+| **M3** | `LLM-GUIDE` body, user-pack skills, application-notes examples → GQL. |
 
-**Open question (hard): what replaces `pin_map` Write = display under GQL?**
-
-| Option | Sketch | Trade-off |
-|--------|--------|-----------|
-| **A. Shaped subgraph return** | Tool returns a bounded ego/view subgraph as openCypher-compatible graph text (nodes/rels), not a binding table | Closest to Write = display; agents still see graph shapes |
-| **B. Runtime `view=` wrapper** | MemNet keeps `pin_map(anchor, view=…)` as the tool; internally compiles to GQL; emit stays shaped | Preserves goldfish UX; GQL is wire *inside* the envelope |
-| **C. Raw `MATCH`/`RETURN` as primary** | Agent consumes tabular results | Lowest implement cost; **abandons** Write = display mission |
-| **D. Hybrid** | `pin_map` shaped default; escape hatch `query_gql` for DBA/debug | Useful later; must not dual-teach in M1 |
-
-**Recommendation (default):** **B with A’s emit shape** — keep a MemNet **`pin_map`-class tool** (anchor, depth, view budget) that **wraps GQL** internally and **returns a shaped subgraph** (openCypher-family graph lines / structured graph), never raw unbounded `RETURN` tables as the primary agent read. Mutate teaches openCypher-shaped writes under the same session/view gates. Option C is explicitly **out** unless a future ADR drops Write = display.
+**Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
 **References**
 
-- [`../grammar/gql-consideration.md`](../grammar/gql-consideration.md) — stance (now: adopt GQL as agent wire)
-- [`../grammar/layer-gql-map.md`](../grammar/layer-gql-map.md) — Layer ↔ GQL map (migration path)
-- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable buffer; agent wire now GQL-aligned
-- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; dialect teach updated
+- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT**
+- [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
+- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable buffer sketch
+- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan
 - [ISO/IEC 39075:2024 GQL](https://www.iso.org/standard/76120.html)
 - [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph)

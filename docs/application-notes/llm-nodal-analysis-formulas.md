@@ -1,16 +1,18 @@
-# Nodal analysis — Layer dialect (ports / law / bind)
+# Nodal analysis — circuit domain (ports / law / bind)
 
-**Teach:** express a circuit with the **node method** as MemNet **Layer** wire — `CST` law leaves with `ports=` + `law=` on the NODE, copper as port↔port **`--bind-->`**.  
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Note body may still show historical seeds until **M3**; prefer [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) for wire shapes.
+
+**Teach:** GQL wire profile + shaped `pin_map`. Historical body examples below are M3-bound.
 **Documentation only** — does **not** implement a solver.  
 **British English.** ASCII. No `|` pipe on the agent surface.
 
-Doctrine: [`memnet-multi-layer.md`](../grammar/memnet-multi-layer.md). Formula-on-EDGE (`derives` / `feeds`) is **legacy** — short pointer in §8, not dual teach.
+Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Formula-on-EDGE (`derives` / `feeds`) is **legacy** — short pointer in §8, not dual teach.
 
 Complements:
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — schematic / s-domain Layer grain
 - [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) — worked InvAmp + Layer seed
-- Layer goldens — `docs/grammar/examples/layer/`
+- Layer goldens — `docs/grammar/archive/examples-layer/` (historical only)
 
 ---
 

@@ -1,8 +1,8 @@
 # Inverting amplifier — GQL-wire MemNet case study
 
-Work the known inverting op-amp topology through the **post ADR-001** model: openCypher-shaped **GQL** as agent wire, **shaped `pin_map`** as primary read, Layer only as a brief legacy aside.
+Work the known inverting op-amp topology through the **post ADR-001** model: openCypher-shaped **GQL** as agent wire, **shaped `pin_map`** as primary read.
 
-**Brand:** MemNet (Net of Memory). **Not shipped behaviour** — model / teach sketch for M1 profile.  
+**Brand:** MemNet (Net of Memory). **Not shipped behaviour** — teach sketch aligned with [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
 **Derivation SSOT (math):** [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) §§1–2.  
 **Decision:** [`../../adr/ADR-001-gql-agent-wire.md`](../../adr/ADR-001-gql-agent-wire.md).  
 **Exam:** [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md).  
@@ -173,18 +173,9 @@ Maps to SysML: `GqlCodec`, `PinMapShapedRead`, `GraphStore`, items in `MemNetCon
 
 ---
 
-## 5. Legacy Layer aside (not primary teach)
+## 5. Historical seed aside (not teach)
 
-Same facts in **legacy** Layer ASCII (fixtures / migration only):
-
-```text
-CST [CST_U1] ; name=opamp ; a_s=1000000 ; ports=inp: {…},inm: {…},out: {…} ; law=$@ip=0$,$@im=0$,$@vo=a_s*(@vp-@vm)$
-E_sum_r [CST_Rin.b] --bind-- [CST_U1.inm] ; carries=I
-```
-
-Full Layer seed: [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) §3; golden [`../../grammar/examples/layer/layer_09_inv_amp_good.txt`](../../grammar/examples/layer/layer_09_inv_amp_good.txt).
-
-**1.x teach:** GQL patterns + shaped `pin_map` above. **MUST NOT** dual-teach Layer as a peer wire.
+Older ASCII Layer-shaped seeds for the same circuit live under derivation notes and [`../../grammar/archive/examples-layer/`](../../grammar/archive/examples-layer/) — **quarantine only**. **1.x teach:** GQL patterns + shaped `pin_map` above.
 
 ---
 
@@ -192,8 +183,8 @@ Full Layer seed: [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md
 
 | Path | Role |
 |------|------|
-| [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation + Layer seed |
-| [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (Layer-era; migrate under M3) |
-| [`../../grammar/layer-gql-map.md`](../../grammar/layer-gql-map.md) | Construct crosswalk |
-| [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) | Model exam verdict |
+| [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation (math) |
+| [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (body M3) |
+| [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | M1 wire SSOT |
+| [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) | Model exam |
 | [`../../../sysml-models/README.md`](../../../sysml-models/README.md) | Nested SysML outline |
