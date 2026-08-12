@@ -90,6 +90,7 @@ Ignoring is not “staying pure”; it is leaving the crosswalk undocumented.
 | Path | Role |
 |------|------|
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path plan; Open pointer |
+| [`agensgraph-buffer.md`](agensgraph-buffer.md) | AgensGraph durable store; MemNet as pin-map buffer (map stance applied) |
 | [`memnet-multi-layer.md`](memnet-multi-layer.md) | Layer SSOT; §8 Open |
 | [`memnet-grammar-design.md`](memnet-grammar-design.md) | Shared-dialect spine |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Agent playbook (Layer teach) |
