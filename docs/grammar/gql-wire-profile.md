@@ -20,6 +20,20 @@
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (anchor, depth, view budget) that wraps GQL internally and emits a shaped subgraph. |
 | **MemNet buffer** | Sessions, budgets, Multitask graph owner stay MemNet. Thin Cypher-relay-only is out. |
 
+### External dialect authority
+
+MemNet’s agent wire is **openCypher-shaped** (GQL family). Cypher syntax and semantics are defined **externally** by openCypher CIP materials — MemNet does **not** re-specify the full language here.
+
+| Authority | Role for MemNet |
+|-----------|-----------------|
+| [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) | Normative **family** home for openCypher Improvement Proposals |
+| [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) | Baseline Cypher 9 dialect |
+| [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable) | Incremental openCypher features in the same family |
+| [ISO/IEC 39075 GQL](https://www.iso.org/standard/76120.html) | Normative for **GQL-native** features; a CIP for those may be informational only (per CIP README) |
+| Optional: [CIP process](https://opencypher.org/cips/) | Process / site overview |
+
+**Gated subset wins:** MemNet agent surface = `pin_map`-class read + gated mutate (§1) — **not** full openCypher / every CIP. Unbounded `MATCH` as primary goldfish read remains out. SysML pointer: [`../../sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md) (`GqlCodec`).
+
 ---
 
 ## 1. Allowed agent-facing clauses

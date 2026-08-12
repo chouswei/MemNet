@@ -53,6 +53,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 - Full application-notes body rewrite (M3).
 - Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
+- Implement or teach **every** openCypher CIP — family authority only; agent surface stays MemNet-gated (`pin_map` + mutate subset).
 - Revive Layer as accept path.
 - Ship AgensGraph sync as required for **M1/M2** wire (adapter is **M2.5**, not M1/M2).
 
@@ -74,9 +75,13 @@ User promotion (2026-08-13): durable online GQL store adapter is the **next notc
 
 **References**
 
-- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT**
+- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
 - [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
 - [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; phase order M2 → M2.5 → M3
-- [ISO/IEC 39075:2024 GQL](https://www.iso.org/standard/76120.html)
+- [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
+- [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline
+- [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable)
+- [ISO/IEC 39075:2024 GQL](https://www.iso.org/standard/76120.html) — normative for GQL-native features (CIP may be informational only)
 - [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph)
+- Optional: [CIP process](https://opencypher.org/cips/)

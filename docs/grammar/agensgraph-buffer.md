@@ -47,7 +47,7 @@
 | **Flush** | Push settled or explicitly durable pins from MemNet into AgensGraph |
 | **Connection** | Store URL / credentials via env (e.g. `MEMNET_AGENSGRAPH_*` placeholders) — not hardcoded secrets |
 | **Sync owner** | **One** owner process (MemNet serve / adapter) owns hydrate+flush — **MUST NOT** dual-write |
-| **Dialect** | Same openCypher-family GQL as agent wire; no Layer revival |
+| **Dialect** | Same openCypher-family GQL as agent wire (CIP / oC9 family; MemNet-gated subset); no Layer revival |
 
 ### Out of M2.5 scope
 
