@@ -72,8 +72,10 @@ MemNetSystem                                 // SharedLlmMemory product
 
 | Study | Path |
 |-------|------|
-| Multitask Mode | [outputs/multitask-case-study.md](outputs/multitask-case-study.md) |
-| Session import (lead imports member WM) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
+| Multitask Mode (GQL pins + optional import) | [outputs/multitask-case-study.md](outputs/multitask-case-study.md) |
+| Session import + ImportGuard | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
+| Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
+| Prose RPG beat (novel-cut patterns → GQL) | [outputs/prose-rpg-session-case-study.md](outputs/prose-rpg-session-case-study.md) |
 
 ## Live pin map (MN-REQ-04)
 
