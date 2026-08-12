@@ -12,7 +12,7 @@
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
     │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
     │   ├── MutateGate / SessionLifecycle / Schema / Caps / …
-    │   └── (TierACodec quarantined — remove in M2; not nested accept)
+    │   └── (TierACodec archived — not nested accept; M2 retired)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
@@ -81,7 +81,7 @@ package MemNet {
       Agent surface remains MemNet-gated (pin_map + mutate subset) — not full
       openCypher / every CIP. Mutate accepts GQL patterns; pin_map emit is a
       shaped subgraph (Write = display). MUST NOT treat raw tabular RETURN as
-      primary goldfish read. Target; engine accept path lands in M2.
+      primary goldfish read. Engine accept path = ADR migration M2 (**shipped**).
       Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
     */
     port gqlIn : GqlWireInPort;
@@ -114,16 +114,18 @@ package MemNet {
 
   part def TierACodec {
     doc /*
-      QUARANTINED — as-is engine lag (memnet.tier_a). Former Layer / Tier A
-      NODE|EDGE ASCII. MUST NOT be nested as target accept or 1.x teach.
-      Remove from product path in M2. Primary wire is GqlCodec.
+      ARCHIVED — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
+      memnet.tier_a). Not on the product accept path (ADR-001 M2: MutateGate
+      rejects with legacy_dialect_retired). MUST NOT be nested as target
+      accept or 1.x teach. Primary wire is GqlCodec. Modules may remain for
+      archive/tests only.
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port errOut : ErrorSignalOutPort;
-    attribute quarantineRemoveInM2 : Boolean = true;
+    attribute quarantineRemoveInM2 : Boolean = false;
   }
 
   part def LegacyPipeImport {
@@ -187,8 +189,8 @@ package MemNet {
       Orchestrates GQL parse -> schema validate -> NEW mint -> strict
       add/update into GraphStore -> assigned ids + ack. Owns IdAllocator;
       uses sibling SchemaRegistry / GqlCodec / GraphStore via AgentMemory
-      wiring. As-is may still parse line codecs until M2 remove — not target
-      accept doctrine.
+      wiring. Layer/Tier A accept retired (M2). As-is: memnet.mutate_gate
+      (GQL primary; @TAG pipe import-once).
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -206,10 +208,11 @@ package MemNet {
 
   part def PinMapShapedRead {
     doc /*
-      pin_map-class tool (ADR-001 recommendation B+A): wraps GQL internally;
-      emits bounded shaped subgraph (ShapedSubgraph / LivePinMap) — redefined
-      Write = display. Hide recyclable rows; depth/row/view caps; prepend
-      engine-law rows. As-is name: PinMapComposer / query pin-map.
+      pin_map-class tool (ADR-001 recommendation B+A): wraps graph walk;
+      emits bounded shaped openCypher-family subgraph (ShapedSubgraph /
+      LivePinMap) — redefined Write = display. Hide recyclable rows;
+      depth/row/view caps; prepend engine-law rows.
+      As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
       MUST NOT emit raw unbounded RETURN tables as primary agent read.
     */
     port pinMapOut : LivePinMapOutPort;

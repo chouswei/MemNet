@@ -11,10 +11,11 @@ Generic MemNet MCP server (`memnet_mcp`) — goldfish-loop tools via **InProcess
 
 ## Tools (thin)
 
-Primary read: **`pin_map`** (`query_warm` = deprecated alias). Optional additive
-`view=` — teach `shell` | `interior`; soft-accept `flowchart` | `parts` |
-`statechart` (shell-like caps; grain filters deferred). Omit `view` for 0.3
-Tier A `depth` / `max_rows` behaviour. See `docs/grammar/memnet-multi-layer.md` §5.
+Primary read: **`pin_map`** (`query_warm` = deprecated alias). Emits shaped
+openCypher-family subgraph (GQL wire). Optional additive `view=` — teach
+`shell` | `interior`; soft-accept `flowchart` | `parts` | `statechart`
+(shell-like caps). Mutate via `add`/`update` accepts gated GQL only
+(Layer/Tier A retired). See `docs/grammar/gql-wire-profile.md`.
 
 ## Transports
 

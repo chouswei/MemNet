@@ -72,9 +72,10 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 
 | Component | Path | Notes |
 |-----------|------|-------|
-| As-is line codec | `parts/common/memnet/memnet/tier_a.py` | Engine lag until M2; **not** agent teach |
-| MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path = M2) |
-| PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL (M2) |
+| As-is line codec | `parts/common/memnet/memnet/tier_a.py` | Retired from product accept (M2); archive/tests only |
+| GqlCodec | `parts/common/memnet/memnet/gql_codec.py` | Primary agent wire (M2) |
+| MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path) |
+| PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL |
 | IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | `NEW` minting |
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765` |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |

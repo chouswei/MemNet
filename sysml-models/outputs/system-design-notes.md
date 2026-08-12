@@ -15,7 +15,9 @@ Novel-writer is out of scope.
 
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
-**Primary codec:** `GqlCodec` — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs quarantined — remove in M2.
+**Primary codec:** `GqlCodec` (**M2 shipped**) — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
+**Composer:** `PinMapShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit.
+**Dialect authority:** see [`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) (External dialect authority) and ADR-001.
 
 ## Application patterns (not second products)
 
@@ -80,6 +82,17 @@ MemNetSystem                                 // SharedLlmMemory
 | DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | Roadmap M2.5 |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
+## Target ↔ as-is modules (engine)
+
+| Target part | Today's module(s) | Status |
+|-------------|-------------------|--------|
+| GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
+| GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
+| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | Retired from product accept (M2) |
+| PinMapShapedRead | `pin_map_composer.py` | Shaped GQL subgraph emit (M2) |
+| MutateGate | `mutate_gate.py` | GQL primary; Layer/Tier A rejected |
+| AgensGraphAdapter | — | Planned **M2.5** |
+
 ## Satisfy (MN-REQ-12 import + async)
 
 | Leaf | Parts |
@@ -91,8 +104,12 @@ MemNetSystem                                 // SharedLlmMemory
 
 ## Gaps
 
-- M2 engine GQL; remove TierA codec
-- M2.5 AgensGraph adapter — plan only ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M1:** GQL wire profile — **done**
+- **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
+- **M2.5:** AgensGraph adapter — plan only ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M3:** In-repo playbook / app-note GQL rewrite (plan)
 - ImportGuard / ImportAbsorb — doctrine nested; engine not claimed shipped
 - WorkerWriteScope — doctrineAsIs; engine does not enforce (see async-parallel study)
 - MN-REQ-12.7 ACL/reserve/ingest still to-be
+- `LocalIpcFlow` when LocalIpcGateway is implemented
+- PinMapIngest_* deterministic locators

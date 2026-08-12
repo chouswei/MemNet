@@ -30,7 +30,7 @@ package MemNetBehaviour {
   attribute def EvMutateGraph {
     doc /*
       add/update openCypher-shaped GQL batch (primary; may include NEW).
-      As-is line codecs are implementation lag — remove in M2; not accept path.
+      Layer / Tier A accept retired (ADR-001 M2).
     */
   }
   attribute def EvSaveSnapshot {

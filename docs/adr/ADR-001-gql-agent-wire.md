@@ -65,7 +65,7 @@ User promotion (2026-08-13): durable online GQL store adapter is the **next notc
 |-------|--------|
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
-| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
+| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. **Done.** |
 | **M2.5** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Not shipped** until implemented. **MUST NOT** reframe MemNet as a Cypher proxy. |
 | **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
 

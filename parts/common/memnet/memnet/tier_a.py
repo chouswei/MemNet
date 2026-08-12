@@ -1,7 +1,9 @@
 """Tier A MemNet agent-surface parser / emit / lint (R1 atoms-only).
 
-Mirrors docs/grammar/MemNet.g4 without requiring antlr4-python3-runtime.
-Canonical agent dialect (Write=display). Legacy @TAG pipe is import-once only.
+**Retired from product accept (ADR-001 M2).** MutateGate rejects Tier A /
+Layer batches with ``legacy_dialect_retired``. Kept for archive tests and
+historical fixtures under ``docs/grammar/archive/``. Agent wire = GQL
+(``memnet.gql_codec.GqlCodec``).
 """
 
 

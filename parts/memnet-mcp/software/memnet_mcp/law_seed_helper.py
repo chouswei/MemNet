@@ -1,6 +1,6 @@
 """LawSeedHelper — auto-seed engine-law rows on MCP session_open.
 
-Wraps ``supplement_seed_lines`` (Tier A by default; pipe only to match
+Wraps ``supplement_seed_lines`` (GQL by default; pipe only to match
 legacy ``seed_lines`` dialect). Not the agent write surface.
 """
 

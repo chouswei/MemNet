@@ -1,4 +1,4 @@
-"""Pin map view= shell / interior soft caps."""
+"""Pin map view= shell / interior soft caps (GQL mutate + shaped emit)."""
 
 from __future__ import annotations
 
@@ -16,16 +16,21 @@ from memnet.pin_map_composer import (
 )
 from memnet.session import open_session
 
-_LAYER_MAP = ["SCHEMA CST ; fields=id name role ports law recycle"]
+_CST_MAP = ["SCHEMA CST ; fields=id name role ports law recycle"]
 
 
 def _star_graph_lines(n_leaves: int = 12) -> list[str]:
     """Anchor CST_Hub with many member_of leaves (one-hop shell blow-up)."""
-    lines = ["CST [CST_Hub] ; name=hub ; role=person"]
+    lines = [
+        "CREATE (:CST {id: 'CST_Hub', name: 'hub', role: 'person'})",
+    ]
     for i in range(n_leaves):
         lid = f"CST_L{i:02d}"
-        lines.append(f"CST [{lid}] ; name=leaf{i} ; role=person")
-        lines.append(f"E_m{i:02d} [{lid}] --member_of--> [CST_Hub]")
+        lines.append(f"CREATE (:CST {{id: '{lid}', name: 'leaf{i}', role: 'person'}})")
+        lines.append(
+            f"MATCH (a {{id: '{lid}'}}), (b {{id: 'CST_Hub'}})\n"
+            f"CREATE (a)-[:member_of {{id: 'E_m{i:02d}'}}]->(b)"
+        )
     return lines
 
 
@@ -85,8 +90,8 @@ def test_apply_shell_soft_cap_unit():
 
 
 def test_compose_view_shell_caps_fanout(memnet_temp):
-    ss = open_session(map_lines=list(_LAYER_MAP))
-    MutateGate(ss).apply(_star_graph_lines(12), mode="add")
+    ss = open_session(map_lines=list(_CST_MAP))
+    MutateGate(ss).apply(_star_graph_lines(12), mode="add", allow_new_relation=True)
     composer = PinMapComposer(ss)
 
     rows_default, _ = composer.compose(anchor="CST_Hub", depth=2, max_rows=50)
@@ -101,6 +106,7 @@ def test_compose_view_shell_caps_fanout(memnet_temp):
     assert len(nodes_shell) <= SHELL_MAX_NODES
     assert len(edges_shell) <= SHELL_MAX_EDGES
     assert "CST_Hub" in text_shell
+    assert "(:CST" in text_shell
     assert nodes_shell[0].id == "CST_Hub" or any(r.id == "CST_Hub" for r in nodes_shell)
 
     rows_int, _ = composer.compose(
@@ -113,19 +119,25 @@ def test_compose_view_shell_caps_fanout(memnet_temp):
 def test_compose_omit_view_unchanged(memnet_temp, schema_file):
     ss = open_session(map_file=str(schema_file))
     MutateGate(ss).apply(
-        ["+ PLR [PLR01] ; identity=Hero ; wealth=1 ; cashflow=0 ; "
-         "monopoly=0 ; reputation=0 ; inventory=bag"],
+        [
+            "CREATE (:PLR {id: 'PLR01', identity: 'Hero', wealth: 1, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})"
+        ],
         mode="add",
     )
     a = PinMapComposer(ss).compose(anchor="PLR01", depth=1)[1]
     b = PinMapComposer(ss).compose(anchor="PLR01", depth=1, view=None)[1]
     assert a == b
     assert "PLR01" in a
+    assert "(:PLR" in a
 
 
 def test_compose_bad_view(memnet_temp):
-    ss = open_session(map_lines=list(_LAYER_MAP))
-    MutateGate(ss).apply(["CST [CST_A] ; name=a"], mode="add")
+    ss = open_session(map_lines=list(_CST_MAP))
+    MutateGate(ss).apply(
+        ["CREATE (:CST {id: 'CST_A', name: 'a'})"],
+        mode="add",
+    )
     with pytest.raises(MemNetError) as ei:
         PinMapComposer(ss).compose(anchor="CST_A", view="org")
     assert ei.value.code == "bad_view"

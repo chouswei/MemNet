@@ -36,8 +36,8 @@
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
     redefined as bounded shaped pin_map subgraph wrapping GQL.
-    As-is line codecs (former Layer / Tier A) = implementation lag → remove
-    in M2; MUST NOT be agent teach or target accept path.
+    Layer / Tier A = archived historical only (not product accept; M2
+    retired MutateGate accept; MemNetLayer.g4 under docs/grammar/archive/).
     Legacy @TAG pipe may still appear in old session files (import once).
     Store is in-memory Node|Edge property-graph records; process binding
     prefers in-process, then local IPC, TCP as fallback; fixed engine laws
@@ -155,8 +155,8 @@ package MemNetRequirements {
         (Node / Relationship / Property / Label; ADR-001). Tags or surface
         spellings may realise node labels; they are not additional conceptual
         kinds. Agent wire is openCypher-shaped GQL; primary read is shaped
-        pin_map (not raw MATCH/RETURN tables). As-is line codecs and @TAG
-        pipe are quarantined / import-once only — remove codecs in M2.
+        pin_map (not raw MATCH/RETURN tables). Layer / Tier A are archived
+        (not product accept); @TAG pipe remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
@@ -200,8 +200,7 @@ package MemNetRequirements {
           Agent-facing grammar and I/O SHALL express both NODE and EDGE as
           openCypher-shaped GQL (labels, relationship types, properties).
           Write = display means shaped subgraph emit matches mutate family.
-          Former Layer ASCII MUST NOT be taught or accepted as target path;
-          as-is codecs remove in M2.
+          Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
         attribute requirementId : String = "MN-REQ-02.5";
       }
@@ -431,8 +430,8 @@ package MemNetRequirements {
         is produced and consumed by an LLM, so presentation SHALL follow
         prompt rules. One agent dialect teach = openCypher-shaped GQL
         (ADR-001); Write = display = shaped pin_map subgraph both ways.
-        Former Layer / Tier A codecs are quarantined (remove in M2); @TAG
-        pipe is import-once only.
+        Layer / Tier A are archived (not product accept); @TAG pipe remains
+        import-once only.
       */
       attribute requirementId : String = "MN-REQ-08";
 

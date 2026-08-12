@@ -189,8 +189,9 @@ package MemNetConnections {
 
   item def LegacyLayerBatch {
     doc /*
-      QUARANTINED — as-is engine lag (tier_a / former Layer ASCII). Remove in
-      M2. MUST NOT be agent teach or target accept path. Alias: TierABatch.
+      ARCHIVED — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
+      tier_a). Not a product accept path (ADR-001 M2); MUST NOT be agent
+      teach. Alias: TierABatch. Modules may remain for archive/tests only.
     */
   }
 
