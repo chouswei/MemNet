@@ -4,6 +4,9 @@ Evidence walk against the on-disk SysML under `sysml-models/models/`.
 Companion architecture summary: [system-design-notes.md](system-design-notes.md).  
 Operational doctrine (developers): `docs/multi-agent-sessions.md`. Application adoption (`modelbasedPrj-*`): `docs/application-notes/llm-system-dev-multitask.md`. Index: `docs/README.md`.
 
+**Wire:** GQL / shaped `pin_map` only (ADR-001). No Layer ASCII.  
+**Related:** [session-import-case-study.md](session-import-case-study.md) (path B import), [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md), [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md), [company-memory-case-study.md](company-memory-case-study.md).
+
 ## 1. Model examination (fitness)
 
 ### Purpose
@@ -69,6 +72,48 @@ MemNet SysML models the **target** software system: in-memory NODE|EDGE working-
 | **6. Worker turn** | Worker uses **same** session id; `pin_map` first; mutates only under scope (findings as NODE/EDGE); does **not** settle parent TSK | `WorkerScopedTurn`: `workerAwaitingPinMap` → `workerPresentingPinMap` → `workerApplyingScopedMutate` → `workerTurnDone`; `EvWorkerReturn` | **MN-REQ-12.4**; engine path reuses `GoldfishLoop` / `MutateWithNew` under shared store |
 | **7. Parent reconcile** | Next parent turn: `pin_map` first; act from refreshed slice; **no** redo of worker investigation from chat | `workersDelegated` → `parentReconciling` via `EvPinMapRead` / `EvWorkerReturn`; `ParentTaskLifecycle.taskReconciling` | **MN-REQ-12.1**, **12.6** |
 | **8. Settle** | Parent sets `TSK_*` `status=settled` (optional `led_to_success`) from session facts | `EvSettleMissionTask` → `taskSettled` / `missionComplete` | **MN-REQ-12.3**; worker MUST NOT settle unless explicitly delegated |
+
+---
+
+## 3b. Concrete GQL pins (shared-session path)
+
+Session: `ses_mission_sysml` · Task: `TSK_review_multitask_behaviour`
+
+```text
+CREATE (t:Tsk {id: 'TSK_review_multitask_behaviour', status: 'active'})
+CREATE (s:Sym {id: 'SYM_ParentTaskLifecycle', kind: 'state_def'})
+CREATE (m:Mod {id: 'MOD_behaviour_sysml', path: 'sysml-models/models/behaviour.sysml'})
+CREATE (t)-[:about]->(s)
+CREATE (s)-[:defined_in]->(m)
+```
+
+Worker scoped mutate (same session — **no** import nest):
+
+```text
+MATCH (t:Tsk {id: 'TSK_review_multitask_behaviour'})
+CREATE (f:Finding {id: 'FND_worker_states_ok', note: 'ParentTaskLifecycle arcs match MN-REQ-12.3'})
+CREATE (t)-[:has_finding]->(f)
+```
+
+Parent next turn: `pin_map(anchor=TSK_review_multitask_behaviour)` then settle — chat never SSOT.
+
+### Optional path B note
+
+If the worker used a **separate** session, lead imports via nested `SessionImportReceive` → `ImportGuard` → `ImportAbsorb` ([session-import-case-study.md](session-import-case-study.md)). Default Multitask shared session **skips** import (path A re-pin_map).
+
+```mermaid
+flowchart LR
+  subgraph pathA["Path A shared session"]
+    H[SessionHandoffById] --> W[Worker mutate]
+    W --> R[Lead re-pin_map]
+    R --> S[Settle TSK]
+  end
+  subgraph pathB["Path B separate sessions"]
+    X[WorkingMemorySlice] --> G[ImportGuard cheap]
+    G --> A[ImportAbsorb hard]
+    A --> S2[Settle TSK]
+  end
+```
 
 ---
 

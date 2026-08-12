@@ -2,8 +2,10 @@
   MemNet behaviours - target architecture.
   Session lifecycle; goldfish loop (pin map->mutate->settle);
   mutate with NEW mint; pin-map ingest roadmap;
-  Multitask Mode for relevant tasks only (MN-REQ-12): parent task
-  lifecycle, worker scoped turns, mission cycle -- not trivial one-shots.
+  SessionHandoffById (pass session id, not graph dump);
+  SessionImportReceive (lead imports member working memory; ImportGuard);
+  Multitask Mode for relevant tasks only (MN-REQ-12);
+  optional DurableBuffer hydrate/flush roadmap (M2.5).
 */
 package MemNetBehaviour {
   private import ScalarValues::*;
@@ -28,7 +30,7 @@ package MemNetBehaviour {
   attribute def EvMutateGraph {
     doc /*
       add/update openCypher-shaped GQL batch (primary; may include NEW).
-      Legacy Layer / Tier A accept until M4.
+      As-is line codecs are implementation lag — remove in M2; not accept path.
     */
   }
   attribute def EvSaveSnapshot {
@@ -47,7 +49,7 @@ package MemNetBehaviour {
     doc /* IdAllocator finished minting NEW -> real ids. */
   }
   attribute def EvParseOk {
-    doc /* GqlCodec (or legacy TierACodec) accepted batch. */
+    doc /* GqlCodec accepted batch (target). */
   }
   attribute def EvCommitOk {
     doc /* GraphStore create/replace succeeded. */
@@ -60,6 +62,80 @@ package MemNetBehaviour {
   }
   attribute def EvPinMapDone {
     doc /* Pin-map ingest/export finished or cancelled. */
+  }
+  attribute def EvHandoffSessionId {
+    doc /*
+      Parent delivers SessionHandoff (session id + optional anchors /
+      writeScope) to a peer. Pass-by-reference for MissionWorkingSet SSOT.
+    */
+  }
+  attribute def EvDumpGraphInChat {
+    doc /*
+      FORBIDDEN anti-pattern: hand off a full graph dump (or mission SSOT)
+      via chat / tool prose instead of session id + re-pin_map.
+    */
+  }
+  attribute def EvImportFromChat {
+    doc /*
+      FORBIDDEN anti-pattern: import member working memory from chat or tool
+      transcripts instead of shared pin_map or WorkingMemorySlice.
+    */
+  }
+  attribute def EvRequestSessionImport {
+    doc /*
+      Lead issues SessionImportRequest (path B separate sessions). Macro
+      session import — not micro in-session node re-id (merge=true), and not
+      Cypher MERGE (upsert-by-id) as the product verb.
+    */
+  }
+  attribute def EvExportWorkingMemorySlice {
+    doc /*
+      Member exports bounded WorkingMemorySlice (anchors, depth/view, pins).
+      MUST NOT be a whole-store dump.
+    */
+  }
+  attribute def EvGuardReviewSlice {
+    doc /*
+      ImportGuard (cheap LLM) soft-reviews WorkingMemorySlice before lead
+      mutate: scope fit, junk/off-mission, invented ids, size/settle noise.
+    */
+  }
+  attribute def EvGuardAllow {
+    doc /* ImportGuardDecision outcome=allow; proceed to import mutate. */
+  }
+  attribute def EvGuardTrim {
+    doc /*
+      ImportGuardDecision outcome=trim; lead imports reduced slice (reason
+      recorded as structured atoms — not guard chat as SSOT).
+    */
+  }
+  attribute def EvGuardReject {
+    doc /* ImportGuardDecision outcome=reject; do not mutate lead session. */
+  }
+  attribute def EvImportWorkingMemorySlice {
+    doc /*
+      Lead imports WorkingMemorySlice into mission session under id policy
+      (Cypher MERGE same id / reject conflict / remint NEW); edges after nodes.
+      Runs only after ImportGuard allow/trim (path B) or skip when disabled.
+    */
+  }
+  attribute def EvSharedSessionRepin {
+    doc /*
+      Path A: lead and member already share one session; lead "receives"
+      member WM by re-pin_map only — no WorkingMemorySlice import.
+    */
+  }
+  attribute def EvHydrateFromDurable {
+    doc /*
+      ROADMAP M2.5: hydrate a subgraph from DurableGraphStore into the live
+      session under pin budget. Not claimed shipped.
+    */
+  }
+  attribute def EvFlushToDurable {
+    doc /*
+      ROADMAP M2.5: flush settled / durable pins from the session into
+      DurableGraphStore. One sync owner. Not claimed shipped.
+    */
   }
   attribute def EvMintParentTask {
     doc /*
@@ -75,14 +151,35 @@ package MemNetBehaviour {
   }
   attribute def EvDelegateWorker {
     doc /*
-      Parent spawns a background worker with shared session id, anchors,
-      and write scope (MN-REQ-12); then ends the turn (MN-REQ-12.6).
+      Parent spawns one background worker with SessionHandoff (shared
+      session id or separate assigned session, anchors, write scope)
+      (MN-REQ-12). May fire once per worker in a parallel wave. Parent
+      MUST follow with EvEndCoordinatorTurn (MN-REQ-12.6 / 12.12) — no
+      same-turn poll. Uses SessionHandoffById — not EvDumpGraphInChat.
+    */
+  }
+  attribute def EvEndCoordinatorTurn {
+    doc /*
+      Parent ends the Multitask coordinator turn after AsyncTaskDispatch
+      (MN-REQ-12.6 / 12.12). MUST NOT poll or await EvWorkerReturn in the
+      same turn. Next coordinator turn: pin_map first.
+    */
+  }
+  attribute def EvOverlapScopeForbidden {
+    doc /*
+      Two workers would mutate overlapping WorkerWriteScope anchors on one
+      shared session without serialisation (MN-REQ-12.5 / 12.12). MUST NOT
+      dual-write in parallel; prefer one worker, disjoint anchors, separate
+      session ids, or serial dispatch. Engine does not enforce (doctrineAsIs;
+      0.4.x last-write-wins if violated).
     */
   }
   attribute def EvWorkerReturn {
     doc /*
-      Worker durable facts are visible in the shared session; parent may
-      re-pin_map on the next coordinator turn (no same-turn poll).
+      Host-driven asynchronous completion: worker durable facts are visible
+      in the shared (or exportable) session; the agent host may revive the
+      parent on a later turn. NOT a blocking await on the spawn turn
+      (MN-REQ-12.12). Parent then pin_map / optional SessionImportReceive.
     */
   }
   attribute def EvSettleMissionTask {
@@ -218,7 +315,7 @@ package MemNetBehaviour {
       then presentingPinMap;
 
     state presentingPinMap {
-      doc /* PinMapComposer emitted Tier A live pin map; LLM may reason. */
+      doc /* PinMapShapedRead emitted shaped pin_map; LLM may reason. */
     }
     transition pin_map_to_await_mutate
       first presentingPinMap
@@ -270,10 +367,11 @@ package MemNetBehaviour {
 
   state def MutateWithNew {
     doc /*
-      Single mutate batch: parse Tier A -> mint NEW (if any) -> schema check
-      -> strict commit -> emit AssignedIdMap. Aligns MN-REQ-03 and 10.4.
-      When the batch has no NEW / [NEW], minting is a no-op (empty id map)
-      and the path proceeds to committing without inventing ids.
+      Single mutate batch: parse GQL (GqlCodec target) -> mint NEW (if any) ->
+      schema check -> strict commit -> emit AssignedIdMap. Aligns MN-REQ-03
+      and 10.4. When the batch has no NEW / [NEW], minting is a no-op (empty
+      id map) and the path proceeds to committing without inventing ids.
+      As-is line codec parse is implementation lag — remove in M2.
     */
     entry;
     then idle;
@@ -287,7 +385,7 @@ package MemNetBehaviour {
       then parsing;
 
     state parsing {
-      doc /* TierACodec parse; reject invalid wire. */
+      doc /* GqlCodec parse (target); reject invalid wire. */
     }
     transition parsing_to_minting
       first parsing
@@ -438,10 +536,15 @@ package MemNetBehaviour {
 
     state taskDelegated {
       doc /*
-        Worker(s) running under assigned scope. Parent ended turn
-        (MN-REQ-12.6). Parallel only if disjoint scopes (MN-REQ-12.5).
+        Worker(s) running under assigned scope after EvEndCoordinatorTurn
+        (MN-REQ-12.6 / 12.12). Parallel only if disjoint scopes or separate
+        sessions (MN-REQ-12.5). EvWorkerReturn is host-driven async revival.
       */
     }
+    transition delegated_end_turn
+      first taskDelegated
+      accept EvEndCoordinatorTurn
+      then taskDelegated;
     transition delegated_worker_return
       first taskDelegated
       accept EvWorkerReturn
@@ -547,7 +650,10 @@ package MemNetBehaviour {
       then workerAwaitingPinMap;
 
     state workerTurnDone {
-      doc /* Facts in shared session; concise return to parent; no parent poll. */
+      doc /*
+        Facts in session; concise return. EvWorkerReturn is raised by the
+        agent host when the worker finishes (async), not by parent poll.
+      */
     }
     transition worker_next_turn
       first workerTurnDone
@@ -559,11 +665,13 @@ package MemNetBehaviour {
 
   state def MultitaskMissionCycle {
     doc /*
-      Coordinator mission over one shared session for relevant tasks only
-      (MN-REQ-12.8): multi-step, delegated, or parallelisable work.
-      Composes ParentTaskLifecycle + WorkerScopedTurn. Hosted by
-      MultitaskOperatingModel. Engine does not enforce ACL/reserve.
-      Trivial one-shots take EvTrivialSingleAgent and stay on GoldfishLoop.
+      Coordinator mission over one shared session (or explicitly separate
+      sessions) for relevant tasks only (MN-REQ-12.8): multi-step,
+      delegated, or asynchronous parallel work. Composes
+      ParentTaskLifecycle + WorkerScopedTurn + AsyncTaskDispatch.
+      Hosted by MultitaskOperatingModel. Engine does not enforce
+      ACL/reserve/WorkerWriteScope. Trivial one-shots take
+      EvTrivialSingleAgent and stay on GoldfishLoop.
     */
     entry;
     then missionIdle;
@@ -587,8 +695,9 @@ package MemNetBehaviour {
     state parentPreparing {
       doc /*
         Shared store transport (MN-REQ-12.2); pin_map; mint MissionTaskPin /
-        USR_* (EvMintParentTask); assign WorkerWriteScope; self-contained
-        worker prompt. Aligns ParentTaskLifecycle taskMinted/taskScoped.
+        USR_* (EvMintParentTask); assign WorkerWriteScope; SessionHandoffEmit;
+        self-contained worker prompts. Aligns ParentTaskLifecycle
+        taskMinted/taskScoped. Overlapping scopes → EvOverlapScopeForbidden.
       */
     }
     transition prepare_pin_map
@@ -603,9 +712,17 @@ package MemNetBehaviour {
       first parentPreparing
       accept EvAssignWorkerScope
       then parentPreparing;
+    transition prepare_handoff
+      first parentPreparing
+      accept EvHandoffSessionId
+      then parentPreparing;
     transition prepare_mutate
       first parentPreparing
       accept EvMutateGraph
+      then parentPreparing;
+    transition prepare_overlap_forbidden
+      first parentPreparing
+      accept EvOverlapScopeForbidden
       then parentPreparing;
     transition prepare_to_delegated
       first parentPreparing
@@ -618,11 +735,21 @@ package MemNetBehaviour {
 
     state workersDelegated {
       doc /*
-        Parent ended turn after spawn (MN-REQ-12.6). Each worker runs
-        WorkerScopedTurn on the shared session. Prefer one worker;
-        parallel only if disjoint scopes (MN-REQ-12.5). No same-turn poll.
+        AsyncTaskDispatch: parent spawned one or more background workers
+        then EvEndCoordinatorTurn (MN-REQ-12.6 / 12.12). Each member runs
+        WorkerScopedTurn asynchronously. Prefer one worker; parallel only
+        if disjoint scopes or separate session ids (MN-REQ-12.5). No
+        same-turn poll/await of EvWorkerReturn.
       */
     }
+    transition delegated_end_turn
+      first workersDelegated
+      accept EvEndCoordinatorTurn
+      then workersDelegated;
+    transition delegated_spawn_more
+      first workersDelegated
+      accept EvDelegateWorker
+      then workersDelegated;
     transition delegated_worker_facts
       first workersDelegated
       accept EvWorkerReturn
@@ -638,14 +765,23 @@ package MemNetBehaviour {
 
     state parentReconciling {
       doc /*
-        Next coordinator turn: pin_map first; act from shared-session slice;
-        EvSettleMissionTask on parent-owned TSK_* (MN-REQ-12.3); do not redo
-        worker investigation from chat.
+        Next coordinator turn (host revival after async workers): pin_map
+        first; optional SessionImportReceive if separate sessions; act from
+        shared-session slice; EvSettleMissionTask on parent-owned TSK_*
+        (MN-REQ-12.3); do not redo worker investigation from chat.
       */
     }
     transition mission_reconcile_pin_map
       first parentReconciling
       accept EvPinMapRead
+      then parentReconciling;
+    transition mission_reconcile_shared_repin
+      first parentReconciling
+      accept EvSharedSessionRepin
+      then parentReconciling;
+    transition mission_reconcile_import
+      first parentReconciling
+      accept EvRequestSessionImport
       then parentReconciling;
     transition mission_reconcile_mutate
       first parentReconciling
@@ -675,5 +811,360 @@ package MemNetBehaviour {
       first missionComplete
       accept EvMintParentTask
       then parentPreparing;
+  }
+
+  // --- 8. Session handoff by id (pass-by-reference; MN-REQ-01 / 12) ---
+
+  state def SessionHandoffById {
+    doc /*
+      Explicit handoff of a MissionWorkingSet whose SSOT is the session:
+      Parent emits SessionHandoff (session id + optional anchors / writeScope)
+      → Worker opens/uses the same session → Worker pin_map → mutate under
+      scope. Contrasts forbidden EvDumpGraphInChat. Composes with
+      EvDelegateWorker / MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
+    */
+    entry;
+    then handoffIdle;
+
+    state handoffIdle {
+      doc /* No handoff in flight. */
+    }
+    transition idle_to_delivering
+      first handoffIdle
+      accept EvHandoffSessionId
+      then deliveringSessionId;
+    transition idle_via_delegate
+      first handoffIdle
+      accept EvDelegateWorker
+      then deliveringSessionId;
+    transition idle_reject_dump
+      first handoffIdle
+      accept EvDumpGraphInChat
+      then handoffRejected;
+
+    state deliveringSessionId {
+      doc /*
+        Parent delivers SessionHandoff only — sessionId (+ anchors /
+        writeScope). MUST NOT attach a full graph dump.
+      */
+    }
+    transition deliver_to_worker_open
+      first deliveringSessionId
+      accept EvOpenSession
+      then workerOpeningSession;
+    transition deliver_reuse_session
+      first deliveringSessionId
+      accept EvPinMapRead
+      then workerPinMapping;
+    transition deliver_reject_dump
+      first deliveringSessionId
+      accept EvDumpGraphInChat
+      then handoffRejected;
+
+    state workerOpeningSession {
+      doc /* Worker binds to the same shared session id (MN-REQ-12.2 / 12.4). */
+    }
+    transition open_to_pin_map
+      first workerOpeningSession
+      accept EvPinMapRead
+      then workerPinMapping;
+    transition open_fail
+      first workerOpeningSession
+      accept EvError
+      then handoffIdle;
+
+    state workerPinMapping {
+      doc /* Worker goldfish: pin_map first on shared session; copy ids. */
+    }
+    transition pin_to_scoped_mutate
+      first workerPinMapping
+      accept EvMutateGraph
+      then workerScopedMutate;
+    transition pin_repeat
+      first workerPinMapping
+      accept EvPinMapRead
+      then workerPinMapping;
+    transition pin_return_readonly
+      first workerPinMapping
+      accept EvWorkerReturn
+      then handoffComplete;
+
+    state workerScopedMutate {
+      doc /* Mutate under WorkerWriteScope; facts stay in session. */
+    }
+    transition mutate_ok
+      first workerScopedMutate
+      accept EvCommitOk
+      then handoffComplete;
+    transition mutate_return
+      first workerScopedMutate
+      accept EvWorkerReturn
+      then handoffComplete;
+    transition mutate_fail
+      first workerScopedMutate
+      accept EvError
+      then workerPinMapping;
+
+    state handoffComplete {
+      doc /* Handoff done; parent may re-pin_map on next coordinator turn. */
+    }
+    transition complete_to_idle
+      first handoffComplete
+      accept EvSettleMissionTask
+      then handoffIdle;
+    transition complete_rehandoff
+      first handoffComplete
+      accept EvHandoffSessionId
+      then deliveringSessionId;
+
+    state handoffRejected {
+      doc /*
+        EvDumpGraphInChat (or equivalent graph-dump chat handoff) rejected.
+        Recover by delivering session id only.
+      */
+    }
+    transition rejected_retry_id
+      first handoffRejected
+      accept EvHandoffSessionId
+      then deliveringSessionId;
+    transition rejected_to_idle
+      first handoffRejected
+      accept EvError
+      then handoffIdle;
+  }
+
+  // --- 9. Session import receive (team lead imports member WM) ---
+
+  state def SessionImportReceive {
+    doc /*
+      Team lead imports a team member's working memory into the mission
+      session (product verb = import; colloquial "session merge" means this
+      import only — no SessionMerge* type names). Parent mission session =
+      lead WM (SSOT). Worker session or scoped slice = member WM.
+      Path A (preferred Multitask default): already shared session →
+      EvSharedSessionRepin (lead re-pin_map; no second store; import nest
+      skipped). Path B: separate sessions → export WorkingMemorySlice →
+      ImportGuard (cheap LLM soft) → owner-gated id policy (reject/remint/
+      Cypher MERGE upsert) → ImportAbsorb → settle TSK_* in lead session.
+      Chat is never the import payload (EvImportFromChat forbidden).
+      Whole-store dump and dual-writer during import forbidden. Distinct
+      from micro in-session node re-id (merge=true) and from naming this
+      behaviour after Cypher MERGE. Hosted by MultitaskOperatingModel.
+      Case study: outputs/session-import-case-study.md.
+    */
+    entry;
+    then importIdle;
+
+    state importIdle {
+      doc /* No import in flight; Multitask or single-agent goldfish may run. */
+    }
+    transition idle_path_a_repin
+      first importIdle
+      accept EvSharedSessionRepin
+      then pathASharedRepin;
+    transition idle_path_b_request
+      first importIdle
+      accept EvRequestSessionImport
+      then pathBRequesting;
+    transition idle_reject_chat_import
+      first importIdle
+      accept EvImportFromChat
+      then importRejected;
+
+    state pathASharedRepin {
+      doc /*
+        Path A: whiteboard already shared. Lead re-pin_map on mission
+        session; member facts already visible. No SessionImportRequest.
+        ImportGuard optional only if an audit slice is exported.
+      */
+    }
+    transition path_a_pin_map
+      first pathASharedRepin
+      accept EvPinMapRead
+      then pathASharedRepin;
+    transition path_a_optional_guard
+      first pathASharedRepin
+      accept EvGuardReviewSlice
+      then pathBGuarding;
+    transition path_a_settle
+      first pathASharedRepin
+      accept EvSettleMissionTask
+      then importComplete;
+    transition path_a_done
+      first pathASharedRepin
+      accept EvCommitOk
+      then importComplete;
+
+    state pathBRequesting {
+      doc /* Lead SessionImportRequest; freeze dual-writer on target slice. */
+    }
+    transition path_b_to_export
+      first pathBRequesting
+      accept EvExportWorkingMemorySlice
+      then pathBExporting;
+    transition path_b_reject_dump
+      first pathBRequesting
+      accept EvDumpGraphInChat
+      then importRejected;
+    transition path_b_reject_chat
+      first pathBRequesting
+      accept EvImportFromChat
+      then importRejected;
+
+    state pathBExporting {
+      doc /*
+        Member exports bounded WorkingMemorySlice (sessionId, anchors,
+        depth/view, shaped pins) — not whole store.
+      */
+    }
+    transition export_to_guard
+      first pathBExporting
+      accept EvGuardReviewSlice
+      then pathBGuarding;
+    transition export_fail
+      first pathBExporting
+      accept EvError
+      then importIdle;
+
+    state pathBGuarding {
+      doc /*
+        ImportGuard (cheap LLM) soft-reviews slice before lead mutate.
+        Soft checks only: assigned scope?, junk/off-mission?, invented ids?,
+        oversized/settle noise?. MUST NOT replace schema/caps/id-policy/owner
+        hard gates. Decision recorded as ImportGuardDecision atoms.
+      */
+    }
+    transition guard_allow
+      first pathBGuarding
+      accept EvGuardAllow
+      then pathBImporting;
+    transition guard_trim
+      first pathBGuarding
+      accept EvGuardTrim
+      then pathBImporting;
+    transition guard_reject
+      first pathBGuarding
+      accept EvGuardReject
+      then importRejected;
+    transition guard_fail
+      first pathBGuarding
+      accept EvError
+      then importIdle;
+
+    state pathBImporting {
+      doc /*
+        Lead imports (after allow/trim): id policy may apply Cypher MERGE
+        same id / reject conflict / remint NEW; commit nodes then edges into
+        mission GraphStore.
+      */
+    }
+    transition import_ok
+      first pathBImporting
+      accept EvCommitOk
+      then pathBSettling;
+    transition import_via_event
+      first pathBImporting
+      accept EvImportWorkingMemorySlice
+      then pathBSettling;
+    transition import_fail
+      first pathBImporting
+      accept EvError
+      then importIdle;
+
+    state pathBSettling {
+      doc /* Lead settles parent-owned TSK_* from mission session pin map. */
+    }
+    transition path_b_settle
+      first pathBSettling
+      accept EvSettleMissionTask
+      then importComplete;
+    transition path_b_repin
+      first pathBSettling
+      accept EvPinMapRead
+      then pathBSettling;
+
+    state importComplete {
+      doc /* Lead session holds imported durable pins; chat was never SSOT. */
+    }
+    transition complete_to_idle
+      first importComplete
+      accept EvSettleRecycle
+      then importIdle;
+    transition complete_path_a_again
+      first importComplete
+      accept EvSharedSessionRepin
+      then pathASharedRepin;
+    transition complete_path_b_again
+      first importComplete
+      accept EvRequestSessionImport
+      then pathBRequesting;
+
+    state importRejected {
+      doc /*
+        EvImportFromChat / graph-dump / dual-writer / ImportGuard reject.
+        Recover via path A repin or path B bounded slice + guard allow/trim.
+      */
+    }
+    transition rejected_to_path_a
+      first importRejected
+      accept EvSharedSessionRepin
+      then pathASharedRepin;
+    transition rejected_to_path_b
+      first importRejected
+      accept EvRequestSessionImport
+      then pathBRequesting;
+    transition rejected_to_idle
+      first importRejected
+      accept EvError
+      then importIdle;
+  }
+
+  // --- 10. Durable buffer hydrate/flush (roadmap M2.5; not shipped) ---
+
+  state def DurableHydrateFlushRoadmap {
+    doc /*
+      ROADMAP M2.5 behaviour: DurableBuffer / AgensGraphAdapter hydrate into
+      session and flush settled subgraph out. MemNet remains sole agent-facing
+      memory; LLM ↔ DurableGraphStore direct is out of default teach.
+      Not claimed shipped.
+    */
+    entry;
+    then durableIdle;
+
+    state durableIdle {
+      doc /* No hydrate/flush job; live session uses GraphStore only. */
+    }
+    transition idle_to_hydrating
+      first durableIdle
+      accept EvHydrateFromDurable
+      then hydrating;
+    transition idle_to_flushing
+      first durableIdle
+      accept EvFlushToDurable
+      then flushing;
+
+    state hydrating {
+      doc /* Pull durable subgraph into session under pin / depth budget. */
+    }
+    transition hydrate_ok
+      first hydrating
+      accept EvCommitOk
+      then durableIdle;
+    transition hydrate_fail
+      first hydrating
+      accept EvError
+      then durableIdle;
+
+    state flushing {
+      doc /* Push settled / durable pins from session to DurableGraphStore. */
+    }
+    transition flush_ok
+      first flushing
+      accept EvCommitOk
+      then durableIdle;
+    transition flush_fail
+      first flushing
+      accept EvError
+      then durableIdle;
   }
 }

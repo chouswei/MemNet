@@ -2,12 +2,103 @@
   MemNet logical ports, connection defs, and conveyed items.
 
   Target (ADR-001): property-graph / openCypher-shaped GQL agent memory.
-  First-class constructs: Node, Edge (relationship), Property, Label.
-  pin_map = shaped subgraph read wrapping GQL (Write = display redefined).
-  Layer / Tier A = legacy migration accept only — not 1.x teach.
+  Product framing (2026-08-13): MemNet = shared LLM memory; session id =
+  pass-by-reference handle for a mission SOMETHING; durable GQL store sits
+  behind MemNet (planned M2.5). First-class constructs: Node, Edge
+  (relationship), Property, Label. pin_map = shaped subgraph read wrapping
+  GQL (Write = display redefined). No Layer / Tier A teach or accept path —
+  as-is codecs are implementation lag removed in M2.
 */
 package MemNetConnections {
   private import ScalarValues::*;
+
+  // =====================================================================
+  // Shared LLM memory / session-as-handle (product framing)
+  // =====================================================================
+
+  item def SharedLlmMemory {
+    doc /*
+      Product concept: MemNet is shared working memory of / for LLMs
+      (session-scoped goldfish buffer; multi-agent Multitask). Realised by
+      AgentMemory + SessionLifecycle in deploy — not by chat and not by
+      direct LLM access to the durable store.
+    */
+  }
+
+  item def CompanyAnalyticalSsot {
+    doc /*
+      Application pattern (not a second product): SharedLlmMemory hosts a
+      company analytical SSOT ego (e.g. COM_2330_TPE) — news, findings, and
+      analyse-loop writes accumulate in-session. Dual SSOT: MemNet = agent
+      analytical memory; user ledger / price bars stay out of MemNet.
+      See outputs/company-memory-case-study.md.
+    */
+  }
+
+  item def MissionWorkingSet {
+    doc /*
+      Team lead / parent mission working memory: opaque mission SOMETHING
+      whose SSOT is the named mission session. Thin handle only — content is
+      the session graph (Node|Edge) peers re-discover via pin_map. Under
+      Multitask this is the lead session the member slice is received into.
+    */
+  }
+
+  item def SessionHandoff {
+    doc /*
+      Pass-by-reference handoff of a SOMETHING whose SSOT is the session.
+      Carries sessionId plus optional anchors / writeScope. MUST NOT carry
+      a full graph dump as the handoff payload (chat is never SSOT).
+    */
+    attribute sessionId : String;
+    attribute anchors : String;
+    attribute writeScope : String;
+  }
+
+  item def WorkingMemorySlice {
+    doc /*
+      Bounded export of a team member's working memory (worker session or
+      scoped subgraph) for lead SessionImportReceive path B. Carries source
+      sessionId, anchors, depth/view budget, and shaped pin payload — not a
+      whole-store dump. Macro session-import vehicle at settle time.
+    */
+    attribute sourceSessionId : String;
+    attribute anchors : String;
+    attribute depth : Integer;
+    attribute view : String;
+  }
+
+  item def SessionImportRequest {
+    doc /*
+      Lead-owned request to import a member WorkingMemorySlice into the
+      mission (lead) session. Metaphor: team lead imports member WM
+      (colloquial "session merge" means this import — not a product type
+      name). Id policy may use Cypher MERGE (upsert by id) / reject /
+      remint NEW — GQL upsert mechanics only. Distinct from micro
+      in-session node re-id (merge=true security design).
+    */
+    attribute leadSessionId : String;
+    attribute memberSessionId : String;
+    attribute idPolicy : String;
+  }
+
+  item def ImportGuardDecision {
+    doc /*
+      Soft outcome from ImportGuard (cheap LLM) before lead mutate on path B:
+      allow / trim / reject plus a short reason. Recorded as structured atoms —
+      MUST NOT make guard chat the SSOT. Does not replace engine hard gates.
+    */
+    attribute outcome : String;
+    attribute reason : String;
+  }
+
+  item def DurableGraphStore {
+    doc /*
+      Online durable property-graph store (AgensGraph-class) behind MemNet.
+      Hydrate into / flush from the live session. Planned M2.5 — not shipped.
+      LLM ↔ store direct is out of default teach.
+    */
+  }
 
   // =====================================================================
   // Property-graph ontology (first-class conceptual model)
@@ -25,8 +116,8 @@ package MemNetConnections {
     doc /*
       First-class GQL relationship (edge). Relationship type + Property map +
       direction. Dual grain (bind vs relation) is encoded in GQL-compatible
-      terms — see BindRelationship vs RelationRelationship — not as a second
-      Layer teach surface.
+      terms — see BindRelationship vs RelationRelationship — not a second
+      agent dialect.
     */
   }
 
@@ -63,8 +154,7 @@ package MemNetConnections {
     doc /*
       Constitutive / causal law carried as a node Property (`law`, often
       LaTeX) plus optional linked port bag structure on the same node.
-      MUST NOT place law on a relationship. Replaces Layer-era law-on-NODE
-      without keeping Layer ASCII as primary teach.
+      MUST NOT place law on a relationship.
     */
   }
 
@@ -77,7 +167,7 @@ package MemNetConnections {
   }
 
   // =====================================================================
-  // Agent wire batches (GQL primary; Layer legacy)
+  // Agent wire batches (GQL only; quarantined as-is codec types)
   // =====================================================================
 
   item def GqlWireBatch {
@@ -99,9 +189,8 @@ package MemNetConnections {
 
   item def LegacyLayerBatch {
     doc /*
-      LEGACY / migration only: former Layer / Tier A NODE|EDGE ASCII lines
-      (MemNetLayer.g4 / tier_a). Accept path until M4; MUST NOT be 1.x teach.
-      Alias names in code: TierABatch, shared dialect (0.4.x).
+      QUARANTINED — as-is engine lag (tier_a / former Layer ASCII). Remove in
+      M2. MUST NOT be agent teach or target accept path. Alias: TierABatch.
     */
   }
 
@@ -127,7 +216,11 @@ package MemNetConnections {
   }
 
   item def SessionId {
-    doc /* Opaque session identifier from open/load. */
+    doc /*
+      Opaque session identifier from open/load. Pass-by-reference handle for
+      a MissionWorkingSet (SOMETHING) whose SSOT is that session: peers receive
+      the id (plus anchors / writeScope) and re-pin_map — no graph dump handoff.
+    */
     attribute value : String;
   }
 
@@ -215,8 +308,9 @@ package MemNetConnections {
   item def WorkerWriteScope {
     doc /*
       Parent-assigned anchors and relation scope for one MultitaskWorker.
-      Parallel workers require disjoint scopes or separate sessions
-      (MN-REQ-12.5). As-is: doctrine only; no engine ACL/reserve.
+      Asynchronous parallel workers require disjoint scopes or separate
+      sessions (MN-REQ-12.5 / 12.12). As-is: doctrine only; no engine
+      ACL/reserve — 0.4.x last-write-wins if violated.
     */
   }
   item def HousekeepStats {
@@ -224,7 +318,7 @@ package MemNetConnections {
   }
 
   // =====================================================================
-  // Ports — GQL primary, Layer legacy, internal records
+  // Ports — GQL primary; quarantined as-is codec; internal records
   // =====================================================================
 
   port def GqlWireOutPort {
@@ -246,12 +340,65 @@ package MemNetConnections {
   }
 
   port def TierAOutPort {
-    doc /* LEGACY: emit Layer / Tier A batch (migration accept). */
+    doc /* QUARANTINED: as-is codec emit — remove in M2; not target accept. */
     out item payload : LegacyLayerBatch;
   }
   port def TierAInPort {
-    doc /* LEGACY: consume Layer / Tier A batch (migration accept). */
+    doc /* QUARANTINED: as-is codec consume — remove in M2; not target accept. */
     in item payload : LegacyLayerBatch;
+  }
+
+  port def SessionHandoffOutPort {
+    doc /* Emit session-id handoff (SessionHandoff; no graph dump). */
+    out item handoff : SessionHandoff;
+  }
+  port def SessionHandoffInPort {
+    doc /* Accept session-id handoff. */
+    in item handoff : SessionHandoff;
+  }
+
+  port def WorkingMemorySliceOutPort {
+    doc /* Emit bounded WorkingMemorySlice (member export for import). */
+    out item slice : WorkingMemorySlice;
+  }
+  port def WorkingMemorySliceInPort {
+    doc /* Lead / ImportGuard accepts WorkingMemorySlice for SessionImportReceive. */
+    in item slice : WorkingMemorySlice;
+  }
+
+  port def SessionImportRequestOutPort {
+    doc /* Emit lead-owned SessionImportRequest. */
+    out item importReq : SessionImportRequest;
+  }
+  port def SessionImportRequestInPort {
+    doc /* Accept SessionImportRequest into SessionLifecycle / lead session. */
+    in item importReq : SessionImportRequest;
+  }
+
+  port def ImportGuardDecisionOutPort {
+    doc /* Emit soft ImportGuardDecision (allow / trim / reject + reason). */
+    out item decision : ImportGuardDecision;
+  }
+  port def ImportGuardDecisionInPort {
+    doc /* Lead SessionImportReceive consumes ImportGuardDecision. */
+    in item decision : ImportGuardDecision;
+  }
+
+  port def DurableHydrateOutPort {
+    doc /* ROADMAP M2.5: hydrate subgraph from DurableGraphStore into session. */
+    out item store : DurableGraphStore;
+  }
+  port def DurableHydrateInPort {
+    doc /* ROADMAP M2.5: session accepts hydrate from DurableGraphStore. */
+    in item store : DurableGraphStore;
+  }
+  port def DurableFlushOutPort {
+    doc /* ROADMAP M2.5: flush settled subgraph from session toward store. */
+    out item store : DurableGraphStore;
+  }
+  port def DurableFlushInPort {
+    doc /* ROADMAP M2.5: DurableGraphStore accepts flush from session. */
+    in item store : DurableGraphStore;
   }
 
   port def GraphRecordOutPort {
@@ -397,9 +544,62 @@ package MemNetConnections {
   }
 
   connection def TierAFlow {
-    doc /* LEGACY Layer / Tier A flow (migration accept only). */
+    doc /* QUARANTINED as-is codec flow — remove in M2; not target accept. */
     end port source : TierAOutPort;
     end port sink : TierAInPort;
+  }
+
+  connection def SessionHandoffFlow {
+    doc /*
+      Pass-by-reference handoff: parent delivers SessionHandoff (session id +
+      optional anchors / writeScope) to worker. Contrasts forbidden graph-dump
+      chat handoff (EvDumpGraphInChat).
+    */
+    end port source : SessionHandoffOutPort;
+    end port sink : SessionHandoffInPort;
+  }
+
+  connection def WorkingMemorySliceFlow {
+    doc /*
+      Macro import path B: member exports bounded WorkingMemorySlice; lead
+      imports into mission session (SessionImportReceive), after optional
+      ImportGuard soft review. Not chat import.
+    */
+    end port source : WorkingMemorySliceOutPort;
+    end port sink : WorkingMemorySliceInPort;
+  }
+
+  connection def SessionImportRequestFlow {
+    doc /* Lead-owned SessionImportRequest into SessionLifecycle. */
+    end port source : SessionImportRequestOutPort;
+    end port sink : SessionImportRequestInPort;
+  }
+
+  connection def ImportGuardDecisionFlow {
+    doc /*
+      Soft guard outcome into SessionImportReceive. MUST NOT replace schema /
+      caps / id-policy / owner gates. Guard chat is not SSOT.
+    */
+    end port source : ImportGuardDecisionOutPort;
+    end port sink : ImportGuardDecisionInPort;
+  }
+
+  connection def DurableHydrateFlow {
+    doc /*
+      ROADMAP M2.5: DurableBuffer / AgensGraphAdapter → SessionLifecycle /
+      GraphStore. LLM does not connect to DurableBuffer as primary.
+    */
+    end port source : DurableHydrateOutPort;
+    end port sink : DurableHydrateInPort;
+  }
+
+  connection def DurableFlushFlow {
+    doc /*
+      ROADMAP M2.5: SessionLifecycle / GraphStore → DurableBuffer.
+      One sync owner; MUST NOT dual-write.
+    */
+    end port source : DurableFlushOutPort;
+    end port sink : DurableFlushInPort;
   }
 
   connection def GraphRecordFlow {
@@ -445,7 +645,7 @@ package MemNetConnections {
   }
 
   connection def SessionIdFlow {
-    doc /* Session id hand-off after open/load. */
+    doc /* Session id as pass-by-reference handle after open/load / handoff. */
     end port source : SessionIdOutPort;
     end port sink : SessionIdInPort;
   }
