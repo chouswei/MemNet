@@ -1,6 +1,7 @@
 # Multitask operating model (as-is 0.4.x)
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
+**Dialect teach:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id**; prefer **import** over session merge.
 **Application adoption** (`modelbasedPrj-*`): [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Index: [`docs/README.md`](README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task sub-agents. Session ACL, neighbourhood reserve, and ingest engines are **not shipped** — see `docs/grammar/memnet-security-multi-agent.md` and `docs/grammar/memnet-neighbourhood-reserve.md`.
