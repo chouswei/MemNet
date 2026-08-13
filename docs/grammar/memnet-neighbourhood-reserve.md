@@ -1,6 +1,6 @@
 # Neighbourhood reservation (design)
 
-**Status:** design locked for next minor (not implemented in 0.3.5).  
+**Status:** implemented (MN-REQ-12.13 / `memnet.neighbourhood_reserve`).  
 **Primary concurrency fix** for multi-agent same-session confusion **inside an already-authorised session**.  
 **Related:** re-id §4.2.0 in `memnet-grammar-design.md`; optimistic `rev` is secondary only.  
 **Security + session ACL:** [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) — first-class session access (`private` / `shared` / `open`, roles, `session_token`); this reserve design is the coop layer **after** that gate.  
@@ -158,4 +158,5 @@ Session ACL, roles, and `session_token` are specified in [`memnet-security-multi
 
 ## Implementation note
 
-Not a thin stub. Track for next minor; do not ship half-enforced reserve (or ACL display without gates).
+Shipped as `memnet.neighbourhood_reserve` + CLI/MCP `reserve` / `extend` / `release`.
+Snapshot v1 does not restore leases.

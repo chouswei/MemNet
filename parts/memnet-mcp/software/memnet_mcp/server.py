@@ -241,12 +241,13 @@ async def add(
     mission_id: str | None = None,
     lease: str | None = None,
     write_scope: str | None = None,
+    llm_id: str | None = None,
 ) -> str:
     """Create rows via shared-dialect mutate lines (leading ``+``, optional NEW).
 
     Prefer shared dialect in wire_lines (Write=display). Fails if id already exists.
     When session ACL is enabled: pass ``caller`` (who); optional ``mission_id``+``lease``
-    (bind); optional ``write_scope`` override.
+    (bind); optional ``write_scope`` override. Pass ``llm_id`` when mutating under RSV.
     """
     argv = ["add", "--stdin"]
     if allow_new_relation:
@@ -261,6 +262,8 @@ async def add(
         argv.extend(["--lease", lease])
     if write_scope:
         argv.extend(["--write-scope", write_scope])
+    if llm_id:
+        argv.extend(["--llm-id", llm_id])
     stdin = "\n".join(wire_lines)
     return await _run(argv, stdin=stdin, session=session)
 
@@ -275,11 +278,13 @@ async def update(
     mission_id: str | None = None,
     lease: str | None = None,
     write_scope: str | None = None,
+    llm_id: str | None = None,
 ) -> str:
     """Patch or drop rows via shared-dialect mutate lines (``~`` / ``-`` on known ids).
 
     Prefer shared dialect in wire_lines. Fails if id is missing.
     When session ACL is enabled: pass ``caller`` / optional bind / write_scope.
+    Pass ``llm_id`` when mutating under RSV.
     """
     argv = ["update", "--stdin"]
     if allow_new_relation:
@@ -294,6 +299,8 @@ async def update(
         argv.extend(["--lease", lease])
     if write_scope:
         argv.extend(["--write-scope", write_scope])
+    if llm_id:
+        argv.extend(["--llm-id", llm_id])
     stdin = "\n".join(wire_lines)
     return await _run(argv, stdin=stdin, session=session)
 
@@ -399,6 +406,62 @@ async def session_acl_bind(
 async def session_acl_enable(session: str | None = None) -> str:
     """Enable CapsPolicy ACL gates on the session."""
     return await _run(["session", "acl-enable"], session=session)
+
+
+@mcp.tool()
+async def reserve(
+    anchor: str,
+    llm_id: str,
+    depth: int = 2,
+    ttl_s: int = 120,
+    session: str | None = None,
+) -> str:
+    """Reserve pin-map ego neighbourhood for ``llm_id`` (MN-REQ-12.13 RSV)."""
+    argv = [
+        "reserve",
+        "--anchor",
+        anchor,
+        "--llm-id",
+        llm_id,
+        "--depth",
+        str(depth),
+        "--ttl",
+        str(ttl_s),
+    ]
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
+async def extend(
+    llm_id: str,
+    rid: str | None = None,
+    anchor: str | None = None,
+    ttl_s: int = 120,
+    session: str | None = None,
+) -> str:
+    """Extend neighbourhood reserve TTL (holder ``llm_id`` must match)."""
+    argv = ["extend", "--llm-id", llm_id, "--ttl", str(ttl_s)]
+    if rid:
+        argv.extend(["--rid", rid])
+    if anchor:
+        argv.extend(["--anchor", anchor])
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
+async def release(
+    llm_id: str,
+    rid: str | None = None,
+    anchor: str | None = None,
+    session: str | None = None,
+) -> str:
+    """Release neighbourhood reserve (holder ``llm_id`` must match)."""
+    argv = ["release", "--llm-id", llm_id]
+    if rid:
+        argv.extend(["--rid", rid])
+    if anchor:
+        argv.extend(["--anchor", anchor])
+    return await _run(argv, session=session)
 
 
 @mcp.tool()

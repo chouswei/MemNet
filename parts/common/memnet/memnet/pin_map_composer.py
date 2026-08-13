@@ -170,6 +170,14 @@ class PinMapComposer:
         if soft_cap:
             rows = apply_shell_soft_cap(rows, anchor=anchor)
         text = self.emit_gql(rows)
+        from memnet.neighbourhood_reserve import emit_reserves_section, intersecting_leases
+        from memnet.session import utc_now
+
+        view_ids = {r.id for r in rows}
+        leases = intersecting_leases(self.ss.reserves, view_ids, now=utc_now())
+        reserve_text = emit_reserves_section(leases, now=utc_now())
+        if reserve_text:
+            text = reserve_text + ("\n" if text else "") + text
         return rows, text
 
     def emit_gql(self, rows: list[Record]) -> str:

@@ -12,6 +12,7 @@ from memnet.models import SessionMeta, TagMap
 
 if TYPE_CHECKING:
     from memnet.acl import SessionAcl
+    from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
 
 _registry_lock = threading.RLock()
 _sessions: dict[str, SessionEntry] = {}
@@ -25,6 +26,14 @@ class SessionEntry:
     relations: set[str]
     lock: threading.RLock = field(default_factory=threading.RLock)
     acl: SessionAcl | None = None
+    reserves: NeighbourhoodReserveTable | None = None
+
+    def ensure_reserves(self) -> NeighbourhoodReserveTable:
+        from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
+
+        if self.reserves is None:
+            self.reserves = NeighbourhoodReserveTable()
+        return self.reserves
 
 
 def register(session_id: str, entry: SessionEntry) -> None:

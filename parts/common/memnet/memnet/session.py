@@ -12,6 +12,7 @@ from memnet.config import Caps, default_ttl_minutes, examples_dir
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta
+from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
 from memnet.registry import (
     SessionEntry,
     clear_all,
@@ -87,6 +88,10 @@ class SessionStore:
         if self._entry.acl is None:
             self._entry.acl = SessionAcl()
         return self._entry.acl
+
+    @property
+    def reserves(self) -> NeighbourhoodReserveTable:
+        return self._entry.ensure_reserves()
 
     def touch(self) -> None:
         """Record last activity time (reads and writes)."""
@@ -178,6 +183,7 @@ def open_session(
         store=MemStore(tag_map, caps),
         relations=set(_seed_relations()),
         acl=acl,
+        reserves=NeighbourhoodReserveTable(),
     )
     register(session_id, entry)
     return SessionStore(session_id, caps)

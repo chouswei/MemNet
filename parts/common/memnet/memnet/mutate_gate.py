@@ -113,6 +113,7 @@ class MutateGate:
         lease: str | None = None,
         write_scope: str | None = None,
         require_bind: bool = True,
+        llm_id: str | None = None,
     ) -> MutateResult:
         from memnet.acl import check_bind, check_permission, parse_write_scope
 
@@ -137,6 +138,7 @@ class MutateGate:
                 agent=agent,
                 caller=caller,
                 write_scope_override=override,
+                llm_id=llm_id,
             )
         return self._apply_gql(
             lines,
@@ -146,6 +148,7 @@ class MutateGate:
             agent=agent,
             caller=caller,
             write_scope_override=override,
+            llm_id=llm_id,
         )
 
     def _apply_pipe(
@@ -158,8 +161,10 @@ class MutateGate:
         agent: str | None,
         caller: str | None = None,
         write_scope_override=None,
+        llm_id: str | None = None,
     ) -> MutateResult:
         from memnet.acl import check_write_scope
+        from memnet.neighbourhood_reserve import check_mutate_ids, touched_ids_from_records
 
         records = import_pipe_lines(lines, self.ss.tag_map, self.ss.caps)
         check_write_scope(
@@ -169,6 +174,12 @@ class MutateGate:
             store=self.ss.store,
             agent=agent,
             override_scope=write_scope_override,
+        )
+        check_mutate_ids(
+            self.ss.reserves,
+            touched_ids=touched_ids_from_records(records),
+            llm_id=llm_id,
+            store=self.ss.store,
         )
         return self._commit_records(
             records,
@@ -189,6 +200,7 @@ class MutateGate:
         agent: str | None,
         caller: str | None = None,
         write_scope_override=None,
+        llm_id: str | None = None,
     ) -> MutateResult:
         text = "\n".join(lines)
         try:
@@ -328,6 +340,7 @@ class MutateGate:
             ack_items.append(it)
 
         from memnet.acl import check_write_scope
+        from memnet.neighbourhood_reserve import check_mutate_ids, touched_ids_from_records
 
         # Include rename targets in scope check
         scope_records = list(records)
@@ -340,6 +353,17 @@ class MutateGate:
             store=self.ss.store,
             agent=agent,
             override_scope=write_scope_override,
+        )
+        touched = touched_ids_from_records(scope_records)
+        touched.update(drops)
+        for old_id, new_id, _merge, _patch_rec, _explicit in renames:
+            touched.add(old_id)
+            touched.add(new_id)
+        check_mutate_ids(
+            self.ss.reserves,
+            touched_ids=touched,
+            llm_id=llm_id,
+            store=self.ss.store,
         )
 
         if dry_run:
