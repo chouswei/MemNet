@@ -8,6 +8,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if command -v python >/dev/null 2>&1; then
+  PYTHON=python
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+else
+  echo "python or python3 required" >&2
+  exit 1
+fi
+
 UPLOAD=0
 for arg in "$@"; do
   case "$arg" in
@@ -27,10 +36,10 @@ for arg in "$@"; do
 done
 
 echo "Building sdist + wheel..."
-python -m hatch build
+"$PYTHON" -m hatch build
 
 echo "Checking dist..."
-python -m twine check dist/*
+"$PYTHON" -m twine check dist/*
 
 if [[ "$UPLOAD" -eq 1 ]]; then
   if [[ -z "${TWINE_PASSWORD:-}" ]]; then
@@ -40,7 +49,7 @@ if [[ "$UPLOAD" -eq 1 ]]; then
   fi
   export TWINE_USERNAME="${TWINE_USERNAME:-__token__}"
   echo "Uploading to PyPI..."
-  python -m twine upload dist/*
+  "$PYTHON" -m twine upload dist/*
 else
   if [[ -z "${TWINE_PASSWORD:-}" ]]; then
     echo ""
