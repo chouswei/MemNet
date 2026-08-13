@@ -85,7 +85,7 @@ sequenceDiagram
 | MUST NOT | Parallel dual-write on overlapping `WorkerWriteScope` |
 | Prefer | One worker, serial dispatch, or disjoint / separate sessions |
 | Model signal | `EvOverlapScopeForbidden` from `parentPreparing` |
-| If violated (0.4.x) | Last-write-wins; no ACL/reserve - **do not** claim engine blocks it |
+| If violated (0.4.x) | CapsPolicy ACL hard-rejects out-of-scope mutate when session ACL is enabled; reserve still not shipped — do not claim reserve |
 
 ### Contrast
 

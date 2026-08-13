@@ -154,4 +154,4 @@ Hard gates after allow/trim (engine - still apply; ImportGuard MUST NOT replace 
 
 ## 8. Validation note
 
-**mcp-sysml-v2:** not available in this cloud agent environment - prefer Cursor SysML v2 MCP `validate` on full `config.yaml` load when present. This run: brace-balance review only (`serve_down`). ImportGuard / ImportAbsorb are **doctrine nested**; engine soft-guard and ACL not claimed shipped.
+**mcp-sysml-v2:** not available in this cloud agent environment - prefer Cursor SysML v2 MCP `validate` on full `config.yaml` load when present. This run: brace-balance review only (`serve_down`). ImportGuard / ImportAbsorb are **doctrine nested** until engine path B lands; CapsPolicy ACL cut is shipped when session ACL is enabled (`engineAclShipped=true`).

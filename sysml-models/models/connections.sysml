@@ -148,8 +148,11 @@ package MemNetConnections {
   item def DurableGraphStore {
     doc /*
       Online durable property-graph store (AgensGraph-class) behind MemNet.
-      Hydrate into / flush from the live session. Planned M2.5 — not shipped.
-      LLM ↔ store direct is out of default teach.
+      Hydrate into / flush from the live session via the M2.5 client adapter
+      seam (DurableStoreAdapter / Fake / optional AgensGraph client;
+      SessionLifecycle hydrate/flush). Live cabinet is external — not
+      vendored and not claimed verified. LLM ↔ store direct is out of
+      default teach. MN-REQ-06.4.
     */
   }
 

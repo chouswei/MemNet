@@ -34,15 +34,16 @@ MemNet SysML models the **target** software system: in-memory NODE|EDGE working-
 | Live pin map | MN-REQ-04; `PinMapComposer`; `GoldfishLoop` / `WorkerScopedTurn` | As-is shipped |
 | Transport | MN-REQ-06 (in-process primary); MN-REQ-12.2 elevates TCP/HTTP/IPC for Multitask | As-is TCP wired; LocalIpc stub |
 | Parent / worker roles | `MultitaskCoordinator`, `MultitaskWorker` (`doctrineAsIs = true`) | As-is **doctrine**; not engine-enforced |
-| Task (TSK_*) lifecycle | `MissionTaskPin` + `ParentTaskLifecycle` + MN-REQ-12.3 | Doctrine + graph rows; no ACL |
-| Worker write scope | `WorkerWriteScope` + MN-REQ-12.4 / 12.5 | Doctrine; last-write-wins if violated |
+| Task (TSK_*) lifecycle | `MissionTaskPin` + `ParentTaskLifecycle` + MN-REQ-12.3 | Doctrine + graph rows; CapsPolicy ACL applies when session ACL enabled |
+| Worker write scope | `WorkerWriteScope` + MN-REQ-12.4 / 12.5 | **Hard reject** via shipped CapsPolicy ACL when enabled; reserve/overlap still doctrine |
 | Relevance gate | MN-REQ-12.8; `EvTrivialSingleAgent` | Modelled; trivial → `GoldfishLoop` only |
-| ACL / reserve / Path-B ingest | MN-REQ-12.7 forbids assuming shipped; MN-REQ-11 stubs | **To-be** / design docs |
+| ACL / reserve / Path-B ingest | MN-REQ-12.7: ACL cut shipped when enabled; reserve + Path-B ingest deferred | ACL **as-is**; reserve/ingest **to-be** |
 
 ### Verdict
 
 **Fit for Multitask-on-relevant-tasks (as-is doctrine):** the model can mandate shared session, shared store, parent TSK settle, worker pin_map+scope, end-turn, and the relevance gate.  
-**Not fit as engine-enforced security:** no ACL/reserve parts; workers rely on prompt discipline (`doctrineAsIs`).
+**ACL as-is:** CapsPolicy who / pin_map-vs-mutate / WorkerWriteScope / bind is shipped when session ACL is enabled (`engineAclShipped=true`).  
+**Not fit as engine-enforced reserve:** neighbourhood reserve remains doctrine (`doctrineAsIs`); Path-B ingest stubs only.
 
 ---
 
@@ -123,8 +124,8 @@ flowchart LR
 
 | Topic | Status in model |
 |-------|-----------------|
-| Engine rejects worker writes outside `WorkerWriteScope` | **Silent** — doctrine (`doctrineAsIs`); 0.4.x last-write-wins (**MN-REQ-12.5** / **12.7**) |
-| Session ACL / `RSV` neighbourhood reserve | **To-be** — forbidden to assume shipped (**MN-REQ-12.7**) |
+| Engine rejects worker writes outside `WorkerWriteScope` | **Shipped** via CapsPolicy ACL hard reject when session ACL is enabled (`engineAclShipped=true`; MN-REQ-12.5 / 12.7) |
+| Neighbourhood reserve (`RSV`) | **To-be** — forbidden to assume shipped (**MN-REQ-12.7**) |
 | Path-B `PinMapIngest_*` for SysML snap | **Roadmap stubs** (MN-REQ-11); seed via `seed_lines` / explicit `add` |
 | Formal SysML `verify` cases for MN-REQ-12 | **Present** — `MemNetVerification` MN-VER-12-G00 (group) + S01…S09 (see §7) |
 | Streamable-http as a first-class part | **Doc-only** on 12.2 / `MultitaskSharedStoreBinding`; TCP parts are the wired stand-in |
@@ -140,7 +141,7 @@ flowchart LR
 | Parent polls worker mid-turn / redoes walk from chat | MN-REQ-12.6 |
 | Worker settles `TSK_review_*` | MN-REQ-12.3 |
 | Two workers mutate same anchor without disjoint scope | MN-REQ-12.5 |
-| Treating ACL/`RSV` as available | MN-REQ-12.7 |
+| Treating neighbourhood reserve / Path-B ingest as available | MN-REQ-12.7 |
 
 ---
 
