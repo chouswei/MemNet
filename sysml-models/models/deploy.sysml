@@ -11,7 +11,7 @@
     │   ├── GraphStore
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
     │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
-    │   ├── MutateGate / SessionLifecycle / Schema / Caps / …
+    │   ├── MutateGate / SessionLifecycle / Schema / Caps (size + shipped ACL) / …
     │   └── (TierACodec RETIRED/REJECTED on product path — M2 done; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
@@ -42,11 +42,22 @@ package MemNet {
 
   part def CapsPolicy {
     doc /*
-      Hard resource and query caps (env-overridable): rows, law, relations,
-      kinds/fields, value/line/batch bytes, sessions, depth, fanout.
-      SessionHandoff does not waive mutate: who (caller), what (kinds / ops /
-      caps), bind (session bind / bind grain) still hit this policy +
-      MutateGate. As-is: memnet.config.Caps.
+      Size caps plus the shipped CapsPolicy ACL cut:
+        As-is NOW (0.4.x engine): memnet.config.Caps supplies resource/query
+          size limits (rows, law, relations, kinds/fields, value/line/batch
+          bytes, sessions, depth, fanout), and memnet.acl enforces, when
+          session ACL is enabled, (1) who-check (CallerId), (2) pin_map
+          (read) versus mutate permission, (3) WorkerWriteScope HARD reject
+          on out-of-scope mutate, and (4) optional SessionBind (missionId +
+          lease). ACL is off by default for the legacy-green path.
+      In-process MAY skip bind under MEMNET_SERVE_INTERNAL; an
+      InvestorApi-style boundary with require_bind=true enforces it when
+      configured. sessionId is a secret capability and never waives mutate.
+      engineAclShipped=true. MutateGate and PinMapShapedRead apply the
+      engine ACL cut; SessionHandoff carries the capability and scope.
+      Neighbourhood reserve (RSV), Path-B PinMapIngest, and full
+      private/shared/open session_token modes WAIT — not this cut. No
+      EvidenceCentre / MissionDock / CompanyMemory nest under MemNetSystem.
     */
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
@@ -55,10 +66,18 @@ package MemNet {
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;
+    // Shipped CapsPolicy ACL flags; ACL is enabled per session.
+    attribute aclWhoCheck : Boolean = true;
+    attribute aclPinMapVsMutate : Boolean = true;
+    attribute aclWorkerWriteScopeHardReject : Boolean = true;
+    attribute aclOptionalBindMatch : Boolean = true;
+    attribute engineAclShipped : Boolean = true;
+    attribute doctrineAsIs : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
   part def SchemaRegistry {
@@ -194,8 +213,12 @@ package MemNet {
       Orchestrates GQL parse -> schema validate -> NEW mint -> strict
       add/update into GraphStore -> assigned ids + ack. Owns IdAllocator;
       uses sibling SchemaRegistry / GqlCodec / GraphStore via AgentMemory
-      wiring. Layer/Tier A accept retired (M2). As-is: memnet.mutate_gate
-      (GQL primary; @TAG pipe import-once).
+      wiring. Layer/Tier A accept retired (M2). Consults CapsPolicy: size
+      caps (as-is) plus the shipped CapsPolicy ACL cut when session ACL is
+      enabled: who-check, mutate permission (distinct from pin_map read),
+      WorkerWriteScope HARD reject, and optional SessionBind match. ACL is
+      off by default for the legacy-green path. As-is module:
+      memnet.mutate_gate + memnet.acl (GQL primary; @TAG pipe import-once).
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -204,11 +227,13 @@ package MemNet {
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
     part allocator : IdAllocator;
+    part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
   part def PinMapShapedRead {
@@ -217,14 +242,19 @@ package MemNet {
       emits bounded shaped openCypher-family subgraph (ShapedSubgraph /
       LivePinMap) — redefined Write = display. Hide recyclable rows;
       depth/row/view caps; prepend engine-law rows.
+      Consults CapsPolicy: size/depth/row caps plus the shipped ACL cut when
+      session ACL is enabled — who-check, pin_map read permission distinct
+      from mutate, and optional SessionBind match. MUST NOT emit raw
+      unbounded RETURN tables as primary agent read.
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
-      MUST NOT emit raw unbounded RETURN tables as primary agent read.
+      ACL is off by default; engineAclShipped=true.
     */
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
     attribute lawPrepend : Boolean = true;
+    part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
@@ -236,6 +266,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
   part def WalkQuery {
@@ -662,17 +693,23 @@ package MemNet {
 
   part def SessionHandoffEmit {
     doc /*
-      Lead / module-A stage: emit SessionHandoff (sessionId + caller;
-      optional missionId / lease / anchors / WorkerWriteScope). Hosts
-      SessionHandoffById. MUST NOT dump the graph into chat, MissionDock, or
-      HTTP body (EvDumpGraphInChat forbidden).
+      Lead / module-A stage: emit SessionHandoff (SessionCapability sessionId
+      + CallerId; optional missionId / lease / anchors / WorkerWriteScope).
+      Hosts SessionHandoffById. Consults the shipped CapsPolicy ACL (who /
+      optional SessionBind) before emit; sessionId MUST NOT dump in chat,
+      queue, MissionDock, or HTTP body (EvDumpGraphInChat forbidden).
+      As-is NOW: the CapsPolicy ACL cut is shipped for the downstream
+      pin_map/mutate and WorkerWriteScope hard-reject gates when session ACL
+      is enabled; reserve/lease remains doctrine. engineAclShipped=true.
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffOut : SessionHandoffOutPort;
+    part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
   part def AsyncTaskDispatch {
@@ -682,9 +719,11 @@ package MemNet {
       EvEndCoordinatorTurn (no same-turn poll/await). Asynchronous
       parallel only when scopes are disjoint anchors OR separate session
       ids (MN-REQ-12.5 / 12.12). Overlapping shared-session scopes →
-      serial / single writer (MUST NOT dual-write). Engine 0.4.x does not
-      hard-gate WorkerWriteScope — enforcement is host/doctrine until
-      engine ACL (doctrineAsIs; last-write-wins if violated).
+      serial / single writer (MUST NOT dual-write).
+      As-is NOW: CapsPolicy.aclWorkerWriteScopeHardReject is shipped and
+      hard-rejects out-of-scope mutate when session ACL is enabled. The
+      neighbourhood reserve and overlap-coordination doctrine remain
+      host-controlled; no RSV engine is claimed.
       EvWorkerReturn is host-driven async completion on a later turn.
     */
     attribute doctrineAsIs : Boolean = true;
@@ -746,8 +785,10 @@ package MemNet {
       Team member. Accepts SessionHandoff; hosts WorkerScopedTurn
       (pin_map first → mutate under WorkerWriteScope). Path B exports
       WorkingMemorySlice for lead import. MUST NOT settle parent TSK_*
-      unless delegated; chat is not SSOT. WorkerWriteScope enforcement is
-      host/doctrine until engine hard-gates (not fake ACL).
+      unless delegated; chat is not SSOT.
+      CapsPolicy ACL is shipped: out-of-scope mutate is a hard reject when
+      session ACL is enabled. Reserve and import-path policy remain doctrine;
+      this is not a claim that RSV or Path-B PinMapIngest is shipped.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -774,8 +815,10 @@ package MemNet {
       Members run asynchronously in parallel when WorkerWriteScope anchors
       are disjoint OR each has a separate session id; otherwise serial /
       single writer (MN-REQ-12.5 / 12.12). Fan-in WorkingMemorySlice for
-      path B lead import. doctrineAsIs: WorkerWriteScope = host/doctrine
-      until engine hard-gates (no ACL/reserve claimed).
+      path B lead import.
+      CapsPolicy WorkerWriteScope hard reject is shipped when session ACL is
+      enabled. Pool coordination for reserve/overlap remains doctrineAsIs;
+      no neighbourhood reserve or Path-B PinMapIngest is claimed shipped.
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffIn : SessionHandoffInPort;

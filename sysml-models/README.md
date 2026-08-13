@@ -9,9 +9,10 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 ## Product framing (2026-08-13)
 
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
-2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph.
+2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
 3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5** client hydrate/flush landed; live AgensGraph path needs external cabinet (not claimed verified). LLM↔store direct out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (cheap LLM soft policy) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
+5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
 **Sequence:** M1 (done) → M2 (done) → **M2.5** (client landed; live cabinet deferred) → **M3** (in-repo playbook/app-note GQL rewrite).
 
@@ -19,7 +20,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff, WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot`; retired TierA archive |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot`; retired TierA archive |
 | `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.12 import + guard + async) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/dispatch/WorkerPool spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
@@ -73,8 +74,22 @@ MemNetSystem                                 // SharedLlmMemory product
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 - **Roadmap-only stubs:** PinMapRoadmap / PinMapIngest (domainVariant: sysml|codebase|pcbaAto|skillsRules)
 - **Optional soft policy:** ImportGuard (path B); happy path A = re-pin without guard
-- **WorkerWriteScope:** host/doctrine enforcement until engine hard-gates (not fake ACL)
-- **Out of scope:** novel-writer
+- **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; reserve/overlap coordination remains doctrine
+- **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory MUST NOT nest under MemNetSystem
+
+### CapsPolicy ACL (as-is 0.4.x)
+
+| Check | As-is |
+|-------|-------|
+| Who (`CallerId`) | Shipped when session ACL is enabled |
+| `pin_map` (read) vs mutate | Distinct shipped permissions |
+| `WorkerWriteScope` | HARD reject on out-of-scope mutate |
+| Optional `SessionBind` | Shipped; missionId + lease match, with documented in-process skip-bind |
+
+Neighbourhood reserve (RSV), Path-B `PinMapIngest`, and full
+private/shared/open `session_token` modes remain deferred. `sessionId` is a
+secret capability and MUST NOT be dumped. No Dock nest is introduced.
 
 ## Case studies
 

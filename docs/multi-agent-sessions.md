@@ -4,7 +4,13 @@
 **Dialect teach:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B `pin_map`); prefer **import** over session merge.
 **Application adoption** (`modelbasedPrj-*`): [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Index: [`docs/README.md`](README.md).
 
-**Status:** enforceable agent doctrine for Cursor Multitask Mode and Task sub-agents. Session ACL, neighbourhood reserve, and ingest engines are **not shipped** — see `docs/grammar/memnet-security-multi-agent.md` and `docs/grammar/memnet-neighbourhood-reserve.md`.
+**Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
+sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /
+`WorkerWriteScope` hard reject / optional bind) is **shipped when session ACL
+is enabled** via `memnet.acl`; ACL remains off by default. Full ACL modes,
+neighbourhood reserve, and ingest engines are **not shipped** — see
+`docs/grammar/memnet-security-multi-agent.md` and
+`docs/grammar/memnet-neighbourhood-reserve.md`.
 
 **SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S09** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md).
 
@@ -16,7 +22,7 @@ When Multitask is **on**, one **shared MemNet session** is mission SSOT. Chat is
 
 Module A → B **MUST** pass **session id only** (`SessionHandoff`). B **MUST** `pin_map`. Chat, MissionDock payloads, and HTTP bodies **MUST NOT** carry the graph. Wire is **GQL only**.
 
-`SessionHandoff`: `sessionId`, `caller`, optional `missionId` + `lease` (plus existing optional Multitask `anchors` / `writeScope`). Mutate still hits **CapsPolicy** (who / what / bind) — a handoff is not a mutate waiver.
+`SessionHandoff`: `sessionId`, `caller`, optional `missionId` + `lease` (plus existing optional Multitask `anchors` / `writeScope`). The shipped CapsPolicy ACL still governs `pin_map` versus mutate (who / scope / bind) — a handoff is not a mutate waiver.
 
 | Pattern | What happens |
 |---------|--------------|
@@ -35,6 +41,10 @@ EvidenceCentre / MissionDock are application patterns — **MUST NOT** nest unde
 
 Set `MEMNET_MCP_TRANSPORT=tcp` (or streamable-http) so parent and workers share one graph. Default in-process stdio is fine for **single-agent** goldfish loops only.
 
+When session ACL is enabled, an in-process trusted path MAY skip a configured
+bind under `MEMNET_SERVE_INTERNAL`; InvestorApi-style / shared boundary paths
+use `require_bind=true` and enforce the bind.
+
 ## Parent agent (coordinator)
 
 ### MUST
@@ -51,7 +61,9 @@ Set `MEMNET_MCP_TRANSPORT=tcp` (or streamable-http) so parent and workers share 
 - Treat chat, tool transcripts, or sub-agent prose as durable mission state.
 - Settle `TSK_*` / `USR_*` from worker chat — settle from shared-session `pin_map` facts only.
 - Spawn parallel workers on the **same** anchor slice without coordination (0.4.x: last-write-wins; no reserve).
-- Assume ACL, reserve, or ingest engines — they are design-only.
+- Assume neighbourhood reserve, Path-B ingest, or full private/shared/open
+  `session_token` modes. The shipped CapsPolicy ACL applies when session ACL
+  is enabled.
 
 ## Worker agent (background)
 
@@ -71,7 +83,9 @@ Set `MEMNET_MCP_TRANSPORT=tcp` (or streamable-http) so parent and workers share 
 
 ## Parallel workers (0.4.x)
 
-No neighbourhood reserve or ACL enforcement. Coordination options:
+No neighbourhood reserve enforcement. The shipped CapsPolicy ACL rejects
+unauthorised or out-of-scope calls when session ACL is enabled; coordination
+options for overlapping writers remain doctrine:
 
 | Pattern | When |
 |---------|------|
@@ -89,7 +103,7 @@ No neighbourhood reserve or ACL enforcement. Coordination options:
 | In-process MCP under Multitask | Each process gets its own graph |
 | Parent polls or re-runs worker investigation | Wastes tokens; violates Multitask turn boundary |
 | Worker mints duplicate `TSK_*` | Parent owns task lifecycle |
-| Teaching ACL / `RSV` / ingest as available | Not enforced in 0.4.x |
+| Teaching full ACL modes/token, `RSV`, or ingest as available | Full modes, reserve, and ingest are not enforced in 0.4.x; the shipped CapsPolicy ACL is enforced when session ACL is enabled |
 | Parallel workers on same anchor | Last-write-wins; silent clobber |
 
 ## Not implemented (do not assume)
@@ -98,10 +112,10 @@ Product backlog — **deferred** in 0.4.x; gated by **MN-REQ-12.7** and verify *
 
 | Capability | Requirement / verify | Status |
 |------------|---------------------|--------|
-| Session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/grammar/memnet-security-multi-agent.md` | **To-be** |
+| CapsPolicy ACL (`who` / `pin_map`-vs-mutate / `WorkerWriteScope` hard reject / optional bind) | MN-REQ-12.7; MN-VER-12-S09; `memnet.acl` | **Shipped when session ACL is enabled** |
+| Full session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/grammar/memnet-security-multi-agent.md` | **To-be** |
 | Neighbourhood reserve (`RSV` rows, `llm_id` + TTL) | MN-REQ-12.7; design `docs/grammar/memnet-neighbourhood-reserve.md` | **To-be** |
 | Path-B `PinMapIngest_*` engines (SysML, codebase, PCBA, skills) | MN-REQ-11 stubs; MN-REQ-12.7; MN-VER-12-S09 | **Roadmap** — seed via `session_open` `seed_lines` or `add` with explicit locator ids |
-| Engine **WorkerWriteScope** enforcement | MN-REQ-12.4 / 12.5 (doctrine only); MN-VER-12-S09 | **To-be** — 0.4.x last-write-wins |
 
 Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md).
 
