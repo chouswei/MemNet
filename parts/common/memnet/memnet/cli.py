@@ -133,11 +133,13 @@ def _ingest_lines(
     mission_id: str | None = None,
     lease: str | None = None,
     write_scope: str | None = None,
+    llm_id: str | None = None,
 ) -> int:
     agent = agent or os.environ.get("MEMNET_AGENT")
     caller = caller or os.environ.get("MEMNET_CALLER")
     mission_id = mission_id or os.environ.get("MEMNET_MISSION_ID")
     lease = lease or os.environ.get("MEMNET_LEASE")
+    llm_id = llm_id or os.environ.get("MEMNET_LLM_ID")
     from memnet.acl import in_process_trusted
 
     # InvestorApi / non-trusted: require bind match when configured.
@@ -156,6 +158,7 @@ def _ingest_lines(
             lease=lease,
             write_scope=write_scope,
             require_bind=require_bind,
+            llm_id=llm_id,
         )
     except MemNetError as exc:
         emit_err(exc)
@@ -466,6 +469,94 @@ def session_acl_bind(
         emit_stdout("@ACL: bind|set")
 
 
+@app.command("reserve")
+def reserve_cmd(
+    anchor: Annotated[str, typer.Option("--anchor")],
+    llm_id: Annotated[str, typer.Option("--llm-id")],
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    ttl: Annotated[int, typer.Option("--ttl", help="Lease TTL seconds")] = 120,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Reserve pin-map ego neighbourhood for llm_id (MN-REQ-12.13)."""
+    from memnet.neighbourhood_reserve import reserve as do_reserve
+    from memnet.session import utc_now
+
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        try:
+            lease = do_reserve(
+                ss.reserves,
+                ss.store,
+                anchor=anchor,
+                llm_id=llm_id,
+                depth=depth,
+                ttl_s=ttl,
+                now=utc_now(),
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(lease.present_line(utc_now()))
+        emit_stdout(f"@RSV: ok|{lease.rid}|held={len(lease.ids)}|until={lease.until.isoformat()}")
+
+
+@app.command("extend")
+def extend_cmd(
+    llm_id: Annotated[str, typer.Option("--llm-id")],
+    rid: Annotated[str | None, typer.Option("--rid")] = None,
+    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    ttl: Annotated[int, typer.Option("--ttl", help="Lease TTL seconds")] = 120,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Extend an existing neighbourhood reserve TTL."""
+    from memnet.neighbourhood_reserve import extend as do_extend
+    from memnet.session import utc_now
+
+    if not rid and not anchor:
+        _handle_error(MemNetError("bad_request", "provide --rid or --anchor"))
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        try:
+            lease = do_extend(
+                ss.reserves,
+                rid=rid,
+                anchor=anchor,
+                llm_id=llm_id,
+                ttl_s=ttl,
+                now=utc_now(),
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(lease.present_line(utc_now()))
+
+
+@app.command("release")
+def release_cmd(
+    llm_id: Annotated[str, typer.Option("--llm-id")],
+    rid: Annotated[str | None, typer.Option("--rid")] = None,
+    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Release a neighbourhood reserve (holder llm_id must match)."""
+    from memnet.neighbourhood_reserve import release as do_release
+    from memnet.session import utc_now
+
+    if not rid and not anchor:
+        _handle_error(MemNetError("bad_request", "provide --rid or --anchor"))
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        try:
+            cleared = do_release(
+                ss.reserves,
+                rid=rid,
+                anchor=anchor,
+                llm_id=llm_id,
+                now=utc_now(),
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(f"@RSV: released|{cleared}")
+
+
 @relations_app.command("list")
 def relations_list(
     session: Annotated[str | None, typer.Option("--session")] = None,
@@ -521,6 +612,7 @@ def _ingest_cmd(
     mission_id: str | None = None,
     lease: str | None = None,
     write_scope: str | None = None,
+    llm_id: str | None = None,
 ) -> None:
     ss, lock = _load_session(session, exclusive=not dry_run)
     caps = _caps()
@@ -537,6 +629,7 @@ def _ingest_cmd(
             mission_id=mission_id,
             lease=lease,
             write_scope=write_scope,
+            llm_id=llm_id,
         )
 
 
@@ -567,6 +660,10 @@ def add_cmd(
             help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
         ),
     ] = None,
+    llm_id: Annotated[
+        str | None,
+        typer.Option("--llm-id", help="Neighbourhood reserve holder (MN-REQ-12.13)"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Create new rows only (fails if id already exists)."""
@@ -583,6 +680,7 @@ def add_cmd(
         mission_id=mission_id,
         lease=lease,
         write_scope=write_scope,
+        llm_id=llm_id,
     )
 
 
@@ -613,6 +711,10 @@ def update_cmd(
             help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
         ),
     ] = None,
+    llm_id: Annotated[
+        str | None,
+        typer.Option("--llm-id", help="Neighbourhood reserve holder (MN-REQ-12.13)"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Replace existing rows only (fails if id not found)."""
@@ -629,6 +731,7 @@ def update_cmd(
         mission_id=mission_id,
         lease=lease,
         write_scope=write_scope,
+        llm_id=llm_id,
     )
 
 
