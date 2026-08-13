@@ -138,9 +138,19 @@ class PinMapComposer:
         require_anchor: bool = True,
         law_prepend: bool = True,
         view: str | None = None,
+        caller: str | None = None,
+        agent: str | None = None,
     ) -> tuple[list[Record], str]:
         """Return (records, shaped GQL text)."""
+        from memnet.acl import check_permission
+
         del law_prepend  # store.context_pack already prepends laws
+        check_permission(
+            getattr(self.ss, "acl", None),
+            caller=caller,
+            permission="pin_map",
+            agent=agent,
+        )
         if require_anchor and not anchor:
             raise MemNetError("no_anchor", "pin map requires --anchor")
         stale_warnings: list = []

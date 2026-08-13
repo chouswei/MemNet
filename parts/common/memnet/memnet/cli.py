@@ -121,8 +121,20 @@ def _ingest_lines(
     dry_run: bool = False,
     allow_new_relation: bool = False,
     agent: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
 ) -> int:
     agent = agent or os.environ.get("MEMNET_AGENT")
+    caller = caller or os.environ.get("MEMNET_CALLER")
+    mission_id = mission_id or os.environ.get("MEMNET_MISSION_ID")
+    lease = lease or os.environ.get("MEMNET_LEASE")
+    from memnet.acl import in_process_trusted
+
+    # InvestorApi / non-trusted: require bind match when configured.
+    # In-process trusted path MAY skip bind (documented).
+    require_bind = not in_process_trusted()
     gate = MutateGate(ss)
     try:
         result = gate.apply(
@@ -131,6 +143,11 @@ def _ingest_lines(
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
+            caller=caller,
+            mission_id=mission_id,
+            lease=lease,
+            write_scope=write_scope,
+            require_bind=require_bind,
         )
     except MemNetError as exc:
         emit_err(exc)
@@ -343,6 +360,76 @@ def session_close(session_id: str) -> None:
         _handle_error(exc)
 
 
+@session_app.command("acl-enable")
+def session_acl_enable(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Enable CapsPolicy ACL on a session (who / pin_map-vs-mutate / scope / bind)."""
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        ss.enable_acl()
+        emit_stdout("@ACL: enabled")
+
+
+@session_app.command("acl-grant")
+def session_acl_grant(
+    caller: Annotated[str, typer.Option("--caller")],
+    pin_map: Annotated[
+        bool,
+        typer.Option("--pin-map/--no-pin-map", help="Allow pin_map (read)"),
+    ] = True,
+    mutate: Annotated[
+        bool,
+        typer.Option("--mutate/--no-mutate", help="Allow mutate (write)"),
+    ] = True,
+    write_scope: Annotated[
+        str | None,
+        typer.Option(
+            "--write-scope",
+            help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
+        ),
+    ] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Grant a CallerId with pin_map and/or mutate permission (+ optional scope)."""
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        try:
+            ss.grant_caller(
+                caller,
+                can_pin_map=pin_map,
+                can_mutate=mutate,
+                write_scope=write_scope,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        scope = write_scope or "-"
+        emit_stdout(
+            f"@ACL: grant|{caller}|pin_map={'1' if pin_map else '0'}|"
+            f"mutate={'1' if mutate else '0'}|scope={scope}"
+        )
+
+
+@session_app.command("acl-bind")
+def session_acl_bind(
+    mission_id: Annotated[str, typer.Option("--mission-id")],
+    lease: Annotated[str, typer.Option("--lease")],
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Set optional SessionBind (missionId+lease). Mutate must match when set.
+
+    In-process trusted path (MEMNET_SERVE_INTERNAL / MEMNET_TEST_INLINE) MAY
+    skip bind match; InvestorApi / TCP shared paths require who + bind.
+    """
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        try:
+            ss.set_bind(mission_id, lease)
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout("@ACL: bind|set")
+
+
 @relations_app.command("list")
 def relations_list(
     session: Annotated[str | None, typer.Option("--session")] = None,
@@ -394,6 +481,10 @@ def _ingest_cmd(
     allow_new_relation: bool,
     agent: str | None,
     session: str | None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
 ) -> None:
     ss, lock = _load_session(session, exclusive=not dry_run)
     caps = _caps()
@@ -406,6 +497,10 @@ def _ingest_cmd(
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
+            caller=caller,
+            mission_id=mission_id,
+            lease=lease,
+            write_scope=write_scope,
         )
 
 
@@ -417,6 +512,25 @@ def add_cmd(
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
     agent: Annotated[str | None, typer.Option("--agent")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    mission_id: Annotated[
+        str | None,
+        typer.Option("--mission-id", help="Optional SessionBind mission id"),
+    ] = None,
+    lease: Annotated[
+        str | None,
+        typer.Option("--lease", help="Optional SessionBind lease"),
+    ] = None,
+    write_scope: Annotated[
+        str | None,
+        typer.Option(
+            "--write-scope",
+            help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
+        ),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Create new rows only (fails if id already exists)."""
@@ -429,6 +543,10 @@ def add_cmd(
         allow_new_relation,
         agent,
         session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
     )
 
 
@@ -440,6 +558,25 @@ def update_cmd(
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
     allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
     agent: Annotated[str | None, typer.Option("--agent")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    mission_id: Annotated[
+        str | None,
+        typer.Option("--mission-id", help="Optional SessionBind mission id"),
+    ] = None,
+    lease: Annotated[
+        str | None,
+        typer.Option("--lease", help="Optional SessionBind lease"),
+    ] = None,
+    write_scope: Annotated[
+        str | None,
+        typer.Option(
+            "--write-scope",
+            help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
+        ),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Replace existing rows only (fails if id not found)."""
@@ -452,6 +589,10 @@ def update_cmd(
         allow_new_relation,
         agent,
         session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
     )
 
 
@@ -514,6 +655,7 @@ def _query_context(
     require_anchor: bool,
     shaped_gql: bool = False,
     view: str | None = None,
+    caller: str | None = None,
 ) -> None:
     if shaped_gql:
         composer = PinMapComposer(ss)
@@ -525,6 +667,8 @@ def _query_context(
                 active_only=active_only,
                 require_anchor=require_anchor,
                 view=view,
+                caller=caller or os.environ.get("MEMNET_CALLER"),
+                agent=os.environ.get("MEMNET_AGENT"),
             )
         except MemNetError as exc:
             _handle_error(exc)
@@ -627,6 +771,7 @@ def _run_pin_map(
     max_rows: int,
     session: str | None,
     view: str | None = None,
+    caller: str | None = None,
 ) -> None:
     ss, lock = _load_session(session)
     with lock:
@@ -639,6 +784,7 @@ def _run_pin_map(
             require_anchor=True,
             shaped_gql=True,
             view=view,
+            caller=caller,
         )
 
 
@@ -654,11 +800,20 @@ def query_pin_map(
             help="Pin-map grain: shell|interior (teach); flowchart|parts|statechart (soft).",
         ),
     ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Live pin map (PinMapShapedRead). Emits shaped openCypher-family subgraph."""
     _run_pin_map(
-        anchor=anchor, depth=depth, max_rows=max_rows, session=session, view=view
+        anchor=anchor,
+        depth=depth,
+        max_rows=max_rows,
+        session=session,
+        view=view,
+        caller=caller,
     )
 
 
@@ -674,11 +829,20 @@ def query_warm(
             help="Pin-map grain: shell|interior (teach); flowchart|parts|statechart (soft).",
         ),
     ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Live pin map — deprecated alias for pin-map."""
     _run_pin_map(
-        anchor=anchor, depth=depth, max_rows=max_rows, session=session, view=view
+        anchor=anchor,
+        depth=depth,
+        max_rows=max_rows,
+        session=session,
+        view=view,
+        caller=caller,
     )
 
 

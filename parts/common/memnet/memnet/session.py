@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Iterator
 
+from memnet.acl import SessionAcl, WorkerWriteScope, acl_globally_enabled, parse_write_scope
 from memnet.config import Caps, default_ttl_minutes, examples_dir
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
@@ -49,7 +50,7 @@ class SessionStore:
         self.caps = caps or Caps()
         entry = get_entry(session_id)
         if entry is None:
-            raise MemNetError("session_not_found", self.session_id, exit_code=2)
+            raise MemNetError("session_not_found", "unknown session", exit_code=2)
         self._entry = entry
 
     @property
@@ -72,6 +73,12 @@ class SessionStore:
     def store(self) -> MemStore:
         return self._entry.store
 
+    @property
+    def acl(self) -> SessionAcl:
+        if self._entry.acl is None:
+            self._entry.acl = SessionAcl()
+        return self._entry.acl
+
     def touch(self) -> None:
         """Record last activity time (reads and writes)."""
         self.meta.modified_at = iso_timestamp()
@@ -84,6 +91,35 @@ class SessionStore:
     def lock(self, exclusive: bool) -> Iterator[None]:
         with self._entry.lock:
             yield
+
+    def enable_acl(self) -> None:
+        self.acl.enable()
+        self.meta.acl_enabled = True
+
+    def grant_caller(
+        self,
+        caller: str,
+        *,
+        can_pin_map: bool = True,
+        can_mutate: bool = True,
+        write_scope: WorkerWriteScope | str | None = None,
+    ) -> None:
+        scope = (
+            parse_write_scope(write_scope)
+            if isinstance(write_scope, str)
+            else write_scope
+        )
+        self.acl.grant(
+            caller,
+            can_pin_map=can_pin_map,
+            can_mutate=can_mutate,
+            write_scope=scope,
+        )
+        self.meta.acl_enabled = True
+
+    def set_bind(self, mission_id: str, lease: str) -> None:
+        self.acl.set_bind(mission_id, lease)
+        self.meta.acl_enabled = True
 
 
 def purge_expired(caps: Caps | None = None) -> None:
@@ -122,17 +158,20 @@ def open_session(
     session_id = f"mn_{secrets.token_hex(4)}"
     now = utc_now()
     expires = now + timedelta(minutes=ttl_minutes)
+    acl = SessionAcl(enabled=bool(getattr(caps, "acl_default_enabled", False) or acl_globally_enabled()))
     meta = SessionMeta(
         session_id=session_id,
         created_at=now.isoformat().replace("+00:00", "Z"),
         expires_at=expires.isoformat().replace("+00:00", "Z"),
         ttl_minutes=ttl_minutes,
+        acl_enabled=acl.enabled,
     )
     entry = SessionEntry(
         meta=meta,
         tag_map=tag_map,
         store=MemStore(tag_map, caps),
         relations=set(_seed_relations()),
+        acl=acl,
     )
     register(session_id, entry)
     return SessionStore(session_id, caps)
@@ -143,12 +182,13 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     entry = get_entry(session_id)
     if entry is None:
         purge_expired(caps)
-        raise MemNetError("session_not_found", session_id, exit_code=2)
+        # session id is a capability secret — do not echo it in errors
+        raise MemNetError("session_not_found", "unknown session", exit_code=2)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
         remove_entry(session_id)
         purge_expired(caps)
-        raise MemNetError("session_expired", session_id, exit_code=2)
+        raise MemNetError("session_expired", "session expired", exit_code=2)
     # Sliding TTL: extend lifetime on any successful access (prevents silent expiry for long-lived sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
@@ -178,7 +218,7 @@ def close_session(session_id: str, caps: Caps | None = None) -> None:
     ss = get_session(session_id, caps)
     with ss.lock(exclusive=True):
         if not remove_entry(session_id):
-            raise MemNetError("session_not_found", session_id, exit_code=2)
+            raise MemNetError("session_not_found", "unknown session", exit_code=2)
 
 
 def resolve_session_id(cli_session: str | None) -> str:

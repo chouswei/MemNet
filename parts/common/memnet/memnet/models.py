@@ -52,3 +52,5 @@ class SessionMeta(BaseModel):
     ttl_minutes: int
     has_writes: bool = False
     modified_at: str | None = None
+    # CapsPolicy ACL presence flag (detail lives on SessionEntry.acl)
+    acl_enabled: bool = False

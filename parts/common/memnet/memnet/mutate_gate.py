@@ -110,7 +110,23 @@ class MutateGate:
         dry_run: bool = False,
         allow_new_relation: bool = False,
         agent: str | None = None,
+        caller: str | None = None,
+        mission_id: str | None = None,
+        lease: str | None = None,
+        write_scope: str | None = None,
+        require_bind: bool = True,
     ) -> MutateResult:
+        from memnet.acl import check_bind, check_permission, parse_write_scope
+
+        acl = getattr(self.ss, "acl", None)
+        check_permission(acl, caller=caller, permission="mutate", agent=agent)
+        check_bind(
+            acl,
+            mission_id=mission_id,
+            lease=lease,
+            require=require_bind,
+        )
+        override = parse_write_scope(write_scope)
         dialect = classify_batch(lines)
         if dialect == "empty":
             return MutateResult(dialect="empty")
@@ -121,6 +137,8 @@ class MutateGate:
                 dry_run=dry_run,
                 allow_new_relation=allow_new_relation,
                 agent=agent,
+                caller=caller,
+                write_scope_override=override,
             )
         return self._apply_gql(
             lines,
@@ -128,6 +146,8 @@ class MutateGate:
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
+            caller=caller,
+            write_scope_override=override,
         )
 
     def _apply_pipe(
@@ -138,8 +158,20 @@ class MutateGate:
         dry_run: bool,
         allow_new_relation: bool,
         agent: str | None,
+        caller: str | None = None,
+        write_scope_override=None,
     ) -> MutateResult:
+        from memnet.acl import check_write_scope
+
         records = import_pipe_lines(lines, self.ss.tag_map, self.ss.caps)
+        check_write_scope(
+            getattr(self.ss, "acl", None),
+            caller=caller,
+            records=records,
+            store=self.ss.store,
+            agent=agent,
+            override_scope=write_scope_override,
+        )
         return self._commit_records(
             records,
             mode=mode,
@@ -157,6 +189,8 @@ class MutateGate:
         dry_run: bool,
         allow_new_relation: bool,
         agent: str | None,
+        caller: str | None = None,
+        write_scope_override=None,
     ) -> MutateResult:
         text = "\n".join(lines)
         try:
@@ -299,6 +333,21 @@ class MutateGate:
             rec = self._item_to_record(it)
             records.append(rec)
             ack_items.append(it)
+
+        from memnet.acl import check_write_scope
+
+        # Include rename targets in scope check
+        scope_records = list(records)
+        for _old_id, _new_id, _merge, patch_rec, _explicit in renames:
+            scope_records.append(patch_rec)
+        check_write_scope(
+            getattr(self.ss, "acl", None),
+            caller=caller,
+            records=scope_records,
+            store=self.ss.store,
+            agent=agent,
+            override_scope=write_scope_override,
+        )
 
         if dry_run:
             ack = [emit_item(x, as_mutate=True) for x in ack_items]

@@ -152,6 +152,7 @@ async def _pin_map(
     max_rows: int = 50,
     session: str | None = None,
     view: str | None = None,
+    caller: str | None = None,
 ) -> str:
     argv = [
         "query",
@@ -165,6 +166,8 @@ async def _pin_map(
     ]
     if view:
         argv.extend(["--view", view])
+    if caller:
+        argv.extend(["--caller", caller])
     return await _run(argv, session=session)
 
 
@@ -175,6 +178,7 @@ async def pin_map(
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
+    caller: str | None = None,
 ) -> str:
     """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
 
@@ -182,9 +186,11 @@ async def pin_map(
     ``statechart`` accepted with soft shell caps (grain filters deferred).
     Omit ``view`` for default depth/max_rows behaviour.
 
+    Optional ``caller``: CapsPolicy ACL who-check when session ACL is enabled.
+
     Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
     """
-    return await _pin_map(anchor, depth, max_rows, session, view)
+    return await _pin_map(anchor, depth, max_rows, session, view, caller)
 
 
 @mcp.tool()
@@ -194,9 +200,10 @@ async def query_warm(
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
+    caller: str | None = None,
 ) -> str:
     """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(anchor, depth, max_rows, session, view)
+    return await _pin_map(anchor, depth, max_rows, session, view, caller)
 
 
 @mcp.tool()
@@ -230,16 +237,30 @@ async def add(
     allow_new_relation: bool = False,
     agent: str | None = None,
     session: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
 ) -> str:
     """Create rows via shared-dialect mutate lines (leading ``+``, optional NEW).
 
     Prefer shared dialect in wire_lines (Write=display). Fails if id already exists.
+    When session ACL is enabled: pass ``caller`` (who); optional ``mission_id``+``lease``
+    (bind); optional ``write_scope`` override.
     """
     argv = ["add", "--stdin"]
     if allow_new_relation:
         argv.append("--allow-new-relation")
     if agent:
         argv.extend(["--agent", agent])
+    if caller:
+        argv.extend(["--caller", caller])
+    if mission_id:
+        argv.extend(["--mission-id", mission_id])
+    if lease:
+        argv.extend(["--lease", lease])
+    if write_scope:
+        argv.extend(["--write-scope", write_scope])
     stdin = "\n".join(wire_lines)
     return await _run(argv, stdin=stdin, session=session)
 
@@ -250,18 +271,81 @@ async def update(
     allow_new_relation: bool = False,
     agent: str | None = None,
     session: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
 ) -> str:
     """Patch or drop rows via shared-dialect mutate lines (``~`` / ``-`` on known ids).
 
     Prefer shared dialect in wire_lines. Fails if id is missing.
+    When session ACL is enabled: pass ``caller`` / optional bind / write_scope.
     """
     argv = ["update", "--stdin"]
     if allow_new_relation:
         argv.append("--allow-new-relation")
     if agent:
         argv.extend(["--agent", agent])
+    if caller:
+        argv.extend(["--caller", caller])
+    if mission_id:
+        argv.extend(["--mission-id", mission_id])
+    if lease:
+        argv.extend(["--lease", lease])
+    if write_scope:
+        argv.extend(["--write-scope", write_scope])
     stdin = "\n".join(wire_lines)
     return await _run(argv, stdin=stdin, session=session)
+
+
+@mcp.tool()
+async def session_acl_grant(
+    caller: str,
+    pin_map: bool = True,
+    mutate: bool = True,
+    write_scope: str | None = None,
+    session: str | None = None,
+) -> str:
+    """Grant CapsPolicy ACL CallerId (pin_map and/or mutate + optional WorkerWriteScope)."""
+    argv = ["session", "acl-grant", "--caller", caller]
+    if pin_map:
+        argv.append("--pin-map")
+    else:
+        argv.append("--no-pin-map")
+    if mutate:
+        argv.append("--mutate")
+    else:
+        argv.append("--no-mutate")
+    if write_scope:
+        argv.extend(["--write-scope", write_scope])
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
+async def session_acl_bind(
+    mission_id: str,
+    lease: str,
+    session: str | None = None,
+) -> str:
+    """Set optional SessionBind (missionId+lease). Mutate must match when set.
+
+    In-process trusted path MAY skip bind; InvestorApi / TCP shared require who+bind.
+    """
+    argv = [
+        "session",
+        "acl-bind",
+        "--mission-id",
+        mission_id,
+        "--lease",
+        lease,
+    ]
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
+async def session_acl_enable(session: str | None = None) -> str:
+    """Enable CapsPolicy ACL gates on the session."""
+    return await _run(["session", "acl-enable"], session=session)
 
 
 @mcp.tool()

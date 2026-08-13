@@ -5,10 +5,14 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from memnet.config import Caps
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta, TagMap
+
+if TYPE_CHECKING:
+    from memnet.acl import SessionAcl
 
 _registry_lock = threading.RLock()
 _sessions: dict[str, SessionEntry] = {}
@@ -21,6 +25,7 @@ class SessionEntry:
     store: MemStore
     relations: set[str]
     lock: threading.RLock = field(default_factory=threading.RLock)
+    acl: SessionAcl | None = None
 
 
 def register(session_id: str, entry: SessionEntry) -> None:
