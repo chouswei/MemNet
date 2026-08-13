@@ -85,6 +85,7 @@ query_app = typer.Typer(help="Graph queries")
 housekeep_app = typer.Typer(help="Inspect and prune stale graph")
 relations_app = typer.Typer(help="EDG relation vocabulary")
 examples_app = typer.Typer(help="Bundled examples")
+ingest_app = typer.Typer(help="Path-B pin-map ingest (external artefact → pins)")
 
 app.add_typer(session_app, name="session")
 app.add_typer(tagmap_app, name="tagmap")
@@ -94,6 +95,7 @@ app.add_typer(query_app, name="query")
 app.add_typer(housekeep_app, name="housekeep")
 app.add_typer(relations_app, name="relations")
 app.add_typer(examples_app, name="examples")
+app.add_typer(ingest_app, name="ingest")
 
 
 def _caps() -> Caps:
@@ -555,6 +557,77 @@ def release_cmd(
         except MemNetError as exc:
             _handle_error(exc)
         emit_stdout(f"@RSV: released|{cleared}")
+
+
+@ingest_app.command("sysml")
+def ingest_sysml_cmd(
+    path: Annotated[str, typer.Option("--path", help="SysML file or directory")],
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_files: Annotated[int, typer.Option("--max-files")] = 64,
+    root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Project GQL only; do not commit")
+    ] = False,
+) -> None:
+    """Path-B SysML ingest — deterministic PKG/PRT/REQ pins (MN-REQ-11.16 / #31)."""
+    from memnet.pin_map_ingest import ingest_sysml
+
+    ss, lock = _load_session(session, exclusive=not dry_run)
+    with lock:
+        try:
+            result = ingest_sysml(
+                ss,
+                path,
+                max_nodes=max_nodes,
+                max_files=max_files,
+                root=root,
+                dry_run=dry_run,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(
+            f"@INGEST: sysml|nodes={result.node_count}|edges={result.edge_count}"
+            f"|committed={int(result.committed)}"
+        )
+        if result.anchors:
+            emit_stdout("@ANCHORS: " + ",".join(result.anchors))
+        if dry_run:
+            for line in result.gql_lines:
+                emit_stdout(line)
+
+
+@ingest_app.command("codebase")
+def ingest_codebase_cmd() -> None:
+    """Path-B codebase ingest — not shipped yet (interface only)."""
+    _handle_error(
+        MemNetError(
+            "not_implemented",
+            "PinMapIngest_Codebase is not shipped; use ingest sysml or seed_lines",
+        )
+    )
+
+
+@ingest_app.command("pcba")
+def ingest_pcba_cmd() -> None:
+    """Path-B PCBA .ato ingest — not shipped yet (interface only)."""
+    _handle_error(
+        MemNetError(
+            "not_implemented",
+            "PinMapIngest_PcbaAto is not shipped; use ingest sysml or seed_lines",
+        )
+    )
+
+
+@ingest_app.command("skills")
+def ingest_skills_cmd() -> None:
+    """Path-B skills/rules ingest — not shipped yet (interface only)."""
+    _handle_error(
+        MemNetError(
+            "not_implemented",
+            "PinMapIngest_SkillsRules is not shipped; use ingest sysml or seed_lines",
+        )
+    )
 
 
 @relations_app.command("list")

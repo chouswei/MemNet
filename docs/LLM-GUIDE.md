@@ -152,9 +152,9 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 - After `session_load`, existing ids need `update` not `add`.
 - Agent handoff: deliver **session id** (+ anchors / write scope); peers **re-pin_map**. Prefer **import** when absorbing a member working-memory slice.
 
-### Path B ingest (deferred in 0.4.x)
+### Path B ingest
 
-**PinMapIngest_*** (SysML, codebase, PCBA `.ato`, skills) are **stubs** — not shippable. Do not wait for ingest tools. Bootstrap external pins with explicit ids + locators via `seed_lines` or `add`. See `docs/grammar/memnet-grammar-design.md` §4.2.1 (as-is harness notes; wire teach = GQL profile).
+**PinMapIngest_Sysml** is shipped (`memnet ingest sysml` / MCP `ingest_sysml`) — selective SysML v2 pins with deterministic locator ids (MN-REQ-11.16). **Codebase / PCBA `.ato` / skills** engines are interface-only (`not_implemented`). Bootstrap those with explicit ids + locators via `seed_lines` or `add`. See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
 
 ### Multi-agent / Multitask
 
@@ -165,7 +165,7 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 - Full session ACL modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
-- Path-B `PinMapIngest_*` engines
+- Path-B `PinMapIngest_Codebase` / `PcbaAto` / `SkillsRules` (Sysml shipped)
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 

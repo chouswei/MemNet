@@ -465,6 +465,33 @@ async def release(
 
 
 @mcp.tool()
+async def ingest_sysml(
+    path: str,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | None = None,
+    dry_run: bool = False,
+    session: str | None = None,
+) -> str:
+    """Path-B SysML pin-map ingest (MN-REQ-11.16). Stable qname=/path= locators; no client NEW."""
+    argv = [
+        "ingest",
+        "sysml",
+        "--path",
+        path,
+        "--max-nodes",
+        str(max_nodes),
+        "--max-files",
+        str(max_files),
+    ]
+    if root:
+        argv.extend(["--root", root])
+    if dry_run:
+        argv.append("--dry-run")
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
 async def read_get(id: str, session: str | None = None) -> str:
     """Fetch a single row by id."""
     return await _run(["read", "get", "--id", id], session=session)
