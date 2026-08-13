@@ -88,9 +88,7 @@ def test_project_sysml_deterministic_locators(sysml_file: Path):
     assert again.node_ids == result.node_ids
 
 
-def test_ingest_sysml_commit_and_pin_map(
-    memnet_temp, sysml_schema: Path, sysml_file: Path
-):
+def test_ingest_sysml_commit_and_pin_map(memnet_temp, sysml_schema: Path, sysml_file: Path):
     ss = open_session(map_file=str(sysml_schema))
     result = ingest_sysml(ss, sysml_file, max_nodes=50)
     assert result.committed is True
@@ -138,10 +136,7 @@ def test_ingest_budget(memnet_temp, sysml_schema: Path, sysml_file: Path):
 
 def test_ingest_real_requirements_leaf(memnet_temp, sysml_schema: Path):
     """Bounded slice of in-repo requirements.sysml (MN-REQ-11.16 ground ids)."""
-    req_path = (
-        Path(__file__).resolve().parents[1]
-        / "sysml-models/models/requirements.sysml"
-    )
+    req_path = Path(__file__).resolve().parents[1] / "sysml-models/models/requirements.sysml"
     if not req_path.is_file():
         pytest.skip("sysml-models not present")
     ss = open_session(map_file=str(sysml_schema))

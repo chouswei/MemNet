@@ -629,6 +629,7 @@ def ingest_skills_cmd() -> None:
         )
     )
 
+
 @relations_app.command("list")
 def relations_list(
     session: Annotated[str | None, typer.Option("--session")] = None,

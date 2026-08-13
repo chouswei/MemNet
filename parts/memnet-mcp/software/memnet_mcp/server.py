@@ -490,6 +490,7 @@ async def ingest_sysml(
         argv.append("--dry-run")
     return await _run(argv, session=session)
 
+
 @mcp.tool()
 async def read_get(id: str, session: str | None = None) -> str:
     """Fetch a single row by id."""

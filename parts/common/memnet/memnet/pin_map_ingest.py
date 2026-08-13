@@ -133,12 +133,8 @@ class PinMapIngestBase:
         reject_client_new(result.gql_lines)
         if not result.gql_lines:
             raise MemNetError("empty_ingest", "no pins projected from artefact")
-        node_lines = [
-            ln for ln in result.gql_lines if ln.lstrip().upper().startswith("MERGE")
-        ]
-        edge_lines = [
-            ln for ln in result.gql_lines if not ln.lstrip().upper().startswith("MERGE")
-        ]
+        node_lines = [ln for ln in result.gql_lines if ln.lstrip().upper().startswith("MERGE")]
+        edge_lines = [ln for ln in result.gql_lines if not ln.lstrip().upper().startswith("MERGE")]
         gate = MutateGate(session)
         if node_lines:
             gate.apply(node_lines, mode="add", allow_new_relation=True)
@@ -174,9 +170,7 @@ class PinMapIngest_Sysml(PinMapIngestBase):
         files = _collect_sysml_files(path_p, max_files=max_files)
         if not files:
             raise MemNetError("no_artefact", f"no .sysml files under {path}")
-        root_path = (
-            Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
-        )
+        root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
         alloc = IdAllocator()
         nodes: list[dict[str, str]] = []
         edges: list[tuple[str, str, str, str]] = []  # eid, src, rel, dst
