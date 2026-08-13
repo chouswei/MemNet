@@ -992,16 +992,24 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_11_CheapLlmImportGuardSoft {
         doc /*
-          OPTIONAL soft policy: Path B WorkingMemorySlice import SHOULD pass
-          ImportGuard soft review before ImportAbsorb (allow / trim / reject
-          + short reason; trim subtractive via keep_ids) when the host
-          enables the guard. Path A SHALL re-pin_map without ImportGuard.
-          LLM MAY: choose anchors, trim junk, advise keep vs remint.
-          ImportGuard SHALL NOT replace engine hard gates (schema, ACL,
-          slice budget, anchors, LAW exclude, id_policy). Guard chat SHALL
-          NOT be SSOT — record ImportGuardDecision as structured atoms; lead
-          session remains SSOT after import. costTier is a cost/latency
-          class, not a vendor id. Host MAY skip/disable (GuardPassthrough).
+          OPTIONAL soft policy (never mandatory LLM): Path B
+          WorkingMemorySlice import SHOULD pass ImportGuard soft review
+          before ImportAbsorb (allow / trim / reject + short reason; trim
+          subtractive via keep_ids) when the host enables the guard.
+          Nest under SessionImportReceive / ImportGuard (PinMapIngest-style):
+          ImportGuardHook = host plug-in (set_import_guard / --no-guard /
+          enable_guard; GuardPassthrough when skipped — skipping is valid);
+          CheapLlmImportGuard = optional default adapter in memnet-llm (off
+          unless env set; does not vendor a model; issue #63 leftover).
+          Hook shipped ≠ cheap LLM shipped. Path A SHALL re-pin_map without
+          ImportGuard. LLM MAY: choose anchors, trim junk, advise keep vs
+          remint. Soft guard SHALL NOT replace engine hard gates (schema,
+          ACL, slice budget, anchors, LAW exclude, id_policy). Guard chat
+          SHALL NOT be SSOT — record ImportGuardDecision as structured
+          atoms; lead session remains SSOT after import. costTier is a
+          cost/latency class, not a vendor id. Host MAY skip/disable
+          (GuardPassthrough). Satisfied by CheapLlmImportGuard part (not
+          the hook alone).
         */
         attribute requirementId : String = "MN-REQ-12.11";
       }

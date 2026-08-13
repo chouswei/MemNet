@@ -134,7 +134,8 @@ package MemNetConnections {
 
   item def ImportGuardDecision {
     doc /*
-      OPTIONAL soft outcome from ImportGuard on path B only:
+      OPTIONAL soft outcome from ImportGuard nest on path B only
+      (ImportGuardHook when a host guard ran, or future CheapLlmImportGuard):
       allow | trim | reject + short reason. trim is subtractive: keepIds
       lists retained record ids (engine drops dangling edges). Happy path A
       = re-pin_map without this decision. Structured atoms only — MUST NOT
