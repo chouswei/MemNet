@@ -207,12 +207,11 @@ package MemNetVerification {
 
   verification def MN_VER_12_S09_NoAssumeReserveIngest {
     doc /*
-      MN-REQ-12.7 gate — CapsPolicy ACL is shipped, but agents must not
-      assume neighbourhood reserve (RSV) or Path-B PinMapIngest.
-      Inspection: the coordinator and workerPool retain doctrineAsIs for
-      reserve/import coordination; CapsPolicy.engineAclShipped == true and
-      its doctrineAsIs == false. Counter-example: treating RSV or ingest as
-      available violates MN-REQ-12.7.
+      MN-REQ-12.7 gate — CapsPolicy ACL and NeighbourhoodReserve (RSV) are
+      shipped; agents must not assume Path-B PinMapIngest or full
+      private/shared/open session_token modes. Inspection: RSV
+      NeighbourhoodReserve.implemented == true; ingest remains doctrine.
+      Counter-example: treating PinMapIngest as available violates MN-REQ-12.7.
     */
     attribute verificationId : String = "MN-VER-12-S09";
 

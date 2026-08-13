@@ -892,10 +892,11 @@ package MemNetRequirements {
           Asynchronous parallel workers SHALL use disjoint anchor subtrees on
           one shared session OR separate parent-assigned session ids.
           Two writers SHALL NOT mutate the same anchor slice without explicit
-          serialisation (MUST NOT dual-write in parallel). CapsPolicy now
+          serialisation (MUST NOT dual-write in parallel). CapsPolicy
           hard-rejects mutate outside WorkerWriteScope when session ACL is
-          enabled; there is still no neighbourhood reserve, so overlapping
-          writers require doctrine-level serialisation.
+          enabled; NeighbourhoodReserve (MN-REQ-12.13) leases ego scopes so
+          overlapping writers fail with reserve_conflict rather than
+          last-write-wins.
         */
         attribute requirementId : String = "MN-REQ-12.5";
       }
@@ -915,17 +916,12 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_7_NoAssumeAclReserveIngest {
         doc /*
-          As-is NOW (0.4.x): the CapsPolicy ACL cut IS shipped
-          (engineAclShipped=true) when session ACL is enabled. The engine
-          enforces who (CallerId), pin_map versus mutate permission,
-          WorkerWriteScope HARD reject on mutate, and optional SessionBind
-          (missionId + lease). ACL is off by default for the legacy-green
-          path; in-process MAY skip bind under MEMNET_SERVE_INTERNAL, while
-          require_bind=true boundaries enforce a configured bind.
-          Agents MUST NOT assume neighbourhood reserve (RSV), Path-B
-          PinMapIngest, or the full private/shared/open + session_token modes
-          until those ship. Seed external pins via session_open seed_lines or
-          add with explicit locator ids.
+          As-is NOW: the CapsPolicy ACL cut IS shipped (engineAclShipped=true)
+          when session ACL is enabled. Neighbourhood reserve (RSV, llm_id +
+          TTL) IS shipped as NeighbourhoodReserve / MN-REQ-12.13. Agents MUST
+          NOT assume Path-B PinMapIngest or the full private/shared/open +
+          session_token modes until those ship. Seed external pins via
+          session_open seed_lines or add with explicit locator ids.
         */
         attribute requirementId : String = "MN-REQ-12.7";
       }
@@ -939,6 +935,20 @@ package MemNetRequirements {
           Multitask shared-store or parent/worker obligations.
         */
         attribute requirementId : String = "MN-REQ-12.8";
+      }
+
+      requirement def MN_REQ_12_13_NeighbourhoodReserve {
+        doc /*
+          SHALL provide neighbourhood reserve (RSV) so parallel agents on one
+          shared session_id can hold disjoint pin-map ego scopes: required
+          llm_id holder, required ttl_s lease, scope = anchor + depth matching
+          pin_map. Mutate that touches reserved ids SHALL require matching
+          llm_id (else reserved / no_llm_id). Overlap with another holder
+          SHALL fail with reserve_conflict. Expired leases SHALL auto-release.
+          Pin map MAY surface RSV present lines. Lifecycle via reserve /
+          extend / release (MCP/CLI) — not + RSV graph mutate.
+        */
+        attribute requirementId : String = "MN-REQ-12.13";
       }
 
       requirement def MN_REQ_12_9_LeadOwnsSessionImport {
@@ -1213,6 +1223,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
   requirement hostDrivenAsyncParallelReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_12_HostDrivenAsyncParallel;
+  requirement neighbourhoodReserveReq
+    : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {

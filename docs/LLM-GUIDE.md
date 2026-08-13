@@ -162,11 +162,22 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 
 ### Not implemented (design only)
 
-- Session ACL, roles, `session_token`
-- Neighbourhood reserve (`RSV` rows)
+- Session ACL full modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
-- LocalIpcGateway transport
+- LocalIpcGateway transport (see #50 / MN-REQ-06.2 if not yet merged)
 - Field-formula auto-emit from law nodes
+- Path-B `PinMapIngest_*` engines
+
+### Neighbourhood reserve (MN-REQ-12.13)
+
+```bash
+memnet reserve --anchor PLR01 --llm-id coder_a --depth 2 --ttl 120
+memnet query pin-map --anchor PLR01   # may show ## Reserves / RSV […]
+memnet update --stdin --llm-id coder_a …
+memnet release --rid R1 --llm-id coder_a
+```
+
+Design: `docs/grammar/memnet-neighbourhood-reserve.md`. After ACL when both are enabled.
 
 See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (client hydrate/flush in tree; live AgensGraph path needs an external cabinet — do not claim live verified).
 

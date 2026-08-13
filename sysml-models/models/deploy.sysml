@@ -11,7 +11,8 @@
     │   ├── GraphStore
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
     │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
-    │   ├── MutateGate / SessionLifecycle / Schema / Caps (size + shipped ACL) / …
+    │   ├── MutateGate / SessionLifecycle / Schema / Caps (size + shipped ACL) /
+    │   │   NeighbourhoodReserve (RSV) / …
     │   └── (TierACodec RETIRED/REJECTED on product path — M2 done; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
@@ -66,9 +67,10 @@ package MemNet {
       configured. sessionId is a secret capability and never waives mutate.
       engineAclShipped=true. MutateGate and PinMapShapedRead apply the
       engine ACL cut; SessionHandoff carries the capability and scope.
-      Neighbourhood reserve (RSV), Path-B PinMapIngest, and full
-      private/shared/open session_token modes WAIT — not this cut. No
-      EvidenceCentre / MissionDock / CompanyMemory nest under MemNetSystem.
+      NeighbourhoodReserve (RSV, llm_id + TTL) is nested under SessionLifecycle
+      (MN-REQ-12.13). Path-B PinMapIngest and full private/shared/open
+      session_token modes WAIT — not this cut. No EvidenceCentre /
+      MissionDock / CompanyMemory nest under MemNetSystem.
     */
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
@@ -322,6 +324,25 @@ package MemNet {
   // AgentMemory — nested working-memory product heart
   // =====================================================================
 
+  part def NeighbourhoodReserve {
+    doc /*
+      Control-plane ego lease inside an authorised session (after ACL).
+      Holder = llm_id; lease = ttl_s (wall-clock until); scope = pin_map
+      neighbourhood (anchor + depth). Pin map may surface RSV present lines.
+      Mutate on reserved ids requires matching llm_id. Expired leases
+      auto-release. Module: memnet.neighbourhood_reserve. Design:
+      docs/grammar/memnet-neighbourhood-reserve.md.
+      As-is: implemented (MN-REQ-12.13).
+    */
+    attribute implemented : Boolean = true;
+    attribute holderField : String = "llm_id";
+    attribute ttlField : String = "ttl_s";
+    attribute displayKind : String = "RSV";
+    attribute doctrineAsIs : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
+  }
+
   part def SessionLifecycle {
     doc /*
       Process-wide registry of named sessions with TTL purge; per-session
@@ -329,7 +350,7 @@ package MemNet {
       the pass-by-reference handle for a MissionWorkingSet (SOMETHING).
       Nested under AgentMemory (SharedLlmMemory). As-is: memnet.registry +
       session. M2.5 hydrate/flush ports to DurableBuffer — client landed;
-      live cabinet external.
+      live cabinet external. NeighbourhoodReserve nested for RSV leases.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -350,6 +371,7 @@ package MemNet {
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
+    part reserve : NeighbourhoodReserve;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -371,9 +393,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
   }
-
-  part def AgentMemory {
     doc /*
       SharedLlmMemory realisation: session-scoped property-graph working
       memory with GQL wire. Nested GraphStore, GqlCodec, PinMapShapedRead,

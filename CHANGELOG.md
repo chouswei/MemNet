@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NeighbourhoodReserve / RSV (MN-REQ-12.13, #30)** — ego leases with required `llm_id` + `ttl_s`; `reserve` / `extend` / `release` (CLI + MCP); MutateGate rejects foreign/missing holder on reserved ids; pin map may emit `## Reserves` / `RSV […]` present lines; expired leases auto-release. SysML nest under `SessionLifecycle`.
+
 ### Changed
 - **docs: one-path / 0.5.0 plan** — `docs/ROADMAP-0.5.md`; README “How to run (one path)” + known gaps; multi-layer Open § aligned; `memnet-pi` HTTP as default remote teach; Layer = 1.x teach / Tier A = legacy alias; Pi one graph owner (HTTP bridged to serve).
 - **docs: application-notes Layer teach** — circuit notes + InvAmp example use CST `ports=` / `law=` / `--bind-->` as primary; Tier A `derives` / `connects_to` / paren arrows / `@TAG` pipe demoted to legacy pointers; `docs/README.md` + `LLM-GUIDE.md` Layer pointers; golden `docs/grammar/examples/layer/layer_09_inv_amp_good.txt`.

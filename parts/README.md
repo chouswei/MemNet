@@ -24,7 +24,8 @@ Only two product parts (novel-writer is out of scope; see root `DROP-NOVEL-WRITE
 | SnapshotStore | `snapshot_store.py` (`snapshot`) | Session file; not MN-REQ-11 |
 | SessionLifecycle | `session_lifecycle.py` (`session` / `registry`) | Named sessions |
 | InProcessEngine | `in_process_engine.py` | Primary binding |
-| LocalIpcGateway | `local_ipc_gateway.py` | Stub; LocalIpcFlow unallocated |
+| LocalIpcGateway | `local_ipc_gateway.py` | Stub; LocalIpcFlow unallocated (see #50) |
+| NeighbourhoodReserve | `neighbourhood_reserve.py` | RSV leases (`llm_id` + TTL); MN-REQ-12.13 |
 | TcpServeBridge | `tcp_serve_bridge.py` (`serve`) | TCP migration |
 | CliFacade | `cli.py` | Thin entry; console script `memnet` |
 | PinMapIngest_* | `pin_map_ingest.py` | Roadmap stubs |
