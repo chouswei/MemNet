@@ -86,13 +86,29 @@ MemNetSystem                                 // SharedLlmMemory
 
 ## CapsPolicy ACL (TARGET vs as-is)
 
+### Privilege grain (analogy once)
+
+Steal ACL **grain** from Neo4j / AgensGraph-class RBAC — do **not** become those
+products. Agent wire stays **gated GQL only**. MUST NOT: Bolt as agent wire,
+LLM↔Neo4j/AgensGraph teach, or MemNet-as-Cypher-proxy.
+
+| Neo4j / AgensGraph-class | MemNet CapsPolicy ACL |
+|--------------------------|------------------------|
+| TRAVERSE / MATCH | `pin_map` (read walk / shaped ego) |
+| WRITE (CREATE / SET / DELETE) | `mutate` (`add` / `update`) |
+| label / id GRANT | `WorkerWriteScope` hard reject (cumulative OR) |
+| role / user | `caller` (who) |
+| — (not a Neo4j concept) | optional `SessionBind` = `missionId` + `lease` |
+
+Engine module: `parts/common/memnet/memnet/acl.py`.
+
 | Check | TARGET | As-is 0.4.x |
 |-------|--------|-------------|
 | Size / depth / row caps | Yes | **Shipped** (`memnet.config.Caps`) |
 | Who (CallerId) | Yes — MutateGate / PinMap / HandoffEmit consult | **Shipped when session ACL is enabled** |
-| pin_map (read) vs mutate | Distinct permissions | **Shipped when session ACL is enabled** |
-| WorkerWriteScope | **HARD reject** out-of-scope mutate | **Shipped when session ACL is enabled** |
-| Optional SessionBind | caller ↔ sessionId / missionId + lease | **Shipped when configured; in-process MAY skip bind** |
+| pin_map (TRAVERSE) vs mutate (WRITE) | Distinct permissions | **Shipped when session ACL is enabled** |
+| WorkerWriteScope (label/id GRANT) | **HARD reject** out-of-scope mutate | **Shipped when session ACL is enabled** |
+| Optional SessionBind | missionId + lease | **Shipped when configured; in-process MAY skip bind** |
 | sessionId as SessionCapability | Secret; MUST NOT dump in chat/queue | Practical join key; treat as secret in doctrine |
 
 `CapsPolicy.engineAclShipped = true` + `doctrineAsIs = false` describe the

@@ -46,10 +46,14 @@ package MemNet {
         As-is NOW (0.4.x engine): memnet.config.Caps supplies resource/query
           size limits (rows, law, relations, kinds/fields, value/line/batch
           bytes, sessions, depth, fanout), and memnet.acl enforces, when
-          session ACL is enabled, (1) who-check (CallerId), (2) pin_map
-          (read) versus mutate permission, (3) WorkerWriteScope HARD reject
-          on out-of-scope mutate, and (4) optional SessionBind (missionId +
-          lease). ACL is off by default for the legacy-green path.
+          session ACL is enabled, (1) who-check (CallerId ≈ role/user),
+          (2) pin_map (≈ TRAVERSE/MATCH) versus mutate (≈ WRITE),
+          (3) WorkerWriteScope HARD reject (≈ label/id GRANT, cumulative OR),
+          and (4) optional SessionBind (missionId + lease — MemNet-only).
+          ACL is off by default for the legacy-green path.
+      Privilege grain steals Neo4j/AgensGraph-class RBAC shape only —
+      MUST NOT Bolt agent wire, LLM↔Neo4j teach, or MemNet-as-Cypher-proxy.
+      Analogy table once: outputs/system-design-notes.md (CapsPolicy ACL).
       In-process MAY skip bind under MEMNET_SERVE_INTERNAL; an
       InvestorApi-style boundary with require_bind=true enforces it when
       configured. sessionId is a secret capability and never waives mutate.

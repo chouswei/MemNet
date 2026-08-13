@@ -39,23 +39,26 @@ package MemNetConnections {
   item def CallerId {
     doc /*
       Who identity for CapsPolicy ACL who-check (SessionHandoff.caller /
-      llm_id-class attribution). Not a graph dump; not EvidenceCentre /
-      MissionDock nesting. When session ACL is enabled, the shipped
-      memnet.acl cut makes MutateGate / PinMapShapedRead consult CapsPolicy
-      who before pin_map versus mutate. ACL is off by default. Any associated
-      sessionId remains a secret capability and MUST NOT be dumped.
+      llm_id-class attribution) — role/user grain. Not a graph dump; not
+      EvidenceCentre / MissionDock nesting. When session ACL is enabled, the
+      shipped memnet.acl cut makes MutateGate / PinMapShapedRead consult
+      CapsPolicy who before pin_map (≈ TRAVERSE) versus mutate (≈ WRITE).
+      ACL is off by default. sessionId remains a secret capability and
+      MUST NOT be dumped. Privilege analogy once:
+      outputs/system-design-notes.md (CapsPolicy ACL).
     */
     attribute value : String;
   }
 
   item def SessionBind {
     doc /*
-      Optional bind match: CallerId ↔ sessionId (and optional missionId).
-      The shipped CapsPolicy ACL cut may require the configured missionId +
-      lease bind on mutate when session ACL is enabled; in-process MAY skip
-      bind under MEMNET_SERVE_INTERNAL, while require_bind=true boundaries
-      enforce it. Distinct from dual-EDGE BindRelationship (port grain).
-      sessionId is a secret capability and MUST NOT be dumped.
+      Optional MemNet-only bind match (missionId + lease) — not a
+      Neo4j/AgensGraph privilege. The shipped CapsPolicy ACL cut may require
+      the configured missionId + lease on mutate when session ACL is enabled;
+      in-process MAY skip bind under MEMNET_SERVE_INTERNAL, while
+      require_bind=true boundaries enforce it. Distinct from dual-EDGE
+      BindRelationship (port grain). sessionId is a secret capability and
+      MUST NOT be dumped.
     */
     attribute caller : String;
     attribute sessionId : String;
@@ -344,14 +347,15 @@ package MemNetConnections {
   }
   item def WorkerWriteScope {
     doc /*
-      Parent-assigned anchors and relation scope for one MultitaskWorker.
+      Parent-assigned anchors and relation scope for one MultitaskWorker —
+      label/id GRANT grain (cumulative OR hard reject on mutate).
       Asynchronous parallel workers require disjoint scopes or separate
       sessions (MN-REQ-12.5 / 12.12).
-      CapsPolicy / MutateGate now hard-reject out-of-scope writes when
-      session ACL is enabled (WorkerWriteScope ACL). pin_map read may still
-      see the bounded ego under read permission. Reserve/overlap
-      coordination remains doctrine; sessionId is a secret capability and
-      MUST NOT be dumped.
+      CapsPolicy / MutateGate hard-reject out-of-scope writes when session
+      ACL is enabled. pin_map (≈ TRAVERSE) may still see the bounded ego
+      under read permission. Reserve/overlap coordination remains doctrine;
+      sessionId is a secret capability and MUST NOT be dumped.
+      Analogy once: outputs/system-design-notes.md (CapsPolicy ACL).
     */
   }
   item def HousekeepStats {

@@ -7,7 +7,10 @@
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
 sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /
 `WorkerWriteScope` hard reject / optional bind) is **shipped when session ACL
-is enabled** via `memnet.acl`; ACL remains off by default. Full ACL modes,
+is enabled** via `memnet.acl`; ACL remains off by default. Privilege grain
+(TRAVERSE≈`pin_map`, WRITE≈mutate, label/id GRANT≈scope) is named once in
+[`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md)
+— steal grain, not Neo4j/AgensGraph as product; GQL only. Full ACL modes,
 neighbourhood reserve, and ingest engines are **not shipped** — see
 `docs/grammar/memnet-security-multi-agent.md` and
 `docs/grammar/memnet-neighbourhood-reserve.md`.

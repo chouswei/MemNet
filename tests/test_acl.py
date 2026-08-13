@@ -115,8 +115,9 @@ def test_pin_map_composer_who(memnet_temp, schema_file):
 
 
 def test_write_scope_hard_reject(memnet_temp, schema_file):
+    """Id GRANT alone hard-rejects other ids (label GRANT not opened)."""
     ss = _open(schema_file)
-    scope = WorkerWriteScope(ids=frozenset({"PLR01"}), labels=frozenset({"PLR"}))
+    scope = WorkerWriteScope(ids=frozenset({"PLR01"}))
     ss.grant_caller("worker", can_pin_map=True, can_mutate=True, write_scope=scope)
     gate = MutateGate(ss)
     gate.apply([_PLR], mode="add", caller="worker", require_bind=True)
@@ -124,6 +125,16 @@ def test_write_scope_hard_reject(memnet_temp, schema_file):
         gate.apply([_PLR2], mode="add", caller="worker", require_bind=True)
     assert ei.value.code == "acl_scope"
     assert ss.store.get("PLR02") is None
+
+
+def test_write_scope_label_or_id_grant(memnet_temp, schema_file):
+    """Cumulative OR: label GRANT covers any id of that label."""
+    ss = _open(schema_file)
+    scope = WorkerWriteScope(ids=frozenset({"OTHER"}), labels=frozenset({"PLR"}))
+    ss.grant_caller("worker", can_pin_map=True, can_mutate=True, write_scope=scope)
+    gate = MutateGate(ss)
+    gate.apply([_PLR2], mode="add", caller="worker", require_bind=True)
+    assert ss.store.get("PLR02") is not None
 
 
 def test_write_scope_label_allow(memnet_temp, schema_file):

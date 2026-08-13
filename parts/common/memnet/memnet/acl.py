@@ -3,6 +3,20 @@
 Shipped engine gates (CapsPolicy.engineAclShipped). Session id is a secret
 capability: MUST NOT appear in error ``example`` fields or casual dumps.
 
+Privilege grain (analogy only — steal grain, do not become the product):
+Neo4j / AgensGraph-class RBAC maps onto MemNet CapsPolicy ACL as:
+
+  TRAVERSE / MATCH  ≈  pin_map   (read walk / shaped ego)
+  WRITE (CREATE/SET/DELETE)  ≈  mutate
+  label / id GRANT  ≈  WorkerWriteScope hard reject (cumulative OR)
+  role / user  ≈  caller (who)
+  optional bind  =  missionId + lease  (MemNet-only; not a Neo4j concept)
+
+Agent wire remains gated GQL only. MUST NOT: Bolt as agent wire,
+LLM↔Neo4j/AgensGraph teach, or MemNet-as-Cypher-proxy.
+Canonical table: ``sysml-models/outputs/system-design-notes.md``
+(CapsPolicy ACL — privilege grain).
+
 In-process trusted path MAY skip bind match (MEMNET_SERVE_INTERNAL=1 or
 MEMNET_ACL_SKIP_BIND=1). InvestorApi / TCP shared paths require who + bind
 when bind is configured on the session.
@@ -17,6 +31,8 @@ from typing import Iterable, Literal
 
 from memnet.exceptions import MemNetError
 
+# Public permission names (MemNet). Grain aliases are documentation only:
+# pin_map ≈ TRAVERSE/MATCH; mutate ≈ WRITE.
 Permission = Literal["pin_map", "mutate"]
 
 _SCOPE_KV = re.compile(
@@ -49,7 +65,14 @@ def skip_bind_allowed() -> bool:
 
 @dataclass(frozen=True)
 class WorkerWriteScope:
-    """Ego / label / id / relation allowlist for mutate hard reject."""
+    """Label / id / relation GRANT allowlist for mutate hard reject.
+
+    Non-empty dimensions are cumulative OR grants (Neo4j-style additive GRANT
+    grain): a node is in scope if it matches any configured id, label, or
+    ego(anchor) grant. ``relations`` grants edge types the same way.
+    ``anchors`` is MemNet ego extent (pin_map neighbourhood), not a Neo4j
+    privilege name.
+    """
 
     anchors: frozenset[str] = frozenset()
     ids: frozenset[str] = frozenset()
@@ -74,7 +97,10 @@ class WorkerWriteScope:
 
 @dataclass(frozen=True)
 class SessionBind:
-    """Optional missionId + lease bind; when set, mutate must match."""
+    """Optional missionId + lease bind; when set, mutate must match.
+
+    MemNet-only (not a Neo4j/AgensGraph privilege).
+    """
 
     mission_id: str
     lease: str
@@ -82,9 +108,11 @@ class SessionBind:
 
 @dataclass(frozen=True)
 class CallerGrant:
+    """Who grant: role/user ≈ caller; TRAVERSE≈pin_map; WRITE≈mutate."""
+
     caller: str
-    can_pin_map: bool = True
-    can_mutate: bool = True
+    can_pin_map: bool = True  # ≈ TRAVERSE / MATCH
+    can_mutate: bool = True  # ≈ WRITE
     write_scope: WorkerWriteScope | None = None
 
 
@@ -196,9 +224,10 @@ def check_permission(
     permission: Permission,
     agent: str | None = None,
 ) -> str | None:
-    """Who + pin_map-vs-mutate gate. Returns resolved caller or None if ACL off.
+    """Who + TRAVERSE/WRITE-grain gate (pin_map vs mutate).
 
-    Raises MemNetError on deny. No-op when ACL disabled.
+    Returns resolved caller, or None when ACL is off.
+    Raises MemNetError on deny.
     """
     if acl is None or not acl.enabled:
         return resolve_caller(caller, agent=agent)
@@ -221,12 +250,12 @@ def check_permission(
     if permission == "pin_map" and not grant.can_pin_map:
         raise MemNetError(
             "acl_forbidden",
-            "caller lacks pin_map (read) permission",
+            "caller lacks pin_map (TRAVERSE/MATCH read) permission",
         )
     if permission == "mutate" and not grant.can_mutate:
         raise MemNetError(
             "acl_forbidden",
-            "caller lacks mutate (write) permission",
+            "caller lacks mutate (WRITE) permission",
         )
     return who
 
@@ -238,7 +267,7 @@ def check_bind(
     lease: str | None = None,
     require: bool = True,
 ) -> None:
-    """Optional bind match for mutate.
+    """Optional MemNet bind match for mutate (missionId+lease).
 
     If session has no bind configured, no-op.
     When ``require`` is False and the in-process trusted path is active,
@@ -290,6 +319,68 @@ def _ego_ids(store, anchors: Iterable[str], *, depth: int = 2) -> set[str]:
     return allowed
 
 
+def _node_granted(
+    rid: str,
+    tag: str,
+    scope: WorkerWriteScope,
+    ego: set[str] | None,
+) -> bool:
+    """True if any non-empty node GRANT dimension matches (cumulative OR)."""
+    hits: list[bool] = []
+    if scope.ids:
+        hits.append(bool(rid) and rid in scope.ids)
+    if scope.labels:
+        hits.append(bool(tag) and tag.upper() in scope.labels)
+    if scope.anchors:
+        in_anchor = bool(rid) and (
+            rid in scope.anchors or (ego is not None and rid in ego)
+        )
+        hits.append(in_anchor)
+    if not hits:
+        # Only relation grants configured → node id/label unrestricted here
+        return True
+    # NEW mint: allow when a label GRANT covers the kind
+    if (not rid or rid.upper() == "NEW" or rid.startswith("NEW")) and scope.labels:
+        if tag.upper() in scope.labels:
+            return True
+    return any(hits)
+
+
+def _edge_granted(
+    *,
+    rid: str,
+    rel: str,
+    src: str,
+    dst: str,
+    scope: WorkerWriteScope,
+    ego: set[str] | None,
+) -> bool:
+    """True if relation GRANT or endpoint/id GRANT covers the edge."""
+    hits: list[bool] = []
+    if scope.relations:
+        hits.append(bool(rel) and rel in scope.relations)
+    if scope.ids:
+        hits.append(bool(rid) and rid in scope.ids)
+    # Endpoint coverage via id/anchor/label-less ego grants
+    if scope.ids or scope.anchors:
+        endpoints_ok = True
+        for endpoint in (src, dst):
+            if not endpoint:
+                continue
+            if scope.ids and endpoint in scope.ids:
+                continue
+            if scope.anchors and (
+                endpoint in scope.anchors or (ego is not None and endpoint in ego)
+            ):
+                continue
+            endpoints_ok = False
+            break
+        hits.append(endpoints_ok)
+    if not hits:
+        return True
+    return any(hits)
+
+
 def check_write_scope(
     acl: SessionAcl | None,
     *,
@@ -299,10 +390,11 @@ def check_write_scope(
     agent: str | None = None,
     override_scope: WorkerWriteScope | None = None,
 ) -> None:
-    """Hard-reject mutate records outside WorkerWriteScope.
+    """Hard-reject mutate records outside WorkerWriteScope (label/id GRANT).
 
     Scope source: override_scope, else caller's grant.write_scope.
     Empty / absent scope → no id-level gate (permission already checked).
+    Non-empty grant dimensions are cumulative OR.
     """
     if acl is None or not acl.enabled:
         return
@@ -330,62 +422,22 @@ def check_write_scope(
 
         if is_edge:
             rel = (fields.get("relation") or fields.get("type") or "").lower()
-            if scope.relations and rel and rel not in scope.relations:
-                raise MemNetError(
-                    "acl_scope",
-                    f"relation {rel!r} outside WorkerWriteScope",
-                )
             src = fields.get("src") or fields.get("from") or ""
             dst = fields.get("dist") or fields.get("to") or ""
-            for endpoint in (src, dst):
-                if endpoint and not _id_in_scope(endpoint, scope, ego):
-                    # endpoints may be new; allow if labels gate only and no ids/anchors
-                    if scope.ids or scope.anchors:
-                        raise MemNetError(
-                            "acl_scope",
-                            "edge endpoint outside WorkerWriteScope",
-                        )
-            continue
-
-        # Node
-        if scope.labels and tag.upper() not in scope.labels:
-            # label gate only applies when labels list is non-empty
-            if not _id_in_scope(rid, scope, ego):
+            if not _edge_granted(
+                rid=rid, rel=rel, src=src, dst=dst, scope=scope, ego=ego
+            ):
                 raise MemNetError(
                     "acl_scope",
-                    f"label {tag!r} / id outside WorkerWriteScope",
+                    "edge outside WorkerWriteScope (relation/id GRANT)",
                 )
             continue
-        if not _id_in_scope(rid, scope, ego):
-            # NEW mint: allow when label allowed or only relation scope set
-            if rid.upper() == "NEW" or rid.startswith("NEW"):
-                if scope.labels and tag.upper() in scope.labels:
-                    continue
-                if not scope.ids and not scope.anchors:
-                    continue
+
+        if not _node_granted(rid, tag, scope, ego):
             raise MemNetError(
                 "acl_scope",
-                "id outside WorkerWriteScope",
+                "id/label outside WorkerWriteScope (GRANT)",
             )
-
-
-def _id_in_scope(
-    rid: str,
-    scope: WorkerWriteScope,
-    ego: set[str] | None,
-) -> bool:
-    if not rid:
-        return False
-    if scope.ids and rid in scope.ids:
-        return True
-    if ego is not None and rid in ego:
-        return True
-    if scope.anchors and rid in scope.anchors:
-        return True
-    # If only labels/relations configured (no ids/anchors), id gate is open
-    if not scope.ids and not scope.anchors:
-        return True
-    return False
 
 
 def redact_session_secret(message: str, session_id: str | None) -> str:
