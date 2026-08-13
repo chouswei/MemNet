@@ -13,9 +13,10 @@ Novel-writer is out of scope.
 ## Product framing (2026-08-13)
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
-2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph.
-3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**.
-4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb`. Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
+2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
+3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5** (WAIT this ACL cut).
+4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb` (WAIT absorb depth). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
+5. **ACL TARGET (model-first)** — CapsPolicy beyond size: who / pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind. MutateGate, PinMapShapedRead, SessionHandoffEmit consult. **As-is:** size caps only; `engineAclShipped=false` (MN-REQ-12.7).
 
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
@@ -77,7 +78,20 @@ MemNetSystem                                 // SharedLlmMemory
 
 **How lead gets member WM:** happy path A shared session → re-`pin_map` (ImportGuard unused); else path B export slice → optional `ImportGuard` → `ImportAbsorb` into lead session.
 
-**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). `WorkerWriteScope` enforcement is host/doctrine until engine hard-gates (doctrineAsIs; not fake ACL).
+**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). **TARGET:** CapsPolicy hard-rejects out-of-scope mutate. **As-is:** host/doctrine (`engineAclShipped=false`; last-write-wins if violated — not fake ACL).
+
+## CapsPolicy ACL (TARGET vs as-is)
+
+| Check | TARGET | As-is 0.4.x |
+|-------|--------|-------------|
+| Size / depth / row caps | Yes | **Shipped** (`memnet.config.Caps`) |
+| Who (CallerId) | Yes — MutateGate / PinMap / HandoffEmit consult | Not shipped |
+| pin_map (read) vs mutate | Distinct permissions | Not shipped |
+| WorkerWriteScope | **HARD reject** out-of-scope mutate | Host/doctrine; last-write-wins |
+| Optional SessionBind | caller ↔ sessionId / missionId | Not shipped |
+| sessionId as SessionCapability | Secret; MUST NOT dump in chat/queue | Practical join key; treat as secret in doctrine |
+
+`CapsPolicy.engineAclShipped = false` + `doctrineAsIs = true` satisfy MN-REQ-12.7 honesty. Durable / mission_open / ImportAbsorb / reserve WAIT.
 
 ## Behaviours
 
@@ -106,14 +120,16 @@ MemNetSystem                                 // SharedLlmMemory
 | GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
 | GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
-| PinMapShapedRead | `pin_map_composer.py` | Shaped GQL subgraph emit (M2) |
-| MutateGate | `mutate_gate.py` | GQL primary; Layer/Tier A rejected |
-| AgensGraphAdapter | — | Planned **M2.5** |
+| PinMapShapedRead | `pin_map_composer.py` | Shaped GQL subgraph emit (M2); ACL read consult TARGET only |
+| MutateGate | `mutate_gate.py` | GQL primary; Layer/Tier A rejected; ACL mutate consult TARGET only |
+| CapsPolicy | `config.Caps` | Size caps shipped; ACL who/read-vs-mutate/scope/bind **TARGET** (`engineAclShipped=false`) |
+| AgensGraphAdapter | — | Planned **M2.5** (WAIT) |
 
-## Satisfy (MN-REQ-12 import + async)
+## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
 | Leaf | Parts |
 |------|-------|
+| 12.7 NoAssumeAclReserveIngest | CapsPolicy, MutateGate, PinMapShapedRead, SessionHandoffEmit, AsyncTaskDispatch, Coordinator, Worker, WorkerPool |
 | 12.9 LeadOwnsSessionImport | Coordinator, SessionImportReceive, ImportAbsorb, SessionLifecycle |
 | 12.10 NoChatOrWholeStoreImport | Coordinator, Worker, ImportGuard, ImportAbsorb |
 | 12.11 CheapLlmImportGuardSoft (OPTIONAL soft policy) | ImportGuard, SessionImportReceive |
@@ -126,9 +142,11 @@ MemNetSystem                                 // SharedLlmMemory
 - **M2.5:** AgensGraph adapter — plan only ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite (plan)
 - ImportGuard — **optional** soft policy (path B); happy path A = re-pin without guard; doctrine nested, engine soft-guard not claimed shipped
-- ImportAbsorb — doctrine nested; engine hard absorb not claimed fully shipped
-- WorkerWriteScope — host/doctrine enforcement until engine hard-gates (doctrineAsIs; see async-parallel study)
-- MN-REQ-12.7 ACL/reserve/ingest still to-be
+- ImportAbsorb — doctrine nested; engine hard absorb WAIT / not claimed fully shipped
+- CapsPolicy ACL TARGET (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **modelled**; `engineAclShipped=false` (MN-REQ-12.7)
+- WorkerWriteScope — TARGET hard reject via CapsPolicy; as-is host/doctrine (see async-parallel study)
+- MN-REQ-12.7 ACL/reserve/ingest — as-is still to-be for engine; reserve + ingest WAIT
 - `LocalIpcFlow` when LocalIpcGateway is implemented
 - PinMapIngest (roadmap-only; domainVariant) deterministic locators
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
+- EvidenceCentre / MissionDock / CompanyMemory — application patterns only; MUST NOT nest under MemNetSystem

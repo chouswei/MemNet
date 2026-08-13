@@ -65,8 +65,9 @@ package MemNetBehaviour {
   }
   attribute def EvHandoffSessionId {
     doc /*
-      Parent delivers SessionHandoff (session id + optional anchors /
-      writeScope) to a peer. Pass-by-reference for MissionWorkingSet SSOT.
+      Parent delivers SessionHandoff (SessionCapability sessionId + CallerId;
+      optional anchors / writeScope) to a peer. Pass-by-reference for
+      MissionWorkingSet SSOT. sessionId MUST NOT dump in chat/queue.
     */
   }
   attribute def EvDumpGraphInChat {
@@ -634,6 +635,8 @@ package MemNetBehaviour {
       doc /*
         Mutate under WorkerWriteScope only. MUST NOT invent parent-minted
         ids; MUST NOT settle parent TSK_* / USR_* unless delegated.
+        TARGET: CapsPolicy hard-rejects out-of-scope mutate. As-is: host/
+        doctrine (MN-REQ-12.7 — do not assume shipped ACL).
       */
     }
     transition worker_mutate_ok
@@ -819,11 +822,13 @@ package MemNetBehaviour {
     doc /*
       Explicit handoff of a MissionWorkingSet whose SSOT is the session
       (inter-module A → B pipe as well as parent → worker): source emits
-      SessionHandoff (sessionId + caller; optional missionId / lease /
-      anchors / writeScope) → sink pin_map → mutate still hits CapsPolicy.
-      Shared session = same id; else worker session → lead import_slice.
-      Contrasts forbidden EvDumpGraphInChat. Composes with EvDelegateWorker /
-      MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
+      SessionHandoff (SessionCapability sessionId + CallerId; optional
+      missionId / lease / anchors / writeScope) → sink pin_map → mutate
+      still hits CapsPolicy ACL TARGET (who / pin_map-vs-mutate / scope /
+      bind; as-is engineAclShipped=false). Shared session = same id; else
+      worker session → lead import_slice. sessionId MUST NOT dump in
+      chat/queue. Contrasts forbidden EvDumpGraphInChat. Composes with
+      EvDelegateWorker / MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
     */
     entry;
     then handoffIdle;
@@ -846,9 +851,10 @@ package MemNetBehaviour {
 
     state deliveringSessionId {
       doc /*
-        Source delivers SessionHandoff only — sessionId + caller (optional
-        missionId / lease / anchors / writeScope). MUST NOT attach a graph
-        dump in chat, MissionDock, or HTTP body.
+        Source delivers SessionHandoff only — SessionCapability sessionId +
+        CallerId (optional missionId / lease / anchors / writeScope).
+        MUST NOT attach a graph dump; MUST NOT dump sessionId in chat/queue,
+        MissionDock, or HTTP body.
       */
     }
     transition deliver_to_worker_open

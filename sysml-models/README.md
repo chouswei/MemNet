@@ -9,7 +9,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 ## Product framing (2026-08-13)
 
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
-2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph.
+2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
 3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5** client hydrate/flush landed; live AgensGraph path needs external cabinet (not claimed verified). LLM↔store direct out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (cheap LLM soft policy) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 
@@ -19,7 +19,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff, WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot`; retired TierA archive |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot`; retired TierA archive |
 | `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.12 import + guard + async) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/dispatch/WorkerPool spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
@@ -73,8 +73,9 @@ MemNetSystem                                 // SharedLlmMemory product
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 - **Roadmap-only stubs:** PinMapRoadmap / PinMapIngest (domainVariant: sysml|codebase|pcbaAto|skillsRules)
 - **Optional soft policy:** ImportGuard (path B); happy path A = re-pin without guard
-- **WorkerWriteScope:** host/doctrine enforcement until engine hard-gates (not fake ACL)
-- **Out of scope:** novel-writer
+- **WorkerWriteScope:** TARGET = CapsPolicy / MutateGate hard reject; as-is = host/doctrine (`engineAclShipped=false`; not fake ACL)
+- **CapsPolicy ACL TARGET:** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind — MutateGate, PinMapShapedRead, SessionHandoffEmit consult; size caps as-is only in 0.4.x engine
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory MUST NOT nest under MemNetSystem
 
 ## Case studies
 

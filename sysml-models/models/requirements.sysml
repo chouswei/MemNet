@@ -916,6 +916,10 @@ package MemNetRequirements {
           engines are shipped or enforced. Those remain design/roadmap
           (MN-REQ-11 stubs; grammar security/reserve docs). Seed external pins
           via session_open seed_lines or add with explicit locator ids.
+          Model TARGET: CapsPolicy documents who / pin_map-vs-mutate /
+          WorkerWriteScope hard reject / optional bind — with
+          engineAclShipped=false. MUST NOT treat CapsPolicy ACL TARGET attrs
+          as live engine gates until shipped.
         */
         attribute requirementId : String = "MN-REQ-12.7";
       }
