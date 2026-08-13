@@ -132,9 +132,11 @@ pip install memnet-llm
 pip install -e ".[dev]"
 # optional MCP:
 pip install memnet-llm[mcp]
+# optional durable client (psycopg only — not an AgensGraph server):
+pip install memnet-llm[agensgraph]
 ```
 
-PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project).
+PyPI name is **`memnet-llm`** (`memnet` on PyPI is a different project). The AgensGraph cabinet is external and not vendored; live path is not claimed.
 
 ---
 
