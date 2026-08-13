@@ -88,11 +88,10 @@ package MemNetConnections {
       session ACL is enabled (who / pin_map-vs-mutate / WorkerWriteScope
       hard reject / optional bind) — a session id is not a mutate waiver.
       sessionId remains a secret capability and MUST NOT be dumped.
-      Shared session = same sessionId
-      (path A re-pin). Else worker session → lead import of a
-      WorkingMemorySlice (path B SessionImportReceive / import_slice).
-      MissionDock / EvidenceCentre are application patterns — MUST NOT
-      nest under MemNetSystem. GQL only.
+      Shared session = same sessionId (path A pin_map only). Else worker
+      session → lead path B WorkingMemorySlice → SessionImportReceive /
+      import_slice. MissionDock / EvidenceCentre are application patterns —
+      MUST NOT nest under MemNetSystem. GQL only.
       Required: sessionId, caller (CallerId). Optional: missionId, lease
       (reserve design; WAIT / not this ACL cut), anchors,
       writeScope (Multitask WorkerWriteScope). MUST NOT carry a full
@@ -108,10 +107,11 @@ package MemNetConnections {
 
   item def WorkingMemorySlice {
     doc /*
-      Bounded export of a team member's working memory (worker session or
-      scoped subgraph) for lead SessionImportReceive path B. Carries source
-      sessionId, anchors, depth/view budget, and shaped pin payload — not a
-      whole-store dump. Macro session-import vehicle at settle time.
+      Bounded member WM export for path B SessionImportReceive. Carries
+      sourceSessionId, anchors, depth/view, and shaped pin records (nodes
+      then edges). Engine WorkingMemorySliceExport SHALL require anchors,
+      enforce slice budget, exclude LAW/vocab, and MUST NOT dump the whole
+      store. LLM MAY choose anchors/depth/view. Not N-server federation.
     */
     attribute sourceSessionId : String;
     attribute anchors : String;
@@ -121,12 +121,11 @@ package MemNetConnections {
 
   item def SessionImportRequest {
     doc /*
-      Lead-owned request to import a member WorkingMemorySlice into the
-      mission (lead) session. Metaphor: team lead imports member WM
-      (colloquial "session merge" means this import — not a product type
-      name). Id policy may use Cypher MERGE (upsert by id) / reject /
-      remint NEW — GQL upsert mechanics only. Distinct from micro
-      in-session node re-id (merge=true security design).
+      Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
+      into the mission session. idPolicy: keep | reject | remint
+      (keep = MERGE-by-id upsert into lead SSOT — not append / not a second
+      copy). Distinct from micro merge=true (in-session re-id). Product
+      types are SessionImport* only — no SessionMerge*.
     */
     attribute leadSessionId : String;
     attribute memberSessionId : String;
@@ -135,14 +134,16 @@ package MemNetConnections {
 
   item def ImportGuardDecision {
     doc /*
-      OPTIONAL soft-policy outcome from ImportGuard (cheap LLM) on path B only:
-      allow / trim / reject plus a short reason. Happy path A (shared session)
-      = re-pin_map without ImportGuard / without this decision. Recorded as
-      structured atoms — MUST NOT make guard chat the SSOT. Does not replace
-      engine hard gates. Soft policy may be skipped when host disables guard.
+      OPTIONAL soft outcome from ImportGuard on path B only:
+      allow | trim | reject + short reason. trim is subtractive: keepIds
+      lists retained record ids (engine drops dangling edges). Happy path A
+      = re-pin_map without this decision. Structured atoms only — MUST NOT
+      make guard chat the SSOT. Does not replace engine hard gates. Host
+      MAY skip ImportGuard (GuardPassthrough).
     */
     attribute outcome : String;
     attribute reason : String;
+    attribute keepIds : String;
   }
 
   item def DurableGraphStore {

@@ -84,46 +84,54 @@ package MemNetBehaviour {
   }
   attribute def EvRequestSessionImport {
     doc /*
-      Lead issues SessionImportRequest (path B separate sessions). Macro
-      session import — not micro in-session node re-id (merge=true), and not
-      Cypher MERGE (upsert-by-id) as the product verb.
+      Lead issues SessionImportRequest (path B separate sessions). Product
+      verb = import — not micro merge=true, not SessionMerge*.
     */
   }
   attribute def EvExportWorkingMemorySlice {
     doc /*
-      Member exports bounded WorkingMemorySlice (anchors, depth/view, pins).
-      MUST NOT be a whole-store dump.
+      Member WorkingMemorySliceExport: bounded slice (anchors required,
+      budget, LAW excluded). MUST NOT be a whole-store dump. LLM MAY choose
+      anchors.
     */
   }
   attribute def EvGuardReviewSlice {
     doc /*
-      ImportGuard (cheap LLM) soft-reviews WorkingMemorySlice before lead
-      mutate: scope fit, junk/off-mission, invented ids, size/settle noise.
+      ImportGuard soft-reviews WorkingMemorySlice before ImportAbsorb:
+      scope fit, junk trim (subtractive), invented ids, size/settle noise,
+      optional keep-vs-remint advice.
     */
   }
   attribute def EvGuardAllow {
-    doc /* ImportGuardDecision outcome=allow; proceed to import mutate. */
+    doc /* ImportGuardDecision outcome=allow; proceed to ImportAbsorb. */
   }
   attribute def EvGuardTrim {
     doc /*
-      ImportGuardDecision outcome=trim; lead imports reduced slice (reason
-      recorded as structured atoms — not guard chat as SSOT).
+      ImportGuardDecision outcome=trim (subtractive keep_ids); ImportAbsorb
+      imports reduced slice. Decision atoms — not guard chat as SSOT.
     */
   }
   attribute def EvGuardReject {
-    doc /* ImportGuardDecision outcome=reject; do not mutate lead session. */
+    doc /* ImportGuardDecision outcome=reject; no lead mutate. */
+  }
+  attribute def EvGuardSkip {
+    doc /*
+      Host disables ImportGuard (GuardPassthrough); slice proceeds to
+      ImportAbsorb without ImportGuardDecision. Path A never uses this.
+    */
   }
   attribute def EvImportWorkingMemorySlice {
     doc /*
-      Lead imports WorkingMemorySlice into mission session under id policy
-      (Cypher MERGE same id / reject conflict / remint NEW); edges after nodes.
-      Runs only after ImportGuard allow/trim (path B) or skip when disabled.
+      Lead ImportAbsorb under id_policy keep|reject|remint (keep =
+      MERGE-by-id upsert into lead SSOT; reject = id_conflict no mutate;
+      remint = NEW ids, lead old stay, edges retarget); nodes then edges.
+      After ImportGuard allow/trim or EvGuardSkip.
     */
   }
   attribute def EvSharedSessionRepin {
     doc /*
-      Path A: lead and member already share one session; lead "receives"
-      member WM by re-pin_map only — no WorkingMemorySlice import.
+      Path A: shared mission sessionId; lead receives member WM by
+      pin_map only — no WorkingMemorySlice, no ImportGuard, no ImportAbsorb.
     */
   }
   attribute def EvHydrateFromDurable {
@@ -954,21 +962,11 @@ package MemNetBehaviour {
 
   state def SessionImportReceive {
     doc /*
-      Team lead imports a team member's working memory into the mission
-      session (product verb = import; colloquial "session merge" means this
-      import only — no SessionMerge* type names). Parent mission session =
-      lead WM (SSOT). Worker session or scoped slice = member WM.
-      Happy path A (preferred Multitask default): already shared session →
-      EvSharedSessionRepin (lead re-pin_map; no second store; import nest
-      skipped; ImportGuard not used). Path B: separate sessions → export
-      WorkingMemorySlice → optional ImportGuard (cheap LLM soft policy) →
-      owner-gated id policy (reject/remint/Cypher MERGE upsert) →
-      ImportAbsorb → settle TSK_* in lead session.
-      Chat is never the import payload (EvImportFromChat forbidden).
-      Whole-store dump and dual-writer during import forbidden. Distinct
-      from micro in-session node re-id (merge=true) and from naming this
-      behaviour after Cypher MERGE. Hosted by MultitaskOperatingModel.
-      Case study: outputs/session-import-case-study.md.
+      Path B: lead ImportAbsorb of member WorkingMemorySlice (optional
+      ImportGuard soft → engine hard). Path A: EvSharedSessionRepin only —
+      this import nest skipped. Product verb = import (SessionImport*).
+      Chat never payload; whole-store dump forbidden. Hosted by
+      MultitaskOperatingModel. Case study: outputs/session-import-case-study.md.
     */
     entry;
     then importIdle;
@@ -991,20 +989,15 @@ package MemNetBehaviour {
 
     state pathASharedRepin {
       doc /*
-        Path A happy path: whiteboard already shared. Lead re-pin_map on
-        mission session; member facts already visible. No SessionImportRequest.
-        ImportGuard is OPTIONAL soft policy — unused on this path unless an
-        audit slice is explicitly exported.
+        Path A: shared mission sessionId. Lead pin_map only; member facts
+        already in SSOT. No SessionImportRequest, no ImportGuard, no
+        ImportAbsorb.
       */
     }
     transition path_a_pin_map
       first pathASharedRepin
       accept EvPinMapRead
       then pathASharedRepin;
-    transition path_a_optional_guard
-      first pathASharedRepin
-      accept EvGuardReviewSlice
-      then pathBGuarding;
     transition path_a_settle
       first pathASharedRepin
       accept EvSettleMissionTask
@@ -1032,14 +1025,18 @@ package MemNetBehaviour {
 
     state pathBExporting {
       doc /*
-        Member exports bounded WorkingMemorySlice (sessionId, anchors,
-        depth/view, shaped pins) — not whole store.
+        WorkingMemorySliceExport (engine hard): anchors required, slice
+        budget, LAW/vocab excluded — not whole store. LLM MAY choose anchors.
       */
     }
     transition export_to_guard
       first pathBExporting
       accept EvGuardReviewSlice
       then pathBGuarding;
+    transition export_to_absorb_skip_guard
+      first pathBExporting
+      accept EvGuardSkip
+      then pathBImporting;
     transition export_fail
       first pathBExporting
       accept EvError
@@ -1047,10 +1044,9 @@ package MemNetBehaviour {
 
     state pathBGuarding {
       doc /*
-        ImportGuard (cheap LLM) soft-reviews slice before lead mutate.
-        Soft checks only: assigned scope?, junk/off-mission?, invented ids?,
-        oversized/settle noise?. MUST NOT replace schema/caps/id-policy/owner
-        hard gates. Decision recorded as ImportGuardDecision atoms.
+        ImportGuard soft (LLM MAY): SoftScopeFit / SoftJunkTrim (subtractive)
+        / SoftInventedId / SoftSizeNoise / SoftIdPolicyAdvice → SoftDecisionEmit.
+        MUST NOT replace engine hard gates. Decision = structured atoms.
       */
     }
     transition guard_allow
@@ -1072,9 +1068,11 @@ package MemNetBehaviour {
 
     state pathBImporting {
       doc /*
-        Lead imports (after allow/trim): id policy may apply Cypher MERGE
-        same id / reject conflict / remint NEW; commit nodes then edges into
-        mission GraphStore.
+        ImportAbsorb engine hard: DistinctSessionGate → AclConsultAbsorb →
+        SchemaValidateImport → IdPolicyApply (keep|reject|remint) →
+        NodesThenEdgesCommit; optional GuardDecisionAtomRecord.
+        keep = MERGE-by-id upsert into lead SSOT; reject = id_conflict no
+        mutate; remint = NEW ids, lead old stay, edges retarget.
       */
     }
     transition import_ok
@@ -1120,8 +1118,8 @@ package MemNetBehaviour {
 
     state importRejected {
       doc /*
-        EvImportFromChat / graph-dump / dual-writer / ImportGuard reject.
-        Recover via path A repin or path B bounded slice + guard allow/trim.
+        EvImportFromChat / graph-dump / ImportGuard reject / id_conflict.
+        Recover via path A repin or path B bounded slice + allow/trim/skip.
       */
     }
     transition rejected_to_path_a

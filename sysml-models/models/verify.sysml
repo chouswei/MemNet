@@ -232,10 +232,9 @@ package MemNetVerification {
 
   verification def MN_VER_12_S10_SharedSessionReceive {
     doc /*
-      Session-import case study scenario A — shared session import path
-      (MN-REQ-12.9 path A). Lead + member on one session id; lead imports
-      via EvSharedSessionRepin / re-pin_map; SessionImportReceive.pathASharedRepin.
-      No macro WorkingMemorySlice import; not a second store.
+      Path A (MN-REQ-12.9): shared mission sessionId → lead pin_map only
+      (EvSharedSessionRepin / pathASharedRepin). No WorkingMemorySlice, no
+      ImportGuard, no ImportAbsorb.
     */
     attribute verificationId : String = "MN-VER-12-S10";
 
@@ -252,12 +251,12 @@ package MemNetVerification {
 
   verification def MN_VER_12_S11_SeparateSessionImport {
     doc /*
-      Session-import case study scenario B — separate sessions → import
-      (MN-REQ-12.9 / 12.10). Lead SessionImportRequest; member
-      WorkingMemorySlice; ImportGuard then ImportAbsorb under owner-gated
-      id policy; settle TSK_* in lead session. Forbidden EvImportFromChat /
-      whole-store dump. Distinct from micro merge=true and from Cypher
-      MERGE as product name.
+      Path B — separate sessions → ImportAbsorb (MN-REQ-12.9 / 12.10).
+      Lead SessionImportRequest; WorkingMemorySliceExport; optional
+      ImportGuard; ImportAbsorb IdPolicyApply keep|reject|remint; settle
+      TSK_*. Forbidden EvImportFromChat / whole-store dump. Nested hard
+      leaves: DistinctSessionGate, AclConsultAbsorb, SchemaValidateImport,
+      LawVocabExclude, NodesThenEdgesCommit.
     */
     attribute verificationId : String = "MN-VER-12-S11";
 
@@ -270,16 +269,26 @@ package MemNetVerification {
       verify noChatOrWholeStoreImportReq;
       require constraint {
         multitask.coordinator.doctrineAsIs == true
+          and multitask.coordinator.importReceive.absorb.gateKind == "hard"
+          and multitask.coordinator.importReceive.absorb.actor == "engine"
+          and multitask.coordinator.importReceive.absorb.idPolicy.keep.idPolicy
+            == "keep"
+          and multitask.coordinator.importReceive.absorb.idPolicy.reject.idPolicy
+            == "reject"
+          and multitask.coordinator.importReceive.absorb.idPolicy.remint.idPolicy
+            == "remint"
       }
     }
   }
 
   verification def MN_VER_12_S12_ImportGuardSoft {
     doc /*
-      MN-REQ-12.11 — ImportGuard cheap-LLM soft review nested under
-      SessionImportReceive before ImportAbsorb. Outcomes allow/trim/reject;
-      MUST NOT replace hard gates; guard chat not SSOT.
-      Subject path: MultitaskOperatingModel.coordinator.importReceive.guard.
+      MN-REQ-12.11 — ImportGuard soft nest under SessionImportReceive before
+      ImportAbsorb. Soft leaves: SoftScopeFit / SoftJunkTrim (subtractive) /
+      SoftInventedId / SoftSizeNoise / SoftIdPolicyAdvice / SoftDecisionEmit;
+      GuardPassthrough when skipped. Outcomes allow|trim|reject; MUST NOT
+      replace hard gates; guard chat not SSOT.
+      Subject: MultitaskOperatingModel.coordinator.importReceive.guard.
     */
     attribute verificationId : String = "MN-VER-12-S12";
 
@@ -290,7 +299,10 @@ package MemNetVerification {
       verify cheapLlmImportGuardSoftReq;
       require constraint {
         multitask.coordinator.importReceive.guard.costTier == "cheap"
-          and multitask.coordinator.importReceive.guard.doctrineAsIs == true
+          and multitask.coordinator.importReceive.guard.gateKind == "soft"
+          and multitask.coordinator.importReceive.guard.junkTrim.trimMode
+            == "subtractive"
+          and multitask.coordinator.importReceive.absorb.gateKind == "hard"
       }
     }
   }
