@@ -382,9 +382,7 @@ class MutateGate:
         # Successful rename_id ops — inverted on MemNetError (before upsert/drop undo).
         # Entry: (old_id, new_id, merge, source_backup, endpoint_changes).
         # endpoint_changes: (edge_id, "src"|"dist") that pointed at old_id before rename.
-        applied_renames: list[
-            tuple[str, str, bool, Record, list[tuple[str, str]]]
-        ] = []
+        applied_renames: list[tuple[str, str, bool, Record, list[tuple[str, str]]]] = []
         replaced_ids: set[str] = set()
 
         def _snapshot(rec: Record) -> Record:
@@ -462,9 +460,7 @@ class MutateGate:
                             _remember_replaced(target_pre)
                     warns = self.ss.store.rename_id(old_id, new_id, merge=True)
                     warnings.extend(warns)
-                    applied_renames.append(
-                        (old_id, new_id, True, source_backup, ep_changes)
-                    )
+                    applied_renames.append((old_id, new_id, True, source_backup, ep_changes))
                     if field_keys:
                         target = self.ss.store.get(new_id)
                         if target is None:
@@ -497,16 +493,12 @@ class MutateGate:
                     warns = self.ss.store.rename_id(old_id, new_id, merge=False)
                     warnings.extend(warns)
                     if old_id != new_id:
-                        applied_renames.append(
-                            (old_id, new_id, False, source_backup, ep_changes)
-                        )
+                        applied_renames.append((old_id, new_id, False, source_backup, ep_changes))
             self.ss.mark_written()
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
             store = self.ss.store
-            for old_id, new_id, merge_flag, source_backup, ep_changes in reversed(
-                applied_renames
-            ):
+            for old_id, new_id, merge_flag, source_backup, ep_changes in reversed(applied_renames):
                 if merge_flag:
                     # Restore deleted source, then put retargeted endpoints back.
                     if old_id not in store.by_id:
