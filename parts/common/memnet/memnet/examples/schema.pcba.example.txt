@@ -1,0 +1,8 @@
+# Shared-dialect session map for Path-B PCBA Atopile .ato ingest (MN-REQ-11.9, 11.14–11.15).
+# session_open --map-file schema.pcba.example.txt
+# Built-in LAW / EDG are merged automatically — do not redefine them here.
+SCHEMA CMP ; fields=id name refdes path ato_type recycle
+SCHEMA NET ; fields=id name net path recycle
+SCHEMA PIN ; fields=id name refdes pin path recycle
+SCHEMA TSK ; fields=id goal anchor status recycle
+SCHEMA USR ; fields=id topic content status recycle

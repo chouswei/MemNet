@@ -67,7 +67,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   └── CliFacade
 ├── MemNetMcpServer
 ├── DurableBuffer → AgensGraphAdapter        // M2.5 client landed; live cabinet external
-├── PinMapRoadmap                            // ROADMAP-ONLY (PinMapIngest variants)
+├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit

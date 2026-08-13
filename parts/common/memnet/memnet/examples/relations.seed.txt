@@ -20,6 +20,9 @@ contains
 defines
 implements
 calls
+includes
+uses
+on_net
 tests
 documents
 satisfies
@@ -28,6 +31,8 @@ next
 delegates
 overrides
 governs
+paired_with
+triggers
 preempts
 memberOf
 mentions

@@ -17,7 +17,7 @@
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
-    ├── PinMapRoadmap               // PinMapIngest_Sysml shipped; other domains interface-only
+    ├── PinMapRoadmap               // all PinMapIngest_* domains shipped (#64)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
         │   ├── SessionHandoffEmit        // session id + scope handoff
@@ -181,7 +181,7 @@ package MemNet {
   part def IdAllocator {
     doc /*
       Two mint paths: (1) LLM goldfish mutate -- NEW -> engine id;
-      (2) PinMapIngest_Sysml (as-is) / other PinMapIngest_* (roadmap) --
+      (2) PinMapIngest_* domains (Sysml/Codebase/PcbaAto/SkillsRules) --
       deterministic id from locator key. As-is: memnet.id_allocator.
     */
     port recordsIn : GraphRecordInPort;
@@ -613,8 +613,8 @@ package MemNet {
 
   // =====================================================================
   // MN-REQ-11 Path-B PinMapIngest (selective external artefact → pins)
-  // First engine = Sysml (domainVariant default / ship order).
-  // Codebase / PcbaAto / SkillsRules remain interface-only until shipped.
+  // Domains shipped: Sysml, Codebase, PcbaAto, SkillsRules (#31 / #64).
+  // Export / round-trip (MN-REQ-11.1–11.5) is separate (#66) — not claimed.
   // Module: memnet.pin_map_ingest. Distinct from SnapshotStore + live
   // PinMapShapedRead. MUST NOT invent N-server federation.
   // =====================================================================
@@ -671,69 +671,85 @@ package MemNet {
   part def PinMapIngest_Codebase {
     doc /*
       Path-B codebase pin map (MOD / SYM; path=, line=, signature=).
-      Interface clear; NOT implemented yet (MN-REQ-11.6–11.8). Prefer seed /
-      explicit add until shipped. MUST NOT stub-as-done.
+      As-is: implemented (MN-REQ-11.6–11.8, 11.13, 11.16; issue #64).
+      Module: memnet.pin_map_ingest.PinMapIngest_Codebase.
+      CLI: memnet ingest codebase; MCP: ingest_codebase.
     */
     attribute domainVariant : String = "codebase";
-    attribute implemented : Boolean = false;
-    attribute roadmapOnly : Boolean = true;
+    attribute implemented : Boolean = true;
+    attribute roadmapOnly : Boolean = false;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute nodeKinds : String = "MOD,SYM";
+    attribute edgeRelations : String = "defines,calls,includes,owns,uses";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_6_SnapshotCodebaseIntoGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_7_CodebaseNodesAreModulesSymbols;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_8_CodebaseEdgesAreRelations;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
   part def PinMapIngest_PcbaAto {
     doc /*
       Path-B PCBA Atopile .ato pin map (CMP / NET / PIN; refdes=, net=, pin=,
-      path=). Interface clear; NOT implemented yet (MN-REQ-11.9, 11.14–11.15).
+      path=). As-is: implemented (MN-REQ-11.9, 11.14–11.15, 11.13, 11.16;
+      issue #64). Module: memnet.pin_map_ingest.PinMapIngest_PcbaAto.
+      CLI: memnet ingest pcba; MCP: ingest_pcba.
     */
     attribute domainVariant : String = "pcbaAto";
-    attribute implemented : Boolean = false;
-    attribute roadmapOnly : Boolean = true;
+    attribute implemented : Boolean = true;
+    attribute roadmapOnly : Boolean = false;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute nodeKinds : String = "CMP,NET,PIN";
+    attribute edgeRelations : String = "owns,on_net,uses";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_9_SnapshotAtoIntoGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_14_PcbaAtoNodesAreNetsComponentsPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_15_PcbaAtoEdgesAreConnectivity;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
   part def PinMapIngest_SkillsRules {
     doc /*
       Path-B agent skills/rules pin map (SKL / RUL; skill_id=, phrase=).
-      Interface clear; NOT implemented yet (MN-REQ-11.10–11.12).
+      As-is: implemented (MN-REQ-11.10–11.12, 11.13, 11.16; issue #64).
+      Module: memnet.pin_map_ingest.PinMapIngest_SkillsRules.
+      CLI: memnet ingest skills; MCP: ingest_skills.
     */
     attribute domainVariant : String = "skillsRules";
-    attribute implemented : Boolean = false;
-    attribute roadmapOnly : Boolean = true;
+    attribute implemented : Boolean = true;
+    attribute roadmapOnly : Boolean = false;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute nodeKinds : String = "SKL,RUL";
+    attribute edgeRelations : String = "paired_with,triggers,governs,uses";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_11_SkillsAndRulesAreNodes;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_12_SkillsRulesEdgesAreRelations;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
   part def PinMapRoadmap {
     doc /*
-      Path-B PinMapIngest nest. Ship order: Sysml first (implemented), then
-      Codebase, PcbaAto, SkillsRules (interface-only). Not N-server federation.
-      As-is module: memnet.pin_map_ingest.
+      Path-B PinMapIngest nest. Ship order complete for domains: Sysml,
+      Codebase, PcbaAto, SkillsRules (all implemented). Not N-server
+      federation. Export / round-trip (MN-REQ-11.1–11.5) remains separate
+      (#66). As-is module: memnet.pin_map_ingest.
     */
     attribute firstDomain : String = "sysml";
     attribute roadmapOnly : Boolean = false;
+    attribute allDomainsImplemented : Boolean = true;
     part interface : PinMapIngestBase;
     part sysml : PinMapIngest_Sysml;
     part codebase : PinMapIngest_Codebase;
@@ -1222,7 +1238,8 @@ package MemNet {
       ImportAbsorb. MUST NOT settle parent TSK_* unless delegated; chat
       is not SSOT. CapsPolicy ACL: out-of-scope mutate hard-rejects when
       session ACL is enabled. NeighbourhoodReserve shipped; Path-B
-      PinMapIngest_Sysml shipped — other ingest domains not claimed.
+      PinMapIngest_* domains shipped (Sysml/Codebase/PcbaAto/SkillsRules).
+      Full private/shared/open + session_token modes not claimed.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -1312,8 +1329,8 @@ package MemNet {
   part def MemNetSystem {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core) + Transport + MCP
-      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap (PinMapIngest_Sysml
-      shipped; other domain engines interface-only) + MultitaskOperatingModel
+      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap (all
+      PinMapIngest_* domains shipped) + MultitaskOperatingModel
       (Coordinator → HandoffEmit / AsyncTaskDispatch / SessionImportReceive;
       WorkerPool MultitaskWorker[1..*]).
       TierACodec / LegacyPipeImport RETIRED — MUST NOT nest on product path

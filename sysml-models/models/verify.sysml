@@ -6,8 +6,8 @@
   Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S14.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; verifies the shipped CapsPolicy ACL cut while retaining
-  no-assume checks for reserve, Path-B ingest, and CheapLlmImportGuard
-  leftover (#63 / S14).
+  no-assume checks for full ACL modes and CheapLlmImportGuard leftover
+  (#63 / S14). Path-B ingest domains + RSV are shipped.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -27,9 +27,10 @@ package MemNetVerification {
       WorkerScopedTurn, MultitaskMissionCycle, AsyncTaskDispatch.
       Step-level leaf coverage: MN-VER-12-S01…S14.
       CapsPolicy ACL is shipped when session ACL is enabled; RSV and
-      PinMapIngest_Sysml shipped; other Path-B ingest domains deferred
-      (12.7; see S09). ImportGuardHook shipped (S12); CheapLlmImportGuard
-      leftover open (S14 / #63) — hook ≠ 12.11 adapter done.
+      all Path-B PinMapIngest_* domains shipped (12.7; see S09). Full
+      private/shared/open + session_token modes deferred. ImportGuardHook
+      shipped (S12); CheapLlmImportGuard leftover open (S14 / #63) —
+      hook ≠ 12.11 adapter done.
     */
     attribute verificationId : String = "MN-VER-12-G00";
 
@@ -211,12 +212,12 @@ package MemNetVerification {
   verification def MN_VER_12_S09_NoAssumeReserveIngest {
     doc /*
       MN-REQ-12.7 gate — CapsPolicy ACL, NeighbourhoodReserve (RSV), and
-      PinMapIngest_Sysml are shipped; agents must not assume codebase /
-      PCBA / skills ingest engines or full private/shared/open
-      session_token modes. Inspection: RSV implemented == true;
-      PinMapRoadmap.sysml.implemented == true; other ingest
-      domainVariant engines remain roadmapOnly. Counter-example: treating
-      all PinMapIngest_* as available violates MN-REQ-12.7.
+      all Path-B PinMapIngest_* domains (Sysml/Codebase/PcbaAto/SkillsRules)
+      are shipped. Agents must not assume full private/shared/open
+      session_token modes, nor treat ingest as export/round-trip (#66).
+      Inspection: RSV implemented == true; PinMapRoadmap domain engines
+      implemented == true / roadmapOnly == false. Counter-example: treating
+      full ACL modes or export as available violates MN-REQ-12.7.
     */
     attribute verificationId : String = "MN-VER-12-S09";
 

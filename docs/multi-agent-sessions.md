@@ -11,9 +11,9 @@ is enabled** via `memnet.acl`; ACL remains off by default. Privilege grain
 (TRAVERSE≈`pin_map`, WRITE≈mutate, label/id GRANT≈scope) is named once in
 [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md)
 — steal grain, not Neo4j/AgensGraph as product; GQL only. Full ACL modes,
-neighbourhood reserve, and ingest engines are **not shipped** — see
-`docs/grammar/memnet-security-multi-agent.md` and
-`docs/grammar/memnet-neighbourhood-reserve.md`.
+neighbourhood reserve is shipped; Path-B ingest domains are shipped —
+see `docs/grammar/memnet-security-multi-agent.md` and
+`docs/grammar/memnet-neighbourhood-reserve.md`. Full ACL modes remain deferred.
 
 **SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S09** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md).
 
@@ -107,7 +107,7 @@ options for overlapping writers remain doctrine:
 | In-process MCP under Multitask | Each process gets its own graph |
 | Parent polls or re-runs worker investigation | Wastes tokens; violates Multitask turn boundary |
 | Worker mints duplicate `TSK_*` | Parent owns task lifecycle |
-| Teaching full ACL modes/token, `RSV`, or ingest as available | Full modes, reserve, and ingest are not enforced in 0.4.x; the shipped CapsPolicy ACL is enforced when session ACL is enabled |
+| Teaching full ACL modes/token as available | Full private/shared/open + session_token modes are not enforced in 0.4.x; CapsPolicy ACL ships when enabled; RSV + Path-B ingest domains are shipped |
 | Parallel workers on same anchor | Last-write-wins; silent clobber |
 
 ## Not implemented (do not assume)
@@ -120,7 +120,9 @@ Product backlog — **deferred** in 0.4.x; gated by **MN-REQ-12.7** and verify *
 | Full session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/grammar/memnet-security-multi-agent.md` | **To-be** |
 | Neighbourhood reserve (`RSV` rows, `llm_id` + TTL) | MN-REQ-12.13; design `docs/grammar/memnet-neighbourhood-reserve.md` | **Shipped** — `reserve` / `extend` / `release`; pin-map `## Reserves` |
 | Path-B `PinMapIngest_Sysml` | MN-REQ-11.16; MN-REQ-12.7; MN-VER-12-S09; `memnet.pin_map_ingest` | **Shipped** — CLI `ingest sysml` / MCP `ingest_sysml` |
-| Path-B `PinMapIngest_Codebase` / `PcbaAto` / `SkillsRules` | MN-REQ-11.6–11.12, 11.14–11.15; MN-REQ-12.7 | **Interface only** — seed via `session_open` `seed_lines` or `add` with explicit locator ids |
+| Path-B `PinMapIngest_Codebase` | MN-REQ-11.6–11.8, 11.16; #64 | **Shipped** — CLI `ingest codebase` / MCP `ingest_codebase` |
+| Path-B `PinMapIngest_PcbaAto` | MN-REQ-11.9, 11.14–11.15, 11.16; #64 | **Shipped** — CLI `ingest pcba` / MCP `ingest_pcba` |
+| Path-B `PinMapIngest_SkillsRules` | MN-REQ-11.10–11.12, 11.16; #64 | **Shipped** — CLI `ingest skills` / MCP `ingest_skills` |
 
 Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md).
 

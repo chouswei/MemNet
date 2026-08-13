@@ -37,13 +37,13 @@ MemNet SysML models the **target** software system: in-memory NODE|EDGE working-
 | Task (TSK_*) lifecycle | `MissionTaskPin` + `ParentTaskLifecycle` + MN-REQ-12.3 | Doctrine + graph rows; CapsPolicy ACL applies when session ACL enabled |
 | Worker write scope | `WorkerWriteScope` + MN-REQ-12.4 / 12.5 | **Hard reject** via shipped CapsPolicy ACL when enabled; reserve/overlap still doctrine |
 | Relevance gate | MN-REQ-12.8; `EvTrivialSingleAgent` | Modelled; trivial → `GoldfishLoop` only |
-| ACL / reserve / Path-B ingest | MN-REQ-12.7: ACL + RSV + PinMapIngest_Sysml shipped; other ingest domains deferred | ACL/RSV/Sysml ingest **as-is**; other ingest **to-be** |
+| ACL / reserve / Path-B ingest | MN-REQ-12.7: ACL + RSV + all PinMapIngest_* domains shipped; full ACL modes deferred | ACL/RSV/ingest **as-is**; full ACL modes **to-be** |
 
 ### Verdict
 
 **Fit for Multitask-on-relevant-tasks (as-is doctrine):** the model can mandate shared session, shared store, parent TSK settle, worker pin_map+scope, end-turn, and the relevance gate.  
 **ACL as-is:** CapsPolicy who / pin_map-vs-mutate / WorkerWriteScope / bind is shipped when session ACL is enabled (`engineAclShipped=true`).  
-**Not fit as engine-enforced for all domains:** Path-B codebase / PCBA / skills ingest remain interface-only; Sysml ingest is shipped.
+**Not fit as engine-enforced:** full private/shared/open + session_token ACL modes; pin-map export/round-trip (#66). Path-B ingest domains are shipped.
 
 ---
 
@@ -126,7 +126,7 @@ flowchart LR
 |-------|-----------------|
 | Engine rejects worker writes outside `WorkerWriteScope` | **Shipped** via CapsPolicy ACL hard reject when session ACL is enabled (`engineAclShipped=true`; MN-REQ-12.5 / 12.7) |
 | Neighbourhood reserve (`RSV`) | **Shipped** (MN-REQ-12.13) |
-| Path-B `PinMapIngest_Sysml` | **Shipped** (MN-REQ-11.16 / #31); other domains interface-only |
+| Path-B `PinMapIngest_*` (Sysml/Codebase/PcbaAto/SkillsRules) | **Shipped** (MN-REQ-11 / #31 / #64) |
 | Formal SysML `verify` cases for MN-REQ-12 | **Present** — `MemNetVerification` MN-VER-12-G00 (group) + S01…S09 (see §7) |
 | Streamable-http as a first-class part | **Doc-only** on 12.2 / `MultitaskSharedStoreBinding`; TCP parts are the wired stand-in |
 | Parallel two-worker same-anchor serialisation protocol | **Silent** beyond SHALL NOT without serialisation (12.5) |
@@ -141,7 +141,7 @@ flowchart LR
 | Parent polls worker mid-turn / redoes walk from chat | MN-REQ-12.6 |
 | Worker settles `TSK_review_*` | MN-REQ-12.3 |
 | Two workers mutate same anchor without disjoint scope | MN-REQ-12.5 |
-| Treating codebase / PCBA / skills Path-B ingest as available | MN-REQ-12.7 |
+| Treating full ACL modes or export as available from ingest | MN-REQ-12.7 |
 
 ---
 
@@ -164,7 +164,7 @@ flowchart LR
 | MN-VER-12-S06 | 6 Worker turn | MN-REQ-12.4 |
 | MN-VER-12-S07 | 7 Parent reconcile | MN-REQ-12.1, 12.6 |
 | MN-VER-12-S08 | 8 Settle | MN-REQ-12.3 (settle) |
-| MN-VER-12-S09 | 12.7 gate | MN-REQ-12.7 (must not assume unshipped ACL modes / non-Sysml ingest) |
+| MN-VER-12-S09 | 12.7 gate | MN-REQ-12.7 (must not assume unshipped full ACL modes / export) |
 
 Model locus: `models/verify.sysml` (`MemNetVerification`). Method: inspection / scenario against behaviour states and deploy doctrine parts — not runtime engine enforcement.
 

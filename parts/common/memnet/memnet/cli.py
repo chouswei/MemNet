@@ -598,36 +598,117 @@ def ingest_sysml_cmd(
 
 
 @ingest_app.command("codebase")
-def ingest_codebase_cmd() -> None:
-    """Path-B codebase ingest — not shipped yet (interface only)."""
-    _handle_error(
-        MemNetError(
-            "not_implemented",
-            "PinMapIngest_Codebase is not shipped; use ingest sysml or seed_lines",
+def ingest_codebase_cmd(
+    path: Annotated[str, typer.Option("--path", help="Source file or directory")],
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_files: Annotated[int, typer.Option("--max-files")] = 64,
+    root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Project GQL only; do not commit")
+    ] = False,
+) -> None:
+    """Path-B codebase ingest — MOD/SYM pins (MN-REQ-11.6–11.8 / #64)."""
+    from memnet.pin_map_ingest import ingest_codebase
+
+    ss, lock = _load_session(session, exclusive=not dry_run)
+    with lock:
+        try:
+            result = ingest_codebase(
+                ss,
+                path,
+                max_nodes=max_nodes,
+                max_files=max_files,
+                root=root,
+                dry_run=dry_run,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(
+            f"@INGEST: codebase|nodes={result.node_count}|edges={result.edge_count}"
+            f"|committed={int(result.committed)}"
         )
-    )
+        if result.anchors:
+            emit_stdout("@ANCHORS: " + ",".join(result.anchors))
+        if dry_run:
+            for line in result.gql_lines:
+                emit_stdout(line)
 
 
 @ingest_app.command("pcba")
-def ingest_pcba_cmd() -> None:
-    """Path-B PCBA .ato ingest — not shipped yet (interface only)."""
-    _handle_error(
-        MemNetError(
-            "not_implemented",
-            "PinMapIngest_PcbaAto is not shipped; use ingest sysml or seed_lines",
+def ingest_pcba_cmd(
+    path: Annotated[str, typer.Option("--path", help="Atopile .ato file or directory")],
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_files: Annotated[int, typer.Option("--max-files")] = 64,
+    root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Project GQL only; do not commit")
+    ] = False,
+) -> None:
+    """Path-B PCBA .ato ingest — CMP/NET/PIN pins (MN-REQ-11.9, 11.14–11.15 / #64)."""
+    from memnet.pin_map_ingest import ingest_pcba
+
+    ss, lock = _load_session(session, exclusive=not dry_run)
+    with lock:
+        try:
+            result = ingest_pcba(
+                ss,
+                path,
+                max_nodes=max_nodes,
+                max_files=max_files,
+                root=root,
+                dry_run=dry_run,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(
+            f"@INGEST: pcba|nodes={result.node_count}|edges={result.edge_count}"
+            f"|committed={int(result.committed)}"
         )
-    )
+        if result.anchors:
+            emit_stdout("@ANCHORS: " + ",".join(result.anchors))
+        if dry_run:
+            for line in result.gql_lines:
+                emit_stdout(line)
 
 
 @ingest_app.command("skills")
-def ingest_skills_cmd() -> None:
-    """Path-B skills/rules ingest — not shipped yet (interface only)."""
-    _handle_error(
-        MemNetError(
-            "not_implemented",
-            "PinMapIngest_SkillsRules is not shipped; use ingest sysml or seed_lines",
+def ingest_skills_cmd(
+    path: Annotated[str, typer.Option("--path", help="SKILL.md / .mdc file or directory")],
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_files: Annotated[int, typer.Option("--max-files")] = 64,
+    root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Project GQL only; do not commit")
+    ] = False,
+) -> None:
+    """Path-B skills/rules ingest — SKL/RUL pins (MN-REQ-11.10–11.12 / #64)."""
+    from memnet.pin_map_ingest import ingest_skills
+
+    ss, lock = _load_session(session, exclusive=not dry_run)
+    with lock:
+        try:
+            result = ingest_skills(
+                ss,
+                path,
+                max_nodes=max_nodes,
+                max_files=max_files,
+                root=root,
+                dry_run=dry_run,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+        emit_stdout(
+            f"@INGEST: skills|nodes={result.node_count}|edges={result.edge_count}"
+            f"|committed={int(result.committed)}"
         )
-    )
+        if result.anchors:
+            emit_stdout("@ANCHORS: " + ",".join(result.anchors))
+        if dry_run:
+            for line in result.gql_lines:
+                emit_stdout(line)
 
 
 @relations_app.command("list")

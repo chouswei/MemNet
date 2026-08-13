@@ -28,7 +28,7 @@ Only two product parts (novel-writer is out of scope; see root `DROP-NOVEL-WRITE
 | NeighbourhoodReserve | `neighbourhood_reserve.py` | RSV leases (`llm_id` + TTL); MN-REQ-12.13 |
 | TcpServeBridge | `tcp_serve_bridge.py` (`serve`) | TCP migration |
 | CliFacade | `cli.py` | Thin entry; console script `memnet` |
-| PinMapIngest_Sysml | `pin_map_ingest.py` | Path-B SysML ingest (MN-REQ-11.16); other domains interface-only |
+| PinMapIngest_* | `pin_map_ingest.py` | Path-B ingest (Sysml/Codebase/PcbaAto/SkillsRules; MN-REQ-11; #31/#64) |
 
 ## MCP (`memnet_mcp`)
 

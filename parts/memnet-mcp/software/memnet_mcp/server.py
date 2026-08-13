@@ -491,6 +491,101 @@ async def ingest_sysml(
     return await _run(argv, session=session)
 
 
+def _ingest_argv(
+    domain: str,
+    path: str,
+    *,
+    max_nodes: int,
+    max_files: int,
+    root: str | None,
+    dry_run: bool,
+) -> list[str]:
+    argv = [
+        "ingest",
+        domain,
+        "--path",
+        path,
+        "--max-nodes",
+        str(max_nodes),
+        "--max-files",
+        str(max_files),
+    ]
+    if root:
+        argv.extend(["--root", root])
+    if dry_run:
+        argv.append("--dry-run")
+    return argv
+
+
+@mcp.tool()
+async def ingest_codebase(
+    path: str,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | None = None,
+    dry_run: bool = False,
+    session: str | None = None,
+) -> str:
+    """Path-B codebase ingest (MN-REQ-11.6–11.8). MOD/SYM; path=/line=/signature=."""
+    return await _run(
+        _ingest_argv(
+            "codebase",
+            path,
+            max_nodes=max_nodes,
+            max_files=max_files,
+            root=root,
+            dry_run=dry_run,
+        ),
+        session=session,
+    )
+
+
+@mcp.tool()
+async def ingest_pcba(
+    path: str,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | None = None,
+    dry_run: bool = False,
+    session: str | None = None,
+) -> str:
+    """Path-B PCBA .ato ingest (MN-REQ-11.9, 11.14–11.15). CMP/NET/PIN locators."""
+    return await _run(
+        _ingest_argv(
+            "pcba",
+            path,
+            max_nodes=max_nodes,
+            max_files=max_files,
+            root=root,
+            dry_run=dry_run,
+        ),
+        session=session,
+    )
+
+
+@mcp.tool()
+async def ingest_skills(
+    path: str,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | None = None,
+    dry_run: bool = False,
+    session: str | None = None,
+) -> str:
+    """Path-B skills/rules ingest (MN-REQ-11.10–11.12). SKL/RUL; skill_id=/phrase=."""
+    return await _run(
+        _ingest_argv(
+            "skills",
+            path,
+            max_nodes=max_nodes,
+            max_files=max_files,
+            root=root,
+            dry_run=dry_run,
+        ),
+        session=session,
+    )
+
+
 @mcp.tool()
 async def read_get(id: str, session: str | None = None) -> str:
     """Fetch a single row by id."""

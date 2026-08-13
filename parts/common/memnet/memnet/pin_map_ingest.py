@@ -1,13 +1,14 @@
-"""Path-B PinMapIngest engines (MN-REQ-11 / MN-REQ-12.7 / #31).
+"""Path-B PinMapIngest engines (MN-REQ-11 / MN-REQ-12.7 / #31 / #64).
 
 Engines *build* a bounded NODE|EDGE pin map from an external artefact using
-stable locators (path=, qname=, …). Client ``NEW`` is illegal for source pins.
-Wire = GQL only. Ship order: Sysml first; other domains share the interface
-but remain NotImplemented until landed (do not stub-as-done).
+stable locators (path=, qname=, refdes=, skill_id=, …). Client ``NEW`` is
+illegal for source pins. Wire = GQL only. All four domain engines ship:
+Sysml, Codebase, PcbaAto, SkillsRules.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -18,9 +19,12 @@ from memnet.gql import _emit_props, _escape_str
 from memnet.id_allocator import IdAllocator
 from memnet.mutate_gate import MutateGate
 
-# Module-level: Sysml shipped; others still roadmap.
+# Module-level: Path-B domain engines (MN-REQ-11).
 IMPLEMENTED_SYSML = True
-IMPLEMENTED = IMPLEMENTED_SYSML  # at least one Path-B engine available
+IMPLEMENTED_CODEBASE = True
+IMPLEMENTED_PCBA = True
+IMPLEMENTED_SKILLS = True
+IMPLEMENTED = True  # all Path-B domain engines available
 
 _NEW_TOKEN = re.compile(
     r"""(?:id\s*:\s*['\"]NEW['\"]|\[\s*NEW\s\]|\bid\s*=\s*NEW\b)""",
@@ -205,24 +209,168 @@ class PinMapIngest_Sysml(PinMapIngestBase):
 
 
 class PinMapIngest_Codebase(PinMapIngestBase):
-    """Selective codebase pins (modules/symbols) — interface only."""
+    """Selective codebase pins — MOD/SYM with path=/line=/signature=."""
 
     domain = "codebase"
-    implemented = False
+    implemented = IMPLEMENTED_CODEBASE
+
+    def project(
+        self,
+        path: str | Path,
+        *,
+        max_nodes: int = 200,
+        max_files: int = 64,
+        root: str | Path | None = None,
+    ) -> IngestResult:
+        if not self.implemented:
+            return super().project()
+        path_p = Path(path)
+        files = _collect_code_files(path_p, max_files=max_files)
+        if not files:
+            raise MemNetError("no_artefact", f"no supported source files under {path}")
+        root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
+        alloc = IdAllocator()
+        nodes: list[dict[str, str]] = []
+        edges: list[tuple[str, str, str, str]] = []
+        sym_index: dict[str, str] = {}  # simple name → id (last wins)
+        mod_index: dict[str, str] = {}  # rel path / module stem → id
+
+        for fpath in files:
+            rel = _rel_path(fpath, root_path)
+            _project_code_file(
+                fpath,
+                rel_path=rel,
+                alloc=alloc,
+                nodes=nodes,
+                edges=edges,
+                sym_index=sym_index,
+                mod_index=mod_index,
+                max_nodes=max_nodes,
+            )
+
+        gql = _nodes_edges_to_gql(nodes, edges)
+        reject_client_new(gql)
+        node_ids = [n["id"] for n in nodes]
+        edge_ids = [e[0] for e in edges]
+        return IngestResult(
+            domain=self.domain,
+            gql_lines=gql,
+            node_ids=node_ids,
+            edge_ids=edge_ids,
+            anchors=node_ids[:8],
+        )
 
 
 class PinMapIngest_PcbaAto(PinMapIngestBase):
-    """PCBA schematic pin maps from Atopile .ato — interface only."""
+    """PCBA schematic pin maps from Atopile .ato — CMP/NET/PIN."""
 
     domain = "pcbaAto"
-    implemented = False
+    implemented = IMPLEMENTED_PCBA
+
+    def project(
+        self,
+        path: str | Path,
+        *,
+        max_nodes: int = 200,
+        max_files: int = 64,
+        root: str | Path | None = None,
+    ) -> IngestResult:
+        if not self.implemented:
+            return super().project()
+        path_p = Path(path)
+        files = _collect_ato_files(path_p, max_files=max_files)
+        if not files:
+            raise MemNetError("no_artefact", f"no .ato files under {path}")
+        root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
+        alloc = IdAllocator()
+        nodes: list[dict[str, str]] = []
+        edges: list[tuple[str, str, str, str]] = []
+        ref_index: dict[str, str] = {}
+        net_index: dict[str, str] = {}
+        pin_index: dict[str, str] = {}  # "refdes.pin" → id
+
+        for fpath in files:
+            rel = _rel_path(fpath, root_path)
+            _project_ato_file(
+                fpath,
+                rel_path=rel,
+                alloc=alloc,
+                nodes=nodes,
+                edges=edges,
+                ref_index=ref_index,
+                net_index=net_index,
+                pin_index=pin_index,
+                max_nodes=max_nodes,
+            )
+
+        gql = _nodes_edges_to_gql(nodes, edges)
+        reject_client_new(gql)
+        node_ids = [n["id"] for n in nodes]
+        edge_ids = [e[0] for e in edges]
+        return IngestResult(
+            domain=self.domain,
+            gql_lines=gql,
+            node_ids=node_ids,
+            edge_ids=edge_ids,
+            anchors=node_ids[:8],
+        )
 
 
 class PinMapIngest_SkillsRules(PinMapIngestBase):
-    """Agent skills/rules pin maps — interface only."""
+    """Agent skills/rules pin maps — SKL/RUL with skill_id=/phrase=."""
 
     domain = "skillsRules"
-    implemented = False
+    implemented = IMPLEMENTED_SKILLS
+
+    def project(
+        self,
+        path: str | Path,
+        *,
+        max_nodes: int = 200,
+        max_files: int = 64,
+        root: str | Path | None = None,
+    ) -> IngestResult:
+        if not self.implemented:
+            return super().project()
+        path_p = Path(path)
+        files = _collect_skill_files(path_p, max_files=max_files)
+        if not files:
+            raise MemNetError(
+                "no_artefact",
+                f"no SKILL.md / .mdc files under {path}",
+            )
+        root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
+        alloc = IdAllocator()
+        nodes: list[dict[str, str]] = []
+        edges: list[tuple[str, str, str, str]] = []
+        skill_index: dict[str, str] = {}
+
+        for fpath in files:
+            rel = _rel_path(fpath, root_path)
+            _project_skill_file(
+                fpath,
+                rel_path=rel,
+                alloc=alloc,
+                nodes=nodes,
+                edges=edges,
+                skill_index=skill_index,
+                max_nodes=max_nodes,
+            )
+
+        # Second pass: resolve deferred related/paired edges now that index is full.
+        _resolve_skill_edges(nodes, edges, skill_index, alloc)
+
+        gql = _nodes_edges_to_gql(nodes, edges)
+        reject_client_new(gql)
+        node_ids = [n["id"] for n in nodes]
+        edge_ids = [e[0] for e in edges]
+        return IngestResult(
+            domain=self.domain,
+            gql_lines=gql,
+            node_ids=node_ids,
+            edge_ids=edge_ids,
+            anchors=node_ids[:8],
+        )
 
 
 def get_engine(domain: str) -> PinMapIngestBase:
@@ -259,6 +407,57 @@ def ingest_sysml(
 ) -> IngestResult:
     """Convenience: project (+ optionally commit) SysML Path-B pins."""
     eng = PinMapIngest_Sysml()
+    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    if dry_run:
+        return result
+    return eng.commit(session, result)
+
+
+def ingest_codebase(
+    session,
+    path: str | Path,
+    *,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | Path | None = None,
+    dry_run: bool = False,
+) -> IngestResult:
+    """Convenience: project (+ optionally commit) codebase Path-B pins."""
+    eng = PinMapIngest_Codebase()
+    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    if dry_run:
+        return result
+    return eng.commit(session, result)
+
+
+def ingest_pcba(
+    session,
+    path: str | Path,
+    *,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | Path | None = None,
+    dry_run: bool = False,
+) -> IngestResult:
+    """Convenience: project (+ optionally commit) PCBA .ato Path-B pins."""
+    eng = PinMapIngest_PcbaAto()
+    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    if dry_run:
+        return result
+    return eng.commit(session, result)
+
+
+def ingest_skills(
+    session,
+    path: str | Path,
+    *,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | Path | None = None,
+    dry_run: bool = False,
+) -> IngestResult:
+    """Convenience: project (+ optionally commit) skills/rules Path-B pins."""
+    eng = PinMapIngest_SkillsRules()
     result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
     if dry_run:
         return result
@@ -458,6 +657,21 @@ def _retarget_node_id(
                 d[k] = new_id
 
 
+_KIND_PREFIXES = (
+    "PKG",
+    "PRT",
+    "REQ",
+    "POR",
+    "MOD",
+    "SYM",
+    "CMP",
+    "NET",
+    "PIN",
+    "SKL",
+    "RUL",
+)
+
+
 def _nodes_edges_to_gql(
     nodes: Iterable[dict[str, str]],
     edges: Iterable[tuple[str, str, str, str]],
@@ -467,19 +681,16 @@ def _nodes_edges_to_gql(
     for n in nodes:
         nid = n["id"]
         kind = nid.split("_", 1)[0] if "_" in nid else "PRT"
-        # Prefer explicit kind from id prefix; fall back to PKG/PRT/REQ/POR
-        for prefix in ("PKG", "PRT", "REQ", "POR"):
+        for prefix in _KIND_PREFIXES:
             if nid.startswith(prefix + "_"):
                 kind = prefix
                 break
         id_to_kind[nid] = kind
-        props = {k: v for k, v in n.items() if k != "id" and v}
-        lines.append(f"MERGE (:{kind} {{id: '{_escape_str(nid)}'}})")
+        props = {k: v for k, v in n.items() if k != "id" and v and not str(k).startswith("_")}
         # MERGE alone may not set props on create in our codec — emit SET via
         # second form: MERGE (n:Kind {id}) SET n += {…}
-        set_props = {**props}
-        prop_s = _emit_props(set_props)
-        lines[-1] = f"MERGE (n:{kind} {{id: '{_escape_str(nid)}'}}) SET n += {prop_s}"
+        prop_s = _emit_props(props)
+        lines.append(f"MERGE (n:{kind} {{id: '{_escape_str(nid)}'}}) SET n += {prop_s}")
 
     for eid, src, rel, dst in edges:
         lines.append(
@@ -488,15 +699,592 @@ def _nodes_edges_to_gql(
         )
     # Flatten multi-line MATCH/CREATE into separate apply entries expected by MutateGate
     flat: list[str] = []
-    buf: list[str] = []
     for line in lines:
         if "\n" in line:
-            if buf:
-                flat.extend(buf)
-                buf = []
             parts = line.split("\n")
-            # MutateGate accepts multi-statement as one string with newline
             flat.append("\n".join(parts))
         else:
             flat.append(line)
     return flat
+
+
+# ---------------------------------------------------------------------------
+# Codebase projection helpers (Python AST; cheap selective pins)
+# ---------------------------------------------------------------------------
+
+_CODE_SUFFIXES = {".py"}
+
+
+def _collect_code_files(path: str | Path, *, max_files: int) -> list[Path]:
+    p = Path(path)
+    if not p.exists():
+        raise MemNetError("no_artefact", f"path not found: {path}")
+    if p.is_file():
+        if p.suffix.lower() not in _CODE_SUFFIXES:
+            raise MemNetError(
+                "bad_artefact",
+                f"expected source file ({', '.join(sorted(_CODE_SUFFIXES))}), got {p.name}",
+            )
+        return [p.resolve()]
+    files = sorted(
+        x.resolve()
+        for x in p.rglob("*")
+        if x.is_file()
+        and x.suffix.lower() in _CODE_SUFFIXES
+        and "/." not in ("/" + x.as_posix())
+        and "node_modules" not in x.parts
+        and "__pycache__" not in x.parts
+        and ".venv" not in x.parts
+    )
+    if len(files) > max_files:
+        raise MemNetError(
+            "ingest_budget",
+            f"too many source files ({len(files)} > max_files={max_files})",
+        )
+    return files
+
+
+def _budget_check(nodes: list[dict[str, str]], max_nodes: int) -> None:
+    if len(nodes) >= max_nodes:
+        raise MemNetError(
+            "ingest_budget",
+            f"pin budget exceeded (max_nodes={max_nodes})",
+        )
+
+
+def _project_code_file(
+    fpath: Path,
+    *,
+    rel_path: str,
+    alloc: IdAllocator,
+    nodes: list[dict[str, str]],
+    edges: list[tuple[str, str, str, str]],
+    sym_index: dict[str, str],
+    mod_index: dict[str, str],
+    max_nodes: int,
+) -> None:
+    _budget_check(nodes, max_nodes)
+    mid = alloc.allocate_from_locator("MOD", rel_path)
+    nodes.append(
+        {
+            "id": mid,
+            "path": rel_path,
+            "name": fpath.stem,
+            "recycle": "persistent",
+        }
+    )
+    mod_index[rel_path] = mid
+    mod_index[fpath.stem] = mid
+
+    if fpath.suffix.lower() != ".py":
+        return
+    try:
+        tree = ast.parse(fpath.read_text(encoding="utf-8", errors="replace"), filename=rel_path)
+    except SyntaxError:
+        return
+
+    local_syms: dict[str, str] = {}  # unqualified name → SYM id in this file
+
+    def add_sym(
+        name: str,
+        *,
+        kind: str,
+        lineno: int,
+        signature: str,
+        owner: str | None = None,
+    ) -> str | None:
+        _budget_check(nodes, max_nodes)
+        locator = f"{rel_path}:{name}"
+        sid = alloc.allocate_from_locator("SYM", locator)
+        nodes.append(
+            {
+                "id": sid,
+                "name": name,
+                "kind": kind,
+                "path": rel_path,
+                "line": str(lineno),
+                "signature": signature,
+                "recycle": "persistent",
+            }
+        )
+        sym_index[name] = sid
+        local_syms[name] = sid
+        eid = alloc.allocate_from_locator("E", f"defines_{mid}_{sid}")
+        edges.append((eid, mid, "defines", sid))
+        if owner and owner in local_syms:
+            oid = local_syms[owner]
+            eid2 = alloc.allocate_from_locator("E", f"owns_{oid}_{sid}")
+            edges.append((eid2, oid, "owns", sid))
+        return sid
+
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            sig = _py_signature(node)
+            add_sym(node.name, kind="function", lineno=node.lineno, signature=sig)
+        elif isinstance(node, ast.ClassDef):
+            add_sym(node.name, kind="class", lineno=node.lineno, signature=f"class {node.name}")
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    sig = _py_signature(item)
+                    add_sym(
+                        f"{node.name}.{item.name}",
+                        kind="method",
+                        lineno=item.lineno,
+                        signature=sig,
+                        owner=node.name,
+                    )
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            _code_import_edges(node, mid=mid, alloc=alloc, edges=edges, mod_index=mod_index)
+
+    # Cheap same-file call edges (Name targets only).
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        callee = None
+        if isinstance(node.func, ast.Name):
+            callee = node.func.id
+        elif isinstance(node.func, ast.Attribute) and isinstance(node.func.value, ast.Name):
+            # Skip instance.method; keep Module.func style only when both local
+            callee = None
+        if not callee or callee not in local_syms:
+            continue
+        # Find enclosing def for source
+        # Walk parents is expensive without parent map — skip; use module-level later.
+    # Enclosing-function calls via a second annotated walk:
+    _code_call_edges(tree, local_syms=local_syms, alloc=alloc, edges=edges)
+
+
+def _py_signature(node: ast.AST) -> str:
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        args = []
+        for a in node.args.args:
+            args.append(a.arg)
+        prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
+        return f"{prefix} {node.name}({', '.join(args)})"
+    return getattr(node, "name", "?")
+
+
+def _code_import_edges(
+    node: ast.AST,
+    *,
+    mid: str,
+    alloc: IdAllocator,
+    edges: list[tuple[str, str, str, str]],
+    mod_index: dict[str, str],
+) -> None:
+    names: list[str] = []
+    if isinstance(node, ast.Import):
+        names = [a.name.split(".")[0] for a in node.names]
+    elif isinstance(node, ast.ImportFrom) and node.module:
+        names = [node.module.split(".")[0]]
+    for name in names:
+        dst = mod_index.get(name)
+        if not dst or dst == mid:
+            continue
+        eid = alloc.allocate_from_locator("E", f"includes_{mid}_{dst}")
+        if (eid, mid, "includes", dst) not in edges:
+            edges.append((eid, mid, "includes", dst))
+
+
+def _code_call_edges(
+    tree: ast.AST,
+    *,
+    local_syms: dict[str, str],
+    alloc: IdAllocator,
+    edges: list[tuple[str, str, str, str]],
+) -> None:
+    """Emit calls edges for top-level and class methods (Name callees only)."""
+
+    def walk_fn(fn: ast.AST, src_key: str) -> None:
+        src_id = local_syms.get(src_key)
+        if not src_id:
+            return
+        for n in ast.walk(fn):
+            if not isinstance(n, ast.Call) or not isinstance(n.func, ast.Name):
+                continue
+            dst_id = local_syms.get(n.func.id)
+            if not dst_id or dst_id == src_id:
+                continue
+            eid = alloc.allocate_from_locator("E", f"calls_{src_id}_{dst_id}")
+            trip = (eid, src_id, "calls", dst_id)
+            if trip not in edges:
+                edges.append(trip)
+
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            walk_fn(node, node.name)
+        elif isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    walk_fn(item, f"{node.name}.{item.name}")
+
+
+# ---------------------------------------------------------------------------
+# PCBA Atopile .ato projection helpers
+# ---------------------------------------------------------------------------
+
+_ATO_COMPONENT = re.compile(
+    r"^(?P<indent>[ \t]*)(?:component|module)\s+(?P<name>[A-Za-z_][\w]*)\s*:",
+    re.MULTILINE,
+)
+_ATO_SIGNAL = re.compile(
+    r"^(?P<indent>[ \t]*)signal\s+(?P<name>[A-Za-z_][\w]*)\s*$",
+    re.MULTILINE,
+)
+_ATO_PIN = re.compile(
+    r"^(?P<indent>[ \t]*)pin\s+(?P<name>[A-Za-z_][\w]*|\d+|\"[^\"]+\")\s*$",
+    re.MULTILINE,
+)
+_ATO_NEW = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<ref>[A-Za-z_][\w]*)\s*=\s*new\s+(?P<typ>[A-Za-z_][\w]*)",
+    re.MULTILINE,
+)
+_ATO_CONNECT = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<a>[A-Za-z_][\w.]*(?:\[[^\]]+\])?)\s*~\s*"
+    r"(?P<b>[A-Za-z_][\w.]*(?:\[[^\]]+\])?)\s*$",
+    re.MULTILINE,
+)
+_ATO_NET_OVERRIDE = re.compile(
+    r"^(?P<indent>[ \t]*)(?P<name>[A-Za-z_][\w.]*)\.override_net_name\s*=\s*"
+    r"[\"'](?P<net>[^\"']+)[\"']",
+    re.MULTILINE,
+)
+
+
+def _collect_ato_files(path: str | Path, *, max_files: int) -> list[Path]:
+    p = Path(path)
+    if not p.exists():
+        raise MemNetError("no_artefact", f"path not found: {path}")
+    if p.is_file():
+        if p.suffix.lower() != ".ato":
+            raise MemNetError("bad_artefact", f"expected .ato file, got {p.name}")
+        return [p.resolve()]
+    files = sorted(x.resolve() for x in p.rglob("*.ato") if x.is_file())
+    if len(files) > max_files:
+        raise MemNetError(
+            "ingest_budget",
+            f"too many .ato files ({len(files)} > max_files={max_files})",
+        )
+    return files
+
+
+def _ato_pin_name(raw: str) -> str:
+    return raw.strip().strip('"').strip("'")
+
+
+def _project_ato_file(
+    fpath: Path,
+    *,
+    rel_path: str,
+    alloc: IdAllocator,
+    nodes: list[dict[str, str]],
+    edges: list[tuple[str, str, str, str]],
+    ref_index: dict[str, str],
+    net_index: dict[str, str],
+    pin_index: dict[str, str],
+    max_nodes: int,
+) -> None:
+    text = fpath.read_text(encoding="utf-8", errors="replace")
+    # Strip # comments (line)
+    text = re.sub(r"#.*?$", " ", text, flags=re.MULTILINE)
+
+    # Pre-scan component type defs → pin names
+    type_pins: dict[str, list[str]] = {}
+    current_type: str | None = None
+    current_indent = -1
+
+    lines = text.splitlines()
+    for line in lines:
+        m_comp = re.match(
+            r"^([ \t]*)(?:component|module)\s+([A-Za-z_][\w]*)\s*:",
+            line,
+        )
+        if m_comp:
+            current_type = m_comp.group(2)
+            current_indent = len(m_comp.group(1).expandtabs(4))
+            type_pins.setdefault(current_type, [])
+            continue
+        m_pin = re.match(r"^([ \t]*)pin\s+(\S+)\s*$", line)
+        if m_pin and current_type is not None:
+            ind = len(m_pin.group(1).expandtabs(4))
+            if ind > current_indent:
+                type_pins[current_type].append(_ato_pin_name(m_pin.group(2)))
+                continue
+        # leave block when indent collapses
+        if current_type is not None and line.strip() and not line.startswith((" ", "\t")):
+            current_type = None
+            current_indent = -1
+
+    def ensure_net(name: str) -> str:
+        if name in net_index:
+            return net_index[name]
+        _budget_check(nodes, max_nodes)
+        nid = alloc.allocate_from_locator("NET", f"{rel_path}:{name}")
+        nodes.append(
+            {
+                "id": nid,
+                "name": name,
+                "net": name,
+                "path": rel_path,
+                "recycle": "persistent",
+            }
+        )
+        net_index[name] = nid
+        return nid
+
+    def ensure_cmp(refdes: str, *, typ: str = "") -> str:
+        if refdes in ref_index:
+            return ref_index[refdes]
+        _budget_check(nodes, max_nodes)
+        cid = alloc.allocate_from_locator("CMP", f"{rel_path}:{refdes}")
+        fields = {
+            "id": cid,
+            "name": refdes,
+            "refdes": refdes,
+            "path": rel_path,
+            "recycle": "persistent",
+        }
+        if typ:
+            fields["ato_type"] = typ
+        nodes.append(fields)
+        ref_index[refdes] = cid
+        return cid
+
+    def ensure_pin(refdes: str, pin: str) -> str:
+        key = f"{refdes}.{pin}"
+        if key in pin_index:
+            return pin_index[key]
+        cmp_id = ensure_cmp(refdes)
+        _budget_check(nodes, max_nodes)
+        pid = alloc.allocate_from_locator("PIN", f"{rel_path}:{key}")
+        nodes.append(
+            {
+                "id": pid,
+                "name": key,
+                "refdes": refdes,
+                "pin": pin,
+                "path": rel_path,
+                "recycle": "persistent",
+            }
+        )
+        pin_index[key] = pid
+        eid = alloc.allocate_from_locator("E", f"owns_{cmp_id}_{pid}")
+        edges.append((eid, cmp_id, "owns", pid))
+        return pid
+
+    # Top-level signals → nets
+    for m in _ATO_SIGNAL.finditer(text):
+        ensure_net(m.group("name"))
+
+    # Instances: ref = new Type → CMP + pins from type def
+    for m in _ATO_NEW.finditer(text):
+        refdes = m.group("ref")
+        typ = m.group("typ")
+        ensure_cmp(refdes, typ=typ)
+        for pname in type_pins.get(typ, []):
+            ensure_pin(refdes, pname)
+
+    # Also promote named component defs that look like placed parts (no `new`)
+    # when they declare pins and are not only types — skip abstract types
+    # already covered by `new`. Types themselves are not CMP pins.
+
+    def resolve_endpoint(token: str) -> tuple[str, str] | None:
+        """Return (kind, id) for pin or net endpoint."""
+        tok = token.strip()
+        # strip [n] index
+        tok = re.sub(r"\[[^\]]*\]$", "", tok)
+        if tok in net_index:
+            return ("NET", net_index[tok])
+        if "." in tok:
+            ref, pin = tok.split(".", 1)
+            # unnamed[0] style already stripped brackets → pin name
+            pid = ensure_pin(ref, pin)
+            return ("PIN", pid)
+        # bare name: prefer net, else treat as signal/net
+        if re.match(r"^[A-Za-z_][\w]*$", tok):
+            return ("NET", ensure_net(tok))
+        return None
+
+    for m in _ATO_CONNECT.finditer(text):
+        left = resolve_endpoint(m.group("a"))
+        right = resolve_endpoint(m.group("b"))
+        if not left or not right:
+            continue
+        # Prefer PIN → NET; if PIN~PIN, invent a net from the pair
+        if left[0] == "PIN" and right[0] == "NET":
+            eid = alloc.allocate_from_locator("E", f"on_net_{left[1]}_{right[1]}")
+            edges.append((eid, left[1], "on_net", right[1]))
+        elif right[0] == "PIN" and left[0] == "NET":
+            eid = alloc.allocate_from_locator("E", f"on_net_{right[1]}_{left[1]}")
+            edges.append((eid, right[1], "on_net", left[1]))
+        elif left[0] == "PIN" and right[0] == "PIN":
+            net_name = f"n_{m.group('a').replace('.', '_')}_{m.group('b').replace('.', '_')}"
+            nid = ensure_net(net_name)
+            for pin_id in (left[1], right[1]):
+                eid = alloc.allocate_from_locator("E", f"on_net_{pin_id}_{nid}")
+                trip = (eid, pin_id, "on_net", nid)
+                if trip not in edges:
+                    edges.append(trip)
+        elif left[0] == "NET" and right[0] == "NET" and left[1] != right[1]:
+            # Alias: point smaller → keep both, soft-link via uses
+            eid = alloc.allocate_from_locator("E", f"uses_{left[1]}_{right[1]}")
+            edges.append((eid, left[1], "uses", right[1]))
+
+    for m in _ATO_NET_OVERRIDE.finditer(text):
+        ensure_net(m.group("net"))
+
+
+# ---------------------------------------------------------------------------
+# Skills / rules projection helpers
+# ---------------------------------------------------------------------------
+
+_FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?", re.DOTALL)
+_FM_NAME = re.compile(r"(?m)^name\s*:\s*[\"']?([^\"'\n#]+)[\"']?")
+_FM_DESC = re.compile(r"(?m)^description\s*:\s*[\"']?([^\"'\n#]+)[\"']?")
+_FM_LIST_BLOCK = re.compile(
+    r"(?ms)^(related|triggers|paired_with|governs|depends)\s*:\s*\n((?:[ \t]*-[ \t]+.+\n?)+)"
+)
+_FM_LIST_INLINE = re.compile(
+    r"(?m)^(related|triggers|paired_with|governs|depends)\s*:\s*\[([^\]]*)\]"
+)
+
+
+def _collect_skill_files(path: str | Path, *, max_files: int) -> list[Path]:
+    p = Path(path)
+    if not p.exists():
+        raise MemNetError("no_artefact", f"path not found: {path}")
+    if p.is_file():
+        name = p.name
+        if name != "SKILL.md" and p.suffix.lower() != ".mdc":
+            raise MemNetError(
+                "bad_artefact",
+                f"expected SKILL.md or .mdc file, got {p.name}",
+            )
+        return [p.resolve()]
+    files: list[Path] = []
+    for x in sorted(p.rglob("*")):
+        if not x.is_file():
+            continue
+        if x.name == "SKILL.md" or x.suffix.lower() == ".mdc":
+            files.append(x.resolve())
+    if len(files) > max_files:
+        raise MemNetError(
+            "ingest_budget",
+            f"too many skill/rule files ({len(files)} > max_files={max_files})",
+        )
+    return files
+
+
+def _parse_frontmatter(text: str) -> dict[str, object]:
+    m = _FRONTMATTER.match(text)
+    if not m:
+        return {}
+    body = m.group(1)
+    out: dict[str, object] = {}
+    nm = _FM_NAME.search(body)
+    if nm:
+        out["name"] = nm.group(1).strip()
+    desc = _FM_DESC.search(body)
+    if desc:
+        out["description"] = desc.group(1).strip()
+    for lm in _FM_LIST_BLOCK.finditer(body):
+        key = lm.group(1)
+        items = [
+            re.sub(r"^[ \t]*-[ \t]+", "", ln).strip().strip("\"'")
+            for ln in lm.group(2).splitlines()
+            if ln.strip().startswith("-")
+        ]
+        out[key] = [i for i in items if i]
+    for lm in _FM_LIST_INLINE.finditer(body):
+        key = lm.group(1)
+        items = [x.strip().strip("\"'") for x in lm.group(2).split(",") if x.strip()]
+        out[key] = items
+    return out
+
+
+def _phrase_from_desc(desc: str, *, limit: int = 80) -> str:
+    s = re.sub(r"\s+", " ", desc).strip()
+    if len(s) > limit:
+        s = s[: limit - 1].rstrip() + "…"
+    return s
+
+
+def _project_skill_file(
+    fpath: Path,
+    *,
+    rel_path: str,
+    alloc: IdAllocator,
+    nodes: list[dict[str, str]],
+    edges: list[tuple[str, str, str, str]],
+    skill_index: dict[str, str],
+    max_nodes: int,
+) -> None:
+    text = fpath.read_text(encoding="utf-8", errors="replace")
+    fm = _parse_frontmatter(text)
+    is_rule = fpath.suffix.lower() == ".mdc"
+    kind = "RUL" if is_rule else "SKL"
+    if is_rule:
+        skill_id = str(fm.get("name") or fpath.stem)
+    else:
+        # Prefer frontmatter name; else parent directory (Cursor pack layout).
+        skill_id = str(fm.get("name") or fpath.parent.name or fpath.stem)
+    _budget_check(nodes, max_nodes)
+    nid = alloc.allocate_from_locator(kind, skill_id)
+    phrase = ""
+    if "description" in fm:
+        phrase = _phrase_from_desc(str(fm["description"]))
+    fields = {
+        "id": nid,
+        "name": skill_id,
+        "skill_id": skill_id,
+        "path": rel_path,
+        "recycle": "persistent",
+    }
+    if phrase:
+        fields["phrase"] = phrase
+    nodes.append(fields)
+    skill_index[skill_id] = nid
+    skill_index[skill_id.lower()] = nid
+    # Stash pending relation targets on the node for resolve pass
+    pending: list[str] = []
+    for key in ("related", "paired_with", "triggers", "governs", "depends"):
+        vals = fm.get(key)
+        if isinstance(vals, list):
+            for v in vals:
+                pending.append(f"{key}:{v}")
+    if pending:
+        fields["_pending"] = "|".join(pending)
+
+
+def _resolve_skill_edges(
+    nodes: list[dict[str, str]],
+    edges: list[tuple[str, str, str, str]],
+    skill_index: dict[str, str],
+    alloc: IdAllocator,
+) -> None:
+    rel_map = {
+        "related": "paired_with",
+        "paired_with": "paired_with",
+        "triggers": "triggers",
+        "governs": "governs",
+        "depends": "uses",
+    }
+    for n in nodes:
+        pending = n.pop("_pending", "")
+        if not pending:
+            continue
+        src = n["id"]
+        for item in pending.split("|"):
+            if ":" not in item:
+                continue
+            key, target = item.split(":", 1)
+            rel = rel_map.get(key)
+            if not rel:
+                continue
+            dst = skill_index.get(target) or skill_index.get(target.lower())
+            if not dst or dst == src:
+                continue
+            eid = alloc.allocate_from_locator("E", f"{rel}_{src}_{dst}")
+            trip = (eid, src, rel, dst)
+            if trip not in edges:
+                edges.append(trip)
