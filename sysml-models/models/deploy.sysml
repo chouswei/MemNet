@@ -643,8 +643,10 @@ package MemNet {
       merge=true are not this part. Runs after ImportGuard soft allow/trim
       when guard is enabled; when guard skipped/disabled, absorb after
       SessionImportRequest alone (path B). Path A never enters this part.
+      As-is: engine import_slice / ImportAbsorb landed (memnet.import_absorb).
     */
-    attribute doctrineAsIs : Boolean = true;
+    attribute doctrineAsIs : Boolean = false;
+    attribute implemented : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port decisionIn : ImportGuardDecisionInPort;
     port importReqIn : SessionImportRequestInPort;
@@ -666,13 +668,13 @@ package MemNet {
       oversized / settle noise?. Outcomes: allow / trim / reject + short
       reason (ImportGuardDecision). MUST NOT replace engine hard gates.
       MUST NOT make guard chat the SSOT. costTier = cost/latency class only
-      (no vendor model id). Host MAY skip/disable; doctrine nested, not
-      claimed shipped as hard engine capability.
+      (no vendor model id). Host MAY skip/disable; as-is: optional host hook
+      via set_import_guard / enable_guard (memnet.import_absorb).
     */
     attribute optionalSoftPolicy : Boolean = true;
-    attribute doctrineAsIs : Boolean = true;
+    attribute doctrineAsIs : Boolean = false;
     attribute costTier : String = "cheap";
-    attribute implemented : Boolean = false;
+    attribute implemented : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port sliceOut : WorkingMemorySliceOutPort;
     port decisionOut : ImportGuardDecisionOutPort;

@@ -299,6 +299,59 @@ async def update(
 
 
 @mcp.tool()
+async def import_slice(
+    from_session: str,
+    anchors: list[str],
+    id_policy: str = "keep",
+    depth: int = 2,
+    max_rows: int = 50,
+    view: str | None = None,
+    enable_guard: bool = True,
+    agent: str | None = None,
+    session: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
+) -> str:
+    """Path B: import a bounded WorkingMemorySlice into the lead/mission session.
+
+    Prefer path A (shared session re-pin_map) when Multitask already shares one
+    session. ``id_policy``: keep (MERGE upsert-by-id) | reject | remint.
+    Optional ImportGuard soft policy runs when a host hook is installed and
+    ``enable_guard`` is true; engine hard gates always apply (MN-REQ-12.9–12.11).
+    """
+    argv = [
+        "import-slice",
+        "--from-session",
+        from_session,
+        "--id-policy",
+        id_policy,
+        "--depth",
+        str(depth),
+        "--max-rows",
+        str(max_rows),
+    ]
+    for a in anchors:
+        argv.extend(["--anchor", a])
+    if view:
+        argv.extend(["--view", view])
+    if not enable_guard:
+        argv.append("--no-guard")
+    if agent:
+        argv.extend(["--agent", agent])
+    if caller:
+        argv.extend(["--caller", caller])
+    if mission_id:
+        argv.extend(["--mission-id", mission_id])
+    if lease:
+        argv.extend(["--lease", lease])
+    if write_scope:
+        argv.extend(["--write-scope", write_scope])
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
 async def session_acl_grant(
     caller: str,
     pin_map: bool = True,

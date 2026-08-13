@@ -58,7 +58,7 @@ flowchart TB
   A --> Lead[Lead mission session SSOT]
 ```
 
-**Librarian analogy:** ImportGuard = **optional** cheap evidence librarian (soft yes/no/trim) before catalog/absorb; happy path A skips it. Engine schema/caps/id policy remain hard gates. ImportGuard is **doctrine nested** — engine soft-guard not claimed shipped.
+**Librarian analogy:** ImportGuard = **optional** cheap evidence librarian (soft yes/no/trim) before catalog/absorb; happy path A skips it. Engine schema/caps/id policy remain hard gates. As-is: optional host hook (`set_import_guard`); ImportAbsorb / `import_slice` landed.
 
 ## 3. Fake mission
 
@@ -154,4 +154,4 @@ Hard gates after allow/trim (engine - still apply; ImportGuard MUST NOT replace 
 
 ## 8. Validation note
 
-**mcp-sysml-v2:** not available in this cloud agent environment - prefer Cursor SysML v2 MCP `validate` on full `config.yaml` load when present. This run: brace-balance review only (`serve_down`). ImportGuard / ImportAbsorb are **doctrine nested** until engine path B lands; CapsPolicy ACL cut is shipped when session ACL is enabled (`engineAclShipped=true`).
+**mcp-sysml-v2:** not available in this cloud agent environment - prefer Cursor SysML v2 MCP `validate` on full `config.yaml` load when present. This run: brace-balance review only (`serve_down`). ImportGuard host hook + ImportAbsorb / `import_slice` are **landed**; CapsPolicy ACL cut is shipped when session ACL is enabled (`engineAclShipped=true`).

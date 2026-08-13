@@ -270,6 +270,7 @@ package MemNetVerification {
       verify noChatOrWholeStoreImportReq;
       require constraint {
         multitask.coordinator.doctrineAsIs == true
+          and multitask.coordinator.importReceive.absorb.implemented == true
       }
     }
   }
@@ -290,7 +291,9 @@ package MemNetVerification {
       verify cheapLlmImportGuardSoftReq;
       require constraint {
         multitask.coordinator.importReceive.guard.costTier == "cheap"
-          and multitask.coordinator.importReceive.guard.doctrineAsIs == true
+          and multitask.coordinator.importReceive.guard.implemented == true
+          and multitask.coordinator.importReceive.guard.doctrineAsIs == false
+          and multitask.coordinator.importReceive.absorb.implemented == true
       }
     }
   }

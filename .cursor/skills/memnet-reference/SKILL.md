@@ -80,6 +80,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765` |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
 | Path-B ingest stubs | `parts/common/memnet/memnet/pin_map_ingest.py` | Roadmap only in 0.4.x |
+| Path-B session import | `parts/common/memnet/memnet/import_absorb.py` | `import_slice` + optional ImportGuard host hook |
 
 Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/grammar/memnet-grammar-design.md`.
 
