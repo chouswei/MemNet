@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-08-13
+
 ### Added
 - **PinMapIngest leftover domains (#64)** — `PinMapIngest_Codebase` / `_PcbaAto` / `_SkillsRules` with deterministic locator ids (no client `NEW`), MutateGate GQL commit, budgets. CLI: `memnet ingest codebase|pcba|skills`. MCP: `ingest_codebase` / `ingest_pcba` / `ingest_skills`. Schema examples beside Sysml. Model: `implemented=true` / `roadmapOnly=false`; MN-VER-12-S09 no longer treats leftover domains as must-not-assume.
 
