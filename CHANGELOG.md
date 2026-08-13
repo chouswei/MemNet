@@ -7,14 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-08-13
+
 ### Added
 - **LocalIpcGateway (MN-REQ-06.2)** — real AF_UNIX share of the in-process session registry (same length-prefixed JSON protocol as TCP `memnet serve`). Env: `MEMNET_IPC_SOCKET`. CLI: `memnet serve --ipc` / `--ipc-path`. Client `dispatch` prefers IPC over TCP when the socket is listening. Closes #50.
 - **NeighbourhoodReserve / RSV (MN-REQ-12.13, #30)** — ego leases with required `llm_id` + `ttl_s`; `reserve` / `extend` / `release` (CLI + MCP); MutateGate rejects foreign/missing holder on reserved ids; pin map may emit `## Reserves` / `RSV […]` present lines; expired leases auto-release. SysML nest under `SessionLifecycle`.
 - **PinMapIngest_Sysml (MN-REQ-11.16 / #31)** — first Path-B pin-map ingest engine: selective SysML v2 `.sysml` → PKG/PRT/REQ/POR pins with deterministic ids from `qname=` / `requirementId=` / `path=` (no client `NEW`). CLI `memnet ingest sysml`; MCP `ingest_sysml`. Codebase / PCBA `.ato` / skills remain interface-only (`not_implemented`). SysML nest under `PinMapRoadmap` (four engines; Sysml first).
+- **ImportAbsorb / `import_slice`** — Path-B session import into the lead SSOT with `keep` / `reject` / `remint`; optional host **ImportGuard** soft policy (`--no-guard` to skip). CLI `memnet import-slice`; closes #48 / #49.
+- **CapsPolicy ACL** — shipped engine gates (off by default until `session acl-enable`): who (`caller`) / `pin_map` vs mutate / `WorkerWriteScope` hard reject / optional `missionId`+`lease` bind. Live AgensGraph / N-server not claimed.
+- **Linux publisher** — `scripts/publish.sh` (Unix twin of `publish.ps1`): `hatch build` + `twine check`; upload only with `--upload` when `TWINE_PASSWORD` is already set (`TWINE_USERNAME` defaults to `__token__`).
 
 ### Changed
 - **docs: one-path / 0.5.0 plan** — `docs/ROADMAP-0.5.md`; README “How to run (one path)” + known gaps; multi-layer Open § aligned; `memnet-pi` HTTP as default remote teach; Layer = 1.x teach / Tier A = legacy alias; Pi one graph owner (HTTP bridged to serve).
 - **docs: application-notes Layer teach** — circuit notes + InvAmp example use CST `ports=` / `law=` / `--bind-->` as primary; Tier A `derives` / `connects_to` / paren arrows / `@TAG` pipe demoted to legacy pointers; `docs/README.md` + `LLM-GUIDE.md` Layer pointers; golden `docs/grammar/examples/layer/layer_09_inv_amp_good.txt`.
+- **README rewrite** — short as-is engineer guide (install, session pipe, import absorb, ACL/transport, honest deferred); no live AgensGraph or N-server claim.
+
+### Fixed
+- **MutateGate `rename_id` batch rollback (#27)** — failed mutate batches undo node re-id / endpoint retargets so the graph is not left half-renamed.
+- **README merge markers** — remove conflict markers left on master after Path-B ingest merge (#61); restore the short as-is page.
 
 ## [0.4.2] - 2026-08-08
 

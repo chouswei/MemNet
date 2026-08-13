@@ -1,7 +1,7 @@
 [project]
 name = "memnet"
 repo = "MemNet"
-version = "0.4.3"
+version = "0.4.4"
 description = "In-memory working-memory graph for LLM agents (goldfish brain scratch space)"
 
 # No pcba-libs pins — software-only system (see LAYOUT.md).
