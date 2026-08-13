@@ -965,7 +965,7 @@ package MemNetBehaviour {
   state def SessionImportReceive {
     doc /*
       Path B: lead ImportAbsorb of member WorkingMemorySlice (optional
-      ImportGuard nest: ImportGuardHook shipped; CheapLlmImportGuard leftover
+      ImportGuard nest: ImportGuardHook shipped; CheapLlmImportGuard shipped
       #63 → engine hard). Path A: EvSharedSessionRepin only — this import
       nest skipped. Product verb = import (SessionImport*). Chat never
       payload; whole-store dump forbidden. Hosted by MultitaskOperatingModel.
@@ -1048,10 +1048,11 @@ package MemNetBehaviour {
     state pathBGuarding {
       doc /*
         ImportGuard nest soft: ImportGuardHook (shipped) and/or optional
-        CheapLlmImportGuard (leftover #63). SoftScopeFit / SoftJunkTrim
-        (subtractive) / SoftInventedId / SoftSizeNoise / SoftIdPolicyAdvice
-        → SoftDecisionEmit. MUST NOT replace engine hard gates. Decision =
-        structured atoms. EvGuardSkip → GuardPassthrough (skipping is valid).
+        CheapLlmImportGuard (shipped #63; env-gated). SoftScopeFit /
+        SoftJunkTrim (subtractive) / SoftInventedId / SoftSizeNoise /
+        SoftIdPolicyAdvice → SoftDecisionEmit. MUST NOT replace engine
+        hard gates. Decision = structured atoms. EvGuardSkip →
+        GuardPassthrough (skipping is valid).
       */
     }
     transition guard_allow

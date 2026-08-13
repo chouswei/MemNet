@@ -1002,16 +1002,16 @@ package MemNetRequirements {
           ImportGuardHook = host plug-in (set_import_guard / --no-guard /
           enable_guard; GuardPassthrough when skipped — skipping is valid);
           CheapLlmImportGuard = optional default adapter in memnet-llm (off
-          unless env set; does not vendor a model; issue #63 leftover).
-          Hook shipped ≠ cheap LLM shipped. Path A SHALL re-pin_map without
-          ImportGuard. LLM MAY: choose anchors, trim junk, advise keep vs
-          remint. Soft guard SHALL NOT replace engine hard gates (schema,
-          ACL, slice budget, anchors, LAW exclude, id_policy). Guard chat
-          SHALL NOT be SSOT — record ImportGuardDecision as structured
-          atoms; lead session remains SSOT after import. costTier is a
-          cost/latency class, not a vendor id. Host MAY skip/disable
-          (GuardPassthrough). Satisfied by CheapLlmImportGuard part (not
-          the hook alone).
+          unless MEMNET_IMPORT_GUARD_API_KEY set; does not vendor a model;
+          shipped #63). Hook shipped ≠ cheap LLM alone. Path A SHALL
+          re-pin_map without ImportGuard. LLM MAY: choose anchors, trim
+          junk, advise keep vs remint. Soft guard SHALL NOT replace engine
+          hard gates (schema, ACL, slice budget, anchors, LAW exclude,
+          id_policy). Guard chat SHALL NOT be SSOT — record
+          ImportGuardDecision as structured atoms; lead session remains
+          SSOT after import. costTier is a cost/latency class, not a
+          vendor id. Host MAY skip/disable (GuardPassthrough / --no-guard).
+          Satisfied by CheapLlmImportGuard part (not the hook alone).
         */
         attribute requirementId : String = "MN-REQ-12.11";
       }

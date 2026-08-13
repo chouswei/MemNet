@@ -31,9 +31,9 @@ Product types: `SessionImport*` only (no `SessionMerge*`).
 | `id_policy=remint` | NEW ids for conflicts; lead old rows stay; edges retarget |
 | Micro `merge=true` | In-session node re-id — not macro path B |
 | **ImportGuardHook** | Host plug-in (`set_import_guard` / `--no-guard`); **shipped** (#49) |
-| **CheapLlmImportGuard** | Optional default LLM adapter in `memnet-llm`; **NOT shipped** (#63 / 12.11 leftover) |
+| **CheapLlmImportGuard** | Optional default LLM adapter in `memnet-llm`; **shipped** (#63 / MN-REQ-12.11; env-gated) |
 
-**Honesty:** hook shipped ≠ cheap LLM shipped. Skipping the guard (`GuardPassthrough`) is valid. LLM MAY review; engine MUST still hard-gate.
+**Honesty:** hook (#49) and cheap LLM adapter (#63) are separate. Skipping the guard (`GuardPassthrough` / no API key / `--no-guard`) is valid. LLM MAY review; engine MUST still hard-gate.
 
 ## 2. Nest (deploy)
 
@@ -44,7 +44,7 @@ MultitaskOperatingModel
 │       ├── ImportGuard          gateKind=soft  // nest parent (like PinMapRoadmap)
 │       │   ├── ImportGuardHook  implemented=true   // #49 set_import_guard
 │       │   │   └── GuardPassthrough                // skip is valid
-│       │   ├── CheapLlmImportGuard implemented=false  // #63 / MN-REQ-12.11
+│       │   ├── CheapLlmImportGuard implemented=true   // #63 / MN-REQ-12.11
 │       │   ├── SoftScopeFitReview
 │       │   ├── SoftJunkTrim                    // subtractive keep_ids
 │       │   ├── SoftInventedIdReview
@@ -66,8 +66,8 @@ MultitaskOperatingModel
 └── MultitaskSharedStoreBinding
 ```
 
-Module cite: `memnet.import_absorb` (`export_working_memory_slice` / `absorb_working_memory_slice` / `import_slice` / `set_import_guard`).  
-Cheap-LLM adapter: **not** in 0.4.4 — leftover tracked as GitHub **#63**.
+Module cite: `memnet.import_absorb` + `memnet.cheap_llm_import_guard` (`export_working_memory_slice` / `absorb_working_memory_slice` / `import_slice` / `set_import_guard` / env-gated cheap LLM).  
+Cheap-LLM adapter: **shipped** (#63) — off unless `MEMNET_IMPORT_GUARD_API_KEY` is set.
 
 | Concern | Model locus | Req / status |
 |---------|-------------|--------------|
@@ -75,7 +75,7 @@ Cheap-LLM adapter: **not** in 0.4.4 — leftover tracked as GitHub **#63**.
 | Path B hard absorb | `ImportAbsorb` + id policy leaves | **12.9** landed |
 | No chat / whole-store | `WorkingMemorySliceExport` + 12.10 | **12.10** |
 | Host soft hook | `ImportGuardHook` (`implemented=true`) | **#49** landed |
-| Cheap LLM soft adapter | `CheapLlmImportGuard` (`implemented=false`) | **12.11** open (#63) |
+| Cheap LLM soft adapter | `CheapLlmImportGuard` (`implemented=true`) | **12.11** shipped (#63) |
 
 ```mermaid
 flowchart TB
@@ -83,14 +83,14 @@ flowchart TB
   G -->|hook / allow/trim| A[ImportAbsorb hard]
   G -->|reject| X[importRejected]
   G -->|skip GuardPassthrough| A
-  G -.->|CheapLlmImportGuard leftover #63| L[NOT shipped]
+  G -->|CheapLlmImportGuard env-gated #63| L[cheap LLM soft]
   A --> Lead[Lead mission session SSOT]
 ```
 
 **Engine SHALL:** schema, ACL, slice budget, anchors required, LAW exclude, id_policy, nodes-then-edges.  
 **LLM MAY** (when adapter or host function present): choose anchors, trim junk (subtractive), advise keep vs remint.  
 **Host MAY skip** the guard entirely (`GuardPassthrough`).  
-**Never:** chat as SSOT; append/second copy; N-server federation (#47); claim 12.11 done because the hook landed.
+**Never:** chat as SSOT; append/second copy; N-server federation (#47); treat the hook alone as 12.11 (adapter is separate).
 
 ## 3. Fake mission
 
@@ -132,7 +132,7 @@ Member session `ses_member_amp`; lead `ses_mission_amp`.
 | B1 | Lead `SessionImportRequest` (`id_policy` keep\|reject\|remint) | `EvRequestSessionImport` | **12.9** |
 | B2 | `WorkingMemorySliceExport` (anchors, budget, LAW skip) | `EvExportWorkingMemorySlice` → `guard.sliceIn` | **12.10** |
 | B3 | **ImportGuardHook** soft (or `EvGuardSkip` / GuardPassthrough) | `pathBGuarding` | hook #49 |
-| B3′ | Optional **CheapLlmImportGuard** (env-gated adapter) | same nest | **12.11 open** (#63) |
+| B3′ | Optional **CheapLlmImportGuard** (env-gated adapter) | same nest | **12.11 shipped** (#63) |
 | B4 | **ImportAbsorb** hard leaves + id policy | `pathBImporting` | **12.9** |
 | B5 | Lead settles TSK | `pathBSettling` | 12.3 |
 
@@ -178,7 +178,7 @@ Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW
 | Whole-store dump as slice | 12.10 / 01.8 |
 | Member settles `TSK_mission_*` | 12.3 / 12.9 |
 | Treat guard chat as SSOT | 12.11 |
-| Treat hook-shipped as 12.11 / cheap LLM done | Honesty — see #63 |
+| Treat hook alone as 12.11 without env adapter | Honesty — adapter is #63 |
 | Confuse `keep` / micro `merge=true` with product **import** | Scope error |
 | Product type named SessionMerge* | Naming — use SessionImport* |
 | Path A → ImportGuard "audit" leak | Path A never enters import nest |
@@ -191,7 +191,7 @@ Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW
 | MN-VER-12-S10 | A shared (`pin_map` only) | 12.9 path A, 12.1 |
 | MN-VER-12-S11 | B ImportAbsorb + id policy leaves | 12.9, 12.10 |
 | MN-VER-12-S12 | **ImportGuardHook** pass (`hook.implemented=true`) | hook #49 — **not** 12.11 done |
-| MN-VER-12-S14 | **CheapLlmImportGuard** leftover (`cheapLlm.implemented=false`) | **12.11 open** (#63) |
+| MN-VER-12-S14 | **CheapLlmImportGuard** shipped (`cheapLlm.implemented=true`) | **12.11** (#63) |
 
 ## 8. Validation note
 
@@ -201,7 +201,7 @@ Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW
 |------|---------------|------|
 | `ImportAbsorb` | `true` | `import_slice` landed |
 | `ImportGuardHook` | `true` | `set_import_guard` / `--no-guard` / `GuardPassthrough` (#49) |
-| `CheapLlmImportGuard` | `false` | MN-REQ-12.11 leftover — issue **#63** |
+| `CheapLlmImportGuard` | `true` | MN-REQ-12.11 adapter — issue **#63** |
 | `ImportGuard` (parent) | *(no single flag)* | Nest only — do not misread as 12.11 done |
 
 CapsPolicy ACL cut shipped when session ACL is enabled (`engineAclShipped=true`).

@@ -919,7 +919,10 @@ def import_slice_cmd(
         bool,
         typer.Option(
             "--no-guard",
-            help="Skip optional ImportGuard host soft policy (MN-REQ-12.11)",
+            help=(
+                "Skip optional ImportGuard soft policy (host hook and "
+                "CheapLlmImportGuard / MEMNET_IMPORT_GUARD_API_KEY)"
+            ),
         ),
     ] = False,
     agent: Annotated[str | None, typer.Option("--agent")] = None,
@@ -951,8 +954,15 @@ def import_slice_cmd(
 
     Prefer path A (shared session re-pin_map) when Multitask already shares
     one session. Chat / whole-store dumps are refused (MN-REQ-12.9 / 12.10).
+
+    Optional CheapLlmImportGuard (#63) installs when
+    MEMNET_IMPORT_GUARD_API_KEY is set; ``--no-guard`` still skips.
     """
+    from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
     from memnet.import_absorb import import_slice
+
+    if not no_guard:
+        maybe_install_cheap_llm_import_guard()
 
     try:
         lead_id = resolve_session_id(session)

@@ -325,8 +325,10 @@ async def import_slice(
 
     Prefer path A (shared session re-pin_map) when Multitask already shares one
     session. ``id_policy``: keep (MERGE upsert-by-id) | reject | remint.
-    Optional ImportGuard soft policy runs when a host hook is installed and
-    ``enable_guard`` is true; engine hard gates always apply (MN-REQ-12.9–12.11).
+    Optional ImportGuard soft policy: host hook and/or CheapLlmImportGuard when
+    ``MEMNET_IMPORT_GUARD_API_KEY`` is set (MCP process start installs it).
+    Set ``enable_guard`` false to skip (--no-guard). Engine hard gates always
+    apply (MN-REQ-12.9–12.11 / #63).
     """
     argv = [
         "import-slice",
@@ -667,8 +669,22 @@ def _bind_durable_sync_owner() -> None:
         sys.stderr.write(f"# durable sync owner bind skipped: {type(exc).__name__}: {exc}\n")
 
 
+def _maybe_install_import_guard() -> None:
+    """Install CheapLlmImportGuard when MEMNET_IMPORT_GUARD_API_KEY is set (#63)."""
+    try:
+        from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
+
+        if maybe_install_cheap_llm_import_guard():
+            sys.stderr.write("# CheapLlmImportGuard installed (env key present)\n")
+    except Exception as exc:  # noqa: BLE001 — MCP should still start
+        sys.stderr.write(
+            f"# CheapLlmImportGuard install skipped: {type(exc).__name__}: {exc}\n"
+        )
+
+
 def main(argv: list[str] | None = None) -> None:
     args = _parse_args(argv)
+    _maybe_install_import_guard()
     _bind_durable_sync_owner()
     if args.transport == "stdio":
         mcp.run(transport="stdio")

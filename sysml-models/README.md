@@ -11,7 +11,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
 3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5** client hydrate/flush landed; live AgensGraph path needs external cabinet (not claimed verified). LLM↔store direct out of teach.
-4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` leftover #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
+4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
 **Sequence:** M1 (done) → M2 (done) → **M2.5** (client landed; live cabinet deferred) → **M3** (in-repo playbook/app-note GQL rewrite).
@@ -60,7 +60,7 @@ MemNetSystem                                 // SharedLlmMemory product
     │   └── SessionImportReceive             // path B only
     │       ├── ImportGuard                  // OPTIONAL soft nest
     │       │   ├── ImportGuardHook          // shipped #49
-    │       │   └── CheapLlmImportGuard      // NOT shipped (#63 / 12.11)
+    │       │   └── CheapLlmImportGuard      // shipped (#63 / 12.11; env-gated)
     │       └── ImportAbsorb                 // hard gates + import + settle
     ├── WorkerPool
     │   └── MultitaskWorker[1..*]            // async parallel members
@@ -78,7 +78,7 @@ MemNetSystem                                 // SharedLlmMemory product
 - **DurableBuffer:** AgensGraphAdapter **client** hydrate/flush landed; live cabinet external / not claimed
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). Export/round-trip (#66) not claimed.
-- **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` leftover (#63); happy path A = re-pin without guard
+- **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; reserve/overlap coordination remains doctrine
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
 - **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory MUST NOT nest under MemNetSystem
