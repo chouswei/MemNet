@@ -909,7 +909,7 @@ package MemNetRequirements {
       requirement def MN_REQ_12_7_NoAssumeAclReserveIngest {
         doc /*
           As-is 0.4.x: agents and Multitask doctrine SHALL NOT assume session
-          ACL modes, neighbourhood reserve (RSV), or Path-B PinMapIngest_*
+          ACL modes, neighbourhood reserve (RSV), or Path-B PinMapIngest (roadmap)
           engines are shipped or enforced. Those remain design/roadmap
           (MN-REQ-11 stubs; grammar security/reserve docs). Seed external pins
           via session_open seed_lines or add with explicit locator ids.
@@ -962,13 +962,16 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_11_CheapLlmImportGuardSoft {
         doc /*
-          Path B WorkingMemorySlice import SHOULD pass a cheap-LLM ImportGuard
-          soft review before lead mutate (allow / trim / reject + short reason).
+          OPTIONAL soft policy: Path B WorkingMemorySlice import SHOULD pass
+          a cheap-LLM ImportGuard soft review before lead mutate (allow /
+          trim / reject + short reason) when the host enables the guard.
+          Happy path A (shared session) SHALL re-pin_map without ImportGuard.
           Soft checks only (scope fit, junk/off-mission, invented ids, size).
           ImportGuard SHALL NOT replace engine hard gates (schema, caps, id
           conflict policy, owner-gated import). Guard chat SHALL NOT be SSOT —
           record ImportGuardDecision as structured atoms; lead session remains
           SSOT after import. costTier is a cost/latency class, not a vendor id.
+          Host MAY skip/disable ImportGuard; this is not a hard product gate.
         */
         attribute requirementId : String = "MN-REQ-12.11";
       }

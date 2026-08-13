@@ -35,7 +35,7 @@ Companion: [system-design-notes.md](system-design-notes.md), [multitask-case-stu
 MultitaskOperatingModel
 ├── MultitaskCoordinator                 // team lead
 │   └── SessionImportReceive             // path B
-│       ├── ImportGuard                  // cheap LLM soft review
+│       ├── ImportGuard                  // OPTIONAL cheap LLM soft policy
 │       └── ImportAbsorb                 // hard gates + import + settle
 ├── WorkerPool
 │   └── MultitaskWorker[1..*]            // handoff in + slice export
@@ -46,7 +46,7 @@ MultitaskOperatingModel
 |---------|-------------|
 | Shared LLM memory | `SharedLlmMemory` / `AgentMemory` |
 | Handoff by session id | `SessionHandoff`, `SessionHandoffById`; MN-REQ-01.7 / 01.8 / 12.1 |
-| Import receive | `SessionImportReceive` -> Guard -> Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
+| Import receive | Happy path A re-pin (no guard); path B `SessionImportReceive` → optional Guard → Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
 | Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) |
 | When import skipped | Path A shared session - re-`pin_map` only |
 
@@ -58,7 +58,7 @@ flowchart TB
   A --> Lead[Lead mission session SSOT]
 ```
 
-**Librarian analogy:** ImportGuard = cheap evidence librarian (soft yes/no/trim) before catalog/absorb; engine schema/caps/id policy remain hard gates. ImportGuard is **doctrine nested** - engine soft-guard not claimed shipped.
+**Librarian analogy:** ImportGuard = **optional** cheap evidence librarian (soft yes/no/trim) before catalog/absorb; happy path A skips it. Engine schema/caps/id policy remain hard gates. ImportGuard is **doctrine nested** — engine soft-guard not claimed shipped.
 
 ## 3. Fake mission
 

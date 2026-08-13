@@ -15,7 +15,7 @@ Novel-writer is out of scope.
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; chat never SSOT.
 3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**.
-4. **Lead imports member WM** - path A re-`pin_map` (skip import nest); path B `WorkingMemorySlice` -> nested `ImportGuard` -> `ImportAbsorb`. Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
+4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb`. Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
 
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
@@ -29,7 +29,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 
 | Pattern | Item / study |
 |---------|----------------|
-| Company analytical SSOT | `CompanyAnalyticalSsot` → [company-memory-case-study.md](company-memory-case-study.md) |
+| Company analytical SSOT | `CompanyAnalyticalSsot` (**application pattern section** in connections — not core item zoo) → [company-memory-case-study.md](company-memory-case-study.md) |
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
@@ -56,28 +56,28 @@ MemNetSystem                                 // SharedLlmMemory
 │   ├── TransportBoundary
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
 │   │   │     ├── GqlCodec / GraphStore / MutateGate / PinMapShapedRead / …
-│   │   │     └── (TierACodec quarantined — not nested)
+│   │   │     └── (TierACodec RETIRED/REJECTED — M2 done; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
 ├── DurableBuffer → AgensGraphAdapter        // M2.5
-├── PinMapRoadmap
+├── PinMapRoadmap                            // ROADMAP-ONLY (PinMapIngest variants)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit
     │   ├── AsyncTaskDispatch                // spawn N; end turn
     │   └── SessionImportReceive             // path B
-    │       ├── ImportGuard                  // cheap LLM — soft review
+    │       ├── ImportGuard                  // OPTIONAL cheap LLM soft policy
     │       └── ImportAbsorb                 // hard gates + import + settle
     ├── WorkerPool
     │   └── MultitaskWorker[1..*]            // async parallel members
     └── MultitaskSharedStoreBinding
 ```
 
-**How lead gets member WM:** shared session → re-`pin_map`; else export slice → `ImportGuard` → `ImportAbsorb` into lead session.
+**How lead gets member WM:** happy path A shared session → re-`pin_map` (ImportGuard unused); else path B export slice → optional `ImportGuard` → `ImportAbsorb` into lead session.
 
-**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). Engine does not enforce scope (doctrineAsIs).
+**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). `WorkerWriteScope` enforcement is host/doctrine until engine hard-gates (doctrineAsIs; not fake ACL).
 
 ## Behaviours
 
@@ -105,7 +105,7 @@ MemNetSystem                                 // SharedLlmMemory
 |-------------|-------------------|--------|
 | GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
 | GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
-| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | Retired from product accept (M2) |
+| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
 | PinMapShapedRead | `pin_map_composer.py` | Shaped GQL subgraph emit (M2) |
 | MutateGate | `mutate_gate.py` | GQL primary; Layer/Tier A rejected |
 | AgensGraphAdapter | — | Planned **M2.5** |
@@ -116,7 +116,7 @@ MemNetSystem                                 // SharedLlmMemory
 |------|-------|
 | 12.9 LeadOwnsSessionImport | Coordinator, SessionImportReceive, ImportAbsorb, SessionLifecycle |
 | 12.10 NoChatOrWholeStoreImport | Coordinator, Worker, ImportGuard, ImportAbsorb |
-| 12.11 CheapLlmImportGuardSoft | ImportGuard, SessionImportReceive |
+| 12.11 CheapLlmImportGuardSoft (OPTIONAL soft policy) | ImportGuard, SessionImportReceive |
 | 12.12 HostDrivenAsyncParallel | AsyncTaskDispatch, Coordinator, WorkerPool, MultitaskWorker |
 
 ## Gaps
@@ -125,8 +125,10 @@ MemNetSystem                                 // SharedLlmMemory
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
 - **M2.5:** AgensGraph adapter — plan only ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite (plan)
-- ImportGuard / ImportAbsorb — doctrine nested; engine not claimed shipped
-- WorkerWriteScope — doctrineAsIs; engine does not enforce (see async-parallel study)
+- ImportGuard — **optional** soft policy (path B); happy path A = re-pin without guard; doctrine nested, engine soft-guard not claimed shipped
+- ImportAbsorb — doctrine nested; engine hard absorb not claimed fully shipped
+- WorkerWriteScope — host/doctrine enforcement until engine hard-gates (doctrineAsIs; see async-parallel study)
 - MN-REQ-12.7 ACL/reserve/ingest still to-be
 - `LocalIpcFlow` when LocalIpcGateway is implemented
-- PinMapIngest_* deterministic locators
+- PinMapIngest (roadmap-only; domainVariant) deterministic locators
+- TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path

@@ -371,7 +371,7 @@ package MemNetBehaviour {
       schema check -> strict commit -> emit AssignedIdMap. Aligns MN-REQ-03
       and 10.4. When the batch has no NEW / [NEW], minting is a no-op (empty
       id map) and the path proceeds to committing without inventing ids.
-      As-is line codec parse is implementation lag — remove in M2.
+      TierA / Layer line codec parse is RETIRED on product path (M2 done).
     */
     entry;
     then idle;
@@ -430,7 +430,7 @@ package MemNetBehaviour {
   state def PinMapIngestCycle {
     doc /*
       ROADMAP behaviour for MN-REQ-11 selective pin ingest/export.
-      Applies to PinMapIngest_* stubs; not session file SnapshotStore.
+      Applies to PinMapIngest roadmap stubs (domainVariant); not SnapshotStore.
     */
     entry;
     then pinIdle;
@@ -941,11 +941,12 @@ package MemNetBehaviour {
       session (product verb = import; colloquial "session merge" means this
       import only — no SessionMerge* type names). Parent mission session =
       lead WM (SSOT). Worker session or scoped slice = member WM.
-      Path A (preferred Multitask default): already shared session →
+      Happy path A (preferred Multitask default): already shared session →
       EvSharedSessionRepin (lead re-pin_map; no second store; import nest
-      skipped). Path B: separate sessions → export WorkingMemorySlice →
-      ImportGuard (cheap LLM soft) → owner-gated id policy (reject/remint/
-      Cypher MERGE upsert) → ImportAbsorb → settle TSK_* in lead session.
+      skipped; ImportGuard not used). Path B: separate sessions → export
+      WorkingMemorySlice → optional ImportGuard (cheap LLM soft policy) →
+      owner-gated id policy (reject/remint/Cypher MERGE upsert) →
+      ImportAbsorb → settle TSK_* in lead session.
       Chat is never the import payload (EvImportFromChat forbidden).
       Whole-store dump and dual-writer during import forbidden. Distinct
       from micro in-session node re-id (merge=true) and from naming this
@@ -973,9 +974,10 @@ package MemNetBehaviour {
 
     state pathASharedRepin {
       doc /*
-        Path A: whiteboard already shared. Lead re-pin_map on mission
-        session; member facts already visible. No SessionImportRequest.
-        ImportGuard optional only if an audit slice is exported.
+        Path A happy path: whiteboard already shared. Lead re-pin_map on
+        mission session; member facts already visible. No SessionImportRequest.
+        ImportGuard is OPTIONAL soft policy — unused on this path unless an
+        audit slice is explicitly exported.
       */
     }
     transition path_a_pin_map

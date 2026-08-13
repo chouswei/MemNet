@@ -12,21 +12,22 @@
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
     │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
     │   ├── MutateGate / SessionLifecycle / Schema / Caps / …
-    │   └── (TierACodec archived — not nested accept; M2 retired)
+    │   └── (TierACodec RETIRED/REJECTED on product path — M2 done; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
-    ├── PinMapRoadmap
+    ├── PinMapRoadmap               // ROADMAP-ONLY stub nest (PinMapIngest variants)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
         │   ├── SessionHandoffEmit        // session id + scope handoff
         │   ├── AsyncTaskDispatch         // spawn N workers; end turn
-        │   └── SessionImportReceive
-        │       ├── ImportGuard           // cheap LLM soft review
+        │   └── SessionImportReceive      // path B only
+        │       ├── ImportGuard           // OPTIONAL cheap LLM soft policy
         │       └── ImportAbsorb          // hard gates + import + settle
         ├── WorkerPool                    // logical parallel members
         │   └── MultitaskWorker[1..*]     // async; WorkerScopedTurn host
         └── MultitaskSharedStoreBinding
+  Happy path Multitask: Path A shared session → re-pin_map (no ImportGuard).
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -114,24 +115,26 @@ package MemNet {
 
   part def TierACodec {
     doc /*
-      ARCHIVED — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
-      memnet.tier_a). Not on the product accept path (ADR-001 M2: MutateGate
-      rejects with legacy_dialect_retired). MUST NOT be nested as target
-      accept or 1.x teach. Primary wire is GqlCodec. Modules may remain for
-      archive/tests only.
+      RETIRED / REJECTED on product path (ADR-001 M2 **done**): former Layer /
+      Tier A NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a). MutateGate
+      rejects with legacy_dialect_retired. MUST NOT be nested as accept or
+      1.x teach. Kept for archive/tests / as-is traceability only — not a
+      “remove in M2” TODO. Primary wire is GqlCodec.
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port errOut : ErrorSignalOutPort;
-    attribute quarantineRemoveInM2 : Boolean = false;
+    attribute productPathRetired : Boolean = true;
+    attribute mustNotNestOnProductPath : Boolean = true;
   }
 
   part def LegacyPipeImport {
     doc /*
-      DEPRECATED — not in MemNetSystem target composition. One-shot import
-      of historical @TAG pipe session blobs; convert then discard.
+      RETIRED archive — MUST NOT nest on product path. One-shot import of
+      historical @TAG pipe session blobs; convert then discard. Kept for
+      as-is traceability only (not first-class product).
     */
     port legacyIn : LegacyPipeInPort;
     port recordsOut : GraphRecordOutPort;
@@ -142,7 +145,7 @@ package MemNet {
   part def IdAllocator {
     doc /*
       Two mint paths: (1) LLM goldfish mutate -- NEW -> engine id;
-      (2) PinMapIngest_* -- deterministic id from locator key.
+      (2) PinMapIngest (roadmap) -- deterministic id from locator key.
       As-is: memnet.id_allocator.
     */
     port recordsIn : GraphRecordInPort;
@@ -399,9 +402,9 @@ package MemNet {
 
   part def CliFacade {
     doc /*
-      Agent/human CLI. Presents GQL wire on stdio (target). As-is may still
-      speak line codecs until M2 remove — not target accept doctrine.
-      As-is: memnet.cli (+ serve_client).
+      Agent/human CLI. Presents GQL wire on stdio (target / product path).
+      TierA / Layer line codecs are RETIRED on product path (M2 done) — not
+      target accept doctrine. As-is: memnet.cli (+ serve_client).
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
@@ -528,17 +531,25 @@ package MemNet {
   }
 
   // =====================================================================
-  // MN-REQ-11 pin-map roadmap stubs
+  // MN-REQ-11 pin-map roadmap (stubs only — not product accept spine)
   // =====================================================================
 
-  part def PinMapIngest_Sysml {
+  part def PinMapIngest {
     doc /*
-      ROADMAP stub: export/import selective SysML v2 pin maps as Node|Edge.
+      ROADMAP-ONLY stub: selective pin-map ingest/export as Node|Edge.
+      Variants (domain attribute): sysml | codebase | pcbaAto | skillsRules.
+      Collapses former PinMapIngest_* four-part zoo — not shipped engines.
+      Seed external locators via seed_lines / explicit add until implemented.
+      Distinct from session SnapshotStore and from live PinMapShapedRead.
     */
+    attribute domainVariant : String = "sysml";
+    // Allowed domainVariant values (doc only): "sysml", "codebase",
+    // "pcbaAto", "skillsRules".
     port pinOut : PinMapOutPort;
     port pinIn : PinMapInPort;
     port recordsOut : GraphRecordOutPort;
     attribute implemented : Boolean = false;
+    attribute roadmapOnly : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_1_ExportGraphToSysmlV2;
@@ -546,63 +557,26 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_3_EdgeMapsToSysmlConnection;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_5_SysmlRoundTripShould;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
-  }
-
-  part def PinMapIngest_Codebase {
-    doc /*
-      ROADMAP stub: ingest selective codebase pins (modules/symbols).
-    */
-    port pinIn : PinMapInPort;
-    port recordsOut : GraphRecordOutPort;
-    attribute implemented : Boolean = false;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_6_SnapshotCodebaseIntoGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_7_CodebaseNodesAreModulesSymbols;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_8_CodebaseEdgesAreRelations;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
-  }
-
-  part def PinMapIngest_PcbaAto {
-    doc /*
-      ROADMAP stub: PCBA schematic (.ato) pins + connectivity.
-    */
-    port pinIn : PinMapInPort;
-    port recordsOut : GraphRecordOutPort;
-    attribute implemented : Boolean = false;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_9_SnapshotAtoIntoGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_11_SkillsAndRulesAreNodes;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_12_SkillsRulesEdgesAreRelations;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_14_PcbaAtoNodesAreNetsComponentsPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_15_PcbaAtoEdgesAreConnectivity;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
-  part def PinMapIngest_SkillsRules {
-    doc /*
-      ROADMAP stub: agent skills/rules pin maps.
-    */
-    port pinIn : PinMapInPort;
-    port recordsOut : GraphRecordOutPort;
-    attribute implemented : Boolean = false;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_11_SkillsAndRulesAreNodes;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_12_SkillsRulesEdgesAreRelations;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
-  }
-
   part def PinMapRoadmap {
-    doc /* Composite of MN-REQ-11 roadmap stubs. */
-    part sysml : PinMapIngest_Sysml;
-    part codebase : PinMapIngest_Codebase;
-    part pcbaAto : PinMapIngest_PcbaAto;
-    part skillsRules : PinMapIngest_SkillsRules;
+    doc /*
+      ROADMAP-ONLY minimal nest for MN-REQ-11 PinMapIngest stubs.
+      Not a product accept spine; do not treat as shipped ingest engines.
+      One PinMapIngest usage; domainVariant selects sysml/codebase/pcba/skills.
+    */
+    attribute roadmapOnly : Boolean = true;
+    part ingest : PinMapIngest;
   }
 
   // =====================================================================
@@ -617,7 +591,9 @@ package MemNet {
       lead/mission session: schema, caps, owner-gated id policy (Cypher
       MERGE upsert / reject / remint NEW), nodes then edges, then lead may
       settle TSK_*. Product verb = import. Cypher MERGE mechanics and micro
-      merge=true are not this part. Runs after ImportGuard soft allow/trim.
+      merge=true are not this part. Runs after ImportGuard soft allow/trim
+      when guard is enabled; when guard skipped/disabled, absorb after
+      SessionImportRequest alone (path B). Path A never enters this part.
     */
     attribute doctrineAsIs : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
@@ -633,14 +609,18 @@ package MemNet {
 
   part def ImportGuard {
     doc /*
-      Cheap-LLM soft reviewer nested under SessionImportReceive, before
-      ImportAbsorb — same role class as an evidence librarian (soft gate
-      before catalog/absorb). Soft checks: assigned scope?, junk/off-mission?,
-      invented ids vs copy-from-pin_map?, oversized / settle noise?. Outcomes:
-      allow / trim / reject + short reason (ImportGuardDecision). MUST NOT
-      replace engine hard gates. MUST NOT make guard chat the SSOT. costTier =
-      cost/latency class only (no vendor model id).
+      OPTIONAL soft policy (cheap LLM) nested under SessionImportReceive
+      path B, before ImportAbsorb — librarian-class soft gate. Happy path =
+      Path A shared session re-pin_map **without** this guard (no second
+      store, no ImportGuardDecision). Soft checks when enabled: assigned
+      scope?, junk/off-mission?, invented ids vs copy-from-pin_map?,
+      oversized / settle noise?. Outcomes: allow / trim / reject + short
+      reason (ImportGuardDecision). MUST NOT replace engine hard gates.
+      MUST NOT make guard chat the SSOT. costTier = cost/latency class only
+      (no vendor model id). Host MAY skip/disable; doctrine nested, not
+      claimed shipped as hard engine capability.
     */
+    attribute optionalSoftPolicy : Boolean = true;
     attribute doctrineAsIs : Boolean = true;
     attribute costTier : String = "cheap";
     attribute implemented : Boolean = false;
@@ -655,11 +635,11 @@ package MemNet {
   part def SessionImportReceive {
     doc /*
       Team-lead nest: import a member's working memory into the mission
-      session (SessionImportReceive). Path B spine: ImportGuard (cheap LLM
-      soft) → ImportAbsorb (hard) → settle. Path A shared-session skips this
-      nest (re-pin_map only — no second store). Slice enters at
-      guard.sliceIn; decision+slice pass to absorb. Hosts behaviour
-      SessionImportReceive states.
+      session. Happy path A (preferred): shared session → re-pin_map only —
+      this nest skipped; ImportGuard not used. Path B spine: optional
+      ImportGuard (cheap LLM soft policy) → ImportAbsorb (hard) → settle.
+      Slice enters at guard.sliceIn when guard enabled; decision+slice pass
+      to absorb. Hosts behaviour SessionImportReceive states.
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;
@@ -700,7 +680,8 @@ package MemNet {
       parallel only when scopes are disjoint anchors OR separate session
       ids (MN-REQ-12.5 / 12.12). Overlapping shared-session scopes →
       serial / single writer (MUST NOT dual-write). Engine 0.4.x does not
-      enforce WorkerWriteScope (doctrineAsIs; last-write-wins if violated).
+      hard-gate WorkerWriteScope — enforcement is host/doctrine until
+      engine ACL (doctrineAsIs; last-write-wins if violated).
       EvWorkerReturn is host-driven async completion on a later turn.
     */
     attribute doctrineAsIs : Boolean = true;
@@ -717,9 +698,10 @@ package MemNet {
   part def MultitaskCoordinator {
     doc /*
       Team lead. Nest: SessionHandoffEmit → AsyncTaskDispatch → (workers
-      run async) → next turn pin_map; path B SessionImportReceive
-      (ImportGuard + ImportAbsorb). Path A shared session: re-pin_map only
-      (import nest skipped). Owns parent TSK_* / USR_* settle.
+      run async) → next turn pin_map. Happy path A shared session: re-pin_map
+      only (import nest + ImportGuard skipped). Path B: SessionImportReceive
+      (optional ImportGuard soft + ImportAbsorb hard). Owns parent TSK_* /
+      USR_* settle.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
@@ -761,7 +743,8 @@ package MemNet {
       Team member. Accepts SessionHandoff; hosts WorkerScopedTurn
       (pin_map first → mutate under WorkerWriteScope). Path B exports
       WorkingMemorySlice for lead import. MUST NOT settle parent TSK_*
-      unless delegated; chat is not SSOT. Engine does not enforce scope.
+      unless delegated; chat is not SSOT. WorkerWriteScope enforcement is
+      host/doctrine until engine hard-gates (not fake ACL).
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -788,7 +771,8 @@ package MemNet {
       Members run asynchronously in parallel when WorkerWriteScope anchors
       are disjoint OR each has a separate session id; otherwise serial /
       single writer (MN-REQ-12.5 / 12.12). Fan-in WorkingMemorySlice for
-      path B lead import. doctrineAsIs: no engine ACL/reserve.
+      path B lead import. doctrineAsIs: WorkerWriteScope = host/doctrine
+      until engine hard-gates (no ACL/reserve claimed).
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffIn : SessionHandoffInPort;
@@ -847,10 +831,11 @@ package MemNet {
   part def MemNetSystem {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core) + Transport + MCP
-      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap + MultitaskOperatingModel
-      (Coordinator → HandoffEmit / AsyncTaskDispatch / SessionImportReceive;
-      WorkerPool MultitaskWorker[1..*]). TierACodec / LegacyPipeImport not nested.
-      Only MN-REQ-00 satisfied here.
+      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap (roadmap-only
+      PinMapIngest stub) + MultitaskOperatingModel (Coordinator → HandoffEmit /
+      AsyncTaskDispatch / SessionImportReceive; WorkerPool MultitaskWorker[1..*]).
+      TierACodec / LegacyPipeImport RETIRED — MUST NOT nest on product path
+      (M2 done). Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
