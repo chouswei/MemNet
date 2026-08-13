@@ -21,13 +21,20 @@
         ├── MultitaskCoordinator          // team lead
         │   ├── SessionHandoffEmit        // session id + scope handoff
         │   ├── AsyncTaskDispatch         // spawn N workers; end turn
-        │   └── SessionImportReceive      // path B only
-        │       ├── ImportGuard           // OPTIONAL cheap LLM soft policy
-        │       └── ImportAbsorb          // hard gates + import + settle
-        ├── WorkerPool                    // logical parallel members
-        │   └── MultitaskWorker[1..*]     // async; WorkerScopedTurn host
+        │   └── SessionImportReceive      // path B only (path A never enters)
+        │       ├── ImportGuard           // OPTIONAL soft / LLM MAY
+        │       │   └── Soft* leaves      // allow|trim|reject; trim subtractive
+        │       └── ImportAbsorb          // engine SHALL hard
+        │           ├── DistinctSession / SliceBudget / LawVocabExclude / Acl
+        │           ├── IdPolicyKeep|Reject|Remint
+        │           └── NodesThenEdgesCommit (+ optional decision atom)
+        ├── WorkerPool
+        │   └── MultitaskWorker[1..*]     // + WorkingMemorySliceExport (hard)
         └── MultitaskSharedStoreBinding
-  Happy path Multitask: Path A shared session → re-pin_map (no ImportGuard).
+  Path A: shared mission sessionId → pin_map only (no import nest).
+  Path B: bounded WorkingMemorySlice → optional ImportGuard → ImportAbsorb
+  (id_policy keep|reject|remint). Not append. Not N-server federation.
+  Module cite: memnet.import_absorb (PR #55 / import_slice).
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -331,8 +338,8 @@ package MemNet {
     port snapIn : SessionSnapshotInPort;
     port hydrateIn : DurableHydrateInPort;
     port flushOut : DurableFlushOutPort;
-    port importReqIn : SessionImportRequestInPort;
-    port sliceIn : WorkingMemorySliceInPort;
+    // Path B import entry ports live on SessionImportReceive / ImportAbsorb
+    // only — do not dual-name slice/importReq here.
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
     part schema : SchemaRegistry;
@@ -630,25 +637,196 @@ package MemNet {
 
   // =====================================================================
   // Multitask Mode (MN-REQ-12) — nested until clear
-  // Team lead imports member working memory (SessionImportReceive).
-  // Colloquial "session merge" means this import — no SessionMerge* types.
+  // Path B product verb = import (SessionImport*). No SessionMerge* types.
+  // micro merge=true = in-session re-id only — not this nest.
+  // Module: memnet.import_absorb (export_working_memory_slice / absorb /
+  // import_slice / set_import_guard).
   // =====================================================================
+
+  // --- Path B export (member side; engine hard + LLM MAY choose anchors) ---
+
+  part def WorkingMemorySliceExport {
+    doc /*
+      Engine SHALL export a bounded WorkingMemorySlice from a member session
+      (export_working_memory_slice). In: anchors[+], depth, view, caps.
+      Out: WorkingMemorySlice (nodes then edges). SHALL require ≥1 anchor;
+      SHALL enforce slice budget (max_rows × anchors); SHALL exclude LAW /
+      vocab rows; SHALL NOT dump the whole store. LLM MAY choose anchors /
+      depth / view. Not N-server federation.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    attribute doctrineAsIs : Boolean = true;
+    port sliceOut : WorkingMemorySliceOutPort;
+    part requireAnchors : SliceAnchorsRequired;
+    part enforceBudget : SliceBudgetGate;
+    part excludeLawVocab : LawVocabExclude;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  }
+
+  part def SliceAnchorsRequired {
+    doc /*
+      Engine SHALL: WorkingMemorySlice export fails (no_anchor) when anchors
+      are empty. Who: engine. In: anchor list. Out: validated anchors.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+  }
+
+  part def SliceBudgetGate {
+    doc /*
+      Engine SHALL: reject slice_budget when record count exceeds
+      max_rows × anchors. Caps whole-store dump. Who: engine.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  }
+
+  part def LawVocabExclude {
+    doc /*
+      Engine SHALL: LAW / session-local vocabulary rows do not import (and
+      are skipped on export). Who: engine. Soft guard MUST NOT reintroduce
+      LAW as payload.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+  }
+
+  // --- Path B ImportAbsorb (lead side; engine SHALL hard) ---
+
+  part def DistinctSessionGate {
+    doc /*
+      Engine SHALL: path B absorb requires lead sessionId ≠ member
+      sourceSessionId (same_session_import → use path A re-pin_map).
+      Who: engine. Path A never enters ImportAbsorb.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+  }
+
+  part def AclConsultAbsorb {
+    doc /*
+      Engine SHALL: consult CapsPolicy ACL on lead mutate path (who /
+      mutate permission / optional SessionBind / WorkerWriteScope) before
+      commit. Who: engine. Soft ImportGuard MUST NOT waive ACL.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    part caps : CapsPolicy;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+  }
+
+  part def SchemaValidateImport {
+    doc /*
+      Engine SHALL: schema-validate each imported record against lead
+      session schema (unknown/reserved kinds fail). Who: engine.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+  }
+
+  part def IdPolicyKeep {
+    doc /*
+      id_policy=keep: engine SHALL MERGE-by-id upsert into the lead session
+      SSOT (store.upsert). Not a second copy. Not append. Not product name
+      "merge". Distinct from micro merge=true re-id.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    attribute idPolicy : String = "keep";
+  }
+
+  part def IdPolicyReject {
+    doc /*
+      id_policy=reject: engine SHALL raise id_conflict and MUST NOT mutate
+      the lead session when any slice id already exists in lead.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    attribute idPolicy : String = "reject";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
+  }
+
+  part def IdPolicyRemint {
+    doc /*
+      id_policy=remint: engine SHALL mint NEW ids for conflicts; lead old
+      rows stay; edge src/dist retarget via id map. Non-conflict ids kept.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    attribute idPolicy : String = "remint";
+    part allocator : IdAllocator;
+  }
+
+  part def IdPolicyApply {
+    doc /*
+      Engine SHALL apply owner-gated id_policy from SessionImportRequest:
+      keep | reject | remint (aliases merge/upsert → keep only at normalise).
+      Who: engine. LLM MAY propose keep vs remint via ImportGuard soft
+      judgment; engine still applies the chosen policy hard.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    part keep : IdPolicyKeep;
+    part reject : IdPolicyReject;
+    part remint : IdPolicyRemint;
+  }
+
+  part def NodesThenEdgesCommit {
+    doc /*
+      Engine SHALL commit imported nodes then edges into lead GraphStore
+      under the active id policy. Who: engine. Out: lead SSOT updated.
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+  }
+
+  part def GuardDecisionAtomRecord {
+    doc /*
+      Engine MAY record ImportGuardDecision as a structured atom (IGD/SYS)
+      in the lead session when a soft decision exists. MUST NOT treat guard
+      chat as SSOT. Who: engine (optional write).
+    */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
+    attribute optional : Boolean = true;
+  }
 
   part def ImportAbsorb {
     doc /*
-      Hard-gate absorb of an allowed/trimmed WorkingMemorySlice into the
-      lead/mission session: schema, caps, owner-gated id policy (Cypher
-      MERGE upsert / reject / remint NEW), nodes then edges, then lead may
-      settle TSK_*. Product verb = import. Cypher MERGE mechanics and micro
-      merge=true are not this part. Runs after ImportGuard soft allow/trim
-      when guard is enabled; when guard skipped/disabled, absorb after
-      SessionImportRequest alone (path B). Path A never enters this part.
+      Engine SHALL hard-gate absorb of an allowed/trimmed WorkingMemorySlice
+      into the lead/mission session (absorb_working_memory_slice /
+      import_slice). Composition of DistinctSessionGate, SliceBudget (on
+      export), LawVocabExclude, AclConsultAbsorb, SchemaValidateImport,
+      IdPolicyApply (keep|reject|remint), NodesThenEdgesCommit, optional
+      GuardDecisionAtomRecord. Product verb = import. Path A never enters.
+      When ImportGuard skipped/disabled, absorb after SessionImportRequest
+      + slice alone. Module: memnet.import_absorb.
     */
+    attribute gateKind : String = "hard";
+    attribute actor : String = "engine";
     attribute doctrineAsIs : Boolean = true;
+    attribute implemented : Boolean = false;
     port sliceIn : WorkingMemorySliceInPort;
     port decisionIn : ImportGuardDecisionInPort;
     port importReqIn : SessionImportRequestInPort;
-    port gqlOut : GqlWireOutPort;
+
+    part distinctSession : DistinctSessionGate;
+    part excludeLawVocab : LawVocabExclude;
+    part acl : AclConsultAbsorb;
+    part schema : SchemaValidateImport;
+    part idPolicy : IdPolicyApply;
+    part commit : NodesThenEdgesCommit;
+    part decisionAtom : GuardDecisionAtomRecord;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
@@ -656,19 +834,91 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   }
 
+  // --- Path B ImportGuard (OPTIONAL soft / LLM MAY) ---
+
+  part def SoftScopeFitReview {
+    doc /*
+      LLM MAY soft-check: does the slice fit assigned WorkerWriteScope /
+      mission anchors? Outcome feeds ImportGuardDecision. MUST NOT replace
+      engine ACL / write-scope hard reject.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+  }
+
+  part def SoftJunkTrim {
+    doc /*
+      LLM MAY soft-trim junk / off-mission / settle noise. Trim is
+      subtractive only (keep_ids); MUST NOT invent new rows. Engine then
+      drops edges whose endpoints were trimmed.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+    attribute trimMode : String = "subtractive";
+  }
+
+  part def SoftInventedIdReview {
+    doc /*
+      LLM MAY soft-check invented ids vs copy-from-member-pin_map. Reject
+      soft when ids look fabricated. Engine hard gates still apply after.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+  }
+
+  part def SoftSizeNoiseReview {
+    doc /*
+      LLM MAY soft-flag oversized / settle-noise slices before absorb.
+      Engine SliceBudgetGate remains the hard budget.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+  }
+
+  part def SoftIdPolicyAdvice {
+    doc /*
+      LLM MAY advise keep vs remint judgment (soft only). Engine IdPolicyApply
+      still executes the owner-gated id_policy hard. MUST NOT rename product
+      import to SessionMerge.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+  }
+
+  part def SoftDecisionEmit {
+    doc /*
+      Emit ImportGuardDecision on parent ImportGuard.decisionOut: outcome
+      allow|trim|reject + short reason (+ keep_ids when trim). Structured
+      atoms only — never chat SSOT. allow/trim → ImportAbsorb; reject → no
+      lead mutate.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
+  }
+
+  part def GuardPassthrough {
+    doc /*
+      When ImportGuard is skipped/disabled (host enable_guard=false or no
+      hook): identity passthrough of WorkingMemorySlice to ImportAbsorb;
+      no ImportGuardDecision. Path A never uses this nest.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "host";
+    attribute skipped : Boolean = true;
+  }
+
   part def ImportGuard {
     doc /*
-      OPTIONAL soft policy (cheap LLM) nested under SessionImportReceive
-      path B, before ImportAbsorb — librarian-class soft gate. Happy path =
-      Path A shared session re-pin_map **without** this guard (no second
-      store, no ImportGuardDecision). Soft checks when enabled: assigned
-      scope?, junk/off-mission?, invented ids vs copy-from-pin_map?,
-      oversized / settle noise?. Outcomes: allow / trim / reject + short
-      reason (ImportGuardDecision). MUST NOT replace engine hard gates.
-      MUST NOT make guard chat the SSOT. costTier = cost/latency class only
-      (no vendor model id). Host MAY skip/disable; doctrine nested, not
-      claimed shipped as hard engine capability.
+      OPTIONAL soft policy (cheap LLM / host hook) nested under
+      SessionImportReceive path B, before ImportAbsorb. Composition of soft
+      reviews + SoftDecisionEmit; GuardPassthrough when skipped. Happy path
+      A = shared session re-pin_map without this nest. MUST NOT replace
+      engine hard gates (schema, ACL, slice budget, id_policy, LAW exclude).
+      costTier = cost/latency class only (no vendor model id). Module hook:
+      set_import_guard / enable_guard in memnet.import_absorb.
     */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm_or_host";
     attribute optionalSoftPolicy : Boolean = true;
     attribute doctrineAsIs : Boolean = true;
     attribute costTier : String = "cheap";
@@ -677,18 +927,30 @@ package MemNet {
     port sliceOut : WorkingMemorySliceOutPort;
     port decisionOut : ImportGuardDecisionOutPort;
 
+    part scopeFit : SoftScopeFitReview;
+    part junkTrim : SoftJunkTrim;
+    part inventedIds : SoftInventedIdReview;
+    part sizeNoise : SoftSizeNoiseReview;
+    part idAdvice : SoftIdPolicyAdvice;
+    part decide : SoftDecisionEmit;
+    part passthrough : GuardPassthrough;
+
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   }
 
   part def SessionImportReceive {
     doc /*
-      Team-lead nest: import a member's working memory into the mission
-      session. Happy path A (preferred): shared session → re-pin_map only —
-      this nest skipped; ImportGuard not used. Path B spine: optional
-      ImportGuard (cheap LLM soft policy) → ImportAbsorb (hard) → settle.
-      Slice enters at guard.sliceIn when guard enabled; decision+slice pass
-      to absorb. Hosts behaviour SessionImportReceive states.
+      Path B only: lead imports a member's WorkingMemorySlice into the
+      mission session. Spine: optional ImportGuard (soft / LLM MAY) →
+      ImportAbsorb (engine SHALL hard) → lead may settle TSK_*. Path A
+      (shared mission sessionId → pin_map only) never enters this nest —
+      no ImportGuard, no ImportAbsorb. Single entry ports (no dual proxy):
+      guard.sliceIn (member slice), absorb.importReqIn (lead request);
+      guard → absorb for trimmed slice + decision. Hosts behaviour
+      SessionImportReceive states. Disambiguation (once): product verb =
+      import (SessionImport*); micro merge=true ≠ this; keep = MERGE-by-id
+      upsert mechanics inside IdPolicyKeep only.
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;
@@ -756,10 +1018,9 @@ package MemNet {
   part def MultitaskCoordinator {
     doc /*
       Team lead. Nest: SessionHandoffEmit → AsyncTaskDispatch → (workers
-      run async) → next turn pin_map. Happy path A shared session: re-pin_map
-      only (import nest + ImportGuard skipped). Path B: SessionImportReceive
-      (optional ImportGuard soft + ImportAbsorb hard). Owns parent TSK_* /
-      USR_* settle.
+      run async) → next turn pin_map. Path A shared sessionId: pin_map only
+      (SessionImportReceive skipped). Path B: SessionImportReceive
+      (ImportGuard soft + ImportAbsorb hard). Owns parent TSK_* / USR_* settle.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;
@@ -799,12 +1060,11 @@ package MemNet {
   part def MultitaskWorker {
     doc /*
       Team member. Accepts SessionHandoff; hosts WorkerScopedTurn
-      (pin_map first → mutate under WorkerWriteScope). Path B exports
-      WorkingMemorySlice for lead import. MUST NOT settle parent TSK_*
-      unless delegated; chat is not SSOT.
-      CapsPolicy ACL is shipped: out-of-scope mutate is a hard reject when
-      session ACL is enabled. Reserve and import-path policy remain doctrine;
-      this is not a claim that RSV or Path-B PinMapIngest is shipped.
+      (pin_map first → mutate under WorkerWriteScope). Path B: nested
+      WorkingMemorySliceExport (engine hard) emits slice for lead
+      ImportAbsorb. MUST NOT settle parent TSK_* unless delegated; chat
+      is not SSOT. CapsPolicy ACL: out-of-scope mutate hard-rejects when
+      session ACL is enabled. Reserve / Path-B PinMapIngest not claimed.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionIn : SessionIdInPort;
@@ -814,6 +1074,7 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     // Behavioural host marker for WorkerScopedTurn (see behaviour.sysml).
     attribute hostsWorkerScopedTurn : Boolean = true;
+    part wmExport : WorkingMemorySliceExport;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_1_SharedSessionMissionSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_4_WorkerPinMapAndScopedWrite;

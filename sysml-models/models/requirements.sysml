@@ -945,19 +945,21 @@ package MemNetRequirements {
         doc /*
           When a team lead imports a member's working memory
           (SessionImportReceive), the lead / parent SHALL own the import into
-          the mission session. Prefer one shared mission session (Multitask
-          default): import is re-pin_map only — no second store and no
-          WorkingMemorySlice. When sessions are separate: lead SHALL import a
-          bounded WorkingMemorySlice at settle under an explicit owner-gated
-          id conflict policy (reject / remint / Cypher MERGE upsert-by-id);
-          edges after nodes; lead settles parent TSK_*. Chat and tool
-          transcripts SHALL NOT be the import payload (see MN-REQ-12.10).
+          the mission session. Path A (prefer shared mission sessionId):
+          import is re-pin_map only — no WorkingMemorySlice, no ImportGuard,
+          no ImportAbsorb. Path B (separate sessions): lead SHALL
+          ImportAbsorb a bounded WorkingMemorySlice under owner-gated
+          id_policy keep | reject | remint:
+            keep = MERGE-by-id upsert into lead SSOT (not append / not a
+              second copy);
+            reject = id_conflict, no lead mutate;
+            remint = mint NEW ids for conflicts; lead old rows stay; edges
+              retarget.
+          Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
+          TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
-          Product verb = import. Colloquial "session merge" means this import
-          behaviour only — SHALL NOT name product types SessionMerge*.
-          Macro session-import SHALL NOT be confused with micro in-session
-          node re-id (merge=true security design) or with Cypher MERGE as the
-          product name.
+          Product verb = import (SessionImport* only — no SessionMerge*).
+          Distinct from micro merge=true (in-session re-id).
         */
         attribute requirementId : String = "MN-REQ-12.9";
       }
@@ -966,8 +968,9 @@ package MemNetRequirements {
         doc /*
           Session import (SessionImportReceive) SHALL NOT use chat or tool
           transcripts as the import payload (EvImportFromChat forbidden).
-          SHALL NOT import a whole-store dump. Dual-writer on the target
-          slice during import SHALL NOT be assumed safe (0.4.x
+          Engine SHALL require anchors on WorkingMemorySliceExport, enforce
+          slice budget, and SHALL NOT import a whole-store dump. Dual-writer
+          on the target slice during import SHALL NOT be assumed safe (0.4.x
           last-write-wins; MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.10";
@@ -976,15 +979,15 @@ package MemNetRequirements {
       requirement def MN_REQ_12_11_CheapLlmImportGuardSoft {
         doc /*
           OPTIONAL soft policy: Path B WorkingMemorySlice import SHOULD pass
-          a cheap-LLM ImportGuard soft review before lead mutate (allow /
-          trim / reject + short reason) when the host enables the guard.
-          Happy path A (shared session) SHALL re-pin_map without ImportGuard.
-          Soft checks only (scope fit, junk/off-mission, invented ids, size).
-          ImportGuard SHALL NOT replace engine hard gates (schema, caps, id
-          conflict policy, owner-gated import). Guard chat SHALL NOT be SSOT —
-          record ImportGuardDecision as structured atoms; lead session remains
-          SSOT after import. costTier is a cost/latency class, not a vendor id.
-          Host MAY skip/disable ImportGuard; this is not a hard product gate.
+          ImportGuard soft review before ImportAbsorb (allow / trim / reject
+          + short reason; trim subtractive via keep_ids) when the host
+          enables the guard. Path A SHALL re-pin_map without ImportGuard.
+          LLM MAY: choose anchors, trim junk, advise keep vs remint.
+          ImportGuard SHALL NOT replace engine hard gates (schema, ACL,
+          slice budget, anchors, LAW exclude, id_policy). Guard chat SHALL
+          NOT be SSOT — record ImportGuardDecision as structured atoms; lead
+          session remains SSOT after import. costTier is a cost/latency
+          class, not a vendor id. Host MAY skip/disable (GuardPassthrough).
         */
         attribute requirementId : String = "MN-REQ-12.11";
       }

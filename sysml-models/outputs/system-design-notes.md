@@ -15,7 +15,7 @@ Novel-writer is out of scope.
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
 3. **Durable GQL store behind MemNet** — M2.5 **client** hydrate/flush landed (`DurableStoreAdapter` / Fake / optional AgensGraph client; one sync owner). Live external cabinet deferred (not claimed; not vendored).
-4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb` (WAIT absorb depth). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
+4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (soft / LLM MAY) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). `keep` = MERGE-by-id upsert into lead SSOT (not append). Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
    MutateGate, PinMapShapedRead, and SessionHandoffEmit consult.
@@ -72,15 +72,20 @@ MemNetSystem                                 // SharedLlmMemory
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit
     │   ├── AsyncTaskDispatch                // spawn N; end turn
-    │   └── SessionImportReceive             // path B
-    │       ├── ImportGuard                  // OPTIONAL cheap LLM soft policy
-    │       └── ImportAbsorb                 // hard gates + import + settle
+    │   └── SessionImportReceive             // path B only
+    │       ├── ImportGuard                  // soft / LLM MAY
+    │       │   └── Soft* + GuardPassthrough
+    │       └── ImportAbsorb                 // engine SHALL hard
+    │           └── DistinctSession / LawVocab / Acl / Schema /
+    │               IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit
     ├── WorkerPool
-    │   └── MultitaskWorker[1..*]            // async parallel members
+    │   └── MultitaskWorker[1..*]
+    │       └── WorkingMemorySliceExport     // hard: anchors, budget, LAW skip
     └── MultitaskSharedStoreBinding
 ```
 
-**How lead gets member WM:** happy path A shared session → re-`pin_map` (ImportGuard unused); else path B export slice → optional `ImportGuard` → `ImportAbsorb` into lead session.
+**Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
+**Path B:** export slice → optional `ImportGuard` → `ImportAbsorb` (`keep`|`reject`|`remint`) into lead session.
 
 **Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). **As-is:** CapsPolicy hard-rejects out-of-scope mutate when session ACL is enabled. Overlap coordination still follows host doctrine because no neighbourhood reserve is shipped.
 
@@ -123,7 +128,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 |---------------|------|
 | `GoldfishLoop` / `MutateWithNew` / `SessionLifecycleStates` | Engine goldfish |
 | `SessionHandoffById` | Pass session id (vs `EvDumpGraphInChat`) |
-| `SessionImportReceive` | path A repin; path B Guard → Absorb → Settle (vs `EvImportFromChat`) |
+| `SessionImportReceive` | path A = pin_map only; path B Guard soft → Absorb hard (vs `EvImportFromChat`) |
 | `ParentTaskLifecycle` / `WorkerScopedTurn` / `MultitaskMissionCycle` | MN-REQ-12 |
 | `DurableHydrateFlushRoadmap` | M2.5 client landed; live cabinet external |
 
@@ -154,9 +159,9 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | Leaf | Parts |
 |------|-------|
 | 12.7 NoAssumeAclReserveIngest | CapsPolicy, MutateGate, PinMapShapedRead, SessionHandoffEmit, AsyncTaskDispatch, Coordinator, Worker, WorkerPool |
-| 12.9 LeadOwnsSessionImport | Coordinator, SessionImportReceive, ImportAbsorb, SessionLifecycle |
-| 12.10 NoChatOrWholeStoreImport | Coordinator, Worker, ImportGuard, ImportAbsorb |
-| 12.11 CheapLlmImportGuardSoft (OPTIONAL soft policy) | ImportGuard, SessionImportReceive |
+| 12.9 LeadOwnsSessionImport | Coordinator, SessionImportReceive, ImportAbsorb (+ IdPolicy* leaves), WorkingMemorySliceExport, SessionLifecycle |
+| 12.10 NoChatOrWholeStoreImport | Coordinator, Worker, WorkingMemorySliceExport, ImportGuard, ImportAbsorb |
+| 12.11 CheapLlmImportGuardSoft (OPTIONAL soft) | ImportGuard (+ Soft* leaves / GuardPassthrough), SessionImportReceive |
 | 12.12 HostDrivenAsyncParallel | AsyncTaskDispatch, Coordinator, WorkerPool, MultitaskWorker |
 
 ## Gaps
@@ -165,8 +170,8 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
 - **M2.5:** Client hydrate/flush **landed**; live external cabinet deferred ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite (plan)
-- ImportGuard — **optional** soft policy (path B); happy path A = re-pin without guard; doctrine nested, engine soft-guard not claimed shipped
-- ImportAbsorb — doctrine nested; engine hard absorb WAIT / not claimed fully shipped
+- ImportGuard — **optional** soft nest (path B); Soft* leaves + GuardPassthrough; path A skips; aligns with `set_import_guard` on PR #55
+- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); aligns with `import_slice` on PR #55; master `implemented=false` until merge
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap/reserve coordination remains doctrine
 - MN-REQ-12.7 — ACL cut is shipped; neighbourhood reserve + Path-B ingest + full ACL modes WAIT

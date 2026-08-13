@@ -8,57 +8,79 @@ Companion: [system-design-notes.md](system-design-notes.md), [multitask-case-stu
 ## 1. Metaphor (binding)
 
 **Session import = team lead imports a team member's working memory.**  
-(Colloquial "session merge" means this **import** only - no product type named SessionMerge*.)
+Product types: `SessionImport*` only (no `SessionMerge*`).
 
 | Role | MemNet locus |
 |------|----------------|
 | Lead (mission SSOT) | `MultitaskCoordinator` + mission session = `MissionWorkingSet` |
-| Member | `MultitaskWorker` session **or** scoped slice (`WorkingMemorySlice`) |
+| Member | `MultitaskWorker` + nested `WorkingMemorySliceExport` |
 | Import | Durable graph pins into lead session - **not** chat/transcript |
 
-| Path | When | What import means |
-|------|------|-------------------|
-| A (prefer) | Already one shared Multitask session | Lead re-`pin_map` - **no** second store, import nest skipped |
-| B | Separate sessions | Bounded slice -> **ImportGuard** (cheap LLM soft) -> **ImportAbsorb** (engine hard) + id policy |
+| Path | When | What |
+|------|------|------|
+| A (prefer) | Shared mission `sessionId` | Lead `pin_map` only — **no** import nest |
+| B | Separate sessions | Bounded slice → optional **ImportGuard** (soft) → **ImportAbsorb** (hard) + `id_policy` |
 
-**Disambiguation (not this behaviour):**
+**Disambiguation (once):**
 
 | Term | Meaning |
 |------|---------|
 | Product **import** | `SessionImportReceive` / `SessionImportRequest` |
-| Cypher `MERGE` | Upsert-by-id mechanics inside absorb id policy |
-| Micro `merge=true` | In-session node re-id (security design) - not macro session import |
+| `id_policy=keep` | MERGE-by-id upsert into lead SSOT (not append / not a second copy) |
+| `id_policy=reject` | `id_conflict` — no lead mutate |
+| `id_policy=remint` | NEW ids for conflicts; lead old rows stay; edges retarget |
+| Micro `merge=true` | In-session node re-id — not macro path B |
 
 ## 2. Nest (deploy)
 
 ```text
 MultitaskOperatingModel
-├── MultitaskCoordinator                 // team lead
-│   └── SessionImportReceive             // path B
-│       ├── ImportGuard                  // OPTIONAL cheap LLM soft policy
-│       └── ImportAbsorb                 // hard gates + import + settle
+├── MultitaskCoordinator
+│   └── SessionImportReceive                    // path B only
+│       ├── ImportGuard          gateKind=soft  // LLM MAY / host hook
+│       │   ├── SoftScopeFitReview
+│       │   ├── SoftJunkTrim                    // subtractive keep_ids
+│       │   ├── SoftInventedIdReview
+│       │   ├── SoftSizeNoiseReview
+│       │   ├── SoftIdPolicyAdvice              // keep vs remint judgment
+│       │   ├── SoftDecisionEmit                // allow|trim|reject
+│       │   └── GuardPassthrough                // when skipped
+│       └── ImportAbsorb         gateKind=hard  // engine SHALL
+│           ├── DistinctSessionGate
+│           ├── LawVocabExclude                 // LAW/vocab never import
+│           ├── AclConsultAbsorb
+│           ├── SchemaValidateImport
+│           ├── IdPolicyApply
+│           │   ├── IdPolicyKeep | Reject | Remint
+│           ├── NodesThenEdgesCommit
+│           └── GuardDecisionAtomRecord         // optional structured atom
 ├── WorkerPool
-│   └── MultitaskWorker[1..*]            // handoff in + slice export
+│   └── MultitaskWorker[1..*]
+│       └── WorkingMemorySliceExport            // hard: anchors, budget, LAW skip
 └── MultitaskSharedStoreBinding
 ```
 
-| Concern | Model locus |
-|---------|-------------|
-| Shared LLM memory | `SharedLlmMemory` / `AgentMemory` |
-| Handoff by session id | `SessionHandoff`, `SessionHandoffById`; MN-REQ-01.7 / 01.8 / 12.1 |
-| Import receive | Happy path A re-pin (no guard); path B `SessionImportReceive` → optional Guard → Absorb; MN-REQ-12.9 / 12.10 / 12.11 |
-| Cheap LLM seat | `coordinator.importReceive.guard` (`costTier="cheap"`) |
-| When import skipped | Path A shared session - re-`pin_map` only |
+Module cite: `memnet.import_absorb` (`export_working_memory_slice` / `absorb_working_memory_slice` / `import_slice` / `set_import_guard`).
+
+| Concern | Model locus | Req |
+|---------|-------------|-----|
+| Path A pin_map only | `pathASharedRepin` — nest skipped | **12.9** |
+| Path B hard absorb | `ImportAbsorb` + id policy leaves | **12.9** |
+| No chat / whole-store | `WorkingMemorySliceExport` + 12.10 | **12.10** |
+| Soft guard | `ImportGuard` soft leaves | **12.11** |
 
 ```mermaid
 flowchart TB
-  W[MultitaskWorker.sliceOut] --> G[ImportGuard soft]
+  W[WorkingMemorySliceExport] --> G[ImportGuard soft]
   G -->|allow/trim| A[ImportAbsorb hard]
   G -->|reject| X[importRejected]
+  G -->|skip| A
   A --> Lead[Lead mission session SSOT]
 ```
 
-**Librarian analogy:** ImportGuard = **optional** cheap evidence librarian (soft yes/no/trim) before catalog/absorb; happy path A skips it. Engine schema/caps/id policy remain hard gates. ImportGuard is **doctrine nested** — engine soft-guard not claimed shipped.
+**Engine SHALL:** schema, ACL, slice budget, anchors required, LAW exclude, id_policy, nodes-then-edges.  
+**LLM MAY:** choose anchors, trim junk (subtractive), advise keep vs remint via guard hook.  
+**Never:** chat as SSOT; append/second copy; N-server federation (#47).
 
 ## 3. Fake mission
 
@@ -84,10 +106,10 @@ Lead and member already share `ses_mission_amp` via `SessionHandoffById`.
 |------|----------------|-------|-----|
 | A1 | Lead mints TSK; handoff session id + scope | `SessionHandoffById` | 12.1, 12.3, 01.7 |
 | A2 | Member pin_map + scoped mutate | `WorkerScopedTurn` | 12.4 |
-| A3 | Lead **imports** by `EvSharedSessionRepin` / re-`pin_map` | `pathASharedRepin` - **import nest skipped** | **12.9 path A** |
+| A3 | Lead **receives** by `EvSharedSessionRepin` / `pin_map` | `pathASharedRepin` — nest skipped | **12.9 path A** |
 | A4 | Lead settles TSK from session | `EvSettleMissionTask` | 12.3 |
 
-**Verdict A:** Prefer shared session - no `WorkingMemorySlice`, no `ImportGuard`.
+**Verdict A:** Shared session — no `WorkingMemorySlice`, no `ImportGuard`, no `ImportAbsorb`.
 
 ---
 
@@ -97,10 +119,10 @@ Member session `ses_member_amp`; lead `ses_mission_amp`.
 
 | Step | What happens | Locus | Req |
 |------|----------------|-------|-----|
-| B1 | Lead `SessionImportRequest` | `EvRequestSessionImport` | **12.9** |
-| B2 | Member exports bounded `WorkingMemorySlice` | `EvExportWorkingMemorySlice` -> `guard.sliceIn` | 12.10 |
-| B3 | **ImportGuard** cheap-LLM soft review | `pathBGuarding` | **12.11** |
-| B4 | **ImportAbsorb** (after allow/trim): owner-gated id policy, nodes then edges | `pathBImporting` / `EvImportWorkingMemorySlice` | 12.9 |
+| B1 | Lead `SessionImportRequest` (`id_policy` keep\|reject\|remint) | `EvRequestSessionImport` | **12.9** |
+| B2 | `WorkingMemorySliceExport` (anchors, budget, LAW skip) | `EvExportWorkingMemorySlice` → `guard.sliceIn` | **12.10** |
+| B3 | **ImportGuard** soft (or `EvGuardSkip`) | `pathBGuarding` | **12.11** |
+| B4 | **ImportAbsorb** hard leaves + id policy | `pathBImporting` | **12.9** |
 | B5 | Lead settles TSK | `pathBSettling` | 12.3 |
 
 ### ImportGuard examples (soft only)
@@ -111,11 +133,11 @@ Member session `ses_member_amp`; lead `ses_mission_amp`.
 ImportGuardDecision { outcome: allow; reason: 'slice under MOD_amp_note scope; ids from pin_map' }
 ```
 
-**Trim:**
+**Trim (subtractive):**
 
 ```text
-ImportGuardDecision { outcome: trim; reason: 'drop off-mission SYM_scratch_* settle noise' }
-// ImportAbsorb imports reduced slice only; decision atoms recorded - not guard chat as SSOT
+ImportGuardDecision { outcome: trim; reason: 'drop off-mission SYM_scratch_*'; keepIds: 'MOD_amp_note,SYM_Rin,SYM_Rf,...' }
+// ImportAbsorb imports reduced slice only; decision atoms — not guard chat as SSOT
 ```
 
 **Reject:**
@@ -125,11 +147,15 @@ ImportGuardDecision { outcome: reject; reason: 'invented ids not on member pin_m
 // -> importRejected; lead session unchanged
 ```
 
-Hard gates after allow/trim (engine - still apply; ImportGuard MUST NOT replace them):
+### Id policy (engine hard after allow/trim/skip)
 
-- schema / caps validation
-- owner-gated id conflict policy (reject / remint / Cypher `MERGE` upsert-by-id)
-- no chat / whole-store payload
+| Policy | Effect |
+|--------|--------|
+| `keep` | MERGE-by-id upsert into lead SSOT |
+| `reject` | `id_conflict` — no mutate |
+| `remint` | NEW ids; lead old rows stay; edges retarget |
+
+Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW exclude, id_policy.
 
 ---
 
@@ -141,17 +167,19 @@ Hard gates after allow/trim (engine - still apply; ImportGuard MUST NOT replace 
 | Whole-store dump as slice | 12.10 / 01.8 |
 | Member settles `TSK_mission_*` | 12.3 / 12.9 |
 | Treat guard chat as SSOT | 12.11 |
-| Confuse Cypher `MERGE` / micro `merge=true` with product **import** | Scope error |
-| Product type named SessionMerge* | Naming - use SessionImport* |
+| Confuse `keep` / micro `merge=true` with product **import** | Scope error |
+| Product type named SessionMerge* | Naming — use SessionImport* |
+| Path A → ImportGuard "audit" leak | Path A never enters import nest |
+| N-server federation pipe | Out of scope (#47) |
 
 ## 7. Verify
 
 | Verify | Scenario | Req |
 |--------|----------|-----|
-| MN-VER-12-S10 | A shared (re-pin_map) | 12.9 path A, 12.1 |
-| MN-VER-12-S11 | B separate import | 12.9, 12.10 |
-| MN-VER-12-S12 | ImportGuard nest | 12.11 |
+| MN-VER-12-S10 | A shared (`pin_map` only) | 12.9 path A, 12.1 |
+| MN-VER-12-S11 | B ImportAbsorb + id policy leaves | 12.9, 12.10 |
+| MN-VER-12-S12 | ImportGuard soft nest | 12.11 |
 
 ## 8. Validation note
 
-**mcp-sysml-v2:** not available in this cloud agent environment - prefer Cursor SysML v2 MCP `validate` on full `config.yaml` load when present. This run: brace-balance review only (`serve_down`). ImportGuard / ImportAbsorb are **doctrine nested** until engine path B lands; CapsPolicy ACL cut is shipped when session ACL is enabled (`engineAclShipped=true`).
+**mcp-sysml-v2:** prefer Cursor SysML v2 MCP `validate` on full `config.yaml` when present. This run: brace-balance review. Nest aligns with `memnet.import_absorb` on PR #55 (`cursor/import-absorb-guard-8e84`); master `implemented=false` until that lands. CapsPolicy ACL cut shipped when session ACL is enabled (`engineAclShipped=true`).
