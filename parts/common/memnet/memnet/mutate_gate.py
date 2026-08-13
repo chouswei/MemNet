@@ -379,6 +379,38 @@ class MutateGate:
         added: list[str] = []
         replaced: list[Record] = []
         deleted_backup: list[Record] = []
+        # Successful rename_id ops — inverted on MemNetError (before upsert/drop undo).
+        # Entry: (old_id, new_id, merge, source_backup, endpoint_changes).
+        # endpoint_changes: (edge_id, "src"|"dist") that pointed at old_id before rename.
+        applied_renames: list[
+            tuple[str, str, bool, Record, list[tuple[str, str]]]
+        ] = []
+        replaced_ids: set[str] = set()
+
+        def _snapshot(rec: Record) -> Record:
+            return Record(tag=rec.tag, fields=dict(rec.fields))
+
+        def _remember_replaced(rec: Record) -> None:
+            if rec.id not in replaced_ids:
+                replaced.append(_snapshot(rec))
+                replaced_ids.add(rec.id)
+
+        def _endpoint_changes_for(oid: str) -> list[tuple[str, str]]:
+            store = self.ss.store
+            changes: list[tuple[str, str]] = []
+            affected = set(store._edges_by_src.get(oid, ())) | set(
+                store._edges_by_dist.get(oid, ())
+            )
+            for eid in affected:
+                edge = store.by_id.get(eid)
+                if edge is None or edge.tag != "EDG":
+                    continue
+                if edge.fields.get("src") == oid:
+                    changes.append((eid, "src"))
+                if edge.fields.get("dist") == oid:
+                    changes.append((eid, "dist"))
+            return changes
+
         try:
             for eid in drops:
                 old = self.ss.store.delete(eid)
@@ -390,7 +422,7 @@ class MutateGate:
                 if old is None:
                     added.append(rec.id)
                 else:
-                    replaced.append(old)
+                    _remember_replaced(old)
                 if rec.id in merge_upsert_ids and old is not None:
                     apply = self.ss.store.replace_row
                 elif mode == "add" or (mode == "update" and old is None and rec.tag):
@@ -420,10 +452,19 @@ class MutateGate:
                 old = self.ss.store.get(old_id)
                 if old is None:
                     raise MemNetError("not_found", f"id {old_id}|use add")
+                source_backup = _snapshot(old)
+                ep_changes = _endpoint_changes_for(old_id)
                 field_keys = {k for k in explicit if k != "id"}
                 if merge_flag:
+                    if field_keys:
+                        target_pre = self.ss.store.get(new_id)
+                        if target_pre is not None:
+                            _remember_replaced(target_pre)
                     warns = self.ss.store.rename_id(old_id, new_id, merge=True)
                     warnings.extend(warns)
+                    applied_renames.append(
+                        (old_id, new_id, True, source_backup, ep_changes)
+                    )
                     if field_keys:
                         target = self.ss.store.get(new_id)
                         if target is None:
@@ -441,6 +482,7 @@ class MutateGate:
                         warnings.extend(warns)
                 else:
                     if field_keys:
+                        _remember_replaced(old)
                         merged = dict(old.fields)
                         for k in field_keys:
                             merged[k] = patch_rec.fields[k]
@@ -454,20 +496,53 @@ class MutateGate:
                         warnings.extend(warns)
                     warns = self.ss.store.rename_id(old_id, new_id, merge=False)
                     warnings.extend(warns)
+                    if old_id != new_id:
+                        applied_renames.append(
+                            (old_id, new_id, False, source_backup, ep_changes)
+                        )
             self.ss.mark_written()
         except MemNetError:
+            # Undo renames first (commit order: drops → upserts → renames).
+            store = self.ss.store
+            for old_id, new_id, merge_flag, source_backup, ep_changes in reversed(
+                applied_renames
+            ):
+                if merge_flag:
+                    # Restore deleted source, then put retargeted endpoints back.
+                    if old_id not in store.by_id:
+                        store.by_id[old_id] = source_backup
+                        if old_id not in store.write_order:
+                            store.write_order.append(old_id)
+                        store._index_tag(source_backup)
+                    for eid, field in ep_changes:
+                        edge = store.by_id.get(eid)
+                        if edge is None or edge.tag != "EDG":
+                            continue
+                        if edge.fields.get(field) != new_id:
+                            continue
+                        store._unindex_edge(edge)
+                        edge.fields[field] = old_id
+                        store._index_edge(edge)
+                elif store.get(new_id) is not None and store.get(old_id) is None:
+                    store.rename_id(new_id, old_id, merge=False)
             for rid in added:
-                self.ss.store.delete(rid)
+                store.delete(rid)
             for old in replaced:
-                self.ss.store.by_id[old.id] = old
+                cur = store.by_id.get(old.id)
+                if cur is not None:
+                    if cur.tag == "EDG":
+                        store._unindex_edge(cur)
+                    store._unindex_tag(cur)
+                store.by_id[old.id] = old
+                store._index_tag(old)
                 if old.tag == "EDG":
-                    self.ss.store._index_edge(old)
+                    store._index_edge(old)
             for old in deleted_backup:
-                self.ss.store.by_id[old.id] = old
-                self.ss.store.write_order.append(old.id)
-                self.ss.store._index_tag(old)
+                store.by_id[old.id] = old
+                store.write_order.append(old.id)
+                store._index_tag(old)
                 if old.tag == "EDG":
-                    self.ss.store._index_edge(old)
+                    store._index_edge(old)
             raise
 
         ack = [emit_item(x, as_mutate=True) for x in ack_items]

@@ -131,6 +131,88 @@ def test_rename_occupied_rejects(memnet_temp, schema_file):
     assert ss.store.get("PLR01").fields["identity"] == "Hero"
 
 
+def test_batch_rollback_undoes_rename_id(memnet_temp, schema_file):
+    """#27: a later failure must invert rename_id applied earlier in the same batch."""
+    import pytest
+
+    from memnet.exceptions import MemNetError
+
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "CREATE (:PLR {id: 'PLR_OK', identity: 'Hero', wealth: 1, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})",
+            "CREATE (:PLR {id: 'PLR_BAD', identity: 'Wrong', wealth: 1, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})",
+            "CREATE (:PLR {id: 'PLR01', identity: 'Keep', wealth: 2, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})",
+            "CREATE (:NPC {id: 'N01', name: 'Guide', traits: 'kind', corruption: 0, "
+            "craft: 'none', funding_gap: 0, status: 'active', recycle: 'persistent'})",
+            "MATCH (a {id: 'N01'}), (b {id: 'PLR_OK'})\n"
+            "CREATE (a)-[:seeks_help {id: 'NEW', recycle: 'persistent'}]->(b)",
+        ],
+        mode="add",
+    )
+    with pytest.raises(MemNetError) as ei:
+        gate.apply(
+            [
+                # Succeeds first — must be undone when the next line fails.
+                "MATCH (n {id: 'PLR_OK'}) SET n.id = 'PLR_RENAMED'",
+                # Occupied target without merge → id_occupied after rename applied.
+                "MATCH (n {id: 'PLR_BAD'}) SET n.id = 'PLR01'",
+            ],
+            mode="update",
+        )
+    assert ei.value.code == "id_occupied"
+    assert ss.store.get("PLR_RENAMED") is None
+    assert ss.store.get("PLR_OK") is not None
+    assert ss.store.get("PLR_OK").fields["identity"] == "Hero"
+    assert ss.store.get("PLR_BAD") is not None
+    assert ss.store.get("PLR01").fields["identity"] == "Keep"
+    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR_OK"]
+    assert len(edges) == 1
+    assert not any(r.fields.get("dist") == "PLR_RENAMED" for r in ss.store.list_records("EDG"))
+
+
+def test_batch_rollback_undoes_merge_rename(memnet_temp, schema_file):
+    """#27: merge=true rename_id must also reverse on batch failure."""
+    import pytest
+
+    from memnet.exceptions import MemNetError
+
+    ss = open_session(map_file=str(schema_file))
+    gate = MutateGate(ss)
+    gate.apply(
+        [
+            "CREATE (:PLR {id: 'PLR_BAD', identity: 'Wrong', wealth: 1, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})",
+            "CREATE (:PLR {id: 'PLR01', identity: 'Hero', wealth: 2, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})",
+            "CREATE (:NPC {id: 'N01', name: 'Guide', traits: 'kind', corruption: 0, "
+            "craft: 'none', funding_gap: 0, status: 'active', recycle: 'persistent'})",
+            "MATCH (a {id: 'N01'}), (b {id: 'PLR_BAD'})\n"
+            "CREATE (a)-[:seeks_help {id: 'NEW', recycle: 'persistent'}]->(b)",
+        ],
+        mode="add",
+    )
+    with pytest.raises(MemNetError) as ei:
+        gate.apply(
+            [
+                "MATCH (n {id: 'PLR_BAD'}) SET n.id = 'PLR01', n.merge = true",
+                "MATCH (n {id: 'MISSING'}) SET n.wealth = 9",
+            ],
+            mode="update",
+        )
+    assert ei.value.code == "not_found"
+    assert ss.store.get("PLR_BAD") is not None
+    assert ss.store.get("PLR_BAD").fields["identity"] == "Wrong"
+    assert ss.store.get("PLR01").fields["identity"] == "Hero"
+    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR_BAD"]
+    assert len(edges) == 1
+    assert not any(r.fields.get("dist") == "PLR01" for r in ss.store.list_records("EDG"))
+
+
 def test_rename_occupied_merge_retargets(memnet_temp, schema_file):
     ss = open_session(map_file=str(schema_file))
     gate = MutateGate(ss)
