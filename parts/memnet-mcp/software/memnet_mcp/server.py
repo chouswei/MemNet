@@ -677,9 +677,7 @@ def _maybe_install_import_guard() -> None:
         if maybe_install_cheap_llm_import_guard():
             sys.stderr.write("# CheapLlmImportGuard installed (env key present)\n")
     except Exception as exc:  # noqa: BLE001 — MCP should still start
-        sys.stderr.write(
-            f"# CheapLlmImportGuard install skipped: {type(exc).__name__}: {exc}\n"
-        )
+        sys.stderr.write(f"# CheapLlmImportGuard install skipped: {type(exc).__name__}: {exc}\n")
 
 
 def main(argv: list[str] | None = None) -> None:

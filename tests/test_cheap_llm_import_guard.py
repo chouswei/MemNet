@@ -218,9 +218,7 @@ def test_key_reject_via_fake_http(memnet_temp, monkeypatch):
     member, lead = _pair()
 
     def post_json(_url, _headers, _body, _timeout_s):
-        return _fake_chat_response(
-            {"outcome": "reject", "reason": "off mission noise"}
-        )
+        return _fake_chat_response({"outcome": "reject", "reason": "off mission noise"})
 
     guard = make_cheap_llm_guard(
         CheapLlmImportGuardConfig(api_key="sk-test"),
