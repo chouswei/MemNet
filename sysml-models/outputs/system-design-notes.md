@@ -14,7 +14,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5** (WAIT this ACL cut).
+3. **Durable GQL store behind MemNet** — M2.5 **client** hydrate/flush landed (`DurableStoreAdapter` / Fake / optional AgensGraph client; one sync owner). Live external cabinet deferred (not claimed; not vendored).
 4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb` (WAIT absorb depth). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -66,7 +66,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter        // M2.5
+├── DurableBuffer → AgensGraphAdapter        // M2.5 client landed; live cabinet external
 ├── PinMapRoadmap                            // ROADMAP-ONLY (PinMapIngest variants)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
@@ -125,7 +125,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | `SessionHandoffById` | Pass session id (vs `EvDumpGraphInChat`) |
 | `SessionImportReceive` | path A repin; path B Guard → Absorb → Settle (vs `EvImportFromChat`) |
 | `ParentTaskLifecycle` / `WorkerScopedTurn` / `MultitaskMissionCycle` | MN-REQ-12 |
-| `DurableHydrateFlushRoadmap` | M2.5 (not shipped) |
+| `DurableHydrateFlushRoadmap` | M2.5 client landed; live cabinet external |
 
 ## Interfaces (selected)
 
@@ -134,7 +134,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | SessionHandoffFlow | Coordinator → Worker | Target |
 | WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
 | ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
-| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | Roadmap M2.5 |
+| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | M2.5 client landed; live cabinet external |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)
@@ -147,7 +147,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); shipped ACL read consult when session ACL is enabled |
 | MutateGate | `mutate_gate.py` + `acl.py` | GQL primary; Layer/Tier A rejected; shipped ACL mutate/scope/bind gates when session ACL is enabled |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
-| AgensGraphAdapter | — | Planned **M2.5** (WAIT) |
+| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **Client landed**; live cabinet external / not claimed |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
@@ -163,7 +163,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 
 - **M1:** GQL wire profile — **done**
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
-- **M2.5:** AgensGraph adapter — plan only ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M2.5:** Client hydrate/flush **landed**; live external cabinet deferred ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite (plan)
 - ImportGuard — **optional** soft policy (path B); happy path A = re-pin without guard; doctrine nested, engine soft-guard not claimed shipped
 - ImportAbsorb — doctrine nested; engine hard absorb WAIT / not claimed fully shipped

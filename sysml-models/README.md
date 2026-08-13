@@ -46,8 +46,8 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   └── TcpServeBridge
 │   └── CliFacade                            // LLM <-> MemNet (GQL)
 ├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
-├── DurableBuffer                            // planned M2.5
-│   └── AgensGraphAdapter                    // hydrate/flush <-> sessions
+├── DurableBuffer                            // M2.5 client landed; live cabinet external
+│   └── AgensGraphAdapter                    // hydrate/flush client; cabinet external
 ├── PinMapRoadmap                            // ROADMAP-ONLY (PinMapIngest variants)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
@@ -69,7 +69,7 @@ MemNetSystem                                 // SharedLlmMemory product
 
 - **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
-- **DurableBuffer:** AgensGraphAdapter planned **M2.5**
+- **DurableBuffer:** AgensGraphAdapter **client** hydrate/flush landed; live cabinet external / not claimed
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 - **Roadmap-only stubs:** PinMapRoadmap / PinMapIngest (domainVariant: sysml|codebase|pcbaAto|skillsRules)

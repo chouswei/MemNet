@@ -492,7 +492,10 @@ package MemNetBehaviour {
       Lifecycle of one parent-owned MissionTaskPin (TSK_*) under Multitask.
       Applies only to relevant tasks (MN-REQ-12.8). Parent settles from
       shared-session pin map; workers do not own settle. Hosted by
-      MultitaskCoordinator. As-is: no ACL/reserve enforcement.
+      MultitaskCoordinator. As-is: CapsPolicy ACL who / pin_map-vs-mutate /
+      WorkerWriteScope hard reject / optional SessionBind is shipped when
+      session ACL is enabled (CapsPolicy.engineAclShipped=true; MN-REQ-12.7
+      ACL cut). Neighbourhood reserve remains not shipped.
     */
     entry;
     then taskAbsent;
@@ -1135,14 +1138,16 @@ package MemNetBehaviour {
       then importIdle;
   }
 
-  // --- 10. Durable buffer hydrate/flush (roadmap M2.5; not shipped) ---
+  // --- 10. Durable buffer hydrate/flush (M2.5 client landed; live cabinet external) ---
 
   state def DurableHydrateFlushRoadmap {
     doc /*
-      ROADMAP M2.5 behaviour: DurableBuffer / AgensGraphAdapter hydrate into
-      session and flush settled subgraph out. MemNet remains sole agent-facing
-      memory; LLM ↔ DurableGraphStore direct is out of default teach.
-      Not claimed shipped.
+      M2.5 behaviour: SessionLifecycle.hydrate_from_durable /
+      flush_to_durable via DurableSyncOwner and DurableStoreAdapter
+      (FakeDurableAdapter always; optional AgensGraphAdapter client).
+      MemNet remains sole agent-facing memory; LLM ↔ DurableGraphStore
+      direct is out of default teach. Client seam landed; live external
+      cabinet not claimed verified (MN-REQ-06.4).
     */
     entry;
     then durableIdle;
