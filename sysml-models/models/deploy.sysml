@@ -44,7 +44,9 @@ package MemNet {
     doc /*
       Hard resource and query caps (env-overridable): rows, law, relations,
       kinds/fields, value/line/batch bytes, sessions, depth, fanout.
-      As-is: memnet.config.Caps.
+      SessionHandoff does not waive mutate: who (caller), what (kinds / ops /
+      caps), bind (session bind / bind grain) still hit this policy +
+      MutateGate. As-is: memnet.config.Caps.
     */
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
@@ -660,9 +662,10 @@ package MemNet {
 
   part def SessionHandoffEmit {
     doc /*
-      Lead stage: emit SessionHandoff (session id + optional anchors /
-      WorkerWriteScope). Hosts SessionHandoffById. MUST NOT dump the graph
-      into chat (EvDumpGraphInChat forbidden).
+      Lead / module-A stage: emit SessionHandoff (sessionId + caller;
+      optional missionId / lease / anchors / WorkerWriteScope). Hosts
+      SessionHandoffById. MUST NOT dump the graph into chat, MissionDock, or
+      HTTP body (EvDumpGraphInChat forbidden).
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffOut : SessionHandoffOutPort;

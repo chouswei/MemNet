@@ -38,11 +38,23 @@ package MemNetConnections {
 
   item def SessionHandoff {
     doc /*
-      Pass-by-reference handoff of a SOMETHING whose SSOT is the session.
-      Carries sessionId plus optional anchors / writeScope. MUST NOT carry
-      a full graph dump as the handoff payload (chat is never SSOT).
+      Inter-module / Multitask pass-by-reference handle. Pipe: module A → B
+      SHALL pass sessionId only; B pin_maps. Chat, MissionDock payloads, and
+      HTTP bodies SHALL NOT carry the graph (chat is never SSOT). Mutate
+      after handoff still hits CapsPolicy (who / what / bind) — a session
+      id is not a mutate waiver. Shared session = same sessionId (path A
+      re-pin). Else worker session → lead import of a WorkingMemorySlice
+      (path B SessionImportReceive / import_slice). MissionDock /
+      EvidenceCentre are application patterns — MUST NOT nest under
+      MemNetSystem. GQL only.
+      Required: sessionId, caller. Optional: missionId, lease (neighbourhood
+      reserve design; not shipped in 0.4.x), anchors, writeScope (Multitask
+      WorkerWriteScope). MUST NOT carry a full graph dump.
     */
     attribute sessionId : String;
+    attribute caller : String;
+    attribute missionId : String;
+    attribute lease : String;
     attribute anchors : String;
     attribute writeScope : String;
   }
@@ -323,11 +335,11 @@ package MemNetConnections {
   }
 
   port def SessionHandoffOutPort {
-    doc /* Emit session-id handoff (SessionHandoff; no graph dump). */
+    doc /* Emit SessionHandoff (sessionId + caller; no graph dump). */
     out item handoff : SessionHandoff;
   }
   port def SessionHandoffInPort {
-    doc /* Accept session-id handoff. */
+    doc /* Accept SessionHandoff; sink pin_maps (no graph in the pipe). */
     in item handoff : SessionHandoff;
   }
 
@@ -510,9 +522,10 @@ package MemNetConnections {
 
   connection def SessionHandoffFlow {
     doc /*
-      Pass-by-reference handoff: parent delivers SessionHandoff (session id +
-      optional anchors / writeScope) to worker. Contrasts forbidden graph-dump
-      chat handoff (EvDumpGraphInChat).
+      Inter-module / parent-worker pipe: source delivers SessionHandoff
+      (sessionId + caller; optional missionId / lease / anchors / writeScope).
+      Sink pin_maps. MUST NOT convey a graph dump via chat, MissionDock, or
+      HTTP body (EvDumpGraphInChat forbidden).
     */
     end port source : SessionHandoffOutPort;
     end port sink : SessionHandoffInPort;

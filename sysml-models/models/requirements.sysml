@@ -129,9 +129,10 @@ package MemNetRequirements {
         doc /*
           A named session MAY be the SSOT for a mission SOMETHING
           (MissionWorkingSet). When so, an LLM SHALL pass that SOMETHING by
-          delivering the session id only (plus anchors / write scope as
-          today). Peers SHALL re-pin_map; chat SHALL NOT be treated as SSOT
-          (extends MN-REQ-10.1; Multitask MN-REQ-12.1).
+          delivering the session id only (SessionHandoff; module A → B pipe).
+          Peers SHALL re-pin_map; chat, MissionDock payloads, and HTTP bodies
+          SHALL NOT be treated as SSOT (extends MN-REQ-10.1; Multitask
+          MN-REQ-12.1).
         */
         attribute requirementId : String = "MN-REQ-01.7";
       }
@@ -139,8 +140,10 @@ package MemNetRequirements {
       requirement def MN_REQ_01_8_NoGraphDumpHandoff {
         doc /*
           Session handoff SHALL NOT carry a full graph dump (or mission SSOT
-          prose blob) as the handoff payload. SessionHandoff carries session
-          id plus optional anchors / writeScope only.
+          prose blob) as the handoff payload. SessionHandoff carries sessionId
+          and caller, plus optional missionId, lease, anchors, and writeScope.
+          Chat, MissionDock, and HTTP bodies SHALL NOT carry the graph.
+          Mutate still hits CapsPolicy (who / what / bind).
         */
         attribute requirementId : String = "MN-REQ-01.8";
       }
