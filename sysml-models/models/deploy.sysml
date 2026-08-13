@@ -814,8 +814,8 @@ package MemNet {
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
-    attribute doctrineAsIs : Boolean = true;
-    attribute implemented : Boolean = false;
+    attribute doctrineAsIs : Boolean = false;
+    attribute implemented : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port decisionIn : ImportGuardDecisionInPort;
     port importReqIn : SessionImportRequestInPort;
@@ -920,9 +920,9 @@ package MemNet {
     attribute gateKind : String = "soft";
     attribute actor : String = "llm_or_host";
     attribute optionalSoftPolicy : Boolean = true;
-    attribute doctrineAsIs : Boolean = true;
+    attribute doctrineAsIs : Boolean = false;
     attribute costTier : String = "cheap";
-    attribute implemented : Boolean = false;
+    attribute implemented : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port sliceOut : WorkingMemorySliceOutPort;
     port decisionOut : ImportGuardDecisionOutPort;

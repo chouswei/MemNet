@@ -182,4 +182,4 @@ Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW
 
 ## 8. Validation note
 
-**mcp-sysml-v2:** prefer Cursor SysML v2 MCP `validate` on full `config.yaml` when present. This run: brace-balance review. Nest aligns with `memnet.import_absorb` on PR #55 (`cursor/import-absorb-guard-8e84`); master `implemented=false` until that lands. CapsPolicy ACL cut shipped when session ACL is enabled (`engineAclShipped=true`).
+**mcp-sysml-v2:** prefer Cursor SysML v2 MCP `validate` on full `config.yaml` when present. This run: brace-balance review. Nest + engine landed (`memnet.import_absorb` / `import_slice`; ImportAbsorb/ImportGuard `implemented=true`). CapsPolicy ACL cut shipped when session ACL is enabled (`engineAclShipped=true`).

@@ -601,6 +601,106 @@ def update_cmd(
     )
 
 
+@app.command("import-slice")
+def import_slice_cmd(
+    from_session: Annotated[
+        str,
+        typer.Option(
+            "--from-session",
+            help="Member/source session id (WorkingMemorySlice export)",
+        ),
+    ],
+    anchor: Annotated[
+        list[str],
+        typer.Option(
+            "--anchor",
+            help="Anchor id for bounded slice export; repeat for multiple",
+        ),
+    ],
+    id_policy: Annotated[
+        str,
+        typer.Option(
+            "--id-policy",
+            help="Owner-gated id conflict policy: keep (MERGE upsert), reject, remint",
+        ),
+    ] = "keep",
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    view: Annotated[str | None, typer.Option("--view")] = None,
+    no_guard: Annotated[
+        bool,
+        typer.Option(
+            "--no-guard",
+            help="Skip optional ImportGuard host soft policy (MN-REQ-12.11)",
+        ),
+    ] = False,
+    agent: Annotated[str | None, typer.Option("--agent")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    mission_id: Annotated[
+        str | None,
+        typer.Option("--mission-id", help="Optional SessionBind mission id"),
+    ] = None,
+    lease: Annotated[
+        str | None,
+        typer.Option("--lease", help="Optional SessionBind lease"),
+    ] = None,
+    write_scope: Annotated[
+        str | None,
+        typer.Option(
+            "--write-scope",
+            help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
+        ),
+    ] = None,
+    session: Annotated[
+        str | None,
+        typer.Option("--session", help="Lead/mission session id (import target)"),
+    ] = None,
+) -> None:
+    """Path B: import a bounded WorkingMemorySlice into the lead session.
+
+    Prefer path A (shared session re-pin_map) when Multitask already shares
+    one session. Chat / whole-store dumps are refused (MN-REQ-12.9 / 12.10).
+    """
+    from memnet.import_absorb import import_slice
+
+    try:
+        lead_id = resolve_session_id(session)
+        result = import_slice(
+            lead_session_id=lead_id,
+            source_session_id=from_session,
+            anchors=list(anchor),
+            id_policy=id_policy,
+            depth=depth,
+            max_rows=max_rows,
+            view=view,
+            enable_guard=not no_guard,
+            agent=agent,
+            caller=caller,
+            mission_id=mission_id,
+            lease=lease,
+            write_scope=write_scope,
+        )
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    if result.guard_skipped:
+        guard_token = "skip"
+    elif result.decision is not None:
+        guard_token = result.decision.outcome
+    else:
+        guard_token = "n/a"
+    emit_stdout(
+        f"@IMPORT: ok|{len(result.imported_ids)}|guard={guard_token}|remint={len(result.reminted)}"
+    )
+    for old, new in sorted(result.reminted.items()):
+        emit_stdout(f"@ID: {old}->{new}")
+    for rid in result.imported_ids:
+        emit_stdout(f"@IMPORTED: {rid}")
+
+
 @app.command("delete")
 def delete_cmd(
     record_id: Annotated[str, typer.Option("--id")],
