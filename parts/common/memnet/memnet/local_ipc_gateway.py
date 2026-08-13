@@ -74,6 +74,13 @@ def run_ipc_serve(path: str | None = None) -> None:
     os.environ["MEMNET_IPC_SOCKET"] = sock_path
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     try:
+        from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
+
+        if maybe_install_cheap_llm_import_guard():
+            _LOG.info("CheapLlmImportGuard installed (env key present)")
+    except Exception:  # noqa: BLE001 — serve must start even if guard install fails
+        _LOG.exception("CheapLlmImportGuard install skipped")
+    try:
         from memnet.durable import get_sync_owner
 
         owner = get_sync_owner()

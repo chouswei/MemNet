@@ -182,6 +182,14 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
     port = port or serve_port()
     validate_serve_bind_host(host)
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
+    # Optional CheapLlmImportGuard when MEMNET_IMPORT_GUARD_API_KEY is set (#63).
+    try:
+        from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
+
+        if maybe_install_cheap_llm_import_guard():
+            _LOG.info("CheapLlmImportGuard installed (env key present)")
+    except Exception:  # noqa: BLE001 — serve must start even if guard install fails
+        _LOG.exception("CheapLlmImportGuard install skipped")
     # Bind the process-wide durable sync owner once (factory semantics).
     # URL set → AgensGraphAdapter client; else Fake seam — not dual-write.
     try:

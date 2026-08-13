@@ -9,6 +9,7 @@ from memnet.models import Record, TagDef, TagMap
 from memnet.wire import join_payload
 
 _MAX_WRN = 12
+_WARN_EMITTED = 0
 
 
 def reset_warn_budget() -> None:

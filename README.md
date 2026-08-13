@@ -59,7 +59,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 ## Import absorb vs shared session
 
 - **Path A** — same `sessionId`; peers just re-`pin_map`. No import.
-- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (`keep` / `reject` / `remint`). That's absorb into the lead SSOT, not append. Optional **ImportGuard** host soft policy (`--no-guard` to skip).
+- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (`keep` / `reject` / `remint`). That's absorb into the lead SSOT, not append. Optional **ImportGuard** soft policy: host hook and/or env-gated **CheapLlmImportGuard** (`MEMNET_IMPORT_GUARD_API_KEY`; optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips even when the key is set.
 
 ## ACL + transport
 
