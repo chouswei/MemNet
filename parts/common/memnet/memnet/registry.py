@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from memnet.config import Caps
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta, TagMap
 

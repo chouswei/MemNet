@@ -6,21 +6,20 @@ historical fixtures under ``docs/grammar/archive/``. Agent wire = GQL
 (``memnet.gql_codec.GqlCodec``).
 """
 
-
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Iterator
 
 # Soft lint: atom / field value character budget (R1 prompt discipline).
 SOFT_ATOM_CHARS = 80
 PROSE_WORD_HINT = 8  # many whitespace-separated tokens → likely prose blob
 
 
-class Op(str, Enum):
+class Op(str, Enum):  # noqa: UP042
     CREATE = "+"
     PATCH = "~"
     DROP = "-"
@@ -105,23 +104,13 @@ _RE_ARROW = re.compile(
     r"\[(NEW|[A-Za-z_][A-Za-z0-9_]*)\]\s*"
     r"(.*)$"
 )
-_RE_CREATE_NODE = re.compile(
-    r"^\+\s+([A-Z][A-Z0-9_]*)\s+\[(NEW|[A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$"
-)
-_RE_PATCH_NODE = re.compile(
-    r"^\~\s+\[([A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$"
-)
-_RE_PATCH_EDGE_BARE = re.compile(
-    r"^\~\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$"
-)
+_RE_CREATE_NODE = re.compile(r"^\+\s+([A-Z][A-Z0-9_]*)\s+\[(NEW|[A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$")
+_RE_PATCH_NODE = re.compile(r"^\~\s+\[([A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$")
+_RE_PATCH_EDGE_BARE = re.compile(r"^\~\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$")
 _RE_DROP = re.compile(r"^-\s+([A-Za-z_][A-Za-z0-9_]*)\s*$")
-_RE_LAW = re.compile(
-    r"^(LAW[A-Za-z0-9_.-]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$"
-)
+_RE_LAW = re.compile(r"^(LAW[A-Za-z0-9_.-]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$")
 # Pin-map present (MemNet->LLM): no leading +/~/-
-_RE_PRESENT_NODE = re.compile(
-    r"^([A-Z][A-Z0-9_]*)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$"
-)
+_RE_PRESENT_NODE = re.compile(r"^([A-Z][A-Z0-9_]*)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]\s*(.*)$")
 _RE_PRESENT_EDGE = re.compile(
     r"^([A-Za-z_][A-Za-z0-9_]*)\s+"
     r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
@@ -247,7 +236,10 @@ def _law_fields(first_key: str, rest: str, line_no: int) -> list[Field]:
         combined = f"{first_key}{rest}"
     elif rest:
         # rest begins with =value ; more…
-        combined = f"{first_key}{rest}" if rest.startswith(("=", "+=", "-=")) else f"{first_key} {rest}"
+        if rest.startswith(("=", "+=", "-=")):
+            combined = f"{first_key}{rest}"
+        else:
+            combined = f"{first_key} {rest}"
     else:
         raise ParseError("LAW line missing field value", line_no)
     return _parse_fields(combined, line_no)
@@ -360,7 +352,6 @@ def parse_line(line: str, line_no: int = 1) -> Section | NodeRec | EdgeRec | Sch
             fields=fields,
             raw=s,
         )
-
 
     m = _RE_PRESENT_EDGE.match(s)
     if m:
@@ -497,9 +488,7 @@ def lint(doc: Document) -> list[LintIssue]:
                     )
                 )
             if it.raw.startswith("@"):
-                issues.append(
-                    LintIssue("error", "pipe_dialect", "pipe TagMap on SCHEMA surface")
-                )
+                issues.append(LintIssue("error", "pipe_dialect", "pipe TagMap on SCHEMA surface"))
             continue
         if isinstance(it, NodeRec):
             if it.op == Op.CREATE and it.id != "NEW":
@@ -518,8 +507,10 @@ def lint(doc: Document) -> list[LintIssue]:
                 elif not re.fullmatch(r"[A-Z][A-Z0-9_]*\d+[A-Za-z0-9_]*|[A-Z][A-Za-z0-9_]*", it.id):
                     pass
                 # Also flag any create with ground id that looks random (C_rand style)
-                if "_" in it.id and it.id not in ("NEW",) and re.search(
-                    r"(?i)rand|maybe|tmp|guess|todo", it.id
+                if (
+                    "_" in it.id
+                    and it.id not in ("NEW",)
+                    and re.search(r"(?i)rand|maybe|tmp|guess|todo", it.id)
                 ):
                     issues.append(
                         LintIssue(
@@ -529,9 +520,7 @@ def lint(doc: Document) -> list[LintIssue]:
                         )
                     )
             if it.op == Op.PATCH and it.id == "NEW":
-                issues.append(
-                    LintIssue("error", "new_on_patch", "[NEW] illegal on update/settle")
-                )
+                issues.append(LintIssue("error", "new_on_patch", "[NEW] illegal on update/settle"))
             if it.op == Op.CREATE:
                 for f in it.fields:
                     if f.op in ("+=", "-="):
@@ -564,7 +553,8 @@ def lint(doc: Document) -> list[LintIssue]:
                             LintIssue(
                                 "warning",
                                 "new_endpoint",
-                                "NEW as edge endpoint is open; prefer known ids after create response",
+                                "NEW as edge endpoint is open; "
+                                "prefer known ids after create response",
                             )
                         )
             for f in it.fields:
@@ -592,8 +582,10 @@ def _lint_value(value: str, raw: str, *, field_key: str | None = None) -> list[L
             )
         )
     # Formula EDGE src_fields is a comma-separated name list (memnet-field-formulas.md).
-    if field_key != "src_fields" and "," in value and re.search(
-        r"[A-Za-z0-9_]+,[A-Za-z0-9_]", value
+    if (
+        field_key != "src_fields"
+        and "," in value
+        and re.search(r"[A-Za-z0-9_]+,[A-Za-z0-9_]", value)
     ):
         issues.append(
             LintIssue(
@@ -603,9 +595,7 @@ def _lint_value(value: str, raw: str, *, field_key: str | None = None) -> list[L
             )
         )
     if "<" in value and ">" in value and len(value) > 40:
-        issues.append(
-            LintIssue("error", "corpus_dump", "value looks like corpus / markup dump")
-        )
+        issues.append(LintIssue("error", "corpus_dump", "value looks like corpus / markup dump"))
     if raw.lstrip().startswith("@") or "|persistent" in raw or re.match(r"^@[A-Z]+:", raw):
         issues.append(LintIssue("error", "pipe_dialect", "pipe row on agent surface"))
     return issues

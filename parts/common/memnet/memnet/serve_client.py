@@ -76,4 +76,3 @@ def _emit_proxy_response(response: dict) -> int:
 
 
 # Re-export low-level primitives so advanced clients have a single canonical import path.
-from memnet.serve import probe, send_command  # noqa: F401

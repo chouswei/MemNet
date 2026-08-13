@@ -10,17 +10,17 @@ from typing import Annotated
 import typer
 
 from memnet import __version__
-from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, serve_host, serve_port
+from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps, serve_host, serve_port
 from memnet.exceptions import MemNetError
 from memnet.filter import parse_wheres
 from memnet.help_text import (
+    add_example_text,
     agent_guide_text,
     examples_map_text,
     examples_path_text,
     examples_workflow_text,
     fields_text,
     guide_text,
-    add_example_text,
 )
 from memnet.housekeep import (
     dangling_rows,
@@ -31,8 +31,7 @@ from memnet.housekeep import (
     stale_rows,
     stats,
 )
-from memnet.serve import run_serve
-from memnet.snapshot import load_snapshot, write_snapshot
+from memnet.mutate_gate import MutateGate
 from memnet.output import (
     emit_err,
     emit_record,
@@ -41,7 +40,9 @@ from memnet.output import (
     emit_wrn,
     reset_warn_budget,
 )
+from memnet.pin_map_composer import PinMapComposer
 from memnet.sanitiser import sanitise_batch
+from memnet.serve import run_serve
 from memnet.session import (
     close_session,
     get_session,
@@ -50,11 +51,10 @@ from memnet.session import (
     purge_expired,
     resolve_session_id,
 )
-from memnet.mutate_gate import MutateGate
-from memnet.pin_map_composer import PinMapComposer
+from memnet.snapshot import load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
-from memnet.warnings import emit_session_warnings
 from memnet.walk_query import WalkQuery
+from memnet.warnings import emit_session_warnings
 
 
 def emit_del(record_id: str, tag: str) -> None:
@@ -178,7 +178,9 @@ def emit_stderr_summary(ok: int, fail: int) -> None:
 
 @app.command()
 def version(
-    json_out: Annotated[bool, typer.Option("--json", help="Emit JSON instead of wire line")] = False,
+    json_out: Annotated[
+        bool, typer.Option("--json", help="Emit JSON instead of wire line")
+    ] = False,
 ) -> None:
     """Show the installed MemNet version."""
     if json_out:
@@ -339,7 +341,10 @@ def session_save(
 def session_load(
     file: Annotated[Path, typer.Option("--file", help="Snapshot from session save")],
     ttl: Annotated[int | None, typer.Option("--ttl")] = None,
-    keep_id: Annotated[bool, typer.Option("--keep-id", help="Reuse session id from snapshot")] = False,
+    keep_id: Annotated[
+        bool,
+        typer.Option("--keep-id", help="Reuse session id from snapshot"),
+    ] = False,
 ) -> None:
     purge_expired(_caps())
     try:
@@ -614,7 +619,13 @@ def delete_cmd(
 def read_list(
     tag: Annotated[str | None, typer.Option("--tag")] = None,
     active_only: Annotated[bool, typer.Option("--active-only")] = False,
-    where: Annotated[list[str] | None, typer.Option("--where", help="field=value filter; repeat for AND; * and ? wildcards")] = None,
+    where: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--where",
+            help="field=value filter; repeat for AND; * and ? wildcards",
+        ),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     try:

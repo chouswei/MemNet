@@ -3,16 +3,25 @@
 from __future__ import annotations
 
 import secrets
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-from typing import Iterator
 
 from memnet.acl import SessionAcl, WorkerWriteScope, acl_globally_enabled, parse_write_scope
 from memnet.config import Caps, default_ttl_minutes, examples_dir
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta
-from memnet.registry import SessionEntry, clear_all, count, get_entry, list_entries, purge_before, register, remove_entry
+from memnet.registry import (
+    SessionEntry,
+    clear_all,
+    count,
+    get_entry,
+    list_entries,
+    purge_before,
+    register,
+    remove_entry,
+)
 from memnet.tag_map import TagMap, load_map_from_file, load_map_from_lines
 
 _now_override: datetime | None = None
@@ -104,11 +113,7 @@ class SessionStore:
         can_mutate: bool = True,
         write_scope: WorkerWriteScope | str | None = None,
     ) -> None:
-        scope = (
-            parse_write_scope(write_scope)
-            if isinstance(write_scope, str)
-            else write_scope
-        )
+        scope = parse_write_scope(write_scope) if isinstance(write_scope, str) else write_scope
         self.acl.grant(
             caller,
             can_pin_map=can_pin_map,
@@ -158,7 +163,8 @@ def open_session(
     session_id = f"mn_{secrets.token_hex(4)}"
     now = utc_now()
     expires = now + timedelta(minutes=ttl_minutes)
-    acl = SessionAcl(enabled=bool(getattr(caps, "acl_default_enabled", False) or acl_globally_enabled()))
+    acl_default = bool(getattr(caps, "acl_default_enabled", False) or acl_globally_enabled())
+    acl = SessionAcl(enabled=acl_default)
     meta = SessionMeta(
         session_id=session_id,
         created_at=now.isoformat().replace("+00:00", "Z"),
@@ -189,7 +195,7 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
         remove_entry(session_id)
         purge_expired(caps)
         raise MemNetError("session_expired", "session expired", exit_code=2)
-    # Sliding TTL: extend lifetime on any successful access (prevents silent expiry for long-lived sessions)
+    # Sliding TTL: extend on access (avoids silent expiry for long sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
     entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")

@@ -133,7 +133,10 @@ def load_snapshot(
         raise MemNetError(
             "snapshot_not_found",
             f"{path}|serve_cwd={cwd}",
-            hint="path is resolved on the memnet serve host; use a path visible there or stream via session_load_lines",
+            hint=(
+                "path is resolved on the memnet serve host; "
+                "use a path visible there or stream via session_load_lines"
+            ),
         ) from None
     except OSError as exc:
         cwd = os.getcwd()

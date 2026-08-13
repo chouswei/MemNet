@@ -37,14 +37,14 @@ def test_all_source_files_parse():
 def test_memnet_package_imports():
     import memnet  # noqa: F401
     import memnet.cli  # noqa: F401
+    import memnet.housekeep  # noqa: F401
+    import memnet.mem_store  # noqa: F401
+    import memnet.registry  # noqa: F401
     import memnet.serve  # noqa: F401
     import memnet.serve_client  # noqa: F401
     import memnet.session  # noqa: F401
     import memnet.snapshot  # noqa: F401
-    import memnet.registry  # noqa: F401
-    import memnet.mem_store  # noqa: F401
     import memnet.wire  # noqa: F401
-    import memnet.housekeep  # noqa: F401
 
 
 def test_memnet_mcp_package_imports():

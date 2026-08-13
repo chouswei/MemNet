@@ -19,6 +19,7 @@ _PLR = (
 
 def test_classify_rejects_mixed():
     import pytest
+
     from memnet.exceptions import MemNetError
 
     with pytest.raises(MemNetError, match="mix"):
@@ -32,6 +33,7 @@ def test_classify_rejects_mixed():
 
 def test_classify_rejects_tier_a():
     import pytest
+
     from memnet.exceptions import MemNetError
 
     with pytest.raises(MemNetError) as ei:
@@ -54,9 +56,7 @@ def test_gql_add_mints_new(memnet_temp, schema_file):
     ss = get_session(sid)
     plrs = [r for r in ss.store.list_records("PLR") if r.fields.get("identity") == "Hero"]
     assert len(plrs) == 1
-    warm = runner.invoke(
-        app, ["query", "warm", "--anchor", plrs[0].id, "--session", sid]
-    )
+    warm = runner.invoke(app, ["query", "warm", "--anchor", plrs[0].id, "--session", sid])
     assert warm.exit_code == 0
     assert plrs[0].id in warm.stdout
     assert f"id: '{plrs[0].id}'" in warm.stdout
@@ -107,6 +107,7 @@ def test_rename_free_retargets_edges(memnet_temp, schema_file):
 
 def test_rename_occupied_rejects(memnet_temp, schema_file):
     import pytest
+
     from memnet.exceptions import MemNetError
 
     ss = open_session(map_file=str(schema_file))
@@ -206,6 +207,7 @@ def test_set_status_on_update(memnet_temp, schema_file):
 
 def test_create_rejects_on_update(memnet_temp, schema_file):
     import pytest
+
     from memnet.exceptions import MemNetError
 
     ss = open_session(map_file=str(schema_file))

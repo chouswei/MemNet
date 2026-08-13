@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from memnet.models import TagDef, TagMap
 from memnet.tag_map import (
-    example_ingest_line,
     emit_schema_line,
+    example_ingest_line,
     load_map_from_file,
     load_map_from_lines,
     load_persisted_map_from_lines,

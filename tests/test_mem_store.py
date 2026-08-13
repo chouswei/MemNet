@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from memnet.mem_store import MemStore
-from memnet.models import Record
 from memnet.tag_map import load_map_from_lines, parse_line
 
 

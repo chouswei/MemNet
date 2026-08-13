@@ -31,8 +31,7 @@ def normalize_view(view: str | None) -> str | None:
     if text not in PIN_MAP_VIEWS:
         raise MemNetError(
             "bad_view",
-            f"unknown view={view!r}; expected shell|interior"
-            f"|flowchart|parts|statechart (or omit)",
+            f"unknown view={view!r}; expected shell|interior|flowchart|parts|statechart (or omit)",
         )
     return text
 

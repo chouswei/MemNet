@@ -65,9 +65,7 @@ def test_apply_shell_soft_cap_unit():
         Record(tag="CST", fields={"id": "CST_Hub", "name": "hub"}),
     ]
     for i in range(10):
-        rows.append(
-            Record(tag="CST", fields={"id": f"CST_L{i:02d}", "name": f"l{i}"})
-        )
+        rows.append(Record(tag="CST", fields={"id": f"CST_L{i:02d}", "name": f"l{i}"}))
         rows.append(
             Record(
                 tag="EDG",
@@ -98,9 +96,7 @@ def test_compose_view_shell_caps_fanout(memnet_temp):
     nodes_default = [r for r in rows_default if r.tag == "CST"]
     assert len(nodes_default) > SHELL_MAX_NODES
 
-    rows_shell, text_shell = composer.compose(
-        anchor="CST_Hub", depth=2, max_rows=50, view="shell"
-    )
+    rows_shell, text_shell = composer.compose(anchor="CST_Hub", depth=2, max_rows=50, view="shell")
     nodes_shell = [r for r in rows_shell if r.tag == "CST"]
     edges_shell = [r for r in rows_shell if r.tag == "EDG"]
     assert len(nodes_shell) <= SHELL_MAX_NODES
@@ -109,9 +105,7 @@ def test_compose_view_shell_caps_fanout(memnet_temp):
     assert "(:CST" in text_shell
     assert nodes_shell[0].id == "CST_Hub" or any(r.id == "CST_Hub" for r in nodes_shell)
 
-    rows_int, _ = composer.compose(
-        anchor="CST_Hub", depth=2, max_rows=50, view="interior"
-    )
+    rows_int, _ = composer.compose(anchor="CST_Hub", depth=2, max_rows=50, view="interior")
     nodes_int = [r for r in rows_int if r.tag == "CST"]
     assert len(nodes_int) > len(nodes_shell)
 

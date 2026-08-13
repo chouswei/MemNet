@@ -98,7 +98,13 @@ def test_memnet_response_merge():
     assert bad.exit_code == 1
     assert bad.errors
 
-    open_fail = MemNetResponse(exit_code=1, stdout="", stderr="@ERR: no_map", session_id=None, errors=["x"])
+    open_fail = MemNetResponse(
+        exit_code=1,
+        stdout="",
+        stderr="@ERR: no_map",
+        session_id=None,
+        errors=["x"],
+    )
     assert MemNetResponse.merge(open_fail, seed_resp) is open_fail
 
 
@@ -146,9 +152,7 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     alias_payload = json.loads(alias_raw)
     assert alias_payload["stdout"] == warm_payload["stdout"]
 
-    shell_raw = asyncio.run(
-        pin_map(anchor="PLR55", depth=2, view="shell", session=sid)
-    )
+    shell_raw = asyncio.run(pin_map(anchor="PLR55", depth=2, view="shell", session=sid))
     shell_payload = json.loads(shell_raw)
     assert shell_payload["exit_code"] == 0
     assert "PLR55" in shell_payload["stdout"]
@@ -179,7 +183,7 @@ def test_supplement_seed_lines():
     out = supplement_seed_lines(None)
     assert len(out) == 5
     assert all(line.startswith("CREATE (:LAW") for line in out)
-    assert "name: 'EDG'" in out[0] or "name: \"EDG\"" in out[0]
+    assert "name: 'EDG'" in out[0] or 'name: "EDG"' in out[0]
     custom = [
         "@LAW: LAW01|custom|on_add|x|y",
         "@CFG: CFG01|a|CFG01|1|b|c",

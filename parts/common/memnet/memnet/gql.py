@@ -189,7 +189,7 @@ def _parse_value(s: str, i: int) -> tuple[Any, int]:
     m = re.match(rf"({_IDENT})", s[i:])
     if m:
         return m.group(1), i + m.end()
-    raise ParseError(f"unrecognised value near {s[i:i+20]!r}")
+    raise ParseError(f"unrecognised value near {s[i : i + 20]!r}")
 
 
 def _parse_map(s: str, i: int) -> tuple[dict[str, Any], int]:
@@ -205,7 +205,7 @@ def _parse_map(s: str, i: int) -> tuple[dict[str, Any], int]:
         i = _skip_ws(s, i)
         m = re.match(rf"({_IDENT})\s*:", s[i:])
         if not m:
-            raise ParseError(f"expected key: near {s[i:i+20]!r}")
+            raise ParseError(f"expected key: near {s[i : i + 20]!r}")
         key = m.group(1)
         i += m.end()
         val, i = _parse_value(s, i)
@@ -216,7 +216,7 @@ def _parse_map(s: str, i: int) -> tuple[dict[str, Any], int]:
             continue
         if i < len(s) and s[i] == "}":
             return props, i + 1
-        raise ParseError(f"expected ',' or '}}' near {s[i:i+20]!r}")
+        raise ParseError(f"expected ',' or '}}' near {s[i : i + 20]!r}")
     raise ParseError("unterminated map")
 
 
@@ -314,8 +314,7 @@ def _split_statements(text: str) -> list[tuple[int, str]]:
                 # Do NOT swallow a following CREATE (:Label …) node into the MATCH.
                 rel_create = su.startswith("CREATE") and "-[" in s
                 continue_match = prev_u.startswith("MATCH") and (
-                    rel_create
-                    or su.startswith(("SET", "DELETE", "DETACH"))
+                    rel_create or su.startswith(("SET", "DELETE", "DETACH"))
                 )
                 continue_merge = prev_u.startswith("MERGE") and su.startswith("SET")
                 if continue_match or continue_merge:
@@ -416,7 +415,7 @@ def _parse_set_clause(set_text: str, default_var: str | None) -> list[Field]:
             continue
         m = re.match(rf"(?:({_IDENT})\.)?({_IDENT})\s*=\s*", text[i:])
         if not m:
-            raise ParseError(f"bad SET clause near {text[i:i+30]!r}")
+            raise ParseError(f"bad SET clause near {text[i : i + 30]!r}")
         i += m.end()
         key = m.group(2)
         val, i = _parse_value(text, i)
@@ -595,7 +594,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
     patterns_chunk, rest = _split_match_body(m.group(1))
     try:
         patterns, _consumed, _full = _parse_node_patterns(patterns_chunk)
-    except ParseError as exc:
+    except ParseError:
         # Relationship MATCH for delete: ()-[r {id:…}]-()
         return _parse_match_rel_delete(s, line_no, rest)
     if not patterns and not rest:
@@ -669,16 +668,12 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         # Represent node drop as EdgeRec DROP with edge_id=node id for gate,
         # or NodeRec with DROP — Tier A uses - id for both. Use EdgeRec DROP
         # only for edges; for nodes use a NodeRec with op DROP via kind.
-        return [
-            NodeRec(op=Op.DROP, kind=p.label or "", id=rid, fields=[], raw=s)
-        ]
+        return [NodeRec(op=Op.DROP, kind=p.label or "", id=rid, fields=[], raw=s)]
 
     raise ParseError(f"unsupported MATCH continuation: {rest[:60]!r}", line_no)
 
 
-def _parse_match_rel_delete(
-    s: str, line_no: int, rest: str
-) -> list[NodeRec | EdgeRec]:
+def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
     """MATCH ()-[r {id:'E1'}]-() DELETE r  (simplified gated form)."""
     m = re.search(
         rf"\[\s*(?:({_IDENT})\s*)?(?::({_RELTYPE}))?\s*(\{{[^{{}}]*\}})?\s*\]",
@@ -733,9 +728,7 @@ def _emit_value(val: str) -> str:
     if val == "":
         return "''"
     # JSON nested?
-    if (val.startswith("{") and val.endswith("}")) or (
-        val.startswith("[") and val.endswith("]")
-    ):
+    if (val.startswith("{") and val.endswith("}")) or (val.startswith("[") and val.endswith("]")):
         try:
             obj = json.loads(val)
             return _emit_py(obj)
@@ -857,13 +850,9 @@ def emit_item(it: NodeRec | EdgeRec | Section, *, as_mutate: bool = False) -> st
             props = {"id": it.edge_id, **props}
         if as_mutate and it.op == Op.CREATE:
             # Prefer MATCH ends + CREATE when ends known; ack uses CREATE vars form
-            return (
-                f"CREATE ({it.frm})-[:{it.rel} {_emit_props(props)}]->({it.to})"
-            )
+            return f"CREATE ({it.frm})-[:{it.rel} {_emit_props(props)}]->({it.to})"
         if as_mutate and it.op == Op.DROP:
-            return (
-                f"MATCH ()-[r {{id: '{_escape_str(it.edge_id or '')}'}}]-() DELETE r"
-            )
+            return f"MATCH ()-[r {{id: '{_escape_str(it.edge_id or '')}'}}]-() DELETE r"
         return emit_edge_shaped(
             src_kind="NODE",
             src_id=it.frm,

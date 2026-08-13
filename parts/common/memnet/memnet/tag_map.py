@@ -6,9 +6,9 @@ import re
 
 from memnet.config import ID_PATTERN, RELATION_PATTERN, RESERVED_TAGS, Caps
 from memnet.exceptions import MemNetError
-from memnet.fixed_tags import FIXED_TAGS, fixed_tag_map
+from memnet.fixed_tags import FIXED_TAGS
 from memnet.models import Record, TagDef, TagMap
-from memnet.wire import emit_record_line, parse_tag_line, split_payload, join_payload
+from memnet.wire import emit_record_line, parse_tag_line, split_payload
 
 _ID_RE = re.compile(ID_PATTERN)
 _REL_RE = re.compile(RELATION_PATTERN)
@@ -156,9 +156,7 @@ def load_persisted_map_from_lines(lines: list[str], caps: Caps | None = None) ->
         if not line or line.startswith("#"):
             continue
         tag, field_names = parse_map_line(line)
-        _register_user_tag(
-            user, tag, field_names, caps, allow_fixed_skip=True
-        )
+        _register_user_tag(user, tag, field_names, caps, allow_fixed_skip=True)
     return merge_fixed(user)
 
 

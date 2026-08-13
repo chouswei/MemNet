@@ -41,18 +41,14 @@ def test_parse_match_create_rel():
 
 
 def test_soft_validate_bind_requires_ports():
-    doc = parse(
-        "MATCH (a {id: 'A'}), (b {id: 'B'})\n"
-        "CREATE (a)-[:bind {id: 'E1'}]->(b)"
-    )
+    doc = parse("MATCH (a {id: 'A'}), (b {id: 'B'})\nCREATE (a)-[:bind {id: 'E1'}]->(b)")
     errs = [i for i in soft_validate(doc) if i.severity == "error"]
     assert any(i.code == "bind_ports_required" for i in errs)
 
 
 def test_soft_validate_mixed_grain():
     doc = parse(
-        "MATCH (a {id: 'A'}), (b {id: 'B'})\n"
-        "CREATE (a)-[:about {id: 'E1', fromPort: 'x'}]->(b)"
+        "MATCH (a {id: 'A'}), (b {id: 'B'})\nCREATE (a)-[:about {id: 'E1', fromPort: 'x'}]->(b)"
     )
     errs = [i for i in soft_validate(doc) if i.severity == "error"]
     assert any(i.code == "mixed_grain" for i in errs)

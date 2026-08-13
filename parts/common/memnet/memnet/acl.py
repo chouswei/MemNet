@@ -26,8 +26,9 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable, Literal
+from typing import Literal
 
 from memnet.exceptions import MemNetError
 
@@ -332,9 +333,7 @@ def _node_granted(
     if scope.labels:
         hits.append(bool(tag) and tag.upper() in scope.labels)
     if scope.anchors:
-        in_anchor = bool(rid) and (
-            rid in scope.anchors or (ego is not None and rid in ego)
-        )
+        in_anchor = bool(rid) and (rid in scope.anchors or (ego is not None and rid in ego))
         hits.append(in_anchor)
     if not hits:
         # Only relation grants configured → node id/label unrestricted here
@@ -424,9 +423,7 @@ def check_write_scope(
             rel = (fields.get("relation") or fields.get("type") or "").lower()
             src = fields.get("src") or fields.get("from") or ""
             dst = fields.get("dist") or fields.get("to") or ""
-            if not _edge_granted(
-                rid=rid, rel=rel, src=src, dst=dst, scope=scope, ego=ego
-            ):
+            if not _edge_granted(rid=rid, rel=rel, src=src, dst=dst, scope=scope, ego=ego):
                 raise MemNetError(
                     "acl_scope",
                     "edge outside WorkerWriteScope (relation/id GRANT)",
