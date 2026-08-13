@@ -25,15 +25,7 @@ package MemNetConnections {
     */
   }
 
-  item def CompanyAnalyticalSsot {
-    doc /*
-      Application pattern (not a second product): SharedLlmMemory hosts a
-      company analytical SSOT ego (e.g. COM_2330_TPE) — news, findings, and
-      analyse-loop writes accumulate in-session. Dual SSOT: MemNet = agent
-      analytical memory; user ledger / price bars stay out of MemNet.
-      See outputs/company-memory-case-study.md.
-    */
-  }
+  // CompanyAnalyticalSsot lives under Application patterns (not core item zoo).
 
   item def MissionWorkingSet {
     doc /*
@@ -84,9 +76,11 @@ package MemNetConnections {
 
   item def ImportGuardDecision {
     doc /*
-      Soft outcome from ImportGuard (cheap LLM) before lead mutate on path B:
-      allow / trim / reject plus a short reason. Recorded as structured atoms —
-      MUST NOT make guard chat the SSOT. Does not replace engine hard gates.
+      OPTIONAL soft-policy outcome from ImportGuard (cheap LLM) on path B only:
+      allow / trim / reject plus a short reason. Happy path A (shared session)
+      = re-pin_map without ImportGuard / without this decision. Recorded as
+      structured atoms — MUST NOT make guard chat the SSOT. Does not replace
+      engine hard gates. Soft policy may be skipped when host disables guard.
     */
     attribute outcome : String;
     attribute reason : String;
@@ -187,25 +181,10 @@ package MemNetConnections {
     */
   }
 
-  item def LegacyLayerBatch {
-    doc /*
-      ARCHIVED — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
-      tier_a). Not a product accept path (ADR-001 M2); MUST NOT be agent
-      teach. Alias: TierABatch. Modules may remain for archive/tests only.
-    */
-  }
-
   item def GraphRecordBatch {
     doc /*
       Internal Node|Edge record batch after parse / before emit.
       Conceptual kinds remain exactly Node and Edge (property graph).
-    */
-  }
-
-  item def LegacyPipeBatch {
-    doc /*
-      DEPRECATED: one-shot import of historical @TAG pipe session blobs.
-      Not a standing store codec or agent dialect. Import once then gone.
     */
   }
 
@@ -310,8 +289,10 @@ package MemNetConnections {
     doc /*
       Parent-assigned anchors and relation scope for one MultitaskWorker.
       Asynchronous parallel workers require disjoint scopes or separate
-      sessions (MN-REQ-12.5 / 12.12). As-is: doctrine only; no engine
-      ACL/reserve — 0.4.x last-write-wins if violated.
+      sessions (MN-REQ-12.5 / 12.12). HONEST capability: enforcement is
+      host/doctrine (doctrineAsIs) until the engine hard-gates ACL/reserve —
+      0.4.x does NOT reject out-of-scope writes (last-write-wins if violated).
+      MUST NOT model this item as shipped engine ACL.
     */
   }
   item def HousekeepStats {
@@ -319,7 +300,8 @@ package MemNetConnections {
   }
 
   // =====================================================================
-  // Ports — GQL primary; quarantined as-is codec; internal records
+  // Ports — GQL primary + Multitask / durable; internal records
+  // (Retired TierA / LegacyPipe ports: see RETIRED archive section below)
   // =====================================================================
 
   port def GqlWireOutPort {
@@ -338,15 +320,6 @@ package MemNetConnections {
   port def ShapedSubgraphInPort {
     doc /* Accept shaped subgraph. */
     in item slice : ShapedSubgraph;
-  }
-
-  port def TierAOutPort {
-    doc /* QUARANTINED: as-is codec emit — remove in M2; not target accept. */
-    out item payload : LegacyLayerBatch;
-  }
-  port def TierAInPort {
-    doc /* QUARANTINED: as-is codec consume — remove in M2; not target accept. */
-    in item payload : LegacyLayerBatch;
   }
 
   port def SessionHandoffOutPort {
@@ -409,15 +382,6 @@ package MemNetConnections {
   port def GraphRecordInPort {
     doc /* Consume internal Node|Edge records. */
     in item records : GraphRecordBatch;
-  }
-
-  port def LegacyPipeOutPort {
-    doc /* DEPRECATED: emit legacy pipe batch for one-shot import. */
-    out item payload : LegacyPipeBatch;
-  }
-  port def LegacyPipeInPort {
-    doc /* DEPRECATED: consume legacy pipe for one-shot import. */
-    in item payload : LegacyPipeBatch;
   }
 
   port def AssignedIdOutPort {
@@ -544,12 +508,6 @@ package MemNetConnections {
     end port sink : ShapedSubgraphInPort;
   }
 
-  connection def TierAFlow {
-    doc /* QUARANTINED as-is codec flow — remove in M2; not target accept. */
-    end port source : TierAOutPort;
-    end port sink : TierAInPort;
-  }
-
   connection def SessionHandoffFlow {
     doc /*
       Pass-by-reference handoff: parent delivers SessionHandoff (session id +
@@ -563,8 +521,9 @@ package MemNetConnections {
   connection def WorkingMemorySliceFlow {
     doc /*
       Macro import path B: member exports bounded WorkingMemorySlice; lead
-      imports into mission session (SessionImportReceive), after optional
-      ImportGuard soft review. Not chat import.
+      imports into mission session (SessionImportReceive). ImportGuard soft
+      review is OPTIONAL on path B; happy path A skips this flow (re-pin only).
+      Not chat import.
     */
     end port source : WorkingMemorySliceOutPort;
     end port sink : WorkingMemorySliceInPort;
@@ -578,8 +537,9 @@ package MemNetConnections {
 
   connection def ImportGuardDecisionFlow {
     doc /*
-      Soft guard outcome into SessionImportReceive. MUST NOT replace schema /
-      caps / id-policy / owner gates. Guard chat is not SSOT.
+      OPTIONAL soft-policy outcome into SessionImportReceive (path B).
+      Happy path A has no this flow. MUST NOT replace schema / caps /
+      id-policy / owner gates. Guard chat is not SSOT.
     */
     end port source : ImportGuardDecisionOutPort;
     end port sink : ImportGuardDecisionInPort;
@@ -607,12 +567,6 @@ package MemNetConnections {
     doc /* Internal Node|Edge records between codec, mutate, store. */
     end port source : GraphRecordOutPort;
     end port sink : GraphRecordInPort;
-  }
-
-  connection def LegacyPipeFlow {
-    doc /* DEPRECATED: one-shot legacy pipe import path. */
-    end port source : LegacyPipeOutPort;
-    end port sink : LegacyPipeInPort;
   }
 
   connection def AssignedIdFlow {
@@ -686,4 +640,72 @@ package MemNetConnections {
     end port source : ErrorSignalOutPort;
     end port sink : ErrorSignalInPort;
   }
+
+  // =====================================================================
+  // Application patterns (NOT MemNet core item zoo — case-study only)
+  // =====================================================================
+
+  item def CompanyAnalyticalSsot {
+    doc /*
+      APPLICATION PATTERN only (not a MemNet core / product item):
+      SharedLlmMemory hosts a company analytical SSOT ego (e.g. COM_2330_TPE)
+      — news, findings, and analyse-loop writes accumulate in-session.
+      Dual SSOT: MemNet = agent analytical memory; user ledger / price bars
+      stay out of MemNet. MUST NOT nest under MemNetSystem as a peer core.
+      See outputs/company-memory-case-study.md.
+    */
+  }
+
+  // =====================================================================
+  // RETIRED / ARCHIVE — as-is traceability only (MUST NOT nest on product path)
+  // TierA / Layer accept retired (ADR-001 M2 done). Keep defs for archive/
+  // tests / historical wiring; do not compete with GQL item zoo as first-class.
+  // =====================================================================
+
+  item def LegacyLayerBatch {
+    doc /*
+      RETIRED archive — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
+      tier_a). Product accept REJECTED (M2 done; legacy_dialect_retired).
+      MUST NOT be agent teach or nested on product path. Alias: TierABatch.
+      Modules may remain for archive/tests only.
+    */
+  }
+
+  item def LegacyPipeBatch {
+    doc /*
+      RETIRED archive — one-shot import of historical @TAG pipe session blobs.
+      Not a standing store codec or agent dialect. MUST NOT nest on product path.
+    */
+  }
+
+  port def TierAOutPort {
+    doc /* RETIRED archive: former Tier A emit — MUST NOT nest on product path. */
+    out item payload : LegacyLayerBatch;
+  }
+  port def TierAInPort {
+    doc /* RETIRED archive: former Tier A consume — MUST NOT nest on product path. */
+    in item payload : LegacyLayerBatch;
+  }
+
+  port def LegacyPipeOutPort {
+    doc /* RETIRED archive: legacy pipe emit — MUST NOT nest on product path. */
+    out item payload : LegacyPipeBatch;
+  }
+  port def LegacyPipeInPort {
+    doc /* RETIRED archive: legacy pipe consume — MUST NOT nest on product path. */
+    in item payload : LegacyPipeBatch;
+  }
+
+  connection def TierAFlow {
+    doc /* RETIRED archive flow — MUST NOT nest on product path (M2 done). */
+    end port source : TierAOutPort;
+    end port sink : TierAInPort;
+  }
+
+  connection def LegacyPipeFlow {
+    doc /* RETIRED archive: one-shot legacy pipe import — MUST NOT nest on product path. */
+    end port source : LegacyPipeOutPort;
+    end port sink : LegacyPipeInPort;
+  }
+
 }

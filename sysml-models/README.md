@@ -11,7 +11,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 1. **MemNet = shared LLM memory** — session-scoped working-memory buffer; brand SharedLlmMemory.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoffById`); peers re-`pin_map`; chat never SSOT.
 3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5** client hydrate/flush landed; live AgensGraph path needs external cabinet (not claimed verified). LLM↔store direct out of teach.
-4. **Lead imports member working memory** - path A shared session -> re-`pin_map` (no second store); path B -> `WorkingMemorySlice` through nested `ImportGuard` (cheap LLM soft) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
+4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (cheap LLM soft policy) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 
 **Sequence:** M1 (done) → M2 (done) → **M2.5** (client landed; live cabinet deferred) → **M3** (in-repo playbook/app-note GQL rewrite).
 
@@ -19,7 +19,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff, WorkingMemorySlice, SessionImportRequest, ImportGuardDecision |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff, WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot`; retired TierA archive |
 | `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.12 import + guard + async) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/dispatch/WorkerPool spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
@@ -40,27 +40,29 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │           ├── PinMapShapedRead
 │   │   │           ├── MutateGate
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
-│   │   │               (TierACodec retired — M2 done; not nested)
+│   │   │               (TierACodec RETIRED/REJECTED — M2 done; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade                            // LLM <-> MemNet (GQL)
 ├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
 ├── DurableBuffer                            // planned M2.5
 │   └── AgensGraphAdapter                    // hydrate/flush <-> sessions
-├── PinMapRoadmap
+├── PinMapRoadmap                            // ROADMAP-ONLY (PinMapIngest variants)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit
     │   ├── AsyncTaskDispatch                // spawn N; end turn
     │   └── SessionImportReceive             // path B only
-    │       ├── ImportGuard                  // cheap LLM soft review
+    │       ├── ImportGuard                  // OPTIONAL cheap LLM soft policy
     │       └── ImportAbsorb                 // hard gates + import + settle
     ├── WorkerPool
     │   └── MultitaskWorker[1..*]            // async parallel members
     └── MultitaskSharedStoreBinding
 ```
 
-**Story:** `SessionHandoffById` → `AsyncTaskDispatch` (end turn) → workers async → host `EvWorkerReturn` → (shared re-`pin_map` | `SessionImportReceive` → Guard → Absorb → Settle).
+**Happy path Multitask:** Path A shared session → re-`pin_map` (ImportGuard unused). Path B uses optional ImportGuard then ImportAbsorb.
+
+**Story:** `SessionHandoffById` → `AsyncTaskDispatch` (end turn) → workers async → host `EvWorkerReturn` → (happy path A: shared re-`pin_map` | path B: `SessionImportReceive` → optional Guard → Absorb → Settle).
 
 ## Target subsystems
 
@@ -68,7 +70,10 @@ MemNetSystem                                 // SharedLlmMemory product
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter planned **M2.5**
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
-- **Retired / quarantined:** TierACodec (M2 done); LegacyPipeImport
+- **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
+- **Roadmap-only stubs:** PinMapRoadmap / PinMapIngest (domainVariant: sysml|codebase|pcbaAto|skillsRules)
+- **Optional soft policy:** ImportGuard (path B); happy path A = re-pin without guard
+- **WorkerWriteScope:** host/doctrine enforcement until engine hard-gates (not fake ACL)
 - **Out of scope:** novel-writer
 
 ## Case studies
@@ -83,7 +88,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Multitask Mode (GQL pins + optional import) | [outputs/multitask-case-study.md](outputs/multitask-case-study.md) |
 | Async parallel (canon companion) | [outputs/async-parallel-conflict-case-study.md](outputs/async-parallel-conflict-case-study.md) |
 | TCP / streamable-http shared Multitask (transport) | [outputs/tcp-shared-multitask-case-study.md](outputs/tcp-shared-multitask-case-study.md) |
-| Session import + ImportGuard (path B detail) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
+| Session import + optional ImportGuard (path B) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
 | `NEW` mint batch (mutate discipline) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |

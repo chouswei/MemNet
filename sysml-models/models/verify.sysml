@@ -208,7 +208,7 @@ package MemNetVerification {
       MN-REQ-12.7 gate — must not assume shipped ACL / reserve / Path-B.
       Inspection: MultitaskOperatingModel and coordinator/workerPool parts
       carry doctrineAsIs only; no engine ACL, neighbourhood reserve (RSV),
-      or PinMapIngest_* enforcement. Counter-example: treating ACL/RSV as
+      or PinMapIngest (roadmap) enforcement. Counter-example: treating ACL/RSV as
       available violates MN-REQ-12.7.
     */
     attribute verificationId : String = "MN-VER-12-S09";
