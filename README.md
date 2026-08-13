@@ -1,8 +1,10 @@
 ﻿# MemNet
 
-**MemNet** (Net of Memory) is shared **working memory for LLMs**: a session-scoped **NODE | EDGE** buffer you re-read each turn. It isn't chat, isn't AgensGraph/Neo4j, and isn't an application EvidenceCentre — those patterns stay downstream. This repo ships the engine + generic MCP only.
+Working memory for LLMs. One session graph that agents pin and update — without dumping everything into chat.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Agent wire is **GQL only** (openCypher-shaped): shaped `pin_map` read + gated mutate with `id:'NEW'`. Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
+That's the whole product idea: a shared scratch space for a mission, not a notepad in the thread. It isn't AgensGraph/Neo4j, and it isn't an app EvidenceCentre — those stay downstream. This repo ships the engine + generic MCP only.
+
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11.
 
 ## Install + quick CLI
 
@@ -46,7 +48,9 @@ Shaped pin map (illustrative):
 (:NPC {id: 'NPC1'})-[:helps {id: 'E1', note: 'labour'}]->(:TSK {id: 'TSK1'})
 ```
 
-Create with `id:'NEW'`; patch/settle with known ids only. MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
+Create with `id:'NEW'`; patch/settle with known ids only. The agent dialect is **GQL only** (openCypher-shaped): shaped `pin_map` read + gated mutate. Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
+
+MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
 
 ## Session pipe
 
