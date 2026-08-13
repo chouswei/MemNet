@@ -5,8 +5,7 @@
 # TagMap / session_open (pipe field maps — NOT agent mutate):
 #   schema.example.txt          — demo world map (tests + quick start)
 #   schema.coding.example.txt   — coding map (MOD/SYM/TSK/…)
-#   schema.techdocs.example.txt — tech-docs / SCPI map
-#
+#   schema.sysml.example.txt    — Path-B SysML ingest (PKG/PRT/REQ/POR)
 # Relation seed (session_open vocabulary):
 #   relations.seed.txt          — default @EDG verbs (_seed_relations)
 #

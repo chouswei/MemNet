@@ -1,0 +1,9 @@
+# Shared-dialect session map for Path-B SysML pin-map ingest (MN-REQ-11).
+# session_open --map-file schema.sysml.example.txt
+# Built-in LAW / EDG are merged automatically — do not redefine them here.
+SCHEMA PKG ; fields=id name qname path sysml_kind recycle
+SCHEMA PRT ; fields=id name qname path sysml_kind recycle
+SCHEMA REQ ; fields=id name qname path requirementId sysml_kind recycle
+SCHEMA POR ; fields=id name qname path sysml_kind recycle
+SCHEMA TSK ; fields=id goal anchor status recycle
+SCHEMA USR ; fields=id topic content status recycle

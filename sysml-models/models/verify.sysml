@@ -25,8 +25,9 @@ package MemNetVerification {
       leaves 12.1–12.12; behaviour hosts ParentTaskLifecycle,
       WorkerScopedTurn, MultitaskMissionCycle, AsyncTaskDispatch.
       Step-level leaf coverage: MN-VER-12-S01…S13.
-      CapsPolicy ACL is shipped when session ACL is enabled; reserve and
-      Path-B ingest remain deferred (12.7; see S09).
+      CapsPolicy ACL is shipped when session ACL is enabled; RSV and
+      PinMapIngest_Sysml shipped; other Path-B ingest domains deferred
+      (12.7; see S09).
     */
     attribute verificationId : String = "MN-VER-12-G00";
 
@@ -207,11 +208,13 @@ package MemNetVerification {
 
   verification def MN_VER_12_S09_NoAssumeReserveIngest {
     doc /*
-      MN-REQ-12.7 gate — CapsPolicy ACL and NeighbourhoodReserve (RSV) are
-      shipped; agents must not assume Path-B PinMapIngest or full
-      private/shared/open session_token modes. Inspection: RSV
-      NeighbourhoodReserve.implemented == true; ingest remains doctrine.
-      Counter-example: treating PinMapIngest as available violates MN-REQ-12.7.
+      MN-REQ-12.7 gate — CapsPolicy ACL, NeighbourhoodReserve (RSV), and
+      PinMapIngest_Sysml are shipped; agents must not assume codebase /
+      PCBA / skills ingest engines or full private/shared/open
+      session_token modes. Inspection: RSV implemented == true;
+      PinMapRoadmap.sysml.implemented == true; other ingest
+      domainVariant engines remain roadmapOnly. Counter-example: treating
+      all PinMapIngest_* as available violates MN-REQ-12.7.
     */
     attribute verificationId : String = "MN-VER-12-S09";
 

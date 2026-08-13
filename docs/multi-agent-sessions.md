@@ -119,7 +119,8 @@ Product backlog — **deferred** in 0.4.x; gated by **MN-REQ-12.7** and verify *
 | CapsPolicy ACL (`who` / `pin_map`-vs-mutate / `WorkerWriteScope` hard reject / optional bind) | MN-REQ-12.7; MN-VER-12-S09; `memnet.acl` | **Shipped when session ACL is enabled** |
 | Full session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/grammar/memnet-security-multi-agent.md` | **To-be** |
 | Neighbourhood reserve (`RSV` rows, `llm_id` + TTL) | MN-REQ-12.13; design `docs/grammar/memnet-neighbourhood-reserve.md` | **Shipped** — `reserve` / `extend` / `release`; pin-map `## Reserves` |
-| Path-B `PinMapIngest_*` engines (SysML, codebase, PCBA, skills) | MN-REQ-11 stubs; MN-REQ-12.7; MN-VER-12-S09 | **Roadmap** — seed via `session_open` `seed_lines` or `add` with explicit locator ids |
+| Path-B `PinMapIngest_Sysml` | MN-REQ-11.16; MN-REQ-12.7; MN-VER-12-S09; `memnet.pin_map_ingest` | **Shipped** — CLI `ingest sysml` / MCP `ingest_sysml` |
+| Path-B `PinMapIngest_Codebase` / `PcbaAto` / `SkillsRules` | MN-REQ-11.6–11.12, 11.14–11.15; MN-REQ-12.7 | **Interface only** — seed via `session_open` `seed_lines` or `add` with explicit locator ids |
 
 Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md).
 
