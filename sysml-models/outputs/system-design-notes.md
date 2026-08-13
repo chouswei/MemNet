@@ -13,7 +13,7 @@ Novel-writer is out of scope.
 ## Product framing (2026-08-13)
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
-2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; chat never SSOT.
+2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph.
 3. **Durable GQL store behind MemNet** — `DurableBuffer` / `AgensGraphAdapter` planned **M2.5**.
 4. **Lead imports member WM** — **happy path A** re-`pin_map` (skip import nest; **no ImportGuard**); path B `WorkingMemorySlice` → **optional** nested `ImportGuard` (soft policy) → `ImportAbsorb`. Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Cypher `MERGE` and micro `merge=true` are not this behaviour.
 

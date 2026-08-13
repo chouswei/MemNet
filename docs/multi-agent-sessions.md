@@ -1,7 +1,7 @@
 # Multitask operating model (as-is 0.4.x)
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
-**Dialect teach:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id**; prefer **import** over session merge.
+**Dialect teach:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B `pin_map`); prefer **import** over session merge.
 **Application adoption** (`modelbasedPrj-*`): [`docs/application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Index: [`docs/README.md`](README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task sub-agents. Session ACL, neighbourhood reserve, and ingest engines are **not shipped** — see `docs/grammar/memnet-security-multi-agent.md` and `docs/grammar/memnet-neighbourhood-reserve.md`.
@@ -11,6 +11,19 @@
 ## Principle
 
 When Multitask is **on**, one **shared MemNet session** is mission SSOT. Chat is never SSOT. Parent coordinates; workers execute under assigned scope.
+
+## Inter-module session pipe
+
+Module A → B **MUST** pass **session id only** (`SessionHandoff`). B **MUST** `pin_map`. Chat, MissionDock payloads, and HTTP bodies **MUST NOT** carry the graph. Wire is **GQL only**.
+
+`SessionHandoff`: `sessionId`, `caller`, optional `missionId` + `lease` (plus existing optional Multitask `anchors` / `writeScope`). Mutate still hits **CapsPolicy** (who / what / bind) — a handoff is not a mutate waiver.
+
+| Pattern | What happens |
+|---------|--------------|
+| **Shared session** | Same `sessionId`; B re-`pin_map` (path A) |
+| **Separate worker session** | Lead **imports** a bounded slice (`SessionImportReceive` / import_slice; path B) |
+
+EvidenceCentre / MissionDock are application patterns — **MUST NOT** nest under `MemNetSystem`.
 
 ## Transport (shared store)
 

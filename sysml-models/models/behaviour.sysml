@@ -817,11 +817,13 @@ package MemNetBehaviour {
 
   state def SessionHandoffById {
     doc /*
-      Explicit handoff of a MissionWorkingSet whose SSOT is the session:
-      Parent emits SessionHandoff (session id + optional anchors / writeScope)
-      → Worker opens/uses the same session → Worker pin_map → mutate under
-      scope. Contrasts forbidden EvDumpGraphInChat. Composes with
-      EvDelegateWorker / MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
+      Explicit handoff of a MissionWorkingSet whose SSOT is the session
+      (inter-module A → B pipe as well as parent → worker): source emits
+      SessionHandoff (sessionId + caller; optional missionId / lease /
+      anchors / writeScope) → sink pin_map → mutate still hits CapsPolicy.
+      Shared session = same id; else worker session → lead import_slice.
+      Contrasts forbidden EvDumpGraphInChat. Composes with EvDelegateWorker /
+      MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
     */
     entry;
     then handoffIdle;
@@ -844,8 +846,9 @@ package MemNetBehaviour {
 
     state deliveringSessionId {
       doc /*
-        Parent delivers SessionHandoff only — sessionId (+ anchors /
-        writeScope). MUST NOT attach a full graph dump.
+        Source delivers SessionHandoff only — sessionId + caller (optional
+        missionId / lease / anchors / writeScope). MUST NOT attach a graph
+        dump in chat, MissionDock, or HTTP body.
       */
     }
     transition deliver_to_worker_open
