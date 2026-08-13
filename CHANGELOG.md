@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-08-13
+
 ### Added
 - **CheapLlmImportGuard (#63 / MN-REQ-12.11)** — optional OpenAI-compatible soft ImportGuard adapter in `memnet-llm`. Off unless `MEMNET_IMPORT_GUARD_API_KEY` is set; optional `MEMNET_IMPORT_GUARD_BASE_URL` (default `https://api.openai.com/v1`) and `MEMNET_IMPORT_GUARD_MODEL` (default `gpt-4.1-mini`). Installed on `memnet serve` / IPC, MCP process start, and CLI `import-slice` when the key is present. Bounded slice summary only; maps allow|trim|reject → `ImportGuardDecision`. Transport/parse failure soft-skips (passthrough + `@WRN`). `--no-guard` still skips. Does not replace ImportAbsorb hard gates. SysML: `CheapLlmImportGuard.implemented=true`; MN-VER-12-S14 cites #63.
 
