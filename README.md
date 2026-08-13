@@ -89,7 +89,7 @@ CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
 | Mode | Entry | Graph store | Typical use |
 |------|-------|-------------|-------------|
 | **MCP in-process** | `memnet-mcp` stdio | In-process engine in the MCP host | Local single-agent; no serve |
-| **CLI + `memnet serve`** | `memnet` CLI → TCP `:18765` | Shared serve process | Scripts, multi-client |
+| **CLI + `memnet serve`** | `memnet` CLI → TCP `:18765` or AF_UNIX (`MEMNET_IPC_SOCKET`, `--ipc`) | Shared serve process | Scripts, multi-client |
 | **MCP streamable-http** | `memnet-mcp --transport streamable-http` → `:18766/mcp` | Own process today (bridge to serve = **0.5.0**) | Remote Cursor `url` (`memnet-pi`) |
 
 Set `MEMNET_MCP_TRANSPORT=tcp` when MCP tools must call a running serve instead of a separate in-process graph. Multitask / parallel workers sharing one graph need TCP or HTTP — default in-process isolates per process. See [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md).
@@ -161,6 +161,7 @@ For shell scripts or a shared TCP graph:
 ```powershell
 memnet serve
 # MEMNET_SERVE=127.0.0.1:18765
+# or local IPC (MN-REQ-06.2): export MEMNET_IPC_SOCKET=/tmp/memnet.sock && memnet serve --ipc
 ```
 
 **Terminal 2:**

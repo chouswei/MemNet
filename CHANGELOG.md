@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **LocalIpcGateway (MN-REQ-06.2)** — real AF_UNIX share of the in-process session registry (same length-prefixed JSON protocol as TCP `memnet serve`). Env: `MEMNET_IPC_SOCKET`. CLI: `memnet serve --ipc` / `--ipc-path`. Client `dispatch` prefers IPC over TCP when the socket is listening. Closes #50.
+
 ### Changed
 - **docs: one-path / 0.5.0 plan** — `docs/ROADMAP-0.5.md`; README “How to run (one path)” + known gaps; multi-layer Open § aligned; `memnet-pi` HTTP as default remote teach; Layer = 1.x teach / Tier A = legacy alias; Pi one graph owner (HTTP bridged to serve).
 - **docs: application-notes Layer teach** — circuit notes + InvAmp example use CST `ports=` / `law=` / `--bind-->` as primary; Tier A `derives` / `connects_to` / paren arrows / `@TAG` pipe demoted to legacy pointers; `docs/README.md` + `LLM-GUIDE.md` Layer pointers; golden `docs/grammar/examples/layer/layer_09_inv_amp_good.txt`.

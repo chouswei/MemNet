@@ -37,7 +37,7 @@ def guide_text(*, loose: bool = False) -> str:
             "Create with id: 'NEW'; engine mints ids. Patch/settle: known ids only (no NEW).",
             "Live pin map: memnet query pin-map --anchor <id> (query warm is legacy alias).",
             "Pin-map ingest: stable locators (path=, qname=, ...) - no client NEW for those pins.",
-            "Transport: MCP in-process first; memnet serve / TCP is migration fallback.",
+            "Transport: MCP in-process first; memnet serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
             "Legacy @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
             "MCP LawSeedHelper: GQL LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
             "Reuse ids; never invent new ids for the same entity.",
@@ -50,10 +50,11 @@ Doctrine:
   Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
   Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
   Create with id: 'NEW'; pin-map ingest uses locators, not client NEW
-  Transport: in-process MCP first; serve/TCP as fallback
+  Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
 Quick start (CLI sessions still need serve today):
-  memnet serve
+  memnet serve                    # TCP :18765
+  # or: export MEMNET_IPC_SOCKET=/tmp/memnet.sock && memnet serve --ipc
   memnet session open --map-file schema.example.txt
   memnet add --file workflow.example.txt   # GQL preferred; @TAG pipe import-once
   memnet query pin-map --anchor ...        # shaped GQL subgraph

@@ -28,7 +28,7 @@ MemNetSystem
 ├── MemNetCoreLibrary
 │   └── TransportBoundary
 │       ├── InProcessEngine          // single-agent OK; Multitask anti-pattern
-│       ├── LocalIpcGateway          // stub / future
+│       ├── LocalIpcGateway          // AF_UNIX; MEMNET_IPC_SOCKET (MN-REQ-06.2)
 │       └── TcpServeBridge           // Multitask shared store (as-is wired)
 ├── MemNetMcpServer                  // streamable-http opt-in same idea
 └── MultitaskOperatingModel

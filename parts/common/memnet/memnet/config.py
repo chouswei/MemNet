@@ -97,6 +97,27 @@ def serve_allow_remote() -> bool:
     return raw in {"1", "true", "yes", "on"}
 
 
+def ipc_socket_path() -> str | None:
+    """AF_UNIX socket path for LocalIpcGateway (MN-REQ-06.2).
+
+    Env: ``MEMNET_IPC_SOCKET``. When unset, clients stay on TCP ``memnet serve``.
+    """
+    raw = os.environ.get("MEMNET_IPC_SOCKET", "").strip()
+    return raw or None
+
+
+def default_ipc_socket_path() -> str:
+    """Default path when ``memnet serve --ipc`` runs without ``MEMNET_IPC_SOCKET``."""
+    runtime = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+    if runtime:
+        return str(Path(runtime) / "memnet.sock")
+    try:
+        uid = os.getuid()
+    except AttributeError:
+        uid = os.getpid()
+    return f"/tmp/memnet-{uid}.sock"
+
+
 def examples_dir() -> Path:
     return Path(__file__).resolve().parent / "examples"
 

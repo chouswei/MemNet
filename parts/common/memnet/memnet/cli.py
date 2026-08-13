@@ -10,7 +10,15 @@ from typing import Annotated
 import typer
 
 from memnet import __version__
-from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps, serve_host, serve_port
+from memnet.config import (
+    DEFAULT_QUERY_DEPTH,
+    DEFAULT_QUERY_MAX_ROWS,
+    Caps,
+    default_ipc_socket_path,
+    ipc_socket_path,
+    serve_host,
+    serve_port,
+)
 from memnet.exceptions import MemNetError
 from memnet.filter import parse_wheres
 from memnet.help_text import (
@@ -195,8 +203,31 @@ def version(
 def serve(
     host: Annotated[str, typer.Option("--host")] = "",
     port: Annotated[int | None, typer.Option("--port")] = None,
+    ipc: Annotated[
+        bool,
+        typer.Option(
+            "--ipc",
+            help="AF_UNIX LocalIpcGateway (MN-REQ-06.2); no TCP port. Path: MEMNET_IPC_SOCKET.",
+        ),
+    ] = False,
+    ipc_path: Annotated[
+        str,
+        typer.Option(
+            "--ipc-path",
+            help="Unix socket path (implies --ipc; sets MEMNET_IPC_SOCKET).",
+        ),
+    ] = "",
 ) -> None:
     """Run the in-memory graph server (required for multi-command CLI use)."""
+    use_ipc = ipc or bool(ipc_path.strip())
+    if use_ipc:
+        from memnet.local_ipc_gateway import run_ipc_serve
+
+        bind = ipc_path.strip() or ipc_socket_path() or default_ipc_socket_path()
+        os.environ["MEMNET_IPC_SOCKET"] = bind
+        emit_stderr(f"MEMNET_IPC_SOCKET={bind}")
+        run_ipc_serve(bind)
+        return
     bind_host = host or serve_host()
     bind_port = port or serve_port()
     emit_stderr(f"MEMNET_SERVE={bind_host}:{bind_port}")

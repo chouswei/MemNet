@@ -407,11 +407,13 @@ package MemNet {
   part def LocalIpcGateway {
     doc /*
       Secondary: share one session registry across CLI + MCP processes via
-      named pipe (Windows) or AF_UNIX (POSIX). As-is: not implemented.
+      AF_UNIX (POSIX; same length-prefixed JSON as TcpServeBridge).
+      Env: MEMNET_IPC_SOCKET. CLI: memnet serve --ipc / --ipc-path.
+      As-is: implemented (MN-REQ-06.2).
     */
     port ipcIn : LocalIpcInPort;
     port envelopeOut : JsonEnvelopeOutPort;
-    attribute implemented : Boolean = false;
+    attribute implemented : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_2_LocalIpcShare;
   }

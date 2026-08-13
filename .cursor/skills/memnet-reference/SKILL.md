@@ -77,7 +77,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path) |
 | PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL |
 | IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | `NEW` minting |
-| CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765` |
+| CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765`; `--ipc` / `MEMNET_IPC_SOCKET` (MN-REQ-06.2) |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
 | Path-B ingest stubs | `parts/common/memnet/memnet/pin_map_ingest.py` | Roadmap only in 0.4.x |
 | Path-B session import | `parts/common/memnet/memnet/import_absorb.py` | `import_slice` + optional ImportGuard host hook |
