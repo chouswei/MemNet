@@ -17,7 +17,7 @@ from memnet.exceptions import MemNetError
 from memnet.models import Record
 from memnet.mutate_gate import MutateGate
 from memnet.pin_map_composer import PinMapComposer
-from memnet.session import get_session, open_session
+from memnet.session import open_session
 
 runner = CliRunner()
 
