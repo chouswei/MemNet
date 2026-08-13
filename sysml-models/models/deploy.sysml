@@ -23,7 +23,9 @@
         │   ├── SessionHandoffEmit        // session id + scope handoff
         │   ├── AsyncTaskDispatch         // spawn N workers; end turn
         │   └── SessionImportReceive      // path B only (path A never enters)
-        │       ├── ImportGuard           // OPTIONAL soft / LLM MAY
+        │       ├── ImportGuard           // OPTIONAL soft nest (like PinMapRoadmap)
+        │       │   ├── ImportGuardHook   // shipped #49 (set_import_guard)
+        │       │   ├── CheapLlmImportGuard // leftover #63 / 12.11 (NOT shipped)
         │       │   └── Soft* leaves      // allow|trim|reject; trim subtractive
         │       └── ImportAbsorb          // engine SHALL hard
         │           ├── DistinctSession / SliceBudget / LawVocabExclude / Acl
@@ -35,7 +37,7 @@
   Path A: shared mission sessionId → pin_map only (no import nest).
   Path B: bounded WorkingMemorySlice → optional ImportGuard → ImportAbsorb
   (id_policy keep|reject|remint). Not append. Not N-server federation.
-  Module cite: memnet.import_absorb (PR #55 / import_slice).
+  Hook shipped ≠ cheap LLM shipped. Module cite: memnet.import_absorb.
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -938,7 +940,9 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   }
 
-  // --- Path B ImportGuard (OPTIONAL soft / LLM MAY) ---
+  // --- Path B ImportGuard nest (OPTIONAL soft; PinMapIngest-style split) ---
+  // ImportGuardHook = shipped #49. CheapLlmImportGuard = leftover #63 / 12.11.
+  // Hook shipped ≠ cheap LLM shipped. Soft* = shared soft vocabulary.
 
   part def SoftScopeFitReview {
     doc /*
@@ -994,7 +998,7 @@ package MemNet {
       Emit ImportGuardDecision on parent ImportGuard.decisionOut: outcome
       allow|trim|reject + short reason (+ keep_ids when trim). Structured
       atoms only — never chat SSOT. allow/trim → ImportAbsorb; reject → no
-      lead mutate.
+      lead mutate. Used when a guard ran (host hook or cheap-LLM adapter).
     */
     attribute gateKind : String = "soft";
     attribute actor : String = "llm_or_host";
@@ -1002,34 +1006,84 @@ package MemNet {
 
   part def GuardPassthrough {
     doc /*
-      When ImportGuard is skipped/disabled (host enable_guard=false or no
-      hook): identity passthrough of WorkingMemorySlice to ImportAbsorb;
-      no ImportGuardDecision. Path A never uses this nest.
+      When ImportGuardHook is skipped/disabled (host enable_guard=false,
+      --no-guard, or no set_import_guard function): identity passthrough of
+      WorkingMemorySlice to ImportAbsorb; no ImportGuardDecision. Skipping
+      the guard is valid. Path A never uses this nest.
     */
     attribute gateKind : String = "soft";
     attribute actor : String = "host";
     attribute skipped : Boolean = true;
   }
 
+  part def ImportGuardHook {
+    doc /*
+      Host plug-in for Path B soft ImportGuard — shipped in 0.4.4 / #49.
+      Surfaces: set_import_guard / --no-guard / enable_guard. GuardPassthrough
+      when no function or skipped (skipping is valid). When a guard ran,
+      ImportGuardDecision allow|trim|reject atoms only. MUST NOT replace
+      ImportAbsorb hard gates. Path A never enters. Hook shipped ≠ cheap LLM
+      adapter shipped (see CheapLlmImportGuard / issue #63).
+      Module: memnet.import_absorb.
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "host";
+    attribute implemented : Boolean = true;
+    attribute optionalSoftPolicy : Boolean = true;
+    attribute doctrineAsIs : Boolean = false;
+    part passthrough : GuardPassthrough;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  }
+
+  part def CheapLlmImportGuard {
+    doc /*
+      OPTIONAL default cheap-LLM ImportGuard adapter inside memnet-llm
+      (MN-REQ-12.11 leftover; GitHub issue #63). Off unless env set (API key
+      + model / OpenAI-compatible base URL). Does not vendor a model.
+      Returns only ImportGuardDecision; guard chat is not SSOT. Host MAY
+      skip via ImportGuardHook / GuardPassthrough. LLM MAY soft-review;
+      engine MUST still hard-gate ImportAbsorb. NOT implemented in 0.4.4 —
+      #49 closed on the hook only and hid this leftover. costTier =
+      cost/latency class only (no vendor model id).
+    */
+    attribute gateKind : String = "soft";
+    attribute actor : String = "llm";
+    attribute costTier : String = "cheap";
+    attribute implemented : Boolean = false;
+    attribute optionalSoftPolicy : Boolean = true;
+    attribute offUnlessEnvSet : Boolean = true;
+    attribute vendorsModel : Boolean = false;
+    attribute doctrineAsIs : Boolean = false;
+    attribute leftoverIssue : String = "#63";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+  }
+
   part def ImportGuard {
     doc /*
-      OPTIONAL soft policy (cheap LLM / host hook) nested under
-      SessionImportReceive path B, before ImportAbsorb. Composition of soft
-      reviews + SoftDecisionEmit; GuardPassthrough when skipped. Happy path
-      A = shared session re-pin_map without this nest. MUST NOT replace
-      engine hard gates (schema, ACL, slice budget, id_policy, LAW exclude).
-      costTier = cost/latency class only (no vendor model id). Module hook:
-      set_import_guard / enable_guard in memnet.import_absorb.
+      OPTIONAL soft-policy nest under SessionImportReceive path B before
+      ImportAbsorb — PinMapIngest-style parent (shipped vs leftover must not
+      be misread). Children: ImportGuardHook (implemented=true; #49) and
+      CheapLlmImportGuard (implemented=false; #63 / MN-REQ-12.11). Soft*
+      leaves = shared soft vocabulary (LLM MAY / host MAY). GuardPassthrough
+      lives under the hook. Happy path A = shared session re-pin_map without
+      this nest. MUST NOT replace engine hard gates (schema, ACL, slice
+      budget, id_policy, LAW exclude). Parent has no single implemented=
+      true — that flag lives on children only.
     */
     attribute gateKind : String = "soft";
     attribute actor : String = "llm_or_host";
     attribute optionalSoftPolicy : Boolean = true;
     attribute doctrineAsIs : Boolean = false;
     attribute costTier : String = "cheap";
-    attribute implemented : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port sliceOut : WorkingMemorySliceOutPort;
     port decisionOut : ImportGuardDecisionOutPort;
+
+    part hook : ImportGuardHook;
+    part cheapLlm : CheapLlmImportGuard;
 
     part scopeFit : SoftScopeFitReview;
     part junkTrim : SoftJunkTrim;
@@ -1037,24 +1091,24 @@ package MemNet {
     part sizeNoise : SoftSizeNoiseReview;
     part idAdvice : SoftIdPolicyAdvice;
     part decide : SoftDecisionEmit;
-    part passthrough : GuardPassthrough;
 
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   }
 
   part def SessionImportReceive {
     doc /*
       Path B only: lead imports a member's WorkingMemorySlice into the
-      mission session. Spine: optional ImportGuard (soft / LLM MAY) →
-      ImportAbsorb (engine SHALL hard) → lead may settle TSK_*. Path A
-      (shared mission sessionId → pin_map only) never enters this nest —
-      no ImportGuard, no ImportAbsorb. Single entry ports (no dual proxy):
-      guard.sliceIn (member slice), absorb.importReqIn (lead request);
-      guard → absorb for trimmed slice + decision. Hosts behaviour
-      SessionImportReceive states. Disambiguation (once): product verb =
-      import (SessionImport*); micro merge=true ≠ this; keep = MERGE-by-id
-      upsert mechanics inside IdPolicyKeep only.
+      mission session. Spine: optional ImportGuard nest (ImportGuardHook
+      shipped; CheapLlmImportGuard leftover #63) → ImportAbsorb (engine
+      SHALL hard) → lead may settle TSK_*. Path A (shared mission sessionId
+      → pin_map only) never enters this nest — no ImportGuard, no
+      ImportAbsorb. Single entry ports (no dual proxy): guard.sliceIn
+      (member slice), absorb.importReqIn (lead request); guard → absorb for
+      trimmed slice + decision. Hosts behaviour SessionImportReceive states.
+      Disambiguation (once): product verb = import (SessionImport*); micro
+      merge=true ≠ this; keep = MERGE-by-id upsert mechanics inside
+      IdPolicyKeep only. MN-REQ-12.11 is satisfied by CheapLlmImportGuard
+      (not the hook / not this parent alone).
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;
@@ -1070,7 +1124,6 @@ package MemNet {
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
   }
 
   part def SessionHandoffEmit {
@@ -1124,7 +1177,7 @@ package MemNet {
       Team lead. Nest: SessionHandoffEmit → AsyncTaskDispatch → (workers
       run async) → next turn pin_map. Path A shared sessionId: pin_map only
       (SessionImportReceive skipped). Path B: SessionImportReceive
-      (ImportGuard soft + ImportAbsorb hard). Owns parent TSK_* / USR_* settle.
+      (ImportGuard nest + ImportAbsorb hard). Owns parent TSK_* / USR_* settle.
     */
     attribute doctrineAsIs : Boolean = true;
     port sessionOut : SessionIdOutPort;

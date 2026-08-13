@@ -3,10 +3,11 @@
   async parallel. Aligned to outputs/multitask-case-study.md,
   outputs/session-import-case-study.md,
   outputs/async-parallel-conflict-case-study.md.
-  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S13.
+  Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S14.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; verifies the shipped CapsPolicy ACL cut while retaining
-  no-assume checks for reserve and Path-B ingest.
+  no-assume checks for reserve, Path-B ingest, and CheapLlmImportGuard
+  leftover (#63 / S14).
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -24,10 +25,11 @@ package MemNetVerification {
       workerPool, sharedStore) carries doctrineAsIs; deploy satisfy covers
       leaves 12.1–12.12; behaviour hosts ParentTaskLifecycle,
       WorkerScopedTurn, MultitaskMissionCycle, AsyncTaskDispatch.
-      Step-level leaf coverage: MN-VER-12-S01…S13.
+      Step-level leaf coverage: MN-VER-12-S01…S14.
       CapsPolicy ACL is shipped when session ACL is enabled; RSV and
       PinMapIngest_Sysml shipped; other Path-B ingest domains deferred
-      (12.7; see S09).
+      (12.7; see S09). ImportGuardHook shipped (S12); CheapLlmImportGuard
+      leftover open (S14 / #63) — hook ≠ 12.11 adapter done.
     */
     attribute verificationId : String = "MN-VER-12-G00";
 
@@ -284,13 +286,15 @@ package MemNetVerification {
     }
   }
 
-  verification def MN_VER_12_S12_ImportGuardSoft {
+  verification def MN_VER_12_S12_ImportGuardHook {
     doc /*
-      MN-REQ-12.11 — ImportGuard soft nest under SessionImportReceive before
-      ImportAbsorb. Soft leaves: SoftScopeFit / SoftJunkTrim (subtractive) /
-      SoftInventedId / SoftSizeNoise / SoftIdPolicyAdvice / SoftDecisionEmit;
-      GuardPassthrough when skipped. Outcomes allow|trim|reject; MUST NOT
-      replace hard gates; guard chat not SSOT.
+      ImportGuardHook under SessionImportReceive / ImportGuard — shipped
+      host plug-in (#49): set_import_guard / --no-guard / enable_guard;
+      GuardPassthrough when skipped (skipping is valid); soft nest before
+      ImportAbsorb hard. Soft vocabulary leaves present (subtractive trim).
+      MUST NOT replace hard gates. This case PASSES the hook only.
+      Does NOT claim CheapLlmImportGuard / MN-REQ-12.11 adapter is
+      implemented — see MN-VER-12-S14 (leftover #63 remains open).
       Subject: MultitaskOperatingModel.coordinator.importReceive.guard.
     */
     attribute verificationId : String = "MN-VER-12-S12";
@@ -298,16 +302,54 @@ package MemNetVerification {
     subject multitask : MultitaskOperatingModel;
     item decision : ImportGuardDecision;
 
-    objective step12ImportGuard {
-      verify cheapLlmImportGuardSoftReq;
+    objective step12ImportGuardHook {
+      verify noChatOrWholeStoreImportReq;
       require constraint {
         multitask.coordinator.importReceive.guard.costTier == "cheap"
           and multitask.coordinator.importReceive.guard.gateKind == "soft"
-          and multitask.coordinator.importReceive.guard.implemented == true
+          and multitask.coordinator.importReceive.guard.hook.implemented
+            == true
+          and multitask.coordinator.importReceive.guard.hook.passthrough
+            .skipped == true
           and multitask.coordinator.importReceive.guard.junkTrim.trimMode
             == "subtractive"
           and multitask.coordinator.importReceive.absorb.gateKind == "hard"
           and multitask.coordinator.importReceive.absorb.implemented == true
+      }
+    }
+  }
+
+  verification def MN_VER_12_S14_CheapLlmImportGuardLeftover {
+    doc /*
+      MN-REQ-12.11 leftover — CheapLlmImportGuard optional default adapter
+      inside memnet-llm (GitHub issue #63). Honesty gate: cheapLlm
+      .implemented == false until the adapter ships. OPTIONAL / host MAY
+      skip; does not vendor a model; returns ImportGuardDecision only;
+      engine MUST still hard-gate. Hook shipped (#49 / S12) ≠ this adapter.
+      Leave OPEN / fail-as-unshipped until #63 lands. Do not treat S12 pass
+      as 12.11 done.
+    */
+    attribute verificationId : String = "MN-VER-12-S14";
+
+    subject multitask : MultitaskOperatingModel;
+    item decision : ImportGuardDecision;
+
+    objective step14CheapLlmLeftover {
+      verify cheapLlmImportGuardSoftReq;
+      require constraint {
+        multitask.coordinator.importReceive.guard.cheapLlm.implemented
+          == false
+          and multitask.coordinator.importReceive.guard.cheapLlm
+            .optionalSoftPolicy == true
+          and multitask.coordinator.importReceive.guard.cheapLlm
+            .offUnlessEnvSet == true
+          and multitask.coordinator.importReceive.guard.cheapLlm
+            .vendorsModel == false
+          and multitask.coordinator.importReceive.guard.cheapLlm.costTier
+            == "cheap"
+          and multitask.coordinator.importReceive.guard.hook.implemented
+            == true
+          and multitask.coordinator.importReceive.absorb.gateKind == "hard"
       }
     }
   }
@@ -357,6 +399,8 @@ package MemNetVerification {
   verification noAssumeReserveVerify : MN_VER_12_S09_NoAssumeReserveIngest;
   verification sharedSessionReceiveVerify : MN_VER_12_S10_SharedSessionReceive;
   verification separateSessionImportVerify : MN_VER_12_S11_SeparateSessionImport;
-  verification importGuardSoftVerify : MN_VER_12_S12_ImportGuardSoft;
+  verification importGuardHookVerify : MN_VER_12_S12_ImportGuardHook;
   verification asyncParallelDisjointVerify : MN_VER_12_S13_AsyncParallelDisjoint;
+  verification cheapLlmImportGuardLeftoverVerify
+    : MN_VER_12_S14_CheapLlmImportGuardLeftover;
 }
