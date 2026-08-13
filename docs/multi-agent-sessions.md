@@ -40,6 +40,7 @@ EvidenceCentre / MissionDock are application patterns — **MUST NOT** nest unde
 |-----------|-------------|-----------|
 | **MCP in-process** (default) | One graph per host process | **Isolated** per agent process — **MUST NOT** use for shared Multitask missions |
 | **CLI + `memnet serve`** (TCP `:18765`) | One shared process | **MUST** use when workers need the same session id |
+| **CLI + `memnet serve --ipc`** (`MEMNET_IPC_SOCKET`) | One shared process (AF_UNIX, MN-REQ-06.2) | Prefer on one host when no TCP port is wanted |
 | **MCP streamable-http** (`:18766/mcp`, opt-in) | Shared remote process | Same as TCP when all agents hit the same server |
 
 Set `MEMNET_MCP_TRANSPORT=tcp` (or streamable-http) so parent and workers share one graph. Default in-process stdio is fine for **single-agent** goldfish loops only.

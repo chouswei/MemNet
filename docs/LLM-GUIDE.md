@@ -162,9 +162,8 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 
 ### Not implemented (design only)
 
-- Session ACL full modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
+- Full session ACL modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
-- LocalIpcGateway transport (see #50 / MN-REQ-06.2 if not yet merged)
 - Field-formula auto-emit from law nodes
 - Path-B `PinMapIngest_*` engines
 
@@ -178,6 +177,20 @@ memnet release --rid R1 --llm-id coder_a
 ```
 
 Design: `docs/grammar/memnet-neighbourhood-reserve.md`. After ACL when both are enabled.
+
+### Local IPC (MN-REQ-06.2)
+
+Prefer AF_UNIX over TCP when two processes on one host share one registry:
+
+```bash
+export MEMNET_IPC_SOCKET=/tmp/memnet.sock   # same path for server + clients
+memnet serve --ipc                          # or: memnet serve --ipc-path "$MEMNET_IPC_SOCKET"
+# other terminal (MEMNET_IPC_SOCKET set):
+memnet session open --map-file schema.example.txt
+memnet query pin-map --anchor …
+```
+
+TCP `memnet serve` (`127.0.0.1:18765`) remains the Multitask / LAN fallback (MN-REQ-06.3).
 
 See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (client hydrate/flush in tree; live AgensGraph path needs an external cabinet — do not claim live verified).
 

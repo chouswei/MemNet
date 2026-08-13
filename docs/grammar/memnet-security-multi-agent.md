@@ -254,7 +254,7 @@ Once steps 1–5 in §1.6 pass, lease-centric rules apply (unchanged intent from
 
 ## 5. TCP serve exposure risks
 
-Default: `MEMNET_SERVE_HOST=127.0.0.1`, port `18765`.
+Default: `MEMNET_SERVE_HOST=127.0.0.1`, port `18765`. Local IPC (MN-REQ-06.2): `MEMNET_IPC_SOCKET` + `memnet serve --ipc` (same protocol, no TCP port).
 
 | Risk | Mitigation |
 |------|------------|
