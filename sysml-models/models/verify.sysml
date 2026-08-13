@@ -271,6 +271,7 @@ package MemNetVerification {
         multitask.coordinator.doctrineAsIs == true
           and multitask.coordinator.importReceive.absorb.gateKind == "hard"
           and multitask.coordinator.importReceive.absorb.actor == "engine"
+          and multitask.coordinator.importReceive.absorb.implemented == true
           and multitask.coordinator.importReceive.absorb.idPolicy.keep.idPolicy
             == "keep"
           and multitask.coordinator.importReceive.absorb.idPolicy.reject.idPolicy
@@ -300,9 +301,11 @@ package MemNetVerification {
       require constraint {
         multitask.coordinator.importReceive.guard.costTier == "cheap"
           and multitask.coordinator.importReceive.guard.gateKind == "soft"
+          and multitask.coordinator.importReceive.guard.implemented == true
           and multitask.coordinator.importReceive.guard.junkTrim.trimMode
             == "subtractive"
           and multitask.coordinator.importReceive.absorb.gateKind == "hard"
+          and multitask.coordinator.importReceive.absorb.implemented == true
       }
     }
   }

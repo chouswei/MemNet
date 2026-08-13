@@ -170,8 +170,8 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
 - **M2.5:** Client hydrate/flush **landed**; live external cabinet deferred ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite (plan)
-- ImportGuard — **optional** soft nest (path B); Soft* leaves + GuardPassthrough; path A skips; aligns with `set_import_guard` on PR #55
-- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); aligns with `import_slice` on PR #55; master `implemented=false` until merge
+- ImportGuard — **optional** soft nest (path B); Soft* leaves + GuardPassthrough; path A skips; **host hook landed** (`set_import_guard`; `implemented=true`)
+- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; keep = MERGE-by-id, not append)
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap/reserve coordination remains doctrine
 - MN-REQ-12.7 — ACL cut is shipped; neighbourhood reserve + Path-B ingest + full ACL modes WAIT
