@@ -26,7 +26,7 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | Transport under Multitask: TCP / streamable-http shared store; in-process anti | MN-VER-12-S02; `TcpServeBridge` / handoff |
 | [session-import-case-study.md](session-import-case-study.md) | Lead **imports** member WM; **optional** ImportGuard soft policy (path B); happy path A = re-pin | S10…S12; SessionImportReceive |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5 |
-| [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 `DurableBuffer`; MN-REQ-06.4 |
+| [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
 | [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Canon mutate discipline: `id: 'NEW'` → response ids → rels; NEW illegal on settle | `IdAllocator` / `MutateWithNew`; wire §2.2 |
 
 ### Application examples (on SharedLlmMemory)
