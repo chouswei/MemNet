@@ -9,9 +9,9 @@ but remain NotImplemented until landed (do not stub-as-done).
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Sequence
 
 from memnet.exceptions import MemNetError
 from memnet.gql import _emit_props, _escape_str
