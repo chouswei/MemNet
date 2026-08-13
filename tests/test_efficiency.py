@@ -83,4 +83,6 @@ def test_neighbors_large_graph_under_budget():
         result = store.neighbors("N0000", depth=2)
     elapsed_ms = (time.perf_counter() - t0) * 1000
     assert result
-    assert elapsed_ms < 3000, f"indexed neighbors too slow: {elapsed_ms:.1f} ms for 100x depth=2 on 13k rows"
+    assert elapsed_ms < 3000, (
+        f"indexed neighbors too slow: {elapsed_ms:.1f} ms for 100x depth=2 on 13k rows"
+    )

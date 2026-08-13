@@ -77,7 +77,8 @@ def agent_guide_text() -> str:
     return (
         "Agent playbook pointer (British English docs in-repo).\n"
         "Forward dialect: docs/grammar/gql-wire-profile.md - GQL only, pin map, NEW vs locators.\n"
-        "Operational loop: LLM-GUIDE.md (M3 body rewrite pending; prefer grammar when they conflict).\n"
+        "Operational loop: LLM-GUIDE.md "
+        "(M3 body rewrite pending; prefer grammar when they conflict).\n"
         "Turn habit: query pin-map --anchor before inventing ids; mutate with GQL; reuse ids.\n"
         "See also: memnet guide, memnet guide --loose, README.md."
     )
@@ -112,9 +113,7 @@ def examples_path_text() -> str:
     readme = d / "README.md"
     if readme.exists():
         paths.append(str(readme))
-    paths.append(
-        "(GQL wire: docs/grammar/gql-wire-profile.md; memnet examples agent-guide)"
-    )
+    paths.append("(GQL wire: docs/grammar/gql-wire-profile.md; memnet examples agent-guide)")
     return "\n".join(paths)
 
 

@@ -5,7 +5,8 @@
   outputs/async-parallel-conflict-case-study.md.
   Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S13.
   Inspection / scenario verification against behaviour states and deploy
-  doctrine parts; does not claim engine ACL/reserve/ingest enforcement.
+  doctrine parts; verifies the shipped CapsPolicy ACL cut while retaining
+  no-assume checks for reserve and Path-B ingest.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -24,7 +25,8 @@ package MemNetVerification {
       leaves 12.1–12.12; behaviour hosts ParentTaskLifecycle,
       WorkerScopedTurn, MultitaskMissionCycle, AsyncTaskDispatch.
       Step-level leaf coverage: MN-VER-12-S01…S13.
-      Does not claim engine ACL / reserve / Path-B ingest (12.7; see S09).
+      CapsPolicy ACL is shipped when session ACL is enabled; reserve and
+      Path-B ingest remain deferred (12.7; see S09).
     */
     attribute verificationId : String = "MN-VER-12-G00";
 
@@ -203,12 +205,13 @@ package MemNetVerification {
     }
   }
 
-  verification def MN_VER_12_S09_NoAssumeAclReserveIngest {
+  verification def MN_VER_12_S09_NoAssumeReserveIngest {
     doc /*
-      MN-REQ-12.7 gate — must not assume shipped ACL / reserve / Path-B.
-      Inspection: MultitaskOperatingModel and coordinator/workerPool parts
-      carry doctrineAsIs only; no engine ACL, neighbourhood reserve (RSV),
-      or PinMapIngest (roadmap) enforcement. Counter-example: treating ACL/RSV as
+      MN-REQ-12.7 gate — CapsPolicy ACL is shipped, but agents must not
+      assume neighbourhood reserve (RSV) or Path-B PinMapIngest.
+      Inspection: the coordinator and workerPool retain doctrineAsIs for
+      reserve/import coordination; CapsPolicy.engineAclShipped == true and
+      its doctrineAsIs == false. Counter-example: treating RSV or ingest as
       available violates MN-REQ-12.7.
     */
     attribute verificationId : String = "MN-VER-12-S09";
@@ -221,6 +224,8 @@ package MemNetVerification {
         multitask.coordinator.doctrineAsIs == true
           and multitask.workerPool.doctrineAsIs == true
           and multitask.coordinator.dispatch.doctrineAsIs == true
+          and multitask.coordinator.handoffEmit.caps.engineAclShipped == true
+          and multitask.coordinator.handoffEmit.caps.doctrineAsIs == false
       }
     }
   }
@@ -297,8 +302,9 @@ package MemNetVerification {
       (or separate sessions); EvDelegateWorker x2; EvEndCoordinatorTurn;
       both EvWorkerReturn (host-driven); lead EvPinMapRead / optional
       SessionImportReceive. Anti: overlapping anchors on one session —
-      EvOverlapScopeForbidden / MUST NOT dual-write (0.4.x last-write-wins;
-      doctrineAsIs — engine does not enforce WorkerWriteScope).
+      EvOverlapScopeForbidden / MUST NOT dual-write. The shipped CapsPolicy
+      ACL hard-rejects an individual out-of-scope mutate when session ACL is
+      enabled; no neighbourhood reserve coordinates overlapping writers.
       Subjects: AsyncTaskDispatch, WorkerPool. See
       outputs/async-parallel-conflict-case-study.md.
     */
@@ -331,7 +337,7 @@ package MemNetVerification {
   verification workerScopedTurnVerify : MN_VER_12_S06_WorkerScopedTurn;
   verification parentReconcileVerify : MN_VER_12_S07_ParentReconcile;
   verification settleMissionTaskVerify : MN_VER_12_S08_SettleMissionTask;
-  verification noAssumeAclReserveVerify : MN_VER_12_S09_NoAssumeAclReserveIngest;
+  verification noAssumeReserveVerify : MN_VER_12_S09_NoAssumeReserveIngest;
   verification sharedSessionReceiveVerify : MN_VER_12_S10_SharedSessionReceive;
   verification separateSessionImportVerify : MN_VER_12_S11_SeparateSessionImport;
   verification importGuardSoftVerify : MN_VER_12_S12_ImportGuardSoft;

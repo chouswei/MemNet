@@ -36,20 +36,67 @@ package MemNetConnections {
     */
   }
 
+  item def CallerId {
+    doc /*
+      Who identity for CapsPolicy ACL who-check (SessionHandoff.caller /
+      llm_id-class attribution) — role/user grain. Not a graph dump; not
+      EvidenceCentre / MissionDock nesting. When session ACL is enabled, the
+      shipped memnet.acl cut makes MutateGate / PinMapShapedRead consult
+      CapsPolicy who before pin_map (≈ TRAVERSE) versus mutate (≈ WRITE).
+      ACL is off by default. sessionId remains a secret capability and
+      MUST NOT be dumped. Privilege analogy once:
+      outputs/system-design-notes.md (CapsPolicy ACL).
+    */
+    attribute value : String;
+  }
+
+  item def SessionBind {
+    doc /*
+      Optional MemNet-only bind match (missionId + lease) — not a
+      Neo4j/AgensGraph privilege. The shipped CapsPolicy ACL cut may require
+      the configured missionId + lease on mutate when session ACL is enabled;
+      in-process MAY skip bind under MEMNET_SERVE_INTERNAL, while
+      require_bind=true boundaries enforce it. Distinct from dual-EDGE
+      BindRelationship (port grain). sessionId is a secret capability and
+      MUST NOT be dumped.
+    */
+    attribute caller : String;
+    attribute sessionId : String;
+    attribute missionId : String;
+  }
+
+  item def SessionCapability {
+    doc /*
+      sessionId as a secret capability token for the MissionWorkingSet.
+      Peers who hold the id may re-pin_map / mutate only through the shipped
+      CapsPolicy ACL cut when session ACL is enabled: who, pin_map versus
+      mutate, WorkerWriteScope hard reject, and optional bind still apply.
+      MUST NOT dump sessionId in chat, tool queues, MissionDock payloads,
+      or HTTP bodies as casual prose. Pass via SessionHandoff pipe only.
+      Full private/shared/open session_token modes remain deferred.
+    */
+    attribute sessionId : String;
+  }
+
   item def SessionHandoff {
     doc /*
       Inter-module / Multitask pass-by-reference handle. Pipe: module A → B
       SHALL pass sessionId only; B pin_maps. Chat, MissionDock payloads, and
-      HTTP bodies SHALL NOT carry the graph (chat is never SSOT). Mutate
-      after handoff still hits CapsPolicy (who / what / bind) — a session
-      id is not a mutate waiver. Shared session = same sessionId (path A
-      re-pin). Else worker session → lead import of a WorkingMemorySlice
-      (path B SessionImportReceive / import_slice). MissionDock /
-      EvidenceCentre are application patterns — MUST NOT nest under
-      MemNetSystem. GQL only.
-      Required: sessionId, caller. Optional: missionId, lease (neighbourhood
-      reserve design; not shipped in 0.4.x), anchors, writeScope (Multitask
-      WorkerWriteScope). MUST NOT carry a full graph dump.
+      HTTP bodies SHALL NOT carry the graph (chat is never SSOT). sessionId
+      is a SessionCapability (secret) — MUST NOT dump in chat/queue.
+      Mutate after handoff still hits the shipped CapsPolicy ACL cut when
+      session ACL is enabled (who / pin_map-vs-mutate / WorkerWriteScope
+      hard reject / optional bind) — a session id is not a mutate waiver.
+      sessionId remains a secret capability and MUST NOT be dumped.
+      Shared session = same sessionId
+      (path A re-pin). Else worker session → lead import of a
+      WorkingMemorySlice (path B SessionImportReceive / import_slice).
+      MissionDock / EvidenceCentre are application patterns — MUST NOT
+      nest under MemNetSystem. GQL only.
+      Required: sessionId, caller (CallerId). Optional: missionId, lease
+      (reserve design; WAIT / not this ACL cut), anchors,
+      writeScope (Multitask WorkerWriteScope). MUST NOT carry a full
+      graph dump. Fields already on this item — do not duplicate.
     */
     attribute sessionId : String;
     attribute caller : String;
@@ -212,6 +259,7 @@ package MemNetConnections {
       Opaque session identifier from open/load. Pass-by-reference handle for
       a MissionWorkingSet (SOMETHING) whose SSOT is that session: peers receive
       the id (plus anchors / writeScope) and re-pin_map — no graph dump handoff.
+      Treated as SessionCapability (secret): MUST NOT dump in chat/queue.
     */
     attribute value : String;
   }
@@ -299,12 +347,15 @@ package MemNetConnections {
   }
   item def WorkerWriteScope {
     doc /*
-      Parent-assigned anchors and relation scope for one MultitaskWorker.
+      Parent-assigned anchors and relation scope for one MultitaskWorker —
+      label/id GRANT grain (cumulative OR hard reject on mutate).
       Asynchronous parallel workers require disjoint scopes or separate
-      sessions (MN-REQ-12.5 / 12.12). HONEST capability: enforcement is
-      host/doctrine (doctrineAsIs) until the engine hard-gates ACL/reserve —
-      0.4.x does NOT reject out-of-scope writes (last-write-wins if violated).
-      MUST NOT model this item as shipped engine ACL.
+      sessions (MN-REQ-12.5 / 12.12).
+      CapsPolicy / MutateGate hard-reject out-of-scope writes when session
+      ACL is enabled. pin_map (≈ TRAVERSE) may still see the bounded ego
+      under read permission. Reserve/overlap coordination remains doctrine;
+      sessionId is a secret capability and MUST NOT be dumped.
+      Analogy once: outputs/system-design-notes.md (CapsPolicy ACL).
     */
   }
   item def HousekeepStats {
@@ -523,9 +574,11 @@ package MemNetConnections {
   connection def SessionHandoffFlow {
     doc /*
       Inter-module / parent-worker pipe: source delivers SessionHandoff
-      (sessionId + caller; optional missionId / lease / anchors / writeScope).
-      Sink pin_maps. MUST NOT convey a graph dump via chat, MissionDock, or
-      HTTP body (EvDumpGraphInChat forbidden).
+      (SessionCapability sessionId + CallerId; optional missionId / lease /
+      anchors / writeScope). Sink pin_maps. sessionId MUST NOT dump in
+      chat/queue. MUST NOT convey a graph dump via chat, MissionDock, or
+      HTTP body (EvDumpGraphInChat forbidden). CapsPolicy ACL still applies
+      after receive (who / pin_map-vs-mutate / WorkerWriteScope / bind).
     */
     end port source : SessionHandoffOutPort;
     end port sink : SessionHandoffInPort;

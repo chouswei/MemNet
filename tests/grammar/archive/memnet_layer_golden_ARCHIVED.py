@@ -74,9 +74,7 @@ def test_layer_fixture(path: Path) -> None:
 
 
 def test_orphan_law_alias_soft_reject() -> None:
-    text = (
-        "CST [CST_X] ; ports=a: {direc=in, V=@va} ; law=$@va=@missing$\n"
-    )
+    text = "CST [CST_X] ; ports=a: {direc=in, V=@va} ; law=$@va=@missing$\n"
     doc = parse(text)
     codes = {i.code for i in soft_validate(doc) if i.severity == "error"}
     assert "orphan_law_alias" in codes

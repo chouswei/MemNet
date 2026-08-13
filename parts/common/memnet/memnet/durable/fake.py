@@ -66,9 +66,7 @@ class FakeDurableAdapter(DurableStoreAdapter):
 
     def flush(self, subgraph: DurableSubgraph) -> None:
         # Merge by record id (single fake writer — sync owner still required).
-        existing = self._by_ego.get(subgraph.ego_id) or DurableSubgraph.empty(
-            subgraph.ego_id
-        )
+        existing = self._by_ego.get(subgraph.ego_id) or DurableSubgraph.empty(subgraph.ego_id)
         nodes = {r.id: r for r in existing.nodes}
         edges = {r.id: r for r in existing.edges}
         for r in subgraph.nodes:

@@ -8,8 +8,8 @@ from typer.testing import CliRunner
 
 from memnet.cli import app
 from memnet.registry import contains
-from memnet.snapshot import load_snapshot, snapshot_text, write_snapshot
 from memnet.session import get_session, open_session
+from memnet.snapshot import load_snapshot, snapshot_text, write_snapshot
 
 runner = CliRunner()
 

@@ -94,6 +94,12 @@ src = [
     "parts/memnet-mcp/software",
     "tests",
 ]
+exclude = [
+    "docs/grammar/archive",
+    "tests/archive",
+    "tests/grammar/archive",
+    "scripts",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

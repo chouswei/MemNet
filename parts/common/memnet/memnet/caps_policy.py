@@ -1,4 +1,4 @@
-"""CapsPolicy — SysML alias for config.Caps."""
+"""CapsPolicy — SysML alias for config.Caps (size caps + shipped ACL flags)."""
 
 from __future__ import annotations
 

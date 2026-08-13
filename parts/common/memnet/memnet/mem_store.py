@@ -6,7 +6,7 @@ import re
 import time
 from collections import deque
 
-from memnet.config import Caps, DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
+from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import Record, TagMap
@@ -94,9 +94,7 @@ class MemStore:
             for endpoint_key in ("src", "dist"):
                 eid = record.fields.get(endpoint_key, "")
                 if eid and eid not in self.by_id:
-                    warnings.append(
-                        f"dangling_endpoint|{endpoint_key} {eid} not found"
-                    )
+                    warnings.append(f"dangling_endpoint|{endpoint_key} {eid} not found")
         if agent:
             record.agent = agent
         record.written_at = time.time()
@@ -591,7 +589,9 @@ class MemStore:
         return rows
 
     @classmethod
-    def from_jsonl_rows(cls, rows: list[dict], tag_map: TagMap, caps: Caps | None = None) -> MemStore:
+    def from_jsonl_rows(
+        cls, rows: list[dict], tag_map: TagMap, caps: Caps | None = None
+    ) -> MemStore:
         store = cls(tag_map, caps)
         records = [Record.model_validate(r) for r in rows]
         store.load_records(records)

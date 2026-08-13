@@ -15,8 +15,8 @@ from memnet.durable.adapter import (
     HydrateBudget,
 )
 from memnet.durable.agensgraph import AgensGraphAdapter
-from memnet.durable.fake import FakeDurableAdapter, company_ego_fixture
 from memnet.durable.factory import make_adapter_from_env, reset_adapter_factory_for_tests
+from memnet.durable.fake import FakeDurableAdapter, company_ego_fixture
 from memnet.durable.sync import (
     DurableSyncOwner,
     get_sync_owner,

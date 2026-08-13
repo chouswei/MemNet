@@ -826,15 +826,16 @@ package MemNetRequirements {
 
     // ----- Multitask Mode (as-is 0.4.x agent operating model) -----
     // Enforceable parent/worker doctrine over a shared session.
-    // Session ACL, neighbourhood reserve, and Path-B ingest engines are
-    // design-only (see docs/grammar); MN-REQ-12.7 forbids assuming them shipped.
+    // CapsPolicy ACL is shipped when enabled per session. Neighbourhood
+    // reserve and Path-B ingest engines remain design-only.
 
     requirement def MN_REQ_12_MultitaskMode {
       doc /*
         Group: when Multitask Mode (or Task sub-agents) is active, MemNet
         SHALL be operated as a shared mission store with a parent coordinator
         and scoped workers. Chat is never mission SSOT. As-is product
-        constraints for 0.4.x -- engine ACL/reserve/ingest are not claimed here.
+        constraints for 0.4.x include the shipped, per-session CapsPolicy ACL
+        cut; reserve and ingest remain deferred.
       */
       attribute requirementId : String = "MN-REQ-12";
 
@@ -889,9 +890,10 @@ package MemNetRequirements {
           Asynchronous parallel workers SHALL use disjoint anchor subtrees on
           one shared session OR separate parent-assigned session ids.
           Two writers SHALL NOT mutate the same anchor slice without explicit
-          serialisation (MUST NOT dual-write in parallel). 0.4.x is
-          last-write-wins; no neighbourhood reserve; engine does not enforce
-          WorkerWriteScope (doctrineAsIs).
+          serialisation (MUST NOT dual-write in parallel). CapsPolicy now
+          hard-rejects mutate outside WorkerWriteScope when session ACL is
+          enabled; there is still no neighbourhood reserve, so overlapping
+          writers require doctrine-level serialisation.
         */
         attribute requirementId : String = "MN-REQ-12.5";
       }
@@ -911,11 +913,17 @@ package MemNetRequirements {
 
       requirement def MN_REQ_12_7_NoAssumeAclReserveIngest {
         doc /*
-          As-is 0.4.x: agents and Multitask doctrine SHALL NOT assume session
-          ACL modes, neighbourhood reserve (RSV), or Path-B PinMapIngest (roadmap)
-          engines are shipped or enforced. Those remain design/roadmap
-          (MN-REQ-11 stubs; grammar security/reserve docs). Seed external pins
-          via session_open seed_lines or add with explicit locator ids.
+          As-is NOW (0.4.x): the CapsPolicy ACL cut IS shipped
+          (engineAclShipped=true) when session ACL is enabled. The engine
+          enforces who (CallerId), pin_map versus mutate permission,
+          WorkerWriteScope HARD reject on mutate, and optional SessionBind
+          (missionId + lease). ACL is off by default for the legacy-green
+          path; in-process MAY skip bind under MEMNET_SERVE_INTERNAL, while
+          require_bind=true boundaries enforce a configured bind.
+          Agents MUST NOT assume neighbourhood reserve (RSV), Path-B
+          PinMapIngest, or the full private/shared/open + session_token modes
+          until those ship. Seed external pins via session_open seed_lines or
+          add with explicit locator ids.
         */
         attribute requirementId : String = "MN-REQ-12.7";
       }
@@ -989,8 +997,9 @@ package MemNetRequirements {
           revival on a later coordinator turn — NOT a blocking await on the
           spawn turn. Parallel waves SHALL obey MN-REQ-12.5 (disjoint
           anchors or separate sessions; MUST NOT overlapping dual-write).
-          Engine 0.4.x SHALL NOT be assumed to enforce WorkerWriteScope
-          (doctrineAsIs; see MN-REQ-12.7).
+          When session ACL is enabled, the shipped CapsPolicy ACL
+          hard-rejects mutate outside WorkerWriteScope. Reserve/overlap
+          coordination remains doctrine (see MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.12";
       }

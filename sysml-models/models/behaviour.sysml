@@ -65,8 +65,9 @@ package MemNetBehaviour {
   }
   attribute def EvHandoffSessionId {
     doc /*
-      Parent delivers SessionHandoff (session id + optional anchors /
-      writeScope) to a peer. Pass-by-reference for MissionWorkingSet SSOT.
+      Parent delivers SessionHandoff (SessionCapability sessionId + CallerId;
+      optional anchors / writeScope) to a peer. Pass-by-reference for
+      MissionWorkingSet SSOT. sessionId MUST NOT dump in chat/queue.
     */
   }
   attribute def EvDumpGraphInChat {
@@ -170,8 +171,10 @@ package MemNetBehaviour {
       Two workers would mutate overlapping WorkerWriteScope anchors on one
       shared session without serialisation (MN-REQ-12.5 / 12.12). MUST NOT
       dual-write in parallel; prefer one worker, disjoint anchors, separate
-      session ids, or serial dispatch. Engine does not enforce (doctrineAsIs;
-      0.4.x last-write-wins if violated).
+      session ids, or serial dispatch. The shipped CapsPolicy ACL
+      hard-rejects an individual out-of-scope mutate when session ACL is
+      enabled; overlapping writers still require doctrine-level
+      serialisation because no neighbourhood reserve is shipped.
     */
   }
   attribute def EvWorkerReturn {
@@ -634,6 +637,9 @@ package MemNetBehaviour {
       doc /*
         Mutate under WorkerWriteScope only. MUST NOT invent parent-minted
         ids; MUST NOT settle parent TSK_* / USR_* unless delegated.
+        CapsPolicy hard-rejects out-of-scope mutate when session ACL is
+        enabled. Reserve/overlap coordination remains host doctrine
+        (MN-REQ-12.7 — reserve is not shipped).
       */
     }
     transition worker_mutate_ok
@@ -669,8 +675,9 @@ package MemNetBehaviour {
       sessions) for relevant tasks only (MN-REQ-12.8): multi-step,
       delegated, or asynchronous parallel work. Composes
       ParentTaskLifecycle + WorkerScopedTurn + AsyncTaskDispatch.
-      Hosted by MultitaskOperatingModel. Engine does not enforce
-      ACL/reserve/WorkerWriteScope. Trivial one-shots take
+      Hosted by MultitaskOperatingModel. The shipped CapsPolicy ACL enforces
+      who/permission/scope/bind when session ACL is enabled; reserve and
+      Path-B ingest remain deferred. Trivial one-shots take
       EvTrivialSingleAgent and stay on GoldfishLoop.
     */
     entry;
@@ -819,11 +826,14 @@ package MemNetBehaviour {
     doc /*
       Explicit handoff of a MissionWorkingSet whose SSOT is the session
       (inter-module A → B pipe as well as parent → worker): source emits
-      SessionHandoff (sessionId + caller; optional missionId / lease /
-      anchors / writeScope) → sink pin_map → mutate still hits CapsPolicy.
+      SessionHandoff (SessionCapability sessionId + CallerId; optional
+      missionId / lease / anchors / writeScope) → sink pin_map → mutate
+      still hits the shipped CapsPolicy ACL when session ACL is enabled
+      (who / pin_map-vs-mutate / scope / optional bind; engineAclShipped=true).
       Shared session = same id; else worker session → lead import_slice.
-      Contrasts forbidden EvDumpGraphInChat. Composes with EvDelegateWorker /
-      MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
+      sessionId MUST NOT dump in
+      chat/queue. Contrasts forbidden EvDumpGraphInChat. Composes with
+      EvDelegateWorker / MultitaskMissionCycle. Hosted by MultitaskOperatingModel.
     */
     entry;
     then handoffIdle;
@@ -846,9 +856,10 @@ package MemNetBehaviour {
 
     state deliveringSessionId {
       doc /*
-        Source delivers SessionHandoff only — sessionId + caller (optional
-        missionId / lease / anchors / writeScope). MUST NOT attach a graph
-        dump in chat, MissionDock, or HTTP body.
+        Source delivers SessionHandoff only — SessionCapability sessionId +
+        CallerId (optional missionId / lease / anchors / writeScope).
+        MUST NOT attach a graph dump; MUST NOT dump sessionId in chat/queue,
+        MissionDock, or HTTP body.
       */
     }
     transition deliver_to_worker_open

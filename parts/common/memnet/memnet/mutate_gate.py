@@ -62,9 +62,7 @@ def classify_batch(lines: list[str]) -> str:
             raise MemNetError(
                 "legacy_dialect_retired",
                 _LEGACY_HINT,
-                example=(
-                    "CREATE (:TSK {id: 'NEW', goal: '…', status: 'in_progress'})"
-                ),
+                example=("CREATE (:TSK {id: 'NEW', goal: '…', status: 'in_progress'})"),
             )
         elif looks_like_gql(s):
             kinds.add("gql")
@@ -110,7 +108,23 @@ class MutateGate:
         dry_run: bool = False,
         allow_new_relation: bool = False,
         agent: str | None = None,
+        caller: str | None = None,
+        mission_id: str | None = None,
+        lease: str | None = None,
+        write_scope: str | None = None,
+        require_bind: bool = True,
     ) -> MutateResult:
+        from memnet.acl import check_bind, check_permission, parse_write_scope
+
+        acl = getattr(self.ss, "acl", None)
+        check_permission(acl, caller=caller, permission="mutate", agent=agent)
+        check_bind(
+            acl,
+            mission_id=mission_id,
+            lease=lease,
+            require=require_bind,
+        )
+        override = parse_write_scope(write_scope)
         dialect = classify_batch(lines)
         if dialect == "empty":
             return MutateResult(dialect="empty")
@@ -121,6 +135,8 @@ class MutateGate:
                 dry_run=dry_run,
                 allow_new_relation=allow_new_relation,
                 agent=agent,
+                caller=caller,
+                write_scope_override=override,
             )
         return self._apply_gql(
             lines,
@@ -128,6 +144,8 @@ class MutateGate:
             dry_run=dry_run,
             allow_new_relation=allow_new_relation,
             agent=agent,
+            caller=caller,
+            write_scope_override=override,
         )
 
     def _apply_pipe(
@@ -138,8 +156,20 @@ class MutateGate:
         dry_run: bool,
         allow_new_relation: bool,
         agent: str | None,
+        caller: str | None = None,
+        write_scope_override=None,
     ) -> MutateResult:
+        from memnet.acl import check_write_scope
+
         records = import_pipe_lines(lines, self.ss.tag_map, self.ss.caps)
+        check_write_scope(
+            getattr(self.ss, "acl", None),
+            caller=caller,
+            records=records,
+            store=self.ss.store,
+            agent=agent,
+            override_scope=write_scope_override,
+        )
         return self._commit_records(
             records,
             mode=mode,
@@ -157,6 +187,8 @@ class MutateGate:
         dry_run: bool,
         allow_new_relation: bool,
         agent: str | None,
+        caller: str | None = None,
+        write_scope_override=None,
     ) -> MutateResult:
         text = "\n".join(lines)
         try:
@@ -186,14 +218,11 @@ class MutateGate:
                     "shaped pin-map lines are display-only; "
                     "use CREATE / MATCH…SET / MERGE / DELETE to mutate",
                 )
-            is_merge = isinstance(it, NodeRec) and it.raw.upper().lstrip().startswith(
-                "MERGE"
-            )
+            is_merge = isinstance(it, NodeRec) and it.raw.upper().lstrip().startswith("MERGE")
             if mode == "add" and it.op in (Op.PATCH, Op.DROP) and not is_merge:
                 raise MemNetError(
                     "op_mode_mismatch",
-                    f"{it.op.name} illegal on add; use update "
-                    "(or MERGE for upsert)",
+                    f"{it.op.name} illegal on add; use update (or MERGE for upsert)",
                 )
             if mode == "update" and it.op == Op.CREATE:
                 raise MemNetError(
@@ -243,9 +272,7 @@ class MutateGate:
                         )
             if isinstance(it, NodeRec) and it.op == Op.PATCH:
                 rename_to, merge_flag, kept = _split_rename_fields(it.fields)
-                patch_it = NodeRec(
-                    op=it.op, kind=it.kind, id=it.id, fields=kept, raw=it.raw
-                )
+                patch_it = NodeRec(op=it.op, kind=it.kind, id=it.id, fields=kept, raw=it.raw)
                 rec = self._item_to_record(patch_it)
                 explicit = {f.key for f in kept if f.op == "="}
                 if rename_to is not None:
@@ -300,6 +327,21 @@ class MutateGate:
             records.append(rec)
             ack_items.append(it)
 
+        from memnet.acl import check_write_scope
+
+        # Include rename targets in scope check
+        scope_records = list(records)
+        for _old_id, _new_id, _merge, patch_rec, _explicit in renames:
+            scope_records.append(patch_rec)
+        check_write_scope(
+            getattr(self.ss, "acl", None),
+            caller=caller,
+            records=scope_records,
+            store=self.ss.store,
+            agent=agent,
+            override_scope=write_scope_override,
+        )
+
         if dry_run:
             ack = [emit_item(x, as_mutate=True) for x in ack_items]
             return MutateResult(
@@ -328,20 +370,12 @@ class MutateGate:
                 if rec.id in merge_upsert_ids and old is not None:
                     apply = self.ss.store.replace_row
                 elif mode == "add" or (mode == "update" and old is None and rec.tag):
-                    apply = (
-                        self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
-                    )
+                    apply = self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
                 else:
-                    apply = (
-                        self.ss.store.replace_row
-                        if mode == "update"
-                        else self.ss.store.add_row
-                    )
+                    apply = self.ss.store.replace_row if mode == "update" else self.ss.store.add_row
                 if (mode == "update" or rec.id in merge_upsert_ids) and old is not None:
                     merged = dict(old.fields)
-                    merged.update(
-                        {k: v for k, v in rec.fields.items() if v != "" or k == "id"}
-                    )
+                    merged.update({k: v for k, v in rec.fields.items() if v != "" or k == "id"})
                     rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged)
                 # MERGE expanded to CREATE uses add_row even when mode=update
                 if rec.id in added and mode == "update":
@@ -456,10 +490,7 @@ class MutateGate:
                     raise MemNetError(
                         "bad_numeric",
                         f"{f.key}{f.op}{f.value} requires numeric field",
-                        example=(
-                            f"MATCH (n {{id: '{node.id}'}}) "
-                            f"SET n.{f.key} = <number>"
-                        ),
+                        example=(f"MATCH (n {{id: '{node.id}'}}) SET n.{f.key} = <number>"),
                     ) from exc
                 result = cur_n + delta if f.op == "+=" else cur_n - delta
                 fields[f.key] = str(result).rstrip("0").rstrip(".")

@@ -82,12 +82,14 @@ class MemNetResponse:
         )
 
 
-_NO_SESSION_ARG = frozenset({
-    ("session", "load"),
-    ("session", "open"),
-    ("session", "list"),
-    ("session", "close"),
-})
+_NO_SESSION_ARG = frozenset(
+    {
+        ("session", "load"),
+        ("session", "open"),
+        ("session", "list"),
+        ("session", "close"),
+    }
+)
 
 
 def _append_session(argv: list[str], session: str | None) -> list[str]:

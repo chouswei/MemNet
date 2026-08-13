@@ -80,5 +80,6 @@ class DurableStoreAdapter(ABC):
     def flush(self, subgraph: DurableSubgraph) -> None:
         """Push a settled / durable subgraph into the backing store."""
 
-    def close(self) -> None:
+    def close(self) -> None:  # noqa: B027 — optional hook; default no-op
         """Release connections; default no-op."""
+        return None

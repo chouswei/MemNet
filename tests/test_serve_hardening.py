@@ -131,7 +131,14 @@ def test_send_command_still_works(memnet_serve, schema_file):
 
 def test_send_command_rejects_oversized_payload(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("MEMNET_SERVE_MAX_FRAME_BYTES", "20")
-    resp = send_command(["session", "open", "--map-file", "parts/common/memnet/memnet/examples/schema.example.txt"])
+    resp = send_command(
+        [
+            "session",
+            "open",
+            "--map-file",
+            "parts/common/memnet/memnet/examples/schema.example.txt",
+        ]
+    )
     assert resp["exit_code"] == 1
     assert "frame_too_large" in resp["stderr"]
 

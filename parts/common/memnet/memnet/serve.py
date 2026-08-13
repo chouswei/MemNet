@@ -133,7 +133,9 @@ class _Handler(socketserver.BaseRequestHandler):
                 self._send_envelope(_protocol_envelope("bad_frame", str(exc)))
                 return
             if not isinstance(payload, dict):
-                self._send_envelope(_protocol_envelope("bad_request", "payload must be a JSON object"))
+                self._send_envelope(
+                    _protocol_envelope("bad_request", "payload must be a JSON object")
+                )
                 return
             response = _handle_request(payload)
             self._send_envelope(response)
@@ -218,9 +220,7 @@ def send_command(
         raw_len = _recv_exact(sock, 4)
         (length,) = struct.unpack(">I", raw_len)
         if length > max_frame:
-            raise ConnectionError(
-                f"response frame {length} bytes exceeds cap {max_frame}"
-            )
+            raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
         body = _recv_exact(sock, length)
     return json.loads(body.decode("utf-8"))
 

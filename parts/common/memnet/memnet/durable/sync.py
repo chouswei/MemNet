@@ -68,11 +68,7 @@ class DurableSyncOwner:
             session.touch()
         nodes = [r for r in rows if r.tag != "EDG" and r.tag != "LAW"]
         edges = [r for r in rows if r.tag == "EDG"]
-        rels = {
-            e.fields.get("relation", "")
-            for e in edges
-            if e.fields.get("relation")
-        }
+        rels = {e.fields.get("relation", "") for e in edges if e.fields.get("relation")}
         subgraph = DurableSubgraph(
             ego_id=ego_id,
             nodes=nodes,

@@ -12,8 +12,9 @@ Mission freeze: law on NODE; port↔port = bind; node↔node = relation; reject 
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Iterator, Literal
+from typing import Literal
 
 from memnet.tier_a import Field, Op
 
@@ -109,17 +110,17 @@ def looks_like_layer(line: str) -> bool:
         s,
     ):
         return True
-    if re.search(rf"\bports\s*=", s, re.I) and re.search(r":\s*\{", s):
+    if re.search(r"\bports\s*=", s, re.I) and re.search(r":\s*\{", s):
         return True
-    if re.search(rf"\blaw\s*=\s*\$", s, re.I):
+    if re.search(r"\blaw\s*=\s*\$", s, re.I):
         return True
-    if re.search(rf"\blaw\s*=\s*\{{", s, re.I):
+    if re.search(r"\blaw\s*=\s*\{", s, re.I):
         return True  # bag-on-law (lint later)
     # Bare present KIND [Id] — Layer seed / fixture ingest (ops are mutate-only)
     if re.match(rf"^{_KIND}\s+\[", s):
         return True
     # Explicit CST create (Layer law-leaf kind)
-    if re.match(rf"^\+\s+CST\s+\[", s):
+    if re.match(r"^\+\s+CST\s+\[", s):
         return True
     return False
 
@@ -159,9 +160,7 @@ def parse_line(line: str, line_no: int = 1) -> LayerNodeRec | LayerEdgeRec:
     m = re.match(rf"^~\s+\[({_IDENT})\]\s*(.*)$", s)
     if m and "--" not in s and "<--" not in s:
         fields = _parse_fields(m.group(2), line_no)
-        return LayerNodeRec(
-            op=Op.PATCH, kind="", id=m.group(1), fields=fields, raw=s, line=line_no
-        )
+        return LayerNodeRec(op=Op.PATCH, kind="", id=m.group(1), fields=fields, raw=s, line=line_no)
 
     # Patch edge bare: ~ Eid ; …  (no endpoints)
     m = re.match(rf"^~\s+({_IDENT})\s*(;.*)?$", s)
@@ -484,9 +483,7 @@ def soft_validate(doc: Document) -> list[LintIssue]:
                             it.line,
                         )
                     )
-                if f.key == "carries" and not (
-                    it.frm.is_port and it.to.is_port
-                ):
+                if f.key == "carries" and not (it.frm.is_port and it.to.is_port):
                     issues.append(
                         LintIssue(
                             "error",
@@ -803,9 +800,7 @@ def record_to_layer_edge(rec) -> LayerEdgeRec:
         dist_port = None
     wire_raw = rec.fields.get("wire") or "directed"
     wire: WireForm = (
-        wire_raw
-        if wire_raw in ("directed", "non_directed", "bi_directed")
-        else "directed"
+        wire_raw if wire_raw in ("directed", "non_directed", "bi_directed") else "directed"
     )
     skip = {"id", "src", "relation", "dist", "src_port", "dist_port", "wire", "at"}
     fields: list[Field] = []

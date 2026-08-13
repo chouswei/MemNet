@@ -26,6 +26,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Caps:
     max_rows: int
     max_law: int
@@ -39,6 +46,13 @@ class Caps:
     max_depth: int
     max_fanout: int
     lock_timeout_ms: int
+    # CapsPolicy ACL TARGET flags — engineAclShipped matches live gates
+    acl_who_check: bool
+    acl_pin_map_vs_mutate: bool
+    acl_worker_write_scope_hard_reject: bool
+    acl_optional_bind_match: bool
+    engine_acl_shipped: bool
+    acl_default_enabled: bool
 
     def __init__(self) -> None:
         self.max_rows = _env_int("MEMNET_MAX_ROWS", 5000)
@@ -53,6 +67,14 @@ class Caps:
         self.max_depth = _env_int("MEMNET_MAX_DEPTH", 4)
         self.max_fanout = _env_int("MEMNET_MAX_FANOUT", 256)
         self.lock_timeout_ms = _env_int("MEMNET_LOCK_TIMEOUT_MS", 2000)
+        # Honest shipped ACL cut (who / pin_map-vs-mutate / scope / bind)
+        self.acl_who_check = True
+        self.acl_pin_map_vs_mutate = True
+        self.acl_worker_write_scope_hard_reject = True
+        self.acl_optional_bind_match = True
+        self.engine_acl_shipped = True
+        # Optional force-enable ACL on newly opened sessions
+        self.acl_default_enabled = _env_bool("MEMNET_ACL", False)
 
 
 DEFAULT_SERVE_MAX_FRAME_BYTES = 4 * 1024 * 1024  # 4 MiB
