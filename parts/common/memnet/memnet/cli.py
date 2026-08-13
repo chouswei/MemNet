@@ -693,9 +693,7 @@ def import_slice_cmd(
     else:
         guard_token = "n/a"
     emit_stdout(
-        f"@IMPORT: ok|{len(result.imported_ids)}|"
-        f"guard={guard_token}|"
-        f"remint={len(result.reminted)}"
+        f"@IMPORT: ok|{len(result.imported_ids)}|guard={guard_token}|remint={len(result.reminted)}"
     )
     for old, new in sorted(result.reminted.items()):
         emit_stdout(f"@ID: {old}->{new}")

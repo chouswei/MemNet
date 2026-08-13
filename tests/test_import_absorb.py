@@ -127,9 +127,10 @@ def test_import_remint_conflicts(memnet_temp, schema_file):
     for eid in result.imported_ids:
         rec = lead.store.get(eid)
         if rec and rec.tag == "EDG":
-            assert rec.fields.get("src") in {new_mod, "MOD_amp"} or rec.fields.get(
-                "src"
-            ) in result.reminted.values()
+            assert (
+                rec.fields.get("src") in {new_mod, "MOD_amp"}
+                or rec.fields.get("src") in result.reminted.values()
+            )
 
 
 def test_guard_skip_when_disabled(memnet_temp, schema_file):
@@ -176,11 +177,7 @@ def test_guard_trim_then_absorb(memnet_temp, schema_file):
     member, lead = _open_pair(schema_file)
 
     def trim(slice_: WorkingMemorySlice) -> ImportGuardDecision:
-        keep = {
-            r.id
-            for r in slice_.records
-            if r.id in {"MOD_amp", "SYM_Rin", "EDG_amp_rin"}
-        }
+        keep = {r.id for r in slice_.records if r.id in {"MOD_amp", "SYM_Rin", "EDG_amp_rin"}}
         return ImportGuardDecision(
             outcome="trim",
             reason="drop off-mission SYM_scratch_* settle noise",
@@ -255,9 +252,7 @@ def test_absorb_unit_reject_policy(memnet_temp, schema_file):
         mode="add",
     )
     with pytest.raises(MemNetError) as ei:
-        absorb_working_memory_slice(
-            lead, slice_, id_policy="reject", enable_guard=False
-        )
+        absorb_working_memory_slice(lead, slice_, id_policy="reject", enable_guard=False)
     assert ei.value.code == "id_conflict"
 
 
@@ -277,9 +272,7 @@ def test_law_vocab_excluded_on_absorb(memnet_temp, schema_file):
             Record(tag="LAW", fields={"id": "LAW_vocab", "note": "session-local"}),
         ],
     )
-    result = absorb_working_memory_slice(
-        lead, slice_, id_policy="keep", enable_guard=False
-    )
+    result = absorb_working_memory_slice(lead, slice_, id_policy="keep", enable_guard=False)
     assert "MOD_amp" in result.imported_ids
     assert "LAW_vocab" in result.skipped
     assert lead.store.get("LAW_vocab") is None

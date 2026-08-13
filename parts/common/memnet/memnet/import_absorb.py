@@ -330,9 +330,7 @@ def absorb_working_memory_slice(
     check_permission(acl, caller=caller, permission="mutate", agent=agent)
     check_bind(acl, mission_id=mission_id, lease=lease, require=require_bind)
 
-    work, decision, guard_skipped = _apply_guard(
-        slice_, guard=guard, enable_guard=enable_guard
-    )
+    work, decision, guard_skipped = _apply_guard(slice_, guard=guard, enable_guard=enable_guard)
 
     # LawVocabExclude: skip LAW on absorb too (guard MUST NOT reintroduce).
     skipped: list[str] = [r.id for r in work.records if r.tag == "LAW"]
