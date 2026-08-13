@@ -436,13 +436,13 @@ package MemNetBehaviour {
       then idle;
   }
 
-  // --- 4. Pin-map ingest (roadmap) ---
+  // --- 4. Pin-map ingest (as-is domains) ---
 
   state def PinMapIngestCycle {
     doc /*
-      Path-B MN-REQ-11 selective pin ingest. As-is: PinMapIngest_Sysml ships
-      (domainVariant=sysml; first engine). Codebase / PcbaAto / SkillsRules
-      remain NotImplemented on the shared interface. Not SnapshotStore.
+      Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
+      PcbaAto / SkillsRules (#31 / #64). Not SnapshotStore. Export /
+      round-trip (MN-REQ-11.1–11.5) remains separate (#66).
     */
     entry;
     then pinIdle;
@@ -689,7 +689,7 @@ package MemNetBehaviour {
       ParentTaskLifecycle + WorkerScopedTurn + AsyncTaskDispatch.
       Hosted by MultitaskOperatingModel. The shipped CapsPolicy ACL enforces
       who/permission/scope/bind when session ACL is enabled; RSV and
-      PinMapIngest_Sysml shipped; other Path-B ingest domains deferred.
+      all Path-B PinMapIngest_* domains shipped. Full ACL modes deferred.
       Trivial one-shots take
       EvTrivialSingleAgent and stay on GoldfishLoop.
     */

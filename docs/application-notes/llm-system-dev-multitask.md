@@ -83,7 +83,7 @@ Probe with `serve_status` before delegating if transport is uncertain.
 ### MUST NOT
 
 - Settle parent `TSK_*` from worker chat — only from shared-session pin-map facts.
-- Assume session ACL, neighbourhood reserve (`RSV`), or `PinMapIngest_*` engines (MN-REQ-12.7; verified by MN-VER-12-S09).
+- Assume full session ACL modes (`private`/`shared`/`open` + `session_token`) or pin-map export/round-trip (MN-REQ-12.7; verified by MN-VER-12-S09). RSV and Path-B ingest domains are shipped.
 
 ---
 
@@ -133,17 +133,27 @@ Do **not** add `import MemNetRequirements::*` from the MemNet engine repo into t
 
 ---
 
-## 7. Path-B pin seed (manual)
+## 7. Path-B pin ingest
 
-Path-B **`PinMapIngest_*`** (SysML, codebase, PCBA, skills) is **roadmap only** in 0.4.x (MN-REQ-11 stubs; MN-REQ-12.7). Seed external locators explicitly:
+Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
+
+| CLI | MCP | Locators |
+|-----|-----|----------|
+| `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=` |
+| `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
+| `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
+| `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
+
+Client `NEW` is illegal for source pins. Prefer ingest for bounded pin maps; `seed_lines` / `add` remain valid for one-off locators. Export / round-trip (#66) is **not** claimed.
 
 | Method | When |
 |--------|------|
-| `session_open` **`seed_lines`** | Mission start: `MOD_*`, `SYM_*` with `path=`, `qname=`, `loc=` |
+| Path-B `ingest …` | Primary: selective artefact → pins |
+| `session_open` **`seed_lines`** | Mission start bootstrap without artefact path |
 | **`add`** with deterministic ids | Incremental locators after grep/LSP confirm |
 | **LLM `NEW`** | Goldfish-authored `CLM_*`, `DEC_*`, mission annotations only — not for re-creating source pins |
 
-Re-`pin_map` after seeding; workers copy ids from the slice.
+Re-`pin_map` after ingest/seed; workers copy ids from the slice.
 
 ---
 

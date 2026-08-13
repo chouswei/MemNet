@@ -154,7 +154,16 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 
 ### Path B ingest
 
-**PinMapIngest_Sysml** is shipped (`memnet ingest sysml` / MCP `ingest_sysml`) — selective SysML v2 pins with deterministic locator ids (MN-REQ-11.16). **Codebase / PCBA `.ato` / skills** engines are interface-only (`not_implemented`). Bootstrap those with explicit ids + locators via `seed_lines` or `add`. See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
+**PinMapIngest_*** domains are shipped — selective external artefact → pins with deterministic locator ids (MN-REQ-11.16; #31 / #64):
+
+| Engine | CLI | MCP | Locators (examples) |
+|--------|-----|-----|---------------------|
+| Sysml | `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=`, `requirementId=` |
+| Codebase | `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
+| PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
+| Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
+
+Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Export / round-trip (MN-REQ-11.1–11.5) is **not** claimed (#66). See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
 
 ### Multi-agent / Multitask
 
@@ -165,7 +174,7 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 - Full session ACL modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
-- Path-B `PinMapIngest_Codebase` / `PcbaAto` / `SkillsRules` (Sysml shipped)
+- Pin-map export / round-trip (MN-REQ-11.1–11.5 / #66) — ingest is not export
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 

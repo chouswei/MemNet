@@ -79,7 +79,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | `NEW` minting |
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765`; `--ipc` / `MEMNET_IPC_SOCKET` (MN-REQ-06.2) |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
-| Path-B ingest (Sysml shipped) | `parts/common/memnet/memnet/pin_map_ingest.py` | `PinMapIngest_Sysml`; codebase/PCBA/skills interface-only |
+| Path-B ingest (all domains) | `parts/common/memnet/memnet/pin_map_ingest.py` | `PinMapIngest_Sysml` / `_Codebase` / `_PcbaAto` / `_SkillsRules` |
 | Path-B session import | `parts/common/memnet/memnet/import_absorb.py` | `import_slice` + optional ImportGuard host hook |
 
 Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/grammar/memnet-grammar-design.md`.
@@ -97,7 +97,9 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 
 - Restore `parts/novel-writer/` or novel MCP extras.
 - Invent a third peer agent wire dialect — teach is **GQL only** (ADR-001 + `gql-wire-profile.md`).
-- Claim **all** `PinMapIngest_*` domains shipped — only **Sysml** is as-is; codebase / PCBA / skills stay interface-only until implemented.
+- Claim **pin-map export / round-trip** (MN-REQ-11.1–11.5 / #66) from ingest alone —
+  Path-B `PinMapIngest_*` domains (Sysml/Codebase/PcbaAto/SkillsRules) are as-is;
+  export remains separate.
 - Invent N-server federation for Path-B ingest.
 - Duplicate user-pack application skills in `.cursor/skills/` beyond this dev reference.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.

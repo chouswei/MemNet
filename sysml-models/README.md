@@ -48,11 +48,11 @@ MemNetSystem                                 // SharedLlmMemory product
 ├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
 ├── DurableBuffer                            // M2.5 client landed; live cabinet external
 │   └── AgensGraphAdapter                    // hydrate/flush client; cabinet external
-├── PinMapRoadmap                            // PinMapIngest_Sysml shipped; others interface-only
+├── PinMapRoadmap                            // all PinMapIngest_* domains shipped (#64)
 │   ├── PinMapIngest_Sysml                  // first engine (qname=/path=)
-│   ├── PinMapIngest_Codebase               // NOT implemented
-│   ├── PinMapIngest_PcbaAto                // NOT implemented
-│   └── PinMapIngest_SkillsRules            // NOT implemented
+│   ├── PinMapIngest_Codebase               // MOD/SYM (path=/line=/signature=)
+│   ├── PinMapIngest_PcbaAto                // CMP/NET/PIN (refdes=/net=/pin=)
+│   └── PinMapIngest_SkillsRules            // SKL/RUL (skill_id=/phrase=)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit
@@ -77,7 +77,7 @@ MemNetSystem                                 // SharedLlmMemory product
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter **client** hydrate/flush landed; live cabinet external / not claimed
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
-- **Path-B PinMapIngest:** `PinMapIngest_Sysml` shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml`); Codebase / PcbaAto / SkillsRules interface-only (MUST NOT stub-as-done)
+- **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). Export/round-trip (#66) not claimed.
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` leftover (#63); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; reserve/overlap coordination remains doctrine
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
@@ -93,8 +93,8 @@ MemNetSystem                                 // SharedLlmMemory product
 | `WorkerWriteScope` | HARD reject on out-of-scope mutate |
 | Optional `SessionBind` | Shipped; missionId + lease match, with documented in-process skip-bind |
 
-Neighbourhood reserve (RSV) and Path-B `PinMapIngest_Sysml` are shipped; codebase / PCBA / skills ingest and full
-private/shared/open `session_token` modes remain deferred. `sessionId` is a
+Neighbourhood reserve (RSV) and all Path-B `PinMapIngest_*` domains are shipped;
+full private/shared/open `session_token` modes remain deferred. `sessionId` is a
 secret capability and MUST NOT be dumped. No Dock nest is introduced.
 
 ## Case studies

@@ -829,8 +829,9 @@ package MemNetRequirements {
     // ----- Multitask Mode (as-is 0.4.x agent operating model) -----
     // Enforceable parent/worker doctrine over a shared session.
     // CapsPolicy ACL is shipped when enabled per session. Neighbourhood
-    // reserve is shipped. Path-B PinMapIngest_Sysml is shipped; other
-    // ingest domain engines remain design-only.
+    // reserve is shipped. Path-B PinMapIngest_* domains are shipped
+    // (Sysml/Codebase/PcbaAto/SkillsRules). Full private/shared/open +
+    // session_token modes remain design-only. Export (#66) not claimed.
 
     requirement def MN_REQ_12_MultitaskMode {
       doc /*
@@ -838,7 +839,8 @@ package MemNetRequirements {
         SHALL be operated as a shared mission store with a parent coordinator
         and scoped workers. Chat is never mission SSOT. As-is product
         constraints for 0.4.x include the shipped, per-session CapsPolicy ACL
-        cut; RSV and PinMapIngest_Sysml shipped; other ingest domains deferred.
+        cut; RSV and Path-B PinMapIngest_* domains shipped; full
+        private/shared/open + session_token modes deferred.
       */
       attribute requirementId : String = "MN-REQ-12";
 
@@ -920,12 +922,12 @@ package MemNetRequirements {
           As-is NOW: the CapsPolicy ACL cut IS shipped (engineAclShipped=true)
           when session ACL is enabled. Neighbourhood reserve (RSV, llm_id +
           TTL) IS shipped as NeighbourhoodReserve / MN-REQ-12.13. Path-B
-          PinMapIngest_Sysml IS shipped (MN-REQ-11.16 / #31; CLI/MCP
-          ingest sysml). Agents MUST NOT assume PinMapIngest_Codebase,
-          PinMapIngest_PcbaAto, PinMapIngest_SkillsRules, or the full
-          private/shared/open + session_token modes until those ship. Seed
-          non-SysML external pins via session_open seed_lines or add with
-          explicit locator ids.
+          PinMapIngest_* domains ARE shipped (Sysml / Codebase / PcbaAto /
+          SkillsRules; MN-REQ-11.6–11.16; issues #31 / #64; CLI/MCP ingest
+          sysml|codebase|pcba|skills). Agents MUST NOT assume the full
+          private/shared/open + session_token modes until those ship. Agents
+          MUST NOT assume pin-map export / round-trip (MN-REQ-11.1–11.5 / #66)
+          from ingest alone.
         */
         attribute requirementId : String = "MN-REQ-12.7";
       }

@@ -6,6 +6,9 @@
 #   schema.example.txt          — demo world map (tests + quick start)
 #   schema.coding.example.txt   — coding map (MOD/SYM/TSK/…)
 #   schema.sysml.example.txt    — Path-B SysML ingest (PKG/PRT/REQ/POR)
+#   schema.codebase.example.txt — Path-B codebase ingest (MOD/SYM)
+#   schema.pcba.example.txt     — Path-B PCBA .ato ingest (CMP/NET/PIN)
+#   schema.skills.example.txt   — Path-B skills/rules ingest (SKL/RUL)
 # Relation seed (session_open vocabulary):
 #   relations.seed.txt          — default @EDG verbs (_seed_relations)
 #
