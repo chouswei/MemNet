@@ -37,7 +37,7 @@ def guide_text(*, loose: bool = False) -> str:
             "Create with id: 'NEW'; engine mints ids. Patch/settle: known ids only (no NEW).",
             "Live pin map: memnet query pin-map --anchor <id> (query warm is legacy alias).",
             "Pin-map ingest: stable locators (path=, qname=, ...) - no client NEW for those pins.",
-            "Transport: MCP in-process first; memnet serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
+            "Transport: MCP in-process first; serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
             "Legacy @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
             "MCP LawSeedHelper: GQL LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
             "Reuse ids; never invent new ids for the same entity.",
