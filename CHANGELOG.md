@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **HostSearchBridge nest (design)** — ImportGuard-shaped application nest for host index / RAG **outside** `MemNetSystem` (`RagHostHook` soft → `LocatorCommit` reuses MutateGate). Not a `rag_query` MCP tool. Docs: `docs/grammar/memnet-host-search-nest.md`; case study `sysml-models/outputs/host-search-nest-case-study.md`. `RagHostHook.implemented=false`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
+- **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **Pinned role** — MemNet is mission working memory, good enough for a few technical-document working sets and goldfish-fast (tens of MiB typical; hundreds of MiB still fine), not “the small RAG tool”. README + `docs/grammar/memnet-host-search-nest.md`.
-- **RAG math pointers (research)** — information bottleneck, rate–distortion, NP-hard/APX-hard subgraph (ego k-hop, not Steiner), Nemhauser greedy budget, diameter locality, Hopfield=attention. Design table only; no engine IB/ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
+- **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
+- **HostSearchBridge trim** — drop ImportGuard leaf copy (`HostSearchReceive`, `LocatorCommit`, passthrough/budget/decision ports). Hard path is MutateGate. Math in grammar cut to IB + ego k-hop + `depth`/`max_rows`.
 
 ## [0.4.6] - 2026-08-13
 

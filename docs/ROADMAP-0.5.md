@@ -73,7 +73,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog.
 
-**Host search / RAG:** optional application nest (`HostSearchBridge`) **outside** `MemNetSystem` — [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). **MUST NOT** add `rag_query` to `memnet-mcp` or nest a corpus tool under the product composite.
+**Host search / RAG:** optional `HostSearchBridge` **outside** `MemNetSystem` — locators into MutateGate; skip valid. [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). **MUST NOT** add `rag_query` to `memnet-mcp`.
 
 **GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** accept/emit done; **M2.5** client landed (live cabinet deferred); **M3** in-repo playbook / app-note bodies rewritten to GQL (docs scope).
 
