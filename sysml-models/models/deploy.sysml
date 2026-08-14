@@ -41,8 +41,8 @@
   (id_policy keep|reject|remint). Not append. Not N-server federation.
   Hook shipped ≠ cheap LLM shipped. Module cite: memnet.import_absorb.
 
-  APPLICATION (not in MemNetSystem): HostSearchBridge — ImportGuard-shaped
-  host corpus nest (RagHostHook soft → LocatorCommit reuses MutateGate).
+  APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
+  locators into existing MutateGate / ingest. No ImportGuard leaf copy.
   Design only. Grammar: docs/grammar/memnet-host-search-nest.md
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
@@ -68,9 +68,7 @@ package MemNet {
           and (4) optional SessionBind (missionId + lease — MemNet-only).
           ACL is off by default for the legacy-green path.
       Expected live session payload: tens of MiB typical, hundreds of MiB
-      still in role (few technical-doc working sets); not a GB RAG index.
-      Row/value caps do not yet meter RAM
-      (see docs/grammar/memnet-host-search-nest.md).
+      still in role; not a GB RAG index.
       Privilege grain steals Neo4j/AgensGraph-class RBAC shape only —
       MUST NOT Bolt agent wire, LLM↔Neo4j teach, or MemNet-as-Cypher-proxy.
       Analogy table once: outputs/system-design-notes.md (CapsPolicy ACL).
@@ -1448,117 +1446,31 @@ package MemNet {
 
   // =====================================================================
   // APPLICATION NEST — HostSearchBridge (MUST NOT instantiate under
-  // MemNetSystem). ImportGuard-shaped: soft RagHostHook then hard
-  // LocatorCommit that reuses MutateGate / PinMapIngest. Design only.
+  // MemNetSystem). Optional locators into existing MutateGate. Design only.
   // Grammar: docs/grammar/memnet-host-search-nest.md
   // =====================================================================
 
-  part def RagPassthrough {
+  part def RagHostHook {
     doc /*
-      Skip RagHostHook (host --no-rag / no adapter). Goldfish pin_map plus
-      grep/LSP remain valid. Analogous to ImportGuard GuardPassthrough.
-      Skipping is valid. Design only.
-    */
-    attribute implemented : Boolean = false;
-    attribute skipIsValid : Boolean = true;
-  }
-
-  part def HostRagAdapter {
-    doc /*
-      OPTIONAL host corpus adapter (Cursor index, docs MCP, vector store).
-      Env-gated in a host process — MUST NOT live in memnet-mcp tool SSOT.
-      Returns RagDecision + RagHit locators only. Fail-open (timeout/parse
-      → skip). MUST NOT mutate the session. Design only.
+      Optional host corpus plug-in (Cursor index / sibling RAG MCP).
+      Locator-only, fail-open, MUST NOT mutate the session, MUST NOT
+      appear as memnet-mcp rag_query. Skip is valid (pin_map + grep).
+      Design only.
     */
     attribute implemented : Boolean = false;
     attribute designOnly : Boolean = true;
     attribute failOpen : Boolean = true;
-  }
-
-  part def SoftHitBudget {
-    doc /*
-      Cap host-search payload: max_hits, max chars per hit, timeout.
-      Same spirit as CheapLlmImportGuard summarise_slice bounds.
-    */
-    attribute implemented : Boolean = false;
-    attribute maxHits : Integer = 8;
-  }
-
-  part def SoftLocatorOnlyEmit {
-    doc /*
-      Hits SHALL be locators (path=/line=/qname=/skill_id=), not chunk
-      bodies (MN-REQ-11.13). Ground ids for source pins; no client NEW
-      on artefact nodes.
-    */
-    attribute implemented : Boolean = false;
     attribute locatorOnly : Boolean = true;
-  }
-
-  part def SoftSearchDecisionEmit {
-    doc /*
-      Emit RagDecision on HostSearchReceive: propose | none | skip.
-      Analogous to ImportGuard SoftDecisionEmit (allow|trim|reject).
-    */
-    attribute implemented : Boolean = false;
-    port decisionOut : RagDecisionOutPort;
-  }
-
-  part def RagHostHook {
-    doc /*
-      Host plug-in for optional corpus lookup — design only (implemented
-      =false). Parent of RagPassthrough / HostRagAdapter / budget /
-      locator emit. MUST NOT replace MutateGate. MUST NOT appear as
-      memnet-mcp rag_query.
-    */
-    attribute implemented : Boolean = false;
-    attribute designOnly : Boolean = true;
-    attribute gateKind : String = "soft";
-    part passthrough : RagPassthrough;
-    part adapter : HostRagAdapter;
-    part budget : SoftHitBudget;
-    part locators : SoftLocatorOnlyEmit;
-    part decide : SoftSearchDecisionEmit;
-  }
-
-  part def LocatorCommit {
-    doc /*
-      Hard leaf of HostSearchReceive: REUSES SessionLifecycle MutateGate
-      and/or PinMapIngest_* (deterministic locators). Not ImportAbsorb
-      and not a second graph writer. implemented=false on this wrapper
-      so adapter-ship cannot be misread as a new engine verb; MutateGate
-      itself remains shipped under AgentMemory.
-    */
-    attribute implemented : Boolean = false;
-    attribute reusesMutateGate : Boolean = true;
-    attribute gateKind : String = "hard";
-    attribute designOnly : Boolean = true;
-    port decisionIn : RagDecisionInPort;
-  }
-
-  part def HostSearchReceive {
-    doc /*
-      OPTIONAL application receive (Path A analogue = skip entire nest).
-      Spine: RagHostHook (soft) → LocatorCommit (hard reuse). Parent has
-      no single implemented=true — flags on children. MUST NOT nest
-      under MemNetSystem / SessionImportReceive.
-    */
-    attribute designOnly : Boolean = true;
-    part hook : RagHostHook;
-    part commit : LocatorCommit;
-    connection searchDecisionToCommit : RagDecisionFlow {
-      end port source ::> hook.decide.decisionOut;
-      end port sink ::> commit.decisionIn;
-    }
   }
 
   part def HostSearchBridgePart {
     doc /*
       APPLICATION NEST root (item HostSearchBridge in connections).
-      MUST NOT be a part of MemNetSystem. Same shelf as
-      CompanyAnalyticalSsot / EvidenceCentre.
+      MUST NOT be a part of MemNetSystem. Hard commit is existing
+      MutateGate / PinMapIngest — no LocatorCommit wrapper.
     */
     attribute designOnly : Boolean = true;
-    part receive : HostSearchReceive;
+    part hook : RagHostHook;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
   }

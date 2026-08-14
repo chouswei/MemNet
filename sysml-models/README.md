@@ -83,7 +83,7 @@ MemNetSystem                                 // SharedLlmMemory product
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; reserve/overlap coordination remains doctrine
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
-- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** MUST NOT nest under MemNetSystem (host search is an ImportGuard-shaped **application** nest — design only)
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** MUST NOT nest under MemNetSystem (optional host locators — design only)
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 
 ### CapsPolicy ACL (as-is 0.4.x)

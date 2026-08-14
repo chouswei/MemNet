@@ -150,7 +150,7 @@ When due, dock claims again — still soft librarian then hard MutateGate on cat
 | `MutateGate` + schema + `CapsPolicy` | MemNet product | Strict create/update; budgeted pin_map hide; NEW mint rules |
 | ImportGuard (Multitask path B) | MemNet Multitask doctrine | Same **soft-then-hard** spirit for member WM — different nest |
 
-EvidenceCentre librarian is **not** a shipped MemNet part and is **not** nested under `ImportGuard`. Analogy only. Generic host index / RAG uses the same soft-then-hard grain as a **separate** application nest (`HostSearchBridge`) — [host-search-nest-case-study.md](host-search-nest-case-study.md).
+EvidenceCentre librarian is **not** a shipped MemNet part and is **not** nested under `ImportGuard`. Generic host index / RAG is a **separate** application nest (`HostSearchBridge`) — locators into MutateGate, skip valid — [host-search-nest-case-study.md](host-search-nest-case-study.md).
 
 ## 5. Nest visibility (MUST)
 
