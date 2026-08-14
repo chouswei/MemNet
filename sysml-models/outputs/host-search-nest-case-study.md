@@ -111,7 +111,7 @@ Fail-open: adapter timeout → `RagDecision { outcome: 'skip' }` → same as Pat
 
 | Path | Role |
 |------|------|
-| [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Design SSOT |
+| [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Design SSOT (incl. math principles: IB, rate–distortion, ego k-hop) |
 | [session-import-case-study.md](session-import-case-study.md) | Product ImportGuard nest |
 | [evidence-centre-case-study.md](evidence-centre-case-study.md) | Application librarian (not this nest under ImportGuard) |
 | [`docs/application-notes/llm-software-development.md`](../../docs/application-notes/llm-software-development.md) | Cursor index vs MemNet locators |

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pinned role** — MemNet is mission working memory, good enough for a few technical-document working sets and goldfish-fast (tens of MiB typical; hundreds of MiB still fine), not “the small RAG tool”. README + `docs/grammar/memnet-host-search-nest.md`.
+- **RAG math pointers (research)** — information bottleneck, rate–distortion, NP-hard/APX-hard subgraph (ego k-hop, not Steiner), Nemhauser greedy budget, diameter locality, Hopfield=attention. Design table only; no engine IB/ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.4.6] - 2026-08-13
 

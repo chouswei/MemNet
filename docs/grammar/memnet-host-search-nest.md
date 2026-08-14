@@ -112,6 +112,21 @@ CPython’s own RSS is already tens of MiB; the fit is **session payload**. Typi
 
 If a graph becomes the **library**, it has left this role (cabinet or RAG index — downstream).
 
+### Mathematical principles (research)
+
+Pointers, not engine formulae. Citations on [#77](https://github.com/chouswei/MemNet/issues/77) notes 10–11. **MUST NOT** train a neural bottleneck, Steiner solver, or vector index inside MemNet because a paper used IB, GST, or Hopfield.
+
+| Principle | Statement (sketch) | MemNet instantiation |
+|-----------|--------------------|----------------------|
+| **Information bottleneck** (Tishby, Pereira, Bialek 1999; Zhu et al. ACL 2024) | \(\min I(\tilde{X};X\mid Q)-\beta I(\tilde{X};Y\mid Q)\). Empty \(\tilde{X}\) is optimal when retrieve does not help. Cross-attention scores are a *proxy* for \(I(\cdot;Y)\) (QUITO-X), not a MemNet layer. | Session \(X\), turn \(Y\), cue \(Q=\)anchor. \(\tilde{X}=\) `pin_map`. Path A skip = empty extra retrieve. Host RAG runs the same Lagrangian on the **corpus**. |
+| **Rate–distortion** (Shannon 1959; γ-covering) | Spend rate \(R\) (tokens / MiB) only to cut task distortion \(D\). Directed-information γ-cover (arXiv 2510.00079) is query-agnostic packing with set-cover guarantees. | MN-REQ-00; tens–hundreds of MiB session; 50-row emit. Do not γ-cover the library *inside* goldfish. |
+| **NP-hard / APX-hard subgraph** | Exhaustive evidence subgraph is intractable (Johnson & Garey). Optimal Informative Subgraph reduces to **Group Steiner Tree** — NP-hard and APX-hard (BubbleRAG). Prize-collecting Steiner Tree is the connected-evidence cousin. | **Ego \(k\)-hop** from a known id (GRAG): \(O(\lvert V\rvert)\) egos, not \(2^{\lvert V\rvert+\lvert E\rvert}\). Same expand as RSV. **MUST NOT** ship GST/PCST solvers. Leftover #73 = bounded find when there is no ego. |
+| **Budgeted monotone submodular** (Nemhauser et al. 1978) | Greedy cardinality maximisation of a monotone submodular \(F\) is \((1-1/e)\)-approx. RAG packers (AdaGReS ε-approx; PACMS facility-location; “what survives into context”) instantiate this under a **token** budget. | `max_rows` / fanout **are** the budget. Topology + recycle already rank; a learned \(F\) is not required. |
+| **Diameter / cohesion** (TopoRAG; k-truss) | Relevant set should be close in embedding **and** small-diameter. A connected k-truss has a diameter bound (DA-RAG); peeling is still a heuristic for an NP-hard community search. | `depth` ≈ diameter cap; **relations** are the metric, not cosine. No k-truss / ANN in the engine. |
+| **Associative memory** (Ramsauer et al. 2020) | Transformer attention **is** one modern-Hopfield retrieve step (query cue → stored patterns). | The LLM already retrieves **inside** the prompt. MemNet supplies a structured GQL cue, not softmax over chunks. |
+
+**Two haystacks, one Lagrangian.** Corpus IB → host RAG. Session IB → `pin_map`. Mixing them (embed the session, or dump the corpus into goldfish) spends rate on the wrong \(X\).
+
 ## Decision
 
 Host retrieval (Cursor index, docs MCP, vector store, EvidenceCentre librarian) **MAY** sit in an optional **`HostSearchBridge`** nest **outside** `MemNetSystem`. Soft children propose **locators**. Hard commit **reuses** shipped `MutateGate` / Path-B `PinMapIngest_*` (no second absorb engine). Skipping the nest is valid (goldfish `pin_map` + grep / LSP) — Path A analogue.
@@ -207,6 +222,11 @@ Then the host (or agent) writes GQL locators; ground ids for source pins (no cli
 | [Neo4j: RAG on a GraphQL API](https://neo4j.com/blog/graphql/rag-graphql-api/) | External contrast — `generate` resolver *on* the query API (reject as MemNet goldfish) |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | External contrast — sibling MCP chunk retrieve; host adapter only ([#77 note 2](https://github.com/chouswei/MemNet/issues/77#issuecomment-5295531416)) |
 | [Meilisearch: RAG tools 2026](https://www.meilisearch.com/blog/rag-tools) | External contrast — retrieve-hop shopping list, not MemNet ([#77 note 3](https://github.com/chouswei/MemNet/issues/77#issuecomment-5295584716)) |
+| [IB for RAG noise](https://arxiv.org/abs/2406.01549) | Math — information bottleneck (notes 10–11) |
+| [GRAG ego-graphs](https://arxiv.org/abs/2405.16506) | Math — k-hop as tractable subgraph |
+| [Hopfield = attention](https://arxiv.org/abs/2008.02217) | Math — in-prompt associative retrieve |
+| [Directed information γ-covering](https://arxiv.org/abs/2510.00079) | Math — rate–distortion packing |
+| [Nemhauser et al. 1978](https://doi.org/10.1007/BF01588971) | Math — greedy \((1-1/e)\) submodular bound |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire; goldfish = `pin_map` |
 | [`../application-notes/llm-software-development.md`](../application-notes/llm-software-development.md) | Cursor index vs MemNet locators |
 | [`../../sysml-models/outputs/session-import-case-study.md`](../../sysml-models/outputs/session-import-case-study.md) | ImportGuard nest (product) |
