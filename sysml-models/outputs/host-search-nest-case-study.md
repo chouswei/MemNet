@@ -4,7 +4,8 @@
 
 Host corpus lookup (index / RAG / docs MCP) as an **optional nest**, isomorphic to Path-B `ImportGuard`, **not** a MemNet product tool.  
 Companions: [session-import-case-study.md](session-import-case-study.md) (product ImportGuard), [evidence-centre-case-study.md](evidence-centre-case-study.md) (librarian soft-gate), [sysml-models/models/deploy.sysml](../models/deploy.sysml) (`HostSearchBridgePart`).  
-**Wire:** GQL / shaped `pin_map` only (ADR-001). Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md).
+**Wire:** GQL / shaped `pin_map` only (ADR-001). Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md).  
+**Research:** [#77](https://github.com/chouswei/MemNet/issues/77). Contrast (do **not** copy as goldfish): [Adding RAG to your GraphQL API](https://neo4j.com/blog/graphql/rag-graphql-api/).
 
 ## 1. Metaphor (binding)
 

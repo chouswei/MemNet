@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **HostSearchBridge nest (design)** — ImportGuard-shaped application nest for host index / RAG **outside** `MemNetSystem` (`RagHostHook` soft → `LocatorCommit` reuses MutateGate). Not a `rag_query` MCP tool. Docs: `docs/grammar/memnet-host-search-nest.md`; case study `sysml-models/outputs/host-search-nest-case-study.md`. `RagHostHook.implemented=false`.
+- **HostSearchBridge nest (design)** — ImportGuard-shaped application nest for host index / RAG **outside** `MemNetSystem` (`RagHostHook` soft → `LocatorCommit` reuses MutateGate). Not a `rag_query` MCP tool. Docs: `docs/grammar/memnet-host-search-nest.md`; case study `sysml-models/outputs/host-search-nest-case-study.md`. `RagHostHook.implemented=false`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.4.6] - 2026-08-13
 

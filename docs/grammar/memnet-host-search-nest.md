@@ -1,6 +1,7 @@
 # Host search nest (design)
 
 **Status:** design only — **not** shipped. No `rag_query` MCP; no embeddings in the engine.  
+**Research:** [#77](https://github.com/chouswei/MemNet/issues/77) — graph retrieve-then-generate vs this nest. External contrast: [Adding RAG to your GraphQL API](https://neo4j.com/blog/graphql/rag-graphql-api/) (Neo4j / Cowley).  
 **Audience:** product developers. Application walk: [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Isomorphism:** Path-B `ImportGuard` nest (`SessionImportReceive` → soft guard → hard `ImportAbsorb`).  
 **Dialect:** GQL only ([`gql-wire-profile.md`](gql-wire-profile.md)).  
@@ -99,6 +100,8 @@ Then the host (or agent) writes GQL locators; ground ids for source pins (no cli
 
 | Path | Role |
 |------|------|
+| [#77](https://github.com/chouswei/MemNet/issues/77) | Research issue (RAG beside MemNet) |
+| [Neo4j: RAG on a GraphQL API](https://neo4j.com/blog/graphql/rag-graphql-api/) | External contrast — `generate` resolver *on* the query API (reject as MemNet goldfish) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire; goldfish = `pin_map` |
 | [`../application-notes/llm-software-development.md`](../application-notes/llm-software-development.md) | Cursor index vs MemNet locators |
 | [`../../sysml-models/outputs/session-import-case-study.md`](../../sysml-models/outputs/session-import-case-study.md) | ImportGuard nest (product) |
