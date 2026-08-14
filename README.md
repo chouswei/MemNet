@@ -2,7 +2,7 @@
 
 Working memory for LLMs. One session graph that agents pin and update — without dumping everything into chat.
 
-That's the whole product idea: a shared scratch space for a mission, not a notepad in the thread. It isn't AgensGraph/Neo4j, and it isn't an app EvidenceCentre — those stay downstream. This repo ships the engine + generic MCP only. **Pinned role:** good enough to keep the working set of **a few technical documents** (atoms and locators, not PDF bytes) and re-read it **fast**; tens of MiB per session, not a RAG library.
+That's the whole product idea: a shared scratch space for a mission, not a notepad in the thread. It isn't AgensGraph/Neo4j, and it isn't an app EvidenceCentre — those stay downstream. This repo ships the engine + generic MCP only. **Pinned role:** good enough to keep the working set of **a few technical documents** (atoms and locators, not PDF bytes) and re-read it **fast**; tens of MiB typical, **hundreds of MiB still fine**, not a GB RAG library.
 
 Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11.
 

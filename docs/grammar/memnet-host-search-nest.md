@@ -98,10 +98,10 @@ Tens of MiB is the **fit for that job**, not a claim that the product is insigni
 | Goldfish emit | Depth ~2, **50** rows — **fast enough** for a turn | Unbounded retrieve / chunk pages |
 | Session store | Cap **5000** non-law rows (`MEMNET_MAX_ROWS`) | Millions of vectors |
 | Semantic grain | Atoms for a handful of docs + task/constraint pins | The archive / full KB |
-| **RAM (fit)** | **Few tens of MiB per session** (order **10–50 MiB**) — enough for that working set | GB-class RAG index in-process |
+| **RAM (fit)** | Tens of MiB typical; **hundreds of MiB still in role** (order **10–500 MiB** session payload) | **GB-class** RAG index / embedding models in-process |
 | Time | Session TTL / mission length | Permanent knowledge base |
 
-CPython’s own RSS is already tens of MiB; the fit is **session payload**. Typical atomised missions sit in a **few MiB**. Row caps alone do **not** guarantee the budget: `MEMNET_MAX_ROWS` 5000 × `MEMNET_MAX_VALUE_BYTES` 4096 would be hundreds of MiB if properties were filled. **MUST** atomise (MN-REQ-02.2); HostSearchBridge locator-only. A hard `MEMNET_MAX_SESSION_BYTES` meter is **not** shipped.
+CPython’s own RSS is already tens of MiB; the fit is **session payload**. Typical atomised missions sit in a **few MiB**. A fuller tec-doc working set (many `CMD`/`SEC` atoms) may reach **hundreds of MiB** — that is still MemNet. `MEMNET_MAX_ROWS` 5000 × `MEMNET_MAX_VALUE_BYTES` 4096 is the same order if fields are fat; **prefer** atomise (MN-REQ-02.2) and locator-only HostSearchBridge so turns stay goldfish-fast. Leave **gigabytes** to RAG/cabinet. A hard `MEMNET_MAX_SESSION_BYTES` meter is **not** shipped.
 
 If a graph becomes the **library**, it has left this role (cabinet or RAG index — downstream).
 
