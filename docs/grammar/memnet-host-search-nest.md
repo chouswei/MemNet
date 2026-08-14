@@ -90,6 +90,13 @@ Pinned job (MN-REQ-00): sit **between** LLM call pipelines and data searching. H
 
 Tens of MiB is the **fit for that job**, not a claim that the product is insignificant. RAG tools keep the library; MemNet keeps the open manuals-and-mission on the bench.
 
+**We do face a RAG-shaped issue — inside the session, not over the world's corpus.** Once a few tec docs are atomised, the working set is already too big to dump into chat (hundreds of MiB / thousands of rows). The question is the same shape as RAG: *which slice is relevant this turn?* The mechanism is **not** another vector index. It is goldfish **`pin_map`** (anchor, depth, view, 50-row cap), walk, and leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find. Host RAG still owns *finding the next document*; MemNet owns *slicing what is already on the bench*.
+
+| Haystack | Owner | Retrieve mechanism |
+|----------|--------|-------------------|
+| Library / web / PDFs on disk | Host RAG, grep, ingest | Chunks / hybrid search / Path-B locators |
+| Live session graph | **MemNet** | Ego neighbourhood `pin_map` (GQL shaped emit) |
+
 | Axis | Pinned expectation | Not |
 |------|--------------------|-----|
 | Role | Working set for **a few tec docs** + mission graph; goldfish-fast | Corpus search, chunk/embed/chat UI |
