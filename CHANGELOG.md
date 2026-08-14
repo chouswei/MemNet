@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
-- **Keyword/tag hubs (design)** — in-session grouping is EDGE to a reused `KYWD` (or tag) NODE, then `pin_map` from the hub. Not SCHEMA kinds, not Layer `@TAG`, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
+- **Keyword/tag cues (design)** — in-session grouping is SCHEMA-kind vocabulary, fuzzy like human memory; find by keyword then `pin_map`. No hard kind/group split; no ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.4.6] - 2026-08-13
 

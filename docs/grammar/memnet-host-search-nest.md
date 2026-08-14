@@ -45,28 +45,29 @@ The session itself is already too big to dump: same *shape* as RAG (which slice 
 
 If the graph becomes the library, it has left this role.
 
-## In-session retrieve: dimension + keyword hubs
+## In-session retrieve: kinds as cues (human memory)
 
-Corpus RAG stays on the host. Inside the session, group pins with **keyword/tag hub nodes**, then walk **dimension of the net** (`depth` / `view` / `max_rows`).
+Corpus RAG stays on the host. Inside the session, **SCHEMA kinds/tags *are* the grouping** — an open, overlapping vocabulary, not a closed taxonomy. There is **no hard boundary** between “this pin is a `TSK`” and “this pin is about session”. Human memory works the same way: categories blur; recall is a **keyword cue**, then a neighbourhood.
 
-**Group = a hub, not a SCHEMA kind.** GQL label / `tagmap` (`TSK`, `MOD`, …) is the *type* of a pin. A grouping keyword is a **NODE** many pins attach to (one hub per token; `MERGE` by id). Same grain as `KYWD` in [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md).
+| Cue | Then |
+|-----|------|
+| Token matches a kind, id, locator, or neighbour | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find |
+| A hit id is in hand | `pin_map` — **dimension of the net** (`depth` / `view` / `max_rows`) |
 
-```cypher
-MERGE (k:KYWD {id:'KYWD_session'})
-MERGE (s:SYM {id:'SYM_session_open'})
-MERGE (s)-[:tagged {id:'NEW'}]->(k)
+House prefixes (`TSK_*`, `MOD_*`, `KYWD`, …) stay **conventions**, not walls. A pin MAY be findable under more than one token. `KYWD` hubs (daily-news) are one idiom among others, not a second tagging product.
+
+```text
+keyword cue  -->  find (fuzzy kind/tag/locator)  -->  pin_map(ego)
 ```
 
-Then `pin_map(anchor='KYWD_session', depth=1)` is the group. Lost the hub id → leftover [#73](https://github.com/chouswei/MemNet/issues/73) find on the token. Known task id → ordinary ego `pin_map` (no hub required).
+| Like human memory | Not |
+|-------------------|-----|
+| Overlapping kinds/tags as cues | Closed ontology / DBA schema |
+| Cue → reconstruct a neighbourhood | Cosine cluster / ANN |
+| Forget (recycle) with the mission | Permanent thesaurus / cabinet |
+| One primary label in the engine today | Layer `@TAG` pipe as wire |
 
-| Use | Not |
-|-----|-----|
-| EDGE to a reused hub (`:tagged` / `:about`) | New SCHEMA kind per topic |
-| Short token ids (`KYWD_session`) | Prose / chunk bodies on the hub |
-| Recycle hubs with the mission | Session thesaurus as a cabinet |
-| `pin_map` from the hub | Cosine cluster / ANN |
-
-**MUST NOT** treat CLI `tagmap` (kind discovery) as grouping. **MUST NOT** revive Layer `@TAG` pipe as wire. **MUST NOT** store a `tags=` bag of strings as the grouping SSOT — the net is the group.
+Do not legislate “kind vs group hub” as two systems. Do not mint kinds without need (`gql-wire-profile` still prefers one primary label). Do not treat CLI `tagmap` as a topic taxonomy — it only lists known kinds.
 
 ## Math (keep three)
 
@@ -106,7 +107,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Dual-write a vector index and MutateGate.
 - Claim this shipped because ImportGuard or ingest shipped.
 - Call host locator commit **absorb** (that word is `ImportAbsorb` only).
-- Use SCHEMA kinds or Layer `@TAG` pipe as topic groups; grouping is a hub NODE.
+- Draw a hard wall between SCHEMA kind and “tag group”; cues overlap on purpose.
 
 ## Related
 
