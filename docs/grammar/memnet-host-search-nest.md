@@ -115,5 +115,5 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / math) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` |
-| [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` hubs as grouping (application) |
+| [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |
