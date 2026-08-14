@@ -12,21 +12,21 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 
 | Doc | Role |
 |-----|------|
-| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; as-is engine until M2) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2**, then **M2.5** durable store |
+| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; M2 shipped) |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2.5** live cabinet |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter sketch (**planned M2.5**) |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5** — live cabinet unproven) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |
-| [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (design) |
+| [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (shipped RSV; grammar still the design note) |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host locators into MutateGate (design; outside MemNetSystem) |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 | [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | As-is line-codec harness notes (not 1.x teach) |
 | [`grammar/archive/`](grammar/archive/) | Quarantined historical Layer / Tier A sources |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
-| [`grammar/examples/`](grammar/examples/) | As-is golden fixtures (harness until M2) |
+| [`grammar/examples/`](grammar/examples/) | As-is golden fixtures (harness; Layer examples archived) |
 
 **Multitask (developer):** [`multi-agent-sessions.md`](multi-agent-sessions.md). Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 

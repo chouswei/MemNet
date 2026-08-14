@@ -16,7 +16,7 @@ Three pressures reversed the prior “map only; MUST NOT teach GQL as wire” st
 2. **Durable backing alignment.** Shared LLM memory plus optional AgensGraph backing is stronger when agent wire and store speak the **same family** of query language — without collapsing MemNet into a store proxy.
 3. **Layer cost.** Maintaining Layer as teach (ANTLR, skills, application notes, codec paths) is real product cost — now **retired from doctrine**, not kept as a soft accept story.
 
-This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as agent wire** with **GQL (openCypher-shaped, AgensGraph-compatible)**. Brand and product remain MemNet — shared LLM working memory, not a Cypher proxy.
+This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as agent wire** with **GQL (openCypher-shaped, AgensGraph-compatible)**. Brand and product remain MemNet — mission working memory, not a Cypher proxy and not a RAG corpus.
 
 **Decision**
 
