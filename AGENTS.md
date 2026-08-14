@@ -56,3 +56,12 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 3. Keep `AGENT-CONTEXT.md` thin; durable state lives in MemNet sessions when used.
 4. British English in new docs written for this repo.
 5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, or assume ACL / reserve / ingest (design-only in 0.4.x).
+
+## Cursor Cloud specific instructions
+
+Pure Python package (`memnet-llm`, Python >= 3.11). No external services, database, or Docker — the graph is in-memory. Standard lint/test/build commands are the authoritative recipe in `.github/workflows/ci.yml`; run/quick-start flow is in `README.md`.
+
+- **Virtualenv**: the startup update script installs everything (editable, with `dev,mcp` extras) into `.venv` at the repo root. **Activate it first** each session: `source .venv/bin/activate`. The `memnet` and `memnet-mcp` console scripts and `pytest`/`ruff` only exist inside `.venv`. System Python is externally managed, so do not `pip install` into it.
+- **Tests / lint**: `pytest` (runs fully in-process; `tests/conftest.py` sets `MEMNET_TEST_INLINE=1`, no serve daemon needed). `ruff check` + `ruff format --check` over `parts/common/memnet parts/memnet-mcp/software tests`. One test (`agensgraph_live`) is skipped unless `MEMNET_AGENSGRAPH_URL` points at an external AgensGraph server.
+- **CLI path**: every `memnet` subcommand except `serve` needs a running serve process. Start it with `export MEMNET_IPC_SOCKET=/tmp/memnet.sock && memnet serve --ipc` (TCP fallback: `memnet serve`). Non-obvious: serve proxies argv, not your shell env — pass the minted `--session mn_...` explicitly (do not rely on `MEMNET_SESSION`).
+- **MCP path**: single-agent `memnet-mcp` (stdio) is in-process and needs no serve. `session_open` requires a map — pass `map_file=parts/common/memnet/memnet/examples/schema.example.txt` (or `map_lines`) or it errors `no_map`. MCP tool args are `wire_lines`/`map_lines` (lists) and `session` (the id), not `session_id`.
