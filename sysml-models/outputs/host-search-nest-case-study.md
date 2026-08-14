@@ -43,6 +43,7 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | Chunk body on `note=` | MN-REQ-11.13 |
 | Merge with `BoundedMatchFind` (#73) | Graph lookup ≠ corpus lookup |
 | Adapter writes the graph | Two writers |
+| Graphiti RRF or HippoRAG PPR on the session | Corpus hybrid / OpenIE RAG — goldfish is serial cue then `pin_map` |
 
 ## Related
 
