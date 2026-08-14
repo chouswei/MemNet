@@ -68,7 +68,8 @@ package MemNet {
           and (4) optional SessionBind (missionId + lease — MemNet-only).
           ACL is off by default for the legacy-green path.
       Expected live session payload: a few tens of MiB (graph + emit
-      buffers), not a GB RAG index. Row/value caps do not yet meter RAM
+      buffers) — good enough for a few technical-doc working sets, not a
+      GB RAG index. Row/value caps do not yet meter RAM
       (see docs/grammar/memnet-host-search-nest.md).
       Privilege grain steals Neo4j/AgensGraph-class RBAC shape only —
       MUST NOT Bolt agent wire, LLM↔Neo4j teach, or MemNet-as-Cypher-proxy.

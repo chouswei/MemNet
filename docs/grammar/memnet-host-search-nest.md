@@ -82,28 +82,28 @@ Other mechanisms (research contrast — **not** MemNet core):
 | **LLM outside retrieve** | Sibling tool (RAGFlow grain); reject `generate` *on* MemNet. |
 | **Verify** | Grep/LSP/parser after locators (MN-REQ-10.7). |
 
-### Role vs big RAG tools — expected size
+### Role (pinned)
 
-RAGFlow, LangChain, Meilisearch, Pinecone, Neo4j-as-RAG already own **corpus → hits → (often) prose**. MemNet is not in that race.
+**MemNet is mission working memory** — a live session graph agents `pin_map` and mutate. It is **not** a RAG engine, **not** “the small one” in a tool beauty contest, and **not** too thin to be useful.
 
-**Role:** the **mission scratch graph** those tools do not provide: shared session id, goldfish `pin_map`, gated mutate, Multitask handoff. After a big RAG tool returns hits, MemNet holds *which* locators were verified and *what* the task still is. It sits **between** LLM calls and data search (MN-REQ-00), same as README: not Neo4j, not EvidenceCentre.
+Pinned job (MN-REQ-00): sit **between** LLM call pipelines and data searching. Hold the working set for **a few technical documents** (structure, locators, distilled atoms — PDF/HTML stay on disk; see `llm-tech-docs-decomposition.md`) **plus** live `TSK`/`USR`/`MOD` facts, and re-read that set **fast** (in-process goldfish, depth ~2 / 50 rows).
 
-**Expected size (stay small):**
+Tens of MiB is the **fit for that job**, not a claim that the product is insignificant. RAG tools keep the library; MemNet keeps the open manuals-and-mission on the bench.
 
-| Axis | Expectation | Not |
-|------|-------------|-----|
-| Product | Engine + generic MCP (`memnet-llm` / `memnet-mcp`) | Context engine, chunker, embedder, chat UI |
+| Axis | Pinned expectation | Not |
+|------|--------------------|-----|
+| Role | Working set for **a few tec docs** + mission graph; goldfish-fast | Corpus search, chunk/embed/chat UI |
+| Product | Engine + generic MCP (`memnet-llm` / `memnet-mcp`) | Context engine / RAG platform |
 | Runtime | In-process first; optional local serve | 16 GB Docker + ES + embedding models |
-| Goldfish emit | Depth ~2, **50** rows (`DEFAULT_QUERY_MAX_ROWS`) | Unbounded retrieve / chunk pages |
+| Goldfish emit | Depth ~2, **50** rows — **fast enough** for a turn | Unbounded retrieve / chunk pages |
 | Session store | Cap **5000** non-law rows (`MEMNET_MAX_ROWS`) | Millions of vectors |
-| Semantic grain | Tens–hundreds of **atoms** per mission (TSK/USR/MOD/SYM…) | The corpus itself |
-| **RAM (target)** | **Few tens of MiB per session** for the live graph + pin-map buffers (order **10–50 MiB**) | GB-class RAG index / embedding models in-process |
+| Semantic grain | Atoms for a handful of docs + task/constraint pins | The archive / full KB |
+| **RAM (fit)** | **Few tens of MiB per session** (order **10–50 MiB**) — enough for that working set | GB-class RAG index in-process |
 | Time | Session TTL / mission length | Permanent knowledge base |
-| Team | One library peers `pin_map` | Platform with ingestion pipelines |
 
-CPython’s own RSS is already tens of MiB; the target is **session payload**, not “the whole interpreter is 20 MiB”. Typical atomised missions (short fields, hundreds of rows) sit in a **few MiB**. Row caps alone do **not** guarantee the budget: `MEMNET_MAX_ROWS` 5000 × `MEMNET_MAX_VALUE_BYTES` 4096 would be hundreds of MiB if properties were filled. **MUST** atomise (MN-REQ-02.2) and keep HostSearchBridge locator-only so sessions stay in tens of MiB. A hard `MEMNET_MAX_SESSION_BYTES` meter is **not** shipped — this is an expected size, not a live gauge.
+CPython’s own RSS is already tens of MiB; the fit is **session payload**. Typical atomised missions sit in a **few MiB**. Row caps alone do **not** guarantee the budget: `MEMNET_MAX_ROWS` 5000 × `MEMNET_MAX_VALUE_BYTES` 4096 would be hundreds of MiB if properties were filled. **MUST** atomise (MN-REQ-02.2); HostSearchBridge locator-only. A hard `MEMNET_MAX_SESSION_BYTES` meter is **not** shipped.
 
-If a graph grows toward “the archive”, it has left MemNet and become a cabinet or a RAG index — downstream, not this repo.
+If a graph becomes the **library**, it has left this role (cabinet or RAG index — downstream).
 
 ## Decision
 
