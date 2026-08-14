@@ -82,6 +82,26 @@ Other mechanisms (research contrast — **not** MemNet core):
 | **LLM outside retrieve** | Sibling tool (RAGFlow grain); reject `generate` *on* MemNet. |
 | **Verify** | Grep/LSP/parser after locators (MN-REQ-10.7). |
 
+### Role vs big RAG tools — expected size
+
+RAGFlow, LangChain, Meilisearch, Pinecone, Neo4j-as-RAG already own **corpus → hits → (often) prose**. MemNet is not in that race.
+
+**Role:** the **mission scratch graph** those tools do not provide: shared session id, goldfish `pin_map`, gated mutate, Multitask handoff. After a big RAG tool returns hits, MemNet holds *which* locators were verified and *what* the task still is. It sits **between** LLM calls and data search (MN-REQ-00), same as README: not Neo4j, not EvidenceCentre.
+
+**Expected size (stay small):**
+
+| Axis | Expectation | Not |
+|------|-------------|-----|
+| Product | Engine + generic MCP (`memnet-llm` / `memnet-mcp`) | Context engine, chunker, embedder, chat UI |
+| Runtime | In-process first; optional local serve | 16 GB Docker + ES + embedding models |
+| Goldfish emit | Depth ~2, **50** rows (`DEFAULT_QUERY_MAX_ROWS`) | Unbounded retrieve / chunk pages |
+| Session store | Cap **5000** non-law rows (`MEMNET_MAX_ROWS`) | Millions of vectors |
+| Semantic grain | Tens–hundreds of **atoms** per mission (TSK/USR/MOD/SYM…) | The corpus itself |
+| Time | Session TTL / mission length | Permanent knowledge base |
+| Team | One library peers `pin_map` | Platform with ingestion pipelines |
+
+If a graph grows toward “the archive”, it has left MemNet and become a cabinet or a RAG index — downstream, not this repo.
+
 ## Decision
 
 Host retrieval (Cursor index, docs MCP, vector store, EvidenceCentre librarian) **MAY** sit in an optional **`HostSearchBridge`** nest **outside** `MemNetSystem`. Soft children propose **locators**. Hard commit **reuses** shipped `MutateGate` / Path-B `PinMapIngest_*` (no second absorb engine). Skipping the nest is valid (goldfish `pin_map` + grep / LSP) — Path A analogue.
