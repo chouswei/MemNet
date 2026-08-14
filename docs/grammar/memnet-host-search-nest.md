@@ -9,6 +9,79 @@
 
 MN-REQ-00: MemNet is working memory, **not** the search corpus. It sits *between* LLM pipelines and data searching. This file names the **host** side of that cut as a nest — same brace as ImportGuard / `AgentShapedRead` (parent has no single `implemented=true`; flags live on children).
 
+## Problem statement (research)
+
+Five questions for [#77](https://github.com/chouswei/MemNet/issues/77). This nest is the MemNet-side answer; RAG products answer a *different* problem (corpus → prompt).
+
+### 1. What problem we want to solve
+
+An LLM turn needs **two kinds of bounded context**, and they must not be fused:
+
+| Need | Failure if missing |
+|------|--------------------|
+| **Mission working memory** | Ids, tasks, constraints, verified locators vanish when chat scrolls (goldfish). |
+| **Corpus lookup** | The model invents, or the host dumps a manual / repo / feed into the prompt (tokens + hallucination). |
+
+MN-REQ-00: save wall-clock and tokens **while keeping factual accuracy**. The product problem is: *get the agent from “I need a fact in a haystack” to “I have a copyable id on a pin map” without making MemNet the haystack.*
+
+### 2. Root cause
+
+Three jobs look alike (“put less text in the prompt”) but are different mechanisms:
+
+| Job | Typical mechanism |
+|-----|-------------------|
+| Retrieve | Index / hybrid search / graph `where` → **hits** (chunks or nodes) |
+| Generate | Hits + prompt → **prose** |
+| Remember | Atomised NODE\|EDGE → **shaped `pin_map`** |
+
+Root cause of the confusion: treating retrieve+generate (RAG) as memory, or memory as a search engine. Symptom: `rag_query` on `memnet-mcp`, chunk text on `note=`, `pin_map.generate(prompt)`, LangChain “memory” = MemNet session.
+
+### 3. Where we meet it
+
+| Locus | What happens |
+|-------|----------------|
+| Coding agents | Cursor index / grep vs `MOD`/`SYM` pins (`llm-software-development.md`) |
+| Multitask | Workers re-`pin_map`; must not import a corpus dump (Path B ImportGuard) |
+| Docs / SCPI / RSS | Selective pins vs swallowing the artefact (MN-REQ-11.13) |
+| EvidenceCentre | Librarian soft-gate vs MutateGate (application, not product) |
+| MCP surface | Pressure to add retrieve tools next to `pin_map` |
+| Durable store | Temptation to put vectors in AgensGraph and teach LLM↔cabinet RAG |
+
+### 4. What can solve it (mechanism)
+
+**Split the pipeline; compose at the host.**
+
+```text
+corpus  --retrieve-->  hits (host: Cursor / RAGFlow MCP / Meilisearch / …)
+hits    --atomise--->  locators (agent or host)
+locators --MutateGate-->  session graph
+graph   --pin_map--->  goldfish (MemNet)
+```
+
+MemNet mechanism = **HostSearchBridge** (optional): soft `RagHostHook` proposes locators; hard `LocatorCommit` **reuses** MutateGate / Path-B ingest; skip is valid.
+
+Other mechanisms (research contrast — **not** MemNet core):
+
+| Mechanism | Who | What it solves |
+|-----------|-----|----------------|
+| `generate` on GraphQL type | Neo4j post | Prose from retrieved **graph records** (LLM inside API) |
+| Context engine + `ragflow_retrieval` | RAGFlow | Chunk retrieve as **sibling MCP** |
+| Hybrid FTS+vector / LangChain | Meilisearch list | Pick a **retrieve hop** |
+
+### 5. Principles
+
+| Principle | Rule |
+|-----------|------|
+| **Two products** | Search corpus ≠ working memory (MN-REQ-00). |
+| **Goldfish** | Primary read = bounded shaped `pin_map`, not hits and not chat. |
+| **Write = display** | Same GQL family both ways (ADR-001). |
+| **Pins not dumps** | Locators (`path=` / `qname=` / `document_id`); no chunk bodies (MN-REQ-11.13). |
+| **Soft then hard** | Host hook optional / fail-open; MutateGate always owns the graph. |
+| **Skip is valid** | Path A: grep / ingest / existing pins — no RAG. |
+| **One writer** | Adapter MUST NOT mutate the session; no dual-write to a vector index. |
+| **LLM outside retrieve** | Sibling tool (RAGFlow grain); reject `generate` *on* MemNet. |
+| **Verify** | Grep/LSP/parser after locators (MN-REQ-10.7). |
+
 ## Decision
 
 Host retrieval (Cursor index, docs MCP, vector store, EvidenceCentre librarian) **MAY** sit in an optional **`HostSearchBridge`** nest **outside** `MemNetSystem`. Soft children propose **locators**. Hard commit **reuses** shipped `MutateGate` / Path-B `PinMapIngest_*` (no second absorb engine). Skipping the nest is valid (goldfish `pin_map` + grep / LSP) — Path A analogue.
