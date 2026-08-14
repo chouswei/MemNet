@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
-- **HostSearchBridge trim** — drop ImportGuard leaf copy. Hard path is MutateGate, **not** Absorb (`ImportAbsorb` stays Path-B slice + `id_policy` only). Math in grammar cut to IB + ego k-hop + `depth`/`max_rows`.
+- **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.4.6] - 2026-08-13
 

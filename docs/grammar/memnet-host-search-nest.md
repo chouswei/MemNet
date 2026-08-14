@@ -45,6 +45,34 @@ The session itself is already too big to dump: same *shape* as RAG (which slice 
 
 If the graph becomes the library, it has left this role.
 
+## In-session retrieve: kinds as cues (human memory)
+
+Corpus RAG stays on the host. Inside the session, SCHEMA kinds/tags are an **open cue vocabulary**. Recall is like working memory in a person: a **keyword** cues a cluster, then a **neighbourhood** is reconstructed. House prefixes (`TSK_*`, `MOD_*`, `KYWD`, …) are conventions, not a DBA taxonomy. `KYWD` hubs (daily-news) are one idiom, not a second product.
+
+```text
+keyword cue  -->  find (kind / id / locator)  -->  pin_map(ego)
+```
+
+### First principles
+
+| Principle | What it licenses | What it forbids |
+|-----------|------------------|-----------------|
+| **IB / rate–distortion** | A short token as cue; then a bounded reconstruct (`depth`, `max_rows`) | Dumping the session; embedding the session “to be sure” |
+| **Discrete codebook** | Kinds/tags/ids/locators *are* the code — overlapping cues, like human categories | A second ANN index as the “real” memory |
+| **k-hop reconstruct** | After a hit, ego walk is the polynomial stand-in for “spread of activation” | Unbounded association; Steiner “optimal memory subgraph” |
+| **Empty cue** | Miss → skip / grep / host retrieve | Inventing a node because the keyword felt right |
+| **Working memory ≠ LTM** | Recycle / settle is forgetting on purpose | Growing a session thesaurus into a cabinet |
+| **Jobs stay unfused** | Fuzzy overlap is for **recall keys** only | Blurring kind for **identity** (one primary label) or **ACL** (`labels=` write-scope) or **Absorb** |
+
+So: **no clear boundary among cues** (a pin may answer to `SYM` and to `session`). **Hard boundary among jobs** (retrieve ≠ mutate-scope ≠ absorb). Human LTM (years, interference, false memory) is not the product — goldfish is.
+
+| Cue | Then |
+|-----|------|
+| Token matches a kind, id, or locator | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find |
+| A hit id is in hand | `pin_map` — dimension of the net |
+
+Engine today: one primary GQL label; `tagmap` lists kinds, it is not a topic ontology. Layer `@TAG` pipe stays retired.
+
 ## Math (keep three)
 
 Citations on [#77](https://github.com/chouswei/MemNet/issues/77). **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
@@ -83,6 +111,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Dual-write a vector index and MutateGate.
 - Claim this shipped because ImportGuard or ingest shipped.
 - Call host locator commit **absorb** (that word is `ImportAbsorb` only).
+- Fuse overlapping **recall cues** with identity (primary label), ACL `labels=`, or Absorb.
 
 ## Related
 
@@ -90,5 +119,5 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / math) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` |
-| [`../application-notes/llm-software-development.md`](../application-notes/llm-software-development.md) | Cursor index vs locators |
+| [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |
