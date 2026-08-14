@@ -73,6 +73,8 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 
 Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as available, first-class `PORT` NODE, SCHEMA vocab freeze — see grammar Open items and MN-REQ-12 backlog.
 
+**Host search / RAG:** optional application nest (`HostSearchBridge`) **outside** `MemNetSystem` — [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). **MUST NOT** add `rag_query` to `memnet-mcp` or nest a corpus tool under the product composite.
+
 **GQL:** agent teach/wire only. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). **MUST NOT** revive Layer teach. **M2** accept/emit done; **M2.5** client landed (live cabinet deferred); **M3** in-repo playbook / app-note bodies rewritten to GQL (docs scope).
 
 **AgensGraph / durable GQL store:** **not** deferred forever past 0.5 — scheduled as **M2.5** (right after M2). Backing graph for MemNet sessions / shared LLM working memory — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** claim fully shipped until the live external-cabinet path is proven; client adapter alone is not enough. **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
@@ -87,6 +89,7 @@ Neighbourhood reserve, session ACL / WorkerWriteScope, Path-B ingest as availabl
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
+| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |
 | [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |

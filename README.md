@@ -2,7 +2,7 @@
 
 Working memory for LLMs. One session graph that agents pin and update — without dumping everything into chat.
 
-That's the whole product idea: a shared scratch space for a mission, not a notepad in the thread. It isn't AgensGraph/Neo4j, and it isn't an app EvidenceCentre — those stay downstream. This repo ships the engine + generic MCP only.
+That's the whole product idea: a shared scratch space for a mission, not a notepad in the thread. It isn't AgensGraph/Neo4j, and it isn't an app EvidenceCentre — those stay downstream. This repo ships the engine + generic MCP only. **Pinned role:** good enough to keep the working set of **a few technical documents** (atoms and locators, not PDF bytes) and re-read it **fast**; tens of MiB typical, **hundreds of MiB still fine**, not a GB RAG library.
 
 Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11.
 
@@ -76,6 +76,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 - Live AgensGraph cabinet (client hydrate/flush exists; live path not claimed)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - Pin-map export / round-trip (MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66)) — Path-B ingest domains are shipped (#64); export is separate
+- Host search / RAG as a MemNet tool — application nest only ([`docs/grammar/memnet-host-search-nest.md`](docs/grammar/memnet-host-search-nest.md))
 
 ## Links
 

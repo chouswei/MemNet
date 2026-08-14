@@ -727,6 +727,67 @@ package MemNetConnections {
     */
   }
 
+  item def RagHit {
+    doc /*
+      APPLICATION PATTERN — bounded host-search hit (not a core graph kind).
+      Locator fields (path=/line=/qname=/skill_id=) plus optional score and
+      a short claim. MUST NOT carry chunk bodies as goldfish memory.
+      See grammar/memnet-host-search-nest.md.
+    */
+    attribute locator : String;
+    attribute kind : String;
+    attribute score : Real;
+    attribute claim : String;
+  }
+
+  item def RagDecision {
+    doc /*
+      APPLICATION PATTERN — soft outcome from RagHostHook:
+      propose | none | skip + short reason. Analogous to ImportGuardDecision
+      (allow|trim|reject) but for corpus lookup, not Path-B slice import.
+      Guard/search chat is never SSOT.
+    */
+    attribute outcome : String;
+    attribute reason : String;
+  }
+
+  item def HostSearchBridge {
+    doc /*
+      APPLICATION NEST only (ImportGuard-shaped; MUST NOT nest under
+      MemNetSystem). Optional HostSearchReceive → RagHostHook (soft:
+      RagPassthrough / HostRagAdapter / hit budget / locator-only emit) →
+      LocatorCommit that REUSES MutateGate / PinMapIngest (hard; not a new
+      absorb engine). Skip is valid (pin_map + grep). Design only — no
+      rag_query MCP. See outputs/host-search-nest-case-study.md and
+      docs/grammar/memnet-host-search-nest.md.
+    */
+  }
+
+  port def RagDecisionOutPort {
+    doc /*
+      APPLICATION PATTERN — emit RagDecision from RagHostHook.
+      MUST NOT nest this flow under MemNetSystem.
+    */
+    out item decision : RagDecision;
+  }
+  port def RagDecisionInPort {
+    doc /*
+      APPLICATION PATTERN — LocatorCommit (MutateGate reuse) consumes
+      RagDecision. Design only.
+    */
+    in item decision : RagDecision;
+  }
+
+  connection def RagDecisionFlow {
+    doc /*
+      APPLICATION PATTERN — HostSearchReceive soft → hard (locator commit).
+      Analogous to ImportGuardDecisionFlow. MUST NOT replace MutateGate.
+      MUST NOT appear on MemNetSystem.
+    */
+    end port source : RagDecisionOutPort;
+    end port sink : RagDecisionInPort;
+  }
+
   // =====================================================================
   // RETIRED / ARCHIVE — as-is traceability only (MUST NOT nest on product path)
   // TierA / Layer accept retired (ADR-001 M2 done). Keep defs for archive/

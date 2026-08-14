@@ -35,6 +35,7 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 |-------|--------|----------|
 | [company-memory-case-study.md](company-memory-case-study.md) | Company analytical SSOT (`COM_*`) | Investor Role D; dual SSOT; analyse loop |
 | [evidence-centre-case-study.md](evidence-centre-case-study.md) | ai-investor EvidenceCentre librarian / MissionDock on SharedLlmMemory | Library / Wanted / Requisition / DelayQueue; soft librarian vs MutateGate |
+| [host-search-nest-case-study.md](host-search-nest-case-study.md) | Host index / RAG as ImportGuard-shaped nest **outside** MemNetSystem | RagHostHook soft → LocatorCommit reuses MutateGate; design only |
 | [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | One RPG beat: pin_map → option → validate → mutate → re-pin_map | Novel-cut goldfish / beat pipeline (GQL only) |
 | [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) | Dual-EDGE `:bind`+ports vs bare relation; law on node; ego `CST_U1` | `BindRelationship` / `LawOnNode` / `PinMapShapedRead` |
 | [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) | Atomise SCPI manual; pin_map one subsection | Doc working set; GQL `:precedes` |

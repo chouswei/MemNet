@@ -175,6 +175,7 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
 - Pin-map export / round-trip (MN-REQ-11.1–11.5 / #66) — ingest is not export
+- Host search / RAG as a MemNet MCP tool — application nest **outside** `MemNetSystem` only (`docs/grammar/memnet-host-search-nest.md`)
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 
