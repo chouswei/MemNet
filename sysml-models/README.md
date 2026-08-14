@@ -38,7 +38,9 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │       └── SessionLifecycle         // session id = SSOT handle
 │   │   │           ├── GraphStore
 │   │   │           ├── GqlCodec             // CIP/oC9 dialect authority
-│   │   │           ├── PinMapShapedRead
+│   │   │           ├── AgentShapedRead      // parent nest (flags on children)
+│   │   │           │   ├── PinMapShapedRead // implemented=true — goldfish
+│   │   │           │   └── BoundedMatchFind // implemented=false — #73
 │   │   │           ├── MutateGate
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
 │   │   │               (TierACodec RETIRED/REJECTED — M2 done; not nested)
@@ -73,7 +75,7 @@ MemNetSystem                                 // SharedLlmMemory product
 
 ## Target subsystems
 
-- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, PinMapShapedRead, MutateGate, SessionLifecycle
+- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, AgentShapedRead (PinMapShapedRead + BoundedMatchFind), MutateGate, SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter **client** hydrate/flush landed; live cabinet external / not claimed
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
@@ -127,7 +129,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL).
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is modelled under **AgentShapedRead** (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish.
 
 ## Property-graph ontology (first-class)
 

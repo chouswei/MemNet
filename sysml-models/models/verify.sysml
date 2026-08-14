@@ -1,13 +1,14 @@
 /*
   MemNet verification cases — MN-REQ-12 Multitask Mode + session import +
-  async parallel. Aligned to outputs/multitask-case-study.md,
-  outputs/session-import-case-study.md,
+  async parallel; MN-REQ-04.6 bounded MATCH find honesty. Aligned to
+  outputs/multitask-case-study.md, outputs/session-import-case-study.md,
   outputs/async-parallel-conflict-case-study.md.
   Group parent MN-REQ-12: MN-VER-12-G00; leaves: S01–S14.
   Inspection / scenario verification against behaviour states and deploy
   doctrine parts; verifies the shipped CapsPolicy ACL cut while retaining
   no-assume checks for full ACL modes. CheapLlmImportGuard shipped
   (#63 / S14; env-gated). Path-B ingest domains + RSV are shipped.
+  BoundedMatchFind modelled not shipped (MN-VER-04-S01 / #73).
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -385,6 +386,37 @@ package MemNetVerification {
     }
   }
 
+  // --- MN-REQ-04.6 bounded MATCH find honesty (#73) ---
+
+  verification def MN_VER_04_S01_BoundedMatchFindNotShipped {
+    doc /*
+      MN-REQ-04.6 — BoundedMatchFind under AgentShapedRead is modelled but
+      not shipped (leftover #73). Honesty gate: find.implemented == false;
+      pinMap.implemented == true remains the default goldfish read.
+      MUST NOT treat pin_map shipped as find shipped. Pin-map Multitask
+      verify MN-VER-12-S03 is unchanged.
+    */
+    attribute verificationId : String = "MN-VER-04-S01";
+
+    subject system : MemNetSystem;
+
+    objective findNotShipped {
+      verify boundedMatchFindReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.shapedRead.find
+          .implemented == false
+          and system.core.transport.inProcess.memory.sessions.shapedRead
+            .find.limitRequired == true
+          and system.core.transport.inProcess.memory.sessions.shapedRead
+            .find.allowTabularReturn == false
+          and system.core.transport.inProcess.memory.sessions.shapedRead
+            .find.variableLengthPathDefault == false
+          and system.core.transport.inProcess.memory.sessions.shapedRead
+            .pinMap.implemented == true
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -403,4 +435,6 @@ package MemNetVerification {
   verification asyncParallelDisjointVerify : MN_VER_12_S13_AsyncParallelDisjoint;
   verification cheapLlmImportGuardVerify
     : MN_VER_12_S14_CheapLlmImportGuard;
+  verification boundedMatchFindNotShippedVerify
+    : MN_VER_04_S01_BoundedMatchFindNotShipped;
 }

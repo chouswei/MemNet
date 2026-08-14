@@ -10,7 +10,9 @@
     ├── AgentMemory                 // session-scoped working set + GQL wire
     │   ├── GraphStore
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
-    │   ├── PinMapShapedRead        // shaped pin_map (Write = display)
+    │   ├── AgentShapedRead         // parent nest (pin_map vs find flags)
+    │   │   ├── PinMapShapedRead    // implemented=true — default goldfish
+    │   │   └── BoundedMatchFind    // implemented=false — leftover #73
     │   ├── MutateGate / SessionLifecycle / Schema / Caps (size + shipped ACL) /
     │   │   NeighbourhoodReserve (RSV) / …
     │   └── (TierACodec RETIRED/REJECTED on product path — M2 done; not nested)
@@ -257,6 +259,9 @@ package MemNet {
       emits bounded shaped openCypher-family subgraph (ShapedSubgraph /
       LivePinMap) — redefined Write = display. Hide recyclable rows;
       depth/row/view caps; prepend engine-law rows.
+      Default agent goldfish read when an ego/anchor id is known.
+      Nested under AgentShapedRead beside BoundedMatchFind — pin_map
+      implemented=true MUST NOT be misread as find shipped.
       Consults CapsPolicy: size/depth/row caps plus the shipped ACL cut when
       session ACL is enabled — who-check, pin_map read permission distinct
       from mutate, and optional SessionBind match. MUST NOT emit raw
@@ -269,6 +274,7 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
     attribute lawPrepend : Boolean = true;
+    attribute implemented : Boolean = true;
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -282,6 +288,55 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
+  }
+
+  part def BoundedMatchFind {
+    doc /*
+      Bounded MATCH find when there is no ego/anchor id, or when pin_map
+      caps dropped a needed row (#13). Inputs: label and/or property /
+      locator predicates; LIMIT required (hard). Optional max_rows aligned
+      with MN-REQ-04.3. Emit the same shaped subgraph family as pin_map /
+      mutate (MN-REQ-08.9) — not a binding-table RETURN.
+      MUST NOT: missing LIMIT; unbounded MATCH; variable-length path as
+      default; full openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY)
+      as agent teach. Cite openCypher.bnf for MATCH spelling only.
+      Distinct from mutate MATCH (n {id}) SET — this leaf is a read.
+      Nested under AgentShapedRead beside PinMapShapedRead.
+      Modelled; not shipped (implemented=false; leftover #73).
+    */
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlOut : GqlWireOutPort;
+    port errOut : ErrorSignalOutPort;
+    attribute implemented : Boolean = false;
+    attribute leftoverIssue : String = "#73";
+    attribute limitRequired : Boolean = true;
+    attribute emitShapedSubgraph : Boolean = true;
+    attribute allowTabularReturn : Boolean = false;
+    attribute variableLengthPathDefault : Boolean = false;
+    attribute doctrineAsIs : Boolean = false;
+    part caps : CapsPolicy;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
+  }
+
+  part def AgentShapedRead {
+    doc /*
+      OPTIONAL parent nest for agent shaped reads under SessionLifecycle —
+      ImportGuard-style so pin_map shipped cannot be misread as find shipped.
+      Children: PinMapShapedRead (implemented=true; default goldfish when
+      anchored) and BoundedMatchFind (implemented=false; leftover #73).
+      Parent has no single implemented=true — that flag lives on children
+      only. WalkQuery remains a sibling under SessionLifecycle (relation
+      hop lines), not this nest.
+    */
+    port pinMapOut : LivePinMapOutPort;
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlOut : GqlWireOutPort;
+    port errOut : ErrorSignalOutPort;
+    part pinMap : PinMapShapedRead;
+    part find : BoundedMatchFind;
   }
 
   part def WalkQuery {
@@ -369,7 +424,7 @@ package MemNet {
     part gqlWire : GqlCodec;
     part store : GraphStore;
     part mutate : MutateGate;
-    part shapedRead : PinMapShapedRead;
+    part shapedRead : AgentShapedRead;
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
@@ -397,10 +452,13 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
   }
+
+  part def AgentMemory {
     doc /*
       SharedLlmMemory realisation: session-scoped property-graph working
-      memory with GQL wire. Nested GraphStore, GqlCodec, PinMapShapedRead,
-      MutateGate, SessionLifecycle. Brand = MemNet. TierACodec not nested.
+      memory with GQL wire. Nested GraphStore, GqlCodec, AgentShapedRead
+      (PinMapShapedRead + BoundedMatchFind), MutateGate, SessionLifecycle.
+      Brand = MemNet. TierACodec not nested.
     */
     part sessions : SessionLifecycle;
     port sessionOut : SessionIdOutPort;
