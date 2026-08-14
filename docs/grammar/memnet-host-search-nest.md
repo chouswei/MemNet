@@ -7,6 +7,14 @@
 
 MN-REQ-00: MemNet is mission working memory, **not** the search corpus. Host retrieval MAY propose **locators**; **MutateGate** (or Path-B ingest) commits them. Skip is valid.
 
+**Absorb is precise.** `ImportAbsorb` is Path-B only: a member `WorkingMemorySlice` into the lead session under `id_policy` (`keep` / `reject` / `remint`). Host search does **not** absorb. It does not invent a second absorb-shaped leaf.
+
+| Verb | What moves | Hard owner |
+|------|------------|------------|
+| **mutate** | GQL in the *current* session | `MutateGate` |
+| **ingest** | Artefact → deterministic locator pins | `PinMapIngest_*` |
+| **absorb** | Member *slice* → lead SSOT + id policy | `ImportAbsorb` |
+
 ## Cut
 
 An LLM turn needs two bounded contexts. Do not fuse them.
@@ -49,7 +57,7 @@ Citations on [#77](https://github.com/chouswei/MemNet/issues/77). **MUST NOT** t
 
 ## Nest (application; not product)
 
-Do **not** copy ImportGuard leaf-for-leaf. There is no new hard engine verb.
+Do **not** copy ImportGuard leaf-for-leaf. ImportGuard’s hard leaf is **Absorb** — that verb does not apply here.
 
 ```text
 HostSearchBridge          // MUST NOT nest under MemNetSystem
@@ -74,6 +82,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Teach RAG emit as shaped `pin_map`, or `generate` *on* MemNet.
 - Dual-write a vector index and MutateGate.
 - Claim this shipped because ImportGuard or ingest shipped.
+- Call host locator commit **absorb** (that word is `ImportAbsorb` only).
 
 ## Related
 

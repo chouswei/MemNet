@@ -19,7 +19,7 @@ Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-ho
 | **`HostSearchBridge`** | Application nest — **MUST NOT** sit under `MemNetSystem` |
 | **`RagHostHook`** | Optional host plug-in (`implemented=false`) |
 
-Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves — ImportGuard isomorphism was dropped. Hard path is MutateGate already shipped. ImportGuard shipped ≠ this nest shipped. Do not teach `rag_query` on `memnet-mcp`.
+Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Do not teach `rag_query` on `memnet-mcp`.
 
 ```text
 HostSearchBridgePart              // MUST NOT nest under MemNetSystem
