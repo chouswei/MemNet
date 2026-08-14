@@ -76,6 +76,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 - Live AgensGraph cabinet (client hydrate/flush exists; live path not claimed)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - Pin-map export / round-trip (MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66)) — Path-B ingest domains are shipped (#64); export is separate
+- Host search / RAG as a MemNet tool — application nest only ([`docs/grammar/memnet-host-search-nest.md`](docs/grammar/memnet-host-search-nest.md))
 
 ## Links
 

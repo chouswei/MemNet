@@ -8,7 +8,7 @@ Novel-writer is out of scope.
 
 **Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [NEW mint](new-mint-batch-case-study.md).
 
-**Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md).
+**Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md).
 
 ## Product framing (2026-08-13)
 
@@ -36,6 +36,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 |---------|----------------|
 | Company analytical SSOT | `CompanyAnalyticalSsot` (**application pattern section** in connections — not core item zoo) → [company-memory-case-study.md](company-memory-case-study.md) |
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
+| Host search nest (index / RAG) | Application ImportGuard-shaped nest **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
@@ -85,6 +86,8 @@ MemNetSystem                                 // SharedLlmMemory
     │   └── MultitaskWorker[1..*]
     │       └── WorkingMemorySliceExport     // hard: anchors, budget, LAW skip
     └── MultitaskSharedStoreBinding
+
+HostSearchBridge / EvidenceCentre / CompanyMemory  // APPLICATION — MUST NOT nest here
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
@@ -183,5 +186,5 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 - `LocalIpcFlow` when LocalIpcGateway is implemented
 - PinMapIngest (roadmap-only; domainVariant) deterministic locators
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
-- EvidenceCentre / MissionDock / CompanyMemory — application patterns only; MUST NOT nest under MemNetSystem
+- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** — application patterns only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); design [`../../docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md))
 - BoundedMatchFind — modelled under AgentShapedRead (`implemented=false`; MN-REQ-04.6 / #73); pin_map remains default goldfish when anchored

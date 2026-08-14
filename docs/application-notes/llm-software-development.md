@@ -25,6 +25,8 @@ Multi-file coding tasks span many Cursor turns. Chat scrolls away; the agent re-
 | git | Source-of-truth for code history |
 | MemNet | **Cross-turn task state + agent-verified atoms** |
 
+Cursor index (or any host RAG) is the **soft** side of an ImportGuard-shaped application nest — locators may land in MemNet; chunks do not. Design: [`../grammar/memnet-host-search-nest.md`](../grammar/memnet-host-search-nest.md). **MUST NOT** expect a `rag_query` tool on `memnet-mcp`.
+
 MemNet remembers which `TSK` is active, which `MOD` files were touched, which `SYM` locators were confirmed, which `DEC` is still open, and what the user said (`USR`).
 
 ```mermaid
