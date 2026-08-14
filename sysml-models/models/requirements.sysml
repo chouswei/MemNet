@@ -191,9 +191,12 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
-          Pin map, walk, and query SHALL operate over the NODE and EDGE
-          graph. Primary agent read is bounded shaped pin_map wrapping GQL
-          (not unbounded raw MATCH/RETURN dumps).
+          Pin map, walk, bounded MATCH find, and query SHALL operate over the
+          NODE and EDGE graph. Primary agent read when an ego/anchor id is
+          known is bounded shaped pin_map wrapping GQL. When unanchored (no
+          id) or pin_map caps dropped a needed row, bounded MATCH find (hard
+          LIMIT; shaped subgraph emit) MAY apply — still not unbounded raw
+          MATCH/RETURN dumps as goldfish.
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
@@ -262,9 +265,11 @@ package MemNetRequirements {
     requirement def MN_REQ_04_SliceEconomy {
       doc /*
         Group: bounded live pin map for LLM turns (not the whole net);
-        hide recyclable rows; optional relation walk. Engine fixed-law rows
-        (often LAW01-LAW05) are a current realisation, not the contract
-        identity. Legacy name "warm" = live pin map (deprecated alias).
+        hide recyclable rows; optional relation walk; modelled bounded
+        MATCH find when unanchored (MN-REQ-04.6; not shipped). Engine
+        fixed-law rows (often LAW01-LAW05) are a current realisation, not
+        the contract identity. Legacy name "warm" = live pin map
+        (deprecated alias).
       */
       attribute requirementId : String = "MN-REQ-04";
 
@@ -306,6 +311,22 @@ package MemNetRequirements {
           available for relation enumeration without loading the whole graph.
         */
         attribute requirementId : String = "MN-REQ-04.5";
+      }
+
+      requirement def MN_REQ_04_6_BoundedMatchFind {
+        doc /*
+          When no ego/anchor id is known, or when pin_map caps dropped a
+          needed row, the agent surface SHOULD offer a bounded MATCH find:
+          label and/or property/locator predicates with LIMIT required
+          (hard); optional max_rows aligned with MN-REQ-04.3; emit the same
+          shaped subgraph family as pin_map / mutate (MN-REQ-08.9).
+          SHALL NOT: binding-table RETURN as primary emit; missing LIMIT;
+          unbounded MATCH; variable-length path as default; teach full
+          openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY).
+          Distinct from mutate MATCH … SET. Modelled as BoundedMatchFind
+          (implemented=false; leftover #73) — not claimed shipped.
+        */
+        attribute requirementId : String = "MN-REQ-04.6";
       }
     }
 
@@ -1097,6 +1118,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_4_EngineLawPrepend;
   requirement anchoredWalkReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_5_AnchoredWalk;
+  requirement boundedMatchFindReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1295,6 +1318,7 @@ package MemNetRequirements {
     end #derive ::> pinMapDepthAndRowCapsReq;
     end #derive ::> engineLawPrependReq;
     end #derive ::> anchoredWalkReq;
+    end #derive ::> boundedMatchFindReq;
   }
 
   #derivation connection deriveHardCapsLeaves {

@@ -42,7 +42,7 @@ Subset of openCypher-shaped GQL for **agent** I/O. Full ISO GQL DDL / analytic C
 
 ### 1.1 Primary read — `pin_map` envelope (not free `MATCH`)
 
-Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CLI `query pin-map`):
+Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CLI `query pin-map`) when an ego/anchor id is known:
 
 | Input | Meaning | Default / notes |
 |-------|---------|-----------------|
@@ -54,6 +54,8 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
 
 **Emit:** shaped subgraph (§5) — openCypher-family node and relationship lines (or equivalent structured graph), ego-bounded and view-filtered.
+
+**Honesty (modelled, not shipped):** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `AgentShapedRead` for unanchored lookup (label/property/locator + hard `LIMIT`; same shaped-subgraph emit). `implemented=false` / leftover #73 — do **not** teach MATCH…RETURN as goldfish, and do **not** claim find shipped because pin_map is.
 
 ### 1.2 Mutate — openCypher-shaped writes (gated)
 
