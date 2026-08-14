@@ -51,3 +51,4 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Design SSOT |
 | [session-import-case-study.md](session-import-case-study.md) | Product ImportGuard (different nest) |
 | [`docs/application-notes/llm-software-development.md`](../../docs/application-notes/llm-software-development.md) | Cursor index vs locators |
+| [`docs/application-notes/llm-daily-news.md`](../../docs/application-notes/llm-daily-news.md) | `KYWD` hubs group stories |
