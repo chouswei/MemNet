@@ -18,10 +18,12 @@ package MemNetConnections {
 
   item def SharedLlmMemory {
     doc /*
-      Product concept: MemNet is shared working memory of / for LLMs
-      (session-scoped goldfish buffer; multi-agent Multitask). Realised by
-      AgentMemory + SessionLifecycle in deploy — not by chat and not by
-      direct LLM access to the durable store.
+      Product concept: MemNet is mission working memory of / for LLMs
+      (session-scoped goldfish buffer; multi-agent Multitask) — not the
+      search corpus and not GraphRAG. Cue then pin_map; host locators
+      commit via MutateGate. Realised by AgentMemory + SessionLifecycle
+      in deploy — not by chat and not by direct LLM access to the
+      durable store.
     */
   }
 

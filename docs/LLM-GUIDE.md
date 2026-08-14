@@ -5,7 +5,7 @@
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
 
-**You are a goldfish.** Your working memory is unreliable. MemNet is external structured scratch space — durable state lives in the graph for this session, not in chat.
+**You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: cue (kind / id / leftover [#73](https://github.com/chouswei/MemNet/issues/73) find), then `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
 
 ---
 

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "memnet-llm"
 dynamic = ["version"]
-description = "In-memory working-memory graph CLI for LLM agents (goldfish brain scratch space)"
+description = "Mission working memory for LLM agents: session graph + pin_map, not a RAG corpus"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
