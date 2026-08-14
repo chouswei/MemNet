@@ -45,6 +45,29 @@ The session itself is already too big to dump: same *shape* as RAG (which slice 
 
 If the graph becomes the library, it has left this role.
 
+## In-session retrieve: dimension + keyword hubs
+
+Corpus RAG stays on the host. Inside the session, group pins with **keyword/tag hub nodes**, then walk **dimension of the net** (`depth` / `view` / `max_rows`).
+
+**Group = a hub, not a SCHEMA kind.** GQL label / `tagmap` (`TSK`, `MOD`, …) is the *type* of a pin. A grouping keyword is a **NODE** many pins attach to (one hub per token; `MERGE` by id). Same grain as `KYWD` in [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md).
+
+```cypher
+MERGE (k:KYWD {id:'KYWD_session'})
+MERGE (s:SYM {id:'SYM_session_open'})
+MERGE (s)-[:tagged {id:'NEW'}]->(k)
+```
+
+Then `pin_map(anchor='KYWD_session', depth=1)` is the group. Lost the hub id → leftover [#73](https://github.com/chouswei/MemNet/issues/73) find on the token. Known task id → ordinary ego `pin_map` (no hub required).
+
+| Use | Not |
+|-----|-----|
+| EDGE to a reused hub (`:tagged` / `:about`) | New SCHEMA kind per topic |
+| Short token ids (`KYWD_session`) | Prose / chunk bodies on the hub |
+| Recycle hubs with the mission | Session thesaurus as a cabinet |
+| `pin_map` from the hub | Cosine cluster / ANN |
+
+**MUST NOT** treat CLI `tagmap` (kind discovery) as grouping. **MUST NOT** revive Layer `@TAG` pipe as wire. **MUST NOT** store a `tags=` bag of strings as the grouping SSOT — the net is the group.
+
 ## Math (keep three)
 
 Citations on [#77](https://github.com/chouswei/MemNet/issues/77). **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
@@ -83,6 +106,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Dual-write a vector index and MutateGate.
 - Claim this shipped because ImportGuard or ingest shipped.
 - Call host locator commit **absorb** (that word is `ImportAbsorb` only).
+- Use SCHEMA kinds or Layer `@TAG` pipe as topic groups; grouping is a hub NODE.
 
 ## Related
 
@@ -90,5 +114,5 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / math) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` |
-| [`../application-notes/llm-software-development.md`](../application-notes/llm-software-development.md) | Cursor index vs locators |
+| [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` hubs as grouping (application) |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |
