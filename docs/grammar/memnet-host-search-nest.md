@@ -97,8 +97,11 @@ RAGFlow, LangChain, Meilisearch, Pinecone, Neo4j-as-RAG already own **corpus →
 | Goldfish emit | Depth ~2, **50** rows (`DEFAULT_QUERY_MAX_ROWS`) | Unbounded retrieve / chunk pages |
 | Session store | Cap **5000** non-law rows (`MEMNET_MAX_ROWS`) | Millions of vectors |
 | Semantic grain | Tens–hundreds of **atoms** per mission (TSK/USR/MOD/SYM…) | The corpus itself |
+| **RAM (target)** | **Few tens of MiB per session** for the live graph + pin-map buffers (order **10–50 MiB**) | GB-class RAG index / embedding models in-process |
 | Time | Session TTL / mission length | Permanent knowledge base |
 | Team | One library peers `pin_map` | Platform with ingestion pipelines |
+
+CPython’s own RSS is already tens of MiB; the target is **session payload**, not “the whole interpreter is 20 MiB”. Typical atomised missions (short fields, hundreds of rows) sit in a **few MiB**. Row caps alone do **not** guarantee the budget: `MEMNET_MAX_ROWS` 5000 × `MEMNET_MAX_VALUE_BYTES` 4096 would be hundreds of MiB if properties were filled. **MUST** atomise (MN-REQ-02.2) and keep HostSearchBridge locator-only so sessions stay in tens of MiB. A hard `MEMNET_MAX_SESSION_BYTES` meter is **not** shipped — this is an expected size, not a live gauge.
 
 If a graph grows toward “the archive”, it has left MemNet and become a cabinet or a RAG index — downstream, not this repo.
 
