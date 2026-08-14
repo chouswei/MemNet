@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
-- **Keyword/tag cues (design)** — in-session grouping is SCHEMA-kind vocabulary, fuzzy like human memory; find by keyword then `pin_map`. No hard kind/group split; no ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
+- **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.4.6] - 2026-08-13
 

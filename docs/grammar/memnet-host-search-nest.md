@@ -111,7 +111,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Dual-write a vector index and MutateGate.
 - Claim this shipped because ImportGuard or ingest shipped.
 - Call host locator commit **absorb** (that word is `ImportAbsorb` only).
-- Draw a hard wall among **recall cues**; keep walls for identity, ACL `labels=`, and Absorb.
+- Fuse overlapping **recall cues** with identity (primary label), ACL `labels=`, or Absorb.
 
 ## Related
 
