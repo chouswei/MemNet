@@ -2,7 +2,7 @@
 name = "memnet"
 repo = "MemNet"
 version = "0.4.6"
-description = "In-memory working-memory graph for LLM agents (goldfish brain scratch space)"
+description = "Mission working memory for LLM agents: session graph + pin_map, not a RAG corpus"
 
 # No pcba-libs pins — software-only system (see LAYOUT.md).
 # sysml-models/libs/omg: local junction until [deps.sysml_libs] is pinned.

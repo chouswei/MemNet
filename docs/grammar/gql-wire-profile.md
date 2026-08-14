@@ -19,6 +19,7 @@
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (anchor, depth, view budget) that wraps GQL internally and emits a shaped subgraph. |
 | **MemNet buffer** | Sessions, budgets, Multitask graph owner stay MemNet. Thin Cypher-relay-only is out. |
+| **Not the corpus** | MemNet is working memory, not RAG / GraphRAG. Host search MAY propose locators; in-session recall is serial cue then `pin_map`. |
 
 ### External dialect authority
 
