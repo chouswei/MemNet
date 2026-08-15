@@ -1,7 +1,8 @@
 # Host search (design)
 
 **Status:** design only — **not** shipped. No `rag_query` MCP; no embeddings in the engine.  
-**Research:** [#77](https://github.com/chouswei/MemNet/issues/77).  
+**Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math).  
+**Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
 
@@ -93,15 +94,15 @@ Read the retrieve functions. Steal the *shape*; reject the *haystack*.
 
 Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG.
 
-## Math (keep three)
+## Math (product SSOT above this nest)
 
-Citations on [#77](https://github.com/chouswei/MemNet/issues/77). **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
+Product equations and the two-operator cut live in [`math-skeleton.md`](math-skeleton.md) — **above** this research note and [#77](https://github.com/chouswei/MemNet/issues/77). Do not thicken this file with a paper pile. Citations stay on #77. **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
 
-| Principle | In MemNet |
-|-----------|-----------|
-| **Information bottleneck** | `pin_map` compresses the session given an anchor. Skip = empty extra retrieve. |
-| **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a known id is the polynomial stand-in. |
-| **Cardinality / diameter** | `max_rows` and `depth` are the budget. Relations are the metric, not cosine. |
+| Principle | In MemNet (pointer) |
+|-----------|---------------------|
+| **Information bottleneck** | `Recall` compresses the session given cue \(q\). Skip = empty extra retrieve. |
+| **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a seed is the polynomial stand-in. |
+| **Cardinality / diameter** | `max_rows` and `depth` are the budget. Metric is hops, not cosine. |
 
 ## Nest (application; not product)
 
@@ -140,6 +141,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 | Path | Role |
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
-| [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` |
+| [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
+| [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |

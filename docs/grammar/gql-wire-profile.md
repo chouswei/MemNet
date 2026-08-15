@@ -56,7 +56,7 @@ Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents
 
 **Emit:** shaped subgraph (§5) — openCypher-family node and relationship lines (or equivalent structured graph), ego-bounded and view-filtered.
 
-**Honesty (modelled, not shipped):** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `AgentShapedRead` for unanchored lookup (label/property/locator + hard `LIMIT`; same shaped-subgraph emit). `implemented=false` / leftover #73 — do **not** teach MATCH…RETURN as goldfish, and do **not** claim find shipped because pin_map is.
+**Honesty (modelled, not shipped):** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `Recall` / `AgentShapedRead` (parent `RecallCommit`). Same Recall operator; seed rule differs (known id vs bounded MATCH + hard `LIMIT`; same shaped-subgraph emit). `implemented=false` / leftover #73 — do **not** teach MATCH…RETURN as goldfish, and do **not** claim find shipped because pin_map is. Product math: [`math-skeleton.md`](math-skeleton.md).
 
 ### 1.2 Mutate — openCypher-shaped writes (gated)
 
@@ -229,6 +229,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path; dialect = GQL |
 | [`gql-model-exam.md`](gql-model-exam.md) | SysML nesting exam |
+| [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (no engine cut) |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |

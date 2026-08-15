@@ -16,7 +16,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Python packaging | `pyproject.toml` | — |
 | Layout adaptation notes | `LAYOUT.md` | — |
 | SysML models | `sysml-models/` | — |
-| Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT) | developers |
+| Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT; `math-skeleton.md` = 0.5 Recall/Commit math) | developers |
 | Field formulas (design; formula-as-EDGE) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
 | Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` (archive: former multi-layer Layer doc) | developers |
 | Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |

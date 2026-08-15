@@ -733,9 +733,10 @@ package MemNetConnections {
     doc /*
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
       RagHostHook proposes locators; existing MutateGate / PinMapIngest
-      commits. Skip is valid. MUST NOT call this absorb (ImportAbsorb is
-      Path-B slice + id_policy only). Design only — no rag_query MCP.
-      See grammar/memnet-host-search-nest.md.
+      commits (Commit id-mint). Skip is valid. MUST NOT call this absorb
+      (ImportAbsorb is Path-B slice + id_policy only). Design only — no
+      rag_query MCP. Product math sits above this research:
+      docs/grammar/math-skeleton.md. See grammar/memnet-host-search-nest.md.
     */
   }
 

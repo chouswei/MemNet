@@ -10,12 +10,16 @@
     ├── AgentMemory                 // session-scoped working set + GQL wire
     │   ├── GraphStore
     │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
-    │   ├── AgentShapedRead         // parent nest (pin_map vs find flags)
-    │   │   ├── PinMapShapedRead    // implemented=true — default goldfish
-    │   │   └── BoundedMatchFind    // implemented=false — leftover #73
-    │   ├── MutateGate / SessionLifecycle / Schema / Caps (size + shipped ACL) /
-    │   │   NeighbourhoodReserve (RSV) / …
-    │   └── (TierACodec RETIRED/REJECTED on product path — M2 done; not nested)
+    │   ├── RecallCommit            // 0.5 cut: TWO operators only
+    │   │   ├── Recall              // seed(q)+k-hop expand; empty seed ⇒ skip
+    │   │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
+    │   │   │       ├── PinMapShapedRead    // implemented=true — goldfish
+    │   │   │       └── BoundedMatchFind    // implemented=false — leftover #73
+    │   │   └── Commit              // ONE gate; mutate/ingest/absorb = id rules
+    │   │       ├── MutateGate
+    │   │       └── NeighbourhoodReserve // RSV lease — not a third API
+    │   ├── SessionLifecycle / Schema / Caps (size + shipped ACL) / …
+    │   └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
@@ -77,10 +81,11 @@ package MemNet {
       configured. sessionId is a secret capability and never waives mutate.
       engineAclShipped=true. MutateGate and PinMapShapedRead apply the
       engine ACL cut; SessionHandoff carries the capability and scope.
-      NeighbourhoodReserve (RSV, llm_id + TTL) is nested under SessionLifecycle
-      (MN-REQ-12.13). Path-B PinMapIngest and full private/shared/open
-      session_token modes WAIT — not this cut. No EvidenceCentre /
-      MissionDock / CompanyMemory / HostSearchBridge nest under MemNetSystem.
+      NeighbourhoodReserve (RSV, llm_id + TTL) is a lease nested under
+      Commit / SessionLifecycle (MN-REQ-12.13) — not a third operator.
+      Path-B PinMapIngest_* domains shipped; full private/shared/open
+      session_token modes WAIT. No EvidenceCentre / MissionDock /
+      CompanyMemory / HostSearchBridge nest under MemNetSystem.
     */
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
@@ -160,10 +165,12 @@ package MemNet {
   part def TierACodec {
     doc /*
       RETIRED / REJECTED on product path (ADR-001 M2 **done**): former Layer /
-      Tier A NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a). MutateGate
-      rejects with legacy_dialect_retired. MUST NOT be nested as accept or
-      1.x teach. Kept for archive/tests / as-is traceability only — not a
-      “remove in M2” TODO. Primary wire is GqlCodec.
+      Tier A NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a / memnet.layer).
+      MutateGate rejects with legacy_dialect_retired. MUST NOT be nested as
+      accept or 1.x teach. Hierarchical reconstruct (Recall k-hop) is NOT
+      Layer dialect. Leftover retire-from-wheel: modules may remain on disk
+      for archive/tests; MUST NOT silently delete in the math-skeleton PR.
+      Primary wire is GqlCodec.
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
@@ -172,6 +179,8 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     attribute productPathRetired : Boolean = true;
     attribute mustNotNestOnProductPath : Boolean = true;
+    attribute leftoverIssue : String = "retire-from-wheel";
+    attribute deleteThisPr : Boolean = false;
   }
 
   part def LegacyPipeImport {
@@ -266,8 +275,10 @@ package MemNet {
       LivePinMap) — redefined Write = display. Hide recyclable rows;
       depth/row/view caps; prepend engine-law rows.
       Default agent goldfish read when an ego/anchor id is known.
-      Nested under AgentShapedRead beside BoundedMatchFind — pin_map
-      implemented=true MUST NOT be misread as find shipped.
+      Nested under Recall / AgentShapedRead beside BoundedMatchFind —
+      pin_map implemented=true MUST NOT be misread as find shipped.
+      Same Recall operator as leftover BoundedMatchFind; seed rule differs
+      (known id vs bounded MATCH).
       Consults CapsPolicy: size/depth/row caps plus the shipped ACL cut when
       session ACL is enabled — who-check, pin_map read permission distinct
       from mutate, and optional SessionBind match. MUST NOT emit raw
@@ -307,8 +318,10 @@ package MemNet {
       default; full openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY)
       as agent teach. Cite openCypher.bnf for MATCH spelling only.
       Distinct from mutate MATCH (n {id}) SET — this leaf is a read.
-      Nested under AgentShapedRead beside PinMapShapedRead.
-      Modelled; not shipped (implemented=false; leftover #73).
+      Nested under Recall / AgentShapedRead beside PinMapShapedRead —
+      same Recall operator; seed = bounded MATCH (hard LIMIT L), not ego id.
+      Modelled; not shipped (implemented=false; leftover #73). MUST NOT
+      claim find shipped because pin_map shipped.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -329,13 +342,12 @@ package MemNet {
 
   part def AgentShapedRead {
     doc /*
-      OPTIONAL parent nest for agent shaped reads under SessionLifecycle —
-      ImportGuard-style so pin_map shipped cannot be misread as find shipped.
-      Children: PinMapShapedRead (implemented=true; default goldfish when
-      anchored) and BoundedMatchFind (implemented=false; leftover #73).
-      Parent has no single implemented=true — that flag lives on children
-      only. WalkQuery remains a sibling under SessionLifecycle (relation
-      hop lines), not this nest.
+      Honesty nest under Recall so pin_map shipped cannot be misread as
+      find shipped. Children: PinMapShapedRead (implemented=true; default
+      goldfish when anchored) and BoundedMatchFind (implemented=false;
+      leftover #73). Parent has no single implemented=true — that flag
+      lives on children only. WalkQuery remains a sibling under
+      SessionLifecycle (relation hop lines), not this nest.
     */
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -343,6 +355,109 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
+  }
+
+  part def NeighbourhoodReserve {
+    doc /*
+      Control-plane ego lease inside an authorised session (after ACL).
+      Nested under Commit / SessionLifecycle — a lease, not a third
+      operator beside Recall and Commit. Holder = llm_id; lease = ttl_s
+      (wall-clock until); scope = pin_map neighbourhood (anchor + depth).
+      Pin map may surface RSV present lines. Mutate on reserved ids
+      requires matching llm_id. Expired leases auto-release. Module:
+      memnet.neighbourhood_reserve. Design:
+      docs/grammar/memnet-neighbourhood-reserve.md.
+      As-is: implemented (MN-REQ-12.13).
+    */
+    attribute implemented : Boolean = true;
+    attribute holderField : String = "llm_id";
+    attribute ttlField : String = "ttl_s";
+    attribute displayKind : String = "RSV";
+    attribute doctrineAsIs : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
+  }
+
+  part def Recall {
+    doc /*
+      Operator Recall(q) over session graph S (MN-REQ-13). Cue q is a
+      discrete codebook token (id ∪ kind ∪ locator ∪ keyword).
+      seed(q,S) = {q} if q is already a node id; else bounded MATCH on
+      label/property/locator with HARD LIMIT L (BoundedMatchFind; #73).
+      Empty seed ⇒ skip (do not invent a node). Reconstruct X̃ = k-hop
+      ego from the seed, diameter ≤ k, |X̃| ≤ M (max_rows); hide recycled
+      rows. Emit the same shaped GQL subgraph family as mutate (not tabular
+      RETURN). Information bottleneck: X̃ compresses S given q. Metric is
+      hops, not cosine. Hierarchical reconstruct ≠ Layer dialect.
+      Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
+    */
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlOut : GqlWireOutPort;
+    port errOut : ErrorSignalOutPort;
+    attribute emptySeedSkip : Boolean = true;
+    attribute hopMetric : String = "hops";
+    attribute cosineMetric : Boolean = false;
+    part shapedRead : AgentShapedRead;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  }
+
+  part def Commit {
+    doc /*
+      Operator Commit(Δ) — ONE gate. mutate / ingest / absorb are id-mint
+      rules, not three product verbs. Default: client NEW → engine id
+      (MutateGate / IdAllocator). Ingest: deterministic locator id from
+      artefact (PinMapIngest_* under PinMapRoadmap — not a second gate).
+      Absorb: Path-B only (ImportAbsorb + WorkingMemorySlice + id_policy
+      keep|reject|remint). Optional ImportGuard / CheapLlmImportGuard stay
+      Path-B soft, fail-open. RSV is a lease nested here, not a third API.
+      HostSearchBridge stays OUTSIDE MemNetSystem. Engine cut not this PR.
+    */
+    port gqlIn : GqlWireInPort;
+    port recordsOut : GraphRecordOutPort;
+    port recordsIn : GraphRecordInPort;
+    port idsOut : AssignedIdOutPort;
+    port errOut : ErrorSignalOutPort;
+    attribute oneGate : Boolean = true;
+    attribute productVerbs : String = "Commit";
+    attribute ingestIsIdRule : Boolean = true;
+    attribute absorbPathBOnly : Boolean = true;
+    part mutate : MutateGate;
+    part reserve : NeighbourhoodReserve;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  }
+
+  part def RecallCommit {
+    doc /*
+      0.5 mechanism parent under SessionLifecycle: TWO operators only —
+      Recall(q) and Commit(Δ). Existing PinMapShapedRead / BoundedMatchFind
+      nest under Recall; MutateGate / NeighbourhoodReserve nest under
+      Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
+      SessionImportReceive as id-mint rules of Commit, not extra operators.
+      HostSearchBridge MUST NOT nest here. Modelled math skeleton; no
+      engine cut in this PR. Docs: docs/grammar/math-skeleton.md.
+    */
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
+    port recordsOut : GraphRecordOutPort;
+    port recordsIn : GraphRecordInPort;
+    port errOut : ErrorSignalOutPort;
+    attribute operatorCount : Integer = 2;
+    attribute hostSearchInsideSystem : Boolean = false;
+    part recall : Recall;
+    part commit : Commit;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
   part def WalkQuery {
@@ -387,33 +502,14 @@ package MemNet {
   // AgentMemory — nested working-memory product heart
   // =====================================================================
 
-  part def NeighbourhoodReserve {
-    doc /*
-      Control-plane ego lease inside an authorised session (after ACL).
-      Holder = llm_id; lease = ttl_s (wall-clock until); scope = pin_map
-      neighbourhood (anchor + depth). Pin map may surface RSV present lines.
-      Mutate on reserved ids requires matching llm_id. Expired leases
-      auto-release. Module: memnet.neighbourhood_reserve. Design:
-      docs/grammar/memnet-neighbourhood-reserve.md.
-      As-is: implemented (MN-REQ-12.13).
-    */
-    attribute implemented : Boolean = true;
-    attribute holderField : String = "llm_id";
-    attribute ttlField : String = "ttl_s";
-    attribute displayKind : String = "RSV";
-    attribute doctrineAsIs : Boolean = false;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
-  }
-
   part def SessionLifecycle {
     doc /*
       Process-wide registry of named sessions with TTL purge; per-session
-      GraphStore + SchemaRegistry + query/mutate facades. Each session id is
-      the pass-by-reference handle for a MissionWorkingSet (SOMETHING).
-      Nested under AgentMemory (SharedLlmMemory). As-is: memnet.registry +
-      session. M2.5 hydrate/flush ports to DurableBuffer — client landed;
-      live cabinet external. NeighbourhoodReserve nested for RSV leases.
+      GraphStore + SchemaRegistry + RecallCommit (Recall + Commit) facades.
+      Each session id is the pass-by-reference handle for a MissionWorkingSet
+      (SOMETHING). Nested under AgentMemory (SharedLlmMemory). As-is:
+      memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
+      client landed; live cabinet external. RSV lease lives under Commit.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -429,19 +525,17 @@ package MemNet {
     part schema : SchemaRegistry;
     part gqlWire : GqlCodec;
     part store : GraphStore;
-    part mutate : MutateGate;
-    part shapedRead : AgentShapedRead;
+    part recallCommit : RecallCommit;
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
-    part reserve : NeighbourhoodReserve;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
-      end port sink ::> mutate.recordsIn;
+      end port sink ::> recallCommit.commit.mutate.recordsIn;
     }
     connection mutateToStore : GraphRecordFlow {
-      end port source ::> mutate.recordsOut;
+      end port source ::> recallCommit.commit.mutate.recordsOut;
       end port sink ::> store.recordsIn;
     }
 
@@ -462,9 +556,10 @@ package MemNet {
   part def AgentMemory {
     doc /*
       SharedLlmMemory realisation: session-scoped property-graph working
-      memory with GQL wire. Nested GraphStore, GqlCodec, AgentShapedRead
-      (PinMapShapedRead + BoundedMatchFind), MutateGate, SessionLifecycle.
-      Brand = MemNet. TierACodec not nested.
+      memory with GQL wire. Nested GraphStore, GqlCodec, RecallCommit
+      (Recall / AgentShapedRead / PinMapShapedRead + BoundedMatchFind;
+      Commit / MutateGate + NeighbourhoodReserve), SessionLifecycle.
+      Brand = MemNet. TierACodec not nested (retire-from-wheel leftover).
     */
     part sessions : SessionLifecycle;
     port sessionOut : SessionIdOutPort;
@@ -807,9 +902,10 @@ package MemNet {
   part def PinMapRoadmap {
     doc /*
       Path-B PinMapIngest nest. Ship order complete for domains: Sysml,
-      Codebase, PcbaAto, SkillsRules (all implemented). Not N-server
-      federation. Export / round-trip (MN-REQ-11.1–11.5) remains separate
-      (#66). As-is module: memnet.pin_map_ingest.
+      Codebase, PcbaAto, SkillsRules (all implemented). Id-mint rule of
+      Commit (deterministic locator ids) — not a second product operator.
+      Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
+      remains separate (#66). As-is module: memnet.pin_map_ingest.
     */
     attribute firstDomain : String = "sysml";
     attribute roadmapOnly : Boolean = false;
@@ -994,7 +1090,9 @@ package MemNet {
       import_slice). Composition of DistinctSessionGate, SliceBudget (on
       export), LawVocabExclude, AclConsultAbsorb, SchemaValidateImport,
       IdPolicyApply (keep|reject|remint), NodesThenEdgesCommit, optional
-      GuardDecisionAtomRecord. Product verb = import. Path A never enters.
+      GuardDecisionAtomRecord. Path-B id-mint rule of Commit (keep|reject|
+      remint) — not a second product operator beside Recall/Commit.
+      Product verb = import. Path A never enters.
       When ImportGuard skipped/disabled, absorb after SessionImportRequest
       + slice alone. Module: memnet.import_absorb.
     */
@@ -1395,14 +1493,14 @@ package MemNet {
 
   part def MemNetSystem {
     doc /*
-      SharedLlmMemory product. Nest: AgentMemory (via core) + Transport + MCP
-      (LLM ↔ MemNet) + DurableBuffer (M2.5) + PinMapRoadmap (all
-      PinMapIngest_* domains shipped) + MultitaskOperatingModel
-      (Coordinator → HandoffEmit / AsyncTaskDispatch / SessionImportReceive;
-      WorkerPool MultitaskWorker[1..*]).
-      TierACodec / LegacyPipeImport RETIRED — MUST NOT nest on product path
-      (M2 done). HostSearchBridge / EvidenceCentre MUST NOT nest here.
-      Only MN-REQ-00 satisfied here.
+      SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
+      two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
+      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit id-mint rules) +
+      MultitaskOperatingModel (Coordinator → HandoffEmit /
+      AsyncTaskDispatch / SessionImportReceive; WorkerPool).
+      TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;
+      MUST NOT nest on product path. HostSearchBridge / EvidenceCentre
+      MUST NOT nest here. Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;

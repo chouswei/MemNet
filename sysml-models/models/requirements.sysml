@@ -8,6 +8,7 @@
     MN-REQ-10          LLM assumed properties + limitation leaves
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
+    MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -193,10 +194,12 @@ package MemNetRequirements {
         doc /*
           Pin map, walk, bounded MATCH find, and query SHALL operate over the
           NODE and EDGE graph. Primary agent read when an ego/anchor id is
-          known is bounded shaped pin_map wrapping GQL. When unanchored (no
-          id) or pin_map caps dropped a needed row, bounded MATCH find (hard
-          LIMIT; shaped subgraph emit) MAY apply — still not unbounded raw
-          MATCH/RETURN dumps as goldfish.
+          known is bounded shaped pin_map wrapping GQL (Recall seed = id).
+          When unanchored (no id) or pin_map caps dropped a needed row,
+          bounded MATCH find (hard LIMIT; shaped subgraph emit) MAY apply
+          (Recall seed = MATCH; leftover #73) — still not unbounded raw
+          MATCH/RETURN dumps as goldfish. Both seeds are one Recall operator
+          (MN-REQ-13).
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
@@ -266,7 +269,9 @@ package MemNetRequirements {
       doc /*
         Group: bounded live pin map for LLM turns (not the whole net);
         hide recyclable rows; optional relation walk; modelled bounded
-        MATCH find when unanchored (MN-REQ-04.6; not shipped). Engine
+        MATCH find when unanchored (MN-REQ-04.6; not shipped). 0.5 names
+        this family Recall(q) (MN-REQ-13); pin_map and leftover find are
+        the same operator with different seed rules. Engine
         fixed-law rows (often LAW01-LAW05) are a current realisation, not
         the contract identity. Legacy name "warm" = live pin map
         (deprecated alias).
@@ -1048,10 +1053,40 @@ package MemNetRequirements {
           spawn turn. Parallel waves SHALL obey MN-REQ-12.5 (disjoint
           anchors or separate sessions; MUST NOT overlapping dual-write).
           When session ACL is enabled, the shipped CapsPolicy ACL
-          hard-rejects mutate outside WorkerWriteScope. Reserve/overlap
-          coordination remains doctrine (see MN-REQ-12.7).
+          hard-rejects mutate outside WorkerWriteScope. RSV lease
+          (MN-REQ-12.13) sits under Commit — not a third operator.
         */
         attribute requirementId : String = "MN-REQ-12.12";
+      }
+    }
+
+    // ----- 0.5 Recall / Commit (math skeleton; engine cut not this PR) -----
+
+    requirement def MN_REQ_13_RecallCommit {
+      doc /*
+        Group (thin 0.5): agent surface is two operators only — Recall(q)
+        and Commit(Δ) — over session graph S with rate cap R. Grammar SSOT:
+        docs/grammar/math-skeleton.md. Does not replace MN-REQ-02.4 / 04.*.
+        Engine/MCP cut SHALL NOT be claimed from this group alone.
+      */
+      attribute requirementId : String = "MN-REQ-13";
+
+      requirement def MN_REQ_13_1_TwoOperators {
+        doc /*
+          SHALL model exactly two product operators: Recall(q) (seed then
+          bounded k-hop reconstruct; empty seed ⇒ skip) and Commit(Δ)
+          (one gate; mutate / ingest / absorb are id-mint rules). RSV SHALL
+          be a lease under Commit / SessionLifecycle, not a third API.
+          HostSearchBridge SHALL remain outside MemNetSystem. Layer / Tier A
+          remain REJECTED on accept (retire-from-wheel leftover; hierarchical
+          reconstruct is not Layer dialect). PinMapShapedRead implemented
+          SHALL NOT be read as BoundedMatchFind shipped (#73).
+          SHALL NOT: rag_query; embeddings; PPR; RRF; GST/Steiner; ANN on
+          the session; free MATCH/RETURN as goldfish; new HostSearchBridge
+          leaves or HIT/RagDecision envelopes; dual-teach GraphQL /
+          LangChain / HiGram as agent wire.
+        */
+        attribute requirementId : String = "MN-REQ-13.1";
       }
     }
   }
@@ -1263,6 +1298,11 @@ package MemNetRequirements {
   requirement neighbourhoodReserveReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
 
+  requirement recallCommitReq
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit;
+  requirement twoOperatorsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
     end #original ::> missionReq;
@@ -1278,6 +1318,7 @@ package MemNetRequirements {
     end #derive ::> llmPropertiesAndLimitsReq;
     end #derive ::> snapshotInteropReq;
     end #derive ::> multitaskModeReq;
+    end #derive ::> recallCommitReq;
   }
 
   // Leaves derive from their group
@@ -1409,6 +1450,12 @@ package MemNetRequirements {
     end #derive ::> noChatOrWholeStoreImportReq;
     end #derive ::> cheapLlmImportGuardSoftReq;
     end #derive ::> hostDrivenAsyncParallelReq;
+    end #derive ::> neighbourhoodReserveReq;
+  }
+
+  #derivation connection deriveRecallCommitLeaves {
+    end #original ::> recallCommitReq;
+    end #derive ::> twoOperatorsReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {
@@ -1484,6 +1531,13 @@ package MemNetRequirements {
   #derivation connection deriveSliceFromNodeEdgeQuery {
     end #original ::> queryOverNodeEdgeGraphReq;
     end #derive ::> sliceEconomyReq;
+  }
+
+  #derivation connection deriveRecallFromSlice {
+    end #original ::> queryOverNodeEdgeGraphReq;
+    end #original ::> sliceEconomyReq;
+    end #derive ::> recallCommitReq;
+    end #derive ::> twoOperatorsReq;
   }
 
   #derivation connection deriveSnapshotFromNodeEdge {

@@ -15,6 +15,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; M2 shipped) |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | One-path / 0.5.0 plan; **Next: M2.5** live cabinet |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
+| [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Nested GQL model exam |
