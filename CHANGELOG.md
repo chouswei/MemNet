@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
+- **SysML wording nits after #82** — MN-VER-13-S01 now reads leftover Layer `deleteThisPr == false` (retire-from-wheel; not nested); coarse nest header places `RecallCommit` under `SessionLifecycle`; ImportAbsorb leaf renamed `nodesThenEdges` so it does not collide with operator `Commit`.
 - **Product description** — mission working memory between LLM pipelines and data search; not RAG / GraphRAG. README, PyPI/`project.toml`, agent playbook, SysML framing.
 - **Roadmap 0.5** — M1/M2/M3 done; next notch = live M2.5 cabinet. ACL / RSV / ingest are 0.4.x, not deferred. Host search / #73 / GraphRAG stay out of the 0.5 engine.
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.

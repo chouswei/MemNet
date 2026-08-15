@@ -426,11 +426,13 @@ package MemNetVerification {
       Honesty: operatorCount == 2; hostSearchInsideSystem == false;
       Commit.oneGate == true; RSV nested under Commit (implemented);
       PinMapShapedRead true / BoundedMatchFind false (#73);
-      TierACodec leftover retire-from-wheel (deleteThisPr == false).
+      Layer leftover retire-from-wheel (leftoverLayer.deleteThisPr == false;
+      MUST NOT nest under MemNetSystem).
     */
     attribute verificationId : String = "MN-VER-13-S01";
 
     subject system : MemNetSystem;
+    subject leftoverLayer : TierACodec;
 
     objective twoOperators {
       verify twoOperatorsReq;
@@ -453,6 +455,9 @@ package MemNetVerification {
             .recall.emptySeedSkip == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.cosineMetric == false
+          and leftoverLayer.deleteThisPr == false
+          and leftoverLayer.leftoverIssue == "retire-from-wheel"
+          and leftoverLayer.mustNotNestOnProductPath == true
       }
     }
   }
