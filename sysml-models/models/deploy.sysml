@@ -8,18 +8,19 @@
   Nesting (coarse → fine):
     MemNetSystem                    // SharedLlmMemory product
     ├── AgentMemory                 // session-scoped working set + GQL wire
-    │   ├── GraphStore
-    │   ├── GqlWire                 // 1.x primary codec (openCypher-shaped)
-    │   ├── RecallCommit            // 0.5 cut: TWO operators only
-    │   │   ├── Recall              // seed(q)+k-hop expand; empty seed ⇒ skip
-    │   │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
-    │   │   │       ├── PinMapShapedRead    // implemented=true — goldfish
-    │   │   │       └── BoundedMatchFind    // implemented=false — leftover #73
-    │   │   └── Commit              // ONE gate; mutate/ingest/absorb = id rules
-    │   │       ├── MutateGate
-    │   │       └── NeighbourhoodReserve // RSV lease — not a third API
-    │   ├── SessionLifecycle / Schema / Caps (size + shipped ACL) / …
-    │   └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
+    │   └── SessionLifecycle        // usage: sessions.recallCommit
+    │       ├── GraphStore
+    │       ├── GqlWire             // 1.x primary codec (openCypher-shaped)
+    │       ├── RecallCommit        // 0.5 cut: TWO operators only
+    │       │   ├── Recall          // seed(q)+k-hop expand; empty seed ⇒ skip
+    │       │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
+    │       │   │       ├── PinMapShapedRead    // implemented=true — goldfish
+    │       │   │       └── BoundedMatchFind    // implemented=false — leftover #73
+    │       │   └── Commit          // ONE gate; mutate/ingest/absorb = id rules
+    │       │       ├── MutateGate
+    │       │       └── NeighbourhoodReserve // RSV lease — not a third API
+    │       ├── Schema / Caps (size + shipped ACL) / …
+    │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     ├── DurableBuffer               // AgensGraphAdapter planned M2.5
@@ -556,9 +557,9 @@ package MemNet {
   part def AgentMemory {
     doc /*
       SharedLlmMemory realisation: session-scoped property-graph working
-      memory with GQL wire. Nested GraphStore, GqlCodec, RecallCommit
-      (Recall / AgentShapedRead / PinMapShapedRead + BoundedMatchFind;
-      Commit / MutateGate + NeighbourhoodReserve), SessionLifecycle.
+      memory with GQL wire. Nested SessionLifecycle holds GraphStore,
+      GqlCodec, RecallCommit (Recall / AgentShapedRead / PinMapShapedRead +
+      BoundedMatchFind; Commit / MutateGate + NeighbourhoodReserve).
       Brand = MemNet. TierACodec not nested (retire-from-wheel leftover).
     */
     part sessions : SessionLifecycle;
@@ -1109,7 +1110,7 @@ package MemNet {
     part acl : AclConsultAbsorb;
     part schema : SchemaValidateImport;
     part idPolicy : IdPolicyApply;
-    part commit : NodesThenEdgesCommit;
+    part nodesThenEdges : NodesThenEdgesCommit;
     part decisionAtom : GuardDecisionAtomRecord;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
