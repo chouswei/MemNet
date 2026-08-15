@@ -20,8 +20,10 @@ package MemNetBehaviour {
   }
   attribute def EvPinMapRead {
     doc /*
-      Fetch shaped pin_map (PinMapShapedRead wraps GQL; emits ShapedSubgraph).
-      Legacy alias: query_warm / PinMapComposer.
+      Fetch shaped pin_map (Recall seed = known id; PinMapShapedRead wraps
+      GQL; emits ShapedSubgraph). Same Recall operator as leftover
+      BoundedMatchFind (#73; seed = bounded MATCH). Legacy alias:
+      query_warm / PinMapComposer.
     */
   }
   attribute def EvWalkRead {
@@ -29,8 +31,9 @@ package MemNetBehaviour {
   }
   attribute def EvMutateGraph {
     doc /*
-      add/update openCypher-shaped GQL batch (primary; may include NEW).
-      Layer / Tier A accept retired (ADR-001 M2).
+      add/update openCypher-shaped GQL batch (Commit gate; may include NEW).
+      Ingest and Path-B absorb are id-mint rules of the same gate, not extra
+      product verbs. Layer / Tier A accept retired (ADR-001 M2).
     */
   }
   attribute def EvSaveSnapshot {

@@ -21,10 +21,10 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…12 (01.7/01.8, 06.4, 12.9–12.12 import + guard + async) |
-| `models/deploy.sysml` | `MemNet` | Nested parts; Multitask lead/dispatch/WorkerPool spine |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit) |
+| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01; MN-VER-13-S01 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Nesting outline (target)
@@ -38,12 +38,16 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │       └── SessionLifecycle         // session id = SSOT handle
 │   │   │           ├── GraphStore
 │   │   │           ├── GqlCodec             // CIP/oC9 dialect authority
-│   │   │           ├── AgentShapedRead      // parent nest (flags on children)
-│   │   │           │   ├── PinMapShapedRead // implemented=true — goldfish
-│   │   │           │   └── BoundedMatchFind // implemented=false — #73
-│   │   │           ├── MutateGate
+│   │   │           ├── RecallCommit         // 0.5: TWO operators only
+│   │   │           │   ├── Recall           // seed + k-hop; empty ⇒ skip
+│   │   │           │   │   └── AgentShapedRead
+│   │   │           │   │       ├── PinMapShapedRead // implemented=true
+│   │   │           │   │       └── BoundedMatchFind // implemented=false #73
+│   │   │           │   └── Commit           // ONE gate; id-mint rules
+│   │   │           │       ├── MutateGate
+│   │   │           │       └── NeighbourhoodReserve // lease, not 3rd API
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
-│   │   │               (TierACodec RETIRED/REJECTED — M2 done; not nested)
+│   │   │               (TierACodec RETIRED/REJECTED — leftover; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade                            // LLM <-> MemNet (GQL)
@@ -75,7 +79,7 @@ MemNetSystem                                 // SharedLlmMemory product
 
 ## Target subsystems
 
-- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, AgentShapedRead (PinMapShapedRead + BoundedMatchFind), MutateGate, SessionLifecycle
+- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter **client** hydrate/flush landed; live cabinet external / not claimed
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
@@ -130,7 +134,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is modelled under **AgentShapedRead** (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish.
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is modelled under **Recall / AgentShapedRead** (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
 
 ## Property-graph ontology (first-class)
 

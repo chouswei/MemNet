@@ -74,7 +74,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 | Host search MAY propose **locators** into MutateGate / ingest; skip is valid | Store embeddings or chunk bodies as the memory surface |
 | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) find is **graph** lookup, not corpus RAG | Run HippoRAG PPR / Graphiti RRF / OpenIE / ANN **inside** the engine |
 
-Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
+Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Math (above #77): [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ---
 
@@ -106,6 +106,7 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
+| [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math (no engine cut) |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5 engine) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |

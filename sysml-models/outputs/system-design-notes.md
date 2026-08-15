@@ -25,7 +25,7 @@ Novel-writer is out of scope.
 **Sequence:** M1 → M2 → **M2.5** → M3.
 
 **Primary codec:** `GqlCodec` (**M2 shipped**) — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
-**Composer:** `PinMapShapedRead` under `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is modelled (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish.
+**Composer:** `PinMapShapedRead` under `Recall` / `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is modelled (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish. Parent nest `RecallCommit` = two operators (Recall + Commit). Math: [`../../docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).
 **Dialect authority:** see [`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) (External dialect authority) and ADR-001.
 
 ## Application patterns (not second products)
@@ -61,9 +61,11 @@ MemNetSystem                                 // SharedLlmMemory
 ├── MemNetCoreLibrary
 │   ├── TransportBoundary
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
-│   │   │     ├── GqlCodec / GraphStore / MutateGate / AgentShapedRead /
+│   │   │     ├── GqlCodec / GraphStore / RecallCommit
+│   │   │     │     Recall / AgentShapedRead /
 │   │   │     │     PinMapShapedRead (shipped) / BoundedMatchFind (not shipped #73)
-│   │   │     └── (TierACodec RETIRED/REJECTED — M2 done; not nested)
+│   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease)
+│   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
 │   └── CliFacade
@@ -155,9 +157,10 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
 | GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
-| PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); shipped ACL read consult when session ACL is enabled; nested under AgentShapedRead (`implemented=true`) |
-| BoundedMatchFind | — | Modelled under AgentShapedRead (`implemented=false`; leftover #73); not engine/MCP |
-| MutateGate | `mutate_gate.py` + `acl.py` | GQL primary; Layer/Tier A rejected; shipped ACL mutate/scope/bind gates when session ACL is enabled |
+| PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
+| BoundedMatchFind | — | Modelled under Recall / AgentShapedRead (`implemented=false`; leftover #73); not engine/MCP |
+| RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
+| MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
 | AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **Client landed**; live cabinet external / not claimed |
 
@@ -187,4 +190,5 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 - PinMapIngest (roadmap-only; domainVariant) deterministic locators
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** — application patterns only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); design [`../../docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md))
-- BoundedMatchFind — modelled under AgentShapedRead (`implemented=false`; MN-REQ-04.6 / #73); pin_map remains default goldfish when anchored
+- BoundedMatchFind — modelled under Recall / AgentShapedRead (`implemented=false`; MN-REQ-04.6 / #73); pin_map remains default goldfish when anchored
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed

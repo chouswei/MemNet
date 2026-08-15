@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **docs/SysML: 0.5 Recall/Commit math skeleton (no engine cut)** — two operators only (`Recall(q)`, `Commit(Δ)`). Grammar: `docs/grammar/math-skeleton.md` (above [#77](https://github.com/chouswei/MemNet/issues/77)). Model: `RecallCommit` nest; MN-REQ-13.1; MN-VER-13-S01. `BoundedMatchFind` remains `implemented=false` (#73). No `rag_query` / embeddings / Layer delete.
+
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
