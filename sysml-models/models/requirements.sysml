@@ -1083,11 +1083,13 @@ package MemNetRequirements {
           SHALL NOT be read as BoundedMatchFind shipped (#73).
           Goldfish SHALL be Shape: the LLM SHALL NOT receive raw session S
           (pin_map depth/row/fan-out caps; hide recycled). Goldfish SHALL
-          interact only with relevant slices: pin topic egos on S (kind /
-          KYWD / TSK / locator / id), then Recall neighbourhoods. Several
-          topics SHALL be serial pin_map under the row budget — not a fused
-          ranker. Goldfish SHALL emit a new shaped Δ; the session SHALL take
-          it via Commit (mutate in the current session). SHALL NOT call that
+          interact only with relevant slices. Prefer one pin_map on the
+          live TSK (HiAgent current subgoal). Extra topics: at most one
+          view=shell survey, then interior on the task — SHALL NOT default
+          to N serial full maps (duplicate LAW / overlap). Seed set |Q|≤L
+          SHALL union k-hop under one M (not Path-B M×anchors). Goldfish
+          SHALL emit a sparse Δ (NEW/SET only; SHALL NOT echo the fetched
+          slice); the session SHALL take it via Commit. SHALL NOT call that
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
           id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.

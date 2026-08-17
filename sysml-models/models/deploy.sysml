@@ -244,7 +244,8 @@ package MemNet {
   part def MutateGate {
     doc /*
       Orchestrates GQL parse -> schema validate -> NEW mint -> strict
-      add/update into GraphStore -> assigned ids + ack. Owns IdAllocator;
+      add/update into GraphStore -> assigned ids + ack. Goldfish OUT Δ
+      lands here (current session) — not ImportAbsorb. Owns IdAllocator;
       uses sibling SchemaRegistry / GqlCodec / GraphStore via AgentMemory
       wiring. Layer/Tier A accept retired (M2). Consults CapsPolicy: size
       caps (as-is) plus the shipped CapsPolicy ACL cut when session ACL is
@@ -277,9 +278,10 @@ package MemNet {
       depth/row/view caps; prepend engine-law rows.
       Default agent goldfish read when an ego/anchor id is known.
       Product compression = Shape (Recall X̃ of session S) — not host Snap
-      (corpus locators). Goldfish IN: pin topic egos then fetch these
-      slices. LLM MUST NOT see raw S; depth/row/fan-out caps plus hide
-      recycled are the budget. Nested under Recall /
+      (corpus locators). Goldfish IN: prefer one live TSK ego; optional
+      view=shell survey. As-is compose is one anchor. LLM MUST NOT see
+      raw S; depth/row/fan-out caps plus hide recycled are the budget.
+      Nested under Recall /
       AgentShapedRead beside BoundedMatchFind — pin_map implemented=true
       MUST NOT be misread as find shipped. Same Recall operator as leftover
       BoundedMatchFind; seed rule differs (known id vs bounded MATCH).
@@ -392,17 +394,16 @@ package MemNet {
       bounded MATCH on label/property/locator with HARD LIMIT L
       (BoundedMatchFind; #73); else Peak_L if q is the topology cue
       (modelled, not shipped). Empty seed ⇒ skip (do not invent a node).
-      Reconstruct X̃ = k-hop ego from the seed (Shape / goldfish): diameter
-      ≤ k, |X̃| ≤ M (max_rows); hide recycled rows. Goldfish IN = those
-      slices only. Pin topic tokens on S (kind / KYWD / TSK / locator /
-      id) as egos, then fetch neighbourhoods; several topics = serial
-      pin_map under budget, not RRF. Host Snap stays on RagHostHook
-      (outside MemNetSystem). In-session TSK already on S: seed then
-      pin_map — MUST NOT ANN S. Emit the same shaped GQL subgraph family
-      as mutate (not tabular RETURN). Information bottleneck: X̃ compresses
-      S given q. Metric is hops, not cosine. Hierarchical reconstruct ≠
-      Layer dialect. Grammar SSOT: docs/grammar/math-skeleton.md. Engine
-      cut not this PR.
+      Reconstruct X̃ = k-hop from seed set Q (|Q|≤L) under ONE M
+      (not M×|Q|; Path-B import budget is different). Hide recycled.
+      Goldfish IN = that slice. Prefer one live TSK ego; extra topic
+      survey = view=shell then TSK interior — not N serial full maps.
+      Multi-ego union-under-M is modelled leftover (engine compose is
+      one anchor). Sparse Δ out via Commit (MUST NOT echo X̃; MUST NOT
+      Absorb). Host Snap stays on RagHostHook (outside MemNetSystem).
+      Empty seed ⇒ skip. Emit the same shaped GQL subgraph family as
+      mutate. Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut
+      not this PR.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -412,6 +413,8 @@ package MemNet {
     attribute cosineMetric : Boolean = false;
     attribute compressionKind : String = "shape";
     attribute snapOnSession : Boolean = false;
+    attribute unionUnderOneM : Boolean = true;
+    attribute goldfishBudgetTimesAnchors : Boolean = false;
     part shapedRead : AgentShapedRead;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -427,11 +430,12 @@ package MemNet {
       (MutateGate / IdAllocator). Ingest: deterministic locator id from
       artefact (PinMapIngest_* under PinMapRoadmap — not a second gate).
       Absorb: Path-B only (ImportAbsorb + WorkingMemorySlice + id_policy
-      keep|reject|remint). Goldfish OUT = Δ via this gate (mutate in the
-      current session) — colloquial “session absorbs the new slice” is
-      Commit, not ImportAbsorb. Optional ImportGuard / CheapLlmImportGuard
-      stay Path-B soft, fail-open. RSV is a lease nested here, not a third
-      API. HostSearchBridge stays OUTSIDE MemNetSystem. Engine cut not this PR.
+      keep|reject|remint). Goldfish OUT = sparse Δ via this gate (NEW/SET
+      only; MUST NOT echo the fetched pin_map). Colloquial “session
+      absorbs the new slice” is Commit, not ImportAbsorb. Optional
+      ImportGuard / CheapLlmImportGuard stay Path-B soft, fail-open. RSV
+      is a lease nested here, not a third API. HostSearchBridge stays
+      OUTSIDE MemNetSystem. Engine cut not this PR.
     */
     port gqlIn : GqlWireInPort;
     port recordsOut : GraphRecordOutPort;
@@ -443,6 +447,8 @@ package MemNet {
     attribute ingestIsIdRule : Boolean = true;
     attribute absorbPathBOnly : Boolean = true;
     attribute goldfishWriteback : String = "commit";
+    attribute sparseDelta : Boolean = true;
+    attribute echoFetchedSlice : Boolean = false;
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
 

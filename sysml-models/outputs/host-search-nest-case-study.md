@@ -36,7 +36,9 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 
 **Path C (in-session TSK; graph too large to dump):** the “new” task is already a `TSK` on \(S\). Do not Snap \(S\). `read_list(tag=TSK, active_only=True)` or hub `:owns`/`:next` → `pin_map(anchor=TSK_…, depth=2, max_rows=50)`. Isolated node ⇒ LAW + that `TSK` only — Commit edges if pins exist but are unlinked. Switch: settle the old `TSK` (`delete_on_settle`), then Shape the next ego.
 
-**Path D (pin topics, fetch slices, Commit Δ):** goldfish never sees raw \(S\). Pin topic egos (`KYWD_*`, `TSK_*`, kind/locator hits), serial `pin_map` per topic, reason on those slices only, emit shaped GQL `add`/`update`. The session takes \(\Delta\) via MutateGate. Do **not** send that Δ through `ImportAbsorb`.
+**Path D (pin topics, fetch slices, Commit Δ):** goldfish never sees raw \(S\). Default: one `pin_map` on `TSK_mcp_session`. Blocked: one `view=shell` on a `KYWD`/kind hub, then interior on the `TSK`. Emit sparse GQL `add`/`update` (do not echo the slice; do not `ImportAbsorb`).
+
+**Path E (anti-optimisation):** five full `pin_map`s on overlapping topics → LAW prepended five times, shared neighbours five times. That is the fault note 28 removes. Path-B `M×anchors` is import payload, not goldfish.
 
 ## Counter-examples
 
@@ -52,7 +54,9 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | Local degree peaks as the default goldfish / cluster assignment | Topology cue only (deferred); then `pin_map` with fanout clamp — not Leiden |
 | RAG “snaps topics” *on the session* (embed \(S\)) | Snap is corpus-only; Shape is `pin_map`. Same symptom, different haystack |
 | Goldfish Δ via `ImportAbsorb` | Absorb is Path-B member `WorkingMemorySlice` only; goldfish writeback is Commit |
-| Fuse several topic `pin_map`s with RRF | Serial slices under budget; goldfish is not a ranker |
+| Fuse several topic `pin_map`s with RRF | One \(M\); distance *is* reconstruct; goldfish is not a ranker |
+| \(N\) serial full maps / \(M\times|Q|\) goldfish budget | Duplicate LAW + overlap; Path-B import budget is not goldfish |
+| Echo fetched \(\tilde{X}\) through `add` | `id_exists`; sparse Δ only (Graphiti incremental, not Letta core rewrite) |
 
 ## Related
 

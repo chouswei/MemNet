@@ -70,7 +70,7 @@ session scope
 
 Serial, not fused. A hit becomes the ego; then the neighbourhood is the reconstruct. Empty cue → skip / grep / host — not a second ranker.
 
-**Pin topics, then fetch slices.** Interact with topic tokens already on \(S\) (`KYWD`, kind, `TSK`, locator). Pin those nodes as egos; Shape their neighbourhoods. Several topics ⇒ serial `pin_map` under the row budget — not a fused ranker. Goldfish then emits a **new** shaped \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb (`ImportAbsorb` is Path-B member slice + `id_policy` only).
+**Pin topics, then fetch slices.** Prefer **one** `pin_map` on the live `TSK`. Extra topics: at most one `view=shell` survey, then interior on the task — not \(N\) serial full maps (duplicate LAW / overlap). Seed set \(|Q|\le L\) unions under **one** \(M\) (design; engine is still one `anchor`). Goldfish then emits a **sparse** \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb. Do **not** echo the fetched slice.
 
 **New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, leftover #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
 
@@ -114,6 +114,9 @@ Read the retrieve functions. Steal the *shape*; reject the *haystack*.
 | Letta (f.k.a. MemGPT) core vs archival | Core memory is **prose in the prompt**; archival is a second retrieve hop (typically vectors). | Working set vs cabinet (HiAgent cousin). Recycle keeps goldfish small. | Core-memory blocks as MemNet; archival search on `memnet-mcp`. |
 | LICOD `compute_node_leaders` ([MUNA](https://github.com/Issamfalih/MUNA/blob/master/R/Licod.R)) | Leader iff centrality beats **most** neighbours (paper σ). Then **assign** every node to a leader (community detection). | σ-relative local max as `Peak_L` seeds. Empty leaders → skip. | Vote/Borda assignment; modularity communities as goldfish. Copy the public R inequality blindly (it counts *higher* neighbours). |
 | [k-peak](https://github.com/priyagovindan/kpeak) `get_kpeak_decomposition` (WWW’17) | Repeated degeneracy/`k_core` peel; every node gets a peak number (“mountains”). | Local *regions* not global top-k degree. | Assign the whole session; `nx.k_core` as goldfish; mountain plots in-engine. |
+| [pytorch_geometric `NeighborLoader`](https://pytorch-geometric.readthedocs.io/en/latest/tutorial/neighbor_loader.html) | Seed batch \(B\); sample ≤k neighbours / hop; directed L-hop around **the set**. | Seed **set** + fan-out cap + one reconstruct. | Stochastic sample; GNN aggregators; embeddings as memory. |
+| Graphiti `add_episode` / `bfs_origin_node_uuids` | Incremental episode ingest; optional multi-origin BFS; hybrid search then `node_distance` rerank; `update_communities` / episode-mentions rerank. | Incremental write (sparse Δ). Multi-origin as seed set. Distance **is** `pin_map`. | Hybrid/RRF first; community update; mention-frequency as goldfish. |
+| LightRAG dual-level keywords | LLM extracts high-level (themes) + low-level (entities); vector match; 1-hop gather; hybrid/mix generate. | Two **grains**: shell survey then TSK interior. Empty keywords → skip. | Keyword embeddings; hybrid/mix **in** engine; chunks as `pin_map`. |
 
 Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG. Microsoft GraphRAG **local** search is the closest *corpus* cousin to ego walk — still generate-on-retrieve, still the library haystack.
 
@@ -127,7 +130,7 @@ Product equations and the two-operator cut live in [`math-skeleton.md`](math-ske
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | `max_rows` and `depth` are the budget. Metric is hops, not cosine. |
 | **Snap vs Shape** | Host Snap = corpus locators. Shape = `pin_map`. MUST NOT ANN \(S\). |
-| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = \(\Delta\) via Commit. Pin topics then fetch slices. Not Absorb. |
+| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); live `TSK` first. Not Absorb. |
 
 ## Nest (application; not product)
 
@@ -165,6 +168,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Treat local degree peaks as GraphRAG / density-peak **clustering**, or as a default goldfish instead of anchored `pin_map`.
 - Snap-on-session (embed / ANN \(S\); RAG “to snap topics” *inside* the goldfish).
 - Call goldfish \(\Delta\) **absorb** (that word is `ImportAbsorb` only). Fuse several topic slices with RRF.
+- Serial \(N\) full `pin_map`s as the default (duplicate LAW / overlap). Goldfish budget \(M\times|Q|\). Echo \(\tilde{X}\) through mutate.
 
 ## Related
 
