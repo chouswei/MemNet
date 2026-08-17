@@ -81,7 +81,7 @@ live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> slice X̃
 
 **Pin the topics, then fetch slices.** Topic tokens are already on the graph. Empty topic cue ⇒ skip / grep / host Snap. Engine today: one `anchor` per `pin_map` — default **one** call on the live `TSK`; a second shell call only when blocked.
 
-**Writeback is Commit, not Absorb.** Colloquial “the session absorbs the new slice” = MutateGate in the *current* session. Product **absorb** stays Path-B only.
+**Writeback is Commit, not Absorb.** Colloquial “the session absorbs the new slice” = MutateGate in the *current* session. Product **absorb** stays Path-B only (`ImportAbsorb` + member `WorkingMemorySlice` + `id_policy`). Goldfish \(\Delta\) MUST NOT travel `WorkingMemorySliceExport` / ImportGuard unless this turn *is* Multitask Path-B.
 
 ### Named maths (names only)
 
