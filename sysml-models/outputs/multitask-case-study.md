@@ -9,7 +9,7 @@ Operational doctrine (developers): `docs/multi-agent-sessions.md`. Application a
 **Wire:** GQL / shaped `pin_map` only (ADR-001). No Layer ASCII.  
 **Related:** [session-import-case-study.md](session-import-case-study.md) (path B import), [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md), [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) (MN-REQ-12.2 transport), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md), [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md), [company-memory-case-study.md](company-memory-case-study.md).
 
-## 1. Model examination (fitness)
+## 1. Paradox (model fitness)
 
 ### Purpose
 
