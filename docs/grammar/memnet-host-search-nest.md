@@ -191,4 +191,4 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |
-| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox/paradox goldfish plan |
+| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox; all tests are paradox |

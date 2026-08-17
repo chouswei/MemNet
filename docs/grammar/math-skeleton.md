@@ -96,7 +96,7 @@ live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> slice X̃
 
 Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (retire-from-wheel leftover; `layer.py` not deleted in this PR).
 
-Orthodox = these names as a **base to build from** (rate, codebook, \(k\)-hop, skip, same alphabet, sparse \(\Delta\), two budgets). Paradox validate: [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md). Do **not** train an IB or Steiner solver because a name appears here.
+Orthodox = these names as a **base to build from** (rate, codebook, \(k\)-hop, skip, same alphabet, sparse \(\Delta\), two budgets). **All** examination and test is paradox — [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md). Do **not** train an IB or Steiner solver because a name appears here. Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 
 ---
 
@@ -135,6 +135,6 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Shaped GQL wire; `pin_map` vs find honesty |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Application nest **below** this math |
 | [`../../sysml-models/models/deploy.sysml`](../../sysml-models/models/deploy.sysml) | `RecallCommit` nest |
-| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from + paradox validate plan |
+| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research notes (not product SSOT) |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded MATCH find leftover |

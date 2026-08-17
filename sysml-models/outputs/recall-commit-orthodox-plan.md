@@ -7,7 +7,7 @@
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master`).  
 **Model honesty:** MN-VER-13-S01. **0.5 engine next notch remains live M2.5 cabinet** ([`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md)) — this plan is a leftover **goldfish** track, not a bid to replace that notch.
 
-Orthodox = a theorem you can **build from**. Paradox = stress after the build; resolve by **scope**, not a third operator / `rag_query` / Snap-on-session.
+Orthodox = a theorem you can **build from**. Paradox = **all** examination and test after the build (pytest, MN-VER, V-cases, cousin papers). Resolve by **scope**, not a third operator / `rag_query` / Snap-on-session. There is **no** third kind of work called “exam”. Filename `gql-model-exam.md` is historical paradox, not a second orthodox.
 
 ---
 
@@ -27,13 +27,13 @@ Orthodox = a theorem you can **build from**. Paradox = stress after the build; r
 | Two rate budgets | Snap (host corpus) vs Shape (session) | Design-locked; `RagHostHook.implemented=false` |
 | Path-B ≠ goldfish writeback | Absorb = `ImportAbsorb` + `id_policy` only | Shipped Path-B; MUST NOT send goldfish Δ there |
 
-Load-bearing orthodox: rate, codebook, \(k\)-hop, skip-after-probe, same alphabet, sparse Δ, two budgets. Names-only (do not erect a solver): IB Lagrangian, DPI-as-proof, Pearl blanket, Miller 7±2.
+Load-bearing orthodox: rate, codebook, \(k\)-hop, skip-after-probe, same alphabet, sparse Δ, two budgets. Names-only (do not erect a solver): IB Lagrangian, DPI-as-proof, Pearl blanket, Miller 7±2. Hilbert IR / QQL / ZX-on-Cypher / Gremlin quantum walks are **paradox cousins** (stress), not GQL semantics and not a Hilbert store.
 
 ---
 
-## Paradox validation (scope, not a new product)
+## Paradox (scope, not a new product)
 
-Each case **must pass on the orthodox base**. Fail = wrong resolution (ANN \(S\), RRF, third API).
+Every test below is paradox. Each **must pass on the orthodox base**. Fail = wrong resolution (ANN \(S\), RRF, third API).
 
 | Id | Paradox | Probe (given / do / expect) | Wrong fix |
 |----|---------|-----------------------------|-----------|
@@ -48,7 +48,7 @@ Each case **must pass on the orthodox base**. Fail = wrong resolution (ANN \(S\)
 | **V9** | Raw degree peak = `contains` parent | Ingest tree: PKG/MOD is local max. Live TSK preferred; \(\rho^*\) last (not shipped) | Default goldfish = Peak_L; Leiden |
 | **V10** | Host Snap vs Shape | Locators only; chunk body not on `note=` | Nest HostSearch under `MemNetSystem` |
 
-Runtime tests already covering part of this: `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). **Gaps:** V1 fixture, V3 `read_list`→`pin_map` chain, V4 sparse re-pin, V5 LAW-count, V9 \(\rho^*\) (defer with Peak_L).
+Pytest already covering part of this (still paradox): `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). **Gaps:** V1 fixture, V3 `read_list`→`pin_map` chain, V4 sparse re-pin, V5 LAW-count, V9 \(\rho^*\) (defer with Peak_L). GQL-wire paradox: [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) (stale M2/M3 “next” dropped; live nest is `sysml-models/README.md`).
 
 ---
 
@@ -60,18 +60,23 @@ Do **not** reorder ahead of live M2.5 cabinet for 0.5.0 claim. Goldfish leftover
 
 M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Absorb / RSV. Playbook goldfish loop (one TSK, sparse Δ). Design Snap vs Shape, Peak_L last, HostSearch outside.
 
-### Next that **builds from orthodox** (leftover engine)
+### Leftover **paradox** (tests first)
 
-| Order | Work | Orthodox it erects | Gate |
-|-------|------|--------------------|------|
-| 1 | Pytest for V1, V3, V4, V6 (fixtures; no new MCP) | Isolated ego; probe then Shape; sparse Δ; `id_exists` | CI green; no `rag_query` |
+| Order | Work | Stresses |
+|-------|------|----------|
+| 1 | Pytest for V1, V3, V4, V6 (fixtures; no new MCP) | Isolated ego; probe then Shape; sparse Δ; `id_exists`. CI green; no `rag_query` |
+
+### Leftover **erect** (orthodox construction)
+
+| Order | Work | Orthodox it erects | Paradox gate |
+|-------|------|--------------------|--------------|
 | 2 | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); shaped emit not RETURN | `implemented=true` only with LIMIT tests; MN-VER-13 honesty flips find flag |
 | 3 | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | Must **not** copy Path-B \(M\times\)anchors. Single LAW prepend |
 | 4 | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | Behind explicit cue; never default; no cluster assignment |
 
 ### Must not erect (abandons orthodox)
 
-`rag_query` on `memnet-mcp`; ANN / PPR / RRF / GST in-engine; HostSearch under `MemNetSystem`; goldfish Δ via ImportAbsorb; Peak_L as default goldfish; Layer teach.
+`rag_query` on `memnet-mcp`; ANN / PPR / RRF / GST in-engine; HostSearch under `MemNetSystem`; goldfish Δ via ImportAbsorb; Peak_L as default goldfish; Layer teach; Hilbert / QQL store; Gremlin-walk goldfish.
 
 ### Host Snap (application; not this engine)
 
@@ -79,12 +84,13 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 
 ---
 
-## Verification mapping
+## Paradox mapping (all of these are tests)
 
-| Check | Kind |
-|-------|------|
-| MN-VER-13-S01 | Model: two operators, find not shipped, skip flag, hops not cosine |
-| V1–V10 | Paradox cases above (pytest where engine already exists; playbook for the rest) |
+| Check | Stresses |
+|-------|----------|
+| MN-VER-13-S01 | Two operators, find not shipped, skip flag, hops not cosine |
+| V1–V10 | Cases above (pytest where engine already exists; playbook for the rest) |
+| [`gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-only wire; M2/M3 done |
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
@@ -96,7 +102,8 @@ Done for **this leftover track** when: V1/V3/V4/V6 have pytest; playbook still o
 
 | Path | Role |
 |------|------|
-| [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md) | Product math (names only) |
+| [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md) | Product math (orthodox names) |
+| [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Snap/Shape; after #84 status |
 | [`host-search-nest-case-study.md`](host-search-nest-case-study.md) | Paths A–E |
 | [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | 0.5 one path; leftover vs M2.5 |

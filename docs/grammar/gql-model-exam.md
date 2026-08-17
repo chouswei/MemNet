@@ -1,62 +1,32 @@
-# GQL-wire model exam (post ADR-001 nesting)
+# GQL-wire model check (paradox)
 
-**Status:** model exam after SysML / grammar nesting pass.  
-**Audience:** product developers.  
-**Date:** 2026-08-12.  
-**Scope:** conceptual + SysML model — not engine/MCP implementation.
+**Status:** paradox (stress after the GQL-wire build). Filename `gql-model-exam` is historical — **not** a third doctrine beside orthodox.  
+**Audience:** product developers. British English.  
+**Orthodox (build from):** [`gql-wire-profile.md`](gql-wire-profile.md) + ADR-001.  
+**Paradox SSOT (goldfish leftover):** [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md).  
+**Nesting (live):** [`../../sysml-models/README.md`](../../sysml-models/README.md). Do **not** copy a nest dump here.
 
-**Decision SSOT:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md).  
-**Wire profile SSOT:** [`gql-wire-profile.md`](gql-wire-profile.md).  
-**Nesting:** [`../../sysml-models/README.md`](../../sysml-models/README.md).  
-**Worked domain:** [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md).
+All examination and test of MemNet is **paradox**. Orthodox is only what you erect from (rate, codebook, \(k\)-hop, skip, same alphabet, sparse \(\Delta\), two budgets, GQL-only wire).
 
 ---
 
-## Nesting outline (examined)
+## Paradox (GQL wire)
 
-```text
-MemNetSystem
-├── MemNetCoreLibrary
-│   ├── TransportBoundary
-│   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
-│   │   │     ├── GraphStore
-│   │   │     ├── GqlCodec                 ← 1.x primary wire
-│   │   │     ├── PinMapShapedRead         ← shaped pin_map
-│   │   │     ├── MutateGate
-│   │   │     └── (legacy codecs → remove in M2)
-│   │   ├── LocalIpcGateway
-│   │   └── TcpServeBridge
-│   └── CliFacade
-├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter      ← planned M2.5
-├── PinMapRoadmap
-└── MultitaskOperatingModel
-```
+| Stress | Pass if | Fail if |
+|--------|---------|---------|
+| Dual dialect | Agent teach/accept = GQL only | Layer / Tier A as wire or peer |
+| Write = display | Goldfish = bounded shaped `pin_map` | Unbounded `MATCH`/`RETURN` as primary read |
+| Same alphabet | Mutate and emit share openCypher-shaped family | Second read dialect |
+| Dual EDGE / law | `:bind` + ports; `law` on node | Layer `--bind-->` teach |
+| Milestone honesty | M1/M2/M3 **done**; next 0.5 notch = live M2.5 cabinet | Claim M2 or M3 still “next”; claim 0.5 done on Fake alone |
 
----
-
-## Exam checklist
-
-| Question | Verdict | Notes |
-|----------|---------|-------|
-| **GQL-only wire unambiguous?** | **Pass** | Profile + ADR supersession: no Layer teach/accept. |
-| **Write=display / shaped pin_map?** | **Pass** | `PinMapShapedRead` + shaped subgraph; no raw `RETURN` primary. |
-| **Dual EDGE / law / ports frozen?** | **Pass** | `:bind` + `fromPort`/`toPort`; `law` on node — [`gql-wire-profile.md`](gql-wire-profile.md). |
-| **Gaps?** | **M2 → M2.5 → M3** | As-is Python until M2; durable store adapter **M2.5**; app-note bodies until M3. |
-
----
-
-## Overall verdict
-
-**Pass** for model + M1 profile clarity: GQL is the only agent wire; shaped `pin_map` owns redefined Write = display.
-
-**Next:** **M2** (engine/MCP GQL accept + shaped emit), then **M2.5** durable GQL store adapter, then **M3** in-repo docs.
+**Pass** for the GQL-wire orthodox under this stress. Leftover goldfish paradox (V1–V10, pytest, #73 LIMIT) lives on the plan, not in this file.
 
 ## Related
 
 | Path | Role |
 |------|------|
-| [`gql-wire-profile.md`](gql-wire-profile.md) | M1 SSOT |
+| [`gql-wire-profile.md`](gql-wire-profile.md) | M1 SSOT (orthodox wire) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Next: M2.5 live cabinet |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable store sketch (**M2.5**) |

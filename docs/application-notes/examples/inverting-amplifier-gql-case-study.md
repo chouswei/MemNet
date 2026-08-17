@@ -5,7 +5,7 @@ Work the known inverting op-amp topology through the **post ADR-001** model: ope
 **Brand:** MemNet (Net of Memory). **Not shipped behaviour** — teach sketch aligned with [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
 **Derivation SSOT (math):** [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) §§1–2.  
 **Decision:** [`../../adr/ADR-001-gql-agent-wire.md`](../../adr/ADR-001-gql-agent-wire.md).  
-**Exam:** [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md).  
+**Paradox (GQL wire):** [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) (historical filename).  
 British English. ASCII ids.
 
 ---
@@ -186,5 +186,5 @@ Older ASCII Layer-shaped seeds for the same circuit live under derivation notes 
 | [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation (math) |
 | [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (body M3) |
 | [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | M1 wire SSOT |
-| [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) | Model exam |
+| [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`../../../sysml-models/README.md`](../../../sysml-models/README.md) | Nested SysML outline |
