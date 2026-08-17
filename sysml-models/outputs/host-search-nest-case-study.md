@@ -45,6 +45,7 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | Adapter writes the graph | Two writers |
 | Graphiti RRF or HippoRAG PPR on the session | Corpus hybrid / OpenIE RAG — goldfish is serial cue then `pin_map` |
 | Microsoft GraphRAG global / LightRAG mix in-engine | Static-corpus GraphRAG — library haystack, generate-on-retrieve |
+| Local degree peaks as the default goldfish / cluster assignment | Topology cue only (deferred); then `pin_map` with fanout clamp — not Leiden |
 
 ## Related
 

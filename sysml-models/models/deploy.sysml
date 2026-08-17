@@ -382,10 +382,13 @@ package MemNet {
   part def Recall {
     doc /*
       Operator Recall(q) over session graph S (MN-REQ-13). Cue q is a
-      discrete codebook token (id ∪ kind ∪ locator ∪ keyword).
-      seed(q,S) = {q} if q is already a node id; else bounded MATCH on
-      label/property/locator with HARD LIMIT L (BoundedMatchFind; #73).
-      Empty seed ⇒ skip (do not invent a node). Reconstruct X̃ = k-hop
+      discrete codebook token (id ∪ kind ∪ locator ∪ keyword; optional
+      deferred topology token = local degree peak, #77 note 23 — not a
+      third operator). seed(q,S) = {q} if q is already a node id; else
+      bounded MATCH on label/property/locator with HARD LIMIT L
+      (BoundedMatchFind; #73); else Peak_L if q is the topology cue
+      (modelled, not shipped). Empty seed ⇒ skip (do not invent a node).
+      Reconstruct X̃ = k-hop
       ego from the seed, diameter ≤ k, |X̃| ≤ M (max_rows); hide recycled
       rows. Emit the same shaped GQL subgraph family as mutate (not tabular
       RETURN). Information bottleneck: X̃ compresses S given q. Metric is
