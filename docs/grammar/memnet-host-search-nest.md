@@ -87,7 +87,8 @@ So: **no clear boundary among cues** (a pin may answer to `SYM` and to `session`
 | Cue | Then |
 |-----|------|
 | Token matches a kind, id, or locator | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find |
-| No id/keyword; need cluster representatives | Deferred **local degree peaks** (relative to neighbours) → those ids become egos — [#77](https://github.com/chouswei/MemNet/issues/77) note 23 |
+| No id/keyword | Unsettled `TSK_*` / RSV / last mutate (HiAgent current subgoal) |
+| Still empty; want cluster representatives | Last-resort **typed residual** local max (strip `contains`) — not raw degree — [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25 |
 | A hit id is in hand | `pin_map` — dimension of the net |
 
 Engine today: one primary GQL label; `tagmap` lists kinds, it is not a topic ontology. Layer `@TAG` pipe stays retired.

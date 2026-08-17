@@ -13,7 +13,7 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 
 Session \(S\) is a labelled property graph (NODE | EDGE) with rate cap \(R\) (rows / bytes).
 
-Cue \(q\) is a **discrete codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\), plus an optional **topology** token (local degree peak; deferred, [#77](https://github.com/chouswei/MemNet/issues/77) note 23).
+Cue \(q\) is a **discrete codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (local degree peak) is a **last-resort** optional token — prefer live `TSK` / last mutate; if a peak test is used, count **typed residual** degree (strip `contains`), not raw edge count ([#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25).
 
 Two operators only: \(\mathrm{Recall}(q)\) and \(\mathrm{Commit}(\Delta)\). RSV is a **lease** under Commit, not a third API. Host search stays **outside** `MemNetSystem`.
 
@@ -33,7 +33,7 @@ Two operators only: \(\mathrm{Recall}(q)\) and \(\mathrm{Commit}(\Delta)\). RSV 
 
 Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **not** empty \(q\): it is an explicit codebook token.
 
-**Peak (deferred, names only).** Let \(\rho(v)=\) degree of \(v\) (incident edges; isolates \(\rho=0\)). A **strict local maximum** is \(\rho(v)>\rho(u)\) for every neighbour \(u\). Relative height \(r(v)=\rho(v)/(1+\max_{u\in N(v)}\rho(u))\) ranks peaks when several exist. \(\mathrm{Peak}_{L}\) returns at most \(L\) such ids (hide recycled). Regular / plateau graphs \(\Rightarrow\) empty \(\Rightarrow\) skip. Then the same \(k\)-hop reconstruct as any other seed. **MUST NOT** assign every node to a peak (that is clustering / GraphRAG). Fan-out clamp on reconstruct stays (a star centre is a peak).
+**Peak (deferred, last resort).** Raw degree local-max is a **footgun** on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks (fan effect). Prefer: id → kind/keyword MATCH → unsettled `TSK_*` / RSV / last mutate. If a topology cue is still wanted: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then the same strict / relative local-max and \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. Fan-out clamp stays.
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop ego from the seed, diameter \(\le k\), \(|\tilde{X}| \le M\) (`max_rows`). Hide recycled rows. Emit the **same** shaped GQL subgraph family as mutate — not a tabular `RETURN`.
 
@@ -46,7 +46,7 @@ Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **no
 | **Information bottleneck** | \(\tilde{X}\) compresses \(S\) given \(q\). Skip = empty extra retrieve. |
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; ego from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | \(M\) and \(k\) are the budget. Metric is **hops**, not cosine. |
-| **Local degree peak** (deferred) | Topology cue: relative local max of \(\rho\), then ego hop. Not PageRank, not ANN. |
+| **Local degree peak** (deferred, last) | Typed residual local max of \(\rho^\*\), then ego hop. Not raw `contains`-tree degree. |
 
 Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (retire-from-wheel leftover; `layer.py` not deleted in this PR).
 
