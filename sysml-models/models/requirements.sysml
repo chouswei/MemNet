@@ -1082,12 +1082,18 @@ package MemNetRequirements {
           reconstruct is not Layer dialect). PinMapShapedRead implemented
           SHALL NOT be read as BoundedMatchFind shipped (#73).
           Goldfish SHALL be Shape: the LLM SHALL NOT receive raw session S
-          (pin_map depth/row/fan-out caps; hide recycled). Host Snap
-          (corpus locators via RagHostHook) SHALL stay outside MemNetSystem
-          and SHALL NOT ANN-index the session. In-session task already on
-          S SHALL seed then pin_map (read_list / hub / leftover #73) — not
-          Snap-on-session. Switch-task SHALL settle the old TSK then Shape
-          a new ego — not Peak_L as default.
+          (pin_map depth/row/fan-out caps; hide recycled). Goldfish SHALL
+          interact only with relevant slices: pin topic egos on S (kind /
+          KYWD / TSK / locator / id), then Recall neighbourhoods. Several
+          topics SHALL be serial pin_map under the row budget — not a fused
+          ranker. Goldfish SHALL emit a new shaped Δ; the session SHALL take
+          it via Commit (mutate in the current session). SHALL NOT call that
+          writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
+          id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
+          stay outside MemNetSystem and SHALL NOT ANN-index the session.
+          In-session task already on S SHALL seed then pin_map (read_list /
+          hub / leftover #73) — not Snap-on-session. Switch-task SHALL
+          settle the old TSK then Shape a new ego — not Peak_L as default.
           SHALL NOT: rag_query; embeddings; PPR; RRF; GST/Steiner; ANN on
           the session; free MATCH/RETURN as goldfish; new HostSearchBridge
           leaves or HIT/RagDecision envelopes; dual-teach GraphQL /

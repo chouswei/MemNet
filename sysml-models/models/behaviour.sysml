@@ -21,10 +21,10 @@ package MemNetBehaviour {
   attribute def EvPinMapRead {
     doc /*
       Fetch shaped pin_map (Recall seed = known id; PinMapShapedRead wraps
-      GQL; emits ShapedSubgraph). Compression = Shape of session S — not
-      a dump of S and not host Snap. Same Recall operator as leftover
-      BoundedMatchFind (#73; seed = bounded MATCH). Legacy alias:
-      query_warm / PinMapComposer.
+      GQL; emits ShapedSubgraph). Goldfish IN: pin topic egos on S, then
+      this slice — not a dump of S and not host Snap. Same Recall operator
+      as leftover BoundedMatchFind (#73; seed = bounded MATCH). Legacy
+      alias: query_warm / PinMapComposer.
     */
   }
   attribute def EvWalkRead {
@@ -33,8 +33,10 @@ package MemNetBehaviour {
   attribute def EvMutateGraph {
     doc /*
       add/update openCypher-shaped GQL batch (Commit gate; may include NEW).
-      Ingest and Path-B absorb are id-mint rules of the same gate, not extra
-      product verbs. Layer / Tier A accept retired (ADR-001 M2).
+      Goldfish OUT: the new shaped Δ the session takes — not ImportAbsorb
+      (Path-B WorkingMemorySlice only). Ingest and Path-B absorb are
+      id-mint rules of the same gate, not extra product verbs. Layer /
+      Tier A accept retired (ADR-001 M2).
     */
   }
   attribute def EvSaveSnapshot {

@@ -20,10 +20,12 @@ package MemNetConnections {
     doc /*
       Product concept: MemNet is mission working memory of / for LLMs
       (session-scoped goldfish buffer; multi-agent Multitask) — not the
-      search corpus and not GraphRAG. Cue then Shape (pin_map); host Snap
-      locators commit via MutateGate. MUST NOT ANN-index the session.
-      Realised by AgentMemory + SessionLifecycle in deploy — not by chat
-      and not by direct LLM access to the durable store.
+      search corpus and not GraphRAG. Goldfish pins topic egos, Shapes
+      slices (pin_map), Commits Δ; host Snap locators also via MutateGate.
+      MUST NOT ANN-index the session. MUST NOT call goldfish writeback
+      Absorb (Path-B ImportAbsorb only). Realised by AgentMemory +
+      SessionLifecycle in deploy — not by chat and not by direct LLM
+      access to the durable store.
     */
   }
 

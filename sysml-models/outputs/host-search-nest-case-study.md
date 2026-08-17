@@ -36,6 +36,8 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 
 **Path C (in-session TSK; graph too large to dump):** the “new” task is already a `TSK` on \(S\). Do not Snap \(S\). `read_list(tag=TSK, active_only=True)` or hub `:owns`/`:next` → `pin_map(anchor=TSK_…, depth=2, max_rows=50)`. Isolated node ⇒ LAW + that `TSK` only — Commit edges if pins exist but are unlinked. Switch: settle the old `TSK` (`delete_on_settle`), then Shape the next ego.
 
+**Path D (pin topics, fetch slices, Commit Δ):** goldfish never sees raw \(S\). Pin topic egos (`KYWD_*`, `TSK_*`, kind/locator hits), serial `pin_map` per topic, reason on those slices only, emit shaped GQL `add`/`update`. The session takes \(\Delta\) via MutateGate. Do **not** send that Δ through `ImportAbsorb`.
+
 ## Counter-examples
 
 | Fault | Why it fails |
@@ -49,6 +51,8 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | Microsoft GraphRAG global / LightRAG mix in-engine | Static-corpus GraphRAG — library haystack, generate-on-retrieve |
 | Local degree peaks as the default goldfish / cluster assignment | Topology cue only (deferred); then `pin_map` with fanout clamp — not Leiden |
 | RAG “snaps topics” *on the session* (embed \(S\)) | Snap is corpus-only; Shape is `pin_map`. Same symptom, different haystack |
+| Goldfish Δ via `ImportAbsorb` | Absorb is Path-B member `WorkingMemorySlice` only; goldfish writeback is Commit |
+| Fuse several topic `pin_map`s with RRF | Serial slices under budget; goldfish is not a ranker |
 
 ## Related
 

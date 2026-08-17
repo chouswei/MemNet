@@ -28,10 +28,12 @@ An LLM turn needs two bounded contexts. Do not fuse them.
 Retrieve, generate, and remember all “put less text in the prompt”. Only the third is MemNet. Symptoms of fusion: `rag_query` on `memnet-mcp`, chunks on `note=`, `pin_map.generate(prompt)`.
 
 ```text
-corpus --(host Snap)--> locators --MutateGate--> session --(Shape pin_map)--> goldfish
+corpus --(host Snap)--> locators --MutateGate--> session
+session topics --(pin egos)--> Shape pin_map --> goldfish slices
+goldfish Δ --Commit--> session
 ```
 
-Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
+Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = those slices; **out** = \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–27.
 
 ## Role (pinned)
 
@@ -67,6 +69,8 @@ session scope
 ```
 
 Serial, not fused. A hit becomes the ego; then the neighbourhood is the reconstruct. Empty cue → skip / grep / host — not a second ranker.
+
+**Pin topics, then fetch slices.** Interact with topic tokens already on \(S\) (`KYWD`, kind, `TSK`, locator). Pin those nodes as egos; Shape their neighbourhoods. Several topics ⇒ serial `pin_map` under the row budget — not a fused ranker. Goldfish then emits a **new** shaped \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb (`ImportAbsorb` is Path-B member slice + `id_policy` only).
 
 **New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, leftover #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
 
@@ -123,6 +127,7 @@ Product equations and the two-operator cut live in [`math-skeleton.md`](math-ske
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | `max_rows` and `depth` are the budget. Metric is hops, not cosine. |
 | **Snap vs Shape** | Host Snap = corpus locators. Shape = `pin_map`. MUST NOT ANN \(S\). |
+| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = \(\Delta\) via Commit. Pin topics then fetch slices. Not Absorb. |
 
 ## Nest (application; not product)
 
@@ -159,6 +164,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Treat Letta core-memory prompt blocks as shaped `pin_map`.
 - Treat local degree peaks as GraphRAG / density-peak **clustering**, or as a default goldfish instead of anchored `pin_map`.
 - Snap-on-session (embed / ANN \(S\); RAG “to snap topics” *inside* the goldfish).
+- Call goldfish \(\Delta\) **absorb** (that word is `ImportAbsorb` only). Fuse several topic slices with RRF.
 
 ## Related
 

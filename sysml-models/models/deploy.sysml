@@ -277,8 +277,9 @@ package MemNet {
       depth/row/view caps; prepend engine-law rows.
       Default agent goldfish read when an ego/anchor id is known.
       Product compression = Shape (Recall X̃ of session S) — not host Snap
-      (corpus locators). LLM MUST NOT see raw S; depth/row/fan-out caps
-      plus hide recycled are the budget. Nested under Recall /
+      (corpus locators). Goldfish IN: pin topic egos then fetch these
+      slices. LLM MUST NOT see raw S; depth/row/fan-out caps plus hide
+      recycled are the budget. Nested under Recall /
       AgentShapedRead beside BoundedMatchFind — pin_map implemented=true
       MUST NOT be misread as find shipped. Same Recall operator as leftover
       BoundedMatchFind; seed rule differs (known id vs bounded MATCH).
@@ -392,13 +393,16 @@ package MemNet {
       (BoundedMatchFind; #73); else Peak_L if q is the topology cue
       (modelled, not shipped). Empty seed ⇒ skip (do not invent a node).
       Reconstruct X̃ = k-hop ego from the seed (Shape / goldfish): diameter
-      ≤ k, |X̃| ≤ M (max_rows); hide recycled rows. Host Snap stays on
-      RagHostHook (outside MemNetSystem). In-session TSK already on S:
-      seed then pin_map — MUST NOT ANN S. Emit the same shaped GQL subgraph
-      family as mutate (not tabular RETURN). Information bottleneck: X̃
-      compresses S given q. Metric is hops, not cosine. Hierarchical
-      reconstruct ≠ Layer dialect. Grammar SSOT:
-      docs/grammar/math-skeleton.md. Engine cut not this PR.
+      ≤ k, |X̃| ≤ M (max_rows); hide recycled rows. Goldfish IN = those
+      slices only. Pin topic tokens on S (kind / KYWD / TSK / locator /
+      id) as egos, then fetch neighbourhoods; several topics = serial
+      pin_map under budget, not RRF. Host Snap stays on RagHostHook
+      (outside MemNetSystem). In-session TSK already on S: seed then
+      pin_map — MUST NOT ANN S. Emit the same shaped GQL subgraph family
+      as mutate (not tabular RETURN). Information bottleneck: X̃ compresses
+      S given q. Metric is hops, not cosine. Hierarchical reconstruct ≠
+      Layer dialect. Grammar SSOT: docs/grammar/math-skeleton.md. Engine
+      cut not this PR.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -423,9 +427,11 @@ package MemNet {
       (MutateGate / IdAllocator). Ingest: deterministic locator id from
       artefact (PinMapIngest_* under PinMapRoadmap — not a second gate).
       Absorb: Path-B only (ImportAbsorb + WorkingMemorySlice + id_policy
-      keep|reject|remint). Optional ImportGuard / CheapLlmImportGuard stay
-      Path-B soft, fail-open. RSV is a lease nested here, not a third API.
-      HostSearchBridge stays OUTSIDE MemNetSystem. Engine cut not this PR.
+      keep|reject|remint). Goldfish OUT = Δ via this gate (mutate in the
+      current session) — colloquial “session absorbs the new slice” is
+      Commit, not ImportAbsorb. Optional ImportGuard / CheapLlmImportGuard
+      stay Path-B soft, fail-open. RSV is a lease nested here, not a third
+      API. HostSearchBridge stays OUTSIDE MemNetSystem. Engine cut not this PR.
     */
     port gqlIn : GqlWireInPort;
     port recordsOut : GraphRecordOutPort;
@@ -436,6 +442,7 @@ package MemNet {
     attribute productVerbs : String = "Commit";
     attribute ingestIsIdRule : Boolean = true;
     attribute absorbPathBOnly : Boolean = true;
+    attribute goldfishWriteback : String = "commit";
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
 
@@ -455,8 +462,10 @@ package MemNet {
       Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
       SessionImportReceive as id-mint rules of Commit, not extra operators.
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
-      corpus, outside) vs Shape (Recall X̃). Modelled math skeleton; no
-      engine cut in this PR. Docs: docs/grammar/math-skeleton.md.
+      corpus, outside) vs Shape (Recall X̃). Goldfish I/O: slice in
+      (Recall), Δ out (Commit); pin topics then fetch slices. Modelled
+      math skeleton; no engine cut in this PR. Docs:
+      docs/grammar/math-skeleton.md.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlIn : GqlWireInPort;

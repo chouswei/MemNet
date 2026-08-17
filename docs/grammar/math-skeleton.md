@@ -54,6 +54,26 @@ Same symptom (haystack too large for the LLM). Different owners. [#77](https://g
 
 The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed Commit (locators), then Shape. **MUST NOT** Snap-on-session (no embeddings / ANN of \(S\)).
 
+---
+
+## Goldfish I/O (slice in, \(\Delta\) out)
+
+Goldfish talks only to **relevant slices** of \(S\), never to \(S\) whole. [#77](https://github.com/chouswei/MemNet/issues/77) note 27.
+
+```text
+topics on S --(pin egos)--> seed ids --Recall/Shape--> slices X̃
+    --(LLM)--> Δ  --Commit--> S
+```
+
+| Leg | Object | Operator | Honesty |
+|-----|--------|----------|---------|
+| **In** | Bounded neighbourhoods \(\tilde{X}\) | \(\mathrm{Recall}(q)\) / `pin_map` | Caps + hide recycled |
+| **Out** | New shaped subgraph \(\Delta\) | \(\mathrm{Commit}(\Delta)\) / `add`/`update` | Same GQL family as pin_map emit |
+
+**Pin the topics, then fetch slices.** Topic tokens are already on the graph (`KYWD`, kind, `TSK`, locator, id). Cue → pin those nodes as egos → Shape each neighbourhood. Several topics ⇒ serial `pin_map` calls under the same row budget — **not** a fused ranker (no RRF of slices). Empty topic cue ⇒ skip / grep / host Snap.
+
+**Writeback is Commit, not Absorb.** Colloquial “the session absorbs the new slice” = MutateGate in the *current* session. Product **absorb** stays Path-B only (`ImportAbsorb` + member `WorkingMemorySlice` + `id_policy`). Goldfish \(\Delta\) MUST NOT travel `WorkingMemorySliceExport` / ImportGuard unless this turn *is* Multitask Path-B.
+
 ### Named maths (names only)
 
 | Name | In MemNet |
@@ -62,6 +82,7 @@ The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed Commit (l
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; ego from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | \(M\) and \(k\) are the budget. Metric is **hops**, not cosine. |
 | **Snap vs Shape** | Host Snap compresses the corpus; Recall Shape compresses \(S\). Do not embed \(S\). |
+| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = \(\Delta\) via Commit. Pin topics, then fetch slices. |
 | **Local degree peak** (deferred, last) | Typed residual local max of \(\rho^\*\), then ego hop. Not raw `contains`-tree degree. |
 
 Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (retire-from-wheel leftover; `layer.py` not deleted in this PR).
@@ -85,6 +106,8 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 ## MUST NOT
 
 - `rag_query`, embeddings, PPR, RRF, GST/Steiner, ANN on the session (Snap-on-session).
+- Goldfish writeback via `ImportAbsorb` / a second absorb-shaped leaf (that verb is Path-B only).
+- Dumping \(S\); fusing several topic slices with RRF / cosine.
 - Density-peak **cluster assignment**, Leiden from peaks, or global top-\(k\) degree as goldfish.
 - New `HostSearchBridge` leaves, HIT rows, `RagDecision` envelopes.
 - Dual-teach GraphQL / LangChain / HiGram as agent wire.
