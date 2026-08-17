@@ -1,10 +1,21 @@
 # Host search (design)
 
 **Status:** design only — **not** shipped. No `rag_query` MCP; no embeddings in the engine.  
-**Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math).  
+**Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
 **Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
+
+### After #84 (locked design)
+
+Note 13 remains the close bar for the original Neo4j / RAGFlow / Meilisearch questions. Notes 22–28 lock the **session** side. Engine cut still not this issue.
+
+| Locked on `master` (design) | Still leftover |
+|-----------------------------|----------------|
+| Four jobs (corpus GraphRAG / LightRAG / Letta archival / session goldfish) | Ship `HostSearchBridge` |
+| Snap (host corpus) vs Shape (`pin_map`) — MUST NOT ANN \(S\) | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` |
+| Goldfish: one live `TSK` `pin_map`; optional `view=shell` survey; sparse Commit Δ | `Peak_L` (typed residual, last resort) |
+| Writeback = mutate, not Path-B Absorb | Multi-ego union-under-one-\(M\) (`pin_map` still one `anchor`) |
 
 MN-REQ-00: MemNet is mission working memory, **not** the search corpus. Host retrieval MAY propose **locators**; **MutateGate** (or Path-B ingest) commits them. Skip is valid.
 
@@ -29,11 +40,12 @@ Retrieve, generate, and remember all “put less text in the prompt”. Only the
 
 ```text
 corpus --(host Snap)--> locators --MutateGate--> session
-session topics --(pin egos)--> Shape pin_map --> goldfish slices
-goldfish Δ --Commit--> session
+live TSK --(one Shape pin_map)--> goldfish
+  (blocked: at most one view=shell survey, then TSK interior)
+goldfish sparse Δ --Commit--> session
 ```
 
-Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = those slices; **out** = \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–27.
+Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = one slice (not \(N\) full maps); **out** = sparse \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–28.
 
 ## Role (pinned)
 

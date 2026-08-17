@@ -2,7 +2,7 @@
 
 **Status:** product math SSOT for 0.5 — modelled; **no engine cut**.  
 **Audience:** product developers. **British English.**  
-**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77.  
+**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).
 
 Do **not** train an IB, run a Steiner solver, or ANN-index the session because a paper did.

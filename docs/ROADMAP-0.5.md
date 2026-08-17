@@ -85,7 +85,7 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 | Item | Notes |
 |------|--------|
 | Live AgensGraph as **claimed** complete | M2.5 client is in tree; live cabinet is the remaining 0.5 notch — do not call 0.5 done on Fake alone |
-| Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only |
+| Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only. Goldfish I/O (Snap/Shape, one `TSK` map, sparse Δ) is **design-locked** on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)); not an engine cut |
 | BoundedMatchFind | Leftover [#73](https://github.com/chouswei/MemNet/issues/73); modelled `implemented=false`. Cue when there is no ego — **not** GraphRAG |
 | N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
 | Pin-map export / round-trip | MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66); ingest ≠ export |
