@@ -25,6 +25,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01; MN-VER-13-S01 |
+| `outputs/recall-commit-orthodox-plan.md` | — | Orthodox review + leftover goldfish validate plan |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Nesting outline (target)

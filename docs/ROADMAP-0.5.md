@@ -107,6 +107,7 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math (no engine cut) |
+| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox/paradox validate plan (goldfish leftover; not M2.5) |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5 engine) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | Model exam |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |

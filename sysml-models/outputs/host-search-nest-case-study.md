@@ -66,3 +66,4 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | [session-import-case-study.md](session-import-case-study.md) | Product ImportGuard (different nest) |
 | [`docs/application-notes/llm-software-development.md`](../../docs/application-notes/llm-software-development.md) | Cursor index vs locators |
 | [`docs/application-notes/llm-daily-news.md`](../../docs/application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
+| [recall-commit-orthodox-plan.md](recall-commit-orthodox-plan.md) | Orthodox review + leftover goldfish validate plan |
