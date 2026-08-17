@@ -44,6 +44,15 @@ The session itself is already too big to dump: same *shape* as RAG (which slice 
 | Library / PDFs / web | Host RAG, grep, ingest |
 | Live session graph | MemNet `pin_map` |
 
+The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. Detail: [#77](https://github.com/chouswei/MemNet/issues/77) note 22.
+
+| Job | Typical stack | MemNet |
+|-----|----------------|--------|
+| Global themes over a **static corpus** | Microsoft GraphRAG Leiden + community-report map-reduce | Host only |
+| Incremental **document** Q&A | LightRAG dual-level / RAGFlow chunks | Host locators |
+| Cross-session **LTM** (facts expire) | Graphiti / Letta archival | Cabinet / host, not goldfish |
+| Mission **session** working memory | — | `pin_map` + leftover #73 |
+
 If the graph becomes the library, it has left this role.
 
 ## In-session retrieve: kinds as cues (human memory)
@@ -91,8 +100,11 @@ Read the retrieve functions. Steal the *shape*; reject the *haystack*.
 | [Graphiti](https://github.com/getzep/graphiti) `search` | Parallel **BM25 \|\| cosine \|\| BFS** on edges/nodes/episodes/communities; fuse with **RRF** (optional MMR / cross-encoder / **node_distance** given `center_node_uuid`). Empty query → empty. BFS with no origins expands from first-pass hit sources. | **Center + hop distance** = `pin_map(ego)`. Lexical cue then expand from hits (serialise that; do not RRF it). Episodes as **provenance** ≈ locators. `group_ids` ≈ session scope. | Neo4j/FalkorDB goldfish, default embeddings, community nodes, cross-encoder in-engine, bi-temporal LTM as session. |
 | [mem0](https://github.com/mem0ai/mem0) `Memory.search` | Require `user_id` / `agent_id` / `run_id` → **vector store** → optional rerank → `{memory, score}` for the **system prompt**. | Scope filter **before** cue. Threshold as skip. | Vector store as memory; dumping prose into chat; metadata-operator soup as goldfish. |
 | [HiAgent](https://github.com/HiAgent2024/HiAgent) (ACL’25) | In-trial **working** vs cross-trial LTM. Subgoal as the live chunk; **replace** finished subgoals with a summary; keep only current-subgoal action–observation pairs. | Current `TSK_*` as ego. Recycle / settle = forget on purpose (not Graphiti invalidate-as-LTM). | Prompt-only hierarchy with no graph; AgentBoard env loop in the engine. |
+| [microsoft/graphrag](https://github.com/microsoft/graphrag) `LocalSearch` / `global_search` | Index extracts entities + Leiden communities + LLM community reports. **Local:** mix entity / relationship / text-unit / community tables into a prompt, then **generate**. **Global:** map-reduce over community reports. Also DRIFT + basic vector. | Local *shape* ≈ ego neighbourhood — keep as **host** retrieve. Skip extra hop when pins suffice. | Leiden / map-reduce / community reports as goldfish; `pin_map.generate`; corpus KG as the session. |
+| [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG) `aquery` / `aquery_data` | Modes `local` / `global` / `hybrid` (round-robin) / `mix` (KG + chunks) / `naive` (chunks only) / `bypass`. Default path **generates**; `aquery_data` returns entities, relationships, **chunk bodies**. | Dual-level keywords as a host cue. Empty keywords → skip. Locators from `file_path`, not chunks. | Hybrid/mix/naive **in** `memnet-llm`; chunk JSON as `pin_map`. |
+| Letta (f.k.a. MemGPT) core vs archival | Core memory is **prose in the prompt**; archival is a second retrieve hop (typically vectors). | Working set vs cabinet (HiAgent cousin). Recycle keeps goldfish small. | Core-memory blocks as MemNet; archival search on `memnet-mcp`. |
 
-Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG.
+Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG. Microsoft GraphRAG **local** search is the closest *corpus* cousin to ego walk — still generate-on-retrieve, still the library haystack.
 
 ## Math (product SSOT above this nest)
 
@@ -135,6 +147,8 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Fuse overlapping **recall cues** with identity (primary label), ACL `labels=`, or Absorb.
 - Run Graphiti-style **RRF** (lexical || vector || BFS) or HippoRAG **PPR** / OpenIE **inside** the engine.
 - Treat mem0 `search` → system-prompt memories as goldfish.
+- Run Microsoft GraphRAG Leiden / community-report map-reduce, LightRAG hybrid/mix, or Letta archival search **inside** the engine.
+- Treat Letta core-memory prompt blocks as shaped `pin_map`.
 
 ## Related
 
