@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
-- **Local degree peaks (design, deferred)** — optional Recall seed: nodes whose degree is a local maximum *relative to neighbours*, then the same `pin_map` reconstruct. Not clustering, not PageRank, not shipped. [#77](https://github.com/chouswei/MemNet/issues/77) note 23.
+- **Local degree peaks (design, deferred)** — optional Recall seed: nodes whose degree is a local maximum *relative to neighbours*, then the same `pin_map` reconstruct. Closest code: LICOD leaders (steal seed, reject assignment) and k-peak (steal region, reject peel-all). Not shipped. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–24.
 - **SysML wording nits after #82** — MN-VER-13-S01 now reads leftover Layer `deleteThisPr == false` (retire-from-wheel; not nested); coarse nest header places `RecallCommit` under `SessionLifecycle`; ImportAbsorb leaf renamed `nodesThenEdges` so it does not collide with operator `Commit`.
 - **Product description** — mission working memory between LLM pipelines and data search; not RAG / GraphRAG. README, PyPI/`project.toml`, agent playbook, SysML framing.
 - **Roadmap 0.5** — M1/M2/M3 done; next notch = live M2.5 cabinet. ACL / RSV / ingest are 0.4.x, not deferred. Host search / #73 / GraphRAG stay out of the 0.5 engine.
