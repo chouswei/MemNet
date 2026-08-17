@@ -136,10 +136,11 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 
 ### Reading strategy
 
-- **Normal turn:** `pin_map(anchor=<focus>, depth=2, max_rows=50)`.
+- **Normal turn:** `pin_map(anchor=<focus>, depth=2, max_rows=50)` — Shape of the neighbourhood, not a dump of the session.
 - Pin map includes engine LAW rows (prepended).
 - Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless anchor touches endpoints per LAW01).
-- `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` for flat lists.
+- `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` for flat lists (find an in-session `TSK` ego, then `pin_map`).
+- Switch task: settle the old `TSK`, then `pin_map` the next ego — do not RAG/embed the session.
 - `query_walk` — hop debug only, not the primary read.
 - `query context` — audit only; do not use every turn.
 

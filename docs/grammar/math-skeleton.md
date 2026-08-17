@@ -39,6 +39,21 @@ Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **no
 
 `pin_map` and leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=false` until #73. \(\mathrm{Peak}_L\) is deferred (same LIMIT honesty; not a third operator).
 
+**In-session task already on \(S\).** The work is in MemNet; \(S\) is still too large to dump. That is Shape, not Snap. Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or leftover #73 — then `pin_map`. Isolated `TSK` ⇒ LAW + that node only; attach edges via Commit if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
+
+---
+
+## Two compressions (Snap vs Shape)
+
+Same symptom (haystack too large for the LLM). Different owners. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
+
+| Compression | Haystack | Mechanism | Owner |
+|-------------|----------|-----------|--------|
+| **Snap** | Corpus / library | Host retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | `RagHostHook` **outside** `MemNetSystem` |
+| **Shape** | Session \(S\) | \(\mathrm{Recall}(q)\rightarrow\tilde{X}\) (`pin_map`, depth \(\approx 2\), \(M\approx 50\), fan-out clamp, hide recycled) | `PinMapShapedRead` |
+
+The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed Commit (locators), then Shape. **MUST NOT** Snap-on-session (no embeddings / ANN of \(S\)).
+
 ### Named maths (names only)
 
 | Name | In MemNet |
@@ -46,6 +61,7 @@ Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **no
 | **Information bottleneck** | \(\tilde{X}\) compresses \(S\) given \(q\). Skip = empty extra retrieve. |
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; ego from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | \(M\) and \(k\) are the budget. Metric is **hops**, not cosine. |
+| **Snap vs Shape** | Host Snap compresses the corpus; Recall Shape compresses \(S\). Do not embed \(S\). |
 | **Local degree peak** (deferred, last) | Typed residual local max of \(\rho^\*\), then ego hop. Not raw `contains`-tree degree. |
 
 Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (retire-from-wheel leftover; `layer.py` not deleted in this PR).
@@ -68,7 +84,7 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 
 ## MUST NOT
 
-- `rag_query`, embeddings, PPR, RRF, GST/Steiner, ANN on the session.
+- `rag_query`, embeddings, PPR, RRF, GST/Steiner, ANN on the session (Snap-on-session).
 - Density-peak **cluster assignment**, Leiden from peaks, or global top-\(k\) degree as goldfish.
 - New `HostSearchBridge` leaves, HIT rows, `RagDecision` envelopes.
 - Dual-teach GraphQL / LangChain / HiGram as agent wire.

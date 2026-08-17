@@ -276,10 +276,12 @@ package MemNet {
       LivePinMap) — redefined Write = display. Hide recyclable rows;
       depth/row/view caps; prepend engine-law rows.
       Default agent goldfish read when an ego/anchor id is known.
-      Nested under Recall / AgentShapedRead beside BoundedMatchFind —
-      pin_map implemented=true MUST NOT be misread as find shipped.
-      Same Recall operator as leftover BoundedMatchFind; seed rule differs
-      (known id vs bounded MATCH).
+      Product compression = Shape (Recall X̃ of session S) — not host Snap
+      (corpus locators). LLM MUST NOT see raw S; depth/row/fan-out caps
+      plus hide recycled are the budget. Nested under Recall /
+      AgentShapedRead beside BoundedMatchFind — pin_map implemented=true
+      MUST NOT be misread as find shipped. Same Recall operator as leftover
+      BoundedMatchFind; seed rule differs (known id vs bounded MATCH).
       Consults CapsPolicy: size/depth/row caps plus the shipped ACL cut when
       session ACL is enabled — who-check, pin_map read permission distinct
       from mutate, and optional SessionBind match. MUST NOT emit raw
@@ -293,6 +295,7 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     attribute lawPrepend : Boolean = true;
     attribute implemented : Boolean = true;
+    attribute compressionKind : String = "shape";
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -388,12 +391,14 @@ package MemNet {
       bounded MATCH on label/property/locator with HARD LIMIT L
       (BoundedMatchFind; #73); else Peak_L if q is the topology cue
       (modelled, not shipped). Empty seed ⇒ skip (do not invent a node).
-      Reconstruct X̃ = k-hop
-      ego from the seed, diameter ≤ k, |X̃| ≤ M (max_rows); hide recycled
-      rows. Emit the same shaped GQL subgraph family as mutate (not tabular
-      RETURN). Information bottleneck: X̃ compresses S given q. Metric is
-      hops, not cosine. Hierarchical reconstruct ≠ Layer dialect.
-      Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
+      Reconstruct X̃ = k-hop ego from the seed (Shape / goldfish): diameter
+      ≤ k, |X̃| ≤ M (max_rows); hide recycled rows. Host Snap stays on
+      RagHostHook (outside MemNetSystem). In-session TSK already on S:
+      seed then pin_map — MUST NOT ANN S. Emit the same shaped GQL subgraph
+      family as mutate (not tabular RETURN). Information bottleneck: X̃
+      compresses S given q. Metric is hops, not cosine. Hierarchical
+      reconstruct ≠ Layer dialect. Grammar SSOT:
+      docs/grammar/math-skeleton.md. Engine cut not this PR.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -401,6 +406,8 @@ package MemNet {
     attribute emptySeedSkip : Boolean = true;
     attribute hopMetric : String = "hops";
     attribute cosineMetric : Boolean = false;
+    attribute compressionKind : String = "shape";
+    attribute snapOnSession : Boolean = false;
     part shapedRead : AgentShapedRead;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -447,7 +454,8 @@ package MemNet {
       nest under Recall; MutateGate / NeighbourhoodReserve nest under
       Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
       SessionImportReceive as id-mint rules of Commit, not extra operators.
-      HostSearchBridge MUST NOT nest here. Modelled math skeleton; no
+      HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
+      corpus, outside) vs Shape (Recall X̃). Modelled math skeleton; no
       engine cut in this PR. Docs: docs/grammar/math-skeleton.md.
     */
     port shapedOut : ShapedSubgraphOutPort;
@@ -1555,21 +1563,26 @@ package MemNet {
   part def RagHostHook {
     doc /*
       Optional host corpus plug-in (Cursor index / sibling RAG MCP).
-      Locator-only, fail-open, MUST NOT mutate the session, MUST NOT
-      appear as memnet-mcp rag_query. Skip is valid (pin_map + grep).
+      Product compression = Snap (topics / locators from the library
+      haystack). Locator-only, fail-open, MUST NOT mutate the session,
+      MUST NOT appear as memnet-mcp rag_query, MUST NOT ANN-index session
+      S (Snap-on-session forbidden). Skip is valid (pin_map Shape + grep).
       Design only.
     */
     attribute implemented : Boolean = false;
     attribute designOnly : Boolean = true;
     attribute failOpen : Boolean = true;
     attribute locatorOnly : Boolean = true;
+    attribute compressionKind : String = "snap";
+    attribute snapOnSession : Boolean = false;
   }
 
   part def HostSearchBridgePart {
     doc /*
       APPLICATION NEST root (item HostSearchBridge in connections).
-      MUST NOT be a part of MemNetSystem. Hard commit is existing
-      MutateGate / PinMapIngest — no LocatorCommit wrapper.
+      MUST NOT be a part of MemNetSystem. Snap = RagHostHook locators;
+      Shape stays PinMapShapedRead. Hard commit is existing MutateGate /
+      PinMapIngest — no LocatorCommit wrapper. MUST NOT Snap-on-session.
     */
     attribute designOnly : Boolean = true;
     part hook : RagHostHook;

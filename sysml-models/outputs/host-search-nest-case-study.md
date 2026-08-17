@@ -7,7 +7,7 @@ Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-ho
 
 ## Binding
 
-**Host looks up the corpus; MemNet keeps locators the agent will re-`pin_map`.**
+**Host Snaps the corpus; MemNet Shapes locators the agent will re-`pin_map`.**
 
 | Path | When | What |
 |------|------|------|
@@ -17,9 +17,9 @@ Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-ho
 | Term | Meaning |
 |------|---------|
 | **`HostSearchBridge`** | Application nest — **MUST NOT** sit under `MemNetSystem` |
-| **`RagHostHook`** | Optional host plug-in (`implemented=false`) |
+| **`RagHostHook`** | Optional host Snap (`implemented=false`) — locators, not chunks |
 
-Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Do not teach `rag_query` on `memnet-mcp`.
+Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Do not teach `rag_query` on `memnet-mcp`. Do not ANN-index the session (Snap-on-session).
 
 ```text
 HostSearchBridgePart              // MUST NOT nest under MemNetSystem
@@ -32,7 +32,9 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 
 **Path A:** `MOD_server_py` already on the pin map → grep line → edit. No host retrieve.
 
-**Path B (illustrative):** host returns `path=parts/memnet-mcp/software/memnet_mcp/server.py line=59`. Agent commits locators via MutateGate, discards any chunk text, `pin_map` again, grep before trusting `line=`. Timeout → same as Path A.
+**Path B (illustrative):** host Snaps `path=parts/memnet-mcp/software/memnet_mcp/server.py line=59`. Agent commits locators via MutateGate, discards any chunk text, Shape (`pin_map`) again, grep before trusting `line=`. Timeout → same as Path A.
+
+**Path C (in-session TSK; graph too large to dump):** the “new” task is already a `TSK` on \(S\). Do not Snap \(S\). `read_list(tag=TSK, active_only=True)` or hub `:owns`/`:next` → `pin_map(anchor=TSK_…, depth=2, max_rows=50)`. Isolated node ⇒ LAW + that `TSK` only — Commit edges if pins exist but are unlinked. Switch: settle the old `TSK` (`delete_on_settle`), then Shape the next ego.
 
 ## Counter-examples
 
@@ -46,6 +48,7 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 | Graphiti RRF or HippoRAG PPR on the session | Corpus hybrid / OpenIE RAG — goldfish is serial cue then `pin_map` |
 | Microsoft GraphRAG global / LightRAG mix in-engine | Static-corpus GraphRAG — library haystack, generate-on-retrieve |
 | Local degree peaks as the default goldfish / cluster assignment | Topology cue only (deferred); then `pin_map` with fanout clamp — not Leiden |
+| RAG “snaps topics” *on the session* (embed \(S\)) | Snap is corpus-only; Shape is `pin_map`. Same symptom, different haystack |
 
 ## Related
 

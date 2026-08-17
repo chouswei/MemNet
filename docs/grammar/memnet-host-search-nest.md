@@ -28,21 +28,21 @@ An LLM turn needs two bounded contexts. Do not fuse them.
 Retrieve, generate, and remember all “put less text in the prompt”. Only the third is MemNet. Symptoms of fusion: `rag_query` on `memnet-mcp`, chunks on `note=`, `pin_map.generate(prompt)`.
 
 ```text
-corpus --(host retrieve)--> locators --MutateGate--> session --pin_map--> goldfish
+corpus --(host Snap)--> locators --MutateGate--> session --(Shape pin_map)--> goldfish
 ```
 
-Skip the host hop when grep, ingest, or existing pins suffice.
+Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
 
 ## Role (pinned)
 
 Working set for **a few technical documents** (atoms and locators; PDF/HTML stay on disk) **plus** live `TSK`/`USR`/`MOD`, re-read **fast** (`pin_map`, depth ~2 / 50 rows). Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-The session itself is already too big to dump: same *shape* as RAG (which slice this turn?), different haystack. Owner = **`pin_map`** (and leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find when there is no ego) — **not** a second vector index.
+The session itself is already too big to dump: same *symptom* as RAG (which slice this turn?), different haystack. Owner = **Shape** via **`pin_map`** (and leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find when there is no ego) — **not** a second vector index on \(S\).
 
-| Haystack | Owner |
-|----------|--------|
-| Library / PDFs / web | Host RAG, grep, ingest |
-| Live session graph | MemNet `pin_map` |
+| Haystack | Compression | Owner |
+|----------|-------------|--------|
+| Library / PDFs / web | **Snap** (host RAG / grep / ingest → locators) | `RagHostHook` (outside) |
+| Live session graph | **Shape** (`Recall` → \(\tilde{X}\)) | `PinMapShapedRead` |
 
 The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. Detail: [#77](https://github.com/chouswei/MemNet/issues/77) note 22.
 
@@ -67,6 +67,8 @@ session scope
 ```
 
 Serial, not fused. A hit becomes the ego; then the neighbourhood is the reconstruct. Empty cue → skip / grep / host — not a second ranker.
+
+**New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, leftover #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
 
 Graph-memory products often **run lexical, vector, and BFS in parallel and fuse ranks** (Graphiti RRF). That is a **corpus hybrid**. Goldfish stays **cue then walk**: encoding specificity (the token must already be on the pin) plus ecphory (bounded reconstruct). HippoRAG is serial too, but the walk is Personalized PageRank over an OpenIE graph seeded by fact embeddings — that is **host RAG**, not `pin_map`.
 
@@ -117,9 +119,10 @@ Product equations and the two-operator cut live in [`math-skeleton.md`](math-ske
 
 | Principle | In MemNet (pointer) |
 |-----------|---------------------|
-| **Information bottleneck** | `Recall` compresses the session given cue \(q\). Skip = empty extra retrieve. |
+| **Information bottleneck** | `Recall` **Shapes** the session given cue \(q\). Skip = empty extra retrieve. |
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | `max_rows` and `depth` are the budget. Metric is hops, not cosine. |
+| **Snap vs Shape** | Host Snap = corpus locators. Shape = `pin_map`. MUST NOT ANN \(S\). |
 
 ## Nest (application; not product)
 
@@ -155,6 +158,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Run Microsoft GraphRAG Leiden / community-report map-reduce, LightRAG hybrid/mix, or Letta archival search **inside** the engine.
 - Treat Letta core-memory prompt blocks as shaped `pin_map`.
 - Treat local degree peaks as GraphRAG / density-peak **clustering**, or as a default goldfish instead of anchored `pin_map`.
+- Snap-on-session (embed / ANN \(S\); RAG “to snap topics” *inside* the goldfish).
 
 ## Related
 

@@ -21,7 +21,8 @@ package MemNetBehaviour {
   attribute def EvPinMapRead {
     doc /*
       Fetch shaped pin_map (Recall seed = known id; PinMapShapedRead wraps
-      GQL; emits ShapedSubgraph). Same Recall operator as leftover
+      GQL; emits ShapedSubgraph). Compression = Shape of session S — not
+      a dump of S and not host Snap. Same Recall operator as leftover
       BoundedMatchFind (#73; seed = bounded MATCH). Legacy alias:
       query_warm / PinMapComposer.
     */
