@@ -37,7 +37,7 @@ Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **no
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop ego from the seed, diameter \(\le k\), \(|\tilde{X}| \le M\) (`max_rows`). Hide recycled rows. Emit the **same** shaped GQL subgraph family as mutate — not a tabular `RETURN`.
 
-`pin_map` and leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=false` until #73.
+`pin_map` and leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=false` until #73. \(\mathrm{Peak}_L\) is deferred (same LIMIT honesty; not a third operator).
 
 ### Named maths (names only)
 
