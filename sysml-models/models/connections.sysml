@@ -20,10 +20,12 @@ package MemNetConnections {
     doc /*
       Product concept: MemNet is mission working memory of / for LLMs
       (session-scoped goldfish buffer; multi-agent Multitask) — not the
-      search corpus and not GraphRAG. Cue then pin_map; host locators
-      commit via MutateGate. Realised by AgentMemory + SessionLifecycle
-      in deploy — not by chat and not by direct LLM access to the
-      durable store.
+      search corpus and not GraphRAG. Goldfish pins topic egos, Shapes
+      slices (pin_map), Commits Δ; host Snap locators also via MutateGate.
+      MUST NOT ANN-index the session. MUST NOT call goldfish writeback
+      Absorb (Path-B ImportAbsorb only). Realised by AgentMemory +
+      SessionLifecycle in deploy — not by chat and not by direct LLM
+      access to the durable store.
     */
   }
 
@@ -732,11 +734,12 @@ package MemNetConnections {
   item def HostSearchBridge {
     doc /*
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
-      RagHostHook proposes locators; existing MutateGate / PinMapIngest
-      commits (Commit id-mint). Skip is valid. MUST NOT call this absorb
-      (ImportAbsorb is Path-B slice + id_policy only). Design only — no
-      rag_query MCP. Product math sits above this research:
-      docs/grammar/math-skeleton.md. See grammar/memnet-host-search-nest.md.
+      RagHostHook Snaps the corpus to locators; existing MutateGate /
+      PinMapIngest commits (Commit id-mint). Skip is valid. MUST NOT call
+      this absorb (ImportAbsorb is Path-B slice + id_policy only). MUST
+      NOT Snap-on-session. Design only — no rag_query MCP. Product math
+      sits above this research: docs/grammar/math-skeleton.md. See
+      grammar/memnet-host-search-nest.md.
     */
   }
 

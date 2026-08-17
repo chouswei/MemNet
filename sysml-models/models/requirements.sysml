@@ -1081,6 +1081,21 @@ package MemNetRequirements {
           remain REJECTED on accept (retire-from-wheel leftover; hierarchical
           reconstruct is not Layer dialect). PinMapShapedRead implemented
           SHALL NOT be read as BoundedMatchFind shipped (#73).
+          Goldfish SHALL be Shape: the LLM SHALL NOT receive raw session S
+          (pin_map depth/row/fan-out caps; hide recycled). Goldfish SHALL
+          interact only with relevant slices. Prefer one pin_map on the
+          live TSK (HiAgent current subgoal). Extra topics: at most one
+          view=shell survey, then interior on the task — SHALL NOT default
+          to N serial full maps (duplicate LAW / overlap). Seed set |Q|≤L
+          SHALL union k-hop under one M (not Path-B M×anchors). Goldfish
+          SHALL emit a sparse Δ (NEW/SET only; SHALL NOT echo the fetched
+          slice); the session SHALL take it via Commit. SHALL NOT call that
+          writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
+          id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
+          stay outside MemNetSystem and SHALL NOT ANN-index the session.
+          In-session task already on S SHALL seed then pin_map (read_list /
+          hub / leftover #73) — not Snap-on-session. Switch-task SHALL
+          settle the old TSK then Shape a new ego — not Peak_L as default.
           SHALL NOT: rag_query; embeddings; PPR; RRF; GST/Steiner; ANN on
           the session; free MATCH/RETURN as goldfish; new HostSearchBridge
           leaves or HIT/RagDecision envelopes; dual-teach GraphQL /

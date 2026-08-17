@@ -28,21 +28,32 @@ An LLM turn needs two bounded contexts. Do not fuse them.
 Retrieve, generate, and remember all “put less text in the prompt”. Only the third is MemNet. Symptoms of fusion: `rag_query` on `memnet-mcp`, chunks on `note=`, `pin_map.generate(prompt)`.
 
 ```text
-corpus --(host retrieve)--> locators --MutateGate--> session --pin_map--> goldfish
+corpus --(host Snap)--> locators --MutateGate--> session
+session topics --(pin egos)--> Shape pin_map --> goldfish slices
+goldfish Δ --Commit--> session
 ```
 
-Skip the host hop when grep, ingest, or existing pins suffice.
+Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = those slices; **out** = \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–27.
 
 ## Role (pinned)
 
 Working set for **a few technical documents** (atoms and locators; PDF/HTML stay on disk) **plus** live `TSK`/`USR`/`MOD`, re-read **fast** (`pin_map`, depth ~2 / 50 rows). Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-The session itself is already too big to dump: same *shape* as RAG (which slice this turn?), different haystack. Owner = **`pin_map`** (and leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find when there is no ego) — **not** a second vector index.
+The session itself is already too big to dump: same *symptom* as RAG (which slice this turn?), different haystack. Owner = **Shape** via **`pin_map`** (and leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find when there is no ego) — **not** a second vector index on \(S\).
 
-| Haystack | Owner |
-|----------|--------|
-| Library / PDFs / web | Host RAG, grep, ingest |
-| Live session graph | MemNet `pin_map` |
+| Haystack | Compression | Owner |
+|----------|-------------|--------|
+| Library / PDFs / web | **Snap** (host RAG / grep / ingest → locators) | `RagHostHook` (outside) |
+| Live session graph | **Shape** (`Recall` → \(\tilde{X}\)) | `PinMapShapedRead` |
+
+The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. Detail: [#77](https://github.com/chouswei/MemNet/issues/77) note 22.
+
+| Job | Typical stack | MemNet |
+|-----|----------------|--------|
+| Global themes over a **static corpus** | Microsoft GraphRAG Leiden + community-report map-reduce | Host only |
+| Incremental **document** Q&A | LightRAG dual-level / RAGFlow chunks | Host locators |
+| Cross-session **LTM** (facts expire) | Graphiti / Letta archival | Cabinet / host, not goldfish |
+| Mission **session** working memory | — | `pin_map` + leftover #73 |
 
 If the graph becomes the library, it has left this role.
 
@@ -59,6 +70,10 @@ session scope
 
 Serial, not fused. A hit becomes the ego; then the neighbourhood is the reconstruct. Empty cue → skip / grep / host — not a second ranker.
 
+**Pin topics, then fetch slices.** Prefer **one** `pin_map` on the live `TSK`. Extra topics: at most one `view=shell` survey, then interior on the task — not \(N\) serial full maps (duplicate LAW / overlap). Seed set \(|Q|\le L\) unions under **one** \(M\) (design; engine is still one `anchor`). Goldfish then emits a **sparse** \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb. Do **not** echo the fetched slice.
+
+**New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, leftover #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
+
 Graph-memory products often **run lexical, vector, and BFS in parallel and fuse ranks** (Graphiti RRF). That is a **corpus hybrid**. Goldfish stays **cue then walk**: encoding specificity (the token must already be on the pin) plus ecphory (bounded reconstruct). HippoRAG is serial too, but the walk is Personalized PageRank over an OpenIE graph seeded by fact embeddings — that is **host RAG**, not `pin_map`.
 
 ### First principles
@@ -69,6 +84,7 @@ Graph-memory products often **run lexical, vector, and BFS in parallel and fuse 
 | **Discrete codebook** | Kinds/tags/ids/locators *are* the code — overlapping cues, like human categories | A second ANN index as the “real” memory |
 | **k-hop reconstruct** | After a hit, ego walk is the polynomial stand-in for “spread of activation” | Unbounded association; Steiner “optimal memory subgraph” |
 | **Empty cue** | Miss → skip / grep / host retrieve | Inventing a node because the keyword felt right |
+| **Local degree peak** (deferred) | Topology cue when there is no id/keyword: pick nodes whose degree is a **local maximum relative to neighbours**, then `pin_map` | Global top-k degree; PageRank; assigning the whole session to peaks (clustering) |
 | **Working memory ≠ LTM** | Recycle / settle is forgetting on purpose | Growing a session thesaurus into a cabinet |
 | **Jobs stay unfused** | Fuzzy overlap is for **recall keys** only | Blurring kind for **identity** (one primary label) or **ACL** (`labels=` write-scope) or **Absorb** |
 
@@ -77,6 +93,8 @@ So: **no clear boundary among cues** (a pin may answer to `SYM` and to `session`
 | Cue | Then |
 |-----|------|
 | Token matches a kind, id, or locator | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) bounded find |
+| No id/keyword | Unsettled `TSK_*` / RSV / last mutate (HiAgent current subgoal) |
+| Still empty; want cluster representatives | Last-resort **typed residual** local max (strip `contains`) — not raw degree — [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25 |
 | A hit id is in hand | `pin_map` — dimension of the net |
 
 Engine today: one primary GQL label; `tagmap` lists kinds, it is not a topic ontology. Layer `@TAG` pipe stays retired.
@@ -91,8 +109,16 @@ Read the retrieve functions. Steal the *shape*; reject the *haystack*.
 | [Graphiti](https://github.com/getzep/graphiti) `search` | Parallel **BM25 \|\| cosine \|\| BFS** on edges/nodes/episodes/communities; fuse with **RRF** (optional MMR / cross-encoder / **node_distance** given `center_node_uuid`). Empty query → empty. BFS with no origins expands from first-pass hit sources. | **Center + hop distance** = `pin_map(ego)`. Lexical cue then expand from hits (serialise that; do not RRF it). Episodes as **provenance** ≈ locators. `group_ids` ≈ session scope. | Neo4j/FalkorDB goldfish, default embeddings, community nodes, cross-encoder in-engine, bi-temporal LTM as session. |
 | [mem0](https://github.com/mem0ai/mem0) `Memory.search` | Require `user_id` / `agent_id` / `run_id` → **vector store** → optional rerank → `{memory, score}` for the **system prompt**. | Scope filter **before** cue. Threshold as skip. | Vector store as memory; dumping prose into chat; metadata-operator soup as goldfish. |
 | [HiAgent](https://github.com/HiAgent2024/HiAgent) (ACL’25) | In-trial **working** vs cross-trial LTM. Subgoal as the live chunk; **replace** finished subgoals with a summary; keep only current-subgoal action–observation pairs. | Current `TSK_*` as ego. Recycle / settle = forget on purpose (not Graphiti invalidate-as-LTM). | Prompt-only hierarchy with no graph; AgentBoard env loop in the engine. |
+| [microsoft/graphrag](https://github.com/microsoft/graphrag) `LocalSearch` / `global_search` | Index extracts entities + Leiden communities + LLM community reports. **Local:** mix entity / relationship / text-unit / community tables into a prompt, then **generate**. **Global:** map-reduce over community reports. Also DRIFT + basic vector. | Local *shape* ≈ ego neighbourhood — keep as **host** retrieve. Skip extra hop when pins suffice. | Leiden / map-reduce / community reports as goldfish; `pin_map.generate`; corpus KG as the session. |
+| [HKUDS/LightRAG](https://github.com/HKUDS/LightRAG) `aquery` / `aquery_data` | Modes `local` / `global` / `hybrid` (round-robin) / `mix` (KG + chunks) / `naive` (chunks only) / `bypass`. Default path **generates**; `aquery_data` returns entities, relationships, **chunk bodies**. | Dual-level keywords as a host cue. Empty keywords → skip. Locators from `file_path`, not chunks. | Hybrid/mix/naive **in** `memnet-llm`; chunk JSON as `pin_map`. |
+| Letta (f.k.a. MemGPT) core vs archival | Core memory is **prose in the prompt**; archival is a second retrieve hop (typically vectors). | Working set vs cabinet (HiAgent cousin). Recycle keeps goldfish small. | Core-memory blocks as MemNet; archival search on `memnet-mcp`. |
+| LICOD `compute_node_leaders` ([MUNA](https://github.com/Issamfalih/MUNA/blob/master/R/Licod.R)) | Leader iff centrality beats **most** neighbours (paper σ). Then **assign** every node to a leader (community detection). | σ-relative local max as `Peak_L` seeds. Empty leaders → skip. | Vote/Borda assignment; modularity communities as goldfish. Copy the public R inequality blindly (it counts *higher* neighbours). |
+| [k-peak](https://github.com/priyagovindan/kpeak) `get_kpeak_decomposition` (WWW’17) | Repeated degeneracy/`k_core` peel; every node gets a peak number (“mountains”). | Local *regions* not global top-k degree. | Assign the whole session; `nx.k_core` as goldfish; mountain plots in-engine. |
+| [pytorch_geometric `NeighborLoader`](https://pytorch-geometric.readthedocs.io/en/latest/tutorial/neighbor_loader.html) | Seed batch \(B\); sample ≤k neighbours / hop; directed L-hop around **the set**. | Seed **set** + fan-out cap + one reconstruct. | Stochastic sample; GNN aggregators; embeddings as memory. |
+| Graphiti `add_episode` / `bfs_origin_node_uuids` | Incremental episode ingest; optional multi-origin BFS; hybrid search then `node_distance` rerank; `update_communities` / episode-mentions rerank. | Incremental write (sparse Δ). Multi-origin as seed set. Distance **is** `pin_map`. | Hybrid/RRF first; community update; mention-frequency as goldfish. |
+| LightRAG dual-level keywords | LLM extracts high-level (themes) + low-level (entities); vector match; 1-hop gather; hybrid/mix generate. | Two **grains**: shell survey then TSK interior. Empty keywords → skip. | Keyword embeddings; hybrid/mix **in** engine; chunks as `pin_map`. |
 
-Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG.
+Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **node_distance reranker** is the closest *algorithm* to `pin_map`; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG. Microsoft GraphRAG **local** search is the closest *corpus* cousin to ego walk — still generate-on-retrieve, still the library haystack.
 
 ## Math (product SSOT above this nest)
 
@@ -100,9 +126,11 @@ Product equations and the two-operator cut live in [`math-skeleton.md`](math-ske
 
 | Principle | In MemNet (pointer) |
 |-----------|---------------------|
-| **Information bottleneck** | `Recall` compresses the session given cue \(q\). Skip = empty extra retrieve. |
+| **Information bottleneck** | `Recall` **Shapes** the session given cue \(q\). Skip = empty extra retrieve. |
 | **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; `depth` from a seed is the polynomial stand-in. |
 | **Cardinality / diameter** | `max_rows` and `depth` are the budget. Metric is hops, not cosine. |
+| **Snap vs Shape** | Host Snap = corpus locators. Shape = `pin_map`. MUST NOT ANN \(S\). |
+| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); live `TSK` first. Not Absorb. |
 
 ## Nest (application; not product)
 
@@ -135,6 +163,12 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Fuse overlapping **recall cues** with identity (primary label), ACL `labels=`, or Absorb.
 - Run Graphiti-style **RRF** (lexical || vector || BFS) or HippoRAG **PPR** / OpenIE **inside** the engine.
 - Treat mem0 `search` → system-prompt memories as goldfish.
+- Run Microsoft GraphRAG Leiden / community-report map-reduce, LightRAG hybrid/mix, or Letta archival search **inside** the engine.
+- Treat Letta core-memory prompt blocks as shaped `pin_map`.
+- Treat local degree peaks as GraphRAG / density-peak **clustering**, or as a default goldfish instead of anchored `pin_map`.
+- Snap-on-session (embed / ANN \(S\); RAG “to snap topics” *inside* the goldfish).
+- Call goldfish \(\Delta\) **absorb** (that word is `ImportAbsorb` only). Fuse several topic slices with RRF.
+- Serial \(N\) full `pin_map`s as the default (duplicate LAW / overlap). Goldfish budget \(M\times|Q|\). Echo \(\tilde{X}\) through mutate.
 
 ## Related
 

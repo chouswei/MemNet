@@ -72,22 +72,24 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 ### Goldfish loop (every turn)
 
-1. **Think** what you need to remember or act on.
-2. **Mutate** (batch preferred; atomise):
+Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map` on the live `TSK`. Commit a **sparse** Δ (`add`/`update` of what changed only). That writeback is not Path-B absorb.
 
-   MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])` with openCypher-shaped GQL  
-   CLI: `memnet add --stdin` / `memnet update --stdin`
-
-3. **Read the live slice** (always anchored):
+1. **Pin the live task** — unsettled `TSK_*` (known id, or `read_list(tag=TSK, active_only=True)`). Skip extra topic pins when that neighbourhood already covers them.
+2. **Fetch one slice** (always anchored):
 
    MCP: `pin_map(anchor=TSK_42, depth=2)`  
    CLI: `memnet query pin-map --anchor TSK_42 --depth 2`
 
-4. **Act / reason** using only pin-map data + the current user request.
-5. **Settle** finished work via `update` (`MATCH … SET status/recycle`).
+   Blocked on a topic hub: at most one extra `pin_map(..., view=shell)`, then interior on the `TSK`. Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
+3. **Act / reason** using only that pin-map slice + the current user request.
+4. **Commit sparse Δ** — NEW nodes/edges and SET on changed pins only. Do **not** echo the fetched slice (`id_exists`).
+
+   MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])`  
+   CLI: `memnet add --stdin` / `memnet update --stdin`
+5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Repeat. Each new turn starts with `pin_map` / `query pin-map`.
+Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 
 ### MCP quick reference (primary)
 
@@ -136,10 +138,12 @@ Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `hous
 
 ### Reading strategy
 
-- **Normal turn:** `pin_map(anchor=<focus>, depth=2, max_rows=50)`.
-- Pin map includes engine LAW rows (prepended).
+- **Normal turn:** one `pin_map(anchor=<live TSK>, depth=2, max_rows=50)`. Optional `view=shell` on a topic hub only when blocked, then interior on the task.
+- Pin map includes engine LAW rows (prepended) — that is why \(N\) maps waste tokens.
 - Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless anchor touches endpoints per LAW01).
-- `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` for flat lists.
+- `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` to find the ego, then one `pin_map`.
+- New facts: sparse GQL `add`/`update`. Do not echo the fetched slice. Do not call that absorb.
+- Switch task: settle the old `TSK`, then `pin_map` the next ego — do not RAG/embed the session.
 - `query_walk` — hop debug only, not the primary read.
 - `query context` — audit only; do not use every turn.
 
