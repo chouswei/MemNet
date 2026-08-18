@@ -69,10 +69,10 @@ User promotion (2026-08-18): **live** AgensGraph cabinet is a **1.0.0 gate**, no
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. **Done.** |
 | **M2.5 client** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Landed** in 0.4.x. **MUST NOT** reframe MemNet as a Cypher proxy. |
-| **M2.5 live cabinet** | Operator proof of hydrate/flush against **external** AgensGraph. **1.0.0 gate** (2026-08-18) — does **not** block 0.5.0. |
+| **M2.5 live cabinet** | Operator proof of hydrate/flush against **external** AgensGraph. One **1.0.0** gate (mature tool), not the whole of 1.0 — does **not** block 0.5.0. |
 | **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. **Done** (docs). User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
 
-**Order:** M1 → M2 → M3 **done**; M2.5 **client** in 0.4.x; **live cabinet** = **1.0.0**. **MUST NOT** treat Fake as live proof, or treat the live cabinet as a 0.5 serial lock.
+**Order:** M1 → M2 → M3 **done**; M2.5 **client** in 0.4.x; **1.0.0** = mature tool (0.5 leftover + live cabinet + GQL teach). **MUST NOT** treat Fake as live proof, or treat the cabinet as a 0.5 serial lock.
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
@@ -81,7 +81,7 @@ User promotion (2026-08-18): **live** AgensGraph cabinet is a **1.0.0 gate**, no
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
 - [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
-- [`../ROADMAP.md`](../ROADMAP.md) — all versions; live cabinet = **1.0.0** gate
+- [`../ROADMAP.md`](../ROADMAP.md) — all versions; **1.0.0** = mature tool for people
 - [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
 - [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline
 - [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable)

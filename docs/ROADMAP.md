@@ -25,7 +25,7 @@ Coarse eras only. Every patch: CHANGELOG.
 | **0.4.0–0.4.2** | 2026-08 | `pin_map(view=)`; Layer slice then **ADR-001: GQL-only wire**; Layer/Tier A retired from accept. |
 | **0.4.3–0.4.6 (now)** | 2026-08 | M2 GQL emit; M3 in-repo GQL teach; CapsPolicy ACL; RSV; Path-B ingest (#64); ImportAbsorb / ImportGuard / CheapLlmImportGuard (#63); **M2.5 client** hydrate/flush (Fake always-on). Goldfish orthodox **erected**. |
 
-M-phases (wire, not SemVer): **M1** profile · **M2** engine GQL · **M3** in-repo GQL docs — **done**. **M2.5 client** done in 0.4.x. **M2.5 live cabinet** is **1.0.0**, not a 0.5 lock.
+M-phases (wire, not SemVer): **M1** profile · **M2** engine GQL · **M3** in-repo GQL docs — **done**. **M2.5 client** done in 0.4.x. **Live cabinet** is a **1.0.0** gate (durable proof), not the whole of 1.0, and not a 0.5 lock.
 
 ---
 
@@ -35,8 +35,8 @@ M-phases (wire, not SemVer): **M1** profile · **M2** engine GQL · **M3** in-re
 |---------|------|-------------------------|
 | **0.4.x** | Lineage above | — (current PyPI) |
 | **0.5.0** | Leftover **goldfish Recall** (in-process) | **Not** live AgensGraph |
-| **1.0.0** | **Live** M2.5 cabinet | Fake-alone |
-| **Later** | Host Snap ship; N-server; pin-map export; Peak_L; close [#77](https://github.com/chouswei/MemNet/issues/77) | Not 0.5 and not 1.0 |
+| **1.0.0** | **Mature tool for people** (0.5 leftover claimed + live durable path + one GQL teach) | Fake-alone as “durable”; leftover find still `implemented=false`; Layer teach |
+| **Later** | Host Snap ship; N-server; pin-map export; Peak_L; close [#77](https://github.com/chouswei/MemNet/issues/77) | Not required to call 1.0 mature working memory |
 
 User-pack GQL skills (`chouswei/cursor-user-skills`) run **in parallel** — not a repo SemVer gate.
 
@@ -58,19 +58,30 @@ In-process. Cabinet does **not** serialise this track.
 
 ---
 
-## 1.0.0 — live cabinet
+## 1.0.0 — mature tool for people
+
+**1.0.0** means an outsider can install MemNet and use it as **mission working memory**: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), and an optional **proven** durable cabinet so a session can outlive a process. It does **not** mean GraphRAG, `rag_query`, or Peak_L.
+
+People already have in 0.4.x: PyPI `memnet-llm`, MCP, `pin_map` / mutate, playbook, Multitask over TCP/HTTP, Fake hydrate/flush. 1.0 **closes the leftover** and **proves durability**.
 
 | Gate | Pass | Fail |
 |------|------|------|
-| Live M2.5 cabinet | Hydrate/flush against **external** AgensGraph; one sync owner | Claim 1.0 on Fake-alone; LLM↔store direct; MemNet-as-Cypher-proxy |
+| Goldfish leftover | **0.5.0 claimed**: V-tests; [#73](https://github.com/chouswei/MemNet/issues/73) LIMIT find; union-under-one-\(M\) | `pin_map` only; free `MATCH`/`RETURN` as goldfish; Path-B \(M\times\)anchors as goldfish budget |
+| Live durable path | Hydrate/flush against **external** AgensGraph; one sync owner; README says how | Claim 1.0 durable on Fake-alone; LLM↔store direct; MemNet-as-Cypher-proxy |
+| Teach | In-repo [`LLM-GUIDE.md`](LLM-GUIDE.md) GQL-only; Layer archived | Dual dialect; Layer as accept path |
+| Role | Working memory ≠ corpus; locators-only if host Snap is used | `rag_query` on `memnet-mcp`; chunk bodies as memory |
 
-Client already in 0.4.x. This is **proof**, not a rebuild. [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+Client hydrate/flush is already 0.4.x. The cabinet gate is **operator proof**, not a rebuild. [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
 
-Prefer 0.5 leftover **claimed** before 1.0. The cabinet still does **not** block starting 0.5 work.
+Cabinet does **not** block starting 0.5 work. Prefer 0.5 leftover **claimed** before tagging 1.0.
+
+User-pack GQL skills (`chouswei/cursor-user-skills`) should match the playbook; they are **not** a second engine gate.
 
 ---
 
 ## Later (after 1.0, or beside it)
+
+Not required for **mature working memory**. Do **not** hold 1.0 for these.
 
 | Item | Notes |
 |------|--------|

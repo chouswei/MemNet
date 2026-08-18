@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **Roadmap (all versions)** — SSOT [`docs/ROADMAP.md`](docs/ROADMAP.md): lineage 0.1–0.4.x; **0.5.0** leftover goldfish; **1.0.0** live cabinet; later Peak_L / HostSearch / export. [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) is a stub.
+- **Roadmap (all versions)** — SSOT [`docs/ROADMAP.md`](docs/ROADMAP.md): lineage 0.1–0.4.x; **0.5.0** leftover goldfish; **1.0.0** mature tool for people (0.5 claimed + live cabinet + GQL teach). [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) is a stub.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.
 - **Snap vs Shape (design)** — host RAG **Snaps** corpus topics to locators; `pin_map` **Shapes** session neighbourhood \(\tilde{X}\). In-session TSK already on \(S\): seed then Shape — MUST NOT ANN the session. Grammar: `docs/grammar/math-skeleton.md`. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.

@@ -5,7 +5,7 @@
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master`).  
-**Model honesty:** MN-VER-13-S01. **0.5 leftover** is goldfish paradox/erect ([`docs/ROADMAP.md`](../../docs/ROADMAP.md)). Live M2.5 cabinet is a **1.0.0 gate** — it does **not** block this track.
+**Model honesty:** MN-VER-13-S01. **0.5 leftover** is goldfish paradox/erect ([`docs/ROADMAP.md`](../../docs/ROADMAP.md)). **1.0.0** is a mature tool for people (0.5 claimed + live durable path + GQL teach). The cabinet does **not** block this 0.5 track.
 
 Orthodox = a theorem you can **build from**. Paradox = **all** examination and test after the build (pytest, MN-VER, V-cases, cousin papers). Resolve by **scope**, not a third operator / `rag_query` / Snap-on-session. There is **no** third kind of work called “exam”. Filename `gql-model-exam.md` is historical paradox, not a second orthodox.
 
@@ -99,7 +99,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
-Done for **0.5.0** when: V1/V3/V4/V6 have pytest; #73 LIMIT find shipped; union-under-one-\(M\) (not Path-B budget); playbook still one-TSK. Done for **1.0.0** when live cabinet is operator-proven. Done for **#77** when HostSearch ship / Peak_L are decided — not when this plan exists.
+Done for **0.5.0** when: V1/V3/V4/V6 have pytest; #73 LIMIT find shipped; union-under-one-\(M\) (not Path-B budget); playbook still one-TSK. Done for **1.0.0** when 0.5 is claimed **and** live cabinet is operator-proven **and** teach stays GQL-only — mature working memory for people. Done for **#77** when HostSearch ship / Peak_L are decided — not when this plan exists.
 
 ---
 

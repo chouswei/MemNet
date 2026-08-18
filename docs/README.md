@@ -13,7 +13,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | Doc | Role |
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; M2 shipped) |
-| [`ROADMAP.md`](ROADMAP.md) | All versions (lineage · 0.5 leftover · 1.0 cabinet) |
+| [`ROADMAP.md`](ROADMAP.md) | All versions; **1.0.0** = mature tool for people |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Stub → `ROADMAP.md` |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |

@@ -18,7 +18,7 @@ All examination and test of MemNet is **paradox**. Orthodox is only what you ere
 | Write = display | Goldfish = bounded shaped `pin_map` | Unbounded `MATCH`/`RETURN` as primary read |
 | Same alphabet | Mutate and emit share openCypher-shaped family | Second read dialect |
 | Dual EDGE / law | `:bind` + ports; `law` on node | Layer `--bind-->` teach |
-| Milestone honesty | M1/M2/M3 **done**; M2.5 **client** in 0.4.x; live cabinet = **1.0.0** gate | Claim M2 or M3 still “next”; claim **1.0** done on Fake alone; treat cabinet as a 0.5 lock |
+| Milestone honesty | M1/M2/M3 **done**; M2.5 **client** in 0.4.x; **1.0.0** = mature tool (0.5 leftover + live cabinet + GQL teach) | Claim M2 or M3 still “next”; claim **1.0** on Fake-alone or with find still unshipped; treat cabinet as a 0.5 lock |
 
 **Pass** for the GQL-wire orthodox under this stress. Leftover goldfish paradox (V1–V10, pytest, #73 LIMIT) lives on the plan, not in this file.
 

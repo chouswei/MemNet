@@ -207,14 +207,14 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 ## 6. Boundary vs M2 / M2.5 / M3 / archive
 
-**Order:** M1 → M2 → M3 **done**. M2.5 **client** landed in 0.4.x. **Live cabinet** = **1.0.0 gate** (does not block 0.5).
+**Order:** M1 → M2 → M3 **done**. M2.5 **client** landed in 0.4.x. **1.0.0** = mature tool (leftover goldfish + live cabinet + GQL teach). Cabinet does not block 0.5.
 
 | Phase | Owns | This file does **not** |
 |-------|------|-------------------------|
 | **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
 | **M2.5 client (0.4.x)** | Durable online GQL store adapter (hydrate/flush; Fake always-on) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach |
-| **M2.5 live cabinet (1.0.0 gate)** | Prove hydrate/flush against external AgensGraph | Claim 1.0 on Fake-alone |
+| **M2.5 live cabinet (1.0.0 durable gate)** | Prove hydrate/flush against external AgensGraph | Claim 1.0 durable on Fake-alone |
 | **M3** | In-repo `LLM-GUIDE` full playbook + application-notes body rewrite to GQL examples | — |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
