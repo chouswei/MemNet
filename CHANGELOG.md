@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **docs/SysML: 0.5 Recall/Commit math skeleton (no engine cut)** — two operators only (`Recall(q)`, `Commit(Δ)`). Grammar: `docs/grammar/math-skeleton.md` (above [#77](https://github.com/chouswei/MemNet/issues/77)). Model: `RecallCommit` nest; MN-REQ-13.1; MN-VER-13-S01. `BoundedMatchFind` remains `implemented=false` (#73). No `rag_query` / embeddings / Layer delete.
-
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
@@ -18,14 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Snap vs Shape (design)** — host RAG **Snaps** corpus topics to locators; `pin_map` **Shapes** session neighbourhood \(\tilde{X}\). In-session TSK already on \(S\): seed then Shape — MUST NOT ANN the session. Grammar: `docs/grammar/math-skeleton.md`. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
 - **Goldfish slice I/O (design)** — pin topic egos, fetch slices, Commit Δ into \(S\). Writeback is mutate, not Path-B Absorb. [#77](https://github.com/chouswei/MemNet/issues/77) note 27.
 - **Goldfish I/O optimisation (design)** — one live `TSK` `pin_map`; optional `view=shell` survey; union-under-one-\(M\) leftover; sparse Δ. Cousins: PyG NeighborLoader, Graphiti `add_episode`, LightRAG dual-level grain, HiAgent replace. [#77](https://github.com/chouswei/MemNet/issues/77) note 28.
-- **#77 research status after [#84](https://github.com/chouswei/MemNet/pull/84)** — notes 22–28 locked as design on `master`. Grammar status table: `docs/grammar/memnet-host-search-nest.md`. Leftover: HostSearchBridge ship, #73, `Peak_L`, multi-ego `pin_map`.
-- **Recall/Commit orthodox plan (docs)** — theorems as a base to build from; **all** examination/test is paradox (V1–V10, pytest, MN-VER). Stale GQL-wire “exam” (M2/M3 still “next”) dropped. Leftover goldfish sequence (#73, union-under-one-\(M\)) **beside** M2.5, not instead. `sysml-models/outputs/recall-commit-orthodox-plan.md`.
+- **#77 research status after [#84](https://github.com/chouswei/MemNet/pull/84)** — notes 22–28 locked as design on `master`. Grammar status table: `docs/grammar/memnet-host-search-nest.md`. Leftover: HostSearchBridge ship, `Peak_L`.
+- **Recall/Commit orthodox plan (docs)** — theorems as a base to build from; **all** examination/test is paradox (V1–V10, pytest, MN-VER). Stale GQL-wire “exam” (M2/M3 still “next”) dropped. Leftover goldfish (#73 find + union-under-one-\(M\)) ships in 0.5.0. `sysml-models/outputs/recall-commit-orthodox-plan.md`.
 - **SysML wording nits after #82** — MN-VER-13-S01 now reads leftover Layer `deleteThisPr == false` (retire-from-wheel; not nested); coarse nest header places `RecallCommit` under `SessionLifecycle`; ImportAbsorb leaf renamed `nodesThenEdges` so it does not collide with operator `Commit`.
 - **Product description** — mission working memory between LLM pipelines and data search; not RAG / GraphRAG. README, PyPI/`project.toml`, agent playbook, SysML framing.
-- **Roadmap 0.5** — M1/M2/M3 done; next notch = live M2.5 cabinet. ACL / RSV / ingest are 0.4.x, not deferred. Host search / #73 / GraphRAG stay out of the 0.5 engine.
+- **Roadmap 0.5** — M1/M2/M3 done; leftover goldfish = 0.5.0 in-process. Next notch = live M2.5 cabinet (1.0). ACL / RSV / ingest are 0.4.x. Host search / GraphRAG stay out of the 0.5 engine.
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
 - **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 - **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
+
+## [0.5.0] - 2026-08-18
+
+### Added
+- **Goldfish paradox tests** — V1 isolated TSK, V3 `no_anchor`, V4 sparse `:owns`, V6 GQL `id_exists` (`tests/test_goldfish_paradox.py`).
+- **BoundedMatchFind (#73)** — `memnet query find` / MCP `find`: `--limit` required; `--kind` / `--locator` / `--keyword`; seed nodes only; empty skip. Then `pin_map` a copied id.
+- **Multi-ego `pin_map`** — repeatable `--anchor` / MCP `anchors`; one `max_rows`; one LAW prepend. V2 union budget test.
+- **docs/SysML: 0.5 Recall/Commit math skeleton** — two operators only (`Recall(q)`, `Commit(Δ)`). Grammar: `docs/grammar/math-skeleton.md`. Model: `RecallCommit` nest; MN-REQ-13.1; MN-VER-13-S01.
+
+### Changed
+- Honesty: `BoundedMatchFind.implemented=true`; MN-VER-04-S01 / MN-VER-13-S01 find flags; playbook find-then-`pin_map`. Package version **0.5.0**.
 
 ## [0.4.6] - 2026-08-13
 

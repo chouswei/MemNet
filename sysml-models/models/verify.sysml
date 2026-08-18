@@ -9,8 +9,8 @@
   doctrine parts; verifies the shipped CapsPolicy ACL cut while retaining
   no-assume checks for full ACL modes. CheapLlmImportGuard shipped
   (#63 / S14; env-gated). Path-B ingest domains + RSV are shipped.
-  BoundedMatchFind modelled not shipped (MN-VER-04-S01 / #73).
-  RecallCommit modelled (MN-VER-13-S01); engine cut not claimed.
+  BoundedMatchFind shipped seed-only (MN-VER-04-S01 / #73).
+  RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -392,11 +392,10 @@ package MemNetVerification {
 
   verification def MN_VER_04_S01_BoundedMatchFindNotShipped {
     doc /*
-      MN-REQ-04.6 — BoundedMatchFind under Recall / AgentShapedRead is
-      modelled but not shipped (leftover #73). Honesty gate:
-      find.implemented == false; pinMap.implemented == true remains the
-      default goldfish read (Recall seed = id). MUST NOT treat pin_map
-      shipped as find shipped. Pin-map Multitask verify MN-VER-12-S03 is
+      MN-REQ-04.6 — BoundedMatchFind is shipped as seed-only find
+      (CLI query find / MCP find; hard LIMIT; shaped nodes, no RETURN).
+      pinMap remains default goldfish when an id is known. MUST NOT treat
+      find as pin_map k-hop. Pin-map Multitask verify MN-VER-12-S03 is
       unchanged.
     */
     attribute verificationId : String = "MN-VER-04-S01";
@@ -407,7 +406,7 @@ package MemNetVerification {
       verify boundedMatchFindReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.recallCommit
-          .recall.shapedRead.find.implemented == false
+          .recall.shapedRead.find.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.find.limitRequired == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -422,10 +421,10 @@ package MemNetVerification {
 
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
-      MN-REQ-13.1 — two-operator cut (math skeleton; no engine cut).
+      MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
       Honesty: operatorCount == 2; hostSearchInsideSystem == false;
       Commit.oneGate == true; RSV nested under Commit (implemented);
-      PinMapShapedRead true / BoundedMatchFind false (#73);
+      PinMapShapedRead true / BoundedMatchFind true (#73 seed-only find);
       Layer leftover retire-from-wheel (leftoverLayer.deleteThisPr == false;
       MUST NOT nest under MemNetSystem).
       All examination/test is paradox (docs): outputs/recall-commit-orthodox-plan.md.
@@ -451,7 +450,7 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.shapedRead.find.implemented == false
+            .recall.shapedRead.find.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.emptySeedSkip == true
           and system.core.transport.inProcess.memory.sessions.recallCommit

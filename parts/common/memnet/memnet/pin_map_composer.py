@@ -131,6 +131,7 @@ class PinMapComposer:
         self,
         *,
         anchor: str | None,
+        anchors: list[str] | None = None,
         depth: int = DEFAULT_QUERY_DEPTH,
         max_rows: int = DEFAULT_QUERY_MAX_ROWS,
         active_only: bool = True,
@@ -150,25 +151,32 @@ class PinMapComposer:
             permission="pin_map",
             agent=agent,
         )
-        if require_anchor and not anchor:
+        seed_ids: list[str] = []
+        for aid in list(anchors or []):
+            if aid and aid not in seed_ids:
+                seed_ids.append(aid)
+        if anchor and anchor not in seed_ids:
+            seed_ids.append(anchor)
+        if require_anchor and not seed_ids:
             raise MemNetError("no_anchor", "pin map requires --anchor")
         stale_warnings: list = []
-        if not anchor:
-            anchor = self.ss.store.default_anchor()
-            if not anchor:
+        if not seed_ids:
+            fallback = self.ss.store.default_anchor()
+            if not fallback:
                 return [], ""
+            seed_ids = [fallback]
         eff_depth, eff_max_rows, soft_cap = resolve_view_budget(
             view, depth=depth, max_rows=max_rows
         )
         rows = self.ss.store.context_pack(
-            anchor_id=anchor,
+            anchor_ids=seed_ids,
             depth=eff_depth,
             max_rows=eff_max_rows,
             active_only=active_only,
             stale_warnings=stale_warnings,
         )
         if soft_cap:
-            rows = apply_shell_soft_cap(rows, anchor=anchor)
+            rows = apply_shell_soft_cap(rows, anchor=seed_ids[0])
         text = self.emit_gql(rows)
         from memnet.neighbourhood_reserve import emit_reserves_section, intersecting_leases
         from memnet.session import utc_now
@@ -207,5 +215,54 @@ class PinMapComposer:
         return self.emit_gql(rows)
 
 
+def parse_find_locators(raw: list[str] | None) -> list[tuple[str, str]]:
+    """Parse ``KEY=VAL`` locator cues."""
+    out: list[tuple[str, str]] = []
+    for item in raw or []:
+        if "=" not in item:
+            raise MemNetError("bad_locator", f"locator must be KEY=VAL, got {item!r}")
+        key, val = item.split("=", 1)
+        key = key.strip()
+        if not key:
+            raise MemNetError("bad_locator", f"locator must be KEY=VAL, got {item!r}")
+        out.append((key, val))
+    return out
+
+
+def bounded_match_find(
+    store,
+    *,
+    kind: str | None,
+    locators: list[tuple[str, str]],
+    keyword: str | None,
+    limit: int,
+) -> list[Record]:
+    """Seed-only codebook find (BoundedMatchFind). No k-hop. Hard LIMIT."""
+    if limit < 1:
+        raise MemNetError("bad_limit", "find --limit must be >= 1")
+    kind_u = kind.upper() if kind else None
+    if kind_u:
+        rows = store.list_records(kind_u, active_only=True)
+    else:
+        rows = [r for r in store.list_records(active_only=True) if r.tag not in {"LAW", "EDG"}]
+    needle = (keyword or "").strip().lower()
+
+    def _loc_ok(rec: Record) -> bool:
+        for key, val in locators:
+            if str(rec.fields.get(key, "")) != val:
+                return False
+        return True
+
+    def _kw_ok(rec: Record) -> bool:
+        if not needle:
+            return True
+        return any(needle in str(v).lower() for v in rec.fields.values())
+
+    hits = [r for r in rows if _loc_ok(r) and _kw_ok(r)]
+    hits.sort(key=lambda r: r.id)
+    return hits[:limit]
+
+
 # SysML-facing alias
 PinMapShapedRead = PinMapComposer
+BoundedMatchFind = bounded_match_find

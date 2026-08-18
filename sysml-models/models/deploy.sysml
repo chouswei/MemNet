@@ -15,7 +15,7 @@
     │       │   ├── Recall          // seed(q)+k-hop expand; empty seed ⇒ skip
     │       │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
     │       │   │       ├── PinMapShapedRead    // implemented=true — goldfish
-    │       │   │       └── BoundedMatchFind    // implemented=false — leftover #73
+    │       │   │       └── BoundedMatchFind    // implemented=true — #73 seed find
     │       │   └── Commit          // ONE gate; mutate/ingest/absorb = id rules
     │       │       ├── MutateGate
     │       │       └── NeighbourhoodReserve // RSV lease — not a third API
@@ -327,13 +327,13 @@ package MemNet {
       Distinct from mutate MATCH (n {id}) SET — this leaf is a read.
       Nested under Recall / AgentShapedRead beside PinMapShapedRead —
       same Recall operator; seed = bounded MATCH (hard LIMIT L), not ego id.
-      Modelled; not shipped (implemented=false; leftover #73). MUST NOT
-      claim find shipped because pin_map shipped.
+      Shipped: CLI query find / MCP find (seed nodes only, hard LIMIT).
+      MUST NOT claim find is pin_map or a k-hop walk.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
-    attribute implemented : Boolean = false;
+    attribute implemented : Boolean = true;
     attribute leftoverIssue : String = "#73";
     attribute limitRequired : Boolean = true;
     attribute emitShapedSubgraph : Boolean = true;
@@ -351,8 +351,8 @@ package MemNet {
     doc /*
       Honesty nest under Recall so pin_map shipped cannot be misread as
       find shipped. Children: PinMapShapedRead (implemented=true; default
-      goldfish when anchored) and BoundedMatchFind (implemented=false;
-      leftover #73). Parent has no single implemented=true — that flag
+      goldfish when anchored) and BoundedMatchFind (implemented=true;
+      #73 seed-only find). Parent has no single implemented=true — that flag
       lives on children only. WalkQuery remains a sibling under
       SessionLifecycle (relation hop lines), not this nest.
     */

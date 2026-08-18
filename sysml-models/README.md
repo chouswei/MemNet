@@ -43,7 +43,7 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │           │   ├── Recall           // seed + k-hop; empty ⇒ skip
 │   │   │           │   │   └── AgentShapedRead
 │   │   │           │   │       ├── PinMapShapedRead // implemented=true
-│   │   │           │   │       └── BoundedMatchFind // implemented=false #73
+│   │   │           │   │       └── BoundedMatchFind // implemented=true #73 seed find
 │   │   │           │   └── Commit           // ONE gate; id-mint rules
 │   │   │           │       ├── MutateGate
 │   │   │           │       └── NeighbourhoodReserve // lease, not 3rd API
@@ -135,7 +135,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is modelled under **Recall / AgentShapedRead** (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
 
 ## Property-graph ontology (first-class)
 

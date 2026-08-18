@@ -328,8 +328,8 @@ package MemNetRequirements {
           SHALL NOT: binding-table RETURN as primary emit; missing LIMIT;
           unbounded MATCH; variable-length path as default; teach full
           openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY).
-          Distinct from mutate MATCH … SET. Modelled as BoundedMatchFind
-          (implemented=false; leftover #73) — not claimed shipped.
+          Distinct from mutate MATCH … SET. Shipped as BoundedMatchFind
+          (implemented=true; #73) — seed nodes only, not pin_map k-hop.
         */
         attribute requirementId : String = "MN-REQ-04.6";
       }
