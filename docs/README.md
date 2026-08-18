@@ -20,7 +20,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |
 | [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox review; all tests are paradox |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
-| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.4.x) |
+| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask ops (shared \(S\); RSV + ingest shipped) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (M2.5 client landed; live cabinet = **1.0.0** gate) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |

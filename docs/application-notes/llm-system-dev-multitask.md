@@ -140,7 +140,7 @@ Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
 
 | CLI | MCP | Locators |
 |-----|-----|----------|
-| `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=` |
+| `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=`, `requirementId=` |
 | `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
 | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
