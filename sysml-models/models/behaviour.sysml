@@ -1156,8 +1156,8 @@ package MemNetBehaviour {
       flush_to_durable via DurableSyncOwner and DurableStoreAdapter
       (FakeDurableAdapter always; optional AgensGraphAdapter client).
       MemNet remains sole agent-facing memory; LLM ↔ DurableGraphStore
-      direct is out of default teach. Client seam landed; live external
-      cabinet not claimed verified (MN-REQ-06.4).
+      direct is out of default teach. Client seam landed; 0.7 live
+      hydrate/flush proven (MN-REQ-06.4).
     */
     entry;
     then durableIdle;

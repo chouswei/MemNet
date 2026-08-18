@@ -1,6 +1,6 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** 0.5 leftover goldfish **shipped**. 0.6 = V5 + snapshot-as-offered-durable + version map. Client hydrate/flush landed; live AgensGraph proof is **after 0.6, before 1.0**; `liveCabinetClaimed` stays false until that offer is proven. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** 0.5 leftover goldfish **shipped**. 0.6 honesty **shipped**. 0.7 = live AgensGraph hydrate/flush **proven**; `liveCabinetClaimed` true. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers.  
 **Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
@@ -65,7 +65,7 @@
 
 ## Implementation status (client slice)
 
-**Not M2.5 complete.** Client/adapter hydrate+flush is implemented against an **external** AgensGraph; Fake remains the always-on test path. **MUST NOT** claim M2.5 fully shipped until a live cabinet has been exercised in the operator's environment.
+**M2.5 live path proven (0.7).** Client/adapter hydrate+flush is implemented against an **external** AgensGraph; Fake remains the always-on CI path. The live mark still **skips** unless `MEMNET_AGENSGRAPH_URL` is set. This repo does **not** vendor or host the server.
 
 | Piece | Status |
 |-------|--------|
@@ -77,7 +77,7 @@
 | Optional extra `memnet-llm[agensgraph]` (`psycopg`, not the DB server) | Landed |
 | serve / MCP bind `get_sync_owner(make_adapter_from_env())` once | Landed |
 | Live integration test | Skip unless `MEMNET_AGENSGRAPH_URL` set |
-| Claim adapter / M2.5 shipped | **MUST NOT** — needs external store to prove |
+| Claim adapter / M2.5 shipped | **0.7** — live hydrate/flush proven; still not a hosted cabinet service |
 
 Agents continue to use MemNet GQL `pin_map` / mutate only. Durable calls go through `DurableSyncOwner` / `SessionLifecycle.hydrate_from_durable` — never as the LLM primary path.
 

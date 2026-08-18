@@ -71,11 +71,11 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional client `memnet-llm[agensgraph]`; cabinet is external and not vendored. Live cabinet is **not** claimed.
+**Durable:** optional client `memnet-llm[agensgraph]`; cabinet is external and not vendored. **0.7** live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set.
 
 ## Deferred (honest)
 
-- Live AgensGraph cabinet (client hydrate/flush exists; live path not claimed)
+- Hosted AgensGraph as a product service (operator runs the server; this repo does not vendor it)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - Pin-map export / round-trip (MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66)) — Path-B ingest domains are shipped (#64); export is separate
 - Host search / RAG as a MemNet tool — application nest only ([`docs/grammar/memnet-host-search-nest.md`](docs/grammar/memnet-host-search-nest.md))

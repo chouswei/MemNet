@@ -766,7 +766,7 @@ package MemNet {
       (memnet.durable: FakeDurableAdapter always; optional AgensGraphAdapter
       under memnet-llm[agensgraph]; SessionLifecycle.hydrate_from_durable /
       flush_to_durable; one DurableSyncOwner). Live cabinet is external /
-      operator-proven — not vendored in-repo and not claimed verified.
+      operator-proven (0.7 hydrate/flush) — not vendored in-repo.
       MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
       primary path (LLM ↔ MemNet only). MN-REQ-06.4.
     */
@@ -776,8 +776,8 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     // Client hydrate/flush adapter seam (Fake + optional AgensGraph client).
     attribute implemented : Boolean = true;
-    // Live external AgensGraph cabinet — not claimed; needs operator proof.
-    attribute liveCabinetClaimed : Boolean = false;
+    // Live external AgensGraph cabinet — claimed after 0.7 hydrate/flush proof.
+    attribute liveCabinetClaimed : Boolean = true;
     attribute phase : String = "M2.5";
   }
 
@@ -786,13 +786,13 @@ package MemNet {
       Optional durable property-graph buffer behind MemNet SharedLlmMemory.
       Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
       LLM agents as primary. M2.5 client hydrate/flush landed; live
-      external cabinet deferred (not claimed). MN-REQ-06.4.
+      external cabinet proven (0.7; URL skip in CI). MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     attribute clientLanded : Boolean = true;
-    attribute liveCabinetClaimed : Boolean = false;
+    attribute liveCabinetClaimed : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }

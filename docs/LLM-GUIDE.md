@@ -89,7 +89,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death: `session save` / `session load` (snapshot) is what this repo offers. Fake hydrate/flush is CI. AgensGraph is offered **after 0.6 and before 1.0** — not required for 0.6.
+Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work.
 
 Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 
@@ -208,7 +208,7 @@ memnet query pin-map --anchor …
 
 TCP `memnet serve` (`127.0.0.1:18765`) remains the Multitask / LAN fallback (MN-REQ-06.3).
 
-See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (client hydrate/flush in tree; live AgensGraph path needs an external cabinet — do not claim live verified).
+See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.7: live hydrate/flush proven against an external cabinet; Fake + URL skip in CI).
 
 ### Common failure modes
 

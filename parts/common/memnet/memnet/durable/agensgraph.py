@@ -116,10 +116,19 @@ def build_hydrate_nodes_cypher(ego_id: str, budget: HydrateBudget) -> str:
     )
 
 
-def build_hydrate_edges_cypher(ego_id: str, budget: HydrateBudget) -> str:
-    """Edges whose both endpoints lie inside the ego-bounded node set."""
+def build_hydrate_edges_cypher(
+    ego_id: str,
+    budget: HydrateBudget,
+    node_ids: list[str] | None = None,
+) -> str:
+    """Edges whose both endpoints lie inside the already-hydrated node set.
+
+    Prefer ``node_ids`` from the node walk. A second Cypher UNWIND/MATCH on the
+    same aliases hits AgensGraph ``DuplicateAlias``; rematch-by-id after
+    ``collect`` was empty on 2.16. Filter ``MATCH (src)-[rel]->(dst)`` by id
+    list instead.
+    """
     ego = cypher_id_literal(ego_id)
-    depth = max(0, int(budget.depth))
     limit = max(0, int(budget.max_edges))
     if limit == 0:
         return (
@@ -128,15 +137,20 @@ def build_hydrate_edges_cypher(ego_id: str, budget: HydrateBudget) -> str:
             f"RETURN null AS label, null AS props, null AS src, null AS dist\n"
             f"LIMIT 0"
         )
+    ids = [i for i in (node_ids or []) if i]
+    if not ids:
+        return (
+            f"MATCH (ego {{id: {ego}}})\n"
+            f"WHERE false\n"
+            f"RETURN null AS label, null AS props, null AS src, null AS dist\n"
+            f"LIMIT 0"
+        )
+    lits = ", ".join(cypher_id_literal(i) for i in ids)
     return (
-        f"MATCH (ego {{id: {ego}}})\n"
-        f"OPTIONAL MATCH (ego)-[*0..{depth}]-(n)\n"
-        f"WITH collect(DISTINCT n) AS nodes\n"
-        f"UNWIND nodes AS a\n"
-        f"UNWIND nodes AS b\n"
-        f"MATCH (a)-[r]->(b)\n"
-        f"RETURN DISTINCT label(r) AS label, properties(r) AS props, "
-        f"a.id AS src, b.id AS dist\n"
+        f"MATCH (src)-[rel]->(dst)\n"
+        f"WHERE src.id IN [{lits}] AND dst.id IN [{lits}]\n"
+        f"RETURN DISTINCT label(rel) AS label, properties(rel) AS props, "
+        f"src.id AS src, dst.id AS dist\n"
         f"LIMIT {limit}"
     )
 
@@ -281,10 +295,8 @@ class AgensGraphAdapter(DurableStoreAdapter):
         budget = budget or HydrateBudget()
         conn = self._ensure_conn()
         nodes_cypher = build_hydrate_nodes_cypher(ego_id, budget)
-        edges_cypher = build_hydrate_edges_cypher(ego_id, budget)
         try:
             node_rows = self._execute(conn, nodes_cypher)
-            edge_rows = self._execute(conn, edges_cypher) if budget.max_edges > 0 else []
         except MemNetError:
             raise
         except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
@@ -302,6 +314,18 @@ class AgensGraphAdapter(DurableStoreAdapter):
                 continue
             seen_nodes.add(rec.id)
             nodes.append(rec)
+
+        edges_cypher = build_hydrate_edges_cypher(ego_id, budget, node_ids=[n.id for n in nodes])
+        try:
+            edge_rows = self._execute(conn, edges_cypher) if budget.max_edges > 0 else []
+        except MemNetError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
+            raise MemNetError(
+                "agensgraph_query_failed",
+                f"AgensGraph hydrate query failed: {type(exc).__name__}: {exc}",
+                example="Check MEMNET_AGENSGRAPH_URL / graph name / network",
+            ) from exc
 
         edges: list[Record] = []
         seen_edges: set[str] = set()
@@ -391,6 +415,7 @@ class AgensGraphAdapter(DurableStoreAdapter):
             kwargs["password"] = self.config.password
         try:
             conn = psycopg.connect(self.config.url, **kwargs)
+            conn.autocommit = True
         except MemNetError:
             raise
         except Exception as exc:  # noqa: BLE001
@@ -427,17 +452,24 @@ class AgensGraphAdapter(DurableStoreAdapter):
             # CREATE GRAPH IF NOT EXISTS is not universal; ignore "already exists".
             try:
                 cur.execute(f"CREATE GRAPH {graph}")
-                conn.commit()
             except Exception:  # noqa: BLE001 — graph may already exist
-                conn.rollback()
+                if not getattr(conn, "autocommit", False):
+                    conn.rollback()
             cur.execute(f"SET graph_path = {graph}")
 
     def _execute(self, conn: Any, cypher: str) -> list[Any]:
+        graph = cypher_ident(self.config.graph_name, kind="graph name")
         with conn.cursor() as cur:
-            cur.execute(cypher)
-            if cur.description is None:
-                return []
-            return list(cur.fetchall())
+            try:
+                cur.execute(f"SET graph_path = {graph}")
+                cur.execute(cypher)
+                if cur.description is None:
+                    return []
+                return list(cur.fetchall())
+            except Exception:
+                if not getattr(conn, "autocommit", False):
+                    conn.rollback()
+                raise
 
 
 def _row_get(row: Any, index: int, key: str) -> Any:
