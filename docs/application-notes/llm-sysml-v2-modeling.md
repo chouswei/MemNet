@@ -106,6 +106,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 
 ## 8. Related
 
+- [`../SHAPE.md`](../SHAPE.md) — product shape this note applies (session goldfish, not a SysML clone)
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)

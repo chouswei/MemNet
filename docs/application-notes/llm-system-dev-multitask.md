@@ -12,6 +12,7 @@
 
 This note complements:
 
+- [`docs/SHAPE.md`](../SHAPE.md) — product shape (session goldfish vs corpus; two stores)
 - [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.4.x)
 - [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — single-agent SysML memory (no Multitask transport)

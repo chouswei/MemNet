@@ -4,7 +4,7 @@ Domain patterns for **using** MemNet (not engine internals). Index: [`../README.
 
 **Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
-**Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Roadmap: [`../ROADMAP.md`](../ROADMAP.md).
+**Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Roadmap: [`../ROADMAP.md`](../ROADMAP.md). Product shape: [`../SHAPE.md`](../SHAPE.md).
 
 Note **bodies teach GQL**. Historical Layer / Tier A ASCII lives under [`../grammar/archive/`](../grammar/archive/) only — not agent wire.
 

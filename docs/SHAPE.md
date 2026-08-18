@@ -73,3 +73,17 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 **1.0.0** is this shape **mature for people**: install `memnet-llm`, one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) outlives a process. Roadmap: [`ROADMAP.md`](ROADMAP.md).
 
 0.4.x already **erects** the shape (M1–M3 wire, goldfish orthodox). 0.5.0 **claims** the leftover operators. 1.0.0 **lets an outsider trust it**.
+
+---
+
+## SysML (application vs product)
+
+The shape **applies** to SysML work; it is not a SysML clone.
+
+| Kind | Path | Role |
+|------|------|------|
+| **Application note** | [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | Use MemNet as session memory while modelling **someone else's** SysML v2 tree (atoms + locators; `.sysml` stays structural SSOT) |
+| **Application note (Multitask)** | [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*`: shared session goldfish vs product `sysml-models/` |
+| **Product model** | [`../sysml-models/`](../sysml-models/) | MemNet **itself** (MN-REQ-00…13). Not an application note |
+
+Do **not** import `MemNetRequirements` into a downstream load tree. User pack: `sysml-memnet-documentation` / `sysml-memnet-cache`.
