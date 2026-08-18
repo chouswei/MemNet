@@ -19,4 +19,6 @@ Load user-pack skill **`memnet-multitask`** (`~/.cursor/skills/memnet-multitask/
 
 ## MUST NOT
 
-- Treat chat as durable state; poll workers; assume ACL / reserve / PinMapIngest_* (0.4.x design-only).
+- Treat chat as durable state; poll workers; assume full ACL modes / `session_token`.
+- Treat RSV or Path-B ingest as unshipped — they are shipped. CapsPolicy ACL is off by default (ships when enabled).
+- Snap-on-session / `rag_query`; dump \(S\) into a worker prompt.

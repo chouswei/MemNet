@@ -21,7 +21,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT; `math-skeleton.md` = 0.5 Recall/Commit math) | developers |
 | Field formulas (design; formula-as-EDGE) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
 | Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` (archive: former multi-layer Layer doc) | developers |
-| Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
+| Neighbourhood reserve (RSV shipped; grammar still the design note) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` | developers |
 | Multi-agent / Multitask (as-is 0.4.x) | `docs/multi-agent-sessions.md` | developers |
 | Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` | applications |
@@ -57,7 +57,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 2. **Novel-writer is dropped** — do not restore `parts/novel-writer/` or novel MCP extras; see `DROP-NOVEL-WRITER.md`.
 3. Keep `AGENT-CONTEXT.md` thin; durable state lives in MemNet sessions when used.
 4. British English in new docs written for this repo.
-5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, or assume ACL / reserve / ingest (design-only in 0.4.x).
+5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers cue then `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, Snap-on-session, or assume full ACL modes / `session_token` (CapsPolicy when ACL enabled; RSV and Path-B ingest **are** shipped).
 
 ## Cursor Cloud specific instructions
 

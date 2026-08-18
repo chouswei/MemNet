@@ -49,8 +49,8 @@ Downstream system development and domain patterns — MemNet as working memory.
 | [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML v2 session goldfish (ingest + coding map) |
 | [`application-notes/llm-build-on-memnet.md`](application-notes/llm-build-on-memnet.md) | Custom MCP + skill pack |
 | [`application-notes/llm-tech-docs-decomposition.md`](application-notes/llm-tech-docs-decomposition.md) | Manual / SCPI decomposition |
-| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic (body M3; see GQL case study) |
-| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Nodal method (body M3; see GQL case study) |
+| [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic / s-domain (GQL) |
+| [`application-notes/llm-nodal-analysis-formulas.md`](application-notes/llm-nodal-analysis-formulas.md) | Node method (GQL) |
 | [`application-notes/llm-daily-news.md`](application-notes/llm-daily-news.md) | Batch RSS digest |
 | [`application-notes/llm-mud.md`](application-notes/llm-mud.md) | Multiplayer MUD |
 | [`application-notes/`](application-notes/) | Application-notes index |
