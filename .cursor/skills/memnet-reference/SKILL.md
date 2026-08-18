@@ -50,7 +50,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 |------|------|------------|
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
-| One-path / version map (0.5 leftover · 1.0 gates) | `docs/ROADMAP-0.5.md` | developers |
+| Version map (all SemVer) | `docs/ROADMAP.md` | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |
@@ -64,7 +64,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 | Layout / hub | `LAYOUT.md`, `AGENTS.md` | -- |
 | Novel-writer drop | `DROP-NOVEL-WRITER.md` | -- |
 
-**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** **GQL only** — [`docs/grammar/gql-wire-profile.md`](../../../docs/grammar/gql-wire-profile.md); ADR [`docs/adr/ADR-001-gql-agent-wire.md`](../../../docs/adr/ADR-001-gql-agent-wire.md). Detail: `docs/ROADMAP-0.5.md`.
+**Remote teach (one path):** Cursor **`memnet-pi`** HTTP `"url"` — not dual-equal with project `memnet-local` (stdio = optional/dev-only). **Dialect teach:** **GQL only** — [`docs/grammar/gql-wire-profile.md`](../../../docs/grammar/gql-wire-profile.md); ADR [`docs/adr/ADR-001-gql-agent-wire.md`](../../../docs/adr/ADR-001-gql-agent-wire.md). Detail: `docs/ROADMAP.md`.
 
 Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 

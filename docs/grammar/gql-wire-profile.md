@@ -228,7 +228,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | Path | Role |
 |------|------|
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Version map: 0.5 leftover goldfish; 1.0 live cabinet |
+| [`../ROADMAP.md`](../ROADMAP.md) | All versions |
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (no engine cut) |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter (M2.5 client landed; live cabinet = **1.0.0** gate) |

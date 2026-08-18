@@ -12,7 +12,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 |------|------|-------|
 | Docs index (developers vs applications) | `docs/README.md` | — |
 | Doctrine / quick start | `README.md` | — |
-| Version map (0.5 leftover · 1.0 cabinet) | `docs/ROADMAP-0.5.md` | developers |
+| Version map (all SemVer) | `docs/ROADMAP.md` | developers |
 | System identity / SemVer | `project.toml` | — |
 | Python packaging | `pyproject.toml` | — |
 | Layout adaptation notes | `LAYOUT.md` | — |

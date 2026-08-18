@@ -28,6 +28,6 @@ All examination and test of MemNet is **paradox**. Orthodox is only what you ere
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | M1 SSOT (orthodox wire) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | 0.5 leftover goldfish; live cabinet = 1.0.0 |
+| [`../ROADMAP.md`](../ROADMAP.md) | All versions |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable store sketch (**M2.5**) |
 | [`archive/README.md`](archive/README.md) | Quarantined Layer sources |

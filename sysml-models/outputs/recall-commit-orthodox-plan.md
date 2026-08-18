@@ -5,7 +5,7 @@
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master`).  
-**Model honesty:** MN-VER-13-S01. **0.5 leftover** is goldfish paradox/erect ([`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md)). Live M2.5 cabinet is a **1.0.0 gate** — it does **not** block this track.
+**Model honesty:** MN-VER-13-S01. **0.5 leftover** is goldfish paradox/erect ([`docs/ROADMAP.md`](../../docs/ROADMAP.md)). Live M2.5 cabinet is a **1.0.0 gate** — it does **not** block this track.
 
 Orthodox = a theorem you can **build from**. Paradox = **all** examination and test after the build (pytest, MN-VER, V-cases, cousin papers). Resolve by **scope**, not a third operator / `rag_query` / Snap-on-session. There is **no** third kind of work called “exam”. Filename `gql-model-exam.md` is historical paradox, not a second orthodox.
 
@@ -54,7 +54,7 @@ Pytest already covering part of this (still paradox): `tests/test_pin_map_view.p
 
 ## Development sequence
 
-Do **not** wait on the live M2.5 cabinet (that is a **1.0.0** gate). Goldfish leftover **in 0.5.0** is paradox pytest then #73 and union-under-one-\(M\). Peak_L stays later. Roadmap: [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md).
+Do **not** wait on the live M2.5 cabinet (that is a **1.0.0** gate). Goldfish leftover **in 0.5.0** is paradox pytest then #73 and union-under-one-\(M\). Peak_L stays later. Roadmap: [`docs/ROADMAP.md`](../../docs/ROADMAP.md).
 
 ### Already done (do not rebuild)
 
@@ -111,6 +111,6 @@ Done for **0.5.0** when: V1/V3/V4/V6 have pytest; #73 LIMIT find shipped; union-
 | [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Snap/Shape; after #84 status |
 | [`host-search-nest-case-study.md`](host-search-nest-case-study.md) | Paths A–E |
-| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | Version map: 0.5 leftover; 1.0 live cabinet |
+| [`docs/ROADMAP.md`](../../docs/ROADMAP.md) | All versions |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded find leftover |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (citations) |
