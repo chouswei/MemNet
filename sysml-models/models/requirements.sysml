@@ -31,8 +31,8 @@
   Mission SSOT: Net of Memory between LLM pipelines and data searching; aids
   system, programme, software, firmware, hardware, and documentation
   development; save time and tokens; high factual accuracy; LLM-friendly
-  grammar on stdio/MCP; canonical parser for human inspection. Conceptual
-  data kinds: NODE | EDGE.
+  grammar on stdio/MCP; canonical parser for human inspection. GQL elements:
+  node (vertex), edge (relationship), property.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -150,33 +150,36 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Memory net information model: NODE | EDGE (property graph) -----
+    // ----- Memory net information model: GQL node, edge, property -----
 
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
-        Group: the Net of Memory information model is exactly two conceptual
-        data kinds -- NODE and EDGE -- as a first-class property graph
-        (Node / Relationship / Property / Label; ADR-001). Tags or surface
-        spellings may realise node labels; they are not additional conceptual
-        kinds. Agent wire is openCypher-shaped GQL; primary read is shaped
-        pin_map (not raw MATCH/RETURN tables). Layer / Tier A are archived
-        (not product accept); @TAG pipe remains import-once only.
+        Group: the Net of Memory is a GQL property graph whose three elements
+        are node (ISO synonym vertex), edge (ISO synonym relationship), and
+        property (ADR-001; gql-wire-profile). Labels name kinds; they are not
+        a fourth element. MUST NOT invent PORT (or nested graph) as a
+        graph-element kind — those facts live as property values. Agent wire
+        is openCypher-shaped GQL; primary read is shaped pin_map (not raw
+        MATCH/RETURN tables). Layer / Tier A are archived (not product
+        accept); @TAG pipe remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
       requirement def MN_REQ_02_1_ExactlyNodeAndEdge {
         doc /*
-          SHALL model the Net of Memory as exactly two conceptual data kinds:
-          NODE and EDGE (relations between nodes) -- the MemNet reading of
-          a property graph (nodes + relationships).
+          SHALL model the Net of Memory as a GQL property graph with three
+          elements: node (vertex), edge (relationship), and property. Topology
+          is node--edge--node; property values attach to nodes and to edges.
+          SHALL NOT add a fourth graph-element kind (PORT nodes, nested graphs,
+          prose blobs).
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
 
       requirement def MN_REQ_02_2_NodesHoldAtomisedFacts {
         doc /*
-          NODEs SHALL hold atomised facts and attributes (properties) --
-          one idea per field set -- not free-form prose or merged
+          Nodes SHALL hold atomised facts as property values --
+          one idea per property -- not free-form prose or merged
           multi-idea blobs.
         */
         attribute requirementId : String = "MN-REQ-02.2";
@@ -184,8 +187,8 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_3_EdgesAreFirstClass {
         doc /*
-          EDGEs SHALL be first-class relations between nodes (property-graph
-          relationships), not buried in node attribute fields or narrative.
+          Edges (relationships) SHALL be first-class links between nodes,
+          not buried in node property values or narrative.
         */
         attribute requirementId : String = "MN-REQ-02.3";
       }
@@ -193,7 +196,7 @@ package MemNetRequirements {
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
           Pin map, walk, bounded MATCH find, and query SHALL operate over the
-          NODE and EDGE graph. Primary agent read when an ego/anchor id is
+          node/edge graph (property values included). Primary agent read when an ego/anchor id is
           known is bounded shaped pin_map wrapping GQL (Recall seed = id).
           When unanchored (no id) or pin_map caps dropped a needed row,
           bounded MATCH find (hard LIMIT; shaped subgraph emit) MAY apply
@@ -206,8 +209,8 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_5_GrammarExpressesNodeAndEdge {
         doc /*
-          Agent-facing grammar and I/O SHALL express both NODE and EDGE as
-          openCypher-shaped GQL (labels, relationship types, properties).
+          Agent-facing grammar and I/O SHALL express node, edge, and property as
+          openCypher-shaped GQL (labels, edge/relationship types, property maps).
           Write = display means shaped subgraph emit matches mutate family.
           Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
@@ -216,7 +219,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_6_ParserRecoversNodeAndEdge {
         doc /*
-          The canonical parser SHALL recover both NODE and EDGE structure for
+          The canonical parser SHALL recover node, edge, and property structure for
           human inspection.
         */
         attribute requirementId : String = "MN-REQ-02.6";
@@ -225,8 +228,8 @@ package MemNetRequirements {
       requirement def MN_REQ_02_7_SchemaValidatedIngest {
         doc /*
           SHALL validate ingest against the session schema and reject unknown
-          or reserved surface kinds. Tags MAY realise NODE kinds; conceptual
-          kinds remain NODE and EDGE only.
+          or reserved surface kinds. Tags MAY realise node labels; GQL
+          elements remain node (vertex), edge (relationship), and property.
         */
         attribute requirementId : String = "MN-REQ-02.7";
       }
@@ -328,8 +331,8 @@ package MemNetRequirements {
           SHALL NOT: binding-table RETURN as primary emit; missing LIMIT;
           unbounded MATCH; variable-length path as default; teach full
           openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY).
-          Distinct from mutate MATCH … SET. Modelled as BoundedMatchFind
-          (implemented=false; leftover #73) — not claimed shipped.
+          Distinct from mutate MATCH … SET. Shipped as BoundedMatchFind
+          (implemented=true; #73) — seed nodes only, not pin_map k-hop.
         */
         attribute requirementId : String = "MN-REQ-04.6";
       }

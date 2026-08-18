@@ -147,23 +147,30 @@ async def session_save(
 
 
 async def _pin_map(
-    anchor: str,
+    anchor: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     session: str | None = None,
     view: str | None = None,
     caller: str | None = None,
+    anchors: list[str] | None = None,
 ) -> str:
     argv = [
         "query",
         "pin-map",
-        "--anchor",
-        anchor,
         "--depth",
         str(depth),
         "--max-rows",
         str(max_rows),
     ]
+    ids: list[str] = []
+    for aid in list(anchors or []):
+        if aid and aid not in ids:
+            ids.append(aid)
+    if anchor and anchor not in ids:
+        ids.append(anchor)
+    for aid in ids:
+        argv.extend(["--anchor", aid])
     if view:
         argv.extend(["--view", view])
     if caller:
@@ -173,12 +180,13 @@ async def _pin_map(
 
 @mcp.tool()
 async def pin_map(
-    anchor: str,
+    anchor: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
     caller: str | None = None,
+    anchors: list[str] | None = None,
 ) -> str:
     """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
 
@@ -188,22 +196,47 @@ async def pin_map(
 
     Optional ``caller``: CapsPolicy ACL who-check when session ACL is enabled.
 
+    Optional ``anchors``: extra ego ids; union with ``anchor`` under one max_rows.
+
     Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
     """
-    return await _pin_map(anchor, depth, max_rows, session, view, caller)
+    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors)
 
 
 @mcp.tool()
 async def query_warm(
-    anchor: str,
+    anchor: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
     caller: str | None = None,
+    anchors: list[str] | None = None,
 ) -> str:
     """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(anchor, depth, max_rows, session, view, caller)
+    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors)
+
+
+@mcp.tool()
+async def find(
+    limit: int,
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
+    session: str | None = None,
+) -> str:
+    """Bounded MATCH find: seed nodes only (hard LIMIT). Then pin_map a copied id.
+
+    At least one of kind / locators (KEY=VAL) / keyword. Not rag_query.
+    """
+    argv = ["query", "find", "--limit", str(limit)]
+    if kind:
+        argv.extend(["--kind", kind])
+    for loc in locators or []:
+        argv.extend(["--locator", loc])
+    if keyword:
+        argv.extend(["--keyword", keyword])
+    return await _run(argv, session=session)
 
 
 @mcp.tool()

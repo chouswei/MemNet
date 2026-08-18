@@ -5,7 +5,7 @@
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
 
-**You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: cue (kind / id / leftover [#73](https://github.com/chouswei/MemNet/issues/73) find), then `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
+**You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: cue (kind / id / `find`), then `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
 
 ---
 
@@ -24,7 +24,7 @@
 
 > **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
 
-> **Atomise** — one idea per node/edge; wire relationships as relationships. No prose blobs in properties.
+> **Atomise** — GQL elements: **node** (vertex), **edge** (relationship), **property**. One idea per property; wire relations as edges. No prose blobs in a property value.
 
 ### GQL wire (Write = display redefined)
 
@@ -74,7 +74,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map` on the live `TSK`. Commit a **sparse** Δ (`add`/`update` of what changed only). That writeback is not Path-B absorb.
 
-1. **Pin the live task** — unsettled `TSK_*` (known id, or `read_list(tag=TSK, active_only=True)`). Skip extra topic pins when that neighbourhood already covers them.
+1. **Pin the live task** — unsettled `TSK_*` (known id, or `read_list(tag=TSK, active_only=True)`). No ego: `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L`, copy an id, then `pin_map`. Skip extra topic pins when that neighbourhood already covers them.
 2. **Fetch one slice** (always anchored):
 
    MCP: `pin_map(anchor=TSK_42, depth=2)`  

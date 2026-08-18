@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** product math SSOT for 0.5 — modelled; **no engine cut**.  
+**Status:** product math SSOT for 0.5 leftover goldfish (in-process). Live AgensGraph remains the 1.0 gate.  
 **Audience:** product developers. **British English.**  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).
@@ -11,7 +11,7 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 
 ## Session and cue
 
-Session \(S\) is a labelled property graph (NODE | EDGE) with rate cap \(R\) (rows / bytes).
+Session \(S\) is a labelled property graph — GQL elements **node** (vertex), **edge** (relationship), **property** — with rate cap \(R\) (rows / bytes).
 
 Cue \(q\) is a **discrete codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (local degree peak) is a **last-resort** optional token — prefer live `TSK` / last mutate; if a peak test is used, count **typed residual** degree (strip `contains`), not raw edge count ([#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25).
 
@@ -37,11 +37,11 @@ Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **no
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop from a **seed set** \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) (`max_rows`) — **one** \(M\), not \(M\times|Q|\). Hide recycled rows. Emit the **same** shaped GQL subgraph family as mutate — not a tabular `RETURN`.
 
-Engine honesty: `PinMapComposer.compose` / `context_pack` today take **one** `anchor`. Multi-ego union-under-\(M\) is the same Recall leftover as [#73](https://github.com/chouswei/MemNet/issues/73) (do not claim shipped). Path-B `export_working_memory_slice` unions by id but budgets \(M\times|\mathrm{anchors}|\) — that is import payload, **not** goldfish.
+Engine honesty: `PinMapComposer.compose` / `context_pack` accept a seed set (`anchor` plus optional `anchors`). Union walks, **one** `max_rows` \(M\), **one** LAW prepend. Path-B `export_working_memory_slice` unions by id but budgets \(M\times|\mathrm{anchors}|\) — that is import payload, **not** goldfish.
 
-`pin_map` and leftover `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=false` until #73. \(\mathrm{Peak}_L\) is deferred (same LIMIT honesty; not a third operator).
+`pin_map` and `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=true` (`query find` / MCP `find` — seed nodes only, hard LIMIT; then `pin_map` a copied id). \(\mathrm{Peak}_L\) is deferred (not a third operator).
 
-**In-session task already on \(S\).** The work is in MemNet; \(S\) is still too large to dump. That is Shape, not Snap. Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or leftover #73 — then `pin_map`. Isolated `TSK` ⇒ LAW + that node only; attach edges via Commit if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
+**In-session task already on \(S\).** The work is in MemNet; \(S\) is still too large to dump. That is Shape, not Snap. Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or `find` — then `pin_map`. Isolated `TSK` ⇒ LAW + that node only; attach edges via Commit if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
 
 ---
 
@@ -123,7 +123,7 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 - Density-peak **cluster assignment**, Leiden from peaks, or global top-\(k\) degree as goldfish.
 - New `HostSearchBridge` leaves, HIT rows, `RagDecision` envelopes.
 - Dual-teach GraphQL / LangChain / HiGram as agent wire.
-- Claim #73 shipped; free `MATCH`/`RETURN` as goldfish.
+- Free `MATCH`/`RETURN` as goldfish (find is seed nodes only; then `pin_map`).
 - A literature pile in this file (that stays on #77).
 
 ---
@@ -137,4 +137,4 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 | [`../../sysml-models/models/deploy.sysml`](../../sysml-models/models/deploy.sysml) | `RecallCommit` nest |
 | [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research notes (not product SSOT) |
-| [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded MATCH find leftover |
+| [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded MATCH find (shipped seed-only) |

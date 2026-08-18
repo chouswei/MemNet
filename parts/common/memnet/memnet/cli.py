@@ -48,7 +48,11 @@ from memnet.output import (
     emit_wrn,
     reset_warn_budget,
 )
-from memnet.pin_map_composer import PinMapComposer
+from memnet.pin_map_composer import (
+    PinMapComposer,
+    bounded_match_find,
+    parse_find_locators,
+)
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
@@ -1065,12 +1069,14 @@ def _query_context(
     shaped_gql: bool = False,
     view: str | None = None,
     caller: str | None = None,
+    anchors: list[str] | None = None,
 ) -> None:
     if shaped_gql:
         composer = PinMapComposer(ss)
         try:
             _rows, text = composer.compose(
                 anchor=anchor,
+                anchors=anchors,
                 depth=depth,
                 max_rows=max_rows,
                 active_only=active_only,
@@ -1175,18 +1181,27 @@ def query_context(
 
 def _run_pin_map(
     *,
-    anchor: str | None,
+    anchor: str | list[str] | None,
     depth: int,
     max_rows: int,
     session: str | None,
     view: str | None = None,
     caller: str | None = None,
 ) -> None:
+    anchors: list[str] | None
+    primary: str | None
+    if isinstance(anchor, list):
+        anchors = [a for a in anchor if a]
+        primary = None
+    else:
+        anchors = None
+        primary = anchor
     ss, lock = _load_session(session)
     with lock:
         _query_context(
             ss,
-            anchor=anchor,
+            anchor=primary,
+            anchors=anchors,
             depth=depth,
             max_rows=max_rows,
             active_only=True,
@@ -1199,7 +1214,7 @@ def _run_pin_map(
 
 @query_app.command("pin-map")
 def query_pin_map(
-    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    anchor: Annotated[list[str] | None, typer.Option("--anchor")] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     view: Annotated[
@@ -1228,7 +1243,7 @@ def query_pin_map(
 
 @query_app.command("warm")
 def query_warm(
-    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    anchor: Annotated[list[str] | None, typer.Option("--anchor")] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     view: Annotated[
@@ -1253,6 +1268,52 @@ def query_warm(
         view=view,
         caller=caller,
     )
+
+
+@query_app.command("find")
+def query_find(
+    limit: Annotated[int | None, typer.Option("--limit")] = None,
+    kind: Annotated[str | None, typer.Option("--kind")] = None,
+    locator: Annotated[
+        list[str] | None,
+        typer.Option("--locator", help="KEY=VAL field cue; repeatable"),
+    ] = None,
+    keyword: Annotated[str | None, typer.Option("--keyword")] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Bounded MATCH find (seed nodes only). Hard LIMIT required. Not pin_map."""
+    if limit is None:
+        _handle_error(MemNetError("no_limit", "find requires --limit"))
+    locators = []
+    try:
+        locators = parse_find_locators(locator)
+    except MemNetError as exc:
+        _handle_error(exc)
+    if not kind and not locators and not (keyword and keyword.strip()):
+        _handle_error(
+            MemNetError(
+                "no_cue",
+                "find requires --kind and/or --locator and/or --keyword",
+            )
+        )
+    assert limit is not None
+    ss, lock = _load_session(session)
+    with lock:
+        try:
+            hits = bounded_match_find(
+                ss.store,
+                kind=kind,
+                locators=locators,
+                keyword=keyword,
+                limit=limit,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
+        text = PinMapComposer(ss).emit_gql(hits)
+        if text:
+            for line in text.splitlines():
+                emit_stdout(line)
 
 
 @query_app.command("walk")

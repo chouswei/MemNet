@@ -533,22 +533,33 @@ class MemStore:
         self,
         *,
         anchor_id: str | None = None,
+        anchor_ids: list[str] | None = None,
         depth: int = DEFAULT_QUERY_DEPTH,
         max_rows: int = DEFAULT_QUERY_MAX_ROWS,
         active_only: bool = False,
         stale_warnings: list[tuple[Record, str]] | None = None,
     ) -> list[Record]:
         depth = min(depth, self.caps.max_depth)
-        if anchor_id is None:
-            anchor_id = self.default_anchor()
+        ids: list[str] = []
+        for aid in list(anchor_ids or []):
+            if aid and aid not in ids:
+                ids.append(aid)
+        if anchor_id and anchor_id not in ids:
+            ids.append(anchor_id)
+        if not ids:
+            fallback = self.default_anchor()
+            if fallback:
+                ids = [fallback]
         payload: list[Record] = []
         context_node_ids: set[str] = set()
-        if anchor_id and anchor_id in self.by_id:
+        seen: set[str] = set()
+        for aid in ids:
+            if aid not in self.by_id:
+                continue
             fanout: list[str] = []
-            subgraph = self.neighbors(anchor_id, depth, fanout_warnings=fanout)
+            subgraph = self.neighbors(aid, depth, fanout_warnings=fanout)
             for w in fanout:
                 emit_wrn(*w.split("|", 1))
-            seen: set[str] = set()
             for rec in subgraph:
                 if rec.id in seen:
                     continue
@@ -569,8 +580,9 @@ class MemStore:
             for rec in combined:
                 if rec.is_recyclable():
                     stale_warnings.append((rec, "stale_in_context"))
+        law_anchor = ids[0] if ids else None
         law_rows = self._law_rows_for_context(
-            anchor_id=anchor_id,
+            anchor_id=law_anchor,
             context_node_ids=context_node_ids,
             depth=depth,
             active_only=active_only,
