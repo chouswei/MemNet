@@ -9,14 +9,16 @@ alwaysApply: false
 
 # MemNet + Multitask Mode
 
-Load user-pack skill **`memnet-multitask`** (`~/.cursor/skills/memnet-multitask/SKILL.md`). Product ops SSOT: `docs/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/llm-system-dev-multitask.md`. Chat is never mission SSOT.
+Load user-pack skill **`memnet-multitask`** (`~/.cursor/skills/memnet-multitask/SKILL.md`). Product ops SSOT: `docs/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/llm-system-dev-multitask.md`. Chat is never mission SSOT. Product shape: `docs/SHAPE.md`.
 
 ## MUST
 
 - One shared session id; **TCP serve** or **streamable-http** MCP (not in-process stdio).
 - Parent: mint/settle `TSK_*` / `USR_*`; end turn after delegate; `pin_map` on next coordinator turn.
-- Workers: `pin_map` first; mutate only under assigned subgraph.
+- Workers: cue then `pin_map` first; mutate only under assigned subgraph.
 
 ## MUST NOT
 
-- Treat chat as durable state; poll workers; assume ACL / reserve / PinMapIngest_* (0.4.x design-only).
+- Treat chat as durable state; poll workers; assume full ACL modes / `session_token`.
+- Treat RSV or Path-B ingest as unshipped — they are shipped. CapsPolicy ACL is off by default (ships when enabled).
+- Snap-on-session / `rag_query`; dump \(S\) into a worker prompt.

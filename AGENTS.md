@@ -4,7 +4,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Mission
 
-**MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL **node**/vertex, **edge**/relationship, **property**) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
+**MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL **node**/vertex, **edge**/relationship, **property**) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md`, [`docs/SHAPE.md`](docs/SHAPE.md), and `docs/grammar/`.
 
 ## Where to look
 
@@ -12,6 +12,8 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 |------|------|-------|
 | Docs index (developers vs applications) | `docs/README.md` | — |
 | Doctrine / quick start | `README.md` | — |
+| Product shape (from the problem) | `docs/SHAPE.md` | developers |
+| Version map (SemVer SSOT) | `docs/ROADMAP-0.5.md` | developers |
 | System identity / SemVer | `project.toml` | — |
 | Python packaging | `pyproject.toml` | — |
 | Layout adaptation notes | `LAYOUT.md` | — |
@@ -19,7 +21,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT; `math-skeleton.md` = 0.5 Recall/Commit math) | developers |
 | Field formulas (design; formula-as-EDGE) | `docs/grammar/memnet-field-formulas.md` (any domain; not circuit-only) | developers |
 | Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` (archive: former multi-layer Layer doc) | developers |
-| Neighbourhood reserve (design) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
+| Neighbourhood reserve (RSV shipped; grammar still the design note) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` | developers |
 | Multi-agent / Multitask (as-is 0.4.x) | `docs/multi-agent-sessions.md` | developers |
 | Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` | applications |
@@ -46,7 +48,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Multitask system-dev (`modelbasedPrj-*`) | `~/.cursor/skills/memnet-multitask/`, `docs/application-notes/llm-system-dev-multitask.md` |
 | SysML design memory with MemNet | `~/.cursor/skills/sysml-memnet-documentation/`, `~/.cursor/skills/sysml-memnet-cache/` |
 | MN-REQ-12 SysML + verify (Multitask) | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
-| Doctrine / grammar / models | `README.md`, `docs/grammar/`, `sysml-models/` |
+| Doctrine / grammar / models | `README.md`, `docs/SHAPE.md`, `docs/ROADMAP-0.5.md`, `docs/grammar/`, `sysml-models/` |
 | Generic MCP implementation | `parts/memnet-mcp/` |
 
 ## Policy
@@ -55,7 +57,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 2. **Novel-writer is dropped** — do not restore `parts/novel-writer/` or novel MCP extras; see `DROP-NOVEL-WRITER.md`.
 3. Keep `AGENT-CONTEXT.md` thin; durable state lives in MemNet sessions when used.
 4. British English in new docs written for this repo.
-5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, or assume ACL / reserve / ingest (design-only in 0.4.x).
+5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers cue then `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, Snap-on-session, or assume full ACL modes / `session_token` (CapsPolicy when ACL enabled; RSV and Path-B ingest **are** shipped).
 
 ## Cursor Cloud specific instructions
 

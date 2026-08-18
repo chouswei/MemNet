@@ -6,7 +6,7 @@
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
 **British English.** ASCII ids.
 
-**Pointer chain:** ADR-001 → **this file** → AgensGraph / durable store sketch [`agensgraph-buffer.md`](agensgraph-buffer.md) (**M2.5**).
+**Pointer chain:** product shape [`../SHAPE.md`](../SHAPE.md) → ADR-001 → **this file** → AgensGraph / durable store [`agensgraph-buffer.md`](agensgraph-buffer.md) (**M2.5**, live path **0.7**).
 
 ---
 
@@ -219,7 +219,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
 
-**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules may remain on disk for archive/tests but are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** is plan-only until the adapter ships.
+**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules may remain on disk for archive/tests but are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** client + 0.7 live hydrate/flush are shipped; Fake + URL skip remain the CI seam.
 
 ---
 
@@ -228,7 +228,8 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | Path | Role |
 |------|------|
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path; dialect = GQL |
+| [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | SemVer map SSOT |
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |

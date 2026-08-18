@@ -4,7 +4,7 @@ Mission working memory for LLMs. A named session graph (GQL **node**/vertex, **e
 
 MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus lookup stays on the host (grep, ingest, optional RAG); it may propose **locators**. In the session, kinds/tags are overlapping **cues**; recall is **serial** — cue, then a bounded `pin_map` neighbourhood. It is not GraphRAG, not a vector store, and not AgensGraph/Neo4j.
 
-This repo ships the engine + generic MCP only. **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
+This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
 Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11.
 
@@ -84,9 +84,10 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 | Doc | Role |
 |-----|------|
-| [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) | Agent playbook |
+| [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) | Agent playbook (GQL only) |
+| [`docs/SHAPE.md`](docs/SHAPE.md) | Product shape from the problem |
 | [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) | GQL wire SSOT |
-| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | Version map SSOT (0.8 next; 1.0 after 0.8) |
+| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | Version map SSOT |
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
 | [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) | Multitask ops |
 | [`docs/README.md`](docs/README.md) | Full docs index |

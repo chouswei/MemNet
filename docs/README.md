@@ -12,8 +12,10 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 
 | Doc | Role |
 |-----|------|
-| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach; M2 shipped) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | **Version map SSOT** — 0.5–0.7 shipped; 0.8 teach/shape; 1.0 = 0.5–0.8 |
+| [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
+| [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | **Version map SSOT** |
+| [`ROADMAP.md`](ROADMAP.md) | Pointer to SHAPE + version map |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |
 | [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox review; all tests are paradox |
@@ -38,7 +40,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 
 Downstream system development and domain patterns — MemNet as working memory.
 
-**Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Application-note **bodies** still being migrated (M3); prefer the GQL case study and profile for wire shapes.
+**Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Shared contract: [`application-notes/README.md`](application-notes/README.md). Product shape: [`SHAPE.md`](SHAPE.md).
 
 | Doc | Role |
 |-----|------|

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **Version map locked** — 0.8 = GQL teach + shape for people (#87, docs only); 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet. SSOT: `docs/ROADMAP-0.5.md`. Package stays **0.7.0** until 0.8 lands.
+- **Version map locked** — 0.8 = GQL teach + shape for people; 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet. SSOT: `docs/ROADMAP-0.5.md`.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.
 - **Snap vs Shape (design)** — host RAG **Snaps** corpus topics to locators; `pin_map` **Shapes** session neighbourhood \(\tilde{X}\). In-session TSK already on \(S\): seed then Shape — MUST NOT ANN the session. Grammar: `docs/grammar/math-skeleton.md`. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
 - **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 - **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
+
+## [0.8.0] - 2026-08-18
+
+### Added
+- **Product shape** — `docs/SHAPE.md`: named session \(S\), goldfish \(\tilde{X}\), gated \(\Delta\), same GQL alphabet, host Snap locators only, cabinet behind not instead.
+- **Application-note contract** — cue then `pin_map`; MCP arg `session`; domain maps; in-process only for a single agent.
+
+### Changed
+- GQL-only teach for people: playbook, `AGENTS.md`, Multitask ops / `.mdc` honesty (RSV + Path-B ingest **shipped**; full ACL modes still to-be). Identity [#87](https://github.com/chouswei/MemNet/pull/87) rebased on 0.7 — `liveCabinetClaimed` stays true. Package **0.8.0**. No engine cut.
 
 ## [0.7.0] - 2026-08-18
 
