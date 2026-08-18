@@ -157,7 +157,7 @@ package MemNetConnections {
       Hydrate into / flush from the live session via the M2.5 client adapter
       seam (DurableStoreAdapter / Fake / optional AgensGraph client;
       SessionLifecycle hydrate/flush). Live cabinet is external — not
-      vendored and not claimed verified. LLM ↔ store direct is out of
+      vendored; 0.7 hydrate/flush proven. LLM ↔ store direct is out of
       default teach. MN-REQ-06.4.
     */
   }

@@ -206,6 +206,22 @@ def test_build_hydrate_edges_cypher_zero_budget():
     assert "LIMIT 0" in cypher
 
 
+def test_build_hydrate_edges_cypher_filters_hydrated_ids():
+    cypher = build_hydrate_edges_cypher(
+        "COM_acme",
+        HydrateBudget(max_edges=20, depth=2),
+        node_ids=["COM_acme", "TSK_mission_q3"],
+    )
+    assert "WHERE src.id IN ['COM_acme', 'TSK_mission_q3']" in cypher
+    assert "MATCH (src)-[rel]->(dst)" in cypher
+    assert "UNWIND" not in cypher
+
+
+def test_build_hydrate_edges_cypher_empty_ids_is_skip():
+    cypher = build_hydrate_edges_cypher("COM_acme", HydrateBudget(max_edges=20, depth=2))
+    assert "LIMIT 0" in cypher
+
+
 def test_build_merge_node_and_edge_cypher():
     node = Record(
         tag="COM",

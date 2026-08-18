@@ -5,7 +5,7 @@
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 
-**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **client** hydrate/flush landed; live external cabinet not claimed.
+**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** live hydrate/flush proven; cabinet external / not vendored.
 
 ## 1. Purpose
 
@@ -72,10 +72,10 @@ flowchart LR
 
 | | As-is | Target / leftover |
 |--|-------|-------------------|
-| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` client (`memnet-llm[agensgraph]`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` (`implemented=true`; `liveCabinetClaimed=false`) | Prove live external cabinet |
+| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` client (`memnet-llm[agensgraph]`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` (`implemented=true`; `liveCabinetClaimed=true` in 0.7) | Keep Fake as CI seam |
 | Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
-| Live cabinet | External / operator-proven; **not** vendored; **not** claimed | Operator proof only |
-| Satisfy | MN-REQ-06.4 on `DurableBuffer` | Claim full live-cabinet only when operator-proven |
+| Live cabinet | External / operator-proven (0.7); **not** vendored; skip unless `MEMNET_AGENSGRAPH_URL` | Not a hosted product service |
+| Satisfy | MN-REQ-06.4 on `DurableBuffer` | Live claim is operator URL + pytest mark |
 
 ## 6. Related
 
