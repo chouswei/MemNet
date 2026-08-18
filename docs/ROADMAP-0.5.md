@@ -1,6 +1,6 @@
 # Roadmap 0.5.0 — one path
 
-**Status:** 0.5 leftover goldfish **shipped** (`v0.5.0`). 0.6 honesty **shipped**. 0.7 = live AgensGraph hydrate/flush **proven**; `liveCabinetClaimed` true. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** version map below is the SemVer SSOT. Product shape: [`SHAPE.md`](SHAPE.md). Package **0.8.0** = this teach/shape cut.  
 **Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
 **Product:** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
@@ -9,7 +9,26 @@
 
 ---
 
-## Where we are (2026-08-14)
+## Version map (locked)
+
+| Version | Owns | Status |
+|---------|------|--------|
+| **0.5.0** | Leftover goldfish: paradox V1/V3/V4/V6, BoundedMatchFind (#73) seed-only `find`, multi-ego `pin_map` under one \(M\) + one LAW | **Shipped** (`v0.5.0`) |
+| **0.6.0** | Honesty: V5 LAW×N pytest, snapshot as offered durable, version-map docs | **Shipped** (`v0.6.0`) |
+| **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
+| **0.8.0** | GQL-only **teach** + product **shape for people** (`docs/SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Rebase of identity [#87](https://github.com/chouswei/MemNet/pull/87) on 0.7 — cabinet stays claimed | **This cut** |
+| **1.0.0** | **0.5 + 0.6 + 0.7 + 0.8** claimed. Product shape mature for people. Not GraphRAG. Not cabinet-only | **After 0.8** |
+| **Later** | `Peak_L`, HostSearch ship, N-server (#47), pin-map export (#66), hosted AgensGraph as a product service | **Out** — do not hold 0.8 or 1.0 |
+
+**0.8 MUST:** one dialect teach (GQL only; Layer archive only); Write = display = bounded shaped `pin_map`; session id = handoff handle; working memory ≠ corpus (no `rag_query`). Wire SSOT stays [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this engine repo.
+
+**0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second cabinet claim; vendor AgensGraph; restore Layer teach or novel-writer; merge stale #87 text that unclaims the cabinet.
+
+**1.0 MUST NOT** wait on the Later row.
+
+---
+
+## Where we are (M-phases)
 
 | Phase | Owns | Shipped? |
 |-------|------|----------|
@@ -18,7 +37,7 @@
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
 | **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — client + live hydrate/flush proven; Fake always-on CI; skip unless `MEMNET_AGENSGRAPH_URL` |
 
-**Next after 0.7:** GQL-only teach / shape for people (identity #87) stays docs-only. One-path gates below stay the teach/ops lock. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+**Next SemVer:** **1.0.0** (0.5–0.8 claimed). One-path gates below stay the teach/ops lock. Durable sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
 
 User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
@@ -102,6 +121,7 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 
 | Path | Role |
 |------|------|
+| [`SHAPE.md`](SHAPE.md) | Product shape from the problem |
 | [`../README.md`](../README.md) | Doctrine / how to run |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |

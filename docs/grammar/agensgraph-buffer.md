@@ -1,6 +1,6 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** 0.5 leftover goldfish **shipped**. 0.6 honesty **shipped**. 0.7 = live AgensGraph hydrate/flush **proven**; `liveCabinetClaimed` true. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** version map SSOT [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). 0.7 live cabinet **shipped**. 0.8 is teach/shape, not a second cabinet claim. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers.  
 **Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
