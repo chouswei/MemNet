@@ -5,7 +5,7 @@
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 
-**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **client** hydrate/flush landed; live external cabinet not claimed.
+**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **client** landed; live cabinet is a **1.0.0 gate** (not claimed; does not block 0.5).
 
 ## 1. Purpose
 
@@ -72,10 +72,10 @@ flowchart LR
 
 | | As-is | Target / leftover |
 |--|-------|-------------------|
-| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` client (`memnet-llm[agensgraph]`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` (`implemented=true`; `liveCabinetClaimed=false`) | Prove live external cabinet |
+| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` client (`memnet-llm[agensgraph]`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` (`implemented=true`; `liveCabinetClaimed=false`) | Prove live external cabinet (**1.0.0** gate) |
 | Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
-| Live cabinet | External / operator-proven; **not** vendored; **not** claimed | Operator proof only |
-| Satisfy | MN-REQ-06.4 on `DurableBuffer` | Claim full live-cabinet only when operator-proven |
+| Live cabinet | External / operator-proven; **not** vendored; **not** claimed; **1.0.0** not 0.5 | Operator proof only |
+| Satisfy | MN-REQ-06.4 on `DurableBuffer` | Claim full live-cabinet only when operator-proven (1.0.0) |
 
 ## 6. Related
 

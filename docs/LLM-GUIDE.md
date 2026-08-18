@@ -206,7 +206,7 @@ memnet query pin-map --anchor …
 
 TCP `memnet serve` (`127.0.0.1:18765`) remains the Multitask / LAN fallback (MN-REQ-06.3).
 
-See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (client hydrate/flush in tree; live AgensGraph path needs an external cabinet — do not claim live verified).
+See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5 client** in tree; live AgensGraph cabinet is a **1.0.0 gate** (do not claim live verified; does not block 0.5).
 
 ### Common failure modes
 

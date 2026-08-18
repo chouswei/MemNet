@@ -1148,7 +1148,7 @@ package MemNetBehaviour {
       then importIdle;
   }
 
-  // --- 10. Durable buffer hydrate/flush (M2.5 client landed; live cabinet external) ---
+  // --- 10. Durable buffer hydrate/flush (M2.5 client landed; live cabinet = 1.0.0 gate) ---
 
   state def DurableHydrateFlushRoadmap {
     doc /*

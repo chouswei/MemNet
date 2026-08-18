@@ -9,16 +9,19 @@
 
 ---
 
-## Where we are (2026-08-14)
+## Where we are (2026-08-18)
 
 | Phase | Owns | Shipped? |
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
-| **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **In progress** — client hydrate/flush landed; Fake always-on; **live path needs external AgensGraph** |
+| **M2.5 client** | Durable online GQL store adapter **behind** mission working memory (hydrate/flush; one sync owner; Fake always-on) | **Done** in 0.4.x — `DurableStoreAdapter` in tree |
+| **M2.5 live cabinet** | Prove hydrate/flush against **external** AgensGraph (not Fake-alone) | **1.0.0 gate** — does **not** block 0.5.0 |
 
-**Next notch for 0.5.0:** prove the **live** M2.5 cabinet path. One-path gates below stay the teach/ops lock (remote, dialect, Pi owner, footguns). Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+**Next notch for 0.5.0:** leftover goldfish (paradox pytest; leftover erect #73 / one-\(M\) still modelled). Live M2.5 cabinet does **not** block 0.5. One-path gates below stay the teach/ops lock. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+
+**Gate for 1.0.0:** live AgensGraph cabinet exercised in an operator environment. Client already landed — do **not** call 1.0 done on Fake alone.
 
 User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
@@ -84,7 +87,7 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 
 | Item | Notes |
 |------|--------|
-| Live AgensGraph as **claimed** complete | M2.5 client is in tree; live cabinet is the remaining 0.5 notch — do not call 0.5 done on Fake alone |
+| Live AgensGraph as **claimed** complete | **1.0.0 gate** (below). M2.5 client is in 0.4.x. Does **not** block 0.5 leftover goldfish. |
 | Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only. Goldfish I/O (Snap/Shape, one `TSK` map, sparse Δ) is **design-locked** on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)); not an engine cut |
 | BoundedMatchFind | Leftover [#73](https://github.com/chouswei/MemNet/issues/73); modelled `implemented=false`. Cue when there is no ego — **not** GraphRAG |
 | N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
@@ -98,6 +101,16 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 
 ---
 
+## Gates for 1.0.0
+
+| Gate | Pass | Fail |
+|------|------|------|
+| Live M2.5 cabinet | Hydrate/flush against an **external** AgensGraph in an operator environment; one sync owner | Claim 1.0 on Fake-alone; LLM↔store direct teach; MemNet-as-Cypher-proxy |
+
+Client hydrate/flush is already 0.4.x. This gate is **proof of the live path**, not a rebuild of the adapter. It does **not** serialise 0.5 goldfish leftover.
+
+---
+
 ## Related
 
 | Path | Role |
@@ -105,9 +118,9 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 | [`../README.md`](../README.md) | Doctrine / how to run |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math (no engine cut) |
-| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox (goldfish leftover; not M2.5) |
+| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox (0.5 leftover goldfish) |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (M2.5 client landed; live cabinet = **1.0.0** gate) |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5 engine) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename; M2/M3 “next” dropped) |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |

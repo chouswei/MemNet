@@ -67,7 +67,7 @@ When only a **bounded** subgraph should move (separate sessions, Multitask impor
 | Mechanism | Role | Shipped claim |
 |-----------|------|----------------|
 | `SnapshotStore` save/load | Process/file passport for a named session | As-is session save/load capability (product); model traces 01.4/01.5 |
-| `DurableBuffer` hydrate/flush | Online GQL store behind MemNet | M2.5 **client** landed; live cabinet external |
+| `DurableBuffer` hydrate/flush | Online GQL store behind MemNet | M2.5 **client** landed; live cabinet = **1.0.0** gate |
 | `WorkingMemorySlice` import | Lead imports member WM (path B) | Doctrine + ImportGuard nest |
 
 ## 6. Related

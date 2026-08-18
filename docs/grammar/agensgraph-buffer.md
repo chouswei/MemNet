@@ -1,8 +1,8 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** **M2.5 in progress** — client hydrate/flush implemented; **not** fully shipped (needs an external AgensGraph cabinet to exercise the live path).  
+**Status:** **M2.5 client landed** (0.4.x). **Live cabinet** is a **1.0.0 gate** — does **not** block 0.5.0. Fake remains the always-on test path.  
 **Audience:** product developers.  
-**Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
+**Promotion:** user direction 2026-08-13 named the adapter **M2.5** so M3 would not block it. Client hydrate/flush then landed in 0.4.x; M3 is **done**. User direction 2026-08-18: live AgensGraph cabinet is a **1.0.0 gate**, not the 0.5.0 notch. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
 **Product framing (2026-08-13):** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions; goldfish re-read via shaped `pin_map`; gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory (“SOMETHING”): handoff between LLMs = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — do **not** receive a graph dump in chat. Chat is never SSOT ([`../multi-agent-sessions.md`](../multi-agent-sessions.md)). [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph) (Postgres + property graph / openCypher / partial GQL) is the **durable / backing** graph **behind** sessions — it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
 
@@ -57,7 +57,7 @@
 | Use durable store (or chat dump) as agent **handoff** instead of session id | Session is the SSOT handle; peers re-`pin_map` |
 | Thin Cypher-relay-only (drop MemNet; “just a proxy”) | Collapses product value — MemNet is the shared memory |
 | Dual-write without a single sync owner | Two writers → split brain |
-| Claim adapter shipped before M2.5 lands | Plan only until implemented |
+| Claim live cabinet shipped because Fake is green | Live cabinet = **1.0.0** gate; Fake is 0.4.x CI |
 | Revive Layer / Tier A | ADR-001 supersession |
 
 
@@ -65,7 +65,7 @@
 
 ## Implementation status (client slice)
 
-**Not M2.5 complete.** Client/adapter hydrate+flush is implemented against an **external** AgensGraph; Fake remains the always-on test path. **MUST NOT** claim M2.5 fully shipped until a live cabinet has been exercised in the operator's environment.
+**M2.5 client is landed.** Live cabinet is **not** 0.5-complete and is **not** 1.0-complete until an operator has exercised external AgensGraph. Fake remains the always-on test path. **MUST NOT** call 1.0.0 done on Fake alone. **MUST NOT** treat the live cabinet as a 0.5.0 serial lock.
 
 | Piece | Status |
 |-------|--------|
@@ -134,5 +134,5 @@ pytest -m agensgraph_live
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | M1 wire SSOT; M2.5 boundary in §6 |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision; M2.5 in migration plan |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Phase order: M2 → M2.5 → M3 |
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | 0.5 leftover goldfish; live cabinet = **1.0.0** |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id; chat never SSOT |

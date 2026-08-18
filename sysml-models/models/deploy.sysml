@@ -536,7 +536,7 @@ package MemNet {
       Each session id is the pass-by-reference handle for a MissionWorkingSet
       (SOMETHING). Nested under AgentMemory (SharedLlmMemory). As-is:
       memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
-      client landed; live cabinet external. RSV lease lives under Commit.
+      client landed; live cabinet = 1.0.0 gate. RSV lease lives under Commit.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -786,7 +786,7 @@ package MemNet {
       Optional durable property-graph buffer behind MemNet SharedLlmMemory.
       Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
       LLM agents as primary. M2.5 client hydrate/flush landed; live
-      external cabinet deferred (not claimed). MN-REQ-06.4.
+      cabinet is a 1.0.0 gate (not claimed; does not block 0.5). MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     port hydrateOut : DurableHydrateOutPort;

@@ -55,21 +55,24 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 - Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
 - Implement or teach **every** openCypher CIP — family authority only; agent surface stays MemNet-gated (`pin_map` + mutate subset).
 - Revive Layer as accept path.
-- Ship AgensGraph sync as required for **M1/M2** wire (adapter is **M2.5**, not M1/M2).
+- Ship AgensGraph sync as required for **M1/M2** wire (adapter is **M2.5** client in 0.4.x; live cabinet is **1.0.0**).
 
 **Migration plan (updated 2026-08-13)**
 
-User promotion (2026-08-13): durable online GQL store adapter is the **next notch after M2** — named **M2.5** so M3 (in-repo playbook / app-notes) does not block it.
+User promotion (2026-08-13): durable online GQL store adapter is named **M2.5** so M3 (in-repo playbook / app-notes) does not block the **client**. Client hydrate/flush then landed in 0.4.x; M3 is **done**.
+
+User promotion (2026-08-18): **live** AgensGraph cabinet is a **1.0.0 gate**, not the 0.5.0 serial notch. The adapter is not buried: the client is in 0.4.x. Fake-alone is not 1.0.
 
 | Phase | Action |
 |-------|--------|
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. **Done.** |
-| **M2.5** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Not shipped** until implemented. **MUST NOT** reframe MemNet as a Cypher proxy. |
-| **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
+| **M2.5 client** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **Landed** in 0.4.x. **MUST NOT** reframe MemNet as a Cypher proxy. |
+| **M2.5 live cabinet** | Operator proof of hydrate/flush against **external** AgensGraph. **1.0.0 gate** (2026-08-18) — does **not** block 0.5.0. |
+| **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. **Done** (docs). User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
 
-**Order:** M1 → M2 → **M2.5** → M3. **MUST NOT** bury the adapter past all of 0.5 or treat it as deferred forever.
+**Order:** M1 → M2 → M3 **done**; M2.5 **client** in 0.4.x; **live cabinet** = **1.0.0**. **MUST NOT** treat Fake as live proof, or treat the live cabinet as a 0.5 serial lock.
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 
@@ -78,7 +81,7 @@ User promotion (2026-08-13): durable online GQL store adapter is the **next notc
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
 - [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
-- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; phase order M2 → M2.5 → M3
+- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; live cabinet = **1.0.0** gate
 - [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
 - [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline
 - [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable)

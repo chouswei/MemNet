@@ -18,7 +18,7 @@ All examination and test of MemNet is **paradox**. Orthodox is only what you ere
 | Write = display | Goldfish = bounded shaped `pin_map` | Unbounded `MATCH`/`RETURN` as primary read |
 | Same alphabet | Mutate and emit share openCypher-shaped family | Second read dialect |
 | Dual EDGE / law | `:bind` + ports; `law` on node | Layer `--bind-->` teach |
-| Milestone honesty | M1/M2/M3 **done**; next 0.5 notch = live M2.5 cabinet | Claim M2 or M3 still “next”; claim 0.5 done on Fake alone |
+| Milestone honesty | M1/M2/M3 **done**; M2.5 **client** in 0.4.x; live cabinet = **1.0.0** gate | Claim M2 or M3 still “next”; claim **1.0** done on Fake alone; treat cabinet as a 0.5 lock |
 
 **Pass** for the GQL-wire orthodox under this stress. Leftover goldfish paradox (V1–V10, pytest, #73 LIMIT) lives on the plan, not in this file.
 
@@ -28,6 +28,6 @@ All examination and test of MemNet is **paradox**. Orthodox is only what you ere
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | M1 SSOT (orthodox wire) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Next: M2.5 live cabinet |
+| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | 0.5 leftover goldfish; live cabinet = 1.0.0 |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable store sketch (**M2.5**) |
 | [`archive/README.md`](archive/README.md) | Quarantined Layer sources |

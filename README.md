@@ -71,11 +71,11 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional client `memnet-llm[agensgraph]`; cabinet is external and not vendored. Live cabinet is **not** claimed.
+**Durable:** optional client `memnet-llm[agensgraph]`; cabinet is external and not vendored. Live cabinet is a **1.0.0 gate** (not claimed; does not block 0.5).
 
 ## Deferred (honest)
 
-- Live AgensGraph cabinet (client hydrate/flush exists; live path not claimed)
+- Live AgensGraph cabinet (client hydrate/flush exists; live path is a **1.0.0** gate, not a 0.5 lock)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - Pin-map export / round-trip (MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66)) — Path-B ingest domains are shipped (#64); export is separate
 - Host search / RAG as a MemNet tool — application nest only ([`docs/grammar/memnet-host-search-nest.md`](docs/grammar/memnet-host-search-nest.md))
@@ -86,7 +86,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 |-----|------|
 | [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) | Agent playbook |
 | [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) | GQL wire SSOT |
-| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | 0.5 plan |
+| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | 0.5 leftover goldfish; live cabinet = 1.0.0 |
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
 | [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) | Multitask ops |
 | [`docs/README.md`](docs/README.md) | Full docs index |

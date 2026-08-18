@@ -162,7 +162,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.
 - Dual-teach two agent dialects.
 - Delete mission budgets (sessions, view, Multitask owner) in favour of raw store access.
-- Ship AgensGraph sync as required for **M1/M2** wire (sync = **M2.5**; plan only until then).
+- Ship AgensGraph live cabinet as required for **0.5** / M1/M2 wire (live proof = **1.0.0** gate; M2.5 client already in 0.4.x).
 - Teach full GQL DDL as agent surface in first cut.
 
 ---
@@ -207,18 +207,19 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 ## 6. Boundary vs M2 / M2.5 / M3 / archive
 
-**Order:** M1 → M2 → **M2.5** → M3. Durable store adapter is **next after M2** (user promotion 2026-08-13).
+**Order:** M1 → M2 → M3 **done**. M2.5 **client** landed in 0.4.x. **Live cabinet** = **1.0.0 gate** (does not block 0.5).
 
 | Phase | Owns | This file does **not** |
 |-------|------|-------------------------|
 | **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach |
+| **M2.5 client (0.4.x)** | Durable online GQL store adapter (hydrate/flush; Fake always-on) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach |
+| **M2.5 live cabinet (1.0.0 gate)** | Prove hydrate/flush against external AgensGraph | Claim 1.0 on Fake-alone |
 | **M3** | In-repo `LLM-GUIDE` full playbook + application-notes body rewrite to GQL examples | — |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
 
-**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules may remain on disk for archive/tests but are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** is plan-only until the adapter ships.
+**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules may remain on disk for archive/tests but are **rejected** on default mutate accept (`legacy_dialect_retired`). M2.5 **client** landed; live cabinet is a **1.0.0** gate.
 
 ---
 
@@ -230,7 +231,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | One-path; dialect = GQL |
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (no engine cut) |
-| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
+| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter (M2.5 client landed; live cabinet = **1.0.0** gate) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |

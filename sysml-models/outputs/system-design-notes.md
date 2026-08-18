@@ -14,7 +14,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 **client** hydrate/flush landed (`DurableStoreAdapter` / Fake / optional AgensGraph client; one sync owner). Live external cabinet deferred (not claimed; not vendored).
+3. **Durable GQL store behind MemNet** — M2.5 **client** hydrate/flush landed (`DurableStoreAdapter` / Fake / optional AgensGraph client; one sync owner). Live external cabinet is a **1.0.0 gate** (not claimed; not vendored; does not block 0.5).
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). `keep` = MERGE-by-id upsert into lead SSOT (not append). Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -22,7 +22,7 @@ Novel-writer is out of scope.
    `engineAclShipped=true`; ACL is enabled per session and off by default.
    Reserve/ingest and full ACL modes remain deferred (MN-REQ-12.7).
 
-**Sequence:** M1 → M2 → **M2.5** → M3.
+**Sequence:** M1 → M2 → M3 **done**. M2.5 **client** in 0.4.x. **Live cabinet** = **1.0.0**.
 
 **Primary codec:** `GqlCodec` (**M2 shipped**) — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
 **Composer:** `PinMapShapedRead` under `Recall` / `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is modelled (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish. Parent nest `RecallCommit` = two operators (Recall + Commit). Math: [`../../docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).
@@ -70,7 +70,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter        // M2.5 client landed; live cabinet external
+├── DurableBuffer → AgensGraphAdapter        // M2.5 client landed; live cabinet = 1.0.0 gate
 ├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
@@ -138,7 +138,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | `SessionHandoffById` | Pass session id (vs `EvDumpGraphInChat`) |
 | `SessionImportReceive` | path A = pin_map only; path B Guard soft → Absorb hard (vs `EvImportFromChat`) |
 | `ParentTaskLifecycle` / `WorkerScopedTurn` / `MultitaskMissionCycle` | MN-REQ-12 |
-| `DurableHydrateFlushRoadmap` | M2.5 client landed; live cabinet external |
+| `DurableHydrateFlushRoadmap` | M2.5 client landed; live cabinet = 1.0.0 gate |
 
 ## Interfaces (selected)
 
@@ -147,7 +147,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | SessionHandoffFlow | Coordinator → Worker | Target |
 | WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
 | ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
-| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | M2.5 client landed; live cabinet external |
+| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | M2.5 client landed; live cabinet = 1.0.0 |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)
@@ -162,7 +162,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
-| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **Client landed**; live cabinet external / not claimed |
+| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **Client landed**; live cabinet = **1.0.0** / not claimed |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
@@ -178,8 +178,9 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 
 - **M1:** GQL wire profile — **done**
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
-- **M2.5:** Client hydrate/flush **landed**; live external cabinet deferred ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
-- **M3:** In-repo playbook / app-note GQL rewrite (plan)
+- **M2.5 client:** hydrate/flush **landed** in 0.4.x
+- **M2.5 live cabinet:** **1.0.0 gate** — does not block 0.5 ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M3:** In-repo playbook / app-note GQL rewrite — **done** (docs)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
 - ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; keep = MERGE-by-id, not append)
