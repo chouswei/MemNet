@@ -289,7 +289,7 @@ def test_project_codebase_deterministic_locators(code_file: Path):
     result = PinMapIngest_Codebase().project(code_file, max_nodes=50)
     assert any(i.startswith("MOD_") for i in result.node_ids)
     assert any(i.startswith("SYM_") for i in result.node_ids)
-    label_pins = [i for i in result.node_ids if i.endswith("_Greeter_label") or "Greeter_label" in i]
+    label_pins = [i for i in result.node_ids if "Greeter_label" in i]
     assert len(label_pins) == 1
     gql = "\n".join(result.gql_lines)
     assert "path:" in gql
