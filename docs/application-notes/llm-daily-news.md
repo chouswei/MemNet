@@ -1,12 +1,12 @@
 # LLM daily news digest
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
 **Application example (documentation only).** Multi-stage RSS digest pipeline with session-scoped working memory — not part of the MemNet engine. The graph is built during one run, queried for analysis, and drives final prose; readers see Markdown/HTML, not raw wires.
 
-**Teach:** openCypher-shaped GQL; keyword / story links as relationship types (`:supports`, `:covers`, `:relates`). **`pin_map`** (not `query warm`). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
+**Teach:** openCypher-shaped GQL; keyword / story links as relationship types (`:supports`, `:covers`, `:relates`). **`pin_map`** after a kind/keyword **cue** (not `query warm`; not Snap-on-session). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Shared contract: [`README.md`](README.md).
 
-**Project sketch:** `daily-news` — RSS digest with fact-checking; bridge `memnet_bridge.py`; schema `memnet_schema.txt`; orchestrator `generate.py`.
+**Project sketch:** `daily-news` — RSS digest with fact-checking; bridge `memnet_bridge.py`; schema `memnet_schema.txt` (**must** `SCHEMA` every kind: `KYWD`, `ENT`, `DAY`, …); orchestrator `generate.py`. MCP arg is **`session`**.
 
 British English. ASCII.
 
@@ -14,7 +14,7 @@ British English. ASCII.
 
 ## 1. Problem MemNet solves
 
-Each day the pipeline ingests ~100 RSS articles. The LLM cannot hold all articles in context. MemNet provides:
+Each day the pipeline ingests ~100 RSS articles. The LLM cannot hold all articles in context. Chat dump and corpus RAG fail MN-REQ-00. MemNet is **session goldfish**; RSS fetch is **host Snap** (article locators / codes), not GraphRAG inside `memnet-mcp`.
 
 1. **Structured ingest** — articles become nodes and relationships as they arrive.
 2. **Shared vocabulary** — keyword tokens (`KYWD`) are session-wide; repeated terms reuse one node.
@@ -60,13 +60,10 @@ flowchart TB
 | Fresh open | `session_open` + seed | New calendar day |
 | Resume / load | `session_load` / snapshot | Same-day interrupt |
 
-Seed (GQL; omit default `recycle`):
+Seed (GQL; omit default `recycle`). `CFG01` / `LAW_*` are **illustrative ground** ids — only if those labels are in the project map. Engine LAW rows may already prepend on `pin_map`; do not dual-mint pipe `LAW [LAW01]`.
 
 ```cypher
 CREATE (c:CFG {id:'CFG01', corpus:'daily_news', anchor:'CFG01', version:3, notes:'knowledge_graph_digest'})
-CREATE (:CST {id:'LAW_atomise', role:'rule', name:'atomise', law:'$tokens_only$'})
-CREATE (:CST {id:'LAW_graph', role:'rule', name:'graph', law:'$relations_via_edges$'})
-CREATE (:CST {id:'LAW_short', role:'rule', name:'short_term', law:'$session_scoped$'})
 ```
 
 ---
@@ -107,7 +104,8 @@ CREATE (:CST {id:'LAW_short', role:'rule', name:'short_term', law:'$session_scop
 | Mistake | Fix |
 |---------|-----|
 | Layer / `@TAG` as agent teach | GQL above |
-| `query warm` without anchor | `pin_map(anchor=…)` |
+| `query warm` without anchor | `pin_map(anchor=…)` after cue |
+| Snap-on-session / `rag_query` | Host locators only |
 | Prose in KYWD / ENT properties | Tokens / codes only |
 | Treating MemNet as the published briefing | Graph is working memory |
 
@@ -115,6 +113,7 @@ CREATE (:CST {id:'LAW_short', role:'rule', name:'short_term', law:'$session_scop
 
 ## 7. Related
 
+- [`../SHAPE.md`](../SHAPE.md) — product shape
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md) — goldfish loop
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT
 

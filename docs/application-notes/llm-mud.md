@@ -1,12 +1,12 @@
 # LLM MUD
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
 **Application example (documentation only).** Multiplayer text MUD backed by MemNet — not part of the engine. Sample world: Lewis Carroll's *Alice's Adventures in Wonderland* (1865, public domain).
 
 **Teach:** openCypher-shaped GQL; room exits / containment as `:exit` / `:contains` / `:located` (relation grain). **`pin_map`** from the player's current `ROM`. Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
-**MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). Warm stays small if you anchor on the current room.
+**MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). **`pin_map`** stays small if you cue then anchor on the current room. Single-agent debug may use in-process MCP; **multiplayer MUST** share TCP/HTTP (not default in-process). World `ROM01` ids are **ground**; beats/events use `id:'NEW'`. Open with a world `SCHEMA` (`ROM`, `CHR`, `OBJ`, …) — game `schema.example.txt` is not this domain.
 
 | Side | Job | LLM? |
 |------|-----|------|
@@ -71,7 +71,7 @@ Domain rules (illustrative CST leaves):
 
 ```cypher
 (:CST {id:'LAW_ATOM01', role:'rule', name:'no_sentences', law:'$break_to_nodes_edges$'})
-(:CST {id:'LAW_MUD01', role:'rule', name:'anchor', law:'$warm_anchor_rom_or_plr$'})
+(:CST {id:'LAW_MUD01', role:'rule', name:'anchor', law:'$pin_map_anchor_rom_or_plr$'})
 (:CST {id:'LAW_MUD02', role:'rule', name:'no_prose', law:'$client_generates_descriptions$'})
 (:CST {id:'LAW_MUD03', role:'rule', name:'validate_exit', law:'$exit_edge_must_exist$'})
 ```
@@ -79,6 +79,8 @@ Domain rules (illustrative CST leaves):
 ---
 
 ## 4. Wonderland seed (abbreviated)
+
+Illustrative **ground** world ids (stable rooms/actors). Rel mint uses `id:'NEW'`.
 
 ```cypher
 CREATE (r1:ROM {id:'ROM01', key:'riverbank', zone:'surface', flags:'lit'})
@@ -110,11 +112,12 @@ MATCH (p:CHR {id:'PLR01'}), (r:ROM {id:'ROM02'}) CREATE (p)-[:located {id:'NEW'}
 **Server tick beat** (rabbit flees):
 
 ```cypher
-CREATE (bt:BEAT {id:'BT01', key:'rabbit_chase', kind:'pursuit', recycle:'delete_on_settle'})
-CREATE (ev:EVT {id:'EVT01', kind:'flee', actor:'NPC02', room:'ROM01', when:'late', recycle:'delete_on_settle'})
+CREATE (bt:BEAT {id:'NEW', key:'rabbit_chase', kind:'pursuit', recycle:'delete_on_settle'})
+CREATE (ev:EVT {id:'NEW', kind:'flee', actor:'NPC02', room:'ROM01', when:'late', recycle:'delete_on_settle'})
 MATCH (n:CHR {id:'NPC02'}) SET n.status = 'fled'
 MATCH (n:CHR {id:'NPC02'})-[e:located]->() DELETE e
 MATCH (n:CHR {id:'NPC02'}), (r:ROM {id:'ROM02'}) CREATE (n)-[:located {id:'NEW'}]->(r)
+# copy minted BEAT id, then:
 MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {id:'NEW', recycle:'delete_on_settle'}]->(bt)
 ```
 
@@ -135,7 +138,8 @@ MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {id:'N
 |---------|-----|
 | Layer / `@TAG` pipe teach | GQL only |
 | Prose in graph rows | Client generates from keys |
-| Warm without room/player anchor | `pin_map(anchor=ROM…)` |
+| Warm without room/player anchor | Cue then `pin_map(anchor=ROM…)` |
+| In-process MCP for multiplayer | TCP serve or streamable-http |
 | Exit without a relationship | Validate `:exit` first |
 
 ---
@@ -143,3 +147,5 @@ MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {id:'N
 ## 8. Retired dialects (pointer only)
 
 Older Wonderland seeds used `@ROM: id|…` or Layer ASCII. **Do not** dual-teach. Archive: [`../grammar/archive/`](../grammar/archive/).
+
+Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md).

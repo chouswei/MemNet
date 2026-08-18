@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **SysML v2 application note** — [`docs/application-notes/llm-sysml-v2-modeling.md`](docs/application-notes/llm-sysml-v2-modeling.md) aligned to engine: two-store problem; SysML+coding map union; ingest labels (`PRT` not `CON`); `NEW` vs ground ids; goldfish loop not host Snap.
+- **Application notes (all)** — shared contract on [`docs/application-notes/README.md`](docs/application-notes/README.md); each note aligned to product shape, map/`unknown_tag`, `NEW` vs ground ids, goldfish `pin_map` (not Snap/`query_warm`), MCP `session`.
 - **Roadmap (all versions)** — SSOT [`docs/ROADMAP.md`](docs/ROADMAP.md): lineage 0.1–0.4.x; **0.5.0** leftover goldfish; **1.0.0** mature tool for people (0.5 claimed + live cabinet + GQL teach). [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) is a stub.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.

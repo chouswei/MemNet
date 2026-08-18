@@ -1,10 +1,12 @@
 # LLM software development
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
 **Application example (documentation only).** Multi-turn coding in Cursor — task scope, verified symbol locators, user constraints, and open decisions in MemNet so the agent can **`pin_map`** a small slice each turn without stuffing paths into chat.
 
-**Teach:** openCypher-shaped GQL; chart links as relationship types (`:defines`, `:implements`, …) on bare node ids. Law leaves (when needed) use `:CST` + `ports` + `law` — see [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Electrical ports/bind: [`llm-circuit-schematic.md`](llm-circuit-schematic.md).
+**Teach:** openCypher-shaped GQL; chart links as relationship types (`:defines`, `:implements`, …) on bare node ids. Law leaves (when needed) use `:CST` + `ports` + `law` — see [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Electrical ports/bind: [`llm-circuit-schematic.md`](llm-circuit-schematic.md). Shared contract: [`README.md`](README.md).
+
+**Open:** `schema.coding.example.txt` (`CFG` is **not** in that map — do not mint `:CFG` unless you add `SCHEMA`). Path-B locators: `ingest_codebase` (`path=`, `line=`, `signature=`) — **no client `NEW`**. Goldfish `SYM`/`DEC`/`USR` use `id:'NEW'` then copy.
 
 **Primary worked example (retrospective):** shipping **`session_load`** / **`session_save`** on `memnet-mcp` (release v0.2.12, commit `7440aee`).
 
@@ -32,7 +34,7 @@ MemNet remembers which `TSK` is active, which `MOD` files were touched, which `S
 ```mermaid
 flowchart LR
   subgraph turn_loop [Each coding turn]
-    WARM[pin_map TSK]
+    PIN[pin_map TSK]
     VERIFY[grep or LSP]
     EDIT[edit source files]
     DELTA[add/update MOD SYM EDGE]
@@ -44,7 +46,7 @@ flowchart LR
     USR[USR constraints]
     DEC[DEC open choices]
   end
-  WARM --> VERIFY --> EDIT --> DELTA
+  PIN --> VERIFY --> EDIT --> DELTA
   TSK -->|owns| MOD
   MOD -->|defines| SYM
   TSK -->|constrained_by| USR
@@ -70,12 +72,14 @@ flowchart LR
 
 ## 3. The 6-step coding goldfish loop
 
-1. **Read** — `pin_map(anchor=<TSK or SYM>, depth=2)` (optional `view=shell`).
+Cue then neighbourhood (Recall Shape). Host index **Snap** may propose locators; MUST NOT ANN the session.
+
+1. **Cue then `pin_map`** — known `TSK_*` (or `read_list` for tag `TSK`); optional `view=shell`. Empty seed ⇒ skip. Leftover LIMIT find is **not** claimed (#73).
 2. **Verify** — grep or LSP on disk; never trust stale `SYM.line` without re-check when editing.
 3. **Edit** — change source files; code lives in git, not the graph.
-4. **Capture** — user constraints → `USR`; open forks → `DEC`.
-5. **Persist** — gated GQL `add` / `update` for MOD / SYM / USR / DEC / relationships; refresh line hints.
-6. **Loop** — settle `TSK` when done; next mission anchors on a new `TSK`.
+4. **Capture** — user constraints → `USR`; open forks → `DEC` (`id:'NEW'`).
+5. **Persist** — gated GQL `add` / `update`; refresh line hints; or `ingest_codebase` for source pins.
+6. **Loop** — settle `TSK` when done (`recycle=delete_on_settle`); next mission anchors on a new `TSK`.
 
 ---
 
@@ -85,14 +89,14 @@ Illustrative primary labels and properties (not DDL teach):
 
 | Label | Typical properties |
 |-------|--------------------|
-| `:CFG` | `id`, `repo`, `anchor`, `version`, `notes` |
+| `:CFG` | `id`, `repo`, `anchor`, `version`, `notes` — **only if** you add `SCHEMA CFG` |
 | `:MOD` | `id`, `path`, `summary`, `status` |
 | `:SYM` | `id`, `name`, `kind`, `path`, `line`, `signature`, `status` |
 | `:TSK` | `id`, `goal`, `anchor`, `status` |
 | `:USR` | `id`, `topic`, `content`, `status` |
 | `:DEC` | `id`, `task`, `question`, `options`, `chosen` |
 
-Present / mutate examples:
+Present (shaped display — copy ids):
 
 ```cypher
 (:TSK {id:'TSK_mcp_session_load', goal:'Expose session_load on memnet-mcp', status:'in_progress'})
@@ -123,15 +127,20 @@ Engine `LAW01`… rows may still appear on `pin_map` from the session seed — t
 ## 6. MCP turn sketch
 
 ```text
-pin_map(anchor="TSK_mcp_session_load", depth=2)
-add(wire_lines=[
-  "CREATE (s:SYM {id:'SYM_mcp_session_load', name:'session_load', kind:'fn', path:'parts/memnet-mcp/software/memnet_mcp/server.py', line:100, signature:'async def session_load(...)', status:'active'})",
+pin_map(anchor="TSK_mcp_session_load", depth=2, session="<id>")
+add(session="<id>", wire_lines=[
+  "CREATE (s:SYM {id:'NEW', name:'session_load', kind:'fn', path:'parts/memnet-mcp/software/memnet_mcp/server.py', line:100, signature:'async def session_load(...)', status:'active'})",
+])
+# after mint: copy SYM id from mutate / pin_map, then:
+add(session="<id>", wire_lines=[
   "MATCH (a:SYM {id:'SYM_mcp_session_load'}), (b:SYM {id:'SYM_cli_session_load'}) CREATE (a)-[:implements {id:'NEW', note:'wraps_cli'}]->(b)",
 ])
-update(wire_lines=[
+update(session="<id>", wire_lines=[
   "MATCH (t:TSK {id:'TSK_mcp_session_load'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
 ])
 ```
+
+Prefer `ingest_codebase` when the pin is a source locator (deterministic id; no `NEW`).
 
 ---
 
@@ -143,6 +152,8 @@ Layer ASCII and `@TAG` pipe are **not** agent teach. Archive: [`../grammar/archi
 
 ## Related
 
+- [`README.md`](README.md) — shared contract
+- [`../SHAPE.md`](../SHAPE.md) — product shape
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — Multitask + shared session
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML design memory
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT

@@ -1,6 +1,6 @@
 # LLM Build on MemNet — A MemNet Application Note
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
@@ -8,7 +8,9 @@
 
 **Dialect teach for agents:** GQL + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
-Unlike the other application notes (which document wire-format **schemas**), this note documents **code structure and routing artefacts** — there is no new tag map.
+Unlike the other application notes (which document wire-format **schemas**), this note documents **code structure and routing artefacts** — there is no new tag map. Shared contract: [`README.md`](README.md).
+
+**Transport:** single-agent `memnet-mcp` is **in-process first** (no `memnet serve`). Multitask / shared graphs **MUST** use TCP serve or streamable-http. Tool arg is **`session`**; JSON envelope still returns `session_id`.
 
 This note complements:
 
@@ -19,7 +21,7 @@ This note complements:
 
 ## 1. Problem
 
-`memnet serve` is a TCP daemon. Raw consumers must:
+`memnet` CLI **except** `serve` needs a running serve process. Raw CLI consumers must:
 
 - Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --anchor ...`)
 - Parse shaped GQL / `pin_map` lines and warnings off stdout/stderr
@@ -41,11 +43,12 @@ A skill without an MCP only documents; an MCP without a skill is invisible to th
 
 ```mermaid
 flowchart LR
-  subgraph engine [Engine layer]
-    SERVE["memnet serve (TCP, in-memory graph)"]
+  subgraph engine [Engine]
+    IP[in-process GraphStore]
+    SERVE["memnet serve TCP — Multitask / shared"]
   end
   subgraph mcps [MCP layer]
-    MMCP["memnet-mcp (graph wrapper)"]
+    MMCP["memnet-mcp (in-process default)"]
     APP3["optional domain MCPs"]
   end
   subgraph cursor [Cursor]
@@ -54,14 +57,15 @@ flowchart LR
   end
   AGENT --> SKILL
   SKILL -.routes.-> MMCP
-  MMCP --> SERVE
+  MMCP --> IP
+  MMCP -.->|shared graph| SERVE
   APP3 --> SERVE
 ```
 
 | Surface | Owns | Does **not** own |
 |-------|------|------------------|
-| **Engine** (`memnet serve`) | Graph state, LAW enforcement, TCP | MCP knowledge, domain logic |
-| **`memnet-mcp`** | CLI argv shape, JSON envelope, LAW supplementation on `session_open` | Domain-specific tools |
+| **Engine** (`memnet` / GraphStore) | Graph state, LAW enforcement | MCP knowledge, domain logic |
+| **`memnet-mcp`** | Tool wrap; in-process engine **or** TCP fallback | Domain-specific tools |
 | **Domain MCP** (optional, separate package) | Domain side-effects (file I/O, gates, metrics) | Graph state — that stays in `memnet-mcp` |
 | **Skill pack** | Trigger phrases, token guardrails, deep-dive references | Code execution |
 
@@ -120,7 +124,7 @@ Every tool returns the same shape (`MemNetResponse.to_json()`):
 ```json
 {
   "exit_code": 0,
-  "stdout": "TSK [T42] ; goal=… ; status=in_progress\nE77 [N03] --helps--> [T42]\n",
+  "stdout": "(:TSK {id:'TSK_42', goal:'…', status:'in_progress'})\n",
   "stderr": "",
   "session_id": "mn_abcd",
   "errors": []
@@ -171,7 +175,7 @@ Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull
 
 ## 4. Application-surface MCP (optional)
 
-Keep domain orchestration in a **separate package** when it owns side-effects that are not graph primitives (local files, gates, product-specific tools). That package should call `run_memnet` with the **same session id** as `memnet-mcp` (shared `memnet serve`).
+Keep domain orchestration in a **separate package** when it owns side-effects that are not graph primitives. For a **shared** graph, that package should call `run_memnet` with the **same session id** as `memnet-mcp` over **TCP/HTTP** (not a second in-process store).
 
 ```text
 parts/
@@ -181,7 +185,7 @@ parts/
 
 | Question | `memnet-mcp` answer | Domain MCP answer |
 |----------|---------------------|-------------------|
-| Touches `memnet serve`? | Yes (every tool) | Yes (via `run_memnet`) |
+| Touches `memnet serve`? | Only for shared/Multitask TCP | Only if sharing that serve |
 | Domain-specific? | No (any agent) | Yes |
 | Separate MCP key in `mcp.json`? | `memnet` | your product name |
 | Optional-dep group | `mcp` | your extra |
@@ -269,9 +273,9 @@ Keep `SKILL.md` ≤200 lines. Push detail into `references/`.
 | `atomisation.md` | Before any `add` batch |
 | `tool-parameters.md` | Tool arg shape unclear |
 | `mcp-policy.md` | `mcp.json` debugging, LAN setup |
-| `coding-memory.md` | Coding tasks (`@MOD`/`@SYM`) |
+| `coding-memory.md` | Coding tasks (`MOD`/`SYM`) |
 | `article-breakdown.md` | Reports, papers, manuals |
-| `user-input-memory.md` | Capturing constraints (`@USR`) |
+| `user-input-memory.md` | Capturing constraints (`USR`) |
 
 One monolithic 1500-line `SKILL.md` would: blow the auto-router context, defeat lazy load, and force every invocation to pay for every domain. Per-domain files keep each turn cheap.
 
@@ -355,8 +359,8 @@ def test_pin_map_tool_envelope(memnet_temp, schema_file, monkeypatch):
 
     open_raw = asyncio.run(session_open(map_lines=schema_lines))
     sid = json.loads(open_raw)["session_id"]
-    warm_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
-    payload = json.loads(warm_raw)
+    pin_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
+    payload = json.loads(pin_raw)
     assert payload["exit_code"] == 0
     assert payload["errors"] == []
 ```
@@ -380,7 +384,7 @@ If step 3 fails: `description` triggers are too narrow or YAML frontmatter has a
 
 | Pitfall | Fix |
 |---------|-----|
-| MCP auto-spawns `memnet serve` | Don't — `serve_status` first, fail loudly if down |
+| MCP requires `memnet serve` for a single agent | In-process default; `serve_status` only when sharing TCP/HTTP |
 | Domain logic in `memnet-mcp` | Split into new MCP package + own `pyproject` script entry |
 | `SKILL.md` >200 lines | Move per-domain content into `references/<name>.md` |
 | No `token_guardrails` in frontmatter | Agent will not self-limit on prose / verbosity |
@@ -424,7 +428,7 @@ pytest tests/test_mcp.py -v
 
 Expected:
 
-- `memnet-mcp` connects without auto-starting serve; `serve_required` error if serve is down
+- `memnet-mcp` **in-process** needs no serve; shared missions fail loudly if TCP/HTTP is down (`serve_required`)
 - Tool JSON envelope has all five fields (`exit_code`, `stdout`, `stderr`, `session_id`, `errors`)
 - Settled rows do not appear in subsequent `pin_map` (LAW01)
 - New agent invocation surfaces the skill within one turn of a trigger phrase
@@ -433,7 +437,8 @@ Expected:
 
 ## Related material
 
-- [`parts/memnet-mcp/software/memnet_mcp/`](../parts/memnet-mcp/software/memnet_mcp/) — graph MCP source
-- [`tests/test_mcp.py`](../tests/test_mcp.py) — envelope and supplementation tests
+- [`../SHAPE.md`](../SHAPE.md) — product shape
+- [`parts/memnet-mcp/software/memnet_mcp/`](../../parts/memnet-mcp/software/memnet_mcp/) — graph MCP source
+- [`tests/test_mcp.py`](../../tests/test_mcp.py) — envelope and supplementation tests
 - `~/.cursor/skills/mcp-memnet/SKILL.md` (user pack) — worked skill
 - `~/.cursor/skills/mcp-memnet/references/*.md` — split references

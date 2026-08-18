@@ -1,6 +1,6 @@
 # Nodal analysis — circuit domain (ports / law / bind)
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md). Wire: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Teach:** GQL wire profile + shaped `pin_map` + gated mutate.  
 **Documentation only** — does **not** implement a solver.  
@@ -26,7 +26,7 @@ Complements:
 | Branch laws | Ohm, sources, \(Z(s)\) — on the **device node** (`law`) |
 | System | Sparse stamp → \(G \cdot v = i\) (or s-domain equivalent) |
 
-MemNet stores **topology (`:bind`) + absolute numbers + law LaTeX**. It does **not** assemble or invert \(G\).
+MemNet stores **topology (`:bind`) + absolute numbers + law LaTeX**. It does **not** assemble or invert \(G\). **Open:** `SCHEMA CST` in `map_lines` (no bundled circuit map). Divider `CST_*` ids below are **ground** for the sketch; goldfish creates use `id:'NEW'`.
 
 ---
 
@@ -117,6 +117,8 @@ Shaped `pin_map` = goldfish read. Agents evaluate offline and write absolutes un
 
 ## 7. Minimal resistive divider (GQL sketch)
 
+Illustrative **ground** ids (canonical netlist). Do **not** treat this block as goldfish `NEW` mint.
+
 ```cypher
 CREATE (vin:CST {id:'CST_Vin', name:'Vin', Vin:5.0, ports:{p:{direc:'out', V:'@vin', I:'@iin'}}, law:'$@vin=Vin$'})
 CREATE (r1:CST {id:'CST_R1', R:1000, ports:{a:{direc:'inout', V:'@va1', I:'@ia1'}, b:{direc:'inout', V:'@vb1', I:'@ib1'}}, law:'$@va1-@vb1=@ia1*R$,$@ia1=-@ib1$'})
@@ -159,6 +161,7 @@ Layer ASCII and Tier A CMP/PIN/NET + `derives` are **not** product accept or tea
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** InvAmp GQL teach |
 | [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT + retired Layer encoding |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain GQL grain |
+| [`../SHAPE.md`](../SHAPE.md) | Product shape |
 | [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
 
 **This file is documentation only.** Use it to place Ohm/KCL as node `law` beside port binds — without building a circuit solver into MemNet.

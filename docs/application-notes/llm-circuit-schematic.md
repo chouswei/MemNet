@@ -1,11 +1,12 @@
 # LLM circuit schematic and s-domain analysis — circuit domain
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
-**Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can warm a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row.
+**Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can **`pin_map`** a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row.
 
 For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analysis frame**: DC, steady-state sinusoid (phasor), and linear transient results are specialisations or inversions of the same \(V(s)\) / \(H(s)\) model. Prefer one s-domain atom set (`domain:'s'`); recover other views by evaluation or inverse Laplace.
 
+**Open:** there is **no** bundled `schema.circuit.example.txt`. `session_open` `map_lines` must include `SCHEMA CST` (and `TSK` if you mint tasks). Kinds not in the map fail `unknown_tag`. Canonical device ids (`CST_U1`, …) in the case study are **ground** pins for that netlist — goldfish tasks still use `id:'NEW'`.  
 **Primary worked example (GQL wire):** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Math derivation SSOT:** [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) (Layer encoding in that file is **retired** for wire teach).
 
@@ -184,11 +185,12 @@ MemNet does **not** solve KCL. It holds **devices, binds, and result laws** in \
 
 1. **`pin_map`** on the focus (`CST_U1`, `CST_A`, or analysis `TSK`) — prefer `view=shell`, descend with `view=interior` / re-anchor when blocked.
 2. **Reason** only from that slice + user ask (goldfish).
-3. **Mutate** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). Copy assigned ids.
-4. **Re-warm** before the next edit.
+3. **Mutate** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). Goldfish nodes: `id:'NEW'`; copy assigned ids. Canonical `CST_*` netlist ids are ground (MERGE / known id).
+4. **Re-`pin_map`** before the next edit.
 
 ```cypher
-CREATE (t:TSK {id:'TSK_inv_nfb', goal:'Analyse inverting NFB amp in s-domain', phase:'nodal', status:'in_progress'})
+CREATE (t:TSK {id:'NEW', goal:'Analyse inverting NFB amp in s-domain', phase:'nodal', status:'in_progress'})
+# copy minted TSK id, then:
 MATCH (t:TSK {id:'TSK_inv_nfb'}), (u:CST {id:'CST_U1'}) CREATE (t)-[:about {id:'NEW'}]->(u)
 MATCH (t:TSK {id:'TSK_inv_nfb'}), (a:CST {id:'CST_A'}) CREATE (t)-[:about {id:'NEW'}]->(a)
 ```
@@ -233,6 +235,7 @@ Layer ASCII, CMP/PIN/NET, and Tier A paren arrows are **not** product accept or 
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** GQL InvAmp teach |
 | [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT + retired Layer encoding |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Ohm / KCL GQL patterns |
+| [`../SHAPE.md`](../SHAPE.md) | Product shape |
 | [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Goldfish loop |
 

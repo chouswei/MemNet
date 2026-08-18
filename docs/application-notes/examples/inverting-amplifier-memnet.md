@@ -1,6 +1,6 @@
 # Inverting amplifier — math SSOT (+ retired Layer encoding)
 
-> **Wire teach (1.x):** **GQL only** — [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) and [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
+> **Wire teach (1.x):** **GQL only** — [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) and [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../../SHAPE.md`](../../SHAPE.md).  
 > **This file:** closed-loop transfer **math derivation** remains SSOT for §§1–2. The Layer ASCII encoding below is **retired historical** (not agent wire). Do **not** teach Layer / Tier A.
 
 Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. MemNet **states** stamps and results; it does **not** solve them.

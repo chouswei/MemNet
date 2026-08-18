@@ -40,7 +40,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 
 Downstream system development and domain patterns — MemNet as working memory.
 
-**Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Application-note **bodies** still being migrated (M3); prefer the GQL case study and profile for wire shapes.
+**Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Shared contract: [`application-notes/README.md`](application-notes/README.md). Product shape: [`SHAPE.md`](SHAPE.md). Application-note **bodies** teach GQL.
 
 | Doc | Role |
 |-----|------|

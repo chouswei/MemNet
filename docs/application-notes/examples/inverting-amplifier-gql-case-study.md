@@ -2,7 +2,8 @@
 
 Work the known inverting op-amp topology through the **post ADR-001** model: openCypher-shaped **GQL** as agent wire, **shaped `pin_map`** as primary read.
 
-**Brand:** MemNet (Net of Memory). **Not shipped behaviour** — teach sketch aligned with [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
+**Product shape:** [`../../SHAPE.md`](../../SHAPE.md). **Brand:** MemNet (Net of Memory). **Not shipped behaviour** — teach sketch aligned with [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
+**Open:** `SCHEMA CST` (+ `TSK`) in `map_lines` — no bundled circuit map. Device `CST_*` / bind `E_*` ids here are **canonical ground** for this netlist. Goldfish `TSK` uses `id:'NEW'`.  
 **Derivation SSOT (math):** [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) §§1–2.  
 **Decision:** [`../../adr/ADR-001-gql-agent-wire.md`](../../adr/ADR-001-gql-agent-wire.md).  
 **Paradox (GQL wire):** [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) (historical filename).  
@@ -42,13 +43,13 @@ MemNet **states** stamps; it does **not** solve the network.
 | Grain | Relationship type | Endpoints |
 |-------|-------------------|-----------|
 | **Bind** (copper / ideal pipe) | `:bind` | Port-qualified via `fromPort` / `toPort` properties (M1 may freeze an alternate) |
-| **Relation** (chart / semantic) | e.g. `:about`, `:derives_result` | Bare node ids only |
+| **Relation** (chart / semantic) | e.g. `:about` | Bare node ids only |
 
 **MUST NOT** put Ohm / KCL / gain on a relationship. Continuity is implied by `:bind`.
 
 ### 2.3 Mutate sketch (openCypher-shaped)
 
-Illustrative create patterns (gated mutate; not unbounded DBA script):
+Illustrative create patterns (gated mutate; not unbounded DBA script). **Ground ids** for the canonical netlist (MERGE / known `id`). Do **not** mint these devices with goldfish `NEW`.
 
 ```cypher
 CREATE (vin:CST {
@@ -122,9 +123,10 @@ CREATE (u1)-[:bind {id:'E_A_out', fromPort:'out', toPort:'out'}]->(cl)
 Optional **relation** grain (not copper) — e.g. a task about the closed-loop result:
 
 ```cypher
-CREATE (tsk:TSK {id:'TSK_inv_gain', status:'active', title:'Confirm A_s limit'})
+CREATE (tsk:TSK {id:'NEW', status:'active', title:'Confirm A_s limit'})
+# copy minted TSK id, then:
 MATCH (tsk:TSK {id:'TSK_inv_gain'}), (cl:CST {id:'CST_A'})
-CREATE (tsk)-[:about]->(cl)
+CREATE (tsk)-[:about {id:'NEW'}]->(cl)
 ```
 
 ---
@@ -165,7 +167,7 @@ Engine-law rows may prepend when present. Recyclable / out-of-budget neighbours 
 | Device constitutive law | Node property `law` on `:CST` |
 | Port bags (V/I, direc) | Node property `ports` (`PortIncidence`) |
 | Copper | Relationship type `:bind` + port endpoint properties |
-| Chart / mission links | Other relationship types on bare node ids |
+| Chart / mission links | Other relationship types on bare node ids (`:about`) — **not** `derives` as law |
 | Goldfish budget | `PinMapShapedRead` / `pin_map` view+depth+max_rows |
 | Durable AgensGraph | Optional later; same GQL family — not this sketch |
 
@@ -183,6 +185,7 @@ Older ASCII Layer-shaped seeds for the same circuit live under derivation notes 
 
 | Path | Role |
 |------|------|
+| [`../../SHAPE.md`](../../SHAPE.md) | Product shape |
 | [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation (math) |
 | [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (body M3) |
 | [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | M1 wire SSOT |
