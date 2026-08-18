@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Honesty: `BoundedMatchFind.implemented=true`; MN-VER-04-S01 / MN-VER-13-S01 find flags; playbook find-then-`pin_map`. Package version **0.5.0**.
-- **GQL three elements** — teach **node**, **edge**, **properties**. Labels name kinds; ports/law/`id` are properties, not a fourth topology kind. Wire profile + MN-REQ-02.
+- **GQL three elements** — ISO names **node** (vertex), **edge** (relationship), **property**. Labels name kinds; ports/law/`id` are property values. Wire profile + MN-REQ-02.
 
 ## [0.4.6] - 2026-08-13
 

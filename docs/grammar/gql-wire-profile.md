@@ -15,7 +15,7 @@
 | Lock | Rule |
 |------|------|
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
-| **Three GQL elements** | **Node**, **edge** (relationship), and **properties**. Labels name node kinds; they are not a fourth element. Ports, law, `id`, locators live as **properties** — not a third topology kind beside node/edge. |
+| **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
 | **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Historical grammar sources live under [`archive/`](archive/) only — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (anchor, depth, view budget) that wraps GQL internally and emits a shaped subgraph. |
@@ -55,7 +55,7 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
 
-**Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** lines (or equivalent structured graph), ego-bounded and view-filtered.
+**Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), ego-bounded and view-filtered.
 
 **Honesty:** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `Recall` / `AgentShapedRead` (parent `RecallCommit`). Same Recall operator; seed rule differs (known id vs bounded MATCH + hard `LIMIT`). Find emits **hit nodes only** (`query find` / MCP `find`); then `pin_map` walks. Do **not** teach MATCH…RETURN as goldfish. Product math: [`math-skeleton.md`](math-skeleton.md).
 
@@ -140,7 +140,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 
 - Silently flatten bind into a chart label without ports.
 - Mix grains on one relationship (one end port-qualified, other bare) — reject in soft-validate / MutateGate.
-- Introduce first-class `PORT` nodes in M1 (deferred); ports are **properties** (the third GQL element), not a fourth topology kind.
+- Introduce first-class `PORT` nodes in M1 (deferred); ports are **property** values, not a fourth graph-element kind.
 
 **Alternate encodings** (synthetic port nodes, etc.) are **out** unless a later ADR revises this freeze. Case study: [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md).
 
@@ -150,7 +150,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 
 **MUST**
 
-- Teach **GQL only** as the 1.x agent wire: **node, edge, properties**.
+- Teach **GQL only** as the 1.x agent wire: **node** (vertex), **edge** (relationship), **property**.
 - Use **`pin_map`-class** reads with anchor (+ depth / view / max_rows).
 - Emit **shaped subgraph** for primary agent read (same family as mutate).
 - Mint with **`NEW`**; copy assigned ids thereafter.

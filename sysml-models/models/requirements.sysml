@@ -31,8 +31,8 @@
   Mission SSOT: Net of Memory between LLM pipelines and data searching; aids
   system, programme, software, firmware, hardware, and documentation
   development; save time and tokens; high factual accuracy; LLM-friendly
-  grammar on stdio/MCP; canonical parser for human inspection. Conceptual
-  data kinds: NODE | EDGE.
+  grammar on stdio/MCP; canonical parser for human inspection. GQL elements:
+  node (vertex), edge (relationship), property.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -150,34 +150,36 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Memory net information model: GQL node, edge, properties -----
+    // ----- Memory net information model: GQL node, edge, property -----
 
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
         Group: the Net of Memory is a GQL property graph whose three elements
-        are node, edge (relationship), and properties (ADR-001; gql-wire-profile).
-        Labels name node kinds; they are not a fourth element. MUST NOT invent
-        PORT (or nested graph) as a topology kind — those facts live as
-        properties. Agent wire is openCypher-shaped GQL; primary read is shaped
-        pin_map (not raw MATCH/RETURN tables). Layer / Tier A are archived
-        (not product accept); @TAG pipe remains import-once only.
+        are node (ISO synonym vertex), edge (ISO synonym relationship), and
+        property (ADR-001; gql-wire-profile). Labels name kinds; they are not
+        a fourth element. MUST NOT invent PORT (or nested graph) as a
+        graph-element kind — those facts live as property values. Agent wire
+        is openCypher-shaped GQL; primary read is shaped pin_map (not raw
+        MATCH/RETURN tables). Layer / Tier A are archived (not product
+        accept); @TAG pipe remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
       requirement def MN_REQ_02_1_ExactlyNodeAndEdge {
         doc /*
           SHALL model the Net of Memory as a GQL property graph with three
-          elements: node, edge (relationship), and properties. Topology is
-          node--edge--node; properties attach to nodes and to edges. SHALL NOT
-          add a fourth element (PORT nodes, nested graphs, prose blobs).
+          elements: node (vertex), edge (relationship), and property. Topology
+          is node--edge--node; property values attach to nodes and to edges.
+          SHALL NOT add a fourth graph-element kind (PORT nodes, nested graphs,
+          prose blobs).
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
 
       requirement def MN_REQ_02_2_NodesHoldAtomisedFacts {
         doc /*
-          NODEs SHALL hold atomised facts and attributes (properties) --
-          one idea per field set -- not free-form prose or merged
+          Nodes SHALL hold atomised facts as property values --
+          one idea per property -- not free-form prose or merged
           multi-idea blobs.
         */
         attribute requirementId : String = "MN-REQ-02.2";
@@ -185,8 +187,8 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_3_EdgesAreFirstClass {
         doc /*
-          EDGEs SHALL be first-class relations between nodes (property-graph
-          relationships), not buried in node attribute fields or narrative.
+          Edges (relationships) SHALL be first-class links between nodes,
+          not buried in node property values or narrative.
         */
         attribute requirementId : String = "MN-REQ-02.3";
       }
@@ -194,7 +196,7 @@ package MemNetRequirements {
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
           Pin map, walk, bounded MATCH find, and query SHALL operate over the
-          NODE and EDGE graph. Primary agent read when an ego/anchor id is
+          node/edge graph (property values included). Primary agent read when an ego/anchor id is
           known is bounded shaped pin_map wrapping GQL (Recall seed = id).
           When unanchored (no id) or pin_map caps dropped a needed row,
           bounded MATCH find (hard LIMIT; shaped subgraph emit) MAY apply
@@ -207,8 +209,8 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_5_GrammarExpressesNodeAndEdge {
         doc /*
-          Agent-facing grammar and I/O SHALL express both NODE and EDGE as
-          openCypher-shaped GQL (labels, relationship types, properties).
+          Agent-facing grammar and I/O SHALL express node, edge, and property as
+          openCypher-shaped GQL (labels, edge/relationship types, property maps).
           Write = display means shaped subgraph emit matches mutate family.
           Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
@@ -217,7 +219,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_6_ParserRecoversNodeAndEdge {
         doc /*
-          The canonical parser SHALL recover both NODE and EDGE structure for
+          The canonical parser SHALL recover node, edge, and property structure for
           human inspection.
         */
         attribute requirementId : String = "MN-REQ-02.6";
@@ -227,7 +229,7 @@ package MemNetRequirements {
         doc /*
           SHALL validate ingest against the session schema and reject unknown
           or reserved surface kinds. Tags MAY realise node labels; GQL
-          elements remain node, edge, and properties.
+          elements remain node (vertex), edge (relationship), and property.
         */
         attribute requirementId : String = "MN-REQ-02.7";
       }

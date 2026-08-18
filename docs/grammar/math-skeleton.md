@@ -11,7 +11,7 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 
 ## Session and cue
 
-Session \(S\) is a labelled property graph — GQL elements **node**, **edge**, **properties** — with rate cap \(R\) (rows / bytes).
+Session \(S\) is a labelled property graph — GQL elements **node** (vertex), **edge** (relationship), **property** — with rate cap \(R\) (rows / bytes).
 
 Cue \(q\) is a **discrete codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (local degree peak) is a **last-resort** optional token — prefer live `TSK` / last mutate; if a peak test is used, count **typed residual** degree (strip `contains`), not raw edge count ([#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25).
 

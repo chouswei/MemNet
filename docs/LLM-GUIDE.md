@@ -24,7 +24,7 @@
 
 > **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
 
-> **Atomise** — GQL has three elements: **node**, **edge**, **properties**. One idea per field; wire relationships as edges. No prose blobs in properties.
+> **Atomise** — GQL elements: **node** (vertex), **edge** (relationship), **property**. One idea per property; wire relations as edges. No prose blobs in a property value.
 
 ### GQL wire (Write = display redefined)
 
