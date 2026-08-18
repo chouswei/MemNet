@@ -796,6 +796,9 @@ def _project_code_file(
         _budget_check(nodes, max_nodes)
         locator = f"{rel_path}:{name}"
         sid = alloc.allocate_from_locator("SYM", locator)
+        if any(n["id"] == sid for n in nodes):
+            # Property setter/deleter share the getter name — keep the first pin.
+            return None
         nodes.append(
             {
                 "id": sid,

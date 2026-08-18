@@ -1,86 +1,108 @@
 ﻿#!/usr/bin/env python3
-"""Build MemNet codebase index and write memnet-codebase.snap.txt (inline, one process)."""
+"""Model the engine + MCP packages via memnet-mcp tools and write a snapshot.
+
+Uses the same in-process MCP tool functions Cursor would call (session_open,
+ingest_codebase, add, pin_map, session_save). The snapshot file is gitignored.
+
+    python scripts/snap_memnet_codebase.py
+"""
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import sys
 from pathlib import Path
 
-# Inline mode: single process retains session registry.
 os.environ.setdefault("MEMNET_TEST_INLINE", "1")
+os.environ.setdefault("MEMNET_MCP_TRANSPORT", "inprocess")
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "parts" / "common" / "memnet" / "memnet" / "examples"
-SCHEMA = EXAMPLES / "schema.coding.example.txt"
-SEED = EXAMPLES / "workflow.memnet-codebase.snap.txt"
+SCHEMA = EXAMPLES / "schema.codebase.example.txt"
 OUT = ROOT / "memnet-codebase.snap.txt"
+ENGINE = ROOT / "parts" / "common" / "memnet" / "memnet"
+MCP = ROOT / "parts" / "memnet-mcp" / "software" / "memnet_mcp"
+TASK_ID = "TSK_model_memnet"
+MAX_NODES = 8000
+MAX_FILES = 128
 
 
-def main() -> int:
-    from typer.testing import CliRunner
+def _load(payload: str) -> dict:
+    data = json.loads(payload)
+    if data.get("exit_code", 1) != 0:
+        err = data.get("stderr") or data.get("errors") or payload
+        raise SystemExit(f"mcp tool failed: {err}")
+    return data
 
-    from memnet.cli import app
+
+async def main() -> int:
     from memnet.session import get_session
+    from memnet_mcp.server import add, ingest_codebase, pin_map, session_open, session_save
 
-    if not SEED.is_file():
-        print(f"Missing seed: {SEED}", file=sys.stderr)
-        print("Run: python scripts/generate_memnet_codebase_seed.py", file=sys.stderr)
+    if not SCHEMA.is_file():
+        print(f"Missing schema: {SCHEMA}", file=sys.stderr)
         return 1
 
-    runner = CliRunner()
-    r1 = runner.invoke(app, ["session", "open", "--map-file", str(SCHEMA), "--ttl", "1440"])
-    if r1.exit_code != 0:
-        print(r1.stdout, r1.stderr, file=sys.stderr)
-        return r1.exit_code
-    sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
+    opened = _load(
+        await session_open(map_file=str(SCHEMA), ttl=1440)
+    )
+    sid = opened.get("session_id")
+    if not sid:
+        print(opened, file=sys.stderr)
+        return 1
     print(f"session={sid}")
 
-    seed_lines = [
-        ln
-        for ln in SEED.read_text(encoding="utf-8").splitlines()
-        if ln.strip() and not ln.strip().startswith("#")
-    ]
-    chunk_size = 400
-    for i in range(0, len(seed_lines), chunk_size):
-        chunk = "\n".join(seed_lines[i : i + chunk_size])
-        r2 = runner.invoke(
-            app,
-            ["add", "--stdin", "--allow-new-relation", "--session", sid],
-            input=chunk + "\n",
+    anchors: list[str] = []
+    for path in (ENGINE, MCP):
+        ingest = _load(
+            await ingest_codebase(
+                path=str(path),
+                max_nodes=MAX_NODES,
+                max_files=MAX_FILES,
+                root=str(ROOT),
+                session=sid,
+            )
         )
-        if r2.exit_code != 0:
-            print(r2.stdout, r2.stderr, file=sys.stderr)
-            return r2.exit_code
+        stdout = ingest.get("stdout") or ""
+        print(stdout.strip())
+        for line in stdout.splitlines():
+            if line.startswith("@ANCHORS:"):
+                anchors.extend(
+                    a.strip() for a in line.split(":", 1)[1].split(",") if a.strip()
+                )
 
-    r3 = runner.invoke(app, ["session", "save", "--file", str(OUT), "--session", sid])
-    if r3.exit_code != 0:
-        print(r3.stdout, r3.stderr, file=sys.stderr)
-        return r3.exit_code
-
-    r4 = runner.invoke(
-        app,
-        [
-            "query",
-            "warm",
-            "--anchor",
-            "TSK_codebase_snap_memnet",
-            "--depth",
-            "2",
-            "--max-rows",
-            "15",
-            "--session",
-            sid,
-        ],
+    _load(
+        await add(
+            wire_lines=[
+                (
+                    f"CREATE (:TSK {{id: '{TASK_ID}', goal: 'Model MemNet engine and MCP', "
+                    "status: 'in_progress', recycle: 'persistent'})"
+                )
+            ],
+            session=sid,
+        )
     )
-    print("--- warm sample (first 15 rows) ---")
-    print(r4.stdout[:2000])
+
+    primary = TASK_ID if TASK_ID else (anchors[0] if anchors else None)
+    if primary:
+        mapped = _load(
+            await pin_map(anchor=primary, depth=2, max_rows=20, session=sid)
+        )
+        print("--- pin_map sample ---")
+        print((mapped.get("stdout") or "")[:2500])
+
+    saved = _load(await session_save(file=str(OUT), session=sid))
+    print((saved.get("stdout") or "").strip())
 
     ss = get_session(sid)
     rows = ss.store.row_count_non_law()
     print(f"saved {OUT} ({rows} non-LAW rows)")
+    if anchors:
+        print("anchors: " + ",".join(anchors[:8]))
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(asyncio.run(main()))

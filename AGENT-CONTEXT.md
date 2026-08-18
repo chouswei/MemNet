@@ -1,6 +1,6 @@
 # Agent context — MemNet
 
-**MemNet session:** `(open when serve/MCP is up)` · **Anchor:** `TSK_model_memnet`
+**MemNet session:** load gitignored `memnet-codebase.snap.txt` (Path-B MCP snap) · **Anchor:** `TSK_model_memnet`
 
 ## Summary
 
