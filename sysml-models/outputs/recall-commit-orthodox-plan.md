@@ -54,7 +54,7 @@ Pytest already covering part of this (still paradox): `tests/test_pin_map_view.p
 
 ## Development sequence
 
-Do **not** wait on the live M2.5 cabinet (that is a **1.0.0** gate). Goldfish leftover is the **0.5** track.
+Do **not** wait on the live M2.5 cabinet (that is a **1.0.0** gate). Goldfish leftover **in 0.5.0** is paradox pytest then #73 and union-under-one-\(M\). Peak_L stays later. Roadmap: [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md).
 
 ### Already done (do not rebuild)
 
@@ -66,13 +66,18 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 |-------|------|----------|
 | 1 | Pytest for V1, V3, V4, V6 (fixtures; no new MCP) | Isolated ego; probe then Shape; sparse Δ; `id_exists`. CI green; no `rag_query` |
 
-### Leftover **erect** (orthodox construction)
+### Leftover **erect** (orthodox construction; 0.5.0)
 
 | Order | Work | Orthodox it erects | Paradox gate |
 |-------|------|--------------------|--------------|
 | 2 | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); shaped emit not RETURN | `implemented=true` only with LIMIT tests; MN-VER-13 honesty flips find flag |
 | 3 | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | Must **not** copy Path-B \(M\times\)anchors. Single LAW prepend |
-| 4 | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | Behind explicit cue; never default; no cluster assignment |
+
+### Leftover **later** (not 0.5.0, not 1.0.0)
+
+| Work | Notes |
+|------|--------|
+| Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only; never default; no cluster assignment |
 
 ### Must not erect (abandons orthodox)
 
@@ -94,7 +99,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
-Done for **this leftover track** when: V1/V3/V4/V6 have pytest; playbook still one-TSK; #73 still not claimed from pin_map alone. Done for **#77** when HostSearch ship / #73 / Peak_L are decided — not when this plan exists.
+Done for **0.5.0** when: V1/V3/V4/V6 have pytest; #73 LIMIT find shipped; union-under-one-\(M\) (not Path-B budget); playbook still one-TSK. Done for **1.0.0** when live cabinet is operator-proven. Done for **#77** when HostSearch ship / Peak_L are decided — not when this plan exists.
 
 ---
 
@@ -106,6 +111,6 @@ Done for **this leftover track** when: V1/V3/V4/V6 have pytest; playbook still o
 | [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Snap/Shape; after #84 status |
 | [`host-search-nest-case-study.md`](host-search-nest-case-study.md) | Paths A–E |
-| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | 0.5 leftover goldfish; live cabinet = 1.0.0 |
+| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | Version map: 0.5 leftover; 1.0 live cabinet |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded find leftover |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (citations) |

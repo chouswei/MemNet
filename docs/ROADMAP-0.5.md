@@ -1,113 +1,93 @@
-# Roadmap 0.5.0 — one path
+# Roadmap — 0.5 leftover and 1.0 gates
 
-**Status:** plan only (docs). **MUST NOT** treat this as shipped behaviour.  
-**Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
+**Status:** plan (docs). **MUST NOT** treat leftover engine as shipped.  
+**Audience:** product developers. British English.  
+**Filename** `ROADMAP-0.5.md` is historical; this file is the product version map.  
+**Agent ops:** [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
-**Product:** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
+**Product:** MemNet is **mission working memory** (session NODE | EDGE) between LLM pipelines and data search — not the corpus, not GraphRAG. Handoff = **session id**; peers re-`pin_map`; chat is never SSOT. Durable GQL **backs** sessions; it is not the handoff handle and not Cypher-proxy teach.
 
-**Model:** SysML + grammar for **GQL wire** (`GqlCodec` / `PinMapShapedRead`). Paradox (GQL wire): [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) (historical filename). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).
-
----
-
-## Where we are (2026-08-18)
-
-| Phase | Owns | Shipped? |
-|-------|------|----------|
-| **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
-| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
-| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
-| **M2.5 client** | Durable online GQL store adapter **behind** mission working memory (hydrate/flush; one sync owner; Fake always-on) | **Done** in 0.4.x — `DurableStoreAdapter` in tree |
-| **M2.5 live cabinet** | Prove hydrate/flush against **external** AgensGraph (not Fake-alone) | **1.0.0 gate** — does **not** block 0.5.0 |
-
-**Next notch for 0.5.0:** leftover goldfish (paradox pytest; leftover erect #73 / one-\(M\) still modelled). Live M2.5 cabinet does **not** block 0.5. One-path gates below stay the teach/ops lock. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
-
-**Gate for 1.0.0:** live AgensGraph cabinet exercised in an operator environment. Client already landed — do **not** call 1.0 done on Fake alone.
-
-User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
-
-### Already in 0.4.x (do not list as deferred)
-
-CapsPolicy ACL (off by default), neighbourhood reserve (RSV), Path-B ingest domains (#64), ImportAbsorb + ImportGuard / CheapLlmImportGuard, LocalIpcGateway. See [`../CHANGELOG.md`](../CHANGELOG.md) and [`../README.md`](../README.md).
+Orthodox = theorems you **build from**. Paradox = **all** examination and test. Detail: [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md).
 
 ---
 
-## Locked priorities (0.5 teach / ops)
+## Version map (2026-08-18)
 
-### 1. One remote entry
+| Version | Owns | Blocks the SemVer claim? |
+|---------|------|--------------------------|
+| **0.4.x (now)** | M1–M3; M2.5 **client**; goldfish orthodox erected (`pin_map`, mutate, one live `TSK`, sparse Δ, RSV, Path-B ingest/Absorb, CapsPolicy ACL off-by-default) | — (PyPI `memnet-llm`) |
+| **0.5.0** | Leftover **goldfish Recall**: paradox pytest, then leftover erect (#73 LIMIT find, union-under-one-\(M\)) | **No** live AgensGraph |
+| **1.0.0** | **Live** M2.5 cabinet (external AgensGraph hydrate/flush, one sync owner) | Fake-alone **fails** this gate |
+| **Later** | Host Snap adapter **outside** `MemNetSystem`; N-server pipe; pin-map export; Peak_L if still wanted; close [#77](https://github.com/chouswei/MemNet/issues/77) | Not 0.5 and not 1.0 |
 
-| MUST | MUST NOT |
-|------|----------|
-| Teach Cursor remote as **`memnet-pi`** via `"url"` → streamable-http (`:18766/mcp`) | Treat project **`memnet-local`** (stdio) as the default remote/shared path |
-| Keep stdio local MCP **optional / dev-only** | Document stdio and HTTP as equal “primary” remotes |
-
-Local single-agent may still use in-process stdio when no shared graph is needed. Multitask / shared graph → HTTP or TCP only.
-
-### 2. One dialect teach
-
-| MUST | MUST NOT |
-|------|----------|
-| Teach **GQL (openCypher-shaped)** as the **only** agent wire ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md); family authority = openCypher CIP / oC9) | Teach Layer / Tier A as wire, peer, or accept path |
-| Redefine **Write = display** as **bounded shaped GQL subgraph** via `pin_map`-class tool | Ship unbounded tabular `MATCH`/`RETURN` as primary goldfish read |
-| Point historical Layer sources only at [`grammar/archive/`](grammar/archive/) | Invent a third peer dialect |
-
-Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) (supersession: no Layer).
-
-### 3. One graph owner on Pi
-
-| MUST | MUST NOT |
-|------|----------|
-| Bridge HTTP MCP to **`memnet serve`** (TCP `:18765`) so one process owns the store | Run HTTP MCP with a separate `InProcessEngine` **and** TCP serve as two writers |
-| Default remote HTTP so tools share the serve graph | Dual-write the same mission across two engines |
-
-### 4. Footguns (Cursor just works)
-
-| Concern | Default / gate |
-|---------|----------------|
-| Host | LAN bind + `MEMNET_MCP_HTTP_TRUSTED_HOSTS` |
-| Token | Non-empty `MEMNET_MCP_HTTP_TOKEN`; Cursor `Authorization: Bearer …` |
-| `view=` | Omit → shell-safe default; teach `shell` / `interior` first |
-
-**MUST NOT** advertise empty-token LAN MCP as safe.
-
-### 5. Working memory ≠ corpus
-
-| MUST | MUST NOT |
-|------|----------|
-| Keep retrieve / generate / remember unfused. Goldfish = serial cue then `pin_map` | Add `rag_query` (or equivalent) to `memnet-mcp` |
-| Host search MAY propose **locators** into MutateGate / ingest; skip is valid | Store embeddings or chunk bodies as the memory surface |
-| Leftover [#73](https://github.com/chouswei/MemNet/issues/73) find is **graph** lookup, not corpus RAG | Run HippoRAG PPR / Graphiti RRF / OpenIE / ANN **inside** the engine |
-
-Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Math (above #77): [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
+User-pack GQL-only skills (`chouswei/cursor-user-skills`) run **in parallel** — not a repo SemVer gate.
 
 ---
 
-## Out of 0.5.0
+## Already in 0.4.x (do not list as deferred)
 
-Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implemented.
+M1 wire profile · M2 GQL accept + shaped `pin_map` · M3 in-repo GQL teach · M2.5 client (`DurableStoreAdapter` / Fake / optional AgensGraph client) · CapsPolicy ACL (off by default) · RSV · Path-B ingest (#64) · ImportAbsorb + ImportGuard / CheapLlmImportGuard · LocalIpcGateway.
 
-| Item | Notes |
-|------|--------|
-| Live AgensGraph as **claimed** complete | **1.0.0 gate** (below). M2.5 client is in 0.4.x. Does **not** block 0.5 leftover goldfish. |
-| Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only. Goldfish I/O (Snap/Shape, one `TSK` map, sparse Δ) is **design-locked** on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)); not an engine cut |
-| BoundedMatchFind | Leftover [#73](https://github.com/chouswei/MemNet/issues/73); modelled `implemented=false`. Cue when there is no ego — **not** GraphRAG |
-| N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
-| Pin-map export / round-trip | MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66); ingest ≠ export |
-| First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
-| Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled; the rest stays design |
-
-**GQL:** agent teach/wire only. **MUST NOT** revive Layer teach.
-
-**AgensGraph:** backing graph for sessions — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
+Playbook goldfish: one live `TSK` map, optional `view=shell`, sparse `add`/`update`. Design-locked: Snap vs Shape; host search **outside**; Peak_L last never default.
 
 ---
 
-## Gates for 1.0.0
+## 0.5.0 — leftover goldfish
+
+In-process. Cabinet does **not** serialise this track.
+
+| Order | Kind | Work | Done when |
+|-------|------|------|-----------|
+| 1 | Paradox | Pytest V1, V3, V4, V6 (no new MCP) | CI green; no `rag_query` |
+| 2 | Erect | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Hard LIMIT \(L\); shaped emit not `RETURN`; `implemented=true` + MN-VER-13 honesty |
+| 3 | Erect | Multi-ego union-under-**one** \(M\) | One LAW prepend; **not** Path-B \(M\times\)anchors |
+
+**Out of the 0.5.0 claim (still leftover, later):** optional `Peak_L` on \(\rho^*\) (explicit cue only). Host Snap ship. Live cabinet.
+
+V-cases and probes: orthodox plan — do not copy them here.
+
+**0.5.0 MUST NOT:** `rag_query`; ANN of \(S\); RRF; HostSearch under `MemNetSystem`; goldfish Δ via ImportAbsorb; Peak_L as default goldfish; Layer teach; claim #73 from `pin_map` alone.
+
+---
+
+## 1.0.0 — live cabinet
 
 | Gate | Pass | Fail |
 |------|------|------|
-| Live M2.5 cabinet | Hydrate/flush against an **external** AgensGraph in an operator environment; one sync owner | Claim 1.0 on Fake-alone; LLM↔store direct teach; MemNet-as-Cypher-proxy |
+| Live M2.5 cabinet | Hydrate/flush against **external** AgensGraph in an operator environment; one sync owner | Claim 1.0 on Fake-alone; LLM↔store direct; MemNet-as-Cypher-proxy |
 
-Client hydrate/flush is already 0.4.x. This gate is **proof of the live path**, not a rebuild of the adapter. It does **not** serialise 0.5 goldfish leftover.
+Client already landed in 0.4.x. This gate is **proof**, not a rebuild. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+
+Prefer 0.5 leftover **claimed** before 1.0 (goldfish closed in-process, then durable proof). The cabinet still does **not** block starting 0.5 work.
+
+---
+
+## Later (not 0.5, not 1.0)
+
+| Item | Notes |
+|------|--------|
+| Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only ([#84](https://github.com/chouswei/MemNet/pull/84) design-lock) |
+| `Peak_L` | Last-resort topology cue; never default goldfish |
+| N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
+| Pin-map export / round-trip | MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66); ingest ≠ export |
+| First-class `PORT` NODE; SCHEMA vocab freeze | Ports stay properties |
+| Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled |
+
+[#77](https://github.com/chouswei/MemNet/issues/77) stays open until HostSearch ship / #73 / Peak_L are **decided**, not when this file exists.
+
+---
+
+## Standing teach / ops (all versions)
+
+One remote: Cursor **`memnet-pi`** `"url"` → streamable-http (`:18766/mcp`). Stdio `memnet-local` is optional / dev-only.
+
+One dialect: **GQL** only. Write = display = bounded shaped `pin_map`. Layer / Tier A archived.
+
+One graph owner on Pi: HTTP MCP bridges **`memnet serve`** (`:18765`). No dual writers.
+
+Footguns: LAN bind + trusted hosts; non-empty HTTP token; omit `view=` → shell-safe default.
+
+Working memory ≠ corpus: retrieve / generate / remember unfused. Host MAY propose locators; skip is valid. Find leftover is **graph** lookup, not corpus RAG.
 
 ---
 
@@ -118,13 +98,10 @@ Client hydrate/flush is already 0.4.x. This gate is **proof of the live path**, 
 | [`../README.md`](../README.md) | Doctrine / how to run |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
-| [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math (no engine cut) |
-| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox (0.5 leftover goldfish) |
-| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (M2.5 client landed; live cabinet = **1.0.0** gate) |
-| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5 engine) |
-| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename; M2/M3 “next” dropped) |
-| [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |
-| [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |
-| [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
-| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
+| [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | Recall / Commit math |
+| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox; paradox V1–V10 |
+| [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable adapter; live cabinet = 1.0.0 |
+| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host Snap (later; outside engine) |
+| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
+| [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary |

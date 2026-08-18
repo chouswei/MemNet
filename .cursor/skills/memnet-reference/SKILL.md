@@ -50,7 +50,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 |------|------|------------|
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
-| One-path / 0.5.0 plan | `docs/ROADMAP-0.5.md` | developers |
+| One-path / version map (0.5 leftover · 1.0 gates) | `docs/ROADMAP-0.5.md` | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |

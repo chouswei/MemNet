@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **Live M2.5 cabinet → 1.0.0 gate (docs)** — client hydrate/flush stays 0.4.x; operator proof of external AgensGraph is a **1.0.0** gate and does **not** block 0.5 leftover goldfish. `docs/ROADMAP-0.5.md`.
+- **Roadmap replanned (docs)** — version map: 0.4.x as-is; **0.5.0** leftover goldfish (pytest then #73 + one-\(M\)); **1.0.0** live AgensGraph cabinet; Peak_L / HostSearch / export later. `docs/ROADMAP-0.5.md`.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.
 - **Snap vs Shape (design)** — host RAG **Snaps** corpus topics to locators; `pin_map` **Shapes** session neighbourhood \(\tilde{X}\). In-session TSK already on \(S\): seed then Shape — MUST NOT ANN the session. Grammar: `docs/grammar/math-skeleton.md`. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Recall/Commit orthodox plan (docs)** — theorems as a base to build from; **all** examination/test is paradox (V1–V10, pytest, MN-VER). Live M2.5 cabinet is a **1.0.0 gate** (does not block 0.5 leftover goldfish). `sysml-models/outputs/recall-commit-orthodox-plan.md`.
 - **SysML wording nits after #82** — MN-VER-13-S01 now reads leftover Layer `deleteThisPr == false` (retire-from-wheel; not nested); coarse nest header places `RecallCommit` under `SessionLifecycle`; ImportAbsorb leaf renamed `nodesThenEdges` so it does not collide with operator `Commit`.
 - **Product description** — mission working memory between LLM pipelines and data search; not RAG / GraphRAG. README, PyPI/`project.toml`, agent playbook, SysML framing.
-- **Roadmap 0.5** — M1/M2/M3 done; M2.5 **client** in 0.4.x; **live** AgensGraph cabinet is a **1.0.0 gate** (does not block 0.5). ACL / RSV / ingest are 0.4.x, not deferred. Host search / #73 / GraphRAG stay out of the 0.5 engine.
+- **Roadmap 0.5** — superseded by version map in `docs/ROADMAP-0.5.md` (0.5 leftover goldfish; 1.0 live cabinet). ACL / RSV / ingest are 0.4.x, not deferred.
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
 - **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 - **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
