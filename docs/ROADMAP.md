@@ -5,7 +5,7 @@
 **SSOT** for SemVer intent. Patch notes stay in [`../CHANGELOG.md`](../CHANGELOG.md). Live package: `project.toml` **0.4.6** (`memnet-llm`; CLI `memnet`).  
 **Agent ops:** [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md). Dialect: **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
-**Product:** mission working memory (session NODE | EDGE) between LLM pipelines and data search — not the corpus, not GraphRAG. Handoff = **session id**; peers re-`pin_map`; chat is never SSOT. Durable GQL **backs** sessions; it is not the handoff handle.
+**Product shape** (from the problem MN-REQ-00): [`SHAPE.md`](SHAPE.md) — named session \(S\), goldfish \(\tilde{X}\), gated \(\Delta\), same GQL alphabet, host Snap locators only. Handoff = **session id**; peers re-`pin_map`; chat is never SSOT. Durable GQL **backs** sessions; it is not the handoff handle. Versions **fill** that shape; they do not invent another product.
 
 Orthodox = theorems you **build from**. Paradox = **all** examination and test. [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md).
 
@@ -60,7 +60,7 @@ In-process. Cabinet does **not** serialise this track.
 
 ## 1.0.0 — mature tool for people
 
-**1.0.0** means an outsider can install MemNet and use it as **mission working memory**: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), and an optional **proven** durable cabinet so a session can outlive a process. It does **not** mean GraphRAG, `rag_query`, or Peak_L.
+**1.0.0** means an outsider can install MemNet and use the **product shape** ([`SHAPE.md`](SHAPE.md)) as **mission working memory**: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), and an optional **proven** durable cabinet so a session can outlive a process. It does **not** mean GraphRAG, `rag_query`, or Peak_L.
 
 People already have in 0.4.x: PyPI `memnet-llm`, MCP, `pin_map` / mutate, playbook, Multitask over TCP/HTTP, Fake hydrate/flush. 1.0 **closes the leftover** and **proves durability**.
 
@@ -112,6 +112,7 @@ Not required for **mature working memory**. Do **not** hold 1.0 for these.
 
 | Path | Role |
 |------|------|
+| [`SHAPE.md`](SHAPE.md) | Product shape from the problem |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Stub (old filename) |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | Patch history |
 | [`../README.md`](../README.md) | Doctrine / how to run |

@@ -4,7 +4,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Mission
 
-**MemNet** (Net of Memory) is **mission working memory** — a session graph (NODE | EDGE) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md` and `docs/grammar/`.
+**MemNet** (Net of Memory) is **mission working memory** — a session graph (NODE | EDGE) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. See `README.md`, [`docs/SHAPE.md`](docs/SHAPE.md), and `docs/grammar/`.
 
 ## Where to look
 
@@ -12,6 +12,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 |------|------|-------|
 | Docs index (developers vs applications) | `docs/README.md` | — |
 | Doctrine / quick start | `README.md` | — |
+| Product shape (from the problem) | `docs/SHAPE.md` | developers |
 | Version map (all SemVer) | `docs/ROADMAP.md` | developers |
 | System identity / SemVer | `project.toml` | — |
 | Python packaging | `pyproject.toml` | — |

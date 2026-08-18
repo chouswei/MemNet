@@ -2,6 +2,8 @@
 
 Mission working memory for LLMs. A named session graph (NODE | EDGE) that agents **pin** and **mutate** — not a notepad in chat, and not the search library.
 
+**Product shape** (from the problem): [`docs/SHAPE.md`](docs/SHAPE.md). Versions: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus lookup stays on the host (grep, ingest, optional RAG); it may propose **locators**. In the session, kinds/tags are overlapping **cues**; recall is **serial** — cue, then a bounded `pin_map` neighbourhood. It is not GraphRAG, not a vector store, and not AgensGraph/Neo4j.
 
 This repo ships the engine + generic MCP only. **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.

@@ -50,6 +50,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 |------|------|------------|
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
+| Product shape (from the problem) | `docs/SHAPE.md` | developers |
 | Version map (all SemVer) | `docs/ROADMAP.md` | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
