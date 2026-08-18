@@ -89,7 +89,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work.
+Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. SemVer next is **0.8** (GQL teach + shape for people) — map: [`ROADMAP-0.5.md`](ROADMAP-0.5.md).
 
 Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 

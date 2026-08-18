@@ -18,7 +18,7 @@ metadata:
 
 Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives in docs below -- do not duplicate or invent features here.
 
-**Product version:** `project.toml` / PyPI **`memnet-llm==0.7.0`** (CLI command remains `memnet`). 0.5 leftover goldfish shipped. 0.6 honesty shipped. 0.7 = live AgensGraph hydrate/flush proven; `liveCabinetClaimed` true. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL`.
+**Product version:** `project.toml` / PyPI **`memnet-llm==0.7.0`** (CLI command remains `memnet`). Version map SSOT: `docs/ROADMAP-0.5.md`. **0.8** = GQL teach + shape for people (#87, docs only; not shipped). **1.0** = 0.5–0.8 claimed. Do not bump the package for a plan lock.
 
 ## When loaded
 
@@ -50,7 +50,7 @@ Do not teach agent I/O or Multitask playbooks here -- pointer only.
 |------|------|------------|
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
-| One-path / version map | `docs/ROADMAP-0.5.md` (0.5 shipped; 0.6 honesty; 0.7 live cabinet) | developers |
+| One-path / version map | `docs/ROADMAP-0.5.md` (SSOT: 0.5–0.7 shipped; 0.8 next; 1.0 after 0.8) | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |

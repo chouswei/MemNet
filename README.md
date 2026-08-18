@@ -86,7 +86,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 |-----|------|
 | [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md) | Agent playbook |
 | [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) | GQL wire SSOT |
-| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | 0.5 plan |
+| [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md) | Version map SSOT (0.8 next; 1.0 after 0.8) |
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
 | [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) | Multitask ops |
 | [`docs/README.md`](docs/README.md) | Full docs index |

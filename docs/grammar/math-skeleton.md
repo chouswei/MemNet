@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** 0.5 leftover goldfish **shipped**. 0.6 honesty **shipped**. 0.7 = live AgensGraph hydrate/flush **proven**; `liveCabinetClaimed` true. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** version map SSOT [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). 0.5–0.7 **shipped**. **0.8** = GQL teach + shape for people (#87, docs only). **1.0** = 0.5–0.8 claimed. Later = Peak_L / HostSearch / N-server / export. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers. **British English.**  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).
