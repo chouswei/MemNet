@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** product math SSOT for 0.5 leftover goldfish (in-process). Live AgensGraph remains the 1.0 gate.  
+**Status:** 0.5 leftover goldfish **shipped**. 0.6 = V5 + snapshot-as-offered-durable + this map. Live AgensGraph is **after 0.6, before 1.0**; `liveCabinetClaimed` stays false until that offer is proven. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers. **British English.**  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).

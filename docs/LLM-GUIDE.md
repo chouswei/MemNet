@@ -89,6 +89,8 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
+Process death: `session save` / `session load` (snapshot) is what this repo offers. Fake hydrate/flush is CI. AgensGraph is offered **after 0.6 and before 1.0** — not required for 0.6.
+
 Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 
 ### MCP quick reference (primary)

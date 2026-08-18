@@ -1,6 +1,6 @@
 # Roadmap 0.5.0 — one path
 
-**Status:** plan only (docs). **MUST NOT** treat this as shipped behaviour.  
+**Status:** 0.5 leftover goldfish **shipped** (`v0.5.0`). 0.6 = V5 + snapshot-as-offered-durable + this map. Live AgensGraph is **after 0.6, before 1.0**; `liveCabinetClaimed` stays false until that offer is proven. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
 **Product:** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
@@ -18,7 +18,7 @@
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
 | **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **In progress** — client hydrate/flush landed; Fake always-on; **live path needs external AgensGraph** |
 
-**Next notch for 0.5.0:** prove the **live** M2.5 cabinet path. One-path gates below stay the teach/ops lock (remote, dialect, Pi owner, footguns). Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
+**Next after 0.6:** you offer AgensGraph (pre-1.0); prove hydrate/flush; then `liveCabinetClaimed`. One-path gates below stay the teach/ops lock. Sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md).
 
 User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
@@ -84,9 +84,9 @@ Stay out of the 0.5 engine/MCP ship. **MUST NOT** treat design docs as implement
 
 | Item | Notes |
 |------|--------|
-| Live AgensGraph as **claimed** complete | M2.5 client is in tree; live cabinet is the remaining 0.5 notch — do not call 0.5 done on Fake alone |
+| Live AgensGraph as **claimed** complete | Client in tree; live proof is **after 0.6, before 1.0**. 0.5 goldfish is shipped. Do not claim the cabinet on Fake. |
 | Host search / RAG nest | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only. Goldfish I/O (Snap/Shape, one `TSK` map, sparse Δ) is **design-locked** on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)); not an engine cut |
-| BoundedMatchFind | Leftover [#73](https://github.com/chouswei/MemNet/issues/73); modelled `implemented=false`. Cue when there is no ego — **not** GraphRAG |
+| BoundedMatchFind | Shipped in 0.5.0 (`implemented=true`; #73). Seed nodes only — **not** GraphRAG |
 | N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
 | Pin-map export / round-trip | MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66); ingest ≠ export |
 | First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
