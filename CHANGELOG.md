@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SysML wording nits after #82** — MN-VER-13-S01 now reads leftover Layer `deleteThisPr == false` (retire-from-wheel; not nested); coarse nest header places `RecallCommit` under `SessionLifecycle`; ImportAbsorb leaf renamed `nodesThenEdges` so it does not collide with operator `Commit`.
 - **Product description** — mission working memory between LLM pipelines and data search; not RAG / GraphRAG. README, PyPI/`project.toml`, agent playbook, SysML framing.
 - **Roadmap 0.5** — M1/M2/M3 done; leftover goldfish = 0.5.0. 0.6 honesty; cabinet after 0.6 before 1.0. ACL / RSV / ingest are 0.4.x. Host search / GraphRAG stay out of the 0.5 engine.
+- **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
+- **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
+- **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.6.0] - 2026-08-18
 
@@ -30,9 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Version map: 0.5 goldfish shipped; 0.6 honesty; live AgensGraph after 0.6 before 1.0; `liveCabinetClaimed` stays false. Repo skill `memnet-reference` product **0.6.0**. Fake + skip unless `MEMNET_AGENSGRAPH_URL`.
-- **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
-- **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
-- **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ## [0.5.0] - 2026-08-18
 
