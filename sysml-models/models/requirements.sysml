@@ -150,15 +150,15 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Memory net information model: NODE | EDGE (property graph) -----
+    // ----- Memory net information model: GQL node, edge, properties -----
 
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
-        Group: the Net of Memory information model is exactly two conceptual
-        data kinds -- NODE and EDGE -- as a first-class property graph
-        (Node / Relationship / Property / Label; ADR-001). Tags or surface
-        spellings may realise node labels; they are not additional conceptual
-        kinds. Agent wire is openCypher-shaped GQL; primary read is shaped
+        Group: the Net of Memory is a GQL property graph whose three elements
+        are node, edge (relationship), and properties (ADR-001; gql-wire-profile).
+        Labels name node kinds; they are not a fourth element. MUST NOT invent
+        PORT (or nested graph) as a topology kind — those facts live as
+        properties. Agent wire is openCypher-shaped GQL; primary read is shaped
         pin_map (not raw MATCH/RETURN tables). Layer / Tier A are archived
         (not product accept); @TAG pipe remains import-once only.
       */
@@ -166,9 +166,10 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_1_ExactlyNodeAndEdge {
         doc /*
-          SHALL model the Net of Memory as exactly two conceptual data kinds:
-          NODE and EDGE (relations between nodes) -- the MemNet reading of
-          a property graph (nodes + relationships).
+          SHALL model the Net of Memory as a GQL property graph with three
+          elements: node, edge (relationship), and properties. Topology is
+          node--edge--node; properties attach to nodes and to edges. SHALL NOT
+          add a fourth element (PORT nodes, nested graphs, prose blobs).
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
@@ -225,8 +226,8 @@ package MemNetRequirements {
       requirement def MN_REQ_02_7_SchemaValidatedIngest {
         doc /*
           SHALL validate ingest against the session schema and reject unknown
-          or reserved surface kinds. Tags MAY realise NODE kinds; conceptual
-          kinds remain NODE and EDGE only.
+          or reserved surface kinds. Tags MAY realise node labels; GQL
+          elements remain node, edge, and properties.
         */
         attribute requirementId : String = "MN-REQ-02.7";
       }

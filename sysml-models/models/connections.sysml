@@ -222,9 +222,9 @@ package MemNetConnections {
 
   item def PortIncidence {
     doc /*
-      Port grain on a node (qualified endpoint for bind). Modelled as node
-      properties / nested structure — not a third conceptual kind beside
-      Node and Edge. Open detail in GQL wire profile (ADR-001 M1).
+      Port grain on a node (qualified endpoint for bind). Modelled as
+      properties (the third GQL element) — not a fourth topology kind
+      beside node and edge. Open detail in GQL wire profile (ADR-001 M1).
     */
   }
 

@@ -29,7 +29,7 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives i
 
 ## Mission (product)
 
-**MemNet** (Net of Memory) is **mission working memory** — a session graph (NODE | EDGE) between LLM call pipelines and data search, not a RAG corpus. This repo ships the **engine** (`parts/common/memnet/`) and **generic MCP** (`parts/memnet-mcp/`) only -- novel-writer dropped.
+**MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL node, edge, properties) between LLM call pipelines and data search, not a RAG corpus. This repo ships the **engine** (`parts/common/memnet/`) and **generic MCP** (`parts/memnet-mcp/`) only -- novel-writer dropped.
 
 ## Using MemNet (user pack -- not this skill)
 
