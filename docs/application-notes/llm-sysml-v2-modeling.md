@@ -1,120 +1,149 @@
 # LLM SysML v2 modeling
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Product shape: [`../SHAPE.md`](../SHAPE.md).
 
-**Single-file application example.** Drive a long-form SysML v2 textual modeling session where session memory lives in MemNet, following `sysml-memnet-documentation` (user pack) and its 6-step snap loop.
+**Application example (documentation only).** Long-form SysML v2 textual modelling: MemNet is **session goldfish**; the live `.sysml` tree is **structural SSOT**. Complements user-pack `sysml-memnet-documentation` (when installed).
 
-**Teach:** openCypher-shaped GQL + shaped `pin_map` + gated mutate.
-
-MemNet holds the symbol index (`MOD`/`SYM`), design atoms (`PRT`/`CON`/`REQ`/`CLM`), locators, rationale and backlog; authoritative structure and satisfy links live in split `models/*.sysml` files.
+**Teach:** openCypher-shaped GQL + shaped `pin_map` + gated mutate. Electrical law-leaf wire (InvAmp) is a **different grain** — [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 British English. ASCII.
 
 ---
 
-## 1. What lives in the graph
+## 1. Problem
 
-| Kind | Role |
-|------|------|
-| `TSK` | Modeling campaign or step |
-| `PKG` | Logical source files / packages |
-| `PRT` / `POR` / `CON` / `BEH` / `ITM` / `REQ` | Model element atoms |
-| `MOD` / `SYM` | File modules and editable symbols (path + line hints) |
-| `ART` / `SEC` / `CLM` | Outputs / claims |
-| `USR` | Modeller preferences |
-| Transient | `DEC` / `ISSUE` / short-lived `TSK` (`delete_on_settle`) |
+The modeller is goldfish. Chat is not SSOT. Dumping the model (or the whole session) burns tokens. Corpus RAG searches documents, not this campaign’s `TSK` / locators.
 
-A piece of background is pulled into context only when a relationship from the live focus reaches it. Cross-file: `:declaredIn` to `PKG`; `pin_map` + traversal — no "remember the other file."
+| Store | SSOT for |
+|-------|----------|
+| **`.sysml` files** (git) | Structure, satisfy / trace, names |
+| **MemNet session** | Live `TSK` / `USR` / `DEC`, **confirmed** locators, ingest pins |
+| **Host search** (optional) | May propose locators only — MUST NOT Snap-on-session |
+
+MemNet is not a SysML clone and not GraphRAG. Do **not** import product `MemNetRequirements` into a downstream load tree.
 
 ---
 
-## 2. The 6-step pipeline
+## 2. What lives in the graph
 
-1. **`serve_status`** (if TCP/shared; skip under in-process default) — if down, edit `.sysml` only and note stale graph.
-2. **`pin_map(anchor=TSK_model_<short>, depth=2)`** — smallest useful anchor. Never rely on prior chat or full-file reads.
-3. **Locate then edit** — from warm/`SYM` → narrow Read/grep → edit `.sysml`.
-4. **Validate** — `mcp-sysml-v2 validate` until clean.
-5. **Doc sync (conditional)** — `sysml-view-doc-sync` if `outputs/` changed.
-6. **Delta write + locator refresh** — gated GQL `add`/`update` affected atoms; refresh `SYM.line`; settle transients.
+Path-B ingest (`ingest_sysml`) commits **PKG | PRT | REQ | POR** with deterministic locators (`path=`, `qname=`, `requirementId=`). **No client `NEW`** on those pins.
 
-After heavy settlement, optional `housekeep prune recyclable --apply`. Reference material is never settled away.
+Campaign locators (`MOD` / `SYM`) and goldfish rows (`TSK` / `USR` / `DEC`) need **SCHEMA in the open map**. Kinds **not** in the map fail `unknown_tag`.
+
+| Kind | Role | Default map |
+|------|------|-------------|
+| `PKG` / `PRT` / `REQ` / `POR` | Ingest atoms (connection/item/action defs ingest as **`PRT`**, not a separate `CON` / `BEH` tag) | `schema.sysml.example.txt` |
+| `MOD` / `SYM` | File + symbol locators (path, line hint) | `schema.coding.example.txt` |
+| `TSK` / `USR` | Campaign and modeller constraints | both maps |
+| `DEC` | Open forks (`recycle=delete_on_settle`) | coding map |
+
+Do **not** teach `ART` / `SEC` / `CLM` / `CON` / `BEH` / `ITM` / `ISSUE` unless you add matching `SCHEMA` lines. Ingest will not mint those labels.
+
+Background enters the next call only via `pin_map` neighbourhood — no “remember the other file.”
 
 ---
 
-## 3. Schema (GQL labels / relationships)
+## 3. Open the session (map)
 
-Illustrative primary labels: `:ART`, `:SEC`, `:PKG`, `:PRT`, `:POR`, `:CON`, `:REQ`, `:MOD`, `:SYM`, `:TSK`, `:USR`, `:DEC`, `:CLM`.
+`session_open` requires a map (`map_file` or `map_lines`). MCP arg is **`session`**, not `session_id`.
+
+**Wrong:** game `schema.example.txt` — ingest then fails `unknown_tag|PKG not in schema`.
+
+**Right:** union SysML ingest + coding locators in `map_lines` (LAW / EDG merge automatically). Raise `max_nodes` on ingest for large trees (default 200; this repo’s `requirements.sysml` needs ~200).
+
+Then `ingest_sysml(path=…, max_nodes=…)` (or CLI `memnet ingest sysml --path …`). Copy returned `@ANCHORS` / ids; **do not** invent ingest ids.
+
+---
+
+## 4. Goldfish loop (each turn)
+
+This is **Recall Shape** of \(S\), not host **Snap**.
+
+1. **Cue then `pin_map`** — known `TSK_*` id (or `read_list` for tag `TSK`). Skip extra topic pins when that neighbourhood covers them. Empty seed ⇒ skip (do not invent). Leftover LIMIT find is **not** claimed (#73).
+2. **Locate then edit** — from `SYM` / ingest pin → narrow Read/grep → edit `.sysml`. Never trust stale `SYM.line` without re-check.
+3. **Validate** — project SysML v2 MCP / `validate` on the load config until clean (tool name is host-specific; this repo does not ship `mcp-sysml-v2`).
+4. **Doc sync (conditional)** — host `sysml-view-doc-sync` (or equivalent) only if `outputs/` changed.
+5. **Sparse Commit** — gated GQL `add`/`update`; refresh `SYM.line`; settle transients. Writeback is mutate, not Path-B absorb.
+6. **Loop** — settle finished `TSK` (`recycle=delete_on_settle` when done).
+
+`serve_status` only if TCP/shared; skip under in-process MCP. If serve/MCP is down: edit `.sysml` only and treat the graph as stale.
+
+After heavy settlement, optional `housekeep prune recyclable --apply`. Ingest pins are not recyclable campaign junk.
+
+---
+
+## 5. Mutate vs display
+
+**Create (goldfish rows):** `id: 'NEW'` — engine mints; copy from the next pin map.  
+**Ingest / locator pins:** ground ids from ingest or locators — `NEW` illegal.  
+**Update / settle:** known ids only.
+
+Shaped **display** (copy ids; not a mutate payload):
 
 ```cypher
-(:X {id:'SRC_ID'})-[:relation {id:'E99', note:'optional'}]->(:Y {id:'DST_ID'})
-```
-
-Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`. Do **not** invent ports on locator rows to force `:bind` unless the atom is a true electrical law leaf.
-
----
-
-## 4. Seed sketch (PDU campaign)
-
-```cypher
-(:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', phase:'model', status:'in_progress'})
-(:PKG {id:'PKG_LIB', path:'library/power', kind:'library', status:'active'})
+(:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', status:'in_progress'})
 (:MOD {id:'MOD_pdu', path:'project/pdu-controller.sysml', summary:'PDU controller part', status:'active'})
 (:SYM {id:'SYM_PDUController', name:'PDUController', kind:'partDef', path:'project/pdu-controller.sysml', line:12, status:'active'})
 (:SYM {id:'SYM_PDUController'})-[:inFile {id:'E04'}]->(:MOD {id:'MOD_pdu'})
-(:SYM {id:'SYM_PDUController'})-[:declaredIn {id:'E05'}]->(:PKG {id:'PKG_LIB'})
 ```
 
-Delta after a validated edit:
+Sparse **mutate** after a validated edit (illustrative):
 
 ```cypher
-CREATE (d:DEC {id:'DEC01', task:'TSK_model_pdu', question:'Command channel', options:'UART / GPIO', recycle:'delete_on_settle'})
-CREATE (c:CON {id:'CON_Cmd', name:'cmd_uart', status:'active'})
-CREATE (s:SYM {id:'SYM_Cmd', name:'cmd_uart', kind:'portUsage', path:'project/pdu-controller.sysml', line:58, of:'CON_Cmd', status:'active'})
-MATCH (c:CON {id:'CON_Cmd'}), (iface {id:'LibraryCmdIface'}) CREATE (c)-[:typedBy {id:'NEW'}]->(iface)
+CREATE (d:DEC {id:'NEW', task:'TSK_model_pdu', question:'Command channel', options:'UART / GPIO', recycle:'delete_on_settle'})
+MATCH (s {id:'SYM_PDUController'}) SET s.line = 58
 ```
+
+Relationships: `MATCH` both ends by known `id`, then `CREATE (a)-[:TYPE {id:'NEW'}]->(b)`. Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`. Do **not** invent ports on locator rows to force `:bind` unless the atom is a true electrical law leaf (`:CST`).
 
 ---
 
-## 5. Electrical vs SysML grains
+## 6. Electrical vs SysML grains
 
 | Grain | Shape | Doc |
 |-------|-------|-----|
-| SysML / locator | `PRT`/`POR`/`PKG` + bare-id relationships | this note |
+| SysML / locator | `PKG`/`PRT`/`REQ`/`POR` + `MOD`/`SYM` + bare-id relationships | this note |
 | Electrical (GQL) | `:CST` + `ports` + `law` + `:bind` | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) |
 
 Same device may appear in both — keep ids stable; relate across grains with bare-id relationships. Do not put Ohm/KCL on SysML locator rows.
 
 ---
 
-## 6. Multitask
+## 7. Multitask
 
-Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) and [`../multi-agent-sessions.md`](../multi-agent-sessions.md). Chat is never SSOT. Handoff = **session id**; prefer **import** for path-B member slices.
+Shared TCP/HTTP session (not default in-process): [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) and [`../multi-agent-sessions.md`](../multi-agent-sessions.md). Handoff = **session id**; peers re-`pin_map`. Prefer **import** for path-B member slices. Chat is never SSOT.
 
 ---
 
-## 7. Pitfalls
+## 8. Pitfalls
 
 | Mistake | Fix |
 |---------|-----|
-| Layer / `@TAG` / `query_warm` as primary | GQL + `pin_map` |
-| Prose blobs in `CLM` / `USR` | Distilled codes / short values |
-| Stale `SYM.line` after edit | Re-grep + `update` |
-| Merging electrical `PIN` teach into SysML | Use GQL circuit note for circuits |
+| Game `schema.example.txt` then ingest | SysML + coding SCHEMA union |
+| Client `NEW` or invented ids on ingest pins | Copy locators from `ingest_sysml` |
+| Teaching `CON`/`BEH` as ingest labels | Ingest maps those defs to **`PRT`** |
+| `query_warm` / Layer / `@TAG` as primary | GQL + `pin_map` |
+| “Snap loop” as host RAG of \(S\) | Goldfish `pin_map`; Snap is corpus locators only |
+| `CREATE` with a client-chosen `id` for `DEC` | `id:'NEW'` then copy |
+| Prose blobs in `USR` / extra claim rows | Distilled codes / short values |
 | Dual-teaching Layer ASCII | Typed GQL relationships |
+| `rag_query` / ANN of the session | Forbidden by product shape |
 
 ---
 
-## 8. Related
+## 9. Related
 
-- [`../SHAPE.md`](../SHAPE.md) — product shape this note applies (session goldfish, not a SysML clone)
-- [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
-- [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
-- [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
+- [`../SHAPE.md`](../SHAPE.md) — product shape this note applies
+- [`../LLM-GUIDE.md`](../LLM-GUIDE.md) — Path-B ingest table
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md)
-- `~/.cursor/skills/sysml-memnet-documentation/`
+- [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
+- [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
+- `parts/common/memnet/memnet/examples/schema.sysml.example.txt`
+- `parts/common/memnet/memnet/examples/schema.coding.example.txt`
+- `~/.cursor/skills/sysml-memnet-documentation/` (user pack; not in this repo)
 
 ---
 
-## 9. Retired dialects (pointer only)
+## 10. Retired dialects (pointer only)
 
-Older `@PKG` / `@EDG` pipe or Layer ASCII seeds are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/). Prefer slim GQL seeds and the live `.sysml` tree.
+Older `@PKG` / `@EDG` pipe or Layer ASCII seeds are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/).
