@@ -1,6 +1,6 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** **M2.5 in progress** — client hydrate/flush implemented; **not** fully shipped (needs an external AgensGraph cabinet to exercise the live path).  
+**Status:** 0.5 leftover goldfish **shipped**. 0.6 = V5 + snapshot-as-offered-durable + version map. Client hydrate/flush landed; live AgensGraph proof is **after 0.6, before 1.0**; `liveCabinetClaimed` stays false until that offer is proven. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers.  
 **Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 

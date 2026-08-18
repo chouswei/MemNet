@@ -1,4 +1,4 @@
-"""Goldfish paradox V1/V3/V4/V6 — coding map + GQL (0.5 leftover PR1)."""
+"""Goldfish paradox V1/V3/V4/V6 + V5 — coding map + GQL."""
 
 from __future__ import annotations
 
@@ -131,3 +131,32 @@ def test_v2_union_under_one_m(memnet_temp):
     assert len(body) <= 5
     mods = {ln for ln in body if "MOD_" in ln}
     assert len(mods) < 6, "both stars must not fully expand under one M"
+
+
+def test_v5_n_pin_maps_repeat_law(memnet_temp):
+    sid = _open_coding(memnet_temp)
+    _add(
+        sid,
+        "CREATE (:LAW {id: 'LAW01', name: 'EDG', cycle: 'on_context', "
+        "mechanism: 'hide', constraint: 'settled_edg_unless_anchor'})\n"
+        "CREATE (:TSK {id: 'TSK_v5', goal: 'one-task', status: 'in_progress'})\n"
+        "CREATE (:MOD {id: 'MOD_v5a', path: 'a.py', summary: 'a', status: 'active'})\n"
+        "CREATE (:MOD {id: 'MOD_v5b', path: 'b.py', summary: 'b', status: 'active'})\n"
+        "MATCH (t {id: 'TSK_v5'}), (a {id: 'MOD_v5a'})\n"
+        "CREATE (t)-[:owns {id: 'NEW'}]->(a)\n"
+        "MATCH (t {id: 'TSK_v5'}), (b {id: 'MOD_v5b'})\n"
+        "CREATE (t)-[:owns {id: 'NEW'}]->(b)\n",
+    )
+    anchors = ("TSK_v5", "MOD_v5a", "TSK_v5", "MOD_v5b", "TSK_v5")
+    law_hits = 0
+    first_out = ""
+    for i, aid in enumerate(anchors):
+        r = _pin(sid, aid)
+        assert r.exit_code == 0, r.stderr
+        n = r.stdout.count("(:LAW {id: 'LAW01'")
+        assert n == 1, r.stdout
+        law_hits += n
+        if i == 0:
+            first_out = r.stdout
+    assert law_hits == 5
+    assert "TSK_v5" in first_out
