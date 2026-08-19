@@ -5,7 +5,7 @@
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
 
-**You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: cue (kind / id / `find`), then `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
+**You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: codebook-token cue (kind / properties / keyword / `find`), then ShapeWalk `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### Non-negotiable rules
 
-> **Always read with an anchor** — `pin_map(anchor=…)` or `query pin-map --anchor …`. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
+> **Always read from a seed set \(Q\)** — cue/`find` (RelativeSeed MATCH_L) then `pin_map` (ShapeWalk from those graph elements). leftover 0.9 `pin_map(anchor=…)` / `--anchor` / copy-id is leftover engine, not TARGET law. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
 
 > **Atomise** — GQL elements: **node** (vertex), **edge** (relationship), **property**. One idea per property; wire relations as edges. No prose blobs in a property value.
 
@@ -74,13 +74,13 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map` on the live `TSK`. Commit a **sparse** Δ (`add`/`update` of what changed only). That writeback is not Path-B absorb.
 
-1. **Pin the live task** — unsettled `TSK_*` (known id, or `read_list(tag=TSK, active_only=True)`). No ego: `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L`, copy an id, then `pin_map`. Skip extra topic pins when that neighbourhood already covers them.
-2. **Fetch one slice** (always anchored):
+1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(Q\) ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
+2. **ShapeWalk one slice** from \(Q\) (one \(M\), not \(M\times|Q|\)):
 
-   MCP: `pin_map(anchor=TSK_42, depth=2)`  
-   CLI: `memnet query pin-map --anchor TSK_42 --depth 2`
+   MCP: `pin_map` from the cue/pattern (leftover engine may still take `--anchor`)  
+   CLI: `memnet query pin-map` (same)
 
-   Blocked on a topic hub: at most one extra `pin_map(..., view=shell)`, then interior on the `TSK`. Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
+   Blocked on a topic hub: at most one extra `pin_map(..., view=shell)`, then interior on the live `TSK`. Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
 3. **Act / reason** using only that pin-map slice + the current user request.
 4. **Commit sparse Δ** — NEW nodes/edges and SET on changed pins only. Do **not** echo the fetched slice (`id_exists`).
 

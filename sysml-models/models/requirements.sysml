@@ -10,6 +10,7 @@
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
+    MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -335,8 +336,9 @@ package MemNetRequirements {
           SHALL return a bounded live pin map for each turn -- a shaped
           neighbourhood digest of pins -- not the full session or a raw
           search dump. Goldfish seeds from a cue or pattern (find); pin_map
-          walks a shape. Nickname id as pin_map anchor is optional when a
-          nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
+          walks a shape. RelativeSeed MATCH_L yields walk-root elements Q;
+          ShapeWalk walks from Q. Nickname id as pin_map anchor is optional
+          when a nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
           require_anchor / by_id is engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-04.1";
@@ -384,9 +386,30 @@ package MemNetRequirements {
           unbounded MATCH; variable-length path as default; teach full
           openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY).
           Distinct from mutate MATCH … SET. Shipped as BoundedMatchFind
-          (implemented=true; #73) — seed nodes only, not pin_map k-hop.
+          (implemented=true; #73) — realizes RelativeSeed MATCH_L, not
+          pin_map k-hop, not copy-id then --anchor.
         */
         attribute requirementId : String = "MN-REQ-04.6";
+      }
+
+      requirement def MN_REQ_04_7_RelativeSeedThenShapeWalk {
+        doc /*
+          Goldfish query SHALL be discrete codebook tokens (kind / primary
+          label, properties including locators, keyword; optional nickname
+          id only if already set) — not a store-key id, not elementId, not
+          a prose/embedding sentence, not rag_query / cosine / ANN, not
+          free MATCH RETURN. Recall SHALL seed by RelativeSeed MATCH_L on
+          those tokens (hard LIMIT L) yielding seed set Q of graph elements
+          (relative nodes). Empty token / empty Q SHALL skip (do not invent
+          a node). ShapeWalk SHALL walk k hops from Q under one M (not
+          M×|Q|), hide recycled, and emit a shaped subgraph. SHALL NOT
+          require a store-key anchor. Peak_L is Later, not this mechanism.
+          leftover 0.9 require_anchor / by_id / copied-id is leftover,
+          not TARGET law. BoundedMatchFind / CmdFind realize RelativeSeed;
+          PinMapShapedRead / CmdPinMap realize ShapeWalk. Still ONE
+          Recall operator (MN-REQ-13.1).
+        */
+        attribute requirementId : String = "MN-REQ-04.7";
       }
     }
 
@@ -473,15 +496,34 @@ package MemNetRequirements {
 
     requirement def MN_REQ_07_McpAgentBoundary {
       doc /*
-        Group: generic MCP tool surface for MemNet; no domain-product tools.
+        Group: generic MCP/CLI tool surface for MemNet; TARGET is
+        cue/pattern only (no store-key id); leftover id tools are not
+        product commands; no domain-product tools.
       */
       attribute requirementId : String = "MN-REQ-07";
 
       requirement def MN_REQ_07_1_GenericToolSurface {
         doc /*
-          SHALL expose generic MCP tools for engine/status probe, session
-          open/current/load/save, live pin map and walk, add, update, read
-          get/list, and housekeep stats (in-process by default).
+          SHALL expose a TARGET generic MCP/CLI tool surface (same two
+          operators: Recall + Commit): session_open / current / save / load
+          (session handle is not a graph store key); find (bounded MATCH by
+          kind / labels / properties / keyword, hard LIMIT — the cue when
+          no nickname exists); pin_map as a shaped neighbourhood walk from
+          a cue/pattern (labels+props; optional nickname id if the agent
+          set one — SHALL NOT require a store-key anchor); mutate as one
+          Commit of GQL (CREATE () legal; MERGE/SET/DELETE by
+          labels+properties; edge = type + two end elements; no NEW; no
+          AssignedIdMap); Path-B ingest (locators qname/path/refdes/… are
+          properties, not PK; no client NEW; no allocate_from_locator as
+          identity); Path-B import (match by labels+properties, not
+          MERGE-by-id remint). SHALL NOT nest leftover 0.9 read_get(id),
+          NEW / [NEW], AssignedIdMap, add/update that fail without a
+          ground store-key, pin_map(anchor=<required id>) as the only pin
+          form, allocate_from_locator, import_slice id_policy
+          keep|reject|remint keyed on store-key, or elementId/handle on
+          the wire as product commands (those remain leftover_* engine
+          honesty). Optional engine/status probe and housekeep stats MAY
+          remain. In-process by default (MN-REQ-06.1).
         */
         attribute requirementId : String = "MN-REQ-07.1";
       }
@@ -509,6 +551,26 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-07.4";
       }
+
+      requirement def MN_REQ_07_5_NoStoreKeyToolSurface {
+        doc /*
+          TARGET agent/CLI/MCP I/O SHALL NOT key tools on a store-key id.
+          Optional NicknameIdProperty MAY seed find/pin_map/mutate when
+          the agent set one — it is not identity (MN-REQ-02.8).
+          HiddenStoreHandle / elementId SHALL NOT be taught on the wire.
+          Leftover 0.9 read_get(id), NEW / IdAllocator as a product verb,
+          AssignedIdMap as required emit, add/update that fail without a
+          ground store-key, pin_map require_anchor as the only pin form,
+          ingest allocate_from_locator / MERGE-by-id, and import_slice
+          id_policy keep|reject|remint keyed on store-key SHALL remain
+          leftover_* engine honesty (implemented leftover) — MUST NOT
+          nest under McpFacade / CliFacade as product commands. TARGET
+          implemented=false for those leftover commands. Path-B TARGET
+          ingest/import is pattern match (labels+properties); leftover
+          mint laws are not TARGET commands.
+        */
+        attribute requirementId : String = "MN-REQ-07.5";
+      }
     }
 
     // ----- Agent I/O grammar (stdio + MCP) -----
@@ -520,6 +582,7 @@ package MemNetRequirements {
         is produced and consumed by an LLM, so presentation SHALL follow
         prompt rules. One agent dialect teach = openCypher-shaped GQL
         (ADR-001); Write = display = shaped pin_map subgraph both ways.
+        Agent I/O SHALL NOT key commands on a store-key id (MN-REQ-07.5).
         Layer / Tier A are archived (not product accept); @TAG pipe remains
         import-once only.
       */
@@ -904,9 +967,12 @@ package MemNetRequirements {
           net, pin, qname, skill_id, and similar) SHALL be properties on
           those elements -- not identity and not a store key. TARGET SHALL
           NOT require ground ids (leftover_by_id as PK). Optional nickname
-          id MAY be emitted when present. leftover_allocate_from_locator
-          is leftover 0.9 invented store, not this TARGET. leftover_NEW_mint
-          SHALL NOT be TARGET law for source elements.
+          id MAY be emitted when present.           leftover_allocate_from_locator
+          is leftover 0.9 invented store, not this TARGET and not a
+          TARGET product command (MN-REQ-07.5). leftover_NEW_mint
+          SHALL NOT be TARGET law for source elements. TARGET Path-B
+          ingest is pattern match (labels+properties); leftover
+          MERGE-by-id mint is leftover engine honesty.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
@@ -1058,6 +1124,11 @@ package MemNetRequirements {
             reject = conflict, no lead mutate;
             remint = leftover_NEW_mint / leftover_by_id for conflicts;
               lead old rows stay; edges retarget -- not TARGET law.
+          TARGET Path-B import is pattern match (labels+properties), not
+          MERGE-by-id remint as a product command. leftover id_policy
+          keep|reject|remint keyed on store-key SHALL remain leftover
+          engine honesty — MUST NOT nest as an McpFacade / CliFacade
+          command (MN-REQ-07.5).
           Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
           TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
@@ -1155,8 +1226,9 @@ package MemNetRequirements {
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
           id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.
-          In-session task already on S SHALL seed then pin_map (read_list /
-          hub / leftover #73) — not Snap-on-session. Switch-task SHALL
+          In-session task already on S SHALL RelativeSeed MATCH_L then
+          ShapeWalk (leftover read_list / copy-id --anchor named leftover)
+          — not Snap-on-session. Switch-task SHALL
           settle the old TSK then Shape a new ego — not Peak_L as default.
           SHALL NOT: rag_query; embeddings; PPR; RRF; GST/Steiner; ANN on
           the session; free MATCH/RETURN as goldfish; new HostSearchBridge
@@ -1234,6 +1306,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_5_AnchoredWalk;
   requirement boundedMatchFindReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+  requirement relativeSeedThenShapeWalkReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1263,6 +1337,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
   requirement mcpLawSeedOnOpenReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_4_McpLawSeedOnOpen;
+  requirement noStoreKeyToolSurfaceReq
+    : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
 
   requirement agentIoGrammarReq
     : MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar;
@@ -1440,6 +1516,7 @@ package MemNetRequirements {
     end #derive ::> engineLawPrependReq;
     end #derive ::> anchoredWalkReq;
     end #derive ::> boundedMatchFindReq;
+    end #derive ::> relativeSeedThenShapeWalkReq;
   }
 
   #derivation connection deriveHardCapsLeaves {
@@ -1462,6 +1539,7 @@ package MemNetRequirements {
     end #derive ::> structuredToolEnvelopeReq;
     end #derive ::> noDomainProductToolsReq;
     end #derive ::> mcpLawSeedOnOpenReq;
+    end #derive ::> noStoreKeyToolSurfaceReq;
   }
 
   #derivation connection deriveAgentIoLeaves {

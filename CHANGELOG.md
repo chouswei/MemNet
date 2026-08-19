@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
+- **SysML TARGET command surface is cue/pattern only** — agent/CLI/MCP SHALL NOT key tools on a store-key `id`; leftover `read_get` / NEW / AssignedIdMap / by_id / MERGE-by-id stay leftover engine honesty, not product commands (MN-REQ-07.5; MN-VER-07-S01).
+- **RelativeSeed → ShapeWalk (one Recall)** — goldfish query is codebook tokens (kind / props / keyword); MATCH_L relative nodes are walk roots; pin_map walks from \(Q\) under one \(M\). leftover copy-id `--anchor` named leftover (MN-REQ-04.7; MN-VER-04-S02).
 - **Math skeleton refined** — objects, operator **domains** (Recall/Commit goldfish; Absorb = Path-B join; Host Snap outside; hydrate = 0 tokens), three budgets (\(M\) rows ≠ prompt tokens ≠ 4 MiB frame), one \(S\) per generate, Snap homographs (host / model / not Shape), \(\mathrm{Peak}_L\) last-resort **inside** one \(S\). [`docs/grammar/math-skeleton.md`](docs/grammar/math-skeleton.md).
 - **SemVer SSOT is `docs/ROADMAP.md`** — former `docs/ROADMAP-0.5.md` is a pointer so old links do not 404. One version table only.
 - **SysML model Snap (design)** — one model → many sessions (catalog + package interiors). **Solves** as-is Snap’s `:contains` nest (PKG peaks, smashed abstraction layers, truncated ingest, Layer relapse). Not one session per `.sysml` file. [`docs/grammar/memnet-session-strata.md`](docs/grammar/memnet-session-strata.md).

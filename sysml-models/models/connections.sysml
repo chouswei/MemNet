@@ -288,8 +288,37 @@ package MemNetConnections {
       Redefined Write = display emit: bounded ego/view subgraph as
       openCypher-family graph text (nodes + relationships), produced by a
       pin_map-class tool that wraps GQL internally. Primary goldfish read.
-      SHALL NOT be a raw tabular MATCH/RETURN dump.
+      SHALL NOT be a raw tabular MATCH/RETURN dump. ShapeWalk emit of X̃.
     */
+  }
+
+  item def Cue {
+    doc /*
+      Recall cue q: a discrete codebook token — kind / primary label,
+      properties (locators as properties), keyword; optional nickname
+      id only if already set. Not a store-key id, not elementId, not a
+      prose/embedding sentence, not AssignedIdMap.
+    */
+    attribute tokenKind : Boolean = true;
+    attribute tokenProps : Boolean = true;
+    attribute tokenKeyword : Boolean = true;
+    attribute tokenNicknameOptional : Boolean = true;
+    attribute notEmbedding : Boolean = true;
+    attribute notStoreKey : Boolean = true;
+  }
+
+  item def SeedSet {
+    doc /*
+      Q = MATCH_L(q, S): a set of graph elements (relative nodes).
+      Walk roots for ShapeWalk. NOT AssignedIdMap. NOT store-key ids.
+      Empty Q ⇒ skip (do not invent a node).
+    */
+    attribute seedsAreGraphElements : Boolean = true;
+    attribute isAssignedIdMap : Boolean = false;
+  }
+
+  item def EmptySkip {
+    doc /* Empty Q: skip Recall reconstruct; do not invent a node. */
   }
 
   item def GraphRecordBatch {
@@ -301,9 +330,10 @@ package MemNetConnections {
 
   item def AssignedIdMap {
     doc /*
-      Leftover 0.9 invented mint: optional nicknames after NEW / by_id.
-      TARGET create has no NEW and no required id; the graph element is
-      identity. Copy a nickname only if present (MN-REQ-10.4).
+      TARGET: optional nicknames after leftover NEW / by_id. TARGET
+      create has no NEW and no required AssignedIdMap emit; the graph
+      element is identity. Copy a nickname only if present (MN-REQ-10.4).
+      MUST NOT be a product command on McpFacade / CliFacade.
     */
   }
 
@@ -436,6 +466,29 @@ package MemNetConnections {
   port def ShapedSubgraphInPort {
     doc /* Accept shaped subgraph. */
     in item slice : ShapedSubgraph;
+  }
+
+  port def CueInPort {
+    doc /* Accept Recall cue q (labels+props+keyword). */
+    in item cue : Cue;
+  }
+  port def CueOutPort {
+    doc /* Emit Recall cue q. */
+    out item cue : Cue;
+  }
+
+  port def SeedSetOutPort {
+    doc /* Emit seed set Q of graph elements (relative nodes). */
+    out item seeds : SeedSet;
+  }
+  port def SeedSetInPort {
+    doc /* Accept seed set Q as ShapeWalk roots. */
+    in item seeds : SeedSet;
+  }
+
+  port def EmptySkipOutPort {
+    doc /* Signal empty Q skip (do not invent). */
+    out item skip : EmptySkip;
   }
 
   port def SessionHandoffOutPort {
@@ -619,9 +672,24 @@ package MemNetConnections {
   }
 
   connection def ShapedSubgraphFlow {
-    doc /* Bounded shaped subgraph from PinMapShapedRead to consumer. */
+    doc /* Bounded shaped subgraph from ShapeWalk / PinMapShapedRead. */
     end port source : ShapedSubgraphOutPort;
     end port sink : ShapedSubgraphInPort;
+  }
+
+  connection def CueFlow {
+    doc /* Cue q into RelativeSeed (MATCH_L). */
+    end port source : CueOutPort;
+    end port sink : CueInPort;
+  }
+
+  connection def SeedSetFlow {
+    doc /*
+      RelativeSeed.seedOut → ShapeWalk.seedIn. Q is graph elements,
+      not AssignedIdMap, not store-key ids.
+    */
+    end port source : SeedSetOutPort;
+    end port sink : SeedSetInPort;
   }
 
   connection def SessionHandoffFlow {
