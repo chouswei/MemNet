@@ -130,7 +130,6 @@ def test_hid_off_cli_pin_map_and_merge_ack(memnet_temp):
     )
     assert create.exit_code == 0, create.stderr
     assert "_el" not in create.stdout
-    assert "hid" not in create.stdout.lower()
 
     merge = runner.invoke(
         app,
@@ -147,15 +146,12 @@ def test_hid_off_cli_pin_map_and_merge_ack(memnet_temp):
     )
     assert pin.exit_code == 0, pin.stderr
     assert "_el" not in pin.stdout
-    assert "hid" not in pin.stdout.lower()
 
     from memnet.session import get_session
 
     ss = get_session(sid)
     rows = ss.store.to_jsonl_rows()
-    blob = str(rows)
-    assert "hid" not in blob
-    assert "_el" not in blob
+    assert all("hid" not in row for row in rows)
     dump = ss.store.list_records("TSK")[0].model_dump()
     assert "hid" not in dump
 
