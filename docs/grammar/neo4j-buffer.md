@@ -61,7 +61,7 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 **Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice.
 
-**Rethink (design, not shipped):** as-is “RAG never touches Neo4j” pushes operators to LLM↔Bolt. Proposed **two ports, one server** — cabinet hydrate/flush vs library `RagHostHook` (disjoint database/labels, locators only). Estimates (network / RAM / CPU): same note. [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Does not amend SHAPE until accepted.
+**Rethink (design, not shipped):** as-is “RAG never touches Neo4j” pushes operators to LLM↔Bolt. Proposed **two ports, one server**. Estimates: network / RAM / CPU / **LLM tokens** (goldfish ≲ 4k typical; 4 MiB frame is not a token budget; hydrate 0 tokens). [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md).
 
 ---
 

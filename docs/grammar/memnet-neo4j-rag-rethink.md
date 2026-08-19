@@ -125,7 +125,7 @@ Until accepted, as-is teaching stays: no RAG hop on the cabinet seam; host Snap 
 
 These are **design budgets** so option A/B/C can be compared. They are **not** measured SLAs and **not** a live-Neo4j claim. Caps from the engine: `pin_map` default depth 2 / `max_rows` 50 (`DEFAULT_QUERY_*`); `HydrateBudget` 50 nodes / 100 edges / depth 2; TCP/IPC frame **4 MiB** (`MEMNET_SERVE_MAX_FRAME_BYTES`); session store cap `MEMNET_MAX_ROWS` default 5000. Role size: tens of MiB typical, hundreds still in role, gigabytes = library/cabinet ([`memnet-host-search-nest.md`](memnet-host-search-nest.md)).
 
-**RTT** = one request/response on that hop. **Local** = same host or LAN &lt;1 ms. **WAN** = 20–80 ms class. **LLM** = one chat completion (0.5–30 s, dominates everything else).
+**RTT** = one request/response on that hop. **Local** = same host or LAN under 1 ms. **WAN** = 20–80 ms class. **LLM** = one chat completion (0.5–30 s, dominates everything else).
 
 ### Network (latency / bytes on the wire)
 
@@ -178,13 +178,49 @@ These are **design budgets** so option A/B/C can be compared. They are **not** m
 
 **Design rule.** Option **B** library port is allowed to spend **ANN/FTS milliseconds** (and must **timeout** / fail-open). It is **not** allowed to spend **LLM seconds** on the goldfish turn. Keyword extraction and generate stay host-side and **off** the default miss path, or the miss path is skipped.
 
+### LLM token usage (MN-REQ-00 boundary)
+
+Tokens here are **chat-completion** tokens (prompt + completion), not embedding dimensions and not MemNet `id` codebook tokens. Conversion for estimates: **~4 characters / token** on shaped GQL and English (order of magnitude, not a tiktoken claim).
+
+**The 4 MiB serve frame is not a goldfish token budget.** 4 MiB ≈ \(10^6\) tokens — stuffing that would violate MN-REQ-00. The live bound is `max_rows` \(M=50\) (and `view=shell` ≤8 NODE / ≤12 EDGE). Hydrate/flush use **zero** LLM tokens.
+
+| Path (one agent turn) | Prompt in (est.) | Completion out (est.) | Calls | Notes |
+|-----------------------|------------------|------------------------|-------|--------|
+| **Shape** `pin_map` interior, \(M=50\) | **1–4k** typical; **~8k** alarm; **~25k** if every row is a 2 KiB blob | Sparse \(\Delta\): **50–400** | **1** (the agent’s own call) | 50 × ~80–300 chars/line. MUST NOT echo \(\tilde{X}\) back through mutate. |
+| **Shape** `view=shell` | **200–800** | same sparse \(\Delta\) | 1 | Survey then one interior — not \(N\) full maps (duplicate LAW). |
+| **`find` only** | **tens–200** (hit ids) | — | 0 extra | Then `pin_map`; do not dump hits as prose. |
+| **Commit \(\Delta\)** | counted in the same call as Shape | **50–400** | 0 extra | NEW/SET only. |
+| **Cabinet hydrate / flush** | **0** | **0** | 0 | Bolt only. |
+| **Library Snap locators (B)** | **0–200** if locators are committed, not pasted | **0** on the hook | 0 on goldfish | Hook MUST NOT emit chunk bodies. Pasting \(k\) chunks into chat is option A/C leakage. |
+| **Option A RAG MCP** (top‑\(k\) chunks in the prompt) | **2–8k** (\(k=8\) × ~400–800 tok/chunk) | **200–2k** | 1 | Plus the `pin_map` call if they also goldfish — **two** stuffed contexts. |
+| **LightRAG keywords** | **0.5–2k** | **50–200** (hl/ll lists) | **+1 LLM before retrieve** | Then a **second** generate on chunks. |
+| **HippoRAG fact “recognition”** | facts × filter prompt | short list | **+1** | Then QA generate on **chunk bodies**. |
+| **Graphiti + generate** | facts/episodes often **1–4k** | **200–2k** | 1 | Cross-encoder may be a **second** model. |
+| **Neo4j GraphQL `generate`** | retrieved records + prompt | **200–1k** / field | **1 per generate field** | \(N\) movies ⇒ \(N\) completions. |
+| **GraphRAG local** | mixed tables **1–4k** (4–16 KiB) | **500–2k** | 1 | Retrieve-then-generate on the **library**. |
+| **GraphRAG global map-reduce** | report chunk **1–4k each** | **200–1k** each map; reduce **1–4k** | **tens–hundreds** | Token cost ≈ communities × (in+out). Dominates. |
+| **Dump live \(S\)** (forbidden) | **10k–100k+** (thousands of rows) | wasted | 1 | Why \(M\) exists. |
+| **Option C** (RRF + generate on cabinet \(S\)) | **library-sized** prompt every turn | full answer | 1+ | Pays global-RAG tokens **and** loses Shape. |
+
+**Boundary (design)**
+
+| Bound | Value | Why |
+|-------|--------|-----|
+| Goldfish **typical** prompt from MemNet | **≲ 4k tokens** | \(M=50\) dense GQL lines + one LAW |
+| Goldfish **alarm** | **≳ 8k tokens** from one `pin_map` | Rows too fat (`note=` blobs) or \(N\) serial maps |
+| Goldfish **hard stop (teach)** | Do not use the **4 MiB** frame; do not dump \(S\) | Network cap ≠ token cap |
+| Host Snap on the **same** turn | **0 LLM tokens** on the default miss path | Locators via mutate; skip if pins suffice |
+| Generate / keyword-LLM / map-reduce | **Off** `pin_map` / hydrate | Host only; not the cabinet port |
+
+**Design rule.** MN-REQ-00 counts **tokens as well as wall-clock**. Option B keeps **one** completion per goldfish turn, context ≈ Shape only. A sibling RAG that **also** stuffs chunks **doubles** prompt tokens (A). Fuse (C) or GraphRAG global spends **orders of magnitude** more tokens per question than `pin_map`.
+
 ### Option A / B / C scored on these budgets
 
-| | Network | Memory | CPU / turn |
-|--|---------|--------|------------|
-| **A Firewall** | Goldfish ms; corpus RAG is another MCP (chunky). Two servers if they obey. | \(S\) small; library elsewhere | Shape ms; RAG MCP extra |
-| **B Two ports** | Shape ms; hydrate 2 RTT; flush batched/offline; Snap 1–3 RTT locators | Two namespaces; cabinet hundreds of MiB; library GiB **not** in \(S\) | Shape ms; Snap ms–tens of ms; **no** generate |
-| **C Fuse** | Every turn looks like Graphiti/GraphRAG (parallel Bolt + prompt) | One hot heap = library | PPR/Leiden/LLM — **seconds+** |
+| | Network | Memory | CPU / turn | LLM tokens / question |
+|--|---------|--------|------------|------------------------|
+| **A Firewall** | Goldfish ms; corpus RAG is another MCP (chunky). Two servers if they obey. | \(S\) small; library elsewhere | Shape ms; RAG MCP extra | Shape **1–4k** **plus** chunk prompt **2–8k** if they RAG |
+| **B Two ports** | Shape ms; hydrate 2 RTT; flush batched/offline; Snap 1–3 RTT locators | Two namespaces; cabinet hundreds of MiB; library GiB **not** in \(S\) | Shape ms; Snap ms–tens of ms; **no** generate | **1–4k** Shape; Snap **0**; hydrate **0** |
+| **C Fuse** | Every turn looks like Graphiti/GraphRAG (parallel Bolt + prompt) | One hot heap = library | PPR/Leiden/LLM — **seconds+** | **1–4k+** stuffed graph **plus** generate; global = **×N communities** |
 
-MN-REQ-00 (wall-clock + tokens) **selects B** when one Neo4j process is a given: keep the millisecond goldfish, pay Bolt only for bounded hydrate and rare flush, pay library ANN only on **miss**, never pay map-reduce on `pin_map`.
+MN-REQ-00 (wall-clock + tokens) **selects B** when one Neo4j process is a given: keep the millisecond goldfish, pay Bolt only for bounded hydrate and rare flush, pay library ANN only on **miss**, never pay map-reduce on `pin_map`. One completion, Shape-sized context.
 
