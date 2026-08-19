@@ -15,11 +15,11 @@ Show how a mission or company ego **survives process death**: settled / durable 
 
 | Concern | Model element |
 |---------|----------------|
-| Parts | `DurableBuffer`, `AgensGraphAdapter`, `Neo4jAdapter`, `SessionLifecycle` hydrate/flush ports |
+| Parts | `DurableBuffer`, `DurableSyncOwner`, `AgensGraphAdapter`, `Neo4jAdapter`, `DurableCabinet` (`Neo4jCabinetServer` / `AgensGraphCabinetServer`), `OperatorDurableSites`, `SessionLifecycle` hydrate/flush ports |
 | Connections | `DurableHydrateFlow`, `DurableFlushFlow` |
 | Behaviour | `DurableHydrateFlushRoadmap` (`EvHydrateFromDurable`, `EvFlushToDurable`) |
 | Items | `DurableGraphStore` (connections), `MissionWorkingSet` / `SharedLlmMemory` |
-| Requirement | MN-REQ-06.4 (`DurableStoreBehindMemNet`) |
+| Requirement | MN-REQ-06.4 (`DurableStoreBehindMemNet`); MN-REQ-06.5 / 06.6 (external cabinet / evidence ≠ claim) |
 | Contrast | `SnapshotStore` (session file save/load) - see [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
 
 ## 3. Scenario
@@ -73,9 +73,9 @@ flowchart LR
 | | As-is | Target / leftover |
 |--|-------|-------------------|
 | Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=false`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
-| Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
+| External server part | **Modelled** — `DurableCabinet` (Neo4j on Pi operator host; AgensGraph still a possible kind); not in wheel; not on 2 GiB droplet | Operator soak ≠ product live Neo4j claim |
 | Live cabinet | Agens external / operator-proven (0.7); Neo4j client not live-claimed; **not** vendored; skip live marks unless URL | Not a hosted product service |
-| Satisfy | MN-REQ-06.4 on `DurableBuffer` | Live claim is operator URL + pytest mark |
+| Satisfy | MN-REQ-06.4 on `DurableBuffer`; 06.5 / 06.6 on `DurableCabinet` + operator sites | Live Neo4j claim stays false |
 
 ## 6. Related
 

@@ -4,7 +4,7 @@
 **Audience:** product developers.  
 **Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs.
 
-Neo4j is a second **external durable cabinet**, not goldfish, not agent wire, not a GraphQL facade, and not a vendored server. MemNet stays mission working memory. Agents talk GQL `pin_map` / mutate to MemNet. Only `DurableSyncOwner` / `SessionLifecycle` call `hydrate` / `flush`. **MUST NOT** teach LLM ↔ Bolt as the goldfish path or reframe MemNet as a Cypher proxy.
+Neo4j is a second **external durable cabinet**, not goldfish, not agent wire, not a GraphQL facade, and not a vendored server. SysML first-class server: `DurableCabinet` / `Neo4jCabinetServer` (clients stay `DurableBuffer` adapters). Operator soak ≠ `liveNeo4jClaimed`. MemNet stays mission working memory. Agents talk GQL `pin_map` / mutate to MemNet. Only `DurableSyncOwner` / `SessionLifecycle` call `hydrate` / `flush`. **MUST NOT** teach LLM ↔ Bolt as the goldfish path or reframe MemNet as a Cypher proxy.
 
 Same ABC as AgensGraph: `DurableStoreAdapter.hydrate` / `flush` (`memnet/durable/adapter.py`). Same ego `HydrateBudget`. Same Record shape. Factory binds **one** adapter (see below). Recall/Commit is unchanged.
 

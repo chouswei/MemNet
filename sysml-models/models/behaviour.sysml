@@ -1157,8 +1157,9 @@ package MemNetBehaviour {
       (FakeDurableAdapter always; optional AgensGraphAdapter client with
       liveCabinetClaimed; optional Neo4jAdapter client with
       liveNeo4jClaimed=false). MemNet remains sole agent-facing memory;
-      LLM ↔ DurableGraphStore direct (Bolt) is out of default teach.
-      Client seam landed; 0.7 Agens live hydrate/flush proven (MN-REQ-06.4).
+      LLM ↔ DurableGraphStore / DurableCabinet direct (Bolt) is out of
+      default teach. Client seam landed; 0.7 Agens live hydrate/flush
+      proven (MN-REQ-06.4). Operator Neo4j soak is evidence only (06.6).
     */
     entry;
     then durableIdle;

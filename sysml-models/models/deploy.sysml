@@ -1,9 +1,11 @@
 /*
   MemNet deploy — TARGET architecture after ADR-001.
 
-  Product framing (2026-08-13): MemNet = shared LLM memory (SharedLlmMemory);
-  session id = pass-by-reference handle for a MissionWorkingSet; durable GQL
-  store (DurableBuffer / AgensGraphAdapter + optional Neo4jAdapter) behind MemNet.
+  Product framing (2026-08-13; operator nest 2026-08-19): MemNet = shared
+  LLM memory (SharedLlmMemory); session id = pass-by-reference handle for a
+  MissionWorkingSet; durable GQL store behind MemNet = DurableBuffer clients
+  (AgensGraphAdapter + Neo4jAdapter) plus first-class external DurableCabinet
+  (server not in the memnet-llm wheel; not on the 2 GiB droplet).
 
   Nesting (coarse → fine):
     MemNetSystem                    // SharedLlmMemory product
@@ -23,7 +25,8 @@
     │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
-    ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
+    ├── DurableBuffer               // clients + DurableSyncOwner (not the DB)
+    ├── DurableCabinet              // EXTERNAL server kinds (Neo4j / AgensGraph)
     ├── PinMapRoadmap               // all PinMapIngest_* domains shipped (#64)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
@@ -661,6 +664,8 @@ package MemNet {
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TierA / Layer line codecs are RETIRED on product path (M2 done) — not
       target accept doctrine. As-is: memnet.cli (+ serve_client).
+      No CLI hydrate/flush tools — agents stay on pin_map / mutate; Python
+      Neo4jAdapter.from_env() is the proof port (DurableBuffer honesty).
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
@@ -669,6 +674,7 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     port sessionOut : SessionIdOutPort;
     port errOut : ErrorSignalOutPort;
+    attribute hydrateFlushTools : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
@@ -709,12 +715,14 @@ package MemNet {
     doc /*
       Generic FastMCP tools. Agent memory payloads: GQL mutate + shaped
       pin_map (target). Structured JSON envelopes. No domain-product tools.
-      LLM agents connect here to MemNet — not to DurableBuffer.
+      LLM agents connect here to MemNet — not to DurableBuffer / Bolt.
+      No MCP hydrate/flush tools (same gap as CLI).
     */
     port apiOut : InProcessOutPort;
     port hostOut : JsonEnvelopeOutPort;
     port fromHost : GqlWireInPort;
     port errOut : ErrorSignalOutPort;
+    attribute hydrateFlushTools : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -755,41 +763,63 @@ package MemNet {
   }
 
   // =====================================================================
-  // Durable buffer (M2.5) — client hydrate/flush behind SharedLlmMemory
+  // Durable buffer (M2.5) — CLIENT hydrate/flush behind SharedLlmMemory
+  // The database process is DurableCabinet (sibling under MemNetSystem) —
+  // not these adapters, not the memnet-llm wheel, not the 2 GiB droplet.
   // =====================================================================
+
+  part def DurableSyncOwner {
+    doc /*
+      One hydrate/flush owner per process (memnet.durable.DurableSyncOwner).
+      Serve / MCP / IPC call get_sync_owner() once at process start.
+      MUST NOT dual-write in-process MCP and TCP serve. MUST NOT bind two
+      adapters. Factory: MEMNET_DURABLE_FAKE / MEMNET_AGENSGRAPH_URL /
+      MEMNET_NEO4J_URL / MEMNET_DURABLE_BACKEND. Footgun (as-is; do not
+      silently “fix” here): BACKEND is consulted only when BOTH URLs are
+      set; otherwise the single set URL wins and BACKEND is ignored.
+      Both URLs set and BACKEND unset → durable_backend_conflict.
+    */
+    attribute oneOwner : Boolean = true;
+    attribute bindOnceAtProcessStart : Boolean = true;
+    attribute dualWriteMcpAndTcpForbidden : Boolean = true;
+    attribute backendSelectsOnlyWhenBothUrlsSet : Boolean = true;
+    attribute durableBackendConflictOnBothUrlsUnsetBackend : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
+  }
 
   part def AgensGraphAdapter {
     doc /*
-      M2.5 client adapter: hydrate/flush between SessionLifecycle /
-      GraphStore and an external DurableGraphStore (AgensGraph-class)
-      via DurableStoreAdapter. Same GQL family. Client seam landed
-      (memnet.durable: FakeDurableAdapter always; optional AgensGraphAdapter
-      under memnet-llm[agensgraph]; SessionLifecycle.hydrate_from_durable /
-      flush_to_durable; one DurableSyncOwner). Live cabinet is external /
-      operator-proven (0.7 hydrate/flush) — not vendored in-repo.
-      MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
-      primary path (LLM ↔ MemNet only). MN-REQ-06.4.
+      M2.5 CLIENT adapter (not the database): hydrate/flush between
+      SessionLifecycle / GraphStore and external DurableCabinet.agens
+      via DurableStoreAdapter. Extra memnet-llm[agensgraph] = psycopg
+      driver only. Default *product* cabinet option; live Agens claimed
+      in 0.7. MUST NOT reopen that claim as Neo4j. MUST NOT be the LLM
+      primary path. MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
-    // Client hydrate/flush adapter seam (Fake + optional AgensGraph client).
     attribute implemented : Boolean = true;
-    // Live external AgensGraph cabinet — claimed after 0.7 hydrate/flush proof.
     attribute liveCabinetClaimed : Boolean = true;
+    attribute extraIsDriverOnly : Boolean = true;
+    attribute extraName : String = "agensgraph";
     attribute phase : String = "M2.5";
+    attribute defaultProductCabinetOption : Boolean = true;
   }
 
   part def Neo4jAdapter {
     doc /*
-      Second DurableStoreAdapter client beside AgensGraphAdapter — same
+      Second DurableStoreAdapter CLIENT beside AgensGraphAdapter — same
       hydrate/flush ABC, same DurableSyncOwner, same ego HydrateBudget.
-      Optional extra memnet-llm[neo4j] (official neo4j Python driver only).
-      Cabinet is external; this repo does not vendor a Neo4j server.
-      Client hydrate/flush IS implemented. Live Bolt round-trip is NOT
-      claimed (liveNeo4jClaimed=false; pytest.mark.neo4j_live skips
-      unless MEMNET_NEO4J_URL). Agents MUST NOT talk Bolt. MN-REQ-06.4.
+      Optional extra memnet-llm[neo4j] = official neo4j Python driver
+      (>=5.14) only — not a Neo4j server. Client hydrate/flush IS
+      implemented. Live Bolt round-trip is NOT a product claim
+      (liveNeo4jClaimed=false; pytest.mark.neo4j_live skips unless
+      MEMNET_NEO4J_URL). Proof port = Neo4jAdapter.from_env() — no CLI/MCP
+      hydrate/flush tools. Agents MUST NOT talk Bolt. MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
@@ -797,18 +827,22 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     attribute implemented : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute extraIsDriverOnly : Boolean = true;
+    attribute extraName : String = "neo4j";
+    attribute proofPort : String = "Neo4jAdapter.from_env";
     attribute phase : String = "M2.5";
   }
 
   part def DurableBuffer {
     doc /*
-      Optional durable property-graph buffer behind MemNet SharedLlmMemory.
-      Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
-      LLM agents as primary. Children are alternative cabinet clients;
-      factory binds exactly one adapter (one sync owner). AgensGraph live
-      cabinet proven (0.7). Neo4j client landed, liveNeo4jClaimed=false.
+      Client nest only: factory binds exactly one adapter under one
+      DurableSyncOwner. AgensGraph live cabinet proven (0.7). Neo4j client
+      landed; liveNeo4jClaimed=false. No CLI/MCP hydrate/flush tools.
+      Env names only (no secrets): MEMNET_DURABLE_FAKE,
+      MEMNET_AGENSGRAPH_URL, MEMNET_NEO4J_URL, MEMNET_DURABLE_BACKEND.
       MN-REQ-06.4.
     */
+    part owner : DurableSyncOwner;
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
     port hydrateOut : DurableHydrateOutPort;
@@ -816,8 +850,66 @@ package MemNet {
     attribute clientLanded : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute cliHydrateFlushTools : Boolean = false;
+    attribute mcpHydrateFlushTools : Boolean = false;
+    attribute extraIsDriverOnly : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
+  }
+
+  part def Neo4jCabinetServer {
+    doc /*
+      External Neo4j *server* kind (not the adapter). Not in memnet-llm.
+      Operator evidence 2026-08-19 (rpi5-syson / Devicor): Bolt reachable;
+      soak flush/hydrate of company_ego_fixture("COM_soak_pi") returned
+      nodes COM_soak_pi, TSK_mission_q3 and edge
+      TSK_mission_q3 -[:ABOUT]-> COM_soak_pi (E_about_q3). HTTP browser
+      :7474 stayed loopback. This is operator evidence only —
+      liveNeo4jClaimed MUST stay false. MUST NOT install on the 2 GiB
+      droplet. No secrets in this model.
+    */
+    attribute inMemnetLlmWheel : Boolean = false;
+    attribute vendoredInRepo : Boolean = false;
+    attribute installedOnDroplet : Boolean = false;
+    attribute operatorInstalledOnRpi5Syson : Boolean = true;
+    attribute operatorEvidenceOnly : Boolean = true;
+    attribute operatorEvidenceDate : String = "2026-08-19";
+    attribute liveNeo4jClaimed : Boolean = false;
+    attribute boltListenPort : Integer = 7687;
+    attribute httpBrowserPort : Integer = 7474;
+    attribute httpBrowserLoopbackOnly : Boolean = true;
+    attribute soakEgoId : String = "COM_soak_pi";
+  }
+
+  part def AgensGraphCabinetServer {
+    doc /*
+      External AgensGraph *server* kind (not the adapter). Default
+      *product* cabinet option; live path claimed in 0.7. Not vendored.
+      This 2026-08-19 Pi soak is Neo4j — do not retcon it as AgensGraph.
+    */
+    attribute inMemnetLlmWheel : Boolean = false;
+    attribute vendoredInRepo : Boolean = false;
+    attribute defaultProductCabinetOption : Boolean = true;
+    attribute liveCabinetClaimed : Boolean = true;
+    attribute operatorInstalledOnRpi5Syson : Boolean = false;
+  }
+
+  part def DurableCabinet {
+    doc /*
+      First-class EXTERNAL durable database (cabinet process). Sibling of
+      DurableBuffer — not inside the wheel, not a client adapter.
+      Two possible server kinds: Neo4j (operator Pi) and AgensGraph
+      (default product option). MemNet ships clients only. MN-REQ-06.5.
+    */
+    part neo4j : Neo4jCabinetServer;
+    part agens : AgensGraphCabinetServer;
+    attribute inMemnetLlmWheel : Boolean = false;
+    attribute vendoredInRepo : Boolean = false;
+    attribute installedOnDroplet : Boolean = false;
+    attribute liveNeo4jClaimed : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
   }
 
   // =====================================================================
@@ -1545,16 +1637,19 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
       two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit id-mint rules) +
+      (clients) + DurableCabinet (EXTERNAL server, not in wheel) +
+      PinMapRoadmap (PinMapIngest_* = Commit id-mint rules) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;
-      MUST NOT nest on product path. HostSearchBridge / EvidenceCentre
-      MUST NOT nest here. Only MN-REQ-00 satisfied here.
+      MUST NOT nest on product path. HostSearchBridge / EvidenceCentre /
+      OperatorDurableSites MUST NOT nest here as application cores.
+      Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
     part durable : DurableBuffer;
+    part cabinet : DurableCabinet;
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
 
@@ -1579,18 +1674,82 @@ package MemNet {
       end port sink ::> core.transport.tcp.cmdIn;
     }
     connection durableHydrate : DurableHydrateFlow {
-      end port source ::> durable.agens.hydrateOut;
+      end port source ::> durable.hydrateOut;
       end port sink ::> core.transport.inProcess.memory.sessions.hydrateIn;
     }
     connection durableFlush : DurableFlushFlow {
       end port source ::> core.transport.inProcess.memory.sessions.flushOut;
-      end port sink ::> durable.agens.flushIn;
+      end port sink ::> durable.flushIn;
     }
 
     satisfy MN_REQ_00_MissionBridge;
   }
 
   part memNetSystem : MemNetSystem;
+
+  // =====================================================================
+  // OPERATOR ALLOCATION — lab hosts (MUST NOT instantiate under
+  // MemNetSystem). Reuses TcpServeBridge-style host/port honesty attributes;
+  // not a second topology language. Clients = adapters; cabinet = server.
+  // =====================================================================
+
+  part def Rpi5SysonSite {
+    doc /*
+      Operator host rpi5-syson (Pi). Neo4j cabinet server is installed
+      (Devicor). Pi MemNet writer is Neo4jAdapter (client), not the DB.
+      Bolt :7687 proven reachable (operator evidence 2026-08-19).
+      Browser :7474 loopback only. InvenTree :80/:443 is lab-critical —
+      MUST NOT touch. OpenClaw is down — out of this cut.
+    */
+    attribute neo4jServerInstalled : Boolean = true;
+    attribute writerIsAdapterClient : Boolean = true;
+    attribute boltListenPort : Integer = 7687;
+    attribute httpBrowserPort : Integer = 7474;
+    attribute httpBrowserLoopbackOnly : Boolean = true;
+    attribute inventreeHttpPort : Integer = 80;
+    attribute inventreeHttpsPort : Integer = 443;
+    attribute inventreeLabCriticalDoNotTouch : Boolean = true;
+    attribute openClawInScope : Boolean = false;
+    attribute operatorEvidenceOnly : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
+  }
+
+  part def DropletMemNetSite {
+    doc /*
+      2 GiB droplet MemNet host. Client only — MUST NOT install a Neo4j
+      server here. Invisor-approved wiring: droplet memnet-mcp 0.9.0 extra
+      [mcp,neo4j] (driver) to Pi Bolt over tailnet. Desk EvidenceCentre /
+      CompanyMemory SHALL NOT point at this Bolt. MUST NOT federate over
+      InvestorApi. No secrets in this model.
+    */
+    attribute neo4jServerInstalled : Boolean = false;
+    attribute memnetRole : String = "client";
+    attribute ramGiB : Integer = 2;
+    attribute mcpExtra : String = "mcp,neo4j";
+    attribute extraIsDriverOnly : Boolean = true;
+    attribute boltViaTailnet : Boolean = true;
+    attribute boltUrl : String = "bolt://100.118.79.40:7687";
+    attribute deskEvidenceCentreOnThisBolt : Boolean = false;
+    attribute companyMemoryOnThisBolt : Boolean = false;
+    attribute federateOverInvestorApi : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
+  }
+
+  part def OperatorDurableSites {
+    doc /*
+      APPLICATION / OPERATOR nest root. Allocates DurableCabinet.neo4j to
+      rpi5-syson and DurableBuffer.neo4j clients to Pi writer + droplet MCP.
+      MUST NOT be a part of MemNetSystem (same rule as HostSearchBridge).
+    */
+    part rpi5Syson : Rpi5SysonSite;
+    part droplet2GiB : DropletMemNetSite;
+    attribute liveNeo4jClaimed : Boolean = false;
+  }
+
+  part operatorDurableSites : OperatorDurableSites;
 
   // =====================================================================
   // APPLICATION NEST — HostSearchBridge (MUST NOT instantiate under

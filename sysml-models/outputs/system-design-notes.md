@@ -14,7 +14,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j client not live-claimed; one sync owner). Cabinets external / not vendored.
+3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableBuffer` clients + first-class `DurableCabinet` server; optional Neo4j client not live-claimed; one sync owner). Cabinet not in wheel / not on 2 GiB droplet.
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). `keep` = MERGE-by-id upsert into lead SSOT (not append). Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -70,7 +70,8 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter + Neo4jAdapter  // M2.5; Agens live; Neo4j client unclaimed
+├── DurableBuffer → DurableSyncOwner + AgensGraphAdapter + Neo4jAdapter  // clients
+├── DurableCabinet → Neo4jCabinetServer + AgensGraphCabinetServer  // EXTERNAL server
 ├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
@@ -89,7 +90,7 @@ MemNetSystem                                 // SharedLlmMemory
     │       └── WorkingMemorySliceExport     // hard: anchors, budget, LAW skip
     └── MultitaskSharedStoreBinding
 
-HostSearchBridge / EvidenceCentre / CompanyMemory  // APPLICATION — MUST NOT nest here
+HostSearchBridge / EvidenceCentre / CompanyMemory / OperatorDurableSites  // APPLICATION — MUST NOT nest here
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
@@ -162,8 +163,10 @@ reserve and Path-B ingest are **shipped**.
 | RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
-| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
+| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; client only |
 | Neo4jAdapter | `memnet.durable` (optional Neo4j client) | Client landed; `liveNeo4jClaimed=false` |
+| DurableCabinet | operator Neo4j / AgensGraph *server* | External; not in wheel; not on 2 GiB droplet |
+| DurableSyncOwner | `memnet.durable.sync` | One owner; bind once at process start |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
@@ -190,6 +193,6 @@ reserve and Path-B ingest are **shipped**.
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
 - PinMapIngest — all leftover domains **shipped** (#64); export/round-trip (#66) not claimed
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
-- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** — application patterns only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); design [`../../docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md))
+- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **OperatorDurableSites** — application / operator patterns only; MUST NOT nest under MemNetSystem
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored
 - RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed; **1.0** = claim of 0.5–0.8

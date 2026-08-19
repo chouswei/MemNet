@@ -13,6 +13,8 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
+  External cabinet allocation (MN-VER-06-S02): no Neo4j server on droplet;
+  one owner; extras are drivers only; operator evidence ≠ product claim.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -426,7 +428,7 @@ package MemNetVerification {
       MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
       AgensGraphAdapter.liveCabinetClaimed remains the 0.7 live cabinet.
       Neo4jAdapter.implemented is the client; liveNeo4jClaimed stays
-      false until a live Bolt round-trip. One DurableBuffer; one sync
+      false until a product live claim. One DurableBuffer; one sync
       owner. HostSearchBridge stays outside MemNetSystem.
     */
     attribute verificationId : String = "MN-VER-06-S01";
@@ -442,6 +444,54 @@ package MemNetVerification {
           and system.durable.neo4j.liveNeo4jClaimed == false
           and system.durable.liveCabinetClaimed == true
           and system.durable.liveNeo4jClaimed == false
+          and system.durable.owner.oneOwner == true
+          and system.durable.cliHydrateFlushTools == false
+          and system.durable.mcpHydrateFlushTools == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S02_ExternalCabinetAllocation {
+    doc /*
+      MN-REQ-06.5 / 06.6 — external cabinet is a first-class server part;
+      clients are adapters. No Neo4j server on the 2 GiB droplet. Extras
+      are drivers only. Operator soak on rpi5-syson is evidence only —
+      liveNeo4jClaimed stays false. One sync owner; no dual-write.
+      OperatorDurableSites stays outside MemNetSystem.
+    */
+    attribute verificationId : String = "MN-VER-06-S02";
+
+    subject system : MemNetSystem;
+    subject sites : OperatorDurableSites;
+
+    objective externalCabinetAllocation {
+      verify externalCabinetServerReq;
+      verify operatorEvidenceNotLiveClaimReq;
+      require constraint {
+        system.cabinet.inMemnetLlmWheel == false
+          and system.cabinet.vendoredInRepo == false
+          and system.cabinet.installedOnDroplet == false
+          and system.cabinet.liveNeo4jClaimed == false
+          and system.cabinet.neo4j.liveNeo4jClaimed == false
+          and system.cabinet.neo4j.operatorEvidenceOnly == true
+          and system.cabinet.neo4j.installedOnDroplet == false
+          and system.cabinet.agens.defaultProductCabinetOption == true
+          and system.durable.neo4j.extraIsDriverOnly == true
+          and system.durable.agens.extraIsDriverOnly == true
+          and system.durable.extraIsDriverOnly == true
+          and system.durable.owner.oneOwner == true
+          and system.durable.owner.bindOnceAtProcessStart == true
+          and system.durable.owner.dualWriteMcpAndTcpForbidden == true
+          and sites.droplet2GiB.neo4jServerInstalled == false
+          and sites.droplet2GiB.memnetRole == "client"
+          and sites.droplet2GiB.extraIsDriverOnly == true
+          and sites.droplet2GiB.deskEvidenceCentreOnThisBolt == false
+          and sites.droplet2GiB.companyMemoryOnThisBolt == false
+          and sites.droplet2GiB.federateOverInvestorApi == false
+          and sites.rpi5Syson.neo4jServerInstalled == true
+          and sites.rpi5Syson.writerIsAdapterClient == true
+          and sites.rpi5Syson.inventreeLabCriticalDoNotTouch == true
+          and sites.liveNeo4jClaimed == false
       }
     }
   }
@@ -513,4 +563,6 @@ package MemNetVerification {
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification durableCabinetHonestyVerify
     : MN_VER_06_S01_DurableCabinetHonesty;
+  verification externalCabinetAllocationVerify
+    : MN_VER_06_S02_ExternalCabinetAllocation;
 }

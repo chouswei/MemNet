@@ -42,8 +42,9 @@
     Legacy @TAG pipe may still appear in old session files (import once).
     Store is in-memory Node|Edge property-graph records; process binding
     prefers in-process, then local IPC, TCP as fallback; fixed engine laws
-    often LAW01-LAW05. Durable AgensGraph-class store planned M2.5 behind
-    MemNet (not LLM-direct). Requirements state behavioural contracts;
+    often LAW01-LAW05. Durable store behind MemNet = client adapters
+    (M2.5) plus external cabinet server (not in-wheel; 0.7 Agens claimed;
+    Neo4j liveNeo4jClaimed=false). Requirements state behavioural contracts;
     surface spellings may change if the boundary still meets the contract.
 
   Stakeholders (comment only -- no structural defs in this file):
@@ -407,13 +408,43 @@ package MemNetRequirements {
           store direct (Bolt / driver) SHALL NOT be the default teach path.
           M2.5 client hydrate/flush adapter seam IS landed (Fake always;
           optional AgensGraph client with liveCabinetClaimed; optional
-          Neo4j client with liveNeo4jClaimed=false until a live round-trip;
-          one DurableSyncOwner). Live external cabinet SHALL NOT be claimed
-          shipped until operator-proven. Neither AgensGraph nor Neo4j
-          servers SHALL be vendored in-repo. Two cabinet URLs SHALL require
-          an explicit backend pick (MUST NOT silently bind two owners).
+          Neo4j client with liveNeo4jClaimed=false until a product live
+          claim; one DurableSyncOwner). Live external cabinet SHALL NOT be
+          claimed shipped until operator-proven. Neither AgensGraph nor
+          Neo4j servers SHALL be vendored in-repo. Two cabinet URLs SHALL
+          require an explicit backend pick (MUST NOT silently bind two
+          owners). As-is factory footgun: MEMNET_DURABLE_BACKEND is
+          consulted only when both URLs are set; otherwise the single URL
+          wins. CLI/MCP SHALL NOT expose hydrate/flush tools in this cut
+          (proof port = Python adapter from_env).
         */
         attribute requirementId : String = "MN-REQ-06.4";
+      }
+
+      requirement def MN_REQ_06_5_ExternalCabinetServer {
+        doc /*
+          The durable cabinet SHALL be an external database process: not
+          packaged in memnet-llm, not installed on the 2 GiB droplet MemNet
+          host. Optional extras SHALL ship drivers only (neo4j>=5.14 /
+          psycopg). Two possible server kinds: AgensGraph (default product
+          cabinet option; 0.7 live claim) and Neo4j (operator Pi server).
+          Clients (Pi writer, droplet MCP) SHALL be adapters, not the
+          database. Desk EvidenceCentre / CompanyMemory SHALL NOT bind this
+          Bolt; MUST NOT federate over InvestorApi. Lab-critical InvenTree
+          ports on the Pi (:80/:443) SHALL NOT be disturbed.
+        */
+        attribute requirementId : String = "MN-REQ-06.5";
+      }
+
+      requirement def MN_REQ_06_6_OperatorEvidenceNotLiveClaim {
+        doc /*
+          Operator soak / Bolt reachability SHALL NOT set liveNeo4jClaimed.
+          AgensGraph remains the default product live-cabinet claim (0.7).
+          One DurableSyncOwner per process; serve/MCP SHALL call
+          get_sync_owner() once at start. MUST NOT dual-write in-process
+          MCP and TCP serve.
+        */
+        attribute requirementId : String = "MN-REQ-06.6";
       }
     }
 
@@ -1195,6 +1226,10 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
   requirement durableStoreBehindMemNetReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
+  requirement externalCabinetServerReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
+  requirement operatorEvidenceNotLiveClaimReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1396,6 +1431,8 @@ package MemNetRequirements {
     end #derive ::> localIpcShareReq;
     end #derive ::> tcpServeMigrationReq;
     end #derive ::> durableStoreBehindMemNetReq;
+    end #derive ::> externalCabinetServerReq;
+    end #derive ::> operatorEvidenceNotLiveClaimReq;
   }
 
   #derivation connection deriveMcpLeaves {

@@ -154,12 +154,13 @@ package MemNetConnections {
   item def DurableGraphStore {
     doc /*
       Online durable property-graph store (AgensGraph-class or Neo4j-class)
-      behind MemNet. Hydrate into / flush from the live session via the
-      M2.5 client adapter seam (DurableStoreAdapter / Fake / optional
+      behind MemNet. Realised as DurableCabinet (external server process)
+      plus DurableBuffer clients (DurableStoreAdapter / Fake / optional
       AgensGraph client with liveCabinetClaimed; optional Neo4j client
-      with liveNeo4jClaimed=false; SessionLifecycle hydrate/flush). Live
-      cabinet is external — not vendored. LLM ↔ store direct (including
-      Bolt) is out of default teach. One sync owner. MN-REQ-06.4.
+      with liveNeo4jClaimed=false; one DurableSyncOwner; SessionLifecycle
+      hydrate/flush). Cabinet is not in the memnet-llm wheel and is not
+      installed on the 2 GiB droplet. LLM ↔ store direct (including Bolt)
+      is out of default teach. MN-REQ-06.4 / 06.5 / 06.6.
     */
   }
 
@@ -623,8 +624,9 @@ package MemNetConnections {
 
   connection def DurableHydrateFlow {
     doc /*
-      ROADMAP M2.5: DurableBuffer / AgensGraphAdapter → SessionLifecycle /
-      GraphStore. LLM does not connect to DurableBuffer as primary.
+      ROADMAP M2.5: DurableBuffer (one sync owner) → SessionLifecycle /
+      GraphStore. LLM does not connect to DurableBuffer or DurableCabinet
+      as primary. Adapters are clients; the cabinet is the external server.
     */
     end port source : DurableHydrateOutPort;
     end port sink : DurableHydrateInPort;
