@@ -88,13 +88,27 @@ Same device may appear in both — keep ids stable; relate across grains with ba
 
 ---
 
-## 6. Multitask
+## 6. Snap SysML across session strata
+
+**Do not** `ingest_sysml` a whole `models/` tree into the mission session. Goldfish \(M\approx 50\); ingest `max_nodes` is a **Commit** cap (requirements.sysml ~193 pins), not a Shape budget. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
+
+| Session | Holds |
+|---------|--------|
+| Lead mission | `TSK` / `USR` / `MOD` locators (`path=…sysml`) |
+| One library session **per** `models/*.sysml` file | PKG/PRT/REQ/POR from `ingest_sysml` |
+| Catalog | `session=` + `path=` for those files (`root.sysml` imports) |
+
+Open each library session with `schema.sysml.example.txt`. Cue `qname=` / `requirementId=` then `pin_map` **that** session. Cross-file `satisfy`: look the other `session=`, or Absorb a **slice** into the lead — not one walk across stores. Idempotent re-ingest after a validated edit. **MUST NOT** mint a session per requirement. **MUST NOT** Layer. **MUST NOT** `rag_query` the textual SysML.
+
+---
+
+## 7. Multitask
 
 Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) and [`../multi-agent-sessions.md`](../multi-agent-sessions.md). Chat is never SSOT. Handoff = **session id**; prefer **import** for path-B member slices.
 
 ---
 
-## 7. Pitfalls
+## 8. Pitfalls
 
 | Mistake | Fix |
 |---------|-----|
@@ -102,20 +116,20 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 | Prose blobs in `CLM` / `USR` | Distilled codes / short values |
 | Stale `SYM.line` after edit | Re-grep + `update` |
 | Merging electrical `PIN` teach into SysML | Use GQL circuit note for circuits |
-| Dual-teaching Layer ASCII | Typed GQL relationships |
+| Ingest whole `models/` into the mission | One `ingest_sysml` per file session; catalog of `session=` |
 
 ---
 
-## 8. Related
+## 9. Related
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md)
+- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — file sessions as strata; SysML Snap
 - `~/.cursor/skills/sysml-memnet-documentation/`
 
 ---
 
-## 9. Retired dialects (pointer only)
+## 10. Retired dialects (pointer only)
 
 Older `@PKG` / `@EDG` pipe or Layer ASCII seeds are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/). Prefer slim GQL seeds and the live `.sysml` tree.

@@ -92,9 +92,63 @@ Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Th
 
 ---
 
+## SysML Snap across strata
+
+**As-is.** `ingest_sysml` (MN-REQ-11.16) is Path-B **Snap of a `.sysml` file into the current session**: PKG/PRT/REQ/POR pins with deterministic `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Default ingest `max_nodes=200`. `sysml-models/models/requirements.sysml` needs ~200 (193 nodes / 192 edges). **`.sysml` stays structural SSOT.** MemNet is design memory, not a second structure store.
+
+**Two budgets.** Ingest `max_nodes` is **how many pins you Commit** into that session. Goldfish \(M\approx 50\) is **how many you Shape**. Filling one session with 193 REQ pins does not make `pin_map(REQ_MN_REQ_00)` illegal — the ego neighbourhood still clamps. It **does** make a **shell of the whole package** a dump. That is why SysML Snap wants **strata**, not a bigger \(M\).
+
+### Partition grain (this tree)
+
+`sysml-models/models/` is already split. **One library session per file** (not per requirement, not per `TSK`):
+
+| File | Library session (example handle) | Haystack |
+|------|----------------------------------|----------|
+| `requirements.sysml` | \(S_{\mathrm{req}}\) | MN-REQ-* atoms |
+| `verify.sysml` | \(S_{\mathrm{ver}}\) | MN-VER-* atoms |
+| `deploy.sysml` | \(S_{\mathrm{dep}}\) | Nested parts / RecallCommit |
+| `behaviour.sysml` | \(S_{\mathrm{beh}}\) | Handoff / import receive |
+| `connections.sysml` | \(S_{\mathrm{con}}\) | SessionHandoff / HostSearchBridge |
+| `root.sysml` | **Catalog** \(S_{\mathrm{cat}}\) | `private import` → `session=` + `path=` locators only |
+
+Mission \(S\) (Path A) holds `TSK_model_*` / `USR_*` / `MOD_*` locators (`path=sysml-models/models/….sysml`). It does **not** ingest the requirements tree.
+
+**MUST NOT** one session per `requirement def` (catalog explosion). **MUST NOT** ingest all of `models/` into the lead mission. **MUST NOT** `rag_query` the `.sysml` bytes.
+
+### Snap loop
+
+```text
+open S_cat, S_req, … with schema.sysml.example.txt
+ingest_sysml(session=S_req, file=requirements.sysml)   # Commit locators into S_req
+… one file per library session …
+catalog: PKG/MOD rows with session= + path=            # Snap of the split, not the atoms
+
+q = REQ_MN_REQ_00
+  → pin_map(S_cat) or skip
+  → pin_map(session=S_req, anchor=REQ_MN_REQ_00)
+  → edit requirements.sysml (SSOT)
+  → ingest_sysml again on S_req (idempotent locators)
+  → mission Δ: TOUCHES / TSK only
+```
+
+Cross-file `satisfy` (REQ in \(S_{\mathrm{req}}\), VER in \(S_{\mathrm{ver}}\)): **do not** expect one `pin_map` to walk both graphs. Catalog names both `session=`. Need the other side → second look, or **Absorb a slice** of the named REQ/VER into the mission. Same Absorb verb as Path B. Do not merge sessions. Do not invent edges that point at another session’s store.
+
+`ingest_sysml` today writes the **current** session. Strata Snap is **which session you open** before ingest (0.12 catalog + caller). Engine cut leftover: optional reject if a single ingest exceeds ~2\(M\) **and** the caller asked for goldfish-sized library sessions — do not silently raise goldfish \(M\). Keep ingest `max_nodes` as the Commit cap.
+
+### Steal / reject (SysML)
+
+| Cousin | Steal | Reject |
+|--------|-------|--------|
+| Split `models/*.sysml` | File = stratum grain | One fat ingest of `root.sysml` expanding imports |
+| 6-step modelling note | Cue TSK → edit file → delta | Chat as SSOT for `qname=` |
+| Product vs application SysML ([`../SHAPE.md`](../SHAPE.md)) | Downstream trees use the same grain | Import `MemNetRequirements` into a customer load tree |
+| HostSearch | Locators (`path=`, `qname=`) | Chunk bodies of `.sysml` in `note=` |
+
+---
+
 ## SemVer
 
-Fits **0.12 Catalog Snap** ([`../ROADMAP-0.5.md`](../ROADMAP-0.5.md)): list `session=` ids; look or Absorb a slice. **0.10** owns the caller that does not keep \(N\) strata maps in the prompt. **1.0 MUST NOT** wait on this note.
+Fits **0.12 Catalog Snap**. SysML file→session Snap is the worked application of that cut (this repo’s `sysml-models/` and downstream `modelbasedPrj-*`). **0.10** owns the caller that does not keep \(S_{\mathrm{cat}}\) and \(S_{\mathrm{req}}\) maps in one prompt. **1.0 MUST NOT** wait.
 
 **MUST NOT** ship: Layer accept; `SessionMerge*`; ANN of the catalog; a `layer=` property as wire; HostSearch nested under `MemNetSystem`.
 
@@ -108,4 +162,4 @@ Fits **0.12 Catalog Snap** ([`../ROADMAP-0.5.md`](../ROADMAP-0.5.md)): list `ses
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | No Layer |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Path A / Path B |
 | [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | \(S_{\mathrm{lib}}\) vs Neo4j library namespace; more sessions when over \(M\) |
-| [`archive/`](archive/) | Historical Layer sources only |
+| [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) | Application: SysML Snap per file session |
