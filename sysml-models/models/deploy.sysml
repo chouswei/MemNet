@@ -671,6 +671,8 @@ package MemNet {
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
       Empty q SHALL emit SessionOutline, not view=shell grain and not
       leftover require_anchor. view=shell remains grain on a seeded walk.
+      Codebook miss MAY use RelativeSeed.Peak_L last-resort (0.18);
+      this part SHALL NOT re-own Peak_L. defaultGoldfish=false.
     */
     port seedIn : SeedSetInPort;
     port pinMapOut : LivePinMapOutPort;
@@ -689,10 +691,10 @@ package MemNet {
     attribute emptyCueIsOutline : Boolean = true;
     attribute viewShellIsOutline : Boolean = false;
     attribute defaultGoldfish : Boolean = false;
+    attribute codebookMissOnly : Boolean = true;
     part leftover_require_anchor : leftover_require_anchor;
     part walk : ShapeWalk;
     part outline : SessionOutline;
-    part peak : Peak_L;
     part caps : CapsPolicy;
     part cueConflict : CueConflict;
 
@@ -755,11 +757,13 @@ package MemNet {
       Honesty nest under Recall so pin_map shipped cannot be misread as
       find shipped.       Mechanism: RelativeSeed (Q) → seedToWalk → ShapeWalk
       (X̃); empty q → SessionOutline (census of S); codebook miss →
-      Peak_L last-resort then ShapeWalk (never default goldfish). Children:
-      PinMapShapedRead realizes ShapeWalk, empty-q outline, and Peak_L;
-      BoundedMatchFind realizes RelativeSeed MATCH_L (not Peak). Parent has no single
-      implemented=true — that flag lives on children only.
-      WalkQuery remains a sibling under SessionLifecycle.
+      RelativeSeed.Peak_L last-resort then ShapeWalk (never default
+      goldfish). Peak_L lives only under RelativeSeed — this nest uses
+      that cue (defaultGoldfish=false; codebookMissOnly) and SHALL NOT
+      re-own Peak_L. Children: PinMapShapedRead realizes ShapeWalk and
+      empty-q outline; BoundedMatchFind realizes RelativeSeed MATCH_L
+      (not Peak). Parent has no single implemented=true — that flag lives
+      on children only. WalkQuery remains a sibling under SessionLifecycle.
       MUST NOT add a third operator beside Recall and Commit.
     */
     port cueIn : CueInPort;
@@ -767,10 +771,11 @@ package MemNet {
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
+    attribute defaultGoldfish : Boolean = false;
+    attribute codebookMissOnly : Boolean = true;
     part seed : RelativeSeed;
     part walk : ShapeWalk;
     part outline : SessionOutline;
-    part peak : Peak_L;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
     connection seedToWalk : SeedSetFlow {
@@ -883,7 +888,11 @@ package MemNet {
       (|Q|≤L) under ONE M. Hide recycled. Goldfish IN = that slice (or the
       outline census when q is empty).
       leftover 0.9 copy-id then require_anchor is leftover, not TARGET.
-      Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
+      Grammar SSOT: docs/grammar/math-skeleton.md. Extra 0.18 engine cut:
+      Peak_L last-resort residual cue is implemented (memnet.peak_l);
+      empty q stays SessionOutline; Peak_L is not a third operator and
+      not default goldfish. HostSearch locators remain extra 0.17 outside
+      MemNetSystem (not this Peak cut). Do not claim 1.0.
       Cousin pointing contrast lives outside MemNetSystem
       (CousinPointingContrast); this nest is not thickened.
       SHALL NOT absorb / MERGE-by-name / LLM-collapse Q. Same name is a
@@ -907,9 +916,10 @@ package MemNet {
     attribute llmCollapseInsideRecall : Boolean = false;
     attribute sameNameIsCandidateOnly : Boolean = true;
     attribute cueConflictOnMultiRoot : Boolean = true;
+    attribute defaultGoldfish : Boolean = false;
+    attribute codebookMissOnly : Boolean = true;
     part seed : RelativeSeed;
     part outline : SessionOutline;
-    part peak : Peak_L;
     part leftoverEmptySkip : leftover_empty_seed_skip;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
@@ -990,7 +1000,10 @@ package MemNet {
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
       corpus, outside; 0.17 RagHostHook locators) vs Shape (Recall X̃).
       Goldfish I/O: slice in (Recall), Δ out (Commit); pin topics then
-      fetch slices. operatorCount stays 2. Docs:
+      fetch slices. Extra 0.18: Peak_L last-resort residual cue is
+      implemented under RelativeSeed (not a third operator; empty q stays
+      outline; never default goldfish). operatorCount stays 2. HostSearch
+      stays outside MemNetSystem. Do not claim 1.0. Docs:
       docs/grammar/math-skeleton.md.
     */
     port shapedOut : ShapedSubgraphOutPort;

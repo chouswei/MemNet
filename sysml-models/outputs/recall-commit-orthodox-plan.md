@@ -54,7 +54,7 @@ Pytest covering part of this (still paradox): `tests/test_goldfish_paradox.py` (
 
 ## Development sequence
 
-Goldfish leftover for **0.5 is shipped**. Extra **0.18** Peak_L last-resort is shipped this cut. Do **not** hold **1.0** for HostSearch.
+Goldfish leftover for **0.5 is shipped**. Extra **0.17** HostSearch locators and extra **0.18** Peak_L last-resort are shipped. Do **not** hold **1.0** for those extras.
 
 ### Already done (do not rebuild)
 

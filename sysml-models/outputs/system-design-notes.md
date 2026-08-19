@@ -64,9 +64,9 @@ MemNetSystem                                 // SharedLlmMemory
 │   ├── TransportBoundary
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
 │   │   │     ├── GqlCodec / GraphStore / RecallCommit
-│   │   │     │     Recall / SessionOutline (empty-q census; 0.11 TARGET) /
+│   │   │     │     Recall / RelativeSeed └── Peak_L last-resort (0.18; never default) /
+│   │   │     │     SessionOutline (empty-q census; 0.11 TARGET) /
 │   │   │     │     AgentShapedRead /
-│   │   │     │     RelativeSeed / Peak_L last-resort (0.18; never default) /
 │   │   │     │     PinMapShapedRead (shipped; CueConflict mark when |Q|>1) /
 │   │   │     │     BoundedMatchFind (shipped #73 seed-only)
 │   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease) /

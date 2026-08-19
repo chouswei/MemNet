@@ -491,11 +491,11 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.defaultGoldfish == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.implemented == true
+            .recall.seed.peak.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.defaultGoldfish == false
+            .recall.seed.peak.defaultGoldfish == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notAThirdOperator == true
+            .recall.seed.peak.notAThirdOperator == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.seed.seedsAreWalkRoots == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -615,12 +615,13 @@ package MemNetVerification {
 
   verification def MN_VER_04_S04_PeakLLastResort {
     doc /*
-      MN-REQ-04.10 — Peak_L last-resort residual cue under RelativeSeed.
-      implemented=true (engine path). defaultGoldfish=false. Codebook miss
-      only; empty q stays outline. ρ* not raw contains degree. Two peaks
-      CueConflict. Not a third operator. operatorCount stays 2. Product
-      liveNeo4jClaimed is true (0.14; not this Peak cut). RagHostHook
-      stays false (0.17 not this PR).
+      MN-REQ-04.10 — Peak_L last-resort residual cue under RelativeSeed
+      only (not a sibling under Recall / AgentShapedRead /
+      PinMapShapedRead). implemented=true (engine path).
+      defaultGoldfish=false. Codebook miss only; empty q stays outline.
+      ρ* not raw contains degree. Two peaks CueConflict. Not a third
+      operator. operatorCount stays 2. Product liveNeo4jClaimed is true
+      (0.14; not this Peak cut). RagHostHook stays false (0.17 not this PR).
     */
     attribute verificationId : String = "MN-VER-04-S04";
 
@@ -634,37 +635,37 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .hostSearchInsideSystem == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.implemented == true
+            .recall.seed.peak.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notAThirdOperator == true
+            .recall.seed.peak.notAThirdOperator == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.lastResort == true
+            .recall.seed.peak.lastResort == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.codebookMissOnly == true
+            .recall.seed.peak.codebookMissOnly == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.emptyQIsOutline == true
+            .recall.seed.peak.emptyQIsOutline == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.defaultGoldfish == false
+            .recall.seed.peak.defaultGoldfish == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.residualRhoStar == true
+            .recall.seed.peak.residualRhoStar == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notRawContainsDegree == true
+            .recall.seed.peak.notRawContainsDegree == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notNestFix == true
+            .recall.seed.peak.notNestFix == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notDensityPeakCluster == true
+            .recall.seed.peak.notDensityPeakCluster == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notLeidenFromPeaks == true
+            .recall.seed.peak.notLeidenFromPeaks == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.notGlobalTopKDegree == true
+            .recall.seed.peak.notGlobalTopKDegree == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.cueConflictOnTwoPeaks == true
+            .recall.seed.peak.cueConflictOnTwoPeaks == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.absorbs == false
+            .recall.seed.peak.absorbs == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.silentMergeByName == false
+            .recall.seed.peak.silentMergeByName == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.peak.elementIdOnWire == false
+            .recall.seed.peak.elementIdOnWire == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.peakLDefault == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -672,7 +673,17 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.emptyCueIsOutline == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.codebookMissOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.codebookMissOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.codebookMissOnly == true
           and system.durable.liveNeo4jClaimed == true
       }
     }
