@@ -5,8 +5,10 @@ description: >-
   shared-dialect grammar, SysML models, packaging, CI, and contributor layout.
   Triggers: MemNet development, memnet engine, MutateGate, PinMapComposer,
   memnet-mcp server, parts/common/memnet, grammar fixtures, MN-REQ, product
-  SysML, memnet contributor, build memnet. For using MemNet in agents or
-  Multitask, load user-pack mcp-memnet, memnet-format, or memnet-multitask.
+  SysML, memnet contributor, build memnet. For SysML agent I/O in this checkout,
+  load `.cursor/skills/sysml-*` (cloud VMs have no user pack). For MCP / Multitask
+  application on a human machine, load user-pack mcp-memnet, memnet-format, or
+  memnet-multitask.
 metadata:
   pattern: pipeline
   version: "2.0"
@@ -18,31 +20,34 @@ metadata:
 
 Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives in docs below -- do not duplicate or invent features here.
 
-**Product version:** `project.toml` / Hatch **0.9.0** (CLI command remains `memnet`). **PyPI `memnet-llm` is still 0.4.6.** Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra (`liveNeo4jClaimed=false`). **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed.
+**Product version:** `project.toml` / Hatch **0.9.0** (CLI command remains `memnet`). **PyPI `memnet-llm` is 0.9.0.** Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra (`liveNeo4jClaimed=false`). **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
 
 ## When loaded
 
 1. Confirm the task is **product development** in this MemNet repo (not user-pack application).
 2. Read `AGENTS.md` and `project.toml` for version, layout, and policy.
 3. Route to the canonical path below (engine, MCP, grammar, SysML) — do not duplicate doctrine.
-4. For agent I/O or Multitask, point to user-pack skills only (`mcp-memnet`, `memnet-format`, `memnet-multitask`).
+4. For SysML agent I/O in this repo, open the **in-repo** skills under `.cursor/skills/` first (table below). On a human machine the user pack (`~/.cursor/skills`) is the live home of those skills; cloud VMs have no user pack and **MUST** use the vendored copies.
 
 ## Mission (product)
 
 **MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL node/vertex, edge/relationship, property) between LLM call pipelines and data search, not a RAG corpus. This repo ships the **engine** (`parts/common/memnet/`) and **generic MCP** (`parts/memnet-mcp/`) only -- novel-writer dropped.
 
-## Using MemNet (user pack -- not this skill)
+## Using MemNet (SysML / agent I/O -- pointer only)
 
-Application skills live in **`~/.cursor/skills/`**:
+**In-repo first** (cloud VMs only see this checkout):
 
-| Intent | User-pack skill |
-|--------|-----------------|
-| MCP tools, sessions, pin map | `mcp-memnet` |
-| Shared dialect wire shapes | `memnet-format` |
-| Multitask Mode / Task sub-agents | `memnet-multitask` |
-| SysML design memory | `sysml-memnet-documentation`, `sysml-memnet-cache` |
+| Intent | Path |
+|--------|------|
+| 6-step MemNet modeling turn | `.cursor/skills/sysml-modeling-workflow/` |
+| Session checklist before `.sysml` edits | `.cursor/skills/sysml-modeling-session-checklist/` |
+| Specialist read/write defer | `.cursor/skills/sysml-memnet-cache/` |
+| Snap, read policy, pattern SSOT | `.cursor/skills/sysml-memnet-documentation/` |
+| Thin SysML × GQL bridge | `.cursor/skills/sysml-gql/` |
 
-Do not teach agent I/O or Multitask playbooks here -- pointer only.
+On a human machine the same names live in **`~/.cursor/skills/`** (live home of the Apache user pack). Cloud VMs **MUST** use the vendored copies above. Do not teach those playbooks here.
+
+MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-multitask`) remain user-pack only — not vendored in this repo.
 
 ## Canonical paths (this repo)
 
@@ -102,7 +107,7 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
   Path-B `PinMapIngest_*` domains (Sysml/Codebase/PcbaAto/SkillsRules) are as-is;
   export remains separate.
 - Invent N-server federation for Path-B ingest.
-- Duplicate user-pack application skills in `.cursor/skills/` beyond this dev reference.
+- Vendor the whole user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. The five SysML modeling trees above are the allowed copies so cloud VMs can load them.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
 
 ## Related
@@ -110,7 +115,12 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 | Path | Role |
 |------|------|
 | `.cursor/skills/memnet-reference/` (this) | Product development routing |
-| `~/.cursor/skills/mcp-memnet/` | Using MemNet via MCP |
-| `~/.cursor/skills/memnet-multitask/` | Multitask application doctrine |
+| `.cursor/skills/sysml-modeling-workflow/` | In-repo SysML 6-step turn (cloud VM copy) |
+| `.cursor/skills/sysml-modeling-session-checklist/` | In-repo modeling checklist (cloud VM copy) |
+| `.cursor/skills/sysml-memnet-cache/` | In-repo SysML cache defer (cloud VM copy) |
+| `.cursor/skills/sysml-memnet-documentation/` | In-repo snap / read policy (cloud VM copy) |
+| `.cursor/skills/sysml-gql/` | In-repo SysML GQL bridge (cloud VM copy) |
+| `~/.cursor/skills/mcp-memnet/` | Using MemNet via MCP (user pack; not in this checkout) |
+| `~/.cursor/skills/memnet-multitask/` | Multitask application doctrine (user pack; not in this checkout) |
 | `docs/README.md` | Developers vs applications doc index |
 | `AGENTS.md` | Hub / policy |
