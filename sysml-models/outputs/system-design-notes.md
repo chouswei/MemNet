@@ -24,7 +24,7 @@ Novel-writer is out of scope.
 
 **Sequence:** M1 → M2 → **M2.5** → M3 — **all done** (0.8 teach; 0.7 cabinet). **1.0** = claim.
 
-**Primary codec:** `GqlCodec` (**M2 shipped**) — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
+**Primary codec:** `GqlCodec` (**M2 shipped**) — GraphGlot parse front then MemNet product gate then leftover lowering; dialect spelling SSOT vendored `openCypher.bnf`; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
 **Composer:** `PinMapShapedRead` under `Recall` / `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is **shipped** (`implemented=true`; #73 seed-only `find`) — then `pin_map`; do not teach MATCH…RETURN as goldfish. Parent nest `RecallCommit` = two operators (Recall + Commit). Math: [`../../docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).
 **Dialect authority:** see [`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) (External dialect authority) and ADR-001.
 
@@ -63,7 +63,7 @@ MemNetSystem                                 // SharedLlmMemory
 ├── MemNetCoreLibrary
 │   ├── TransportBoundary
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
-│   │   │     ├── GqlCodec / GraphStore / RecallCommit
+│   │   │     ├── GqlCodec (GraphGlotParseFront + ProductGqlGate) / GraphStore / RecallCommit
 │   │   │     │     Recall / RelativeSeed └── Peak_L last-resort (0.18; never default) /
 │   │   │     │     SessionOutline (empty-q census; 0.11 TARGET) /
 │   │   │     │     AgentShapedRead /
@@ -163,7 +163,7 @@ reserve and Path-B ingest are **shipped**.
 | Target part | Today's module(s) | Status |
 |-------------|-------------------|--------|
 | GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
-| GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
+| GqlCodec | `gql.py` / `gql_codec.py` / `gql_parse_front.py` | **Shipped (M2)**; GraphGlot parse then product gate |
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
 | BoundedMatchFind | `query find` / MCP `find` | Nested under Recall / AgentShapedRead (`implemented=true`; #73 seed-only; then `pin_map`) |

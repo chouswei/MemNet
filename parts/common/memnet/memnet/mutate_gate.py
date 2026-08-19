@@ -23,7 +23,7 @@ from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
 _LEGACY_HINT = (
     "Layer / Tier A agent wire is retired (ADR-001 M2). "
-    "Use gated openCypher-shaped GQL — see docs/grammar/gql-wire-profile.md"
+    "Use gated GQL — see docs/grammar/gql-wire-profile.md"
 )
 
 
@@ -208,7 +208,7 @@ class MutateGate:
             doc = self.codec.parse(text)
         except ParseError as exc:
             raise MemNetError(
-                "parse_error",
+                getattr(exc, "code", None) or "parse_error",
                 str(exc),
                 example=f"line {exc.line}" if exc.line else None,
             ) from exc

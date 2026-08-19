@@ -13,6 +13,7 @@
   RelativeSeed codebook tokens then ShapeWalk (MN-VER-04-S02).
   Empty-q session outline is Recall census of S (MN-VER-04-S03).
   Peak_L last-resort residual cue (MN-VER-04-S04); never default goldfish.
+  GraphGlot parse front + product gate (MN-VER-09-S01).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
@@ -402,6 +403,56 @@ package MemNetVerification {
           == true
           and multitask.coordinator.dispatch.doctrineAsIs == true
           and multitask.workerPool.doctrineAsIs == true
+      }
+    }
+  }
+
+  verification def MN_VER_09_S01_GraphGlotParseThenGate {
+    doc /*
+      MN-REQ-09.5 — GraphGlot is the official-grammar parse front (implemented
+      only because Python calls graphglot). ProductGqlGate is a separate part
+      after parse (WITH / UNWIND / CALL / unbounded RETURN / Layer). No TCK
+      claim. Product gate still after parse. liveNeo4jClaimed stays true
+      (0.14). Recall/Commit still two operators. RagHostHook stays outside
+      MemNetSystem. Peak_L stays last-resort under RelativeSeed only.
+      Extra 0.16 library locators-only (generate=false). Hid / elementId /
+      _memnet_hid stay off CLI/MCP/GQL emit.
+    */
+    attribute verificationId : String = "MN-VER-09-S01";
+
+    subject system : MemNetSystem;
+    subject ragHostHook : RagHostHook;
+
+    objective parseFrontThenGate {
+      verify graphglotParseThenProductGateReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.gqlWire.parseFront
+          .implemented == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.implemented == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectFreeWith == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectUnwind == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectCall == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectUnboundedReturn == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectLayer == true
+          and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.durable.liveNeo4jClaimed == true
+          and system.durable.library.generate == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .operatorCount == 2
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .hostSearchInsideSystem == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.lastResort == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.defaultGoldfish == false
+          and ragHostHook.implemented == true
+          and ragHostHook.locatorOnly == true
       }
     }
   }
@@ -1244,6 +1295,8 @@ package MemNetVerification {
   verification asyncParallelDisjointVerify : MN_VER_12_S13_AsyncParallelDisjoint;
   verification cheapLlmImportGuardVerify
     : MN_VER_12_S14_CheapLlmImportGuard;
+  verification graphglotParseThenGateVerify
+    : MN_VER_09_S01_GraphGlotParseThenGate;
   verification boundedMatchFindNotShippedVerify
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
   verification relativeSeedWalksFromQVerify

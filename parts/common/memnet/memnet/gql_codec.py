@@ -1,4 +1,7 @@
-"""GqlCodec — SysML part name; gated openCypher-shaped agent wire (M2)."""
+"""GqlCodec — SysML part name; gated GQL agent wire (M2).
+
+Accept: GraphGlot parse front, then MemNet product gate, then leftover lowering.
+"""
 
 from __future__ import annotations
 
@@ -45,7 +48,7 @@ __all__ = [
 
 
 class GqlCodec:
-    """Primary agent wire SSOT: parse/emit gated openCypher-shaped GQL."""
+    """Primary agent wire SSOT: GraphGlot parse + MemNet gate + leftover emit."""
 
     def parse(self, text: str) -> Document:
         return parse(text)

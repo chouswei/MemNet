@@ -249,7 +249,8 @@ package MemNetRequirements {
       requirement def MN_REQ_02_6_ParserRecoversNodeAndEdge {
         doc /*
           The canonical parser SHALL recover node, edge, and property structure for
-          human inspection.
+          human inspection. Grammar parse front is GraphGlot (official grammar);
+          MemNet product gate is a separate part after parse.
         */
         attribute requirementId : String = "MN-REQ-02.6";
       }
@@ -811,6 +812,10 @@ package MemNetRequirements {
           recovers NODE and EDGE structure (kind, optional nickname id,
           fields, endpoints) from the agent-facing grammar, including
           lawful escape rules. SHALL NOT require property id to parse.
+          Grammar parse front is GraphGlot; leftover lowering to store
+          records remains after the product gate. SHALL NOT require a
+          store key or invent a replacement for leftover by_id /
+          id_first / NEW.
         */
         attribute requirementId : String = "MN-REQ-09.1";
       }
@@ -837,6 +842,19 @@ package MemNetRequirements {
           supported inspection or ingest path.
         */
         attribute requirementId : String = "MN-REQ-09.4";
+      }
+
+      requirement def MN_REQ_09_5_GraphGlotParseThenProductGate {
+        doc /*
+          Accept SHALL parse agent GQL with GraphGlot (PyPI graphglot; official
+          grammar front), then run a separate MemNet product gate that rejects
+          Layer / Tier A and free WITH / UNWIND / CALL / unbounded MATCH…RETURN
+          even when GraphGlot parses them. Goldfish bounds stay (pin_map +
+          mutate / bounded find). SHALL NOT claim TCK compliance. SHALL NOT
+          vendor GraphGlot source. implemented=true only when Python actually
+          calls graphglot on the accept path.
+        */
+        attribute requirementId : String = "MN-REQ-09.5";
       }
     }
 
@@ -1552,6 +1570,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
   requirement noAdHocConsumerSplitsReq
     : MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_4_NoAdHocConsumerSplits;
+  requirement graphglotParseThenProductGateReq
+    : MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_5_GraphGlotParseThenProductGate;
 
   requirement llmPropertiesAndLimitsReq
     : MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits;

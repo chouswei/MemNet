@@ -592,12 +592,13 @@ package MemNetBehaviour {
 
   state def MutateWithNew {
     doc /*
-      Leftover 0.9 invented store path: parse GQL -> leftover_NEW_mint
-      (if any) -> schema check -> strict commit -> emit AssignedIdMap.
-      TARGET create is CREATE () / CREATE (:Label {props}) with no mint
-      law. Aligns leftover MN-REQ-03 / 10.4 as-is engine. When the batch
-      has no NEW / [NEW], minting is a no-op. TierA / Layer line codec
-      parse is RETIRED on product path (M2 done).
+      Leftover 0.9 invented store path: GraphGlot parse -> product gate ->
+      leftover lower -> leftover_NEW_mint (if any) -> schema check ->
+      strict commit -> emit AssignedIdMap. TARGET create is CREATE () /
+      CREATE (:Label {props}) with no mint law. Aligns leftover MN-REQ-03 /
+      10.4 as-is engine. When the batch has no NEW / [NEW], minting is a
+      no-op. TierA / Layer line codec parse is RETIRED on product path
+      (M2 done).
     */
     entry;
     then idle;
@@ -611,7 +612,7 @@ package MemNetBehaviour {
       then parsing;
 
     state parsing {
-      doc /* GqlCodec parse (target); reject invalid wire. */
+      doc /* GraphGlot parse then MemNet product gate; reject invalid wire. */
     }
     transition parsing_to_minting
       first parsing

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import graphglot
 import pytest
 
 from memnet.gql import ParseError, emit_item, parse, soft_validate
 from memnet.gql_codec import GqlCodec
+from memnet.gql_parse_front import GRAPHGLOT_DIALECT_NAME, parse_program
 from memnet.tier_a import EdgeRec, NodeRec, Op
 
 
@@ -75,6 +77,69 @@ def test_shaped_present_emit_roundtrip_props():
     line = emit_item(doc.items[0], as_mutate=False)
     assert line.startswith("(:TSK")
     assert "id: 'T1'" in line
+
+
+def test_parse_create_empty_node():
+    doc = parse("CREATE ()")
+    assert len(doc.items) == 1
+    n = doc.items[0]
+    assert isinstance(n, NodeRec)
+    assert n.op == Op.CREATE
+    assert n.id == ""
+    assert n.kind == ""
+
+
+def test_parse_labelled_create_without_id():
+    doc = parse("CREATE (:TSK {goal: 'wire GraphGlot'})")
+    n = doc.items[0]
+    assert isinstance(n, NodeRec)
+    assert n.kind == "TSK"
+    assert n.id == ""
+    assert {f.key: f.value for f in n.fields}["goal"] == "wire GraphGlot"
+
+
+def test_reject_with_after_graphglot_parse():
+    programs = parse_program("WITH 1 AS x RETURN x")
+    assert programs
+    with pytest.raises(ParseError, match="WITH") as ei:
+        parse("WITH 1 AS x RETURN x")
+    assert ei.value.code == "product_gate"
+
+
+def test_reject_unwind_after_graphglot_parse():
+    programs = parse_program("UNWIND [1, 2] AS x RETURN x")
+    assert programs
+    with pytest.raises(ParseError, match="UNWIND") as ei:
+        parse("UNWIND [1, 2] AS x RETURN x")
+    assert ei.value.code == "product_gate"
+
+
+def test_reject_unbounded_return_after_graphglot_parse():
+    with pytest.raises(ParseError, match="RETURN") as ei:
+        parse("MATCH (n) RETURN n")
+    assert ei.value.code == "product_gate"
+
+
+def test_reject_layer_string():
+    with pytest.raises(ParseError, match="Layer") as ei:
+        parse("+ PLR [NEW] ; identity=y")
+    assert ei.value.code == "legacy_dialect_retired"
+
+
+def test_accept_path_imports_graphglot():
+    assert GRAPHGLOT_DIALECT_NAME == "neo4j"
+    assert graphglot.__version__
+    programs = parse_program("CREATE ()")
+    assert programs
+    parse("CREATE ()")
+
+
+def test_reject_call_after_graphglot_parse():
+    programs = parse_program("CALL db.labels()")
+    assert programs
+    with pytest.raises(ParseError, match="CALL") as ei:
+        parse("CALL db.labels()")
+    assert ei.value.code == "product_gate"
 
 
 def test_reject_bad_create():

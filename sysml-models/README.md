@@ -25,7 +25,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs seven cousin pointing/identity designs (not a product switch) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S03; MN-VER-13-S01 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01 |
 | `outputs/recall-commit-orthodox-plan.md` | — | Orthodox review; all tests are paradox |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
@@ -39,7 +39,7 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │   └── AgentMemory                  // session-scoped working set
 │   │   │       └── SessionLifecycle         // session id = SSOT handle
 │   │   │           ├── GraphStore
-│   │   │           ├── GqlCodec             // CIP/oC9 dialect authority
+│   │   │           ├── GqlCodec             // GraphGlot parse front + product gate
 │   │   │           ├── RecallCommit         // 0.5: TWO operators only
 │   │   │           │   ├── Recall           // seed + k-hop; empty q ⇒ outline
 │   │   │           │   │   ├── SessionOutline   // 0.11 TARGET census of S
@@ -146,7 +146,7 @@ Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_m
 
 ## Property-graph ontology (first-class)
 
-Node / Edge / Property / Label — [`docs/grammar/gql-wire-profile.md`](../docs/grammar/gql-wire-profile.md). **Agent wire = GQL only.** Dialect authority: openCypher CIP + oC9 (MemNet-gated subset).
+Node / Edge / Property / Label — [`docs/grammar/gql-wire-profile.md`](../docs/grammar/gql-wire-profile.md). **Agent wire = GQL only.** Parse front: GraphGlot; product gate after parse. Grammar spelling SSOT: vendored [`docs/grammar/openCypher.bnf`](../docs/grammar/openCypher.bnf).
 
 ## Validate
 

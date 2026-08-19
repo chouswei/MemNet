@@ -58,6 +58,8 @@ Filler and property maps are optional. Property is any `<property name> : <value
 
 **Behaviour cite (not a vendored suite, not a compliance claim):** upstream TCK `tck/features/clauses/create/Create1.feature` scenario `[1] Create a single node` (`CREATE ()`). Empty node pattern is legal.
 
+**Accept parse** is GraphGlot (`graphglot>=0.14.2`); the MemNet **product gate** still runs after a successful parse. Grammar spelling/identity SSOT remains vendored [`openCypher.bnf`](openCypher.bnf). GraphGlot is not a second accept dialect and not a store.
+
 **Gated subset wins:** MemNet agent surface = `pin_map`-class read + gated mutate (§1) — **not** full language / every CIP / WITH / UNWIND / CALL / unbounded `MATCH` as goldfish. Vendoring the BNF is spelling/identity SSOT, **not** a promise to accept the whole language, **not** a second Python accept path (do **not** generate a parser/visitor from this BNF). SysML pointer: [`../../sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md) (`GqlCodec`).
 
 ---
