@@ -588,8 +588,8 @@ package MemNetBehaviour {
   state def PinMapIngestCycle {
     doc /*
       Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
-      PcbaAto / SkillsRules (#31 / #64). Not SnapshotStore. Export /
-      round-trip (MN-REQ-11.1–11.5) remains separate (#66).
+      PcbaAto / SkillsRules (#31 / #64). Not SnapshotStore. Pin-map export
+      (0.19 / #66) is a separate cue GQL write-out — not this ingest cycle.
     */
     entry;
     then pinIdle;

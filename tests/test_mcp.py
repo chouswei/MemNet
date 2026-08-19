@@ -171,8 +171,10 @@ def test_mcp_tool_names(monkeypatch):
     names = asyncio.run(mcp.list_tools())
     tool_names = {t.name for t in names}
     assert "pin_map" in tool_names
+    assert "export_pin_map" in tool_names
     assert "query_warm" in tool_names
     assert "read_get" not in tool_names
+    assert "rag_query" not in tool_names
     pin_tool = next(t for t in names if t.name == "pin_map")
     props = (pin_tool.inputSchema or {}).get("properties") or {}
     assert "view" in props

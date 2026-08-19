@@ -90,6 +90,9 @@ housekeep_app = typer.Typer(help="Inspect and prune stale graph")
 relations_app = typer.Typer(help="EDG relation vocabulary")
 examples_app = typer.Typer(help="Bundled examples")
 ingest_app = typer.Typer(help="Path-B pin-map ingest (external artefact → pins)")
+export_app = typer.Typer(
+    help="Pin-map export (shaped GQL write-out; ingest is not export)",
+)
 
 app.add_typer(session_app, name="session")
 app.add_typer(tagmap_app, name="tagmap")
@@ -100,6 +103,7 @@ app.add_typer(housekeep_app, name="housekeep")
 app.add_typer(relations_app, name="relations")
 app.add_typer(examples_app, name="examples")
 app.add_typer(ingest_app, name="ingest")
+app.add_typer(export_app, name="export")
 
 
 def _caps() -> Caps:
@@ -598,6 +602,76 @@ def ingest_sysml_cmd(
             emit_stdout("@ANCHORS: " + ",".join(result.anchors))
         if dry_run:
             for line in result.gql_lines:
+                emit_stdout(line)
+
+
+@export_app.command("pin-map")
+def export_pin_map_cmd(
+    kind: Annotated[str | None, typer.Option("--kind")] = None,
+    locator: Annotated[
+        list[str] | None,
+        typer.Option("--locator", help="KEY=VAL field cue; repeatable"),
+    ] = None,
+    keyword: Annotated[str | None, typer.Option("--keyword")] = None,
+    anchor: Annotated[
+        list[str] | None,
+        typer.Option("--anchor", help="leftover nickname cue, not TARGET law"),
+    ] = None,
+    depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
+    max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
+    view: Annotated[
+        str | None,
+        typer.Option(
+            "--view",
+            help="Pin-map grain: shell|interior (teach); flowchart|parts|statechart (soft).",
+        ),
+    ] = None,
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Write shaped GQL body to this path"),
+    ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Write out a cue pin_map (or empty-q outline) as shaped GQL.
+
+    MN-REQ-11.1–11.5 / #66. Ingest is not export. Empty cue is 0.11 outline
+    (not a dump of S). Hard bounds stay. CueConflict if |Q|>1. Distinct from
+    session save/load. Not Absorb. leftover --anchor is a nickname cue.
+    """
+    from memnet.pin_map_export import export_pin_map
+
+    locators = []
+    try:
+        locators = parse_find_locators(locator)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    ss, lock = _load_session(session)
+    with lock:
+        try:
+            result = export_pin_map(
+                ss,
+                kind=kind,
+                locators=locators,
+                keyword=keyword,
+                leftover_nicks=anchor,
+                depth=depth,
+                max_rows=max_rows,
+                view=view,
+                caller=caller or os.environ.get("MEMNET_CALLER"),
+                agent=os.environ.get("MEMNET_AGENT"),
+                out_path=out,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
+        emit_stdout(result.header)
+        if result.body and out is None:
+            for line in result.body.splitlines():
                 emit_stdout(line)
 
 

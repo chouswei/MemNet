@@ -20,7 +20,8 @@ prior map rows from the prompt; sparse Δ; env blobs stay in the harness.
 Optional additive `view=` — teach `shell` | `interior` **on a seed** (not
 session outline); soft-accept `flowchart` | `parts` | `statechart`
 (shell-like caps). Mutate via `add`/`update` accepts gated GQL only
-(Layer/Tier A retired). See `docs/grammar/gql-wire-profile.md`.
+(Layer/Tier A retired). Pin-map export: **`export_pin_map`** (same cues;
+empty q = outline; ingest is not export). See `docs/grammar/gql-wire-profile.md`.
 
 ## Transports
 
