@@ -73,10 +73,10 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
-│   └── CliFacade
-├── MemNetMcpServer
+│   └── CliFacade                            // catalog Snap + session list (0.15); pin-map export (0.19)
+├── MemNetMcpServer                          // snap_model / session_list / export_pin_map
 ├── DurableBuffer → AgensGraphAdapter + Neo4jAdapter  // M2.5; Agens live; Neo4j client unclaimed
-├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
+├── PinMapRoadmap                            // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
     │   ├── SessionHandoffEmit
@@ -195,7 +195,7 @@ reserve and Path-B ingest are **shipped**.
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
-- PinMapIngest — all leftover domains **shipped** (#64); PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
+- PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** — application / contrast nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored

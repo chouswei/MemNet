@@ -693,8 +693,9 @@ package MemNetVerification {
       vector indexes as identity, or GraphLite as product. MAY copy
       cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
       RelativeSeed bounded + honest; no third operator. operatorCount
-      stays 2. liveNeo4jClaimed stays false. Contrast MUST NOT nest
-      under MemNetSystem.
+      stays 2. liveNeo4jClaimed stays false. Catalog Snap SHALL NOT
+      ANN-rank sessions, Absorb a whole S, or mint one session per REQ.
+      Contrast MUST NOT nest under MemNetSystem.
     */
     attribute verificationId : String = "MN-VER-02-S02";
 
@@ -734,6 +735,9 @@ package MemNetVerification {
           and contrast.chosen.viewShellIsNotOutline == true
           and contrast.chosen.mustNotDumpSOnEmptyCue == true
           and contrast.chosen.mustNotSkipEmptyCueAsTarget == true
+          and contrast.chosen.catalogAnnRank == false
+          and contrast.chosen.catalogAbsorbWholeS == false
+          and contrast.chosen.oneSessionPerReq == false
           and contrast.mustNotCopyGetAllPages == true
           and contrast.mustNotCopyPatternCTour == true
           and contrast.mustNotCopyPatternDSeededRag == true
@@ -811,6 +815,12 @@ package MemNetVerification {
             == false
           and system.mcp.tools.catalogSnap.requiresStoreKeyId == false
           and system.core.cli.catalogSnap.requiresStoreKeyId == false
+          and system.mcp.tools.sessionList.requiresStoreKeyId == false
+          and system.core.cli.sessionList.requiresStoreKeyId == false
+          and system.mcp.tools.sessionList.listsCatalogSessionPins == true
+          and system.core.cli.sessionList.listsCatalogSessionPins == true
+          and system.mcp.tools.sessionList.annRankSessions == false
+          and system.core.cli.sessionList.annRankSessions == false
           and system.mcp.tools.leftoverReadGetNested == false
           and system.mcp.tools.leftoverNewNested == false
           and system.mcp.tools.leftoverAssignedIdMapNested == false
@@ -1077,6 +1087,10 @@ package MemNetVerification {
           and system.pinMaps.catalog.notAThirdOperator == true
           and system.core.cli.catalogSnap.implemented == true
           and system.mcp.tools.catalogSnap.implemented == true
+          and system.core.cli.sessionList.listsCatalogSessionPins == true
+          and system.mcp.tools.sessionList.listsCatalogSessionPins == true
+          and system.core.cli.sessionList.requiresStoreKeyId == false
+          and system.mcp.tools.sessionList.requiresStoreKeyId == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
           and system.durable.liveNeo4jClaimed == false

@@ -1127,6 +1127,23 @@ package MemNet {
     attribute productCommand : Boolean = true;
   }
 
+  part def CmdSessionList {
+    doc /*
+      TARGET: CLI session list / MCP session_list. Lists catalog session=
+      pins (MN-REQ-11.17). Session handle is not a graph store key.
+      SHALL NOT ANN-rank sessions. Look remains pin_map of a listed id.
+    */
+    port locatorIn : CatalogSessionLocatorInPort;
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute listsCatalogSessionPins : Boolean = true;
+    attribute annRankSessions : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
   part def CmdSessionSave {
     doc /* TARGET: session save. Session handle is not a graph store key. */
     attribute requiresStoreKeyId : Boolean = false;
@@ -1288,8 +1305,9 @@ package MemNet {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
-      open/current/save/load, find, pin_map, mutate/Commit, Path-B ingest,
-      pin-map export, Path-B import, catalog Snap. MUST NOT nest leftover_read_get, leftover_NEW_mint,
+      open/current/save/load, session list, find, pin_map, mutate/Commit,
+      Path-B ingest, pin-map export, Path-B import, catalog Snap. MUST NOT nest
+      leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
       leftover_require_anchor, leftover_allocate_from_locator, or
       leftover id_policy as product commands. MUST NOT nest name_conflict /
@@ -1309,6 +1327,7 @@ package MemNet {
     part sessionCurrent : CmdSessionCurrent;
     part sessionSave : CmdSessionSave;
     part sessionLoad : CmdSessionLoad;
+    part sessionList : CmdSessionList;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1375,9 +1394,9 @@ package MemNet {
   part def McpFacade {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
-      (MN-REQ-07.1 / 07.5): session_open / current / save / load, find,
-      pin_map, mutate/Commit, Path-B ingest, pin-map export, Path-B import,
-      catalog Snap. MUST NOT nest
+      (MN-REQ-07.1 / 07.5): session_open / current / save / load,
+      session_list, find, pin_map, mutate/Commit, Path-B ingest,
+      pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
       leftover_allocate_from_locator, or leftover id_policy as product
@@ -1396,6 +1415,7 @@ package MemNet {
     part sessionCurrent : CmdSessionCurrent;
     part sessionSave : CmdSessionSave;
     part sessionLoad : CmdSessionLoad;
+    part sessionList : CmdSessionList;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1731,7 +1751,9 @@ package MemNet {
       0.15: Snap(one SysML load tree) → catalog S_cat plus package interiors.
       Catalog holds session= + qname= locators (properties). Look = pin_map
       of one interior. Join = ImportAbsorb a slice. Module:
-      memnet.catalog_snap.snap_model. CLI memnet snap model; MCP snap_model.
+      memnet.catalog_snap.snap_model. CLI memnet snap model / session list;
+      MCP snap_model / session_list. Locator item is CatalogSessionLocator
+      (session= + qname=), not PinMapProjection.
       SHALL NOT ANN-rank sessions; Absorb whole S; dump the model into one
       session; Layer; one session per REQ; invent a store key; emit hid.
       Not a third operator (Commit of locators into named sessions).
@@ -1750,7 +1772,7 @@ package MemNet {
     attribute locatorsAreProperties : Boolean = true;
     attribute notAThirdOperator : Boolean = true;
     attribute leftoverIngestOnePath : Boolean = true;
-    port pinOut : PinMapOutPort;
+    port locatorOut : CatalogSessionLocatorOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
@@ -2438,6 +2460,14 @@ package MemNet {
     connection durableFlush : DurableFlushFlow {
       end port source ::> core.transport.inProcess.memory.sessions.flushOut;
       end port sink ::> durable.agens.flushIn;
+    }
+    connection catalogLocatorToMcpList : CatalogSessionLocatorFlow {
+      end port source ::> pinMaps.catalog.locatorOut;
+      end port sink ::> mcp.tools.sessionList.locatorIn;
+    }
+    connection catalogLocatorToCliList : CatalogSessionLocatorFlow {
+      end port source ::> pinMaps.catalog.locatorOut;
+      end port sink ::> core.cli.sessionList.locatorIn;
     }
 
     satisfy MN_REQ_00_MissionBridge;

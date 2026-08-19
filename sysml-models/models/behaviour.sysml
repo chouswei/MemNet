@@ -594,8 +594,12 @@ package MemNetBehaviour {
   state def PinMapIngestCycle {
     doc /*
       Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
-      PcbaAto / SkillsRules (#31 / #64). Not SnapshotStore. Pin-map export
-      (0.19 / #66) is a separate cue GQL write-out — not this ingest cycle.
+      Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
+      PcbaAto / SkillsRules (#31 / #64). Catalog Snap (0.15) is a sibling
+      transition from pinIdle (EvCatalogSnap → projecting); it SHALL NOT
+      replace EvPinMapSelect → selectingPins. Not SnapshotStore. Pin-map
+      export (0.19 / #66) is a separate cue GQL write-out — not this ingest
+      cycle. MN-REQ-11.1 SysML file reverse remains later.
     */
     entry;
     then pinIdle;
@@ -603,6 +607,10 @@ package MemNetBehaviour {
     state pinIdle {
       doc /* No pin-map job running. */
     }
+    transition pin_start
+      first pinIdle
+      accept EvPinMapSelect
+      then selectingPins;
     transition pin_catalog
       first pinIdle
       accept EvCatalogSnap

@@ -577,6 +577,21 @@ package MemNetConnections {
     in item slice : WorkingMemorySlice;
   }
 
+  port def CatalogSessionLocatorOutPort {
+    doc /*
+      Emit catalog session= + qname= locator pins (0.15). Not PinMapProjection.
+      Not a store key. HiddenStoreHandle stays off the wire.
+    */
+    out item locator : CatalogSessionLocator;
+  }
+  port def CatalogSessionLocatorInPort {
+    doc /*
+      Accept catalog session= locator pins (list / look). Look remains pin_map
+      of that session. SHALL NOT ANN-rank sessions.
+    */
+    in item locator : CatalogSessionLocator;
+  }
+
   port def SessionImportRequestOutPort {
     doc /* Emit lead-owned SessionImportRequest. */
     out item importReq : SessionImportRequest;
@@ -782,6 +797,17 @@ package MemNetConnections {
     */
     end port source : WorkingMemorySliceOutPort;
     end port sink : WorkingMemorySliceInPort;
+  }
+
+  connection def CatalogSessionLocatorFlow {
+    doc /*
+      0.15 catalog Snap emits session= + qname= locator pins into the list
+      surface (CmdSessionList). Look = pin_map of that session. Join =
+      Absorb a slice. SHALL NOT convey PinMapProjection; SHALL NOT ANN-rank;
+      SHALL NOT treat session= as a store key.
+    */
+    end port source : CatalogSessionLocatorOutPort;
+    end port sink : CatalogSessionLocatorInPort;
   }
 
   connection def SessionImportRequestFlow {
