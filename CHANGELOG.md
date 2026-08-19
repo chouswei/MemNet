@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
+- **Roadmap one picture** — [`docs/ROADMAP-0.5.md`](docs/ROADMAP-0.5.md): memory plane vs outer harness vs RAG vs cabinet; **1.0 = claim 0.5–0.8**; Later split (engine/product vs harness leftovers). Do not hold 1.0 for HostSearch, live Neo4j, catalog Snap, or a goldfish caller in third-party harnesses.
 - **RAG / Neo4j rethink (design)** — [`docs/grammar/memnet-neo4j-rag-rethink.md`](docs/grammar/memnet-neo4j-rag-rethink.md): verb table (Shape / Snap / Absorb / hydrate); option B two ports; option D catalog + Path-B Absorb; estimates.
 - **Why RAG was hot** — [`docs/grammar/rag-relative-algorithms.md`](docs/grammar/rag-relative-algorithms.md): RAG solved **parametric ignorance of a private/changing corpus** (no fine-tune, less paste-the-library); it did not solve session goldfish. GraphRAG-class stacks are the same problem with a fancier retrieve.
 - **MemNet ↔ Neo4j talk** — expand [`docs/grammar/neo4j-buffer.md`](docs/grammar/neo4j-buffer.md): what talks to what; key features on both sides; **RAG relatives** placed on Snap / Shape / cabinet. Honest `liveNeo4jClaimed=false`.
