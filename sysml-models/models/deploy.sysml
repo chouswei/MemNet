@@ -471,7 +471,8 @@ package MemNet {
       key. MERGE (n {id}) is leftover when a nickname exists.
       Leftover 0.9 invented store: client NEW → by_id
       (IdAllocator.implemented=false TARGET; leftoverNewMint=true).
-      Ingest locators remain properties, not PK. Absorb Path-B only.
+      Ingest locators remain properties, not PK (ingestIsIdRule=false;
+      leftoverIngestIdRule=true). Absorb Path-B only.
       Python cut not this PR.
     */
     port gqlIn : GqlWireInPort;
@@ -481,7 +482,8 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     attribute oneGate : Boolean = true;
     attribute productVerbs : String = "Commit";
-    attribute ingestIsIdRule : Boolean = true;
+    attribute ingestIsIdRule : Boolean = false;
+    attribute leftoverIngestIdRule : Boolean = true;
     attribute absorbPathBOnly : Boolean = true;
     attribute goldfishWriteback : String = "commit";
     attribute sparseDelta : Boolean = true;
@@ -883,17 +885,21 @@ package MemNet {
   part def PinMapIngestBase {
     doc /*
       Shared Path-B ingest interface: project a bounded NODE|EDGE pin map from
-      an external artefact using stable locators (path=, qname=, refdes=, …).
-      Deterministic MemNet ids via IdAllocator.allocate_from_locator
-      (MN-REQ-11.16). Client NEW / [NEW] illegal for source pins. Wire = GQL
-      only (MERGE/CREATE ground ids). Commit into session GraphStore via
-      MutateGate. As-is module: memnet.pin_map_ingest.
+      an external artefact using locator properties (path=, qname=, refdes=,
+      …). TARGET: Commit create of graph elements; no required id; locators
+      are not a mint law or store key. Leftover 0.9: IdAllocator
+      allocate_from_locator / MERGE/CREATE ground ids into by_id
+      (leftoverLocatorMint). Client NEW is leftover sugar, not TARGET.
+      Wire = GQL family. Commit via MutateGate. As-is module:
+      memnet.pin_map_ingest.
     */
     attribute domainVariant : String;
     attribute implemented : Boolean = false;
     attribute roadmapOnly : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -1145,12 +1151,16 @@ package MemNet {
 
   part def IdPolicyRemint {
     doc /*
-      id_policy=remint: engine SHALL mint NEW ids for conflicts; lead old
-      rows stay; edge src/dist retarget via id map. Non-conflict ids kept.
+      id_policy=remint leftover: 0.9 invented store MAY mint NEW / by_id
+      for conflicts; lead old rows stay; edges retarget. TARGET: no NEW
+      mint law; the graph element is identity; optional nickname only.
+      leftoverInventedMint=true. Not TARGET store-key law.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
     attribute idPolicy : String = "remint";
+    attribute leftoverInventedMint : Boolean = true;
+    attribute leftoverIssue : String = "NEW-by_id";
     part allocator : IdAllocator;
   }
 

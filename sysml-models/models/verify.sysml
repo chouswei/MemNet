@@ -435,7 +435,8 @@ package MemNetVerification {
       requireAnchorId=false; createRequiresId=false; idFirstRequired=false;
       IdAllocator.implemented=false. Honesty leftover: leftoverByIdIndex
       (invented 0.9 store), leftoverRequireAnchor, leftoverIdFirst,
-      leftoverNewMint. liveNeo4jClaimed stays false. elementId off-wire.
+      leftoverNewMint. Honesty also leftoverIngestIdRule (ingest is not
+      an id-mint law). liveNeo4jClaimed stays false. elementId off-wire.
       No IdentityHandle nest — thinner flags on RecallCommit.
     */
     attribute verificationId : String = "MN-VER-02-S01";
@@ -470,6 +471,10 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.leftoverNewMint == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.ingestIsIdRule == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.leftoverIngestIdRule == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.allocator.implemented == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.allocator.leftoverAsIsEngine == true
@@ -482,6 +487,9 @@ package MemNetVerification {
           and system.durable.mergeIsPerWriteLookup == true
           and system.durable.noReplacementStoreKey == true
           and system.durable.liveNeo4jClaimed == false
+          and system.pinMaps.interface.leftoverLocatorMint == true
+          and system.multitask.coordinator.importReceive.absorb.idPolicy
+            .remint.leftoverInventedMint == true
       }
     }
   }

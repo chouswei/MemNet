@@ -893,14 +893,14 @@ package MemNetRequirements {
 
       requirement def MN_REQ_11_16_PinIngestDeterministicIds {
         doc /*
-          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL assign
-          MemNet ids from deterministic locator keys derived from the source,
-          or an engine key with required locator fields (loc, path, refdes,
-          net, pin, qname, skill_id, and similar). The live pin map SHALL emit those
-          ground ids and locator fields for copy. Pin-map ingest SHALL NOT
-          accept client NEW for source elements. LLM NEW remains only for
-          goldfish-authored memory facts that do not yet exist in the net
-          (annotations), not for re-creating schematic or source pins.
+          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL Commit
+          create of graph elements from the source. Locators (path, refdes,
+          net, pin, qname, skill_id, and similar) SHALL be properties on
+          those elements -- not identity and not a store key. TARGET SHALL
+          NOT require ground ids. Optional nickname id MAY be emitted when
+          present. Locator-as-PK / allocate_from_locator is leftover 0.9
+          invented store (by_id), not this TARGET. Pin-map ingest SHALL NOT
+          treat leftover NEW mint as TARGET law for source elements.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
@@ -1046,11 +1046,12 @@ package MemNetRequirements {
           no ImportAbsorb. Path B (separate sessions): lead SHALL
           ImportAbsorb a bounded WorkingMemorySlice under owner-gated
           id_policy keep | reject | remint:
-            keep = MERGE-by-id upsert into lead SSOT (not append / not a
-              second copy);
-            reject = id_conflict, no lead mutate;
-            remint = mint NEW ids for conflicts; lead old rows stay; edges
-              retarget.
+            keep = MERGE as a per-write lookup of labels+props / rel
+              type+ends into lead SSOT (not append / not a second copy;
+              not MERGE-by-id as a store key);
+            reject = conflict, no lead mutate;
+            remint = leftover invented mint (NEW / by_id) for conflicts;
+              lead old rows stay; edges retarget -- not TARGET law.
           Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
           TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
