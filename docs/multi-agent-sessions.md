@@ -1,4 +1,4 @@
-# Multitask operating model (as-is 0.4.x)
+# Multitask operating model (as-is 0.8)
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
 **Product shape:** [`SHAPE.md`](SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
@@ -89,7 +89,7 @@ use `require_bind=true` and enforce the bind.
 - Settle parent-owned `TSK_*` / `USR_*` unless explicitly delegated.
 - Poll, block, or expect the parent to await inline completion.
 
-## Parallel workers (0.4.x)
+## Parallel workers (0.8)
 
 **RSV** is shipped (`reserve` / `extend` / `release`). The shipped CapsPolicy ACL rejects
 unauthorised or out-of-scope calls when session ACL is enabled. Prefer an RSV lease
@@ -111,7 +111,7 @@ when scopes may overlap:
 | In-process MCP under Multitask | Each process gets its own graph |
 | Parent polls or re-runs worker investigation | Wastes tokens; violates Multitask turn boundary |
 | Worker mints duplicate `TSK_*` | Parent owns task lifecycle |
-| Teaching full ACL modes/token as available | Full private/shared/open + session_token modes are not enforced in 0.4.x; CapsPolicy ACL ships when enabled; RSV + Path-B ingest domains are shipped |
+| Teaching full ACL modes/token as available | Full private/shared/open + session_token modes are not enforced; CapsPolicy ACL ships when enabled; RSV + Path-B ingest domains are shipped |
 | Parallel workers on same anchor | Last-write-wins; silent clobber |
 
 ## Honesty (do not assume the to-be row)

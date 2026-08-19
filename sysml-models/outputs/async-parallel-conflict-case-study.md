@@ -18,7 +18,7 @@ Doctrine: `docs/multi-agent-sessions.md`.
 | Requirements | MN-REQ-12.5, 12.6, 12.12 (also 12.3 / 12.4) |
 | Verify | MN-VER-12-S13 (happy + anti); S05 / S06 / S07 |
 
-**doctrineAsIs:** engine 0.4.x does **not** enforce `WorkerWriteScope` (last-write-wins if violated).
+**doctrineAsIs:** CapsPolicy **hard-rejects** out-of-scope mutate when session ACL is enabled. ACL is off by default. Overlap without ACL/RSV is last-write-wins.
 
 ## 2. Happy path - two workers, disjoint anchors
 
@@ -85,7 +85,7 @@ sequenceDiagram
 | MUST NOT | Parallel dual-write on overlapping `WorkerWriteScope` |
 | Prefer | One worker, serial dispatch, or disjoint / separate sessions |
 | Model signal | `EvOverlapScopeForbidden` from `parentPreparing` |
-| If violated (0.4.x) | CapsPolicy ACL hard-rejects out-of-scope mutate when session ACL is enabled; reserve still not shipped — do not claim reserve |
+| If violated | CapsPolicy ACL hard-rejects out-of-scope mutate when session ACL is enabled; prefer an **RSV** lease on overlap |
 
 ### Contrast
 

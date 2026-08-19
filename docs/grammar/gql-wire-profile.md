@@ -1,4 +1,4 @@
-# GQL wire profile (MemNet 1.x agent teach)
+# GQL wire profile (MemNet agent teach)
 
 **Status:** **M2 shipped** (engine/MCP GQL accept + shaped `pin_map` emit). **M1 SSOT** for conventions remains this file.  
 **Audience:** product developers; M2.5 durable-store authors; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
@@ -150,7 +150,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 
 **MUST**
 
-- Teach **GQL only** as the 1.x agent wire: **node** (vertex), **edge** (relationship), **property**.
+- Teach **GQL only** as the agent wire: **node** (vertex), **edge** (relationship), **property**.
 - Use **`pin_map`-class** reads with anchor (+ depth / view / max_rows).
 - Emit **shaped subgraph** for primary agent read (same family as mutate).
 - Mint with **`NEW`**; copy assigned ids thereafter.
@@ -163,7 +163,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.
 - Dual-teach two agent dialects.
 - Delete mission budgets (sessions, view, Multitask owner) in favour of raw store access.
-- Ship AgensGraph sync as required for **M1/M2** wire (sync = **M2.5**; plan only until then).
+- Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI).
 - Teach full GQL DDL as agent surface in first cut.
 
 ---
@@ -201,21 +201,21 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 | Era | Meaning |
 |-----|---------|
-| **1.x (this profile)** | Agent **reads** shaped openCypher-family graph lines and **writes** the same family under gates. |
+| **This profile (0.8 teach)** | Agent **reads** shaped openCypher-family graph lines and **writes** the same family under gates. |
 | **Out** | “Whatever `RETURN` produced” as the teach surface. |
 
 ---
 
 ## 6. Boundary vs M2 / M2.5 / M3 / archive
 
-**Order:** M1 → M2 → **M2.5** → M3. Durable store adapter is **next after M2** (user promotion 2026-08-13).
+**Order (done):** M1 → M2 → **M2.5** → M3. Next SemVer is **1.0 = claim** of 0.5–0.8, not a new M-phase.
 
 | Phase | Owns | This file does **not** |
 |-------|------|-------------------------|
-| **M1 (this)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
+| **M1 (done)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach |
-| **M3** | In-repo `LLM-GUIDE` full playbook + application-notes body rewrite to GQL examples | — |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner) — [`agensgraph-buffer.md`](agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
+| **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer `.g4` / fixtures under [`archive/`](archive/) | Not an accept path; not CI teach |
 

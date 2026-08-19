@@ -1,6 +1,6 @@
 # LLM software development
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** Multi-turn coding in Cursor — task scope, verified symbol locators, user constraints, and open decisions in MemNet so the agent can **`pin_map`** a small slice each turn without stuffing paths into chat.
 
@@ -70,7 +70,9 @@ flowchart LR
 
 ## 3. The 6-step coding goldfish loop
 
-1. **Read** — `pin_map(anchor=<TSK or SYM>, depth=2)` (optional `view=shell`).
+Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-process MCP only for a **single** agent.
+
+1. **Read** — cue the live `TSK` (known id, `read_list`, or `find`); then `pin_map(anchor=<TSK or SYM>, depth=2)` (optional `view=shell`).
 2. **Verify** — grep or LSP on disk; never trust stale `SYM.line` without re-check when editing.
 3. **Edit** — change source files; code lives in git, not the graph.
 4. **Capture** — user constraints → `USR`; open forks → `DEC`.
@@ -123,7 +125,7 @@ Engine `LAW01`… rows may still appear on `pin_map` from the session seed — t
 ## 6. MCP turn sketch
 
 ```text
-pin_map(anchor="TSK_mcp_session_load", depth=2)
+pin_map(anchor="TSK_mcp_session_load", depth=2, session=sid)
 add(wire_lines=[
   "CREATE (s:SYM {id:'SYM_mcp_session_load', name:'session_load', kind:'fn', path:'parts/memnet-mcp/software/memnet_mcp/server.py', line:100, signature:'async def session_load(...)', status:'active'})",
   "MATCH (a:SYM {id:'SYM_mcp_session_load'}), (b:SYM {id:'SYM_cli_session_load'}) CREATE (a)-[:implements {id:'NEW', note:'wraps_cli'}]->(b)",

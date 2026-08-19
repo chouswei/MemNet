@@ -1,7 +1,7 @@
 # Field formulas (design)
 
-> **Not primary 1.x teach.** Prefer **law on node** + GQL relationships per [`gql-wire-profile.md`](gql-wire-profile.md).  
-> This doc is historical formula-as-EDGE design; do **not** dual-teach with GQL wire.
+> **Not primary agent teach.** Prefer **law on node** + GQL relationships per [`gql-wire-profile.md`](gql-wire-profile.md).  
+> This doc is historical formula-as-EDGE design; do **not** dual-teach with GQL wire. Former Layer ontology: [`archive/docs/memnet-multi-layer.md`](archive/docs/memnet-multi-layer.md).
 
 **Status:** design only — **no expression engine** in 0.3.6+.  
 **Scope:** domain-agnostic formula relations (`derives` / `feeds`, …) for **any** domain.  

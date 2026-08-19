@@ -79,7 +79,7 @@ live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> slice X̃
 3. **Seed set, not a ranker** — \(|Q|\le L\); union \(k\)-hop under **one** \(M\). Steal PyG `NeighborLoader` seed batch \(B\); keep deterministic fan-out clamp (not GraphSAGE random sample). MUST NOT copy Path-B \(M\times|\mathrm{anchors}|\). MUST NOT RRF slices (Graphiti `EDGE_HYBRID_SEARCH_NODE_DISTANCE` still hybrid-first).
 4. **Sparse \(\Delta\)** — mint/update only what changed. Steal Graphiti `add_episode` *incremental* write; HiAgent **replace** finished subgoal (settle + `delete_on_settle`). Reject Letta rewrite of the whole core block; reject echoing the fetched slice (`id_exists`).
 
-**Pin the topics, then fetch slices.** Topic tokens are already on the graph. Empty topic cue ⇒ skip / grep / host Snap. Engine today: one `anchor` per `pin_map` — default **one** call on the live `TSK`; a second shell call only when blocked.
+**Pin the topics, then fetch slices.** Topic tokens are already on the graph. Empty topic cue ⇒ skip / grep / host Snap. Default **one** call on the live `TSK`; optional extra `anchors` union under one \(M\) (0.5); a second shell call only when blocked.
 
 **Writeback is Commit, not Absorb.** Colloquial “the session absorbs the new slice” = MutateGate in the *current* session. Product **absorb** stays Path-B only (`ImportAbsorb` + member `WorkingMemorySlice` + `id_policy`). Goldfish \(\Delta\) MUST NOT travel `WorkingMemorySliceExport` / ImportGuard unless this turn *is* Multitask Path-B.
 
@@ -94,7 +94,7 @@ live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> slice X̃
 | **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); pin live `TSK` first. |
 | **Local degree peak** (deferred, last) | Typed residual local max of \(\rho^\*\), then ego hop. Not raw `contains`-tree degree. |
 
-Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (retire-from-wheel leftover; `layer.py` not deleted in this PR).
+Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (archive only; `layer.py` not deleted in this docs PR).
 
 Orthodox = these names as a **base to build from** (rate, codebook, \(k\)-hop, skip, same alphabet, sparse \(\Delta\), two budgets). **All** examination and test is paradox — [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md). Do **not** train an IB or Steiner solver because a name appears here. Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 

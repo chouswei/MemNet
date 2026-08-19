@@ -1,6 +1,6 @@
 # LLM SysML v2 modeling
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md). Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md). Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
 
 **Single-file application example.** Drive a long-form SysML v2 textual modeling session where session memory lives in MemNet, following `sysml-memnet-documentation` (user pack) and its 6-step snap loop.
 
@@ -30,9 +30,11 @@ A piece of background is pulled into context only when a relationship from the l
 
 ## 2. The 6-step pipeline
 
+Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent; Multitask uses TCP/HTTP.
+
 1. **`serve_status`** (if TCP/shared; skip under in-process default) — if down, edit `.sysml` only and note stale graph.
-2. **`pin_map(anchor=TSK_model_<short>, depth=2)`** — smallest useful anchor. Never rely on prior chat or full-file reads.
-3. **Locate then edit** — from warm/`SYM` → narrow Read/grep → edit `.sysml`.
+2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map(anchor=…, depth=2)`**. Never rely on prior chat or full-file reads.
+3. **Locate then edit** — from `SYM` → narrow Read/grep → edit `.sysml`.
 4. **Validate** — `mcp-sysml-v2 validate` until clean.
 5. **Doc sync (conditional)** — `sysml-view-doc-sync` if `outputs/` changed.
 6. **Delta write + locator refresh** — gated GQL `add`/`update` affected atoms; refresh `SYM.line`; settle transients.

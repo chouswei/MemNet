@@ -6,15 +6,16 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11.
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.8.0**. **PyPI is still `memnet-llm==0.4.6`** — `pip install memnet-llm` does **not** yet fetch 0.8. Prefer a git checkout / editable install until 0.8 is published.
 
 ## Install + quick CLI
 
 ```bash
-pip install memnet-llm
-# optional: pip install 'memnet-llm[mcp]'
+# Until 0.8 is on PyPI, install from this repo (editable) rather than claiming pip 0.8:
+pip install -e ".[mcp]"
+# PyPI lag: `pip install memnet-llm` currently resolves 0.4.6, not 0.8.0.
 # optional durable client (psycopg only — not an AgensGraph server):
-# pip install 'memnet-llm[agensgraph]'
+# pip install -e ".[agensgraph]"
 ```
 
 CLI needs a serve process. Prefer local IPC; TCP is the fallback.

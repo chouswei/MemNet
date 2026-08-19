@@ -65,7 +65,7 @@ The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. Detail
 | Global themes over a **static corpus** | Microsoft GraphRAG Leiden + community-report map-reduce | Host only |
 | Incremental **document** Q&A | LightRAG dual-level / RAGFlow chunks | Host locators |
 | Cross-session **LTM** (facts expire) | Graphiti / Letta archival | Cabinet / host, not goldfish |
-| Mission **session** working memory | — | `pin_map` + leftover #73 |
+| Mission **session** working memory | — | `pin_map` + shipped #73 `find` (seed-only) |
 
 If the graph becomes the library, it has left this role.
 
@@ -82,9 +82,9 @@ session scope
 
 Serial, not fused. A hit becomes the ego; then the neighbourhood is the reconstruct. Empty cue → skip / grep / host — not a second ranker.
 
-**Pin topics, then fetch slices.** Prefer **one** `pin_map` on the live `TSK`. Extra topics: at most one `view=shell` survey, then interior on the task — not \(N\) serial full maps (duplicate LAW / overlap). Seed set \(|Q|\le L\) unions under **one** \(M\) (design; engine is still one `anchor`). Goldfish then emits a **sparse** \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb. Do **not** echo the fetched slice.
+**Pin topics, then fetch slices.** Prefer **one** `pin_map` on the live `TSK`. Extra topics: at most one `view=shell` survey, then interior on the task — not \(N\) serial full maps (duplicate LAW / overlap). Seed set \(|Q|\le L\) unions under **one** \(M\) (0.5 multi-ego `pin_map`). Goldfish then emits a **sparse** \(\Delta\) (`add`/`update`); the session takes it via **Commit**. Do **not** call that Absorb. Do **not** echo the fetched slice.
 
-**New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, leftover #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
+**New work already in the session.** Find the id (`read_list(tag=TSK, active_only=True)`, hub `:owns`/`:next`, `find` / #73, or a known id) then `pin_map`. Isolated `TSK` ⇒ LAW + that node only — Commit edges if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** peaks. Host RAG **snaps topics** in the corpus; `pin_map` **shapes** the neighbourhood.
 
 Graph-memory products often **run lexical, vector, and BFS in parallel and fuse ranks** (Graphiti RRF). That is a **corpus hybrid**. Goldfish stays **cue then walk**: encoding specificity (the token must already be on the pin) plus ecphory (bounded reconstruct). HippoRAG is serial too, but the walk is Personalized PageRank over an OpenIE graph seeded by fact embeddings — that is **host RAG**, not `pin_map`.
 

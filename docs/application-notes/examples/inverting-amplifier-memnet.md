@@ -1,6 +1,6 @@
 # Inverting amplifier — math SSOT (+ retired Layer encoding)
 
-> **Wire teach (1.x):** **GQL only** — [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) and [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
+> **Wire teach (product 0.8):** **GQL only** — [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) and [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).  
 > **This file:** closed-loop transfer **math derivation** remains SSOT for §§1–2. The Layer ASCII encoding below is **retired historical** (not agent wire). Do **not** teach Layer / Tier A.
 
 Derive the closed-loop transfer **A(s)** from Ohm, KCL, and a **finite** open-loop gain **a(s)**; take the ideal limit **only at the end**. MemNet **states** stamps and results; it does **not** solve them.
@@ -175,7 +175,7 @@ CLI: `memnet query pin-map --anchor CST_A`.
 
 ## 6. Retired Tier A / Layer (archive only)
 
-Flat CMP/PIN/NET + self-loop `derives` and Layer ASCII are **not** product accept or teach. Quarantine: [`../../grammar/archive/`](../../grammar/archive/). **1.x wire:** [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md).
+Flat CMP/PIN/NET + self-loop `derives` and Layer ASCII are **not** product accept or teach. Quarantine: [`../../grammar/archive/`](../../grammar/archive/). **Product wire:** [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md).
 
 ---
 

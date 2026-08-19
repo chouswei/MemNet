@@ -1,11 +1,11 @@
 # MemNet grammar design
 
-> **Not 1.x agent teach.** Agent wire SSOT: [`gql-wire-profile.md`](gql-wire-profile.md) (**GQL only**).  
-> This file documents the **as-is** line-codec / harness (`tier_a` package names) until **M2** retires that path. Do **not** teach Tier A / Layer as wire.
+> **Not agent teach.** Agent wire SSOT: [`gql-wire-profile.md`](gql-wire-profile.md) (**GQL only**).  
+> This file documents the **as-is** line-codec / harness (`tier_a` package names). Default mutate **rejects** Layer/Tier A (**M2 done**). Do **not** teach Tier A / Layer as wire.
 
 **Status:** as-is harness / historical design (not GQL teach SSOT)  
-**Audience:** codec owners migrating to M2  
-**Aligns with:** MN-REQ-00, MN-REQ-02, MN-REQ-08, MN-REQ-09, MN-REQ-10, MN-REQ-11 (as implemented in 0.4.x)  
+**Audience:** codec owners (archive/tests; product accept is GQL)  
+**Aligns with:** MN-REQ-00, MN-REQ-02, MN-REQ-08, MN-REQ-09, MN-REQ-10, MN-REQ-11 (engine as-is)  
 **Lineage:** legacy line dialect + `@TAG` pipe (import-once)  
 **British English.** Paths ASCII.
 

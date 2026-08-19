@@ -20,12 +20,12 @@ Novel-writer is out of scope.
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
    MutateGate, PinMapShapedRead, and SessionHandoffEmit consult.
    `engineAclShipped=true`; ACL is enabled per session and off by default.
-   Reserve/ingest and full ACL modes remain deferred (MN-REQ-12.7).
+   Reserve + Path-B ingest are **shipped**; full ACL modes remain deferred (MN-REQ-12.7).
 
-**Sequence:** M1 → M2 → **M2.5** → M3.
+**Sequence:** M1 → M2 → **M2.5** → M3 — **all done** (0.8 teach; 0.7 cabinet). **1.0** = claim.
 
 **Primary codec:** `GqlCodec` (**M2 shipped**) — dialect authority openCypher CIP tree + oC9 baseline + ISO GQL; MemNet-gated pin_map/mutate subset. As-is TierA codecs **retired** from product accept (archive/tests only).
-**Composer:** `PinMapShapedRead` under `Recall` / `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is modelled (`implemented=false`; leftover #73) — not shipped; do not teach MATCH…RETURN as goldfish. Parent nest `RecallCommit` = two operators (Recall + Commit). Math: [`../../docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).
+**Composer:** `PinMapShapedRead` under `Recall` / `AgentShapedRead` (as-is `PinMapComposer` / `query pin-map`) — shaped GQL subgraph emit. Sibling `BoundedMatchFind` is **shipped** (`implemented=true`; #73 seed-only `find`) — then `pin_map`; do not teach MATCH…RETURN as goldfish. Parent nest `RecallCommit` = two operators (Recall + Commit). Math: [`../../docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).
 **Dialect authority:** see [`../../docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) (External dialect authority) and ADR-001.
 
 ## Application patterns (not second products)
@@ -63,7 +63,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
 │   │   │     ├── GqlCodec / GraphStore / RecallCommit
 │   │   │     │     Recall / AgentShapedRead /
-│   │   │     │     PinMapShapedRead (shipped) / BoundedMatchFind (not shipped #73)
+│   │   │     │     PinMapShapedRead (shipped) / BoundedMatchFind (shipped #73 seed-only)
 │   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease)
 │   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
 │   │   ├── LocalIpcGateway
@@ -95,7 +95,7 @@ HostSearchBridge / EvidenceCentre / CompanyMemory  // APPLICATION — MUST NOT n
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
 **Path B:** export slice → optional `ImportGuard` nest → `ImportAbsorb` (`keep`|`reject`|`remint`) into lead session. Hook (#49) + cheap LLM (#63) are separate; both soft-only.
 
-**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). **As-is:** CapsPolicy hard-rejects out-of-scope mutate when session ACL is enabled. Overlap coordination still follows host doctrine because no neighbourhood reserve is shipped.
+**Async parallel:** disjoint `WorkerWriteScope` or separate sessions; `EvEndCoordinatorTurn`; host-driven `EvWorkerReturn` (MN-REQ-12.12). **As-is:** CapsPolicy hard-rejects out-of-scope mutate when session ACL is enabled. Overlap: serialise or take an **RSV** lease (RSV shipped).
 
 ## CapsPolicy ACL (TARGET vs as-is)
 
@@ -115,7 +115,7 @@ LLM↔Neo4j/AgensGraph teach, or MemNet-as-Cypher-proxy.
 
 Engine module: `parts/common/memnet/memnet/acl.py`.
 
-| Check | TARGET | As-is 0.4.x |
+| Check | TARGET | As-is 0.8 |
 |-------|--------|-------------|
 | Size / depth / row caps | Yes | **Shipped** (`memnet.config.Caps`) |
 | Who (CallerId) | Yes — MutateGate / PinMap / HandoffEmit consult | **Shipped when session ACL is enabled** |
@@ -127,8 +127,8 @@ Engine module: `parts/common/memnet/memnet/acl.py`.
 `CapsPolicy.engineAclShipped = true` + `doctrineAsIs = false` describe the
 shipped ACL cut. ACL remains off by default; in-process MAY skip bind under
 `MEMNET_SERVE_INTERNAL`, while require-bind boundaries enforce configured
-binds. Full private/shared/open `session_token` modes, durable mission
-open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
+binds. Full private/shared/open `session_token` modes WAIT. Neighbourhood
+reserve and Path-B ingest are **shipped**.
 
 ## Behaviours
 
@@ -158,7 +158,7 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 | GqlCodec | `gql.py` / `gql_codec.py` | **Shipped (M2)** |
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
-| BoundedMatchFind | — | Modelled under Recall / AgentShapedRead (`implemented=false`; leftover #73); not engine/MCP |
+| BoundedMatchFind | `query find` / MCP `find` | Nested under Recall / AgentShapedRead (`implemented=true`; #73 seed-only; then `pin_map`) |
 | RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
@@ -178,17 +178,17 @@ open/import absorb depth, neighbourhood reserve, and Path-B ingest WAIT.
 
 - **M1:** GQL wire profile — **done**
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
-- **M2.5:** Client hydrate/flush **landed**; live external cabinet deferred ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
-- **M3:** In-repo playbook / app-note GQL rewrite (plan)
+- **M2.5:** Client + **0.7** live hydrate/flush proven; cabinet external / not vendored ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
 - ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; keep = MERGE-by-id, not append)
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
-- WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap/reserve coordination remains doctrine
-- MN-REQ-12.7 — ACL cut is shipped; neighbourhood reserve + Path-B ingest + full ACL modes WAIT
-- `LocalIpcFlow` when LocalIpcGateway is implemented
-- PinMapIngest (roadmap-only; domainVariant) deterministic locators
+- WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
+- MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
+- `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
+- PinMapIngest — all leftover domains **shipped** (#64); export/round-trip (#66) not claimed
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** — application patterns only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); design [`../../docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md))
-- BoundedMatchFind — modelled under Recall / AgentShapedRead (`implemented=false`; MN-REQ-04.6 / #73); pin_map remains default goldfish when anchored
-- RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed
+- BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed; **1.0** = claim of 0.5–0.8

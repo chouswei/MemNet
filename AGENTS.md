@@ -23,10 +23,10 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` (archive: former multi-layer Layer doc) | developers |
 | Neighbourhood reserve (RSV shipped; grammar still the design note) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
 | Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` | developers |
-| Multi-agent / Multitask (as-is 0.4.x) | `docs/multi-agent-sessions.md` | developers |
+| Multi-agent / Multitask (as-is 0.8) | `docs/multi-agent-sessions.md` | developers |
 | Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` | applications |
 | MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` | — |
-| Agent playbook (0.4.x) | `docs/LLM-GUIDE.md` | developers |
+| Agent playbook (0.8) | `docs/LLM-GUIDE.md` | developers |
 | Domain worked examples | `docs/application-notes/` (schematic; nodal note *applies* formula grammar to circuits) | applications |
 | Core library | `parts/common/memnet/` | — |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` | — |

@@ -1,12 +1,12 @@
 # LLM MUD
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Multiplayer text MUD backed by MemNet — not part of the engine. Sample world: Lewis Carroll's *Alice's Adventures in Wonderland* (1865, public domain).
 
 **Teach:** openCypher-shaped GQL; room exits / containment as `:exit` / `:contains` / `:located` (relation grain). **`pin_map`** from the player's current `ROM`. Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
-**MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). Warm stays small if you anchor on the current room.
+**MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). Cue the current `ROM` then `pin_map`. Shared graph **requires** serve or streamable-http — not default in-process.
 
 | Side | Job | LLM? |
 |------|-----|------|
@@ -122,8 +122,10 @@ MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {id:'N
 
 ## 6. Agent loop
 
-1. Server: `pin_map` active rooms; apply tick rules; gated GQL `add`/`update` deltas.
-2. Client: `pin_map` player `ROM` / `CHR`; LLM prose only.
+Cue then `pin_map` (MCP arg **`session`**). Shared world = TCP / HTTP, not in-process.
+
+1. Server: cue active rooms; `pin_map`; apply tick rules; gated GQL `add`/`update` deltas.
+2. Client: cue player `ROM` / `CHR`; `pin_map`; LLM prose only.
 3. Settle beats (`recycle=delete_on_settle`) when done.
 4. Never put room descriptions in `ROM` properties.
 
