@@ -259,5 +259,5 @@ pytest -m neo4j_live
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
 | [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | What those retrieve functions actually compute |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Design proposal: two ports on one Neo4j (cabinet vs library Snap) |
+| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Design proposal: two haystacks; two ports on one Neo4j (cabinet vs library Snap) |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |
