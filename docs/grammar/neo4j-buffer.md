@@ -32,6 +32,50 @@ Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) 
 
 ---
 
+## Key features on both sides
+
+Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapComposer`, `MutateGate`, `DurableSyncOwner` / `SessionLifecycle` ports, `Neo4jAdapter`. Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Math: [`math-skeleton.md`](math-skeleton.md).
+
+### MemNet (near side — working memory)
+
+| Mechanism | Key features |
+|-----------|----------------|
+| **Session \(S\)** | Named in-process labelled property graph (`GraphStore` + SCHEMA `TagMap`). Handle = **session id**. Handoff = that id (+ anchors / write scope); peers re-`pin_map`. Chat is never SSOT. |
+| **Record** | `tag` + string `fields`. Canonical key `id`. Nodes are kinds (`TSK`, `MOD`, …). Edges are reified `EDG` rows with `src`, `dist`, `relation`. Law lives on a **node** (`LAW` / `law` property), not on a relationship. |
+| **Recall \(\mathrm{Recall}(q)\)** | Serial **cue then neighbourhood**. Known id → `pin_map(anchor, depth, view, max_rows)`. Kind / locator / keyword → `find` (seed nodes, hard LIMIT) then `pin_map`. Empty seed → skip. Emit **shaped GQL subgraph** (Write = display), not tabular `RETURN`. Views: `shell` (soft ≤8 NODE / ≤12 EDGE) / `interior`. Hide recycled. |
+| **Commit \(\mathrm{Commit}(\Delta)\)** | `MutateGate`: gated openCypher-shaped GQL → `NEW` mint (`IdAllocator`) → SCHEMA validate → upsert. Agents copy minted ids. Path-B ingest uses locator ground ids (no client `NEW`). |
+| **Caps / ACL** | Size/depth/row caps always. When session ACL is on: who / TRAVERSE=`pin_map` vs WRITE=`mutate` / `WorkerWriteScope`. RSV is a **lease** under Commit, not a third API. |
+| **Hydrate into \(S\)** | `DurableSyncOwner.hydrate_into_session`: exclusive lock, `store.upsert` nodes then edges (`all_records`), `allow_new_relation=True`. Budget `HydrateBudget` (default depth 2, 50 nodes, 100 edges). |
+| **Flush from \(S\)** | `flush_from_session`: exclusive lock, `context_pack` ego walk (`active_only`), drop `LAW` from the cabinet payload, bound, then adapter `flush`. |
+| **One owner** | Process-wide `get_sync_owner()`. Second bind with a different adapter → `dual_sync_owner`. Agents never see Bolt. |
+
+### Neo4j (far side — durable cabinet)
+
+| Mechanism | Key features |
+|-----------|----------------|
+| **Store** | External **labelled property graph** server. Not vendored. Named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`). |
+| **Transport** | Official `neo4j` driver over **Bolt** (`bolt://` or `neo4j://`). `GraphDatabase.driver` + `driver.session(database=…)`. Extra `memnet-llm[neo4j]` is the driver only. |
+| **Query language** | **Neo4j Cypher** (not Agens SQL/openCypher mix). Variable-length path `[*0..depth]`; `labels(n)` (list); `type(rel)`; `properties(…)`; `IN $node_ids`. Ids and labels parameterised / validated (`neo4j_bad_id` / `neo4j_bad_ident`) before they reach Bolt. |
+| **Hydrate** | (1) Match ego `{id}` then undirected k-hop, `RETURN labels, properties LIMIT max_nodes`. (2) Directed `MATCH (src)-[rel]->(dst)` **only among those ids**. Map via shared `map_node_row` / `map_edge_row`: `_memnet_tag` wins, else `first_label` (Neo4j nodes may carry **many** labels; MemNet keeps **one** primary tag). Missing `id` → drop. Edge without `relation`/`type` → drop. Then `.bounded(budget)`. |
+| **Flush** | Nodes first: `MERGE (n:TAG {id: $id}) SET n += $props, n._memnet_tag = $tag`. Then edges: `MATCH` both ends by `id`, `MERGE` relationship by type (+ `id` when present), `SET r += $props`, stamp `_memnet_tag='EDG'` and `relation`. Skip nodes with empty id; skip non-`EDG` rows. |
+| **Commit grain** | Each `session.run` **auto-commits**. A later hydrate error cannot roll back a successful MERGE (0.7 Agens lesson). MemNet does **not** open a single wrapping transaction, create uniqueness constraints, or install indexes. |
+| **Unused on this seam** | Browser, `@neo4j/graphql`, procedures/APOC, GDS, vector/FTS indexes, native RBAC as agent ACL, unbounded analytic Cypher, LLM-as-resolver. Those stay operator/host — not goldfish. |
+
+### Correspondence (feature ↔ feature)
+
+| MemNet | Neo4j (on this seam) |
+|--------|----------------------|
+| SCHEMA kind / `Record.tag` | Primary node **label** + `_memnet_tag` |
+| `EDG.relation` | Relationship **type** + property `relation` |
+| `id` (minted or ground) | Property `id` on node and (when present) on relationship |
+| Other fields | Node/rel **properties** (`SET +=` map; string values) |
+| `pin_map` k-hop + `max_rows` | Hydrate `[*0..depth]` + `LIMIT` + second edge query |
+| MutateGate / `NEW` | **Not** on Neo4j — mint happens in MemNet; cabinet only MERGE known ids |
+| Session id | **Not** a Neo4j database name — new process ⇒ new session, then hydrate ego |
+| CapsPolicy TRAVERSE/WRITE | **Not** Neo4j RBAC — steal grain only |
+
+---
+
 ## Same seam, different dialect
 
 Neo4j and AgensGraph are **two cabinets**, not two products. Factory binds **one** adapter. Dual-write is an error unless `MEMNET_DURABLE_BACKEND` picks one.
