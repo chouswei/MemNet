@@ -20,7 +20,7 @@ Same ABC as AgensGraph: `DurableStoreAdapter.hydrate` / `flush` (`memnet/durable
 
 ```bash
 # Client driver only (does not install a Neo4j server):
-# Until 0.8 is on PyPI, install from this repo (editable). PyPI lag: memnet-llm==0.4.6.
+# Until 0.9 is on PyPI, install from this repo (editable). PyPI lag: memnet-llm==0.4.6.
 pip install -e ".[neo4j]"
 # or: pip install 'memnet-llm[neo4j]'   # currently resolves 0.4.6 on PyPI — not this client
 
