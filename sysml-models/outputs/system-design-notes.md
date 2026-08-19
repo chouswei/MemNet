@@ -187,7 +187,7 @@ reserve and Path-B ingest are **shipped**.
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
-- RecallCommit — modelled two-operator cut (MN-REQ-13.1); SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); engine cut not claimed; **1.0** = claim of 0.5–0.8
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); CueConflict is an emit mark on find/pin_map when `|Q|>1` (`implemented=false`; not a product command); engine cut not claimed; **1.0** = claim of 0.5–0.8
 - ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append). Distinct from SameThingAbsorb (in-session collapse; SHALL NOT entity-resolve).
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
