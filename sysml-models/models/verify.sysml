@@ -621,7 +621,9 @@ package MemNetVerification {
       defaultGoldfish=false. Codebook miss only; empty q stays outline.
       ρ* not raw contains degree. Two peaks CueConflict. Not a third
       operator. operatorCount stays 2. Product liveNeo4jClaimed is true
-      (0.14; not this Peak cut). RagHostHook stays false (0.17 not this PR).
+      (0.14; not this Peak cut). Peak_L is this verification's subject,
+      not HostSearch. RagHostHook.implemented=true outside MemNetSystem
+      (0.17 law); hostSearchInsideSystem=false.
     */
     attribute verificationId : String = "MN-VER-04-S04";
 
