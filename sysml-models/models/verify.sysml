@@ -586,10 +586,12 @@ package MemNetVerification {
       MN-REQ-02.9 / MN-REQ-04.8 — cousin pointing contrast nest.
       Chosen TARGET: cue → RelativeSeed → ShapeWalk → pin_map emit.
       MUST NOT copy minted block id, vid-on-wire, unique page-name law,
-      or GraphRAG embeddings as Recall. GraphLite is cabinet not product.
-      Cue |Q|>1 stays RelativeSeed bounded + honest; no third operator.
-      operatorCount stays 2. liveNeo4jClaimed stays false. Contrast MUST
-      NOT nest under MemNetSystem.
+      unique-name MERGE as identity, content-hash ids, typed path-ids,
+      vector indexes as identity, or GraphLite as product. MAY copy
+      cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
+      RelativeSeed bounded + honest; no third operator. operatorCount
+      stays 2. liveNeo4jClaimed stays false. Contrast MUST NOT nest
+      under MemNetSystem.
     */
     attribute verificationId : String = "MN-VER-02-S02";
 
@@ -601,11 +603,18 @@ package MemNetVerification {
       require constraint {
         contrast.mustNotNestUnderMemNetSystem == true
           and contrast.productSwitchForbidden == true
+          and contrast.copyCueWithoutStoreKey == true
+          and contrast.copyNeighbourhoodEmit == true
           and contrast.mustNotCopyMintedBlockId == true
           and contrast.mustNotCopyVidOnWire == true
           and contrast.mustNotCopyUniquePageNameLaw == true
           and contrast.mustNotCopyEmbeddingsAsRecall == true
           and contrast.mustNotCopyGraphLiteAsProduct == true
+          and contrast.mustNotCopyGqlEngine == true
+          and contrast.mustNotCopyContentHashIdentity == true
+          and contrast.mustNotCopyUniqueNameMergeAsIdentity == true
+          and contrast.mustNotCopyTypedPathIdsAsAgentLanguage == true
+          and contrast.mustNotCopyVectorIndexAsIdentity == true
           and contrast.operatorCountUnchanged == 2
           and contrast.liveNeo4jClaimed == false
           and contrast.inventThirdOperatorOnAmbiguity == false
@@ -619,12 +628,27 @@ package MemNetVerification {
           and contrast.chosen.nameRequired == false
           and contrast.nl2gql.storeKeyOnWire == true
           and contrast.nl2gql.productJob == "nl2gql_translator"
+          and contrast.graphlite.storeKeyOnWire == false
+          and contrast.graphlite.patternCueByLabelAndProps == true
+          and contrast.graphlite.grammarHasMerge == false
+          and contrast.graphlite.contentHashNodeId == true
+          and contrast.graphlite.docsPointWithIdFunction == false
           and contrast.graphlite.productJob == "embedded_graph_store"
           and contrast.graphlite.productSwapForbidden == true
           and contrast.graphlite.sessionVsVault == "durable_cabinet"
-          and contrast.textToSqlGraphRag.embeddingsAsRecallOperator == true
+          and contrast.textToSqlGraphRag.storeKeyOnWire == false
+          and contrast.textToSqlGraphRag.requiredUniqueName == true
+          and contrast.textToSqlGraphRag.mergeByUniqueName == true
+          and contrast.textToSqlGraphRag.retrieverReturnsName == true
+          and contrast.textToSqlGraphRag.elementIdWritebackOnly == true
           and contrast.textToSqlGraphRag.mustNotCopy == true
-          and contrast.graphify.storeKeyOnWire == true
+          and contrast.graphify.storeKeyOnWire == false
+          and contrast.graphify.humanCueByLabel == true
+          and contrast.graphify.neighbourhoodEmitLikePinMap == true
+          and contrast.graphify.gqlOnAgentPath == false
+          and contrast.understandAnything.storeKeyOnWire == false
+          and contrast.understandAnything.cueIsNameText == true
+          and contrast.understandAnything.typedCompositeStoreId == true
           and contrast.understandAnything.ingestThenGraphThenQuery == true
           and contrast.understandAnything.goldfishPinMapEmit == false
           and contrast.logseq.requiredUniqueName == true

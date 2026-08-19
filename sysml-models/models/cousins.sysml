@@ -68,83 +68,121 @@ package MemNetCousinContrast {
 
   part def CousinGraphLite {
     doc /*
-      GraphLite-AI/GraphLite: embeddable ISO GQL store (SQLite-shaped,
-      Sled, OpenGQL grammar). Cabinet/engine cousin — DurableStore-like
-      alternative, NOT MemNet's agent API. INSERT (:Person {name: …})
-      and MATCH by labels+properties (docs/Getting Started With GQL.md).
-      Internal node identity exists for set ops
-      (graphlite/tests/identity_based_set_ops_test.rs;
-      insert_node_identifier_regression_test). SHALL NOT swap MemNet
-      product for GraphLite. Cite: README.md; docs/Getting Started With
-      GQL.md.
+      GraphLite-AI/GraphLite (default main): embeddable ISO-GQL store,
+      not a memory product. Pointing is GQL pattern cue by label+properties.
+      docs/Getting Started With GQL.md: INSERT (:Person {name: 'Alice
+      Johnson'}) then MATCH the same pattern. Grammar has no MERGE; CREATE
+      is catalog-only (SCHEMA/GRAPH). Data verb is INSERT. Optional ID()
+      exists in graphlite/src/functions/graph_functions.rs but docs never
+      point with it. Engine mints content-hash ids
+      (generate_node_content_id → node_{:x} from sorted labels+all props)
+      in graphlite/src/exec/write_engine/operations/insert.rs. Storage key
+      node:{node_id} in Architecture.md. Session is auth + SESSION SET
+      GRAPH, not the graph. Cabinet/store cousin only. MUST NOT copy: GQL
+      engine, content-hash-of-entire-property-map as identity, SQLite-clone
+      product job.
     */
     attribute storeKeyOnWire : Boolean = false;
     attribute requiredUniqueName : Boolean = false;
     attribute sessionVsVault : String = "durable_cabinet";
     attribute queryLanguage : String = "iso_gql";
     attribute productJob : String = "embedded_graph_store";
+    attribute patternCueByLabelAndProps : Boolean = true;
+    attribute dataVerbIsInsert : Boolean = true;
+    attribute grammarHasMerge : Boolean = false;
+    attribute createIsCatalogOnly : Boolean = true;
+    attribute docsPointWithIdFunction : Boolean = false;
+    attribute contentHashNodeId : Boolean = true;
+    attribute sessionIsAuthPlusGraphContext : Boolean = true;
     attribute productSwapForbidden : Boolean = true;
+    attribute mustNotCopyGqlEngine : Boolean = true;
+    attribute mustNotCopyContentHashIdentity : Boolean = true;
+    attribute mustNotCopySqliteCloneJob : Boolean = true;
     attribute mustNotCopyAsAgentApi : Boolean = true;
   }
 
   part def CousinTextToSqlGraphRag {
     doc /*
-      kennethleungty/Text-to-SQL-with-KG-Neo4j-GraphRAG: GraphRAG + SQL
-      over Neo4j. Warehouse RAG (embeddings + graph). Notebook keys
-      Table nodes with elementId(t) AS node_id and WHERE elementId(t) =
-      $node_id when writing embeddings
-      (notebooks/graph_build_and_query_20250521.ipynb). Not a session
-      goldfish. Embeddings SHALL NOT become the Recall operator.
-      Cite: README.md; notebooks/graph_build_and_query_20250521.ipynb.
+      kennethleungty/Text-to-SQL-with-KG-Neo4j-GraphRAG (main): schema KG
+      for Text-to-SQL. MERGE by unique name (MERGE (t:Table {name: $name})).
+      elementId only to write embeddings back
+      (notebooks/graph_build_and_query_20250521.ipynb). Retriever returns
+      node.name, never elementId. Required unique name for Table/Concept.
+      Persistent Neo4j. Not session goldfish. MUST NOT copy: unique-name
+      MERGE as universal identity, vector/fulltext as pointing, elementId
+      writeback. Cite: README.md; notebooks/graph_build_and_query_20250521.ipynb.
     */
-    attribute storeKeyOnWire : Boolean = true;
-    attribute requiredUniqueName : Boolean = false;
+    attribute storeKeyOnWire : Boolean = false;
+    attribute requiredUniqueName : Boolean = true;
     attribute sessionVsVault : String = "warehouse";
     attribute queryLanguage : String = "cypher_plus_sql";
     attribute productJob : String = "warehouse_graphrag";
+    attribute mergeByUniqueName : Boolean = true;
+    attribute retrieverReturnsName : Boolean = true;
+    attribute elementIdWritebackOnly : Boolean = true;
     attribute embeddingsAsRecallOperator : Boolean = true;
+    attribute mustNotCopyUniqueNameMergeAsIdentity : Boolean = true;
+    attribute mustNotCopyVectorFulltextAsPointing : Boolean = true;
+    attribute mustNotCopyElementIdWriteback : Boolean = true;
     attribute mustNotCopy : Boolean = true;
   }
 
   part def CousinGraphify {
     doc /*
-      Graphify-Labs/graphify: corpus map you query instead of grepping.
-      graph.json (NetworkX node-link) nodes carry id (stable identifier)
-      and label (human-readable name); edges source/target are those ids
-      (docs/how-it-works.md). Human CLI often points by label
-      (README: graphify explain "APIRouter"). Not a session goldfish;
-      not GQL-only pin_map emit. graph.json id SHALL NOT become MemNet
-      agent store-key law. Cite: README.md; docs/how-it-works.md.
+      Graphify-Labs/graphify (default v8): code/docs → graphify-out/graph.json.
+      Agent points by human label (graphify explain "APIRouter"). Query:
+      match G.nodes[n].label by case-folded substring + IDF, start 1-3
+      nodes, BFS depth-3 / DFS neighbourhood
+      (graphify/skills/claude/references/query.md). Store id is a slug
+      (graphify/ids.py). No GQL on the agent path (NetworkX). Persistent
+      vault. Agent loop is cue-by-label then emit neighbourhood — same
+      shape as pin_map. MUST NOT copy: Unicode id-normalization,
+      substring/IDF as identity, Leiden, Cypher export as the query API.
+      Cite: README.md; docs/how-it-works.md; query.md; ids.py.
     */
-    attribute storeKeyOnWire : Boolean = true;
+    attribute storeKeyOnWire : Boolean = false;
     attribute requiredUniqueName : Boolean = false;
-    attribute sessionVsVault : String = "corpus_map";
-    attribute queryLanguage : String = "graphify_cli_json";
+    attribute sessionVsVault : String = "persistent_vault";
+    attribute queryLanguage : String = "networkx_label_neighbourhood";
     attribute productJob : String = "corpus_map_query";
-    attribute humanCueOftenLabel : Boolean = true;
-    attribute mustNotCopyGraphJsonIdAsLaw : Boolean = true;
+    attribute humanCueByLabel : Boolean = true;
+    attribute neighbourhoodEmitLikePinMap : Boolean = true;
+    attribute storeIdIsSlug : Boolean = true;
+    attribute gqlOnAgentPath : Boolean = false;
+    attribute mustNotCopyUnicodeIdNormalization : Boolean = true;
+    attribute mustNotCopySubstringIdfAsIdentity : Boolean = true;
+    attribute mustNotCopyLeiden : Boolean = true;
+    attribute mustNotCopyCypherExportAsQueryApi : Boolean = true;
   }
 
   part def CousinUnderstandAnything {
     doc /*
-      Egonex-AI/Understand-Anything: closest "understand a thing into a
-      graph" cousin — partial overlap only. Ingest (tree-sitter + LLM) →
-      JSON knowledge graph → dashboard / search / chat. Nodes addressed
-      by minted locator ids such as file:src/index.ts; edges .source ==
-      that id (agents/knowledge-graph-guide.md). Semantic/fuzzy search
-      is a product query, not RelativeSeed. Split: no session goldfish,
-      no GQL-only pin_map emit. Cite: README.md;
-      understand-anything-plugin/agents/knowledge-graph-guide.md.
+      Egonex-AI/Understand-Anything (main): multimodal understander +
+      persistent .ua/knowledge-graph.json. Schema requires both id and
+      name. Ids are typed composites (file:path, function:path:name) in
+      graph-builder.ts. Chat: grep name/summary/tags, note ids, then
+      1-hop edges (skills/understand-chat/SKILL.md). Query cue is
+      name/text; ids are file-format keys. Not session goldfish. Partial
+      overlap: ingest → graph → query. Split: no goldfish, no GQL-only
+      pin_map emit. MUST NOT copy: type:path:name as agent language,
+      Fuse+embeddings as TARGET, commit-the-JSON as the memory product.
+      Cite: README.md; graph-builder.ts; skills/understand-chat/SKILL.md.
     */
-    attribute storeKeyOnWire : Boolean = true;
+    attribute storeKeyOnWire : Boolean = false;
     attribute requiredUniqueName : Boolean = false;
-    attribute sessionVsVault : String = "project_understander";
+    attribute sessionVsVault : String = "persistent_json_vault";
     attribute queryLanguage : String = "json_dashboard_search";
     attribute productJob : String = "multimodal_understander";
+    attribute schemaRequiresIdAndName : Boolean = true;
+    attribute cueIsNameText : Boolean = true;
+    attribute idsAreFileFormatKeys : Boolean = true;
+    attribute typedCompositeStoreId : Boolean = true;
     attribute ingestThenGraphThenQuery : Boolean = true;
     attribute goldfishPinMapEmit : Boolean = false;
     attribute gqlOnlyWire : Boolean = false;
-    attribute mustNotCopyLocatorIdAsStoreKey : Boolean = true;
+    attribute mustNotCopyTypedPathIdAsAgentLanguage : Boolean = true;
+    attribute mustNotCopyFuseEmbeddingsAsTarget : Boolean = true;
+    attribute mustNotCopyCommitJsonAsMemoryProduct : Boolean = true;
   }
 
   part def CousinLogseq {
@@ -195,23 +233,31 @@ package MemNetCousinContrast {
   part def CousinPointingContrast {
     doc /*
       Thin contrast nest on the identity / Recall story. States chosen
-      TARGET pointing; places each cousin as an alternative. Pins what
-      MemNet MUST NOT copy. Open hard part (no third operator): a cue may
-      hit several relative roots; RelativeSeed stays bounded (LIMIT L)
-      and honest when |Q| > 1; ShapeWalk unions under one M. Cousins
-      confirm TARGET; they do not force a store-key back onto the wire.
-      GraphLite is a cabinet, not the product. Logseq pages are the
-      closest name-you-have cousin; SiYuan / NL2GQL are the leftover-id
-      path.
+      TARGET pointing; places each cousin as an alternative. TARGET
+      impact: copy cue-without-store-key and neighbourhood emit. SHALL
+      NOT copy engines, unique-name MERGE as identity, content-hash ids,
+      typed path-ids, or vector indexes as identity. Open hard part (no
+      third operator): a cue may hit several relative roots; RelativeSeed
+      stays bounded (LIMIT L) and honest when |Q| > 1. Cousins confirm
+      TARGET; they do not force a store-key back onto the wire. GraphLite
+      is a cabinet, not the product. Logseq pages are the closest
+      name-you-have cousin; SiYuan / NL2GQL are the leftover-id path.
     */
     attribute designOnly : Boolean = true;
     attribute mustNotNestUnderMemNetSystem : Boolean = true;
     attribute productSwitchForbidden : Boolean = true;
+    attribute copyCueWithoutStoreKey : Boolean = true;
+    attribute copyNeighbourhoodEmit : Boolean = true;
     attribute mustNotCopyMintedBlockId : Boolean = true;
     attribute mustNotCopyVidOnWire : Boolean = true;
     attribute mustNotCopyUniquePageNameLaw : Boolean = true;
     attribute mustNotCopyEmbeddingsAsRecall : Boolean = true;
     attribute mustNotCopyGraphLiteAsProduct : Boolean = true;
+    attribute mustNotCopyGqlEngine : Boolean = true;
+    attribute mustNotCopyContentHashIdentity : Boolean = true;
+    attribute mustNotCopyUniqueNameMergeAsIdentity : Boolean = true;
+    attribute mustNotCopyTypedPathIdsAsAgentLanguage : Boolean = true;
+    attribute mustNotCopyVectorIndexAsIdentity : Boolean = true;
     attribute operatorCountUnchanged : Integer = 2;
     attribute liveNeo4jClaimed : Boolean = false;
     attribute inventThirdOperatorOnAmbiguity : Boolean = false;

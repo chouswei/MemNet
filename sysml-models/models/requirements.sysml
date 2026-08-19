@@ -283,16 +283,18 @@ package MemNetRequirements {
         doc /*
           Cousin pointing contrast (not a product switch). SHALL keep
           GraphElement identity and TARGET cue → RelativeSeed → ShapeWalk
-          → pin_map emit. SHALL NOT copy onto the agent wire: SiYuan
-          minted block id (YYYYMMDDHHmmss-xxxxxxx / getHPathByID);
-          NL2GQL vid / id(n) / id(vertex); Logseq unique :block/name as
-          required identity law; Graphify graph.json id as store-key law;
-          Understand-Anything locator ids (file:path) as store-key law;
-          GraphRAG elementId plus embeddings as the Recall operator.
-          GraphLite SHALL remain a DurableStore-like cabinet cousin —
-          SHALL NOT replace the MemNet session-memory product. Cousins
-          confirm TARGET; they SHALL NOT force a store-key back onto the
-          wire.
+          → pin_map emit. MAY copy cue-without-store-key and neighbourhood
+          emit. SHALL NOT copy: GQL engine; content-hash-of-entire-property-map
+          as identity; SQLite-clone product job; unique-name MERGE as
+          universal identity; vector/fulltext as pointing; elementId
+          writeback; Unicode id-normalization; substring/IDF as identity;
+          Leiden; Cypher export as the query API; type:path:name as agent
+          language; Fuse+embeddings as TARGET; commit-the-JSON as the
+          memory product; SiYuan minted block id; NL2GQL vid / id(n) on
+          the query wire; Logseq unique :block/name as required identity
+          law. GraphLite SHALL remain a cabinet/store cousin — SHALL NOT
+          replace the MemNet session-memory product. Cousins confirm
+          TARGET; they SHALL NOT force a store-key back onto the wire.
         */
         attribute requirementId : String = "MN-REQ-02.9";
       }
