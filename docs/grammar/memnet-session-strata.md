@@ -117,7 +117,7 @@ The Snap is of **one model** (a load tree / root package). The sessions are **st
 
 So: **SysML layers are real; encoding them as `:contains` in one Snap session is the bug.** Multiple sessions of **one model Snap** are the encoding.
 
-`Peak_L` (0.15) stays last-resort for leftover `contains` **inside** an interior. It is not the fix for model-wide nesting.
+`Peak_L` (0.18 extra) stays last-resort for leftover `contains` **inside** an interior. It is not the fix for model-wide nesting. It is not default goldfish.
 
 **Two budgets.** Ingest `max_nodes` = Commit into **that interior**. Goldfish \(M\approx 50\) = Shape. A 193-pin requirements package in **one** interior still cannot shell the whole package under \(M\). Then split **that package** again (kind band or child package), still under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes.
 

@@ -333,6 +333,8 @@ package MemNetConnections {
       properties (locators as properties), keyword; optional nickname
       id only if already set. Empty q is legal: it is the session
       outline (census of S), not a skip and not a node seed.
+      A non-empty codebook miss MAY last-resort Peak_L (ρ*); Peak_L is
+      not empty q and not default goldfish.
       Not a store-key id, not elementId, not a prose/embedding
       sentence, not AssignedIdMap.
     */
@@ -348,7 +350,8 @@ package MemNetConnections {
   item def SeedSet {
     doc /*
       Q = MATCH_L(q, S): a set of graph elements (relative nodes).
-      Walk roots for ShapeWalk. NOT AssignedIdMap. NOT store-key ids.
+      Walk roots for ShapeWalk. On codebook miss, Q MAY be Peak_L
+      residual local maxima. NOT AssignedIdMap. NOT store-key ids.
       Empty q is not this item — that is SessionOutlineCensus.
       leftover EmptySkip remains 0.10 honesty, not TARGET.
     */
@@ -799,7 +802,7 @@ package MemNetConnections {
   }
 
   connection def CueFlow {
-    doc /* Cue q into RelativeSeed (MATCH_L). */
+    doc /* Cue q into RelativeSeed (MATCH_L; Peak_L only on codebook miss). */
     end port source : CueOutPort;
     end port sink : CueInPort;
   }

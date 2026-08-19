@@ -12,6 +12,7 @@
   BoundedMatchFind shipped seed-only (MN-VER-04-S01 / #73).
   RelativeSeed codebook tokens then ShapeWalk (MN-VER-04-S02).
   Empty-q session outline is Recall census of S (MN-VER-04-S03).
+  Peak_L last-resort residual cue (MN-VER-04-S04); never default goldfish.
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
@@ -488,6 +489,14 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.peakLDefault == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.implemented == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notAThirdOperator == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.seed.seedsAreWalkRoots == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.seed.requireStoreKeyAnchor == false
@@ -599,6 +608,82 @@ package MemNetVerification {
           and system.mcp.tools.leftoverEmptySeedSkipCommandNested == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.sameThing.implemented == false
+          and system.durable.liveNeo4jClaimed == true
+      }
+    }
+  }
+
+  verification def MN_VER_04_S04_PeakLLastResort {
+    doc /*
+      MN-REQ-04.10 — Peak_L last-resort residual cue under RelativeSeed
+      only (not a sibling under Recall / AgentShapedRead /
+      PinMapShapedRead). implemented=true (engine path).
+      defaultGoldfish=false. Codebook miss only; empty q stays outline.
+      ρ* not raw contains degree. Two peaks CueConflict. Not a third
+      operator. operatorCount stays 2. Product liveNeo4jClaimed is true
+      (0.14; not this Peak cut). RagHostHook stays false (0.17 not this PR).
+    */
+    attribute verificationId : String = "MN-VER-04-S04";
+
+    subject system : MemNetSystem;
+
+    objective peakLIsLastResortCue {
+      verify peakLLastResortReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+          .operatorCount == 2
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .hostSearchInsideSystem == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.implemented == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notAThirdOperator == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.lastResort == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.codebookMissOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.emptyQIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.residualRhoStar == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notRawContainsDegree == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notNestFix == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notDensityPeakCluster == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notLeidenFromPeaks == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.notGlobalTopKDegree == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.cueConflictOnTwoPeaks == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.absorbs == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.silentMergeByName == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peak.elementIdOnWire == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.peakLDefault == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.emptyCueIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.codebookMissOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.codebookMissOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.defaultGoldfish == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.codebookMissOnly == true
           and system.durable.liveNeo4jClaimed == true
       }
     }
@@ -1163,6 +1248,8 @@ package MemNetVerification {
     : MN_VER_04_S02_RelativeSeedWalksFromQ;
   verification sessionOutlineEmptyCueVerify
     : MN_VER_04_S03_SessionOutlineEmptyCue;
+  verification peakLLastResortVerify
+    : MN_VER_04_S04_PeakLLastResort;
   verification idNotRequiredOnWireVerify
     : MN_VER_02_S01_IdNotRequiredOnWire;
   verification cousinPointingContrastVerify

@@ -13,11 +13,12 @@ Note 13 remains the close bar for the original Neo4j / RAGFlow / Meilisearch que
 
 | Locked on `master` | Still leftover |
 |--------------------|----------------|
-| Four jobs (corpus GraphRAG / LightRAG / Letta archival / session goldfish) | `Peak_L` (typed residual, last resort) |
-| Snap (host corpus) vs Shape (`pin_map`) — MUST NOT ANN \(S\) | Multi-ego union-under-one-\(M\) as a later goldfish validate |
+| Four jobs (corpus GraphRAG / LightRAG / Letta archival / session goldfish) | Multi-ego union-under-one-\(M\) as a later goldfish validate |
+| Snap (host corpus) vs Shape (`pin_map`) — MUST NOT ANN \(S\) | |
 | Goldfish: one live `TSK` `pin_map`; optional `view=shell` survey; sparse Commit Δ | |
 | Writeback = mutate, not Path-B Absorb | |
 | `RagHostHook` locators outside `MemNetSystem` (0.17) | |
+| `Peak_L` last-resort residual cue (0.18; never default goldfish) | |
 
 MN-REQ-00: MemNet is mission working memory, **not** the search corpus. Host retrieval MAY propose **locators**; **MutateGate** (or Path-B ingest) commits them. Skip is valid.
 
