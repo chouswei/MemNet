@@ -14,14 +14,14 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 | Symbol | Meaning |
 |--------|---------|
 | \(S\) | One **named session**: labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). Rate cap \(R\) (rows / bytes). Handle = session id. |
-| \(q\) | Discrete **codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (\(\mathrm{Peak}_L\)) is a last-resort optional token, not empty \(q\). |
+| \(q\) | Discrete **codebook token**: kind / primary label \(\cup\) properties (locators as properties) \(\cup\) keyword \(\cup\) optional nickname `id` if already set. NOT store-key id, elementId/handle, prose/embedding sentence. Topology (\(\mathrm{Peak}_L\)) is Later, not empty \(q\). |
 | \(\tilde{X}\) | **Recall Shape** — bounded neighbourhood of **this** \(S\) given \(q\). |
 | \(\Delta\) | Sparse mutate batch (same GQL family as the emit). |
 | \(M\) | Goldfish row cap (`max_rows`, default **50**). **One** \(M\) per Shape, not \(M\times|Q|\). |
 | \(k\) | Hop diameter of the ego walk (typical interior \(\approx 2\)). Metric is **hops**, not cosine. |
 | \(L\) | Hard LIMIT on `find` / seed cardinality (\(|Q|\le L\)). |
 
-**Relevant** means the emit **co-responds to** \(q\): same \(q\) on the same \(S\) → same Shape. It is not “nearest passages to a sentence.” Empty seed \(\Rightarrow\) **skip** (do not invent a node).
+**Relevant** means the emit **co-responds to** \(q\): same \(q\) on the same \(S\) → same Shape. It is not “nearest passages to a sentence.” Goldfish query SHALL be codebook tokens. Empty token / empty seed \(\Rightarrow\) **skip** (do not invent a node).
 
 **Two haystacks.** Library / corpus is **Snap** (host). Mission working memory is **Shape** (this file). Mixing them is the fuse the product forbids.
 
@@ -72,23 +72,23 @@ Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memne
 
 \[
 \mathrm{seed}(q,S)=\begin{cases}
-\{q\} & q \text{ is already a node id}\\
-\mathrm{MATCH}_{L}(q,S) & q \text{ is kind / locator / keyword (hard LIMIT } L\text{)}\\
+\mathrm{MATCH}_{L}(q,S) & q \text{ is labels + properties + keyword (hard LIMIT } L\text{); } Q \text{ = relative nodes}\\
+\{q\} & \text{leftover 0.9: optional nickname / by\_id copied id (not TARGET; not a store key)}\\
 \mathrm{Peak}_{L}(S) & q \text{ is the topology cue (Later; note 23)}
 \end{cases}
 \]
 
-Empty seed \(\Rightarrow\) **skip**. Prefer live `TSK` / last mutate / `read_list` before topology.
+Empty seed \(\Rightarrow\) **skip** (do not invent a node). \(Q\) elements **are** the walk roots. Prefer MATCH_L on live `TSK` kind before topology. \(\mathrm{Peak}_L\) is not default.
 
 **Peak (Later, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. If a topology cue is still wanted: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](memnet-session-strata.md)).
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop from seed set \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) — **one** \(M\), not \(M\times|Q|\). Hide recycled. Emit the **same** shaped GQL family as mutate — not tabular `RETURN`.
 
-Engine: `PinMapComposer.compose` / `context_pack` take `anchor` plus optional `anchors`. Union walks, **one** \(M\), **one** LAW prepend. Path-B `export_working_memory_slice` may budget \(M\times|\mathrm{anchors}|\) — that is **import payload**, not goldfish.
+Engine leftover: `PinMapComposer.compose` / `context_pack` still take `anchor` plus optional `anchors` (0.9 by_id / require_anchor). TARGET ShapeWalk walks from \(Q\). Path-B `export_working_memory_slice` may budget \(M\times|\mathrm{anchors}|\) — that is **import payload**, not goldfish.
 
-`pin_map` and `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=true` (`query find` / MCP `find` — seed nodes only, hard LIMIT; then `pin_map` a copied id). \(\mathrm{Peak}_L\) is not a third operator.
+`pin_map` and `BoundedMatchFind` are the **same** Recall (RelativeSeed then ShapeWalk). Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=true` (`query find` / MCP `find` — MATCH_L seed elements, hard LIMIT; then ShapeWalk from \(Q\)). leftover 0.9 “copy find id then `pin_map(anchor=id)`” is leftover, not TARGET. \(\mathrm{Peak}_L\) is not a third operator.
 
-**In-session work already on \(S\).** Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or `find` — then `pin_map`. Isolated `TSK` \(\Rightarrow\) LAW + that node only; attach edges via Commit. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
+**In-session work already on \(S\).** TARGET: RelativeSeed MATCH_L then ShapeWalk. leftover `read_list` / copied id / `--anchor` named leftover. Isolated `TSK` \(\Rightarrow\) LAW + that element only; attach edges via Commit. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from MATCH_L — **not** \(\mathrm{Peak}_L\).
 
 ---
 
@@ -164,7 +164,7 @@ Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 - \(\mathrm{Peak}_L\) as default ego or as the SysML nest encoding.
 - New `HostSearchBridge` leaves, HIT rows, `RagDecision` envelopes.
 - Dual-teach GraphQL / LangChain / HiGram / Layer as agent wire.
-- Free `MATCH`/`RETURN` as goldfish (find is seed nodes only; then `pin_map`).
+- Free `MATCH`/`RETURN` as goldfish (find is RelativeSeed MATCH_L; then ShapeWalk from \(Q\), not a copied id).
 - Absorb whole \(S\); Absorb Neo4j library nodes; hydrate as Absorb.
 - A literature pile in this file (that stays on #77).
 

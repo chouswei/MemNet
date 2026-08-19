@@ -336,8 +336,9 @@ package MemNetRequirements {
           SHALL return a bounded live pin map for each turn -- a shaped
           neighbourhood digest of pins -- not the full session or a raw
           search dump. Goldfish seeds from a cue or pattern (find); pin_map
-          walks a shape. Nickname id as pin_map anchor is optional when a
-          nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
+          walks a shape. RelativeSeed MATCH_L yields walk-root elements Q;
+          ShapeWalk walks from Q. Nickname id as pin_map anchor is optional
+          when a nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
           require_anchor / by_id is engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-04.1";
@@ -385,9 +386,30 @@ package MemNetRequirements {
           unbounded MATCH; variable-length path as default; teach full
           openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY).
           Distinct from mutate MATCH … SET. Shipped as BoundedMatchFind
-          (implemented=true; #73) — seed nodes only, not pin_map k-hop.
+          (implemented=true; #73) — realizes RelativeSeed MATCH_L, not
+          pin_map k-hop, not copy-id then --anchor.
         */
         attribute requirementId : String = "MN-REQ-04.6";
+      }
+
+      requirement def MN_REQ_04_7_RelativeSeedThenShapeWalk {
+        doc /*
+          Goldfish query SHALL be discrete codebook tokens (kind / primary
+          label, properties including locators, keyword; optional nickname
+          id only if already set) — not a store-key id, not elementId, not
+          a prose/embedding sentence, not rag_query / cosine / ANN, not
+          free MATCH RETURN. Recall SHALL seed by RelativeSeed MATCH_L on
+          those tokens (hard LIMIT L) yielding seed set Q of graph elements
+          (relative nodes). Empty token / empty Q SHALL skip (do not invent
+          a node). ShapeWalk SHALL walk k hops from Q under one M (not
+          M×|Q|), hide recycled, and emit a shaped subgraph. SHALL NOT
+          require a store-key anchor. Peak_L is Later, not this mechanism.
+          leftover 0.9 require_anchor / by_id / copied-id is leftover,
+          not TARGET law. BoundedMatchFind / CmdFind realize RelativeSeed;
+          PinMapShapedRead / CmdPinMap realize ShapeWalk. Still ONE
+          Recall operator (MN-REQ-13.1).
+        */
+        attribute requirementId : String = "MN-REQ-04.7";
       }
     }
 
@@ -1204,8 +1226,9 @@ package MemNetRequirements {
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
           id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.
-          In-session task already on S SHALL seed then pin_map (read_list /
-          hub / leftover #73) — not Snap-on-session. Switch-task SHALL
+          In-session task already on S SHALL RelativeSeed MATCH_L then
+          ShapeWalk (leftover read_list / copy-id --anchor named leftover)
+          — not Snap-on-session. Switch-task SHALL
           settle the old TSK then Shape a new ego — not Peak_L as default.
           SHALL NOT: rag_query; embeddings; PPR; RRF; GST/Steiner; ANN on
           the session; free MATCH/RETURN as goldfish; new HostSearchBridge
@@ -1283,6 +1306,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_5_AnchoredWalk;
   requirement boundedMatchFindReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+  requirement relativeSeedThenShapeWalkReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1491,6 +1516,7 @@ package MemNetRequirements {
     end #derive ::> engineLawPrependReq;
     end #derive ::> anchoredWalkReq;
     end #derive ::> boundedMatchFindReq;
+    end #derive ::> relativeSeedThenShapeWalkReq;
   }
 
   #derivation connection deriveHardCapsLeaves {

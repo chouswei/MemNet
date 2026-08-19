@@ -1,6 +1,6 @@
 /*
   MemNet behaviours - target architecture.
-  Session lifecycle; goldfish loop (pin map->mutate->settle);
+  Session lifecycle; goldfish loop (RelativeSeed → ShapeWalk → Commit);
   TARGET mutate is pattern Commit (CREATE () legal; MERGE/SET/DELETE
   by labels+props); leftover_NEW_mint is leftover 0.9 only;
   pin-map ingest roadmap;
@@ -20,15 +20,24 @@ package MemNetBehaviour {
   attribute def EvLoadSnapshot {
     doc /* session_load from SessionSnapshotBlob (MN-REQ-01). */
   }
+  attribute def EvCue {
+    doc /* Goldfish cue q: codebook tokens into RelativeSeed. */
+  }
+  attribute def EvSeedReady {
+    doc /* RelativeSeed produced non-empty Q of graph elements. */
+  }
+  attribute def EvEmptySeedSkip {
+    doc /* Empty Q: skip ShapeWalk; do not invent a node. */
+  }
+  attribute def EvShapeWalk {
+    doc /* ShapeWalk k-hop from Q under one M; emit shaped subgraph. */
+  }
   attribute def EvPinMapRead {
     doc /*
-      Fetch shaped pin_map (Recall seed = cue/pattern or optional nickname;
-      PinMapShapedRead wraps GQL; emits ShapedSubgraph). SHALL NOT require
-      a store-key --anchor (leftover_require_anchor is leftover engine).
-      Goldfish IN: prefer one live TSK slice
-      (optional view=shell survey) — not a dump of S, not N full maps,
-      not host Snap. Same Recall operator as leftover BoundedMatchFind
-      (#73; seed = bounded MATCH). Legacy alias: query_warm / PinMapComposer.
+      Fetch shaped pin_map (Recall = RelativeSeed then ShapeWalk).
+      SHALL NOT require a store-key --anchor (leftover_require_anchor
+      is leftover engine). Goldfish IN: X̃ from Q. Same Recall operator
+      as BoundedMatchFind MATCH_L. Legacy alias: query_warm.
     */
   }
   attribute def EvWalkRead {
@@ -135,8 +144,9 @@ package MemNetBehaviour {
     doc /*
       Lead ImportAbsorb under id_policy keep|reject|remint (TARGET keep =
       labels+props / type+ends MERGE; leftover_MERGE_by_id leftover;
-      reject = id_conflict no mutate; remint = leftover_NEW_mint, lead
-      old stay, edges retarget); nodes then edges.
+      reject = labels+props match conflict, no mutate; leftover 0.9
+      store-key id_conflict named leftover only; remint = leftover_NEW_mint,
+      lead old stay, edges retarget); nodes then edges.
       After ImportGuard allow/trim or EvGuardSkip.
     */
   }
@@ -322,68 +332,105 @@ package MemNetBehaviour {
 
   state def GoldfishLoop {
     doc /*
-      Engine-visible goldfish turn: live pin map -> (LLM reasons outside) ->
-      mutate -> settle/recycle -> ready for next pin map.
-      Reason is external to MemNet; presentingPinMap covers that gap.
+      TARGET goldfish: cue q → RelativeSeed → ShapeWalk → LLM sees X̃ →
+      sparse Commit Δ (CREATE () legal; MERGE by labels+props; no NEW
+      as TARGET). leftover MutateWithNew is leftover 0.9 only.
+      Reason is external; presenting covers that gap.
     */
     entry;
-    then awaitingPinMap;
+    then awaitingCue;
 
-    state awaitingPinMap {
-      doc /* Idle between turns; next action is live pin map read. */
+    state awaitingCue {
+      doc /* Idle between turns; next action is cue q into RelativeSeed. */
     }
-    transition pin_map_start
-      first awaitingPinMap
+    transition cue_to_seed
+      first awaitingCue
+      accept EvCue
+      then seeding;
+    transition leftover_pin_as_cue
+      first awaitingCue
       accept EvPinMapRead
-      then presentingPinMap;
+      then seeding;
 
-    state presentingPinMap {
-      doc /* PinMapShapedRead emitted shaped pin_map; LLM may reason. */
+    state seeding {
+      doc /* RelativeSeed MATCH_L → Q of graph elements (not store-key ids). */
     }
-    transition pin_map_to_await_mutate
-      first presentingPinMap
+    transition seed_to_walk
+      first seeding
+      accept EvSeedReady
+      then walking;
+    transition seed_empty_skip
+      first seeding
+      accept EvEmptySeedSkip
+      then awaitingCue;
+    transition seed_error
+      first seeding
+      accept EvError
+      then awaitingCue;
+
+    state walking {
+      doc /* ShapeWalk k-hop from Q under one M; leftover require_anchor not TARGET. */
+    }
+    transition walk_to_present
+      first walking
+      accept EvShapeWalk
+      then presenting;
+    transition walk_via_pin_map
+      first walking
+      accept EvPinMapRead
+      then presenting;
+    transition walk_error
+      first walking
+      accept EvError
+      then awaitingCue;
+
+    state presenting {
+      doc /* LLM sees X̃ (shaped subgraph); may reason. */
+    }
+    transition present_to_commit
+      first presenting
       accept EvMutateGraph
       then applyingMutate;
-    transition pin_map_to_settle_only
-      first presentingPinMap
+    transition present_to_settle_only
+      first presenting
       accept EvSettleRecycle
       then settling;
-    transition pin_map_repeat
-      first presentingPinMap
-      accept EvPinMapRead
-      then presentingPinMap;
-    transition pin_map_error
-      first presentingPinMap
+    transition present_repeat_cue
+      first presenting
+      accept EvCue
+      then seeding;
+    transition present_error
+      first presenting
       accept EvError
-      then awaitingPinMap;
+      then awaitingCue;
 
     state applyingMutate {
-      doc /* MutateGate in progress (see MutateWithNew for detail). */
+      doc /* TARGET Commit (no NEW). leftover MutateWithNew is leftover 0.9. */
     }
     transition mutate_to_settle
       first applyingMutate
       accept EvSettleRecycle
       then settling;
-    transition mutate_to_await_pin_map
+    transition mutate_to_await_cue
       first applyingMutate
       accept EvCommitOk
-      then awaitingPinMap;
+      then awaitingCue;
     transition mutate_error
       first applyingMutate
       accept EvError
-      then awaitingPinMap;
+      then awaitingCue;
 
     state settling {
-      doc /* HousekeepSettle recycle/prune; recyclable hidden on next live pin map. */
+      doc /* HousekeepSettle recycle/prune; recyclable hidden on next ShapeWalk. */
     }
     transition settle_done
       first settling
-      accept EvPinMapRead
-      then presentingPinMap;
+      accept EvCue
+      then seeding;
     transition settle_idle
       first settling
       accept EvCommitOk
-      then awaitingPinMap;
+      then awaitingCue;
   }
 
   // --- 3. leftover_NEW_mint (0.9 leftover; not TARGET GraphElement) ---
@@ -1093,7 +1140,8 @@ package MemNetBehaviour {
         NodesThenEdgesCommit; optional GuardDecisionAtomRecord.
         TARGET keep = labels+props / type+ends MERGE (pattern match);
         leftover_MERGE_by_id leftover, not a TARGET command; reject =
-        id_conflict no mutate; remint = leftover_NEW_mint, lead
+        labels+props match conflict, no mutate (leftover store-key
+        id_conflict named leftover only); remint = leftover_NEW_mint, lead
         old stay, edges retarget — leftover engine, not TARGET command
         (MN-REQ-07.5 / 12.9).
       */
@@ -1141,7 +1189,8 @@ package MemNetBehaviour {
 
     state importRejected {
       doc /*
-        EvImportFromChat / graph-dump / ImportGuard reject / id_conflict.
+        EvImportFromChat / graph-dump / ImportGuard reject / labels+props
+        match conflict (leftover store-key id_conflict named leftover only).
         Recover via path A repin or path B bounded slice + allow/trim/skip.
       */
     }

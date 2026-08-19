@@ -12,10 +12,12 @@
     │       ├── GraphStore
     │       ├── GqlWire             // 1.x primary codec (openCypher-shaped)
     │       ├── RecallCommit        // 0.5 cut: TWO operators only
-    │       │   ├── Recall          // cue/pattern seed + k-hop; empty ⇒ skip
-    │       │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
-    │       │   │       ├── PinMapShapedRead    // implemented=true; leftover require_anchor
-    │       │   │       └── BoundedMatchFind    // implemented=true — #73 seed find
+    │       │   ├── Recall          // TWO-operator child: seed then Shape
+    │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; not a third op
+    │       │   │   └── AgentShapedRead
+    │       │   │       ├── RelativeSeed + ShapeWalk  // seedToWalk: Q → k-hop
+    │       │   │       ├── PinMapShapedRead    // realizes ShapeWalk from Q
+    │       │   │       └── BoundedMatchFind    // realizes RelativeSeed MATCH_L
     │       │   └── Commit          // ONE gate; TARGET GraphElement identity
     │       │       ├── MutateGate
     │       │       ├── IdAllocator // leftover_NEW_mint / leftover_by_id
@@ -223,6 +225,7 @@ package MemNet {
     doc /* 0.9 leftover SCHEMA id_first. Nested under SchemaRegistry. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "id_first";
+    attribute productCommand : Boolean = false;
   }
 
   part def leftover_by_id {
@@ -274,6 +277,7 @@ package MemNet {
     doc /* 0.9 leftover ingestIsIdRule=true. TARGET Commit flag is false. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "ingestIsIdRule";
+    attribute productCommand : Boolean = false;
   }
 
   part def leftover_read_get {
@@ -426,23 +430,88 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
+  part def RelativeSeed {
+    doc /*
+      TARGET algorithm under ONE Recall — not a third operator.
+      Query is discrete codebook tokens (not a store-key id, not a
+      prose/embedding sentence): kind / primary label, properties
+      (locators as properties), keyword, optional nickname id only if
+      the agent already set one. NOT tokens: leftover store-key,
+      elementId/handle, free MATCH RETURN, rag_query / cosine / ANN.
+      q + S → Q. MATCH_L on those tokens (hard LIMIT L) yields seed
+      set Q of graph elements (relative nodes). Those Q elements ARE
+      the walk roots. Empty token / empty Q ⇒ skip (inventOnEmpty=false).
+      Peak_L is Later, not this mechanism. leftover 0.9: seed = {node id};
+      copy find id then pin_map(anchor=id); require_anchor.
+      BoundedMatchFind / CmdFind realize this part.
+    */
+    port cueIn : CueInPort;
+    port seedOut : SeedSetOutPort;
+    port emptySkip : EmptySkipOutPort;
+    attribute cueByLabelsAndProps : Boolean = true;
+    attribute cueByKeyword : Boolean = true;
+    attribute hardLimit : Boolean = true;
+    attribute seedsAreWalkRoots : Boolean = true;
+    attribute requireStoreKeyAnchor : Boolean = false;
+    attribute inventOnEmpty : Boolean = false;
+    attribute emptySeedSkip : Boolean = true;
+    attribute peakLDefault : Boolean = false;
+    attribute leftoverCopiedIdThenAnchor : Boolean = true;
+    attribute leftoverIssue : String = "copy-id-anchor";
+    attribute queryIsTokens : Boolean = true;
+    attribute tokenKind : Boolean = true;
+    attribute tokenProps : Boolean = true;
+    attribute tokenKeyword : Boolean = true;
+    attribute tokenNicknameOptional : Boolean = true;
+    attribute notEmbedding : Boolean = true;
+    attribute notStoreKey : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+  }
+
+  part def ShapeWalk {
+    doc /*
+      TARGET pin_map reconstruct under ONE Recall — not a third operator.
+      Q → X̃: k-hop from every seed in Q, diameter ≤ k, |X̃| ≤ one M
+      (not M×|Q|). Hide recycled. Emit shaped subgraph (GQL family).
+      leftover 0.9 require_anchor / by_id / copied-id is leftover, not
+      this mechanism. PinMapShapedRead / CmdPinMap realize this part.
+    */
+    port seedIn : SeedSetInPort;
+    port shapedOut : ShapedSubgraphOutPort;
+    port pinMapOut : LivePinMapOutPort;
+    attribute unionUnderOneM : Boolean = true;
+    attribute goldfishBudgetTimesAnchors : Boolean = false;
+    attribute hideRecycled : Boolean = true;
+    attribute requireStoreKeyAnchor : Boolean = false;
+    attribute leftoverRequireAnchor : Boolean = true;
+    attribute leftoverIssue : String = "require_anchor";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
+  }
+
   part def PinMapShapedRead {
     doc /*
-      pin_map-class tool (ADR-001 recommendation B+A): wraps graph walk;
-      emits bounded shaped openCypher-family subgraph (ShapedSubgraph /
-      LivePinMap) — redefined Write = display. Hide recyclable rows;
-      depth/row/view caps; prepend engine-law rows.
-      TARGET: goldfish seeds from cue/pattern (find); pin_map walks a
-      shape. Nickname id as anchor is optional (requireAnchorId=false).
-      Emit MAY omit {id:'…'}. Product compression = Shape (Recall X̃ of
-      session S) — not host Snap. Goldfish IN: prefer one live TSK ego;
-      optional view=shell survey. LLM MUST NOT see raw S.
-      Nested under Recall / AgentShapedRead beside BoundedMatchFind.
+      Realizes ShapeWalk: k-hop from seed set Q; emits bounded shaped
+      openCypher-family subgraph (ShapedSubgraph / LivePinMap) —
+      redefined Write = display. Hide recyclable rows; depth/row/view
+      caps; prepend engine-law rows. SHALL NOT require a store-key
+      anchor. Emit MAY omit {id:'…'}. Product compression = Shape
+      (Recall X̃ of session S) — not host Snap. Nested under Recall /
+      AgentShapedRead beside BoundedMatchFind.
       0.9 leftover: PinMapComposer still require_anchor / by_id
       (leftoverRequireAnchor=true). Python pin_map NOT rewritten here.
       MUST NOT emit raw unbounded RETURN tables as primary agent read.
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
     */
+    port seedIn : SeedSetInPort;
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -451,9 +520,13 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute compressionKind : String = "shape";
     attribute requireAnchorId : Boolean = false;
+    attribute requireStoreKeyAnchor : Boolean = false;
     attribute leftoverRequireAnchor : Boolean = true;
     attribute leftoverIssue : String = "require_anchor";
+    attribute unionUnderOneM : Boolean = true;
+    attribute goldfishBudgetTimesAnchors : Boolean = false;
     part leftover_require_anchor : leftover_require_anchor;
+    part walk : ShapeWalk;
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -462,6 +535,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_4_EngineLawPrepend;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
@@ -472,18 +546,16 @@ package MemNet {
 
   part def BoundedMatchFind {
     doc /*
-      Bounded MATCH find as Recall seed: cue/pattern when no nickname, or
-      when pin_map caps dropped a needed row (#13). Inputs: label and/or
-      property / locator predicates; LIMIT required (hard). Optional
-      max_rows aligned with MN-REQ-04.3. Emit the same shaped subgraph
-      family as pin_map / mutate (MN-REQ-08.9) — not a binding-table RETURN.
-      MAY omit {id:'…'}. MUST NOT: missing LIMIT; unbounded MATCH;
-      variable-length path as default; full openCypher as agent teach.
-      Distinct from leftover mutate MATCH (n {id}) SET — this leaf is a
-      read. Nested under Recall / AgentShapedRead beside PinMapShapedRead.
-      Shipped: CLI query find / MCP find (seed nodes only, hard LIMIT).
+      Realizes RelativeSeed: MATCH_L cue/pattern (labels + properties +
+      keyword, hard LIMIT L) → Q of graph elements. SHALL NOT copy a
+      store-key id into pin_map --anchor. Distinct from leftover mutate
+      MATCH (n {id}) SET. Nested under Recall / AgentShapedRead beside
+      PinMapShapedRead. Shipped: CLI query find / MCP find (#73).
       MUST NOT claim find is pin_map or a k-hop walk.
     */
+    port cueIn : CueInPort;
+    port seedOut : SeedSetOutPort;
+    port emptySkip : EmptySkipOutPort;
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
@@ -494,29 +566,43 @@ package MemNet {
     attribute allowTabularReturn : Boolean = false;
     attribute variableLengthPathDefault : Boolean = false;
     attribute doctrineAsIs : Boolean = false;
+    part seed : RelativeSeed;
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
   }
 
   part def AgentShapedRead {
     doc /*
       Honesty nest under Recall so pin_map shipped cannot be misread as
-      find shipped. Children: PinMapShapedRead (implemented=true;
-      requireAnchorId=false TARGET; leftoverRequireAnchor=true) and
-      BoundedMatchFind (implemented=true; #73 seed-only find). Parent has
-      no single implemented=true — that flag lives on children only.
+      find shipped. Mechanism: RelativeSeed (Q) → seedToWalk → ShapeWalk
+      (X̃). Children: PinMapShapedRead realizes ShapeWalk;
+      BoundedMatchFind realizes RelativeSeed. Parent has no single
+      implemented=true — that flag lives on children only.
       WalkQuery remains a sibling under SessionLifecycle.
+      MUST NOT add a third operator beside Recall and Commit.
     */
+    port cueIn : CueInPort;
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
+    part seed : RelativeSeed;
+    part walk : ShapeWalk;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
+    connection seedToWalk : SeedSetFlow {
+      end port source ::> seed.seedOut;
+      end port sink ::> walk.seedIn;
+    }
+    connection seedToPinMap : SeedSetFlow {
+      end port source ::> seed.seedOut;
+      end port sink ::> pinMap.seedIn;
+    }
   }
 
   part def NeighbourhoodReserve {
@@ -542,21 +628,16 @@ package MemNet {
 
   part def Recall {
     doc /*
-      Operator Recall(q) over session graph S (MN-REQ-13). Cue q is a
-      discrete codebook token (kind ∪ locator ∪ keyword ∪ optional nickname
-      id; optional deferred topology token = local degree peak, #77 note
-      23 — not a third operator). seed(q,S) = bounded MATCH on
-      label/property/locator with HARD LIMIT L (BoundedMatchFind; #73) as
-      the default pattern seed; {q} if q is already a nickname id; else
-      Peak_L if q is the topology cue (modelled, not shipped). Empty seed
-      ⇒ skip (do not invent a node). Reconstruct X̃ = k-hop from seed set
-      Q (|Q|≤L) under ONE M. Hide recycled. Goldfish IN = that slice.
-      Prefer one live TSK ego; extra topic survey = view=shell then TSK
-      interior. Multi-ego union-under-M is modelled leftover (0.9 compose
-      is one require_anchor). Sparse Δ out via Commit. Host Snap stays on
-      RagHostHook (outside MemNetSystem). Emit MAY omit {id:'…'}. Grammar
-      SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
+      Operator Recall(q) over session graph S (MN-REQ-13). ONE operator:
+      RelativeSeed then ShapeWalk. Cue q is labels + properties + keyword
+      (optional nickname id if already set; Peak_L Later — not a third
+      operator). seed(q,S) = MATCH_L → Q of graph elements; empty Q ⇒
+      skip (inventOnEmpty=false). Reconstruct X̃ = k-hop from Q (|Q|≤L)
+      under ONE M. Hide recycled. Goldfish IN = that slice.
+      leftover 0.9 copy-id then require_anchor is leftover, not TARGET.
+      Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
     */
+    port cueIn : CueInPort;
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
@@ -567,12 +648,18 @@ package MemNet {
     attribute snapOnSession : Boolean = false;
     attribute unionUnderOneM : Boolean = true;
     attribute goldfishBudgetTimesAnchors : Boolean = false;
+    part seed : RelativeSeed;
     part shapedRead : AgentShapedRead;
+    connection seedToWalk : SeedSetFlow {
+      end port source ::> seed.seedOut;
+      end port sink ::> shapedRead.walk.seedIn;
+    }
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
@@ -851,9 +938,12 @@ package MemNet {
 
   part def CmdFind {
     doc /*
-      TARGET Recall cue: bounded MATCH by kind / labels / properties /
-      keyword (hard LIMIT). SHALL NOT require a store-key id.
+      TARGET command realizing RelativeSeed: MATCH_L by kind / labels /
+      properties / keyword (hard LIMIT). SHALL NOT require a store-key
+      id. SHALL NOT teach copy-id then pin_map(anchor=id).
     */
+    port cueIn : CueInPort;
+    port seedOut : SeedSetOutPort;
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
@@ -861,18 +951,27 @@ package MemNet {
     attribute cueByLabelsAndProps : Boolean = true;
     attribute cueByKeyword : Boolean = true;
     attribute hardLimit : Boolean = true;
+    part seed : RelativeSeed;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
   part def CmdPinMap {
     doc /*
-      TARGET Recall shape: neighbourhood walk from a cue/pattern
-      (labels+props; optional nickname id). SHALL NOT require a
-      store-key anchor. leftover_require_anchor is leftover engine.
+      TARGET command realizing ShapeWalk from seed set Q (not a required
+      store-key --anchor). leftover_require_anchor is leftover engine.
     */
+    port seedIn : SeedSetInPort;
     attribute requiresStoreKeyId : Boolean = false;
     attribute requireAnchorId : Boolean = false;
+    attribute requireStoreKeyAnchor : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
+    part walk : ShapeWalk;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
   part def CmdMutate {
