@@ -18,7 +18,9 @@ An LLM call is goldfish. The industry answered **parametric ignorance of a libra
 
 **Thesis.** MemNet is not a RAG engine, not a graph database, and not the full agent. It is the **memory plane of a harness**: a named session graph \(S\) that the scaffold **re-Shapes** (`pin_map`) and **sparsely Commits** (mutate), with **Absorb** only as session-to-session join, and a durable cabinet **behind** the session id.
 
-If that plane is missing, harnesses fall back to chat dumps, linear trajectories, or corpus retrieve — all of which violate MN-REQ-00 (wall-clock and tokens) on **agentic** turns.
+**Token law (MN-REQ-00).** Use **very few tokens** to (1) **fetch** the facts the next call needs and (2) **maintain** \(S\). Fetch is Shape of a **named** neighbourhood (\(M\approx 50\), skip if empty) — not RAG top‑\(k\) then generate. Maintain is sparse \(\Delta\), settle/`delete_on_settle`, Absorb a **slice** — not dump \(S\), not echo \(\tilde{X}\), not chunk stuffing. Typical goldfish prompt **≲ 4k** tokens; **≳ 8k** from one `pin_map` is alarm. The 4 MiB serve frame is **not** a token budget. Cabinet Bolt uses **zero** LLM tokens.
+
+If that plane is missing, harnesses fall back to chat dumps, linear trajectories, or corpus retrieve — all of which violate this law on **agentic** turns.
 
 ---
 
@@ -42,7 +44,7 @@ Lewis et al. (2020) solved a different problem: freeze, private files, dear fine
 
 **C1. Placement.** MemNet sits **in the harness**, between LLM call pipelines and data search — as MCP tools (`pin_map`, mutate, `find`, `import_slice`) plus an in-process engine. The outer harness (Cursor, OpenHands, SWE-agent, Inspect, Claude Code) owns bash, sandbox, eval, and the completion API.
 
-**C2. Substrate.** The memory medium is a **labelled property graph** with codebook cues (id / kind / locator / keyword), serial Recall, clamp \(M\approx 50\), **Write = display** (shaped GQL, not tabular `RETURN`). It is not embeddings of \(S\), not Letta core-memory **prose blocks**, not an OpenHands condenser of the transcript.
+**C2. Substrate.** The memory medium is a **labelled property graph** with codebook cues (id / kind / locator / keyword), serial Recall, clamp \(M\approx 50\), **Write = display** (shaped GQL, not tabular `RETURN`). **Few tokens in, sparse tokens out.** It is not embeddings of \(S\), not Letta core-memory **prose blocks**, not an OpenHands condenser of the transcript.
 
 **C3. Composition.** RAG **Snaps** a library to locators. Absorb **joins** a member **slice** into the lead session (Path-B, shipped). Hydrate/flush **persists** one named \(S\). Mixing those verbs is the fuse this product forbids (option C in the rethink).
 
@@ -52,6 +54,7 @@ Falsifiers (any one kills the thesis as product doctrine):
 - LLM↔Bolt as the miss path
 - Absorb used for host chunks or cabinet ego
 - Chat or the cabinet URI as handoff handle
+- Dump \(S\), echo \(\tilde{X}\), or stuff library chunks to “maintain memory”
 
 ---
 
@@ -88,7 +91,12 @@ Two operators: \(\mathrm{Recall}(q)\), \(\mathrm{Commit}(\Delta)\).
 
 **Over \(M\).** Do not raise goldfish \(M\). Narrow the ego; `view=shell`; partition into more sessions. Path-B import payload \(M\times|\mathrm{anchors}|\) is **not** the goldfish budget.
 
-Verbs in full: [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md).
+| Leg | Few tokens means | Spend instead |
+|-----|------------------|---------------|
+| **Fetch** | One `pin_map` on live `TSK_*` (optional `view=shell`); skip if no seed | RAG top‑\(k\) chunks; \(N\) full maps; dump \(S\) |
+| **Maintain** | Sparse mutate; settle finished `TSK`; Absorb a **slice** only on Path B | Echo the slice; merge sessions; generate-on-retrieve |
+
+Verbs in full: [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Token budgets: same file, estimates section.
 
 ---
 
