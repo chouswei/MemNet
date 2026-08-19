@@ -1,4 +1,4 @@
-"""MutateGate — GQL parse → NEW mint → schema validate → strict commit."""
+"""MutateGate — GQL parse → schema validate → pattern Commit (no NEW mint)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from memnet.gql import (
     soft_validate,
 )
 from memnet.gql_codec import GqlCodec
-from memnet.id_allocator import AssignedIdMap, IdAllocator
+from memnet.id_allocator import AssignedIdMap
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
@@ -62,7 +62,7 @@ def classify_batch(lines: list[str]) -> str:
             raise MemNetError(
                 "legacy_dialect_retired",
                 _LEGACY_HINT,
-                example=("CREATE (:TSK {id: 'NEW', goal: '…', status: 'in_progress'})"),
+                example=("CREATE (:TSK {goal: '…', status: 'in_progress'})"),
             )
         elif looks_like_gql(s):
             kinds.add("gql")
@@ -70,7 +70,7 @@ def classify_batch(lines: list[str]) -> str:
             raise MemNetError(
                 "invalid_line",
                 f"unrecognised ingest line (expect GQL or @TAG pipe): {s[:80]}",
-                example="CREATE (:PLR {id: 'NEW', identity: 'Hero'})",
+                example="CREATE (:PLR {identity: 'Hero'})",
             )
     if not kinds:
         return "empty"
@@ -242,9 +242,10 @@ class MutateGate:
                     "CREATE illegal on update; use add (or MERGE / SET)",
                 )
 
-        existing = set(self.ss.store.by_id.keys())
-        alloc = IdAllocator(existing)
-        assigned = alloc.mint_document(doc)
+        existing = set(self.ss.store._by_hid.keys())
+        # leftover IdAllocator / AssignedIdMap / NEW mint: not product Commit.
+        assigned = AssignedIdMap()
+        del existing
 
         # Expand MERGE into CREATE when id absent; track upsert patches
         merge_upsert_ids: set[str] = set()
@@ -254,25 +255,46 @@ class MutateGate:
                 and it.op == Op.PATCH
                 and it.raw.upper().lstrip().startswith("MERGE")
             ):
-                if self.ss.store.get(it.id) is None:
+                hits = self._pattern_hits(it)
+                if len(hits) > 1:
+                    raise MemNetError(
+                        "cue_conflict",
+                        f"MERGE |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+                    )
+                if not hits:
                     it.op = Op.CREATE
                 else:
-                    merge_upsert_ids.add(it.id)
+                    merge_upsert_ids.add(hits[0].hid)
+                    it.id = hits[0].hid
 
         drops: list[str] = []
         records: list[Record] = []
+        pending: list[Record] = []
+        deferred_edges: list[EdgeRec] = []
         renames: list[tuple[str, str, bool, Record, set[str]]] = []
         ack_items: list[NodeRec | EdgeRec] = []
         for it in doc.items:
             if isinstance(it, Section):
                 continue
             if isinstance(it, EdgeRec) and it.op == Op.DROP:
-                drops.append(it.edge_id or "")
+                hid = self._resolve_edge_drop(it)
+                drops.append(hid)
                 ack_items.append(it)
                 continue
             if isinstance(it, NodeRec) and it.op == Op.DROP:
-                drops.append(it.id)
+                hits = self._pattern_hits(it)
+                if len(hits) > 1:
+                    raise MemNetError(
+                        "cue_conflict",
+                        f"DELETE |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+                    )
+                if not hits:
+                    raise MemNetError("not_found", "DELETE matched no element")
+                drops.append(hits[0].hid)
                 ack_items.append(it)
+                continue
+            if isinstance(it, EdgeRec) and it.op == Op.CREATE:
+                deferred_edges.append(it)
                 continue
             if isinstance(it, (NodeRec, EdgeRec)) and it.op == Op.CREATE:
                 for f in it.fields:
@@ -284,11 +306,43 @@ class MutateGate:
                         )
             if isinstance(it, NodeRec) and it.op == Op.PATCH:
                 rename_to, merge_flag, kept = _split_rename_fields(it.fields)
-                patch_it = NodeRec(op=it.op, kind=it.kind, id=it.id, fields=kept, raw=it.raw)
+                bound = None
+                if not (it.raw.upper().lstrip().startswith("MERGE") and it.id in merge_upsert_ids):
+                    if it.raw.upper().lstrip().startswith("MERGE"):
+                        bound = self.ss.store._by_hid.get(it.id) if it.id in merge_upsert_ids else None
+                    else:
+                        hits = self._pattern_hits(it)
+                        if len(hits) > 1:
+                            raise MemNetError(
+                                "cue_conflict",
+                                f"SET |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+                            )
+                        if not hits:
+                            raise MemNetError("not_found", "SET matched no element|use add")
+                        bound = hits[0]
+                elif it.id in merge_upsert_ids:
+                    bound = self.ss.store._by_hid.get(it.id)
+                patch_it = NodeRec(
+                    op=it.op,
+                    kind=it.kind,
+                    id=it.id,
+                    fields=kept,
+                    raw=it.raw,
+                    match_props=it.match_props,
+                )
                 rec = self._item_to_record(patch_it)
+                if bound is not None:
+                    rec.hid = bound.hid
+                    if "id" not in rec.fields and bound.id:
+                        rec.fields["id"] = bound.id
                 explicit = {f.key for f in kept if f.op == "="}
                 if rename_to is not None:
-                    renames.append((it.id, rename_to, merge_flag, rec, explicit))
+                    old_hid = bound.hid if bound is not None else ""
+                    if not old_hid:
+                        found = self.ss.store.resolve_one(it.id)
+                        old_hid = found.hid if found is not None else it.id
+                    rec.hid = old_hid
+                    renames.append((old_hid, rename_to, merge_flag, rec, explicit))
                     ack_items.append(
                         NodeRec(
                             op=Op.PATCH,
@@ -320,7 +374,9 @@ class MutateGate:
                         raw=it.raw,
                     )
                     rec = self._item_to_record(patch_it)
-                    old_eid = it.edge_id or ""
+                    found = self.ss.store.resolve_one(it.edge_id) if it.edge_id else None
+                    old_eid = found.hid if found is not None else (it.edge_id or "")
+                    rec.hid = old_eid
                     explicit = {f.key for f in kept if f.op == "="}
                     renames.append((old_eid, rename_to, False, rec, explicit))
                     ack_items.append(
@@ -335,6 +391,25 @@ class MutateGate:
                         )
                     )
                     continue
+            rec = self._item_to_record(it)
+            records.append(rec)
+            pending.append(rec)
+            ack_items.append(it)
+
+        for it in deferred_edges:
+            for f in it.fields:
+                if f.op in ("+=", "-="):
+                    raise MemNetError(
+                        "invalid_field",
+                        f"{f.key}{f.op} illegal on create; use =",
+                        example=f"{f.key}={f.value}",
+                    )
+            it.frm = self._resolve_end(
+                it.frm, it.frm_label, it.frm_props, pending=pending
+            )
+            it.to = self._resolve_end(
+                it.to, it.to_label, it.to_props, pending=pending
+            )
             rec = self._item_to_record(it)
             records.append(rec)
             ack_items.append(it)
@@ -357,8 +432,12 @@ class MutateGate:
         touched = touched_ids_from_records(scope_records)
         touched.update(drops)
         for old_id, new_id, _merge, _patch_rec, _explicit in renames:
-            touched.add(old_id)
-            touched.add(new_id)
+            o = self.ss.store.resolve_one(old_id)
+            n = self.ss.store.resolve_one(new_id)
+            if o:
+                touched.add(o.hid)
+            if n:
+                touched.add(n.hid)
         check_mutate_ids(
             self.ss.reserves,
             touched_ids=touched,
@@ -386,12 +465,12 @@ class MutateGate:
         replaced_ids: set[str] = set()
 
         def _snapshot(rec: Record) -> Record:
-            return Record(tag=rec.tag, fields=dict(rec.fields))
+            return Record(tag=rec.tag, fields=dict(rec.fields), hid=rec.hid)
 
         def _remember_replaced(rec: Record) -> None:
-            if rec.id not in replaced_ids:
+            if rec.hid not in replaced_ids:
                 replaced.append(_snapshot(rec))
-                replaced_ids.add(rec.id)
+                replaced_ids.add(rec.hid)
 
         def _endpoint_changes_for(oid: str) -> list[tuple[str, str]]:
             store = self.ss.store
@@ -400,7 +479,7 @@ class MutateGate:
                 store._edges_by_dist.get(oid, ())
             )
             for eid in affected:
-                edge = store.by_id.get(eid)
+                edge = store._by_hid.get(eid)
                 if edge is None or edge.tag != "EDG":
                     continue
                 if edge.fields.get("src") == oid:
@@ -416,23 +495,22 @@ class MutateGate:
                     raise MemNetError("not_found", f"id {eid}|use add")
                 deleted_backup.append(old)
             for rec in records:
-                old = self.ss.store.get(rec.id)
+                old = self.ss.store._by_hid.get(rec.hid)
                 if old is None:
-                    added.append(rec.id)
+                    added.append(rec.hid)
                 else:
                     _remember_replaced(old)
-                if rec.id in merge_upsert_ids and old is not None:
+                if rec.hid in merge_upsert_ids and old is not None:
                     apply = self.ss.store.replace_row
                 elif mode == "add" or (mode == "update" and old is None and rec.tag):
                     apply = self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
                 else:
                     apply = self.ss.store.replace_row if mode == "update" else self.ss.store.add_row
-                if (mode == "update" or rec.id in merge_upsert_ids) and old is not None:
+                if (mode == "update" or rec.hid in merge_upsert_ids) and old is not None:
                     merged = dict(old.fields)
                     merged.update({k: v for k, v in rec.fields.items() if v != "" or k == "id"})
-                    rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged)
-                # MERGE expanded to CREATE uses add_row even when mode=update
-                if rec.id in added and mode == "update":
+                    rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged, hid=old.hid)
+                if rec.hid in added and mode == "update":
                     apply = self.ss.store.add_row
                 warns = apply(
                     rec,
@@ -451,16 +529,16 @@ class MutateGate:
                 if old is None:
                     raise MemNetError("not_found", f"id {old_id}|use add")
                 source_backup = _snapshot(old)
-                ep_changes = _endpoint_changes_for(old_id)
+                ep_changes = _endpoint_changes_for(old.hid)
                 field_keys = {k for k in explicit if k != "id"}
                 if merge_flag:
                     if field_keys:
                         target_pre = self.ss.store.get(new_id)
                         if target_pre is not None:
                             _remember_replaced(target_pre)
-                    warns = self.ss.store.rename_id(old_id, new_id, merge=True)
+                    warns = self.ss.store.rename_id(old.hid, new_id, merge=True)
                     warnings.extend(warns)
-                    applied_renames.append((old_id, new_id, True, source_backup, ep_changes))
+                    applied_renames.append((old.hid, new_id, True, source_backup, ep_changes))
                     if field_keys:
                         target = self.ss.store.get(new_id)
                         if target is None:
@@ -470,7 +548,7 @@ class MutateGate:
                             merged[k] = patch_rec.fields[k]
                         merged["id"] = new_id
                         warns = self.ss.store.replace_row(
-                            Record(tag=target.tag, fields=merged),
+                            Record(tag=target.tag, fields=merged, hid=target.hid),
                             agent=agent,
                             allow_new_relation=allow_new_relation,
                             relations=self.ss.relations,
@@ -482,18 +560,20 @@ class MutateGate:
                         merged = dict(old.fields)
                         for k in field_keys:
                             merged[k] = patch_rec.fields[k]
-                        merged["id"] = old_id
                         warns = self.ss.store.replace_row(
-                            Record(tag=old.tag, fields=merged),
+                            Record(tag=old.tag, fields=merged, hid=old.hid),
                             agent=agent,
                             allow_new_relation=allow_new_relation,
                             relations=self.ss.relations,
                         )
                         warnings.extend(warns)
-                    warns = self.ss.store.rename_id(old_id, new_id, merge=False)
+                    warns = self.ss.store.rename_id(old.hid, new_id, merge=False)
                     warnings.extend(warns)
-                    if old_id != new_id:
-                        applied_renames.append((old_id, new_id, False, source_backup, ep_changes))
+                    orig_nick = source_backup.fields.get("id") or ""
+                    if orig_nick != new_id:
+                        applied_renames.append(
+                            (old.hid, new_id, False, source_backup, ep_changes)
+                        )
             self.ss.mark_written()
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
@@ -501,37 +581,42 @@ class MutateGate:
             for old_id, new_id, merge_flag, source_backup, ep_changes in reversed(applied_renames):
                 if merge_flag:
                     # Restore deleted source, then put retargeted endpoints back.
-                    if old_id not in store.by_id:
-                        store.by_id[old_id] = source_backup
+                    if old_id not in store._by_hid:
+                        store._by_hid[old_id] = source_backup
                         if old_id not in store.write_order:
                             store.write_order.append(old_id)
                         store._index_tag(source_backup)
+                    survivor = store.resolve_one(new_id)
+                    survivor_hid = survivor.hid if survivor is not None else new_id
                     for eid, field in ep_changes:
-                        edge = store.by_id.get(eid)
+                        edge = store._by_hid.get(eid)
                         if edge is None or edge.tag != "EDG":
                             continue
-                        if edge.fields.get(field) != new_id:
+                        if edge.fields.get(field) != survivor_hid:
                             continue
                         store._unindex_edge(edge)
                         edge.fields[field] = old_id
                         store._index_edge(edge)
-                elif store.get(new_id) is not None and store.get(old_id) is None:
-                    store.rename_id(new_id, old_id, merge=False)
+                else:
+                    orig_nick = source_backup.fields.get("id") or ""
+                    cur = store._by_hid.get(source_backup.hid)
+                    if cur is not None and orig_nick and cur.fields.get("id") != orig_nick:
+                        store.rename_id(source_backup.hid, orig_nick, merge=False)
             for rid in added:
                 store.delete(rid)
             for old in replaced:
-                cur = store.by_id.get(old.id)
+                cur = store._by_hid.get(old.hid)
                 if cur is not None:
                     if cur.tag == "EDG":
                         store._unindex_edge(cur)
                     store._unindex_tag(cur)
-                store.by_id[old.id] = old
+                store._by_hid[old.hid] = old
                 store._index_tag(old)
                 if old.tag == "EDG":
                     store._index_edge(old)
             for old in deleted_backup:
-                store.by_id[old.id] = old
-                store.write_order.append(old.id)
+                store._by_hid[old.hid] = old
+                store.write_order.append(old.hid)
                 store._index_tag(old)
                 if old.tag == "EDG":
                     store._index_edge(old)
@@ -551,25 +636,123 @@ class MutateGate:
             return self._edge_to_record(it)
         return self._node_to_record(it)
 
+    def _pattern_hits(self, it: NodeRec) -> list[Record]:
+        store = self.ss.store
+        if it.id and it.id in store._by_hid:
+            return [store._by_hid[it.id]]
+        props = dict(it.match_props or {})
+        if it.id and "id" not in props:
+            one = store.resolve_one(it.id)
+            if one is not None and not props:
+                return [one]
+            if it.id:
+                props["id"] = it.id
+        tag = it.kind or None
+        if not tag and not props:
+            return []
+        return store.match_nodes(tag=tag, props=props)
+
+    def _resolve_end(
+        self,
+        token: str,
+        label: str,
+        props: dict[str, str],
+        *,
+        pending: list[Record] | None = None,
+    ) -> str:
+        store = self.ss.store
+        want = {k: str(v) for k, v in (props or {}).items() if str(v) != ""}
+        if label or want:
+            hits = self._match_nodes_with_pending(
+                tag=label or None, props=want, pending=pending
+            )
+            if len(hits) > 1:
+                raise MemNetError(
+                    "cue_conflict",
+                    f"relationship end |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+                )
+            if len(hits) == 1:
+                return hits[0].hid
+        rec = store.resolve_one(token)
+        if rec is not None:
+            return rec.hid
+        for row in pending or []:
+            if row.hid == token or row.fields.get("id") == token:
+                return row.hid
+        raise MemNetError(
+            "not_found",
+            f"relationship end {token!r} unmatched (labels+properties)",
+        )
+
+    def _match_nodes_with_pending(
+        self,
+        *,
+        tag: str | None,
+        props: dict[str, str],
+        pending: list[Record] | None,
+    ) -> list[Record]:
+        hits = list(self.ss.store.match_nodes(tag=tag, props=props))
+        seen = {r.hid for r in hits}
+        tag_u = tag.upper() if tag else None
+        want = {k: str(v) for k, v in (props or {}).items() if v is not None}
+        for rec in pending or []:
+            if rec.tag == "EDG" or rec.hid in seen:
+                continue
+            if tag_u and rec.tag.upper() != tag_u:
+                continue
+            if all(str(rec.fields.get(k, "")) == val for k, val in want.items()):
+                hits.append(rec)
+                seen.add(rec.hid)
+        hits.sort(key=lambda r: r.hid)
+        return hits
+
+    def _resolve_edge_drop(self, it: EdgeRec) -> str:
+        store = self.ss.store
+        if it.edge_id:
+            rec = store.resolve_one(it.edge_id)
+            if rec is not None and rec.tag == "EDG":
+                return rec.hid
+        rel = it.rel
+        for rec in store.list_records("EDG"):
+            if rel and rec.fields.get("relation") != rel:
+                continue
+            if it.frm:
+                src = store.resolve_one(it.frm)
+                if src is None or rec.fields.get("src") != src.hid:
+                    continue
+            if it.to:
+                dst = store.resolve_one(it.to)
+                if dst is None or rec.fields.get("dist") != dst.hid:
+                    continue
+            return rec.hid
+        raise MemNetError("not_found", "relationship DELETE matched no element")
+
     def _node_to_record(self, node: NodeRec) -> Record:
         kind = node.kind
         if node.op == Op.LAW:
             kind = "LAW"
-        if node.op == Op.PATCH and not kind:
-            existing = self.ss.store.get(node.id)
-            if existing is None:
-                raise MemNetError("not_found", f"id {node.id}|use add")
-            kind = existing.tag
-        if not kind:
-            raise MemNetError("unknown_tag", "node kind missing")
-        tag_def = self.ss.tag_map.get(kind)
-        if not tag_def:
+        bound = None
+        if node.op == Op.PATCH:
+            hits = self._pattern_hits(node)
+            if len(hits) == 1:
+                bound = hits[0]
+                if not kind:
+                    kind = bound.tag
+        unlabeled = not kind
+        if unlabeled:
+            kind = ""
+        tag_def = self.ss.tag_map.get(kind) if kind else None
+        if kind and not tag_def:
             known = ",".join(self.ss.tag_map.tag_names())
             raise MemNetError("unknown_tag", f"{kind} not in schema known: {known}")
 
-        fields: dict[str, str] = {"id": node.id}
-        existing = self.ss.store.get(node.id) if node.op == Op.PATCH else None
-        base = dict(existing.fields) if existing else {}
+        fields: dict[str, str] = {}
+        base = dict(bound.fields) if bound else {}
+        nick = node.id
+        if nick and not str(nick).startswith("_el"):
+            fields["id"] = nick
+        elif bound and bound.id:
+            fields["id"] = bound.id
 
         for f in node.fields:
             if f.op in ("+=", "-="):
@@ -581,7 +764,7 @@ class MutateGate:
                     raise MemNetError(
                         "bad_numeric",
                         f"{f.key}{f.op}{f.value} requires numeric field",
-                        example=(f"MATCH (n {{id: '{node.id}'}}) SET n.{f.key} = <number>"),
+                        example=(f"MATCH (n) SET n.{f.key} = <number>"),
                     ) from exc
                 result = cur_n + delta if f.op == "+=" else cur_n - delta
                 fields[f.key] = str(result).rstrip("0").rstrip(".")
@@ -590,22 +773,24 @@ class MutateGate:
             else:
                 fields[f.key] = f.value
 
-        for fname in tag_def.fields:
-            fields.setdefault(fname, base.get(fname, ""))
-        fields["id"] = node.id
-        return Record(tag=kind, fields=fields)
+        if tag_def:
+            for fname in tag_def.fields:
+                fields.setdefault(fname, base.get(fname, ""))
+            if not fields.get("id"):
+                fields.pop("id", None)
+        rec = Record(tag=kind, fields=fields)
+        if bound is not None:
+            rec.hid = bound.hid
+        return rec
 
     def _edge_to_record(self, edge: EdgeRec) -> Record:
         tag_def = self.ss.tag_map.get("EDG")
         if not tag_def:
             raise MemNetError("unknown_tag", "EDG not in schema")
-        eid = edge.edge_id
-        if not eid:
-            raise MemNetError("invalid_id", "edge id missing after mint")
-        existing = self.ss.store.get(eid) if edge.op == Op.PATCH else None
+        eid = edge.edge_id or ""
+        existing = self.ss.store.resolve_one(eid) if eid and edge.op == Op.PATCH else None
         base = dict(existing.fields) if existing else {}
         fields: dict[str, str] = {
-            "id": eid,
             "src": edge.frm or base.get("src", ""),
             "relation": edge.rel or base.get("relation", ""),
             "dist": edge.to or base.get("dist", ""),
@@ -613,7 +798,8 @@ class MutateGate:
             "attrs": base.get("attrs", ""),
             "recycle": base.get("recycle", "persistent"),
         }
-        # Preserve bind ports / carries from base on patch
+        if eid and not str(eid).startswith("_el"):
+            fields["id"] = eid
         for k in ("src_port", "dist_port", "carries", "wire"):
             if k in base and base[k]:
                 fields[k] = base[k]
@@ -635,7 +821,12 @@ class MutateGate:
                     fields["attrs"] = f"{f.key}={f.value}"
         for fname in tag_def.fields:
             fields.setdefault(fname, "")
-        return Record(tag="EDG", fields=fields)
+        if not fields.get("id"):
+            fields.pop("id", None)
+        rec = Record(tag="EDG", fields=fields)
+        if existing is not None:
+            rec.hid = existing.hid
+        return rec
 
     def _commit_records(
         self,
@@ -656,9 +847,13 @@ class MutateGate:
         replaced: list[Record] = []
         try:
             for rec in records:
-                old = self.ss.store.get(rec.id)
+                old = self.ss.store._by_hid.get(rec.hid)
+                if old is None and rec.id:
+                    old = self.ss.store.resolve_one(rec.id)
+                    if old is not None:
+                        rec.hid = old.hid
                 if old is None:
-                    added.append(rec.id)
+                    added.append(rec.hid)
                 else:
                     replaced.append(old)
                 apply = self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
@@ -675,14 +870,14 @@ class MutateGate:
                     and (old is None or old.fields.get("status") != "settled")
                 ):
                     warnings.append(
-                        f"mission_settled|{rec.id}|next read use query pin-map --anchor <focus>"
+                        f"mission_settled|{rec.id or rec.hid}|next read use query pin-map from cue"
                     )
             self.ss.mark_written()
         except MemNetError:
             for rid in added:
                 self.ss.store.delete(rid)
             for old in replaced:
-                self.ss.store.by_id[old.id] = old
+                self.ss.store._by_hid[old.hid] = old
                 if old.tag == "EDG":
                     self.ss.store._index_edge(old)
             raise

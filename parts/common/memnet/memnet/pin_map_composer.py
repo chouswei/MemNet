@@ -7,9 +7,11 @@ Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
 from memnet.exceptions import MemNetError
-from memnet.gql import emit_edge_shaped, emit_node_shaped
+from memnet.gql import emit_node_shaped
 from memnet.models import Record
 
 # Soft shell caps (docs/grammar — view budget).
@@ -69,17 +71,17 @@ def apply_shell_soft_cap(
             nodes.append(rec)
 
     if anchor:
-        nodes = sorted(nodes, key=lambda r: (0 if r.id == anchor else 1, r.id))
+        nodes = sorted(nodes, key=lambda r: (0 if r.hid == anchor or r.id == anchor else 1, r.hid))
     else:
-        nodes = sorted(nodes, key=lambda r: r.id)
+        nodes = sorted(nodes, key=lambda r: r.hid)
     nodes = nodes[:max_nodes]
-    kept = {r.id for r in nodes}
+    kept = {r.hid for r in nodes}
 
     def _edge_rank(e: Record) -> tuple[int, str]:
         src = e.fields.get("src", "")
         dist = e.fields.get("dist", "")
         both = int(src in kept) + int(dist in kept)
-        return (-both, e.id)
+        return (-both, e.hid)
 
     filtered: list[Record] = []
     for e in sorted(edges, key=_edge_rank):
@@ -105,17 +107,41 @@ def record_to_gql_line(rec: Record, *, store=None) -> str:
     if rec.tag == "EDG":
         src = rec.fields.get("src", "")
         dist = rec.fields.get("dist", "")
-        return emit_edge_shaped(
-            src_kind=_endpoint_label(store, src),
-            src_id=src,
-            rel=rec.fields.get("relation", "related") or "related",
-            dst_kind=_endpoint_label(store, dist),
-            dst_id=dist,
-            edge_id=rec.id,
-            fields=dict(rec.fields),
-        )
+        src_line = _endpoint_shaped(store, src)
+        dst_line = _endpoint_shaped(store, dist)
+        rel = rec.fields.get("relation", "related") or "related"
+        rel_fields = dict(rec.fields)
+        from memnet.gql import _emit_props
+
+        rel_props: dict[str, str] = {}
+        nick = rec.id
+        if nick:
+            rel_props["id"] = nick
+        for store_key, wire_key in (
+            ("fromPort", "fromPort"),
+            ("toPort", "toPort"),
+            ("src_port", "fromPort"),
+            ("dist_port", "toPort"),
+            ("carries", "carries"),
+        ):
+            if store_key in rel_fields and rel_fields[store_key]:
+                rel_props[wire_key] = rel_fields[store_key]
+        rel_s = f":{rel} {_emit_props(rel_props)}" if rel_props else f":{rel}"
+        return f"{src_line}-[{rel_s}]->{dst_line}"
     fields = {k: v for k, v in rec.fields.items() if k != "id"}
-    return emit_node_shaped(rec.tag, rec.id, fields)
+    return emit_node_shaped(rec.tag if rec.tag != "NODE" else rec.tag, rec.id, fields)
+
+
+def _endpoint_shaped(store, token: str) -> str:
+    rec = None
+    if store is not None and hasattr(store, "resolve_one"):
+        rec = store.resolve_one(token)
+    if rec is None:
+        nick = "" if str(token).startswith("_el") else token
+        return emit_node_shaped("NODE", nick or "", {})
+    fields = {k: v for k, v in rec.fields.items() if k != "id"}
+    kind = rec.tag if rec.tag and rec.tag != "EDG" else "NODE"
+    return emit_node_shaped(kind, rec.id, fields)
 
 
 class PinMapComposer:
@@ -132,10 +158,14 @@ class PinMapComposer:
         *,
         anchor: str | None,
         anchors: list[str] | None = None,
+        kind: str | None = None,
+        locators: list[tuple[str, str]] | None = None,
+        keyword: str | None = None,
+        limit: int | None = None,
         depth: int = DEFAULT_QUERY_DEPTH,
         max_rows: int = DEFAULT_QUERY_MAX_ROWS,
         active_only: bool = True,
-        require_anchor: bool = True,
+        require_anchor: bool = False,
         law_prepend: bool = True,
         view: str | None = None,
         caller: str | None = None,
@@ -152,19 +182,54 @@ class PinMapComposer:
             agent=agent,
         )
         seed_ids: list[str] = []
+        cue_on = bool(kind or locators or (keyword and str(keyword).strip()))
+        leftover_nicks: list[str] = []
         for aid in list(anchors or []):
-            if aid and aid not in seed_ids:
-                seed_ids.append(aid)
-        if anchor and anchor not in seed_ids:
-            seed_ids.append(anchor)
-        if require_anchor and not seed_ids:
-            raise MemNetError("no_anchor", "pin map requires --anchor")
-        stale_warnings: list = []
-        if not seed_ids:
-            fallback = self.ss.store.default_anchor()
-            if not fallback:
+            if aid and aid not in leftover_nicks:
+                leftover_nicks.append(aid)
+        if anchor and anchor not in leftover_nicks:
+            leftover_nicks.append(anchor)
+        if require_anchor and not leftover_nicks and not cue_on:
+            raise MemNetError("no_anchor", "pin map leftover --anchor is not product; cue with kind/locator/keyword")
+        Q: list[Record] = []
+        if cue_on:
+            found = bounded_match_find(
+                self.ss.store,
+                kind=kind,
+                locators=list(locators or []),
+                keyword=keyword,
+                limit=limit or max(1, max_rows),
+            )
+            Q = list(found.seeds)
+            if found.total > len(Q):
+                # MATCH_L listed Q; cardinality is the true hit count
+                pass
+            if found.conflict:
+                text = emit_cue_conflict(found.seeds, cardinality=found.total, store=self.ss.store)
+                return found.seeds, text
+            if not Q:
                 return [], ""
-            seed_ids = [fallback]
+            seed_ids = [r.hid for r in Q]
+        elif leftover_nicks:
+            seen_h: set[str] = set()
+            for nick in leftover_nicks:
+                hits = self.ss.store.match_nickname(nick)
+                one = self.ss.store.resolve_one(nick)
+                if len(hits) > 1:
+                    text = emit_cue_conflict(hits, cardinality=len(hits), store=self.ss.store)
+                    return hits, text
+                if one is None:
+                    continue
+                if one.hid not in seen_h:
+                    seen_h.add(one.hid)
+                    Q.append(one)
+            if not Q:
+                return [], ""
+            seed_ids = [r.hid for r in Q]
+        else:
+            # Empty q skips (0.11 owns outline). Do not default-anchor.
+            return [], ""
+        stale_warnings: list = []
         eff_depth, eff_max_rows, soft_cap = resolve_view_budget(
             view, depth=depth, max_rows=max_rows
         )
@@ -181,7 +246,7 @@ class PinMapComposer:
         from memnet.neighbourhood_reserve import emit_reserves_section, intersecting_leases
         from memnet.session import utc_now
 
-        view_ids = {r.id for r in rows}
+        view_ids = {r.hid for r in rows}
         leases = intersecting_leases(self.ss.reserves, view_ids, now=utc_now())
         reserve_text = emit_reserves_section(leases, now=utc_now())
         if reserve_text:
@@ -229,6 +294,24 @@ def parse_find_locators(raw: list[str] | None) -> list[tuple[str, str]]:
     return out
 
 
+@dataclass
+class FindResult:
+    seeds: list[Record]
+    total: int
+
+    @property
+    def conflict(self) -> bool:
+        return self.total > 1
+
+
+def emit_cue_conflict(seeds: list[Record], *, cardinality: int, store=None) -> str:
+    """Shaped emit mark: Q listed, |Q| visible. Not a product command."""
+    lines = [f"## CueConflict |Q|={cardinality}"]
+    for rec in seeds:
+        lines.append(record_to_gql_line(rec, store=store))
+    return "\n".join(lines) + ("\n" if lines else "")
+
+
 def bounded_match_find(
     store,
     *,
@@ -236,7 +319,7 @@ def bounded_match_find(
     locators: list[tuple[str, str]],
     keyword: str | None,
     limit: int,
-) -> list[Record]:
+) -> FindResult:
     """Seed-only codebook find (BoundedMatchFind). No k-hop. Hard LIMIT."""
     if limit < 1:
         raise MemNetError("bad_limit", "find --limit must be >= 1")
@@ -259,8 +342,8 @@ def bounded_match_find(
         return any(needle in str(v).lower() for v in rec.fields.values())
 
     hits = [r for r in rows if _loc_ok(r) and _kw_ok(r)]
-    hits.sort(key=lambda r: r.id)
-    return hits[:limit]
+    hits.sort(key=lambda r: r.hid)
+    return FindResult(seeds=hits[:limit], total=len(hits))
 
 
 # SysML-facing alias

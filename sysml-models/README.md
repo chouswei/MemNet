@@ -123,7 +123,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Session import + optional ImportGuard (path B) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
-| `NEW` mint batch (mutate discipline) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
+| `NEW` mint batch (leftover; not product Commit) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
 
 ### Application examples (on SharedLlmMemory)
 
@@ -139,7 +139,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` wraps GQL) when anchored. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` from a cue) when the seed is non-empty. leftover `--anchor` is leftover. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. When \(|Q|>1\), CueConflict. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
 
 ## Property-graph ontology (first-class)
 

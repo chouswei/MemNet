@@ -116,8 +116,6 @@ def _register_user_tag(
         raise MemNetError("duplicate_tag", f"duplicate tag {tag} in map")
     if not field_names:
         raise MemNetError("empty_fields", f"tag {tag} has no fields")
-    if field_names[0] != "id":
-        raise MemNetError("id_first", f"tag {tag} must start with id field")
     if len(field_names) > caps.max_fields:
         raise MemNetError(
             "limit_exceeded",

@@ -9,7 +9,7 @@ from collections import deque
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
-from memnet.models import Record, TagMap
+from memnet.models import Record, TagMap, new_hid
 from memnet.output import emit_wrn
 
 _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
@@ -22,21 +22,38 @@ class MemStore:
     def __init__(self, tag_map: TagMap, caps: Caps | None = None) -> None:
         self.tag_map = tag_map
         self.caps = caps or Caps()
-        self.by_id: dict[str, Record] = {}
+        # Graph is elements keyed by hidden handle (off the wire).
+        self._by_hid: dict[str, Record] = {}
         self.write_order: list[str] = []
         self._edges_by_src: dict[str, set[str]] = {}
         self._edges_by_dist: dict[str, set[str]] = {}
         self._by_tag: dict[str, set[str]] = {}
 
     def load_records(self, records: list[Record]) -> None:
-        self.by_id.clear()
+        self._by_hid.clear()
         self.write_order.clear()
         self._edges_by_src.clear()
         self._edges_by_dist.clear()
         self._by_tag.clear()
+        nick_to_hid: dict[str, str] = {}
+        loaded: list[Record] = []
         for rec in records:
-            self.by_id[rec.id] = rec
-            self.write_order.append(rec.id)
+            nick = rec.fields.get("id", "")
+            if not rec.hid:
+                rec.hid = nick or new_hid()
+            if nick and nick not in nick_to_hid:
+                nick_to_hid[nick] = rec.hid
+            loaded.append(rec)
+        for rec in loaded:
+            if rec.tag == "EDG":
+                for key in ("src", "dist"):
+                    token = rec.fields.get(key, "")
+                    if token and token not in self._by_hid and token in nick_to_hid:
+                        rec.fields[key] = nick_to_hid[token]
+                    elif token and token in {r.hid for r in loaded}:
+                        rec.fields[key] = token
+            self._by_hid[rec.hid] = rec
+            self.write_order.append(rec.hid)
             self._index_tag(rec)
             if rec.tag == "EDG":
                 self._index_edge(rec)
@@ -56,8 +73,14 @@ class MemStore:
         relations: set[str] | None = None,
     ) -> list[str]:
         warnings: list[str] = []
-        rid = record.id
-        existing = self.by_id.get(rid)
+        if record.tag == "EDG":
+            for key in ("src", "dist"):
+                token = record.fields.get(key, "")
+                resolved = self.resolve_one(token) if token else None
+                if resolved is not None:
+                    record.fields[key] = resolved.hid
+        rid = record.hid
+        existing = self._by_hid.get(rid)
         if existing and existing.tag != record.tag:
             raise MemNetError(
                 "id_conflict",
@@ -93,7 +116,7 @@ class MemStore:
         if record.tag == "EDG":
             for endpoint_key in ("src", "dist"):
                 eid = record.fields.get(endpoint_key, "")
-                if eid and eid not in self.by_id:
+                if eid and self.resolve_one(eid) is None and eid not in self._by_hid:
                     warnings.append(f"dangling_endpoint|{endpoint_key} {eid} not found")
         if agent:
             record.agent = agent
@@ -103,7 +126,7 @@ class MemStore:
         if not existing:
             self.write_order.append(rid)
             self._index_tag(record)
-        self.by_id[rid] = record
+        self._by_hid[rid] = record
         if record.tag == "EDG":
             self._index_edge(record)
         return warnings
@@ -116,11 +139,11 @@ class MemStore:
         allow_new_relation: bool = False,
         relations: set[str] | None = None,
     ) -> list[str]:
-        existing = self.by_id.get(record.id)
+        existing = self._by_hid.get(record.hid)
         if existing:
             raise MemNetError(
                 "id_exists",
-                f"id {record.id} exists @{existing.tag}|use update",
+                f"element {record.hid} exists @{existing.tag}|use update",
             )
         return self.upsert(
             record,
@@ -137,8 +160,8 @@ class MemStore:
         allow_new_relation: bool = False,
         relations: set[str] | None = None,
     ) -> list[str]:
-        if record.id not in self.by_id:
-            raise MemNetError("not_found", f"id {record.id}|use add")
+        if record.hid not in self._by_hid:
+            raise MemNetError("not_found", f"element {record.hid}|use add")
         return self.upsert(
             record,
             agent=agent,
@@ -147,15 +170,17 @@ class MemStore:
         )
 
     def delete(self, record_id: str) -> Record | None:
-        existing = self.by_id.get(record_id)
+        target = self.resolve_one(record_id)
+        hid = target.hid if target is not None else record_id
+        existing = self._by_hid.get(hid)
         if existing is None:
             return None
         if existing.tag == "EDG":
             self._unindex_edge(existing)
         self._unindex_tag(existing)
-        rec = self.by_id.pop(record_id, None)
-        if rec and record_id in self.write_order:
-            self.write_order.remove(record_id)
+        rec = self._by_hid.pop(hid, None)
+        if rec and hid in self.write_order:
+            self.write_order.remove(hid)
         return rec
 
     def rename_id(
@@ -165,25 +190,24 @@ class MemStore:
         *,
         merge: bool = False,
     ) -> list[str]:
-        """Re-key a record. Free rename retargets edge endpoints; occupied target rejects
-        unless merge=True (nodes only: retarget endpoints to target, drop source).
-        Self no-op (old_id == new_id) returns without error.
+        """Leftover nickname SET. Identity stays the hidden handle.
+        merge=true still collapses two elements (leftover; SameThingAbsorb is 0.12).
         """
         warnings: list[str] = []
         if old_id == new_id:
             return warnings
         if new_id == "NEW" or not _ID_TOKEN_RE.match(new_id):
             raise MemNetError("invalid_id", f"id {new_id}")
-        old = self.by_id.get(old_id)
+        old = self.resolve_one(old_id)
         if old is None:
             raise MemNetError("not_found", f"id {old_id}|use add")
-        target = self.by_id.get(new_id)
-        if target is not None and not merge:
+        target = self.resolve_one(new_id)
+        if target is not None and target.hid != old.hid and not merge:
             raise MemNetError(
                 "id_occupied",
                 f"id {new_id} occupied @{target.tag}|use merge=true to merge into existing",
             )
-        if target is not None and merge:
+        if target is not None and target.hid != old.hid and merge:
             if old.tag == "EDG" or target.tag == "EDG":
                 raise MemNetError(
                     "invalid_merge",
@@ -194,43 +218,74 @@ class MemStore:
                     "id_conflict",
                     f"merge {old_id}@{old.tag} into {new_id}@{target.tag} tag mismatch",
                 )
-            self._retarget_endpoints(old_id, new_id)
-            self.delete(old_id)
+            self._retarget_endpoints(old.hid, target.hid)
+            self.delete(old.hid)
             warnings.append(f"merged|{old_id}->{new_id}")
             return warnings
 
-        # Free rename: retarget endpoints first, then move the record key.
-        self._retarget_endpoints(old_id, new_id)
-        if old.tag == "EDG":
-            self._unindex_edge(old)
-        self._unindex_tag(old)
-        self.by_id.pop(old_id)
         old.fields["id"] = new_id
-        if old_id in self.write_order:
-            self.write_order[self.write_order.index(old_id)] = new_id
-        self.by_id[new_id] = old
-        self._index_tag(old)
-        if old.tag == "EDG":
-            self._index_edge(old)
         return warnings
 
-    def _retarget_endpoints(self, old_id: str, new_id: str) -> None:
-        affected = set(self._edges_by_src.get(old_id, ())) | set(
-            self._edges_by_dist.get(old_id, ())
+    def _retarget_endpoints(self, old_hid: str, new_hid: str) -> None:
+        affected = set(self._edges_by_src.get(old_hid, ())) | set(
+            self._edges_by_dist.get(old_hid, ())
         )
         for eid in affected:
-            edge = self.by_id.get(eid)
+            edge = self._by_hid.get(eid)
             if edge is None or edge.tag != "EDG":
                 continue
             self._unindex_edge(edge)
-            if edge.fields.get("src") == old_id:
-                edge.fields["src"] = new_id
-            if edge.fields.get("dist") == old_id:
-                edge.fields["dist"] = new_id
+            if edge.fields.get("src") == old_hid:
+                edge.fields["src"] = new_hid
+            if edge.fields.get("dist") == old_hid:
+                edge.fields["dist"] = new_hid
             self._index_edge(edge)
 
+    def match_nickname(self, nick: str) -> list[Record]:
+        if not nick:
+            return []
+        return [r for r in self._by_hid.values() if r.fields.get("id") == nick]
+
+    def resolve_one(self, token: str | None) -> Record | None:
+        """Unique hid or unique nickname. None if missing or CueConflict cardinality."""
+        if not token:
+            return None
+        if token in self._by_hid:
+            return self._by_hid[token]
+        hits = self.match_nickname(token)
+        if len(hits) == 1:
+            return hits[0]
+        return None
+
+    def match_nodes(
+        self,
+        *,
+        tag: str | None = None,
+        props: dict[str, str] | None = None,
+    ) -> list[Record]:
+        """Pattern lookup (labels + properties the node actually has)."""
+        tag_u = tag.upper() if tag else None
+        if tag_u:
+            rows = [
+                self._by_hid[i]
+                for i in self._by_tag.get(tag_u, set())
+                if i in self._by_hid
+            ]
+        else:
+            rows = [r for r in self._by_hid.values() if r.tag != "EDG"]
+        want = {k: str(v) for k, v in (props or {}).items() if v is not None}
+        out: list[Record] = []
+        for rec in rows:
+            if rec.tag == "EDG":
+                continue
+            if all(str(rec.fields.get(k, "")) == val for k, val in want.items()):
+                out.append(rec)
+        out.sort(key=lambda r: r.hid)
+        return out
+
     def get(self, record_id: str) -> Record | None:
-        return self.by_id.get(record_id)
+        """Leftover read_get: unique nickname or hidden handle. Not a product command."""
+        return self.resolve_one(record_id)
 
     def list_records(
         self,
@@ -241,23 +296,23 @@ class MemStore:
     ) -> list[Record]:
         if tag:
             ids = self._by_tag.get(tag.upper(), set())
-            rows = [self.by_id[i] for i in ids if i in self.by_id]
+            rows = [self._by_hid[i] for i in ids if i in self._by_hid]
         else:
-            rows = list(self.by_id.values())
+            rows = list(self._by_hid.values())
         if active_only:
             rows = [r for r in rows if not r.is_recyclable()]
         if where:
             rows = [r for r in rows if record_matches(r, where)]
-        rows.sort(key=lambda r: r.id)
+        rows.sort(key=lambda r: r.hid)
         return rows
 
     def _index_tag(self, rec: Record) -> None:
-        self._by_tag.setdefault(rec.tag, set()).add(rec.id)
+        self._by_tag.setdefault(rec.tag, set()).add(rec.hid)
 
     def _unindex_tag(self, rec: Record) -> None:
         bucket = self._by_tag.get(rec.tag)
         if bucket:
-            bucket.discard(rec.id)
+            bucket.discard(rec.hid)
             if not bucket:
                 del self._by_tag[rec.tag]
 
@@ -265,9 +320,9 @@ class MemStore:
         src = edge.fields.get("src", "")
         dist = edge.fields.get("dist", "")
         if src:
-            self._edges_by_src.setdefault(src, set()).add(edge.id)
+            self._edges_by_src.setdefault(src, set()).add(edge.hid)
         if dist:
-            self._edges_by_dist.setdefault(dist, set()).add(edge.id)
+            self._edges_by_dist.setdefault(dist, set()).add(edge.hid)
 
     def _unindex_edge(self, edge: Record) -> None:
         src = edge.fields.get("src", "")
@@ -275,13 +330,13 @@ class MemStore:
         if src:
             bucket = self._edges_by_src.get(src)
             if bucket:
-                bucket.discard(edge.id)
+                bucket.discard(edge.hid)
                 if not bucket:
                     del self._edges_by_src[src]
         if dist:
             bucket = self._edges_by_dist.get(dist)
             if bucket:
-                bucket.discard(edge.id)
+                bucket.discard(edge.hid)
                 if not bucket:
                     del self._edges_by_dist[dist]
 
@@ -289,8 +344,8 @@ class MemStore:
         if not edge_ids:
             return []
         return sorted(
-            (self.by_id[eid] for eid in edge_ids if eid in self.by_id),
-            key=lambda r: r.id,
+            (self._by_hid[eid] for eid in edge_ids if eid in self._by_hid),
+            key=lambda r: r.hid,
         )
 
     def _edges_from(self, node_id: str) -> list[Record]:
@@ -307,7 +362,11 @@ class MemStore:
         fanout_warnings: list[str] | None = None,
     ) -> list[Record]:
         depth = min(depth, self.caps.max_depth)
-        if node_id not in self.by_id:
+        rec0 = self.resolve_one(node_id)
+        if rec0 is None:
+            return []
+        node_id = rec0.hid
+        if node_id not in self._by_hid:
             return []
         visited: set[str] = {node_id}
         node_results: list[Record] = []
@@ -333,13 +392,13 @@ class MemStore:
                 for endpoint in (edge.fields.get("src"), edge.fields.get("dist")):
                     if not endpoint or endpoint in visited:
                         continue
-                    if endpoint not in self.by_id:
+                    if endpoint not in self._by_hid:
                         continue
                     visited.add(endpoint)
-                    node_results.append(self.by_id[endpoint])
+                    node_results.append(self._by_hid[endpoint])
                     queue.append((endpoint, d + 1))
-        if node_id in self.by_id and self.by_id[node_id] not in node_results:
-            node_results.insert(0, self.by_id[node_id])
+        if node_id in self._by_hid and self._by_hid[node_id] not in node_results:
+            node_results.insert(0, self._by_hid[node_id])
         return node_results + edge_results
 
     def context_walk_hops(
@@ -352,8 +411,10 @@ class MemStore:
     ) -> list[tuple[str, str, str]]:
         """BFS walk hops from anchor: (src, relation, dst) tuples."""
         depth = min(depth, self.caps.max_depth)
-        if not anchor_id or anchor_id not in self.by_id:
+        rec0 = self.resolve_one(anchor_id) if anchor_id else None
+        if rec0 is None:
             return []
+        anchor_id = rec0.hid
         hops: list[tuple[str, str, str]] = []
         seen_edges: set[str] = set()
         visited: set[str] = {anchor_id}
@@ -377,7 +438,7 @@ class MemStore:
                 rel = edge.fields.get("relation", "")
                 if not rel or not src or not dst:
                     continue
-                if src not in self.by_id or dst not in self.by_id:
+                if src not in self._by_hid or dst not in self._by_hid:
                     continue
                 if current not in (src, dst):
                     continue
@@ -387,7 +448,7 @@ class MemStore:
                 for endpoint in (src, dst):
                     if endpoint in visited:
                         continue
-                    node = self.by_id.get(endpoint)
+                    node = self._by_hid.get(endpoint)
                     if not node or (active_only and node.is_recyclable()):
                         continue
                     visited.add(endpoint)
@@ -395,10 +456,15 @@ class MemStore:
         return sorted(hops, key=lambda t: (t[0], t[1], t[2]))
 
     def find_path(self, source_id: str, target_id: str) -> list[Record]:
-        if source_id not in self.by_id or target_id not in self.by_id:
+        src_rec = self.resolve_one(source_id)
+        dst_rec = self.resolve_one(target_id)
+        if src_rec is None or dst_rec is None:
+            return []
+        source_id, target_id = src_rec.hid, dst_rec.hid
+        if source_id not in self._by_hid or target_id not in self._by_hid:
             return []
         if source_id == target_id:
-            return [self.by_id[source_id]]
+            return [self._by_hid[source_id]]
         depth = self.caps.max_depth
         queue: deque[tuple[str, list[str]]] = deque([(source_id, [source_id])])
         visited: set[str] = {source_id}
@@ -408,7 +474,7 @@ class MemStore:
                 continue
             for edge in self._edges_from(current):
                 nxt = edge.fields.get("dist", "")
-                if not nxt or nxt not in self.by_id:
+                if not nxt or nxt not in self._by_hid:
                     continue
                 new_path = path + [nxt]
                 if nxt == target_id:
@@ -421,7 +487,7 @@ class MemStore:
     def _path_to_records(self, node_path: list[str]) -> list[Record]:
         records: list[Record] = []
         for nid in node_path:
-            records.append(self.by_id[nid])
+            records.append(self._by_hid[nid])
         for i in range(len(node_path) - 1):
             src, dst = node_path[i], node_path[i + 1]
             for edge in self._edges_from(src):
@@ -432,7 +498,7 @@ class MemStore:
 
     def default_anchor(self) -> str | None:
         for rid in reversed(self.write_order):
-            rec = self.by_id.get(rid)
+            rec = self._by_hid.get(rid)
             if rec and rec.tag != "LAW":
                 return rid
         return None
@@ -440,7 +506,7 @@ class MemStore:
     def _law_scope_mode(self) -> str:
         """Return ``linked`` when LAW06 requests EDG-scoped warm; else ``all``."""
         for rid in self._by_tag.get("LAW", set()):
-            rec = self.by_id.get(rid)
+            rec = self._by_hid.get(rid)
             if rec and rec.fields.get("mechanism") == "law_scope":
                 mode = rec.fields.get("constraint", "all")
                 return "linked" if mode == "linked_from_anchor" else "all"
@@ -464,10 +530,10 @@ class MemStore:
     ) -> set[str]:
         law_ids: set[str] = set()
         for rid in self._by_tag.get("LAW", set()):
-            rec = self.by_id.get(rid)
+            rec = self._by_hid.get(rid)
             if not rec:
                 continue
-            if self._is_engine_law_id(rid) or self._is_universal_law(rec):
+            if self._is_engine_law_id(rec.id) or self._is_universal_law(rec):
                 law_ids.add(rid)
 
         seeds = set(context_node_ids)
@@ -477,13 +543,13 @@ class MemStore:
         queue: deque[tuple[str, int]] = deque()
         seen: set[str] = set()
         for sid in seeds:
-            if sid in self.by_id and sid not in seen:
+            if sid in self._by_hid and sid not in seen:
                 seen.add(sid)
                 queue.append((sid, 0))
 
         while queue:
             nid, d = queue.popleft()
-            rec = self.by_id.get(nid)
+            rec = self._by_hid.get(nid)
             if rec and rec.tag == "LAW":
                 law_ids.add(nid)
             if d >= link_depth:
@@ -497,7 +563,7 @@ class MemStore:
                 src = edge.fields.get("src", "")
                 dist = edge.fields.get("dist", "")
                 other = dist if src == nid else src if dist == nid else None
-                if not other or other not in self.by_id:
+                if not other or other not in self._by_hid:
                     continue
                 if other not in seen:
                     seen.add(other)
@@ -521,12 +587,12 @@ class MemStore:
                 active_only=active_only,
             )
             return sorted(
-                (self.by_id[i] for i in linked if i in self.by_id),
-                key=lambda r: r.id,
+                (self._by_hid[i] for i in linked if i in self._by_hid),
+                key=lambda r: r.hid,
             )
         return sorted(
-            (self.by_id[i] for i in self._by_tag.get("LAW", set()) if i in self.by_id),
-            key=lambda r: r.id,
+            (self._by_hid[i] for i in self._by_tag.get("LAW", set()) if i in self._by_hid),
+            key=lambda r: r.hid,
         )
 
     def context_pack(
@@ -542,10 +608,13 @@ class MemStore:
         depth = min(depth, self.caps.max_depth)
         ids: list[str] = []
         for aid in list(anchor_ids or []):
-            if aid and aid not in ids:
-                ids.append(aid)
-        if anchor_id and anchor_id not in ids:
-            ids.append(anchor_id)
+            rec = self.resolve_one(aid) if aid else None
+            if rec is not None and rec.hid not in ids:
+                ids.append(rec.hid)
+        if anchor_id:
+            rec = self.resolve_one(anchor_id)
+            if rec is not None and rec.hid not in ids:
+                ids.append(rec.hid)
         if not ids:
             fallback = self.default_anchor()
             if fallback:
@@ -554,23 +623,23 @@ class MemStore:
         context_node_ids: set[str] = set()
         seen: set[str] = set()
         for aid in ids:
-            if aid not in self.by_id:
+            if aid not in self._by_hid:
                 continue
             fanout: list[str] = []
             subgraph = self.neighbors(aid, depth, fanout_warnings=fanout)
             for w in fanout:
                 emit_wrn(*w.split("|", 1))
             for rec in subgraph:
-                if rec.id in seen:
+                if rec.hid in seen:
                     continue
                 if active_only and rec.is_recyclable():
                     if stale_warnings is not None:
                         stale_warnings.append((rec, "stale_in_context"))
                     continue
-                seen.add(rec.id)
+                seen.add(rec.hid)
                 payload.append(rec)
                 if rec.kind == "node":
-                    context_node_ids.add(rec.id)
+                    context_node_ids.add(rec.hid)
         nodes = [r for r in payload if r.kind == "node"]
         edges = [r for r in payload if r.kind == "edge"]
         combined = nodes + edges
@@ -588,14 +657,14 @@ class MemStore:
             active_only=active_only,
         )
         if self._law_scope_mode() == "linked":
-            law_ids = {r.id for r in law_rows}
-            combined = [r for r in combined if r.tag != "LAW" or r.id not in law_ids]
+            law_ids = {r.hid for r in law_rows}
+            combined = [r for r in combined if r.tag != "LAW" or r.hid not in law_ids]
         return law_rows + combined
 
     def to_jsonl_rows(self) -> list[dict]:
         rows: list[dict] = []
         for rid in self.write_order:
-            rec = self.by_id.get(rid)
+            rec = self._by_hid.get(rid)
             if rec:
                 rows.append(rec.model_dump())
         return rows

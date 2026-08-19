@@ -468,7 +468,7 @@ package MemNet {
     attribute inventOnEmpty : Boolean = false;
     attribute emptySeedSkip : Boolean = true;
     attribute peakLDefault : Boolean = false;
-    attribute leftoverCopiedIdThenAnchor : Boolean = true;
+    attribute leftoverCopiedIdThenAnchor : Boolean = false;
     attribute leftoverIssue : String = "copy-id-anchor";
     attribute queryIsTokens : Boolean = true;
     attribute tokenKind : Boolean = true;
@@ -508,7 +508,7 @@ package MemNet {
     attribute goldfishBudgetTimesAnchors : Boolean = false;
     attribute hideRecycled : Boolean = true;
     attribute requireStoreKeyAnchor : Boolean = false;
-    attribute leftoverRequireAnchor : Boolean = true;
+    attribute leftoverRequireAnchor : Boolean = false;
     attribute leftoverIssue : String = "require_anchor";
     part cueConflict : CueConflict;
 
@@ -529,9 +529,8 @@ package MemNet {
       anchor. Emit MAY omit {id:'…'}. Product compression = Shape
       (Recall X̃ of session S) — not host Snap. Nested under Recall /
       AgentShapedRead beside BoundedMatchFind.
-      0.9 leftover: PinMapComposer still require_anchor / by_id
-      (leftoverRequireAnchor=true). Python pin_map NOT rewritten here.
-      MUST NOT emit raw unbounded RETURN tables as primary agent read.
+      0.10: PinMapComposer pin_map from cue; leftoverRequireAnchor=false.
+      leftover --anchor remains a nickname cue. MUST NOT emit raw unbounded RETURN tables as primary agent read.
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
     */
     port seedIn : SeedSetInPort;
@@ -544,7 +543,7 @@ package MemNet {
     attribute compressionKind : String = "shape";
     attribute requireAnchorId : Boolean = false;
     attribute requireStoreKeyAnchor : Boolean = false;
-    attribute leftoverRequireAnchor : Boolean = true;
+    attribute leftoverRequireAnchor : Boolean = false;
     attribute leftoverIssue : String = "require_anchor";
     attribute unionUnderOneM : Boolean = true;
     attribute goldfishBudgetTimesAnchors : Boolean = false;
@@ -665,7 +664,7 @@ package MemNet {
       name_conflict / merge / absorb tool). Not a third operator.
       SameThingAbsorb remains a Commit rule after the agent sees this.
     */
-    attribute implemented : Boolean = false;
+    attribute implemented : Boolean = true;
     attribute productCommand : Boolean = false;
     attribute qListed : Boolean = true;
     attribute cardinalityVisible : Boolean = true;

@@ -24,7 +24,7 @@ _STMT_START = re.compile(
 )
 _RE_SECTION = re.compile(r"^##\s+([A-Za-z][A-Za-z0-9_ ]*)\s*$")
 _RE_SHAPED_NODE = re.compile(
-    rf"^\(\s*(?::({_LABEL}))?\s*(\{{.*\}})\s*\)\s*$",
+    rf"^\(\s*(?::({_LABEL}))?\s*(\{{.*\}})?\s*\)\s*$",
     re.DOTALL,
 )
 _RE_SHAPED_EDGE = re.compile(
@@ -51,7 +51,7 @@ _RE_CREATE_REL = re.compile(
 # MATCH (a:Label? {id:…}), (b …)  [CREATE|SET|DETACH DELETE|DELETE …]
 _RE_MATCH_HEAD = re.compile(r"^MATCH\s+(.+)$", re.IGNORECASE | re.DOTALL)
 _RE_MERGE = re.compile(
-    rf"^MERGE\s+\(\s*(?:({_IDENT})\s*)?(?::({_LABEL}))?\s*(\{{.*\}})\s*\)\s*(.*)$",
+    rf"^MERGE\s+\(\s*(?:({_IDENT})\s*)?(?::({_LABEL}))?\s*(\{{.*\}})?\s*\)\s*(.*)$",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -273,17 +273,32 @@ def _props_to_fields(props: dict[str, Any], *, skip: set[str] | None = None) -> 
     return out
 
 
-def _id_from_props(props: dict[str, Any], default: str = "NEW") -> str:
+def _nickname_from_props(props: dict[str, Any]) -> str:
+    """Optional nickname property. leftover NEW is omitted (not minted)."""
     if "id" not in props:
-        return default
+        return ""
     raw = props["id"]
     if raw is None:
-        return default
+        return ""
     text = str(raw)
-    if text.startswith("$"):
-        # Unbound parameter — treat as mint token when literally NEW-like
-        return "NEW" if text.upper() in ("$ID", "$NEW") else text.lstrip("$")
+    if text.upper() == "NEW" or text.startswith("$"):
+        return ""
     return text
+
+
+def _id_from_props(props: dict[str, Any], default: str = "") -> str:
+    nick = _nickname_from_props(props)
+    return nick if nick else default
+
+
+def _props_as_str(props: dict[str, Any], *, skip: set[str] | None = None) -> dict[str, str]:
+    skip = skip or set()
+    out: dict[str, str] = {}
+    for k, v in props.items():
+        if k in skip:
+            continue
+        out[k] = _value_to_store(v)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -510,30 +525,35 @@ def _parse_shaped_present(s: str, line_no: int) -> NodeRec | EdgeRec:
     me = _RE_SHAPED_EDGE.match(s)
     if me:
         src_label, src_props_s, rel, rel_props_s, dst_label, dst_props_s = me.groups()
-        src_props = parse_props(src_props_s)
-        dst_props = parse_props(dst_props_s)
+        src_props = parse_props(src_props_s) if src_props_s else {}
+        dst_props = parse_props(dst_props_s) if dst_props_s else {}
         rel_props = parse_props(rel_props_s) if rel_props_s else {}
         return EdgeRec(
             op=Op.PRESENT,
-            edge_id=_id_from_props(rel_props, default=""),
-            frm=_id_from_props(src_props, default=""),
+            edge_id=_nickname_from_props(rel_props),
+            frm=_nickname_from_props(src_props),
             rel=rel,
-            to=_id_from_props(dst_props, default=""),
+            to=_nickname_from_props(dst_props),
             fields=_bind_port_fields(rel_props),
             raw=s,
+            frm_label=src_label or "",
+            to_label=dst_label or "",
+            frm_props=_props_as_str(src_props),
+            to_props=_props_as_str(dst_props),
         )
     mn = _RE_SHAPED_NODE.match(s)
     if mn:
         label, props_s = mn.groups()
-        props = parse_props(props_s)
-        rid = _id_from_props(props, default="")
-        kind = label or "NODE"
+        props = parse_props(props_s) if props_s else {}
+        rid = _nickname_from_props(props)
+        kind = label or ""
         return NodeRec(
             op=Op.PRESENT,
             kind=kind,
             id=rid,
             fields=_props_to_fields(props, skip={"id"}),
             raw=s,
+            match_props=_props_as_str(props),
         )
     raise ParseError(f"bad shaped present line: {s[:80]!r}", line_no)
 
@@ -543,7 +563,7 @@ def _parse_create(s: str, line_no: int) -> NodeRec | EdgeRec:
     if m:
         frm, rel, props_s, to = m.groups()
         props = parse_props(props_s) if props_s else {}
-        eid = _id_from_props(props, default="NEW")
+        eid = _nickname_from_props(props)
         return EdgeRec(
             op=Op.CREATE,
             edge_id=eid,
@@ -557,15 +577,14 @@ def _parse_create(s: str, line_no: int) -> NodeRec | EdgeRec:
     if m:
         _var, label, props_s = m.groups()
         props = parse_props(props_s) if props_s else {}
-        if not label:
-            raise ParseError("CREATE node requires a primary label", line_no)
-        rid = _id_from_props(props, default="NEW")
+        rid = _nickname_from_props(props)
         return NodeRec(
             op=Op.CREATE,
-            kind=label,
+            kind=label or "",
             id=rid,
             fields=_props_to_fields(props, skip={"id"}),
             raw=s,
+            match_props=_props_as_str(props, skip={"id"}),
         )
     raise ParseError(f"unsupported CREATE shape: {s[:80]!r}", line_no)
 
@@ -575,16 +594,21 @@ def _parse_merge(s: str, line_no: int) -> NodeRec:
     if not m:
         raise ParseError(f"unsupported MERGE shape: {s[:80]!r}", line_no)
     _var, label, props_s, rest = m.groups()
-    props = parse_props(props_s)
-    rid = _id_from_props(props, default="")
-    if not rid or rid == "NEW":
-        raise ParseError("MERGE requires a ground id (NEW illegal)", line_no)
+    props = parse_props(props_s) if props_s else {}
+    rid = _nickname_from_props(props)
     fields = _props_to_fields(props, skip={"id"})
     if rest and rest.upper().lstrip().startswith("SET"):
         fields.extend(_parse_set_clause(rest, _var))
-    # MERGE uses PATCH op; MutateGate expands to create-or-patch
     kind = label or ""
-    return NodeRec(op=Op.PATCH, kind=kind, id=rid, fields=fields, raw=s)
+    match_props = _props_as_str(props)
+    return NodeRec(
+        op=Op.PATCH,
+        kind=kind,
+        id=rid,
+        fields=fields,
+        raw=s,
+        match_props=match_props,
+    )
 
 
 def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
@@ -602,32 +626,30 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
 
     # Resolve var → id from props
     var_ids: dict[str, str] = {}
+    var_pat: dict[str, _NodePattern] = {}
     for p in patterns:
-        pid = _id_from_props(p.props, default="")
-        if p.var and pid:
-            var_ids[p.var] = pid
+        pid = _nickname_from_props(p.props)
+        if p.var:
+            var_pat[p.var] = p
+            if pid:
+                var_ids[p.var] = pid
 
     rest_u = rest.upper()
     if rest_u.startswith("CREATE"):
-        # CREATE (a)-[:TYPE {…}]->(b)
         cm = _RE_CREATE_REL.match(rest)
         if not cm:
-            # Inline CREATE node after MATCH is unusual; reject
             raise ParseError(
                 "MATCH … CREATE only supports relationship create "
-                "(a)-[:TYPE]->(b) with known end ids",
+                "(a)-[:TYPE]->(b)",
                 line_no,
             )
         frm_v, rel, props_s, to_v = cm.groups()
         props = parse_props(props_s) if props_s else {}
+        frm_p = var_pat.get(frm_v)
+        to_p = var_pat.get(to_v)
         frm = var_ids.get(frm_v, frm_v)
         to = var_ids.get(to_v, to_v)
-        if frm == "NEW" or to == "NEW" or not frm or not to:
-            raise ParseError(
-                "relationship ends must be known ids (pin map or earlier create)",
-                line_no,
-            )
-        eid = _id_from_props(props, default="NEW")
+        eid = _nickname_from_props(props)
         return [
             EdgeRec(
                 op=Op.CREATE,
@@ -637,6 +659,10 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
                 to=to,
                 fields=_bind_port_fields(props),
                 raw=s,
+                frm_label=(frm_p.label if frm_p else "") or "",
+                to_label=(to_p.label if to_p else "") or "",
+                frm_props=_props_as_str(frm_p.props) if frm_p else {},
+                to_props=_props_as_str(to_p.props) if to_p else {},
             )
         ]
 
@@ -644,9 +670,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         if len(patterns) != 1:
             raise ParseError("SET after MATCH expects one node pattern", line_no)
         p = patterns[0]
-        rid = _id_from_props(p.props, default="")
-        if not rid or rid == "NEW":
-            raise ParseError("SET requires a ground id", line_no)
+        rid = _nickname_from_props(p.props)
         fields = _parse_set_clause(rest, p.var)
         return [
             NodeRec(
@@ -655,6 +679,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
                 id=rid,
                 fields=fields,
                 raw=s,
+                match_props=_props_as_str(p.props),
             )
         ]
 
@@ -662,13 +687,17 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         if len(patterns) != 1:
             raise ParseError("DELETE after MATCH expects one node pattern", line_no)
         p = patterns[0]
-        rid = _id_from_props(p.props, default="")
-        if not rid or rid == "NEW":
-            raise ParseError("DELETE requires a ground id", line_no)
-        # Represent node drop as EdgeRec DROP with edge_id=node id for gate,
-        # or NodeRec with DROP — Tier A uses - id for both. Use EdgeRec DROP
-        # only for edges; for nodes use a NodeRec with op DROP via kind.
-        return [NodeRec(op=Op.DROP, kind=p.label or "", id=rid, fields=[], raw=s)]
+        rid = _nickname_from_props(p.props)
+        return [
+            NodeRec(
+                op=Op.DROP,
+                kind=p.label or "",
+                id=rid,
+                fields=[],
+                raw=s,
+                match_props=_props_as_str(p.props),
+            )
+        ]
 
     raise ParseError(f"unsupported MATCH continuation: {rest[:60]!r}", line_no)
 
@@ -683,9 +712,7 @@ def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | E
     if not m:
         raise ParseError(f"unsupported MATCH shape: {s[:80]!r}", line_no)
     props = parse_props(m.group(3)) if m.group(3) else {}
-    eid = _id_from_props(props, default="")
-    if not eid or eid == "NEW":
-        raise ParseError("relationship DELETE requires ground id", line_no)
+    eid = _nickname_from_props(props)
     rest_u = (rest or "").upper()
     if "DELETE" not in s.upper() and "DELETE" not in rest_u:
         raise ParseError("relationship MATCH without DELETE is not agent-read", line_no)
@@ -775,7 +802,9 @@ def _emit_props(props: dict[str, str], *, omit_empty: bool = True) -> str:
 
 
 def emit_node_shaped(kind: str, rid: str, fields: dict[str, str]) -> str:
-    props = {"id": rid}
+    props: dict[str, str] = {}
+    if rid:
+        props["id"] = rid
     for k, v in fields.items():
         if k == "id":
             continue
@@ -784,6 +813,12 @@ def emit_node_shaped(kind: str, rid: str, fields: dict[str, str]) -> str:
         if v == "":
             continue
         props[k] = v
+    if not kind:
+        if not props:
+            return "()"
+        return f"({_emit_props(props)})"
+    if not props:
+        return f"(:{kind})"
     return f"(:{kind} {_emit_props(props)})"
 
 
@@ -797,7 +832,9 @@ def emit_edge_shaped(
     edge_id: str,
     fields: dict[str, str],
 ) -> str:
-    rel_props: dict[str, str] = {"id": edge_id}
+    rel_props: dict[str, str] = {}
+    if edge_id:
+        rel_props["id"] = edge_id
     # Prefer GQL fromPort/toPort names on the wire
     for store_key, wire_key in (
         ("fromPort", "fromPort"),
@@ -834,11 +871,10 @@ def emit_edge_shaped(
             rel_props.setdefault("note", v)
             continue
         rel_props[k] = v
-    return (
-        f"(:{src_kind} {{id: '{_escape_str(src_id)}'}})"
-        f"-[:{rel} {_emit_props(rel_props)}]->"
-        f"(:{dst_kind} {{id: '{_escape_str(dst_id)}'}})"
-    )
+    src_bit = emit_node_shaped(src_kind, src_id, {})
+    dst_bit = emit_node_shaped(dst_kind, dst_id, {})
+    rel_s = f":{rel} {_emit_props(rel_props)}" if rel_props else f":{rel}"
+    return f"{src_bit}-[{rel_s}]->{dst_bit}"
 
 
 def emit_item(it: NodeRec | EdgeRec | Section, *, as_mutate: bool = False) -> str:
@@ -863,15 +899,29 @@ def emit_item(it: NodeRec | EdgeRec | Section, *, as_mutate: bool = False) -> st
             fields=props,
         )
     # NodeRec
-    props = {"id": it.id, **{f.key: f.value for f in it.fields}}
+    props = {f.key: f.value for f in it.fields}
+    if it.id:
+        props = {"id": it.id, **{k: v for k, v in props.items() if k != "id"}}
     if as_mutate and it.op == Op.CREATE:
-        return f"CREATE (:{it.kind} {_emit_props(props)})"
+        kind = f":{it.kind}" if it.kind else ""
+        body = f"{kind} {_emit_props(props)}".strip() if props else kind
+        return f"CREATE ({body})" if body else "CREATE ()"
     if as_mutate and it.op == Op.PATCH:
         sets = ", ".join(f"n.{f.key} = {_emit_value(f.value)}" for f in it.fields)
-        return f"MATCH (n {{id: '{_escape_str(it.id)}'}}) SET {sets}"
+        match_p = dict(it.match_props) if it.match_props else {}
+        if it.id and "id" not in match_p:
+            match_p["id"] = it.id
+        label = f":{it.kind}" if it.kind else ""
+        pat = f"{label} {_emit_props(match_p)}".strip() if match_p else label
+        return f"MATCH (n {pat}) SET {sets}".replace("(n  ", "(n ")
     if as_mutate and it.op == Op.DROP:
-        return f"MATCH (n {{id: '{_escape_str(it.id)}'}}) DETACH DELETE n"
-    return emit_node_shaped(it.kind or "NODE", it.id, props)
+        match_p = dict(it.match_props) if it.match_props else {}
+        if it.id and "id" not in match_p:
+            match_p["id"] = it.id
+        label = f":{it.kind}" if it.kind else ""
+        pat = f"{label} {_emit_props(match_p)}".strip() if match_p else label
+        return f"MATCH (n {pat}) DETACH DELETE n".replace("(n  ", "(n ")
+    return emit_node_shaped(it.kind or "", it.id, props)
 
 
 def emit(doc: Document, *, as_mutate: bool = False) -> str:

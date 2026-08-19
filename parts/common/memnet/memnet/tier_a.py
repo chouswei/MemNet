@@ -38,20 +38,25 @@ class Field:
 class NodeRec:
     op: Op
     kind: str
-    id: str  # "NEW" or ground id
+    id: str  # optional nickname; empty when omitted
     fields: list[Field] = field(default_factory=list)
     raw: str = ""
+    match_props: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class EdgeRec:
     op: Op
-    edge_id: str | None  # "NEW", ground eid, or None (implicit mint on create)
+    edge_id: str | None  # optional nickname; empty/None when omitted
     frm: str
     rel: str
     to: str
     fields: list[Field] = field(default_factory=list)
     raw: str = ""
+    frm_label: str = ""
+    to_label: str = ""
+    frm_props: dict[str, str] = field(default_factory=dict)
+    to_props: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

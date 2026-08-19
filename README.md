@@ -31,28 +31,25 @@ memnet session open --map-file parts/common/memnet/memnet/examples/schema.exampl
 # stderr prints MEMNET_SESSION=mn_… — pass it as --session (serve proxies argv, not your shell env)
 
 memnet add --session mn_… --stdin <<'EOF'
-CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
-CREATE (n:NPC {id:'NEW', role:'helper', status:'active'})
-EOF
-# stderr @ID lines mint real ids (e.g. TSK1, NPC1) — copy them
-
-memnet add --session mn_… --stdin <<'EOF'
-MATCH (n:NPC {id:'NPC1'}), (t:TSK {id:'TSK1'})
-CREATE (n)-[:helps {id:'NEW', note:'labour'}]->(t)
+CREATE (t:TSK {goal:'Clear warehouse', status:'in_progress'})
+CREATE (n:NPC {role:'helper', status:'active'})
+MATCH (n:NPC {role:'helper'}), (t:TSK {goal:'Clear warehouse'})
+CREATE (n)-[:helps {note:'labour'}]->(t)
 EOF
 
-memnet query pin-map --session mn_… --anchor TSK1 --depth 2
+memnet query find --session mn_… --kind TSK --limit 8
+memnet query pin-map --session mn_… --kind TSK --locator 'goal=Clear warehouse' --depth 2
 ```
 
-Shaped pin map (illustrative):
+Shaped pin map (illustrative; nickname `id` only if set):
 
 ```cypher
-(:TSK {id: 'TSK1', goal: 'Clear warehouse', status: 'in_progress'})
-(:NPC {id: 'NPC1', role: 'helper', status: 'active'})
-(:NPC {id: 'NPC1'})-[:helps {id: 'E1', note: 'labour'}]->(:TSK {id: 'TSK1'})
+(:TSK {goal: 'Clear warehouse', status: 'in_progress'})
+(:NPC {role: 'helper', status: 'active'})
+(:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: 'Clear warehouse'})
 ```
 
-Create with `id:'NEW'`; patch/settle with known ids only. The agent dialect is **GQL only** (openCypher-shaped): shaped `pin_map` read + gated mutate. Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
+Create by labels+properties (`CREATE ()` is legal). leftover `id:'NEW'` mint / `@ID:` AssignedIdMap is leftover, not product. Cue then `pin_map`; leftover `--anchor` is a nickname cue. The agent dialect is **GQL only** (openCypher-shaped). Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
 
 MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
 
@@ -63,7 +60,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 ## Import absorb vs shared session
 
 - **Path A** — same `sessionId`; peers just re-`pin_map`. No import.
-- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (`keep` / `reject` / `remint`). That's absorb into the lead SSOT, not append. Optional **ImportGuard** soft policy: host hook and/or env-gated **CheapLlmImportGuard** (`MEMNET_IMPORT_GUARD_API_KEY`; optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips even when the key is set.
+- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (pattern match, not MERGE-by-id). leftover `keep`/`reject`/`remint` `id_policy` is leftover, not product. That's absorb into the lead SSOT, not append. Optional **ImportGuard** soft policy: host hook and/or env-gated **CheapLlmImportGuard** (`MEMNET_IMPORT_GUARD_API_KEY`; optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips even when the key is set.
 
 ## ACL + transport
 

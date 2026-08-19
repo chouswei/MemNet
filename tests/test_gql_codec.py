@@ -9,14 +9,14 @@ from memnet.gql_codec import GqlCodec
 from memnet.tier_a import EdgeRec, NodeRec, Op
 
 
-def test_parse_create_node_new():
+def test_parse_create_omits_leftover_new():
     doc = parse("CREATE (:PLR {id: 'NEW', identity: 'Hero', wealth: 1})")
     assert len(doc.items) == 1
     n = doc.items[0]
     assert isinstance(n, NodeRec)
     assert n.op == Op.CREATE
     assert n.kind == "PLR"
-    assert n.id == "NEW"
+    assert n.id == ""
     assert {f.key: f.value for f in n.fields}["identity"] == "Hero"
 
 

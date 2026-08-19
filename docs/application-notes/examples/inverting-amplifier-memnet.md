@@ -165,11 +165,11 @@ At \(a_s=10^6\) the pin-map absolutes match the ideal limit (`A_s=-10`, `Vout=-1
 
 1. **`session_open`** — `session=inv_amp_demo`; optional `seed_lines` from §4.
 2. **`add`** — if not seeded at open.
-3. **`pin_map`** — `anchor=CST_A` (optional `view=shell`): closed-loop `law=`, binds into `in`/`out`.
-4. **`pin_map`** — `anchor=CST_U1`: finite-gain law + binds at `inm` / `out` / `inp`.
-5. **`update`** — `~ [CST_U1] ; a_s=1000` and re-evaluate §2; write new `A_s` / `Vout` on `CST_A`; virtual ground fails if \(a_s\) is too small.
+3. **`pin_map`** — cue `CST` + nickname `CST_A` if set (optional `view=shell`): closed-loop `law=`, binds into `in`/`out`. leftover `--anchor CST_A` is leftover.
+4. **`pin_map`** — cue `CST_U1`.
+5. **`update`** — `MATCH (u:CST {id:'CST_U1'}) SET u.a_s = 1000` and re-evaluate §2; write new `A_s` / `Vout` on `CST_A`; virtual ground fails if \(a_s\) is too small.
 
-CLI: `memnet query pin-map --anchor CST_A`.
+CLI: `memnet query pin-map --kind CST --locator id=CST_A`. leftover `--anchor` is a nickname cue.
 
 ---
 

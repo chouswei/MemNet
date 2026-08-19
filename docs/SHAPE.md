@@ -27,9 +27,9 @@ So MemNet must sit **between** LLM call pipelines and data search — not as the
 
 From that problem, the product **must** be this shape:
 
-1. **Named session \(S\)** — a labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). The handle you pass is the **session id** (plus anchors / write scope). Peers **re-`pin_map`**. They do not receive a graph dump in chat.
+1. **Named session \(S\)** — a labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). The handle you pass is the **session id**. Peers **re-`pin_map`** from a codebook cue (labels+properties / keyword). They do not receive a graph dump in chat. Optional property `id` is a nickname, not identity.
 
-2. **Goldfish read** — each turn the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (id / kind / locator / keyword / `find`), then neighbourhood. Skip is valid when the seed is empty.
+2. **Goldfish read** — each turn the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (kind / labels+properties / keyword / `find`), then neighbourhood. Skip is valid when the seed is empty. When \(|Q|>1\), the emit carries **CueConflict** (list \(Q\), show cardinality) — do not pick one root and do not absorb.
 
 3. **Sparse write** — \(\mathrm{Commit}(\Delta)\) gated mutate. Same **GQL (openCypher-shaped)** alphabet as the read. **Write = display**: the live pin map is a shaped subgraph emit, not a second language.
 
@@ -64,7 +64,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 - HostSearch nested under `MemNetSystem`
 - Layer / Tier A as accept or teach
 - LLM talking to the durable store directly
-- Claiming goldfish from `pin_map` alone when there is no ego — use bounded `find` then `pin_map`
+- Claiming goldfish from `pin_map` alone when there is no cue — use bounded `find` then `pin_map`. leftover `--anchor` is a nickname cue, not a store key.
 - Claiming the live cabinet on Fake alone
 
 ---

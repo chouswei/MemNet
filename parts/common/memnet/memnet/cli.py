@@ -1046,6 +1046,7 @@ def read_get(
     tag: Annotated[str | None, typer.Option("--tag")] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """Leftover read_get (not a product command). Unique nickname or hidden handle."""
     if not record_id:
         raise MemNetError("no_id", "provide --id")
     ss, lock = _load_session(session)
@@ -1092,7 +1093,7 @@ def _query_context(
             for line in text.splitlines():
                 emit_stdout(line)
         elif not anchor:
-            emit_wrn("no_anchor", "store has no nodes")
+            return
         return
 
     if require_anchor and not anchor:
@@ -1187,6 +1188,9 @@ def _run_pin_map(
     session: str | None,
     view: str | None = None,
     caller: str | None = None,
+    kind: str | None = None,
+    locator: list[str] | None = None,
+    keyword: str | None = None,
 ) -> None:
     anchors: list[str] | None
     primary: str | None
@@ -1196,25 +1200,47 @@ def _run_pin_map(
     else:
         anchors = None
         primary = anchor
+    locators: list[tuple[str, str]] = []
+    try:
+        locators = parse_find_locators(locator)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
     ss, lock = _load_session(session)
     with lock:
-        _query_context(
-            ss,
-            anchor=primary,
-            anchors=anchors,
-            depth=depth,
-            max_rows=max_rows,
-            active_only=True,
-            require_anchor=True,
-            shaped_gql=True,
-            view=view,
-            caller=caller,
-        )
+        composer = PinMapComposer(ss)
+        try:
+            _rows, text = composer.compose(
+                anchor=primary,
+                anchors=anchors,
+                kind=kind,
+                locators=locators,
+                keyword=keyword,
+                depth=depth,
+                max_rows=max_rows,
+                active_only=True,
+                require_anchor=False,
+                view=view,
+                caller=caller or os.environ.get("MEMNET_CALLER"),
+                agent=os.environ.get("MEMNET_AGENT"),
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
+        if text:
+            for line in text.splitlines():
+                emit_stdout(line)
 
 
 @query_app.command("pin-map")
 def query_pin_map(
     anchor: Annotated[list[str] | None, typer.Option("--anchor")] = None,
+    kind: Annotated[str | None, typer.Option("--kind")] = None,
+    locator: Annotated[
+        list[str] | None,
+        typer.Option("--locator", help="KEY=VAL field cue; repeatable"),
+    ] = None,
+    keyword: Annotated[str | None, typer.Option("--keyword")] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     view: Annotated[
@@ -1230,9 +1256,12 @@ def query_pin_map(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Live pin map (PinMapShapedRead). Emits shaped openCypher-family subgraph."""
+    """Live pin map from a cue (kind / locators / keyword). leftover --anchor is a nickname cue."""
     _run_pin_map(
         anchor=anchor,
+        kind=kind,
+        locator=locator,
+        keyword=keyword,
         depth=depth,
         max_rows=max_rows,
         session=session,
@@ -1300,7 +1329,7 @@ def query_find(
     ss, lock = _load_session(session)
     with lock:
         try:
-            hits = bounded_match_find(
+            found = bounded_match_find(
                 ss.store,
                 kind=kind,
                 locators=locators,
@@ -1310,7 +1339,12 @@ def query_find(
         except MemNetError as exc:
             _handle_error(exc)
             return
-        text = PinMapComposer(ss).emit_gql(hits)
+        if found.conflict:
+            from memnet.pin_map_composer import emit_cue_conflict
+
+            text = emit_cue_conflict(found.seeds, cardinality=found.total, store=ss.store)
+        else:
+            text = PinMapComposer(ss).emit_gql(found.seeds)
         if text:
             for line in text.splitlines():
                 emit_stdout(line)

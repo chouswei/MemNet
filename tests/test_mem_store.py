@@ -133,7 +133,7 @@ def test_edge_index_maintained_on_update_and_delete():
 
 def test_edge_index_rebuilt_on_load_records():
     store, tm = _store_with_plr()
-    records = [store.by_id[rid] for rid in store.write_order]
+    records = [store._by_hid[rid] for rid in store.write_order]
     reloaded = MemStore(tm)
     reloaded.load_records(records)
     assert {e.id for e in reloaded._edges_from("N01")} == {"E01"}

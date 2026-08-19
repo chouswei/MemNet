@@ -48,14 +48,13 @@ def test_find_requires_cue(memnet_temp):
     assert "no_cue" in r.stderr
 
 
-def test_find_limit_truncates(memnet_temp):
+def test_find_kind_cue_conflict_not_silent_first_n(memnet_temp):
     sid = _open(memnet_temp)
     _seed_three_tsk(sid)
     r = runner.invoke(app, ["query", "find", "--kind", "TSK", "--limit", "2", "--session", sid])
     assert r.exit_code == 0, r.stderr
-    assert "TSK_a" in r.stdout
-    assert "TSK_b" in r.stdout
-    assert "TSK_c" not in r.stdout
+    assert "CueConflict" in r.stdout
+    assert "|Q|=3" in r.stdout
     assert "MOD_z" not in r.stdout
     assert "RETURN" not in r.stdout
     assert "(:LAW" not in r.stdout

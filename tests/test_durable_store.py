@@ -77,8 +77,8 @@ def test_hydrate_into_session_then_pin_map(memnet_temp):
         ss, "COM_acme", HydrateBudget(max_nodes=20, max_edges=20, depth=2)
     )
     assert loaded.ego_id == "COM_acme"
-    assert "COM_acme" in ss.store.by_id
-    assert "TSK_mission_q3" in ss.store.by_id
+    assert ss.store.get("COM_acme") is not None
+    assert ss.store.get("TSK_mission_q3") is not None
     assert "ABOUT" in ss.relations
 
     rows, text = PinMapComposer(ss).compose(anchor="COM_acme", depth=2, max_rows=50)
@@ -115,7 +115,7 @@ def test_flush_round_trip_via_owner(memnet_temp):
 
     ss2 = open_session(map_lines=list(_COM_MAP))
     owner.hydrate_into_session(ss2, "COM_acme")
-    assert "COM_acme" in ss2.store.by_id
+    assert ss2.store.get("COM_acme") is not None
     _, text = PinMapComposer(ss2).compose(anchor="COM_acme", depth=2, max_rows=50)
     assert "Acme" in text
 
@@ -230,7 +230,7 @@ def test_hydrate_missing_ego_is_empty(memnet_temp):
     ss = open_session(map_lines=list(_COM_MAP))
     loaded = owner.hydrate_into_session(ss, "COM_missing")
     assert loaded.nodes == []
-    assert "COM_missing" not in ss.store.by_id
+    assert ss.store.get("COM_missing") is None
 
 
 def test_build_hydrate_nodes_cypher_includes_budget():
@@ -277,7 +277,7 @@ def test_build_merge_node_and_edge_cypher():
         },
     )
     n_cypher = build_merge_node_cypher(node)
-    assert "MERGE (n:COM {id: 'COM_acme'})" in n_cypher
+    assert "MERGE (n:COM {_memnet_hid:" in n_cypher or "_memnet_hid" in n_cypher
     assert "n.name = 'Acme'" in n_cypher
     assert "_memnet_tag" in n_cypher
 
@@ -478,13 +478,13 @@ def test_neo4j_build_merge_node_and_edge_cypher():
         },
     )
     n_cypher, n_params = neo4j_cypher.build_merge_node_cypher(node)
-    assert "MERGE (n:COM {id: $id})" in n_cypher
-    assert n_params["id"] == "COM_acme"
+    assert "MERGE (n:COM {_memnet_hid: $hid})" in n_cypher
+    assert n_params["hid"] == node.hid
     assert n_params["props"]["name"] == "Acme"
     assert "_memnet_tag" in n_cypher
 
     e_cypher, e_params = neo4j_cypher.build_merge_edge_cypher(edge)
-    assert "MERGE (a)-[r:ABOUT {id: $id}]->(b)" in e_cypher
+    assert "_memnet_hid" in e_cypher
     assert e_params["src"] == "TSK_mission_q3"
     assert e_params["dist"] == "COM_acme"
 

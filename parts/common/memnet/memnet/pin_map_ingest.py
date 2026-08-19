@@ -137,19 +137,21 @@ class PinMapIngestBase:
         reject_client_new(result.gql_lines)
         if not result.gql_lines:
             raise MemNetError("empty_ingest", "no pins projected from artefact")
-        node_lines = [ln for ln in result.gql_lines if ln.lstrip().upper().startswith("MERGE")]
-        edge_lines = [ln for ln in result.gql_lines if not ln.lstrip().upper().startswith("MERGE")]
+        node_lines = [
+            ln
+            for ln in result.gql_lines
+            if ln.lstrip().upper().startswith("CREATE") and "-[" not in ln
+        ]
+        edge_lines = [
+            ln
+            for ln in result.gql_lines
+            if ln.lstrip().upper().startswith("MATCH") or "-[" in ln.lstrip()[:40]
+        ]
         gate = MutateGate(session)
         if node_lines:
             gate.apply(node_lines, mode="add", allow_new_relation=True)
-        fresh_edges: list[str] = []
-        for ln in edge_lines:
-            eid = _edge_id_from_gql(ln)
-            if eid and session.store.get(eid) is not None:
-                continue
-            fresh_edges.append(ln)
-        if fresh_edges:
-            gate.apply(fresh_edges, mode="add", allow_new_relation=True)
+        if edge_lines:
+            gate.apply(edge_lines, mode="add", allow_new_relation=True)
         result.committed = True
         return result
 
@@ -196,8 +198,8 @@ class PinMapIngest_Sysml(PinMapIngestBase):
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
-        node_ids = [n["id"] for n in nodes]
-        edge_ids = [e[0] for e in edges]
+        node_ids = [n.get("qname") or n.get("name") or "" for n in nodes]
+        edge_ids = [e[2] for e in edges]
         anchors = node_ids[:8]
         return IngestResult(
             domain=self.domain,
@@ -250,8 +252,8 @@ class PinMapIngest_Codebase(PinMapIngestBase):
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
-        node_ids = [n["id"] for n in nodes]
-        edge_ids = [e[0] for e in edges]
+        node_ids = [n.get("path") or n.get("signature") or n.get("name") or "" for n in nodes]
+        edge_ids = [e[2] for e in edges]
         return IngestResult(
             domain=self.domain,
             gql_lines=gql,
@@ -305,8 +307,8 @@ class PinMapIngest_PcbaAto(PinMapIngestBase):
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
-        node_ids = [n["id"] for n in nodes]
-        edge_ids = [e[0] for e in edges]
+        node_ids = [n.get("path") or n.get("signature") or n.get("name") or "" for n in nodes]
+        edge_ids = [e[2] for e in edges]
         return IngestResult(
             domain=self.domain,
             gql_lines=gql,
@@ -362,8 +364,8 @@ class PinMapIngest_SkillsRules(PinMapIngestBase):
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
-        node_ids = [n["id"] for n in nodes]
-        edge_ids = [e[0] for e in edges]
+        node_ids = [n.get("path") or n.get("signature") or n.get("name") or "" for n in nodes]
+        edge_ids = [e[2] for e in edges]
         return IngestResult(
             domain=self.domain,
             gql_lines=gql,
@@ -605,6 +607,7 @@ def _project_sysml_file(
         nid = alloc.allocate_from_locator(pin_kind, qname)
         fields = {
             "id": nid,
+            "_kind": pin_kind,
             "name": name,
             "qname": qname,
             "path": rel_path,
@@ -672,32 +675,72 @@ _KIND_PREFIXES = (
 )
 
 
+def _match_props_for_node(n: dict[str, str]) -> str:
+    """Locator properties for pattern MATCH (not a store key)."""
+    prefer = (
+        "qname",
+        "requirementId",
+        "skill_id",
+        "signature",
+        "refdes",
+        "net",
+        "pin",
+        "path",
+        "name",
+    )
+    props: dict[str, str] = {}
+    for key in prefer:
+        val = n.get(key, "")
+        if val:
+            props[key] = val
+            if key in ("qname", "requirementId", "skill_id", "signature"):
+                break
+    if not props:
+        props = {
+            k: v
+            for k, v in n.items()
+            if k not in {"id", "_kind"} and v and not str(k).startswith("_")
+        }
+    return _emit_props(props)
+
+
 def _nodes_edges_to_gql(
     nodes: Iterable[dict[str, str]],
     edges: Iterable[tuple[str, str, str, str]],
 ) -> list[str]:
     lines: list[str] = []
-    id_to_kind: dict[str, str] = {}
+    by_id: dict[str, dict[str, str]] = {}
     for n in nodes:
-        nid = n["id"]
-        kind = nid.split("_", 1)[0] if "_" in nid else "PRT"
-        for prefix in _KIND_PREFIXES:
-            if nid.startswith(prefix + "_"):
-                kind = prefix
-                break
-        id_to_kind[nid] = kind
-        props = {k: v for k, v in n.items() if k != "id" and v and not str(k).startswith("_")}
-        # MERGE alone may not set props on create in our codec — emit SET via
-        # second form: MERGE (n:Kind {id}) SET n += {…}
+        nid = n.get("id", "")
+        kind = n.get("_kind", "")
+        if not kind:
+            kind = nid.split("_", 1)[0] if "_" in nid else "PRT"
+            for prefix in _KIND_PREFIXES:
+                if nid.startswith(prefix + "_"):
+                    kind = prefix
+                    break
+        n = dict(n)
+        n["_kind"] = kind
+        if nid:
+            by_id[nid] = n
+        props = {
+            k: v
+            for k, v in n.items()
+            if k not in {"id", "_kind"} and v and not str(k).startswith("_")
+        }
         prop_s = _emit_props(props)
-        lines.append(f"MERGE (n:{kind} {{id: '{_escape_str(nid)}'}}) SET n += {prop_s}")
+        lines.append(f"CREATE (:{kind} {prop_s})")
 
-    for eid, src, rel, dst in edges:
+    for _eid, src, rel, dst in edges:
+        a = by_id.get(src, {"id": src, "_kind": "PRT"})
+        b = by_id.get(dst, {"id": dst, "_kind": "PRT"})
+        ak = a.get("_kind") or "PRT"
+        bk = b.get("_kind") or "PRT"
         lines.append(
-            f"MATCH (a {{id: '{_escape_str(src)}'}}), (b {{id: '{_escape_str(dst)}'}})\n"
-            f"CREATE (a)-[:{rel} {{id: '{_escape_str(eid)}', recycle: 'persistent'}}]->(b)"
+            f"MATCH (a:{ak} {_match_props_for_node(a)}), "
+            f"(b:{bk} {_match_props_for_node(b)})\n"
+            f"CREATE (a)-[:{rel}]->(b)"
         )
-    # Flatten multi-line MATCH/CREATE into separate apply entries expected by MutateGate
     flat: list[str] = []
     for line in lines:
         if "\n" in line:

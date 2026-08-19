@@ -20,14 +20,13 @@ def test_add_then_update(memnet_temp, schema_file):
     assert "2" in got.stdout
 
 
-def test_add_id_exists(memnet_temp, schema_file):
+def test_add_two_same_nickname_gql(memnet_temp, schema_file):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
-    line = "@PLR: PLR01|Beggar|1|0|0|0|bag"
-    runner.invoke(app, ["add", line, "--session", sid])
-    dup = runner.invoke(app, ["add", line, "--session", sid])
-    assert dup.exit_code != 0
-    assert "id_exists" in dup.stderr
+    line = "CREATE (:PLR {id: 'PLR01', identity: 'Beggar', wealth: 1, cashflow: 0, monopoly: 0, reputation: 0, inventory: 'bag'})\n"
+    assert runner.invoke(app, ["add", "--stdin", "--session", sid], input=line).exit_code == 0
+    dup = runner.invoke(app, ["add", "--stdin", "--session", sid], input=line)
+    assert dup.exit_code == 0, dup.stderr
 
 
 def test_update_not_found(memnet_temp, schema_file):

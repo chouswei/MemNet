@@ -36,10 +36,10 @@ def test_cannot_redefine_edg():
     assert exc.value.code == "fixed_tag"
 
 
-def test_user_map_requires_id_first():
-    with pytest.raises(MemNetError) as exc:
-        load_map_from_lines(["@FOO: name|id"])
-    assert exc.value.code == "id_first"
+def test_user_map_allows_fields_without_id_first():
+    tm = load_map_from_lines(["@FOO: name|id"])
+    assert tm.tags["FOO"].fields[0] == "name"
+    assert "id" in tm.tags["FOO"].fields
 
 
 def test_schema_shared_dialect_load():
@@ -53,10 +53,9 @@ def test_schema_shared_dialect_load():
     assert "name" in tm.tags["BIZ"].fields
 
 
-def test_schema_shared_requires_id_first():
-    with pytest.raises(MemNetError) as exc:
-        load_map_from_lines(["SCHEMA FOO ; fields=name id"])
-    assert exc.value.code == "id_first"
+def test_schema_shared_not_id_first():
+    tm = load_map_from_lines(["SCHEMA FOO ; fields=name id"])
+    assert tm.tags["FOO"].fields[0] == "name"
 
 
 def test_schema_emit_roundtrip():
@@ -78,7 +77,7 @@ def test_field_count_mismatch():
     assert exc.value.code == "FIELD_COUNT"
 
 
-def test_id_conflict_cross_tag(memnet_temp):
+def test_same_nickname_cross_tag_stay_two(memnet_temp):
     from memnet.session import open_session
 
     ss = open_session(
@@ -92,10 +91,12 @@ def test_id_conflict_cross_tag(memnet_temp):
         ss.tag_map,
     )
     ss.store.upsert(rec, relations=ss.relations)
-    with pytest.raises(MemNetError) as exc:
-        bad = parse_line("@BIZ: N01|x|t|l|0|0|0|persistent", ss.tag_map)
-        ss.store.upsert(bad, relations=ss.relations)
-    assert exc.value.code == "id_conflict"
+    other = parse_line("@BIZ: N01|x|t|l|0|0|0|persistent", ss.tag_map)
+    ss.store.upsert(other, relations=ss.relations)
+    hits = ss.store.match_nickname("N01")
+    assert len(hits) == 2
+    assert {r.tag for r in hits} == {"NPC", "BIZ"}
+    assert hits[0].hid != hits[1].hid
 
 
 def test_techdocs_schema_and_workflow_parse():

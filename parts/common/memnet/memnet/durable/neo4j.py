@@ -103,7 +103,7 @@ def build_hydrate_nodes_cypher(ego_id: str, budget: HydrateBudget) -> tuple[str,
     depth = max(0, int(budget.depth))
     limit = max(1, int(budget.max_nodes))
     query = (
-        "MATCH (ego {id: $ego_id})\n"
+        "MATCH (ego {_memnet_hid: $ego_id})\n"
         f"OPTIONAL MATCH (ego)-[*0..{depth}]-(n)\n"
         "WITH DISTINCT n\n"
         "WHERE n IS NOT NULL\n"
@@ -122,7 +122,7 @@ def build_hydrate_edges_cypher(
     ego = require_id(ego_id, kind="ego id")
     limit = max(0, int(budget.max_edges))
     skip = (
-        "MATCH (ego {id: $ego_id})\n"
+        "MATCH (ego {_memnet_hid: $ego_id})\n"
         "WHERE false\n"
         "RETURN null AS rel_type, null AS props, null AS src, null AS dist\n"
         "LIMIT 0"
@@ -134,9 +134,9 @@ def build_hydrate_edges_cypher(
         return skip, {"ego_id": ego}
     query = (
         "MATCH (src)-[rel]->(dst)\n"
-        "WHERE src.id IN $node_ids AND dst.id IN $node_ids\n"
+        "WHERE src._memnet_hid IN $node_ids AND dst._memnet_hid IN $node_ids\n"
         "RETURN DISTINCT type(rel) AS rel_type, properties(rel) AS props, "
-        "src.id AS src, dst.id AS dist\n"
+        "src._memnet_hid AS src, dst._memnet_hid AS dist\n"
         f"LIMIT {limit}"
     )
     return query, {"node_ids": ids}
@@ -145,10 +145,15 @@ def build_hydrate_edges_cypher(
 def build_merge_node_cypher(record: Record) -> tuple[str, dict[str, Any]]:
     """MERGE/SET one MemNet node record into Neo4j."""
     tag = cypher_ident(record.tag.upper(), kind="node label")
-    rid = require_id(record.id)
-    props = props_for_set(dict(record.fields), skip={"id"})
-    query = f"MERGE (n:{tag} {{id: $id}})\nSET n += $props, n.{_MEMNET_TAG_KEY} = $tag"
-    return query, {"id": rid, "props": props, "tag": record.tag.upper()}
+    query = (
+        f"MERGE (n:{tag} {{_memnet_hid: $hid}})\n"
+        f"SET n += $props, n.{_MEMNET_TAG_KEY} = $tag"
+    )
+    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    if hid:
+        hid = require_id(hid, kind="hid")
+    props = props_for_set(dict(record.fields), skip=set())
+    return query, {"hid": hid, "props": props, "tag": record.tag.upper()}
 
 
 def build_merge_edge_cypher(record: Record) -> tuple[str, dict[str, Any]]:
@@ -167,30 +172,23 @@ def build_merge_edge_cypher(record: Record) -> tuple[str, dict[str, Any]]:
             "flush edge requires fields src, dist, relation",
         )
     rel_type = cypher_ident(rel, kind="relationship type")
-    src_id = require_id(src, kind="src id")
-    dist_id = require_id(dist, kind="dist id")
+    src_id = require_id(src, kind="src hid")
+    dist_id = require_id(dist, kind="dist hid")
     skip = {"src", "dist", "relation"}
     props = props_for_set(dict(record.fields), skip=skip)
-    if record.id:
-        rid = require_id(record.id)
-        merge_edge = f"MERGE (a)-[r:{rel_type} {{id: $id}}]->(b)"
-        params: dict[str, Any] = {
-            "src": src_id,
-            "dist": dist_id,
-            "id": rid,
-            "props": props,
-            "rel": rel,
-        }
-    else:
-        merge_edge = f"MERGE (a)-[r:{rel_type}]->(b)"
-        params = {
-            "src": src_id,
-            "dist": dist_id,
-            "props": props,
-            "rel": rel,
-        }
+    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    merge_edge = f"MERGE (a)-[r:{rel_type}]->(b)"
+    params: dict[str, Any] = {
+        "src": src_id,
+        "dist": dist_id,
+        "props": props,
+        "rel": rel,
+    }
+    if hid:
+        params["hid"] = require_id(hid, kind="hid")
+        merge_edge = f"MERGE (a)-[r:{rel_type} {{_memnet_hid: $hid}}]->(b)"
     query = (
-        "MATCH (a {id: $src}), (b {id: $dist})\n"
+        "MATCH (a {_memnet_hid: $src}), (b {_memnet_hid: $dist})\n"
         f"{merge_edge}\n"
         f"SET r += $props, r.{_MEMNET_TAG_KEY} = 'EDG', r.relation = $rel"
     )

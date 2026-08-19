@@ -53,15 +53,16 @@ def test_v1_isolated_tsk_hides_unlinked_mod(memnet_temp):
     assert "MOD_y" in second.stdout
 
 
-def test_v3_empty_read_list_then_no_anchor(memnet_temp):
+def test_v3_empty_read_list_then_empty_cue_skips(memnet_temp):
     sid = _open_coding(memnet_temp)
     listed = runner.invoke(app, ["read", "list", "--tag", "TSK", "--active-only", "--session", sid])
     assert listed.exit_code == 0, listed.stderr
     assert "TSK" not in listed.stdout or "(:TSK" not in listed.stdout
     assert "TSK_" not in listed.stdout
     missing = runner.invoke(app, ["query", "pin-map", "--session", sid])
-    assert missing.exit_code != 0
-    assert "no_anchor" in missing.stderr
+    assert missing.exit_code == 0, missing.stderr
+    assert "no_anchor" not in missing.stderr
+    assert missing.stdout.strip() == ""
 
 
 def test_v4_sparse_owns_edge(memnet_temp):
@@ -84,13 +85,16 @@ def test_v4_sparse_owns_edge(memnet_temp):
     assert "MOD_a" in after.stdout
 
 
-def test_v6_gql_add_id_exists(memnet_temp):
+def test_v6_two_same_nickname_stay_two(memnet_temp):
     sid = _open_coding(memnet_temp)
     line = "CREATE (:TSK {id: 'TSK_dup', goal: 'once', status: 'in_progress'})\n"
     _add(sid, line)
     dup = runner.invoke(app, ["add", "--stdin", "--session", sid], input=line)
-    assert dup.exit_code != 0
-    assert "id_exists" in dup.stderr
+    assert dup.exit_code == 0, dup.stderr
+    from memnet.session import get_session
+
+    ss = get_session(sid)
+    assert len(ss.store.match_nickname("TSK_dup")) == 2
 
 
 def test_v2_union_under_one_m(memnet_temp):

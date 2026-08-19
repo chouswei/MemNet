@@ -158,7 +158,7 @@ Numbered fill is **0.10–0.20** above. This list is the overflow. **MUST NOT** 
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
-| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. Notes still teach leftover `--anchor` / `id:'NEW'`. **0.10** owns the TARGET teach rewrite. |
+| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. **0.10** TARGET teach rewrite (this cut): cue/`pin_map` + pattern Commit; leftover `--anchor` / `id:'NEW'` named leftover. |
 | **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — optional Neo4j client 0.9, not live-claimed |
 
 Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Planned extras: **0.10–0.20** above.

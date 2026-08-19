@@ -104,16 +104,17 @@ class NeighbourhoodReserveTable:
 
 def collect_neighbourhood_ids(store, anchor: str, depth: int) -> frozenset[str]:
     """Same expand as pin_map; LAW ids exempt from the held set."""
-    if not anchor or anchor not in store.by_id:
+    rec0 = store.resolve_one(anchor) if hasattr(store, "resolve_one") else store.get(anchor)
+    if rec0 is None:
         raise MemNetError("no_anchor", f"reserve requires existing anchor {anchor!r}")
     depth = max(0, int(depth))
     fanout: list[str] = []
-    subgraph = store.neighbors(anchor, depth, fanout_warnings=fanout)
-    held: set[str] = {anchor}
+    subgraph = store.neighbors(rec0.hid, depth, fanout_warnings=fanout)
+    held: set[str] = {rec0.hid}
     for rec in subgraph:
         if getattr(rec, "tag", None) == "LAW":
             continue
-        held.add(rec.id)
+        held.add(rec.hid)
     return frozenset(held)
 
 
@@ -304,5 +305,5 @@ def touched_ids_from_records(records: Iterable[Record]) -> set[str]:
     for rec in records:
         if rec.tag == "LAW":
             continue
-        ids.add(rec.id)
+        ids.add(rec.hid)
     return ids

@@ -154,6 +154,9 @@ async def _pin_map(
     view: str | None = None,
     caller: str | None = None,
     anchors: list[str] | None = None,
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
 ) -> str:
     argv = [
         "query",
@@ -171,6 +174,12 @@ async def _pin_map(
         ids.append(anchor)
     for aid in ids:
         argv.extend(["--anchor", aid])
+    if kind:
+        argv.extend(["--kind", kind])
+    for loc in locators or []:
+        argv.extend(["--locator", loc])
+    if keyword:
+        argv.extend(["--keyword", keyword])
     if view:
         argv.extend(["--view", view])
     if caller:
@@ -187,6 +196,9 @@ async def pin_map(
     session: str | None = None,
     caller: str | None = None,
     anchors: list[str] | None = None,
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
 ) -> str:
     """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
 
@@ -196,11 +208,13 @@ async def pin_map(
 
     Optional ``caller``: CapsPolicy ACL who-check when session ACL is enabled.
 
-    Optional ``anchors``: extra ego ids; union with ``anchor`` under one max_rows.
-
-    Returns LAW-prepended shared-dialect lines (no leading +/~/-). Primary agent read.
+    Cue with ``kind`` / ``locators`` / ``keyword`` (product). leftover ``anchor`` /
+    ``anchors`` are nickname cues. Empty cue skips (0.11 owns outline). When the
+    cue yields |Q|>1 the emit carries CueConflict (no silent root pick).
     """
-    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors)
+    return await _pin_map(
+        anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
+    )
 
 
 @mcp.tool()
@@ -214,7 +228,9 @@ async def query_warm(
     anchors: list[str] | None = None,
 ) -> str:
     """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors)
+    return await _pin_map(
+        anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
+    )
 
 
 @mcp.tool()
@@ -225,9 +241,9 @@ async def find(
     keyword: str | None = None,
     session: str | None = None,
 ) -> str:
-    """Bounded MATCH find: seed nodes only (hard LIMIT). Then pin_map a copied id.
+    """Bounded MATCH find: seed nodes only (hard LIMIT). When |Q|>1 emit CueConflict (do not copy-id).
 
-    At least one of kind / locators (KEY=VAL) / keyword. Not rag_query.
+    At least one of kind / locators (KEY=VAL) / keyword. Not rag_query. SHALL NOT absorb.
     """
     argv = ["query", "find", "--limit", str(limit)]
     if kind:
@@ -357,11 +373,9 @@ async def import_slice(
     """Path B: import a bounded WorkingMemorySlice into the lead/mission session.
 
     Prefer path A (shared session re-pin_map) when Multitask already shares one
-    session. ``id_policy``: keep (MERGE upsert-by-id) | reject | remint.
-    Optional ImportGuard soft policy: host hook and/or CheapLlmImportGuard when
-    ``MEMNET_IMPORT_GUARD_API_KEY`` is set (MCP process start installs it).
-    Set ``enable_guard`` false to skip (--no-guard). Engine hard gates always
-    apply (MN-REQ-12.9–12.11 / #63).
+    session. Product absorb is pattern MERGE (labels+properties / type+ends).
+    leftover ``id_policy`` keep|reject|remint is not a product command
+    (keep = pattern match, not MERGE-by-id).
     """
     argv = [
         "import-slice",
@@ -623,7 +637,7 @@ async def ingest_skills(
 
 @mcp.tool()
 async def read_get(id: str, session: str | None = None) -> str:
-    """Fetch a single row by id."""
+    """Leftover read_get (not a product command). Unique nickname only."""
     return await _run(["read", "get", "--id", id], session=session)
 
 
