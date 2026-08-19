@@ -103,7 +103,7 @@ Factory / startup semantics:
 | `MEMNET_DURABLE_FAKE` truthy | `FakeDurableAdapter` |
 | else both AgensGraph and Neo4j URLs set | **error** unless `MEMNET_DURABLE_BACKEND` is `agensgraph` or `neo4j` |
 | else `MEMNET_AGENSGRAPH_URL` set | `AgensGraphAdapter` (client) |
-| else `MEMNET_NEO4J_URL` set | `Neo4jAdapter` (client; not live-claimed) |
+| else `MEMNET_NEO4J_URL` set | `Neo4jAdapter` (client; extra **0.14** live claimed) |
 | else | `FakeDurableAdapter` (dev/test seam — not a production cabinet) |
 
 Second cabinet (same ABC / owner / budget; **not** a live claim). What talks to what, Cypher vs Agens, steal/reject: [`neo4j-buffer.md`](neo4j-buffer.md).

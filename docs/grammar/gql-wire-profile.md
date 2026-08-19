@@ -209,7 +209,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.
 - Dual-teach two agent dialects.
 - Delete mission budgets (sessions, view, Multitask owner) in favour of raw store access.
-- Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI). Do **not** vendor a cabinet. Do **not** flip `liveNeo4jClaimed`.
+- Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI). Do **not** vendor a cabinet. Do **not** start 0.16 two namespaces from this wire cut.
 - Teach full GQL DDL as agent surface in first cut.
 - Pretend the 0.9 Python already dropped `by_id` / `validate_id` / `id_first`.
 - Vendor the whole openCypher repo, TCK, CIP tree, or ANTLR tools; generate a parser/visitor from [`openCypher.bnf`](openCypher.bnf) as a second accept path; claim TCK compliance; describe MemNet as “Cypher” or “openCypher”.
@@ -264,7 +264,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 |-------|------|-------------------------|
 | **M1 (done)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5 (done, 0.7)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j client not live-claimed) — [`agensgraph-buffer.md`](agensgraph-buffer.md), [`neo4j-buffer.md`](neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
+| **M2.5 (done, 0.7 / 0.14)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j live claimed 0.14) — [`agensgraph-buffer.md`](agensgraph-buffer.md), [`neo4j-buffer.md`](neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 | **Archive** | Historical Layer + unused `MemNet.g4` stub under [`archive/`](archive/) | Not an accept path; not CI teach |
@@ -286,7 +286,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (not live-claimed) |
+| [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |
 | [`memnet-session-strata.md`](memnet-session-strata.md) | Named sessions as strata (not Layer wire) |

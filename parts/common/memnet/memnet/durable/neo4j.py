@@ -14,7 +14,9 @@ This module is a **client** only: it speaks Neo4j Cypher over the official
 Wire stays MemNet GQL pin_map / mutate; the sync owner alone calls
 hydrate/flush. Agents MUST NOT talk Bolt.
 
-Live Bolt round-trip is **not** claimed here (``liveNeo4jClaimed=false``).
+Live Bolt round-trip is claimed as extra **0.14** (``liveNeo4jClaimed=true``;
+live round-trip yes; hid flush; leftover-nickname hydrate after hid miss).
+Hid stays off the wire. Skip live pytest unless ``MEMNET_NEO4J_URL``.
 """
 
 from __future__ import annotations

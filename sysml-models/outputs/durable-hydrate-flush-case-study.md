@@ -5,7 +5,7 @@
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 
-**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** Agens live hydrate/flush proven; optional Neo4j client not live-claimed; cabinets external / not vendored.
+**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** Agens live hydrate/flush proven; extra **0.14** Neo4j live claimed (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); cabinets external / not vendored.
 
 ## 1. Purpose
 
@@ -72,9 +72,9 @@ flowchart LR
 
 | | As-is | Target / leftover |
 |--|-------|-------------------|
-| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=false`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
+| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=true` in 0.14), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
 | Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
-| Live cabinet | Agens external / operator-proven (0.7); Neo4j client not live-claimed; **not** vendored; skip live marks unless URL | Not a hosted product service |
+| Live cabinet | Agens external / operator-proven (0.7); Neo4j extra 0.14 claimed (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); **not** vendored; skip live marks unless URL | Not a hosted product service |
 | Satisfy | MN-REQ-06.4 on `DurableBuffer` | Live claim is operator URL + pytest mark |
 
 ## 6. Related

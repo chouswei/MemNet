@@ -1,6 +1,6 @@
 # Between MemNet and Neo4j
 
-**Status:** client landed; **live Neo4j round-trip not claimed** (`liveNeo4jClaimed=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
+**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
 **Audience:** product developers.  
 **Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs. Same ABC / owner / budget.  
 **Shape:** cabinet **behind** the session, not instead of it ([`../SHAPE.md`](../SHAPE.md) §5).
@@ -120,7 +120,7 @@ Neo4j and AgensGraph are **two cabinets**, not two products. Factory binds **one
 | One `DurableSyncOwner` | Bolt (`neo4j` driver) vs `psycopg` |
 | Ego `HydrateBudget` (depth, `max_nodes` / `max_edges`) | `labels(n)` (list) vs AgensGraph `label(n)` |
 | Record shape; `_memnet_tag` round-trip | Named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`) vs Agens graph name |
-| Fake always-on CI; live mark skips unless URL | Live claim: Agens **0.7** proven; Neo4j **unclaimed** |
+| Fake always-on CI; live mark skips unless URL | Live claim: Agens **0.7** proven; Neo4j **0.14** claimed |
 
 Cypher sketches (Neo4j; parameterised; `_memnet_hid` is internal, not agent wire):
 
@@ -129,7 +129,7 @@ Cypher sketches (Neo4j; parameterised; `_memnet_hid` is internal, not agent wire
 - **Flush nodes:** `MERGE (n:TAG {_memnet_hid: $hid}) SET n += $props, n._memnet_tag = 'TAG'`
 - **Flush edges:** `MATCH (a {_memnet_hid: $src}), (b {_memnet_hid: $dist}) MERGE (a)-[r:REL {_memnet_hid: $hid}]->(b) SET …`
 
-Official fixture (`company_ego_fixture` / `COM_acme_live_neo4j`): flush, then hydrate by the **same hid** that was written. Do not MATCH `(ego {id: $nickname})` as the live contract. leftover nickname hydrate is a property filter after hid miss only. **MUST NOT** claim `liveNeo4jClaimed` from this identity fix.
+Official fixture (`company_ego_fixture` / `COM_acme_live_neo4j`): flush, then hydrate by the **same hid** that was written. Do not MATCH `(ego {id: $nickname})` as the live contract. leftover nickname hydrate is a property filter after hid miss only. Extra **0.14** live claim on rpi5-syson used leftover-nickname hydrate after hid miss; do **not** write hydrate-by-hid proven on live.
 
 MemNet tags become vertex labels; `EDG.relation` becomes the relationship type. Mapping back prefers `_memnet_tag`, else `first_label`. Identifiers and ids are validated before they reach Bolt (`neo4j_bad_ident` / `neo4j_bad_id`). Each `session.run` auto-commits so a later hydrate error cannot roll back a successful flush.
 
@@ -223,7 +223,7 @@ Factory / startup semantics (`make_adapter_from_env`):
 | Optional extra `memnet-llm[neo4j]` | Landed (driver only — not the DB server) |
 | Unit tests / recorded Bolt stub | Always-on CI |
 | `pytest -m neo4j_live` | Skip unless `MEMNET_NEO4J_URL` |
-| Live round-trip claim | **Leftover** — `liveNeo4jClaimed=false` |
+| Live round-trip claim | **0.14 claimed** — `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss) |
 
 This repo does **not** vendor Neo4j or require docker-compose for tests. Operators who want a local cabinet run any upstream image themselves and export `MEMNET_NEO4J_URL`. Example (illustrative — not a product dependency):
 
@@ -242,11 +242,11 @@ pytest -m neo4j_live
 |----------|-----|
 | Teach **LLM ↔ Neo4j / Bolt / Browser / GraphQL** as goldfish or handoff | Breaks shared MemNet memory / Multitask owner |
 | Dual-write / silently pick when both cabinet URLs are set | Two writers → split brain |
-| Claim live Neo4j from Fake or unit stubs | Mirror 0.7 honesty; leftover until a live round-trip |
+| Claim live Neo4j from Fake or unit stubs | Mirror 0.7 honesty; live claim needs an operator cabinet |
 | Vendor a Neo4j server in this repo | Client extra only |
 | Treat Neo4j as a MemNet substitute or as the agent handoff handle | Handoff = session id; peers re-`pin_map` |
 | Thin Cypher-relay-only (drop MemNet; “just a proxy”) | Collapses product value — MemNet is the shared memory |
-| Hold **1.0** for live Neo4j | 1.0 = 0.5–0.8 claimed; live Neo4j is **Later** ([`../ROADMAP.md`](../ROADMAP.md)) |
+| Hold **1.0** for live Neo4j | 1.0 = 0.5–0.8 claimed; live Neo4j is extra **0.14** ([`../ROADMAP.md`](../ROADMAP.md)) |
 | `rag_query` / `pin_map.generate` / chunks on the wire | Fusion of retrieve + generate + remember; MN-REQ-00 |
 | Graphiti / GraphRAG / HippoRAG **inside** the engine, or Neo4j as goldfish | Wrong haystack; RRF / PPR / Leiden are not Recall |
 | Snap-on-session (ANN / embed \(S\)) or vector index as the memory surface | Shape is `pin_map`; cabinet is hydrate/flush |

@@ -180,7 +180,7 @@ The security note already says spoofing `llm_id` in-process is a **trust-the-har
 
 As-is, `memnet-llm[neo4j]` is cabinet only. Honest, and operator-hostile: GraphRAG already lives on Neo4j, so the LLM leaves the harness memory plane for Browser.
 
-**Proposal (not shipped):** one Neo4j **process**, two **namespaces** (cabinet `_memnet_tag` vs library corpus). Library port emits locators, never `generate`. Catalog Snap may return `session=` ids. Join remains Absorb, not RAG. Live Neo4j still unclaimed. Estimates: rethink note (design budgets, not SLAs).
+**Proposal (not shipped):** one Neo4j **process**, two **namespaces** (cabinet `_memnet_tag` vs library corpus). Library port emits locators, never `generate`. Catalog Snap may return `session=` ids. Join remains Absorb, not RAG. Live Neo4j is extra **0.14** claimed; two namespaces remain **0.16**. Estimates: rethink note (design budgets, not SLAs).
 
 ---
 

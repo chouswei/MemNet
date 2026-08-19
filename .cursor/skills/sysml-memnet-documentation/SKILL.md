@@ -56,7 +56,7 @@ Pair with [sysml-modeling-workflow](../sysml-modeling-workflow/SKILL.md) and [me
 
 ## Prerequisites
 
-1. Repo install for **0.9**: `pip install -e ".[mcp]"` from MemNet (PyPI `memnet-llm` is still **0.4.6**). Extra cabinet client: `.[mcp,neo4j]` (live Neo4j unclaimed).
+1. Repo install for **0.9**: `pip install -e ".[mcp]"` from MemNet (PyPI `memnet-llm` is still **0.4.6**). Extra cabinet client: `.[mcp,neo4j]` (live Neo4j claimed as extra 0.14).
 2. MemNet entry in `~/.cursor/mcp.json` (in-process preferred; see [mcp-policy.md](../mcp-memnet/references/mcp-policy.md)).
 3. MemNet MCP tools visible in the session catalog. If absent: treat as serve down — no `pin_map` / mutate.
 4. Under TCP only: `memnet serve` + optional `serve_status`. Skip that probe under in-process default.
