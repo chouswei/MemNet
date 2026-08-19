@@ -32,6 +32,39 @@ Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) 
 
 ---
 
+## How RAG sits between `memnet-llm` and the Neo4j cabinet
+
+There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both and is **not shipped** (`RagHostHook.implemented=false`). Algorithms of the relatives: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
+
+```text
+  library / PDFs / web
+       |  host Snap (optional; design only)
+       |  retrieve chunks → locators only
+       v
+  MutateGate / ingest ---------->  memnet-llm session S
+                                       ^
+  LLM goldfish  <-->  pin_map / mutate |   NOT rag_query
+                                       |
+                                       |  hydrate / flush (DurableSyncOwner)
+                                       v
+                                  Neo4j cabinet
+                                  (memnet-llm[neo4j] driver)
+```
+
+| Hop | Package / process | What actually runs | RAG? |
+|-----|-------------------|--------------------|------|
+| Agent read/write | `memnet-llm` / `memnet-mcp` | GQL `pin_map` / `find` / `add` / `update` | **No** — Shape of \(S\) |
+| Optional corpus | Host (grep, docs MCP, RAGFlow, GraphRAG, …) | Ranked retrieve, then **locators** into MutateGate | **Yes** — Snap of the **library**; never of \(S\) |
+| Survive process death | `memnet-llm[neo4j]` → external Neo4j | Ego `MERGE` / `MATCH [*0..k]` under `HydrateBudget` | **No** — cabinet, not retrieve-then-generate |
+
+**If someone wires RAG “through Neo4j” (the footgun).** LLM → Cypher/GraphQL/`generate` on the same store that holds flushed pins, or a vector index **on** that cabinet used as goldfish. That collapses three jobs: library Snap, session Shape, durable hydrate. Symptoms: `rag_query` on MCP, `pin_map.generate`, chunk bodies on `note=`, Graphiti-style RRF against the cabinet, ANN of \(S\).
+
+**Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice.
+
+**Rethink (design, not shipped):** as-is “RAG never touches Neo4j” pushes operators to LLM↔Bolt. Proposed **two ports, one server**. Estimates: network / RAM / CPU / **LLM tokens** (goldfish ≲ 4k typical; 4 MiB frame is not a token budget; hydrate 0 tokens). [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md).
+
+---
+
 ## Key features on both sides
 
 Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapComposer`, `MutateGate`, `DurableSyncOwner` / `SessionLifecycle` ports, `Neo4jAdapter`. Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Math: [`math-skeleton.md`](math-skeleton.md).
@@ -143,7 +176,7 @@ The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. A Neo4
 | **Microsoft GraphRAG** `LocalSearch` / `global_search` | Corpus KG: Leiden communities + report map-reduce, then **generate** | Host Snap of the **library**. | Local *shape* ≈ ego walk — keep as host retrieve. | Community reports as goldfish. Corpus KG **as** session. Map-reduce **on** Neo4j via MemNet. |
 | **LightRAG** `aquery` (local/global/hybrid/mix) | Incremental **document** Q&A; default path generates; chunks in the payload | Host locators (`file_path`). | Dual-level grain ≈ `view=shell` then TSK `interior`. Empty keywords → skip. | hybrid/mix **in** `memnet-llm`. Chunk JSON as `pin_map`. |
 | **RAGFlow** MCP `ragflow_retrieval` | Sibling tool returns **chunks** | Host Snap. | Locator-shaped hits if the host strips bodies. | Chunks on `note=`. Nest under `MemNetSystem`. |
-| **Graphiti** `search` / `add_episode` (often Neo4j/FalkorDB) | Cross-session **LTM**; BM25 \|\| cosine \|\| BFS **RRF**; `node_distance` given a centre | Closest *algorithm* to `pin_map` is **distance from centre**. Closest *temptation* is using **Neo4j as goldfish**. | Serialise: lexical cue, then hop (do not RRF). Incremental Δ. `group_ids` ≈ session scope. Episodes ≈ locators. | Neo4j goldfish. Default embeddings in-engine. Community nodes. Bi-temporal LTM **as** session. |
+| **Graphiti** `search` / `add_episode` (often Neo4j/FalkorDB) | Cross-session **LTM**; parallel BM25 \|\| cosine \|\| BFS, then RRF (\(k=1\)) / MMR / CE. `node_distance` is **1-hop** `RELATES_TO` to `center_node_uuid`, not a \(k\)-hop shortest path | Closest *temptation* is Neo4j as goldfish. Centre bias is a cousin of `pin_map(anchor)`, not the same walk. | Serialise: lexical cue, then hop (do not RRF). Incremental Δ. `group_ids` ≈ session scope. | Neo4j goldfish. RRF hybrid in-engine. Copy 1-hop distance as Recall (MemNet default depth 2). |
 | **HippoRAG 2** `retrieve` | Embed facts → PPR on OpenIE graph → **chunk bodies** | Host RAG (serial, but wrong haystack). | Empty facts → skip / grep / host. Fan-in as budget, not PPR. | OpenIE, three vector stores, PPR, chunks as memory surface. |
 | **mem0** `Memory.search` | Vector store → `{memory, score}` into the **system prompt** | Chat-as-memory cousin. | Scope filter before cue. Threshold as skip. | Vector store as memory. Dumping prose into chat as SSOT. |
 | **Letta** core vs archival | Core = **prose in the prompt**; archival = second retrieve hop | Working-set vs cabinet *idea* only. | Recycle / settle keeps goldfish small. Cabinet ≠ prompt block. | Core-memory blocks as `pin_map`. Archival search on `memnet-mcp`. |
@@ -223,7 +256,8 @@ pytest -m neo4j_live
 |------|------|
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | First cabinet client; 0.7 live claim |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire SSOT (not Bolt) |
-| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | RAG relatives SSOT (steal/reject of retrieve functions); this file places them on the cabinet cut |
+| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
+| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | What those retrieve functions actually compute |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Version map; 0.9 client extra; live Neo4j is Later |
+| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Design proposal: two haystacks; two ports on one Neo4j (cabinet vs library Snap) |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |
