@@ -22,7 +22,7 @@
 
 ### Non-negotiable rules
 
-> **Always read from a seed set \(Q\)** — cue/`find` (RelativeSeed MATCH_L) then `pin_map` (ShapeWalk from those graph elements). leftover 0.9 `pin_map(anchor=…)` / `--anchor` / copy-id is leftover engine, not TARGET law. Do not dump the whole session. Do not treat raw tabular `RETURN` as the goldfish read.
+> **Always read from a seed set \(Q\)** — cue/`find` (RelativeSeed MATCH_L) then `pin_map(q)` (ShapeWalk from those graph elements). leftover 0.9 `pin_map(anchor=…)` / `--anchor` / copy-id is leftover engine, not TARGET law. Empty \(q\) still skips until 0.11. Do not dump the whole session. Do not stuff prior maps. Do not treat raw tabular `RETURN` as the goldfish read.
 
 > **Atomise** — GQL elements: **node** (vertex), **edge** (relationship), **property**. One idea per property; wire relations as edges. No prose blobs in a property value.
 
@@ -72,17 +72,19 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 ### Goldfish loop (every turn)
 
-Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map` on the live `TSK`. Commit a **sparse** Δ (`add`/`update` of what changed only). That writeback is not Path-B absorb.
+Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map(q)` (or skip). **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
 
-1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(Q\) ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
+1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(Q\) ⇒ skip (do not invent; 0.11 owns session outline). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
 2. **ShapeWalk one slice** from \(Q\) (one \(M\), not \(M\times|Q|\)):
 
-   MCP: `pin_map` from the cue/pattern (leftover engine may still take `--anchor`)  
-   CLI: `memnet query pin-map` (same)
+   MCP: `pin_map` from the cue/pattern (`kind` / `locators` / `keyword`)  
+   CLI: `memnet query pin-map --kind … --locator … --keyword …`
 
-   Blocked on a topic hub: at most one extra `pin_map(..., view=shell)`, then interior on the live `TSK`. Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
-3. **Act / reason** using only that pin-map slice + the current user request.
-4. **Commit sparse Δ** — CREATE / SET on changed elements only. leftover `id_exists` / NEW mint is leftover.
+   leftover engine may still take `--anchor` as a **nickname** cue — not TARGET law.
+
+   Blocked on a topic hub: at most one extra `pin_map(..., view=shell)` **on that seed**, then interior on the live `TSK`. `view=shell` is grain on a seed — **not** session outline (0.11). Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
+3. **Act / reason** using only the **live** pin-map slice + the current user request. Do not keep turn-\(n-1\) maps in the pack.
+4. **Commit sparse Δ** — CREATE / SET on changed elements only. Do not echo the fetched map. leftover `id_exists` / NEW mint is leftover.
 
    MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])`  
    CLI: `memnet add --stdin` / `memnet update --stdin`
@@ -91,7 +93,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 
 Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; **not** live-claimed (`liveNeo4jClaimed=false`; skip unless `MEMNET_NEO4J_URL`). Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
-Repeat. Each new turn starts with `pin_map` on the live `TSK`.
+Repeat. Each new turn starts with `pin_map(q)` (or skip). Drop the previous map from the pack.
 
 ### MCP quick reference (primary)
 
@@ -136,11 +138,11 @@ MATCH (t:TSK {id:'TSK_01'}) SET t.status = 'settled', t.recycle = 'delete_on_set
 MATCH ()-[e {id:'E_01'}]->() SET e.recycle = 'delete_on_settle'
 ```
 
-Next turn: `pin_map` with a new anchor — settled rows absent. Optionally `housekeep prune recyclable --apply`.
+Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `housekeep prune recyclable --apply`.
 
 ### Reading strategy
 
-- **Normal turn:** one `pin_map(anchor=<live TSK>, depth=2, max_rows=50)`. Optional `view=shell` on a topic hub only when blocked, then interior on the task.
+- **Normal turn:** one `pin_map(kind='TSK', locators=[…], depth=2, max_rows=50)` (or skip). Optional `view=shell` on a **seeded** topic hub only when blocked, then interior on the task. leftover `--anchor` is a nickname cue, not law.
 - Pin map includes engine LAW rows (prepended) — that is why \(N\) maps waste tokens.
 - Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless anchor touches endpoints per LAW01).
 - `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` to find the ego, then one `pin_map`.
@@ -223,6 +225,7 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 | Unbounded tabular `MATCH`/`RETURN` as goldfish read | Shaped `pin_map` only |
 | Chat / graph dump as handoff | Session id + cue / re-`pin_map` (import for path B) |
 | leftover `id:'NEW'` / copy-id `--anchor` as law | Pattern Commit; cue `pin_map` (those are leftover 0.9) |
+| Stuffing every `pin_map` into `messages` | Drop prior map rows; env blobs stay in the harness (`stuffed_maps`) |
 
 ### Minimal complete turn (MCP)
 
@@ -304,4 +307,4 @@ Never guess field order. Prefer copying property shapes from shaped `pin_map` / 
 
 ---
 
-Stay disciplined with **atomisation**, ids, `add` vs `update`, settlement `recycle`, and **anchored pin map** reads. Everything else follows.
+Stay disciplined with **atomisation**, ids, `add` vs `update`, settlement `recycle`, and **cue then one live pin_map** (drop prior maps). Everything else follows.

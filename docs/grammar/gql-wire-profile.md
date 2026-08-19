@@ -75,10 +75,12 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 | cue / `find` | Recall seed: label + properties (bounded MATCH) | Primary goldfish entry; not `--anchor` as law |
 | `anchor` | Optional nickname `id` when one exists | Omit when no nickname; 0.9 leftover still requires it in Python |
 | `depth` | Hop budget from the seed | Typical `2` |
-| `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first. Not a second session ([`memnet-session-strata.md`](memnet-session-strata.md)) |
+| `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first **on a seed**. Not session outline (0.11). Not a second session ([`memnet-session-strata.md`](memnet-session-strata.md)) |
 | `max_rows` | Hard row / element cap | Engine default (e.g. 50) |
 
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
+
+**Caller (0.13).** Each generate packs **at most one** live `pin_map` (or skip). Drop prior map rows from the chat list. Sparse Commit Δ. Env blobs (test logs, screenshots) stay in the outer harness. `view=shell` is grain on a seed — **not** session outline (0.11). Empty cue still skips. leftover `--anchor` is not law. Pytest fail code: `stuffed_maps`. Sibling user-pack may absorb caller text; this repo owns the fail.
 
 **Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), neighbourhood-bounded and view-filtered. Emit **MAY** omit `{id:'…'}`.
 

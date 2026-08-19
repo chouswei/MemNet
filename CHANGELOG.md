@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **0.13 goldfish caller contract (untagged)** — Playbook + MCP/CLI: each turn `pin_map(q)` (or skip); **drop** prior map rows from the prompt; sparse Δ; env blobs stay in the harness. Pytest: a stuffed history of maps is a fail (`stuffed_maps`). `view=shell` remains grain on a seed (not 0.11 session outline). Empty cue still skips. leftover `--anchor` is not TARGET law. Sibling user-pack may absorb caller text later; this repo owns the fail. Package SemVer remains **0.9.0**. Do not claim **1.0**. `liveNeo4jClaimed` stays false.
+
 ### Changed
 - **0.10 identity cut (untagged)** — GraphElement is identity; hidden handle off the wire; optional `id` is a nickname. `CREATE ()` is legal. MERGE/SET/DELETE by labels+properties. `pin_map` from cue; CueConflict on find/`pin_map` emit when \(|Q|>1\). SCHEMA is not `id_first`. leftover NEW mint, `require_anchor`, `read_get`, ingest `allocate_from_locator` as PK, import MERGE-by-id, and `id_policy keep|reject|remint` as product commands stay leftover (not taught). Package SemVer remains **0.9.0**. Do not claim **1.0**. `liveNeo4jClaimed` stays false. Neo4j adapter flush uses hidden-handle pattern MERGE (not `{id}`).
 

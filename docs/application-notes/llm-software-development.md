@@ -70,9 +70,9 @@ flowchart LR
 
 ## 3. The 6-step coding goldfish loop
 
-Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-process MCP only for a **single** agent.
+Cue then `pin_map(q)`. Skip if the seed is empty (0.11 owns outline). leftover `--anchor` is not law. **Drop** prior map rows from the prompt; env blobs stay in chat. MCP arg is **`session`**. In-process MCP only for a **single** agent.
 
-1. **Read** — cue the live `TSK` (known id, `read_list`, or `find`); then `pin_map(anchor=<TSK or SYM>, depth=2)` (optional `view=shell`).
+1. **Read** — cue the live `TSK` (`find` / kind+locator / keyword); then `pin_map(kind='TSK', locators=[…], depth=2)` (optional `view=shell` **on that seed**, not a session outline).
 2. **Verify** — grep or LSP on disk; never trust stale `SYM.line` without re-check when editing.
 3. **Edit** — change source files; code lives in git, not the graph.
 4. **Capture** — user constraints → `USR`; open forks → `DEC`.

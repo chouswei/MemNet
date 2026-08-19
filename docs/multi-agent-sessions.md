@@ -21,7 +21,7 @@ see `docs/grammar/memnet-security-multi-agent.md` and
 
 When Multitask is **on**, one **shared MemNet session** \(S\) is mission SSOT. Chat is never SSOT. Parent coordinates; workers execute under assigned scope.
 
-Goldfish: cue then `pin_map` (Recall Shape \(\tilde{X}\)); skip if the seed is empty. Sparse gated mutate. Host search MAY Snap **locators** only — MUST NOT Snap-on-session (`rag_query` / ANN of \(S\)). Durable GQL **backs** \(S\) (0.7 live path); it is not the handoff handle.
+Goldfish: cue then `pin_map(q)` (Recall Shape \(\tilde{X}\)); skip if the seed is empty. **Drop** prior map rows from the pack each turn (`stuffed_maps`). Sparse gated mutate. Env blobs stay in the harness. leftover `--anchor` is not law. Host search MAY Snap **locators** only — MUST NOT Snap-on-session (`rag_query` / ANN of \(S\)). Durable GQL **backs** \(S\) (0.7 live path); it is not the handoff handle.
 
 ## Inter-module session pipe
 
@@ -61,7 +61,7 @@ use `require_bind=true` and enforce the bind.
 - Mint and own `TSK_*` / `USR_*` lifecycle: create, `status=active`, `status=settled`, optional `led_to_success` edges.
 - Give workers **self-contained** prompts: session id, cue/anchor ids, write scope (subgraph or relation types), return shape, map kinds they may mint.
 - **End the turn** after spawning background workers — Multitask gate; do not poll or await worker completion in the same turn.
-- On the **next** coordinator turn: cue then **`pin_map` first**; act from the refreshed slice — do not redo worker investigation from chat.
+- On the **next** coordinator turn: cue then **`pin_map(q)` first** (or skip); **drop** the previous map from the pack; act from the refreshed slice — do not redo worker investigation from chat.
 - Prefer **one** worker per coherent workstream; parallel workers only for **disjoint** anchors, **RSV** leases, or **separate** session ids.
 
 ### MUST NOT
@@ -77,7 +77,7 @@ use `require_bind=true` and enforce the bind.
 
 ### MUST
 
-- Use the **session id** from the parent prompt; cue then `pin_map` **first** every turn (goldfish loop).
+- Use the **session id** from the parent prompt; cue then `pin_map(q)` **first** every turn (goldfish loop). Drop prior maps. leftover `--anchor` is not law.
 - Copy assigned ids from `pin_map` — **MUST NOT** invent ids the parent already minted.
 - Mutate only under the **assigned subgraph** (anchors and relation scope in the prompt).
 - Return a concise result to the parent — durable facts live in MemNet rows, not chat.
@@ -108,6 +108,7 @@ when scopes may overlap:
 | Anti-pattern | Why it fails |
 |--------------|--------------|
 | Chat as SSOT for ids / mission state | Workers and parent diverge; re-pin_map is mandatory |
+| Stuffing every `pin_map` into worker chat | Drop prior maps; env blobs stay in the harness (`stuffed_maps`) |
 | In-process MCP under Multitask | Each process gets its own graph |
 | Parent polls or re-runs worker investigation | Wastes tokens; violates Multitask turn boundary |
 | Worker mints duplicate `TSK_*` | Parent owns task lifecycle |
