@@ -233,6 +233,24 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-02.7";
       }
+
+      requirement def MN_REQ_02_8_ElementIdentity {
+        doc /*
+          SHALL treat identity as the graph **element** (a node or an edge).
+          CREATE () SHALL be legal; properties() MAY be empty. The store
+          handle SHALL be hidden (elementId-style): SHALL NOT be a property,
+          SHALL NOT appear on the agent wire, SHALL NOT be a business key,
+          and SHALL NOT be taught to agents. Optional property `id` SHALL be
+          a nickname only. Later MATCH/MERGE SHALL use labels + properties;
+          an edge SHALL be type + two end elements. SCHEMA SHALL NOT require
+          `id` first. SHALL NOT invent a replacement application store key
+          (no locator-as-PK; no required KIND1/NEW as TARGET law).
+          Leftover 0.9 engine (honesty, not this SHALL): MemStore.by_id,
+          SCHEMA id_first, missing id → NEW, MERGE-by-id,
+          allocate_from_locator.
+        */
+        attribute requirementId : String = "MN-REQ-02.8";
+      }
     }
 
     // ----- Strict mutate -----
@@ -245,15 +263,19 @@ package MemNetRequirements {
 
       requirement def MN_REQ_03_1_AddFailsIfExists {
         doc /*
-          SHALL fail create (add) with an id-exists error when the id is taken.
+          Leftover 0.9 (engine as-is): SHALL fail create (add) when the
+          MemStore.by_id store key is already taken. TARGET identity
+          (MN-REQ-02.8) SHALL NOT treat optional property `id` as that key;
+          CREATE () remains legal.
         */
         attribute requirementId : String = "MN-REQ-03.1";
       }
 
       requirement def MN_REQ_03_2_UpdateFailsIfAbsent {
         doc /*
-          SHALL fail replace (update) with a not-found error when the id is
-          absent.
+          Leftover 0.9 (engine as-is): SHALL fail replace (update) when the
+          MemStore.by_id store key is absent. TARGET later MATCH/MERGE is
+          labels + properties (MN-REQ-03.4), not nickname-as-PK.
         */
         attribute requirementId : String = "MN-REQ-03.2";
       }
@@ -263,6 +285,16 @@ package MemNetRequirements {
           Silent upsert SHALL NOT be offered.
         */
         attribute requirementId : String = "MN-REQ-03.3";
+      }
+
+      requirement def MN_REQ_03_4_MergeByLabelProps {
+        doc /*
+          TARGET MERGE SHALL match a node by labels + properties and an edge
+          by type + two end elements. SHALL NOT require MERGE-by-id as the
+          only path. Leftover 0.9 MERGE-by-id / NEW mint remains engine
+          as-is honesty, not this SHALL.
+        */
+        attribute requirementId : String = "MN-REQ-03.4";
       }
     }
 
@@ -846,14 +878,15 @@ package MemNetRequirements {
 
       requirement def MN_REQ_11_16_PinIngestDeterministicIds {
         doc /*
-          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL assign
-          MemNet ids from deterministic locator keys derived from the source,
-          or an engine key with required locator fields (loc, path, refdes,
-          net, pin, qname, skill_id, and similar). The live pin map SHALL emit those
-          ground ids and locator fields for copy. Pin-map ingest SHALL NOT
-          accept client NEW for source elements. LLM NEW remains only for
-          goldfish-authored memory facts that do not yet exist in the net
-          (annotations), not for re-creating schematic or source pins.
+          Leftover 0.9 Path-B (engine as-is, not TARGET identity): pin-map
+          ingest MAY still assign MemStore.by_id keys from locator strings
+          via allocate_from_locator and MERGE-by-id, and MAY refuse client
+          NEW on source pins. TARGET (MN-REQ-02.8): locators SHALL remain
+          properties (copy fields / nicknames), SHALL NOT become a store PK,
+          and SHALL NOT invent KIND1/NEW as TARGET law. Live pin map MAY
+          still emit leftover ground ids plus locator fields for copy until
+          the engine cut. LLM NEW remains leftover goldfish for facts that
+          do not yet exist — not TARGET identity.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
@@ -997,18 +1030,16 @@ package MemNetRequirements {
           the mission session. Path A (prefer shared mission sessionId):
           import is re-pin_map only — no WorkingMemorySlice, no ImportGuard,
           no ImportAbsorb. Path B (separate sessions): lead SHALL
-          ImportAbsorb a bounded WorkingMemorySlice under owner-gated
-          id_policy keep | reject | remint:
-            keep = MERGE-by-id upsert into lead SSOT (not append / not a
-              second copy);
-            reject = id_conflict, no lead mutate;
-            remint = mint NEW ids for conflicts; lead old rows stay; edges
-              retarget.
+          ImportAbsorb a bounded WorkingMemorySlice. Leftover 0.9 owner-gated
+          id_policy keep | reject | remint remains engine as-is (not TARGET
+          identity): keep = MERGE-by-id upsert; reject = id_conflict, no lead
+          mutate; remint = mint NEW store keys for conflicts. TARGET Path-B
+          match is labels + properties (MN-REQ-03.4), not nickname-as-PK.
           Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
           TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
           Product verb = import (SessionImport* only — no SessionMerge*).
-          Distinct from micro merge=true (in-session re-id).
+          Distinct from micro merge=true (in-session leftover re-id).
         */
         attribute requirementId : String = "MN-REQ-12.9";
       }
@@ -1082,7 +1113,8 @@ package MemNetRequirements {
         doc /*
           SHALL model exactly two product operators: Recall(q) (seed then
           bounded k-hop reconstruct; empty seed ⇒ skip) and Commit(Δ)
-          (one gate; mutate / ingest / absorb are id-mint rules). RSV SHALL
+          (one gate; leftover 0.9 mutate / ingest / absorb mint is not TARGET
+          identity — GraphElement is MN-REQ-02.8). RSV SHALL
           be a lease under Commit / SessionLifecycle, not a third API.
           HostSearchBridge SHALL remain outside MemNetSystem. Layer / Tier A
           remain REJECTED on accept (retire-from-wheel leftover; hierarchical
@@ -1153,6 +1185,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_6_ParserRecoversNodeAndEdge;
   requirement schemaValidatedIngestReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+  requirement elementIdentityReq
+    : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_ElementIdentity;
 
   requirement strictMutateReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate;
@@ -1162,6 +1196,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
   requirement noSilentUpsertReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+  requirement mergeByLabelPropsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_4_MergeByLabelProps;
 
   requirement sliceEconomyReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy;
@@ -1365,6 +1401,7 @@ package MemNetRequirements {
     end #derive ::> grammarExpressesNodeAndEdgeReq;
     end #derive ::> parserRecoversNodeAndEdgeReq;
     end #derive ::> schemaValidatedIngestReq;
+    end #derive ::> elementIdentityReq;
   }
 
   #derivation connection deriveStrictMutateLeaves {
@@ -1372,6 +1409,7 @@ package MemNetRequirements {
     end #derive ::> addFailsIfExistsReq;
     end #derive ::> updateFailsIfAbsentReq;
     end #derive ::> noSilentUpsertReq;
+    end #derive ::> mergeByLabelPropsReq;
   }
 
   #derivation connection deriveSliceEconomyLeaves {

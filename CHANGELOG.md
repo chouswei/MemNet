@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **SysML identity nest (TARGET vs leftover)** — Neo4j-split identity: the graph **element**, hidden store handle, optional `id` nickname. Leftover 0.9 `by_id` / `id_first` / `NEW` / MERGE-by-id / `allocate_from_locator` / `ingestIsIdRule` marked leftover, not TARGET SHALL. MN-REQ-02.8, MN-REQ-03.4, MN-VER-02-S01. `liveNeo4jClaimed` stays false. No Python engine change.
+
 ### Leftover
 - **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
 

@@ -13,6 +13,8 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
+  Element identity nest (MN-VER-02-S01): TARGET GraphElement vs leftover
+  0.9 store-key mint; two operators remain; liveNeo4jClaimed stays false.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -421,6 +423,64 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_02_S01_ElementIdentityNest {
+    doc /*
+      MN-REQ-02.8 / 03.4 — TARGET Neo4j-split identity nest (model only).
+      GraphElement: identity is the element; hidden handle off wire;
+      optional nickname `id`; no invented store key; do not teach elementId.
+      Schema MUST NOT require id first. MutateGate TARGET mintNewOnCreate
+      false; leftover 0.9 NEW mint honesty true. Commit TARGET ingestIsIdRule
+      false; leftover ingest-as-id true. IdAllocator targetIdentityLaw false.
+      Neo4j MERGE labels+props; liveNeo4jClaimed stays false. Recall/Commit
+      remain two operators. Does not claim the Python engine already changed.
+      Exam 2026-08-19: in-repo SysML ingest snap; GraphElement was missing.
+    */
+    attribute verificationId : String = "MN-VER-02-S01";
+
+    subject system : MemNetSystem;
+
+    objective elementIdentity {
+      verify elementIdentityReq;
+      verify mergeByLabelPropsReq;
+      verify twoOperatorsReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.store.element
+          .identityIsElement == true
+          and system.core.transport.inProcess.memory.sessions.store.element
+            .hiddenHandleOffWire == true
+          and system.core.transport.inProcess.memory.sessions.store.element
+            .optionalNicknameId == true
+          and system.core.transport.inProcess.memory.sessions.store.element
+            .inventStoreKey == false
+          and system.core.transport.inProcess.memory.sessions.store.element
+            .teachElementId == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftoverByIdIndex == true
+          and system.core.transport.inProcess.memory.sessions.schema
+            .requireIdFirst == false
+          and system.core.transport.inProcess.memory.sessions.schema
+            .leftoverIdFirstEngine == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.ingestIsIdRule == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.leftoverIngestIsIdRule == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.mintNewOnCreate == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.leftoverMintNewOnCreate == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.mergeByLabelProps == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.targetIdentityLaw == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .operatorCount == 2
+          and system.durable.neo4j.liveNeo4jClaimed == false
+          and system.durable.neo4j.mergeByLabelProps == true
+          and system.durable.neo4j.teachElementId == false
+      }
+    }
+  }
+
   verification def MN_VER_06_S01_DurableCabinetHonesty {
     doc /*
       MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
@@ -513,4 +573,6 @@ package MemNetVerification {
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification durableCabinetHonestyVerify
     : MN_VER_06_S01_DurableCabinetHonesty;
+  verification elementIdentityNestVerify
+    : MN_VER_02_S01_ElementIdentityNest;
 }

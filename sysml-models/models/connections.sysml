@@ -126,10 +126,10 @@ package MemNetConnections {
   item def SessionImportRequest {
     doc /*
       Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
-      into the mission session. idPolicy: keep | reject | remint
-      (keep = MERGE-by-id upsert into lead SSOT — not append / not a second
-      copy). Distinct from micro merge=true (in-session re-id). Product
-      types are SessionImport* only — no SessionMerge*.
+      into the mission session. Leftover 0.9 idPolicy: keep | reject | remint
+      (keep = MERGE-by-id upsert — not TARGET identity). Distinct from micro
+      merge=true (in-session leftover re-id). Product types are SessionImport*
+      only — no SessionMerge*.
     */
     attribute leadSessionId : String;
     attribute memberSessionId : String;
@@ -169,18 +169,22 @@ package MemNetConnections {
 
   item def PropertyGraphNode {
     doc /*
-      First-class GQL/property-graph node. Kind → primary Label; id → stable
-      key/property; fields → Property map. Constitutive law (if any) lives on
-      the node as property `law` (and linked port structure), never on an edge.
+      First-class GQL/property-graph node. Kind → primary Label; fields →
+      Property map. TARGET identity is the element (MN-REQ-02.8); optional
+      property `id` is a nickname only. The store handle is hidden and MUST
+      NOT appear here. Leftover 0.9: id as MemStore.by_id store key.
+      Constitutive law (if any) lives on the node as property `law`
+      (and linked port structure), never on an edge.
     */
   }
 
   item def PropertyGraphEdge {
     doc /*
-      First-class GQL relationship (edge). Relationship type + Property map +
-      direction. Dual grain (bind vs relation) is encoded in GQL-compatible
-      terms — see BindRelationship vs RelationRelationship — not a second
-      agent dialect.
+      First-class GQL relationship (edge). TARGET: relationship type + two
+      end elements + optional Property map. Leftover 0.9 may still carry a
+      store-key `id`. Dual grain (bind vs relation) is encoded in
+      GQL-compatible terms — see BindRelationship vs RelationRelationship —
+      not a second agent dialect.
     */
   }
 
@@ -259,8 +263,9 @@ package MemNetConnections {
 
   item def AssignedIdMap {
     doc /*
-      Engine-allocated ids returned after mint of NEW on create.
-      LLM must copy these thereafter (MN-REQ-10.4).
+      Leftover 0.9: engine-allocated store keys returned after mint of NEW
+      on create. LLM copies nicknames thereafter (MN-REQ-10.4). TARGET
+      identity is the graph element; this map is not a required store PK.
     */
   }
 
@@ -458,7 +463,7 @@ package MemNetConnections {
   }
 
   port def AssignedIdOutPort {
-    doc /* Emit engine-assigned ids after NEW mint. */
+    doc /* Leftover 0.9: emit engine-assigned store keys after NEW mint. */
     out item ids : AssignedIdMap;
   }
   port def AssignedIdInPort {
@@ -646,7 +651,7 @@ package MemNetConnections {
   }
 
   connection def AssignedIdFlow {
-    doc /* Engine id allocation results after NEW mint. */
+    doc /* Leftover 0.9 engine store-key allocation after NEW mint. */
     end port source : AssignedIdOutPort;
     end port sink : AssignedIdInPort;
   }

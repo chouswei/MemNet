@@ -52,7 +52,7 @@ package MemNetBehaviour {
     doc /* Hard @ERR; command aborts without necessarily closing session. */
   }
   attribute def EvIdsAssigned {
-    doc /* IdAllocator finished minting NEW -> real ids. */
+    doc /* IdAllocator leftover 0.9 finished minting NEW -> store keys. */
   }
   attribute def EvParseOk {
     doc /* GqlCodec accepted batch (target). */
@@ -128,9 +128,9 @@ package MemNetBehaviour {
   }
   attribute def EvImportWorkingMemorySlice {
     doc /*
-      Lead ImportAbsorb under id_policy keep|reject|remint (keep =
-      MERGE-by-id upsert into lead SSOT; reject = id_conflict no mutate;
-      remint = NEW ids, lead old stay, edges retarget); nodes then edges.
+      Lead leftover 0.9 ImportAbsorb under id_policy keep|reject|remint
+      (keep = MERGE-by-id; reject = id_conflict; remint = NEW store keys).
+      TARGET identity is GraphElement (MN-REQ-02.8). Nodes then edges.
       After ImportGuard allow/trim or EvGuardSkip.
     */
   }
@@ -380,15 +380,15 @@ package MemNetBehaviour {
       then awaitingPinMap;
   }
 
-  // --- 3. Mutate with NEW mint ---
+  // --- 3. Mutate with leftover NEW mint (0.9 as-is; not TARGET identity) ---
 
   state def MutateWithNew {
     doc /*
-      Single mutate batch: parse GQL (GqlCodec target) -> mint NEW (if any) ->
-      schema check -> strict commit -> emit AssignedIdMap. Aligns MN-REQ-03
-      and 10.4. When the batch has no NEW / [NEW], minting is a no-op (empty
-      id map) and the path proceeds to committing without inventing ids.
-      TierA / Layer line codec parse is RETIRED on product path (M2 done).
+      Leftover 0.9 single mutate batch: parse GQL -> mint NEW store keys
+      (if any) -> schema check -> strict commit -> emit AssignedIdMap.
+      TARGET identity is GraphElement (MN-REQ-02.8); CREATE () does not
+      require NEW. Aligns leftover MN-REQ-03.1 / 10.4. When the batch has
+      no NEW / [NEW], minting is a no-op. Layer parse RETIRED (M2).
     */
     entry;
     then idle;
@@ -415,9 +415,10 @@ package MemNetBehaviour {
 
     state minting {
       doc /*
-        IdAllocator replaces NEW / [NEW] with engine ids. If the batch has
-        no NEW tokens, skip allocation and emit an empty AssignedIdMap
-        (EvIdsAssigned) then commit ground ids only.
+        Leftover 0.9: IdAllocator replaces NEW / [NEW] with engine store
+        keys. If the batch has no NEW tokens, skip allocation and emit an
+        empty AssignedIdMap (EvIdsAssigned) then commit. TARGET does not
+        require this mint.
       */
     }
     transition minting_to_committing
@@ -479,11 +480,10 @@ package MemNetBehaviour {
 
     state projecting {
       doc /*
-        Project selected artefacts to NODE|EDGE pins. Assign MemNet ids from
-        deterministic locator keys (refdes, net, pin, path, qname, skill_id)
-        or engine key plus required locator fields (MN-REQ-11.16). Reject
-        client NEW / [NEW] for source elements (PCBA R1/U2, SysML qnames,
-        module paths, …). LLM NEW remains only for later goldfish annotations.
+        Leftover 0.9: project selected artefacts to NODE|EDGE pins and mint
+        store keys from locator strings (MN-REQ-11.16 leftover). TARGET:
+        locators are properties, not PK (MN-REQ-02.8). Reject client NEW
+        for source elements remains leftover Path-B honesty.
       */
     }
     transition project_commit
@@ -1083,8 +1083,8 @@ package MemNetBehaviour {
         ImportAbsorb engine hard: DistinctSessionGate → AclConsultAbsorb →
         SchemaValidateImport → IdPolicyApply (keep|reject|remint) →
         NodesThenEdgesCommit; optional GuardDecisionAtomRecord.
-        keep = MERGE-by-id upsert into lead SSOT; reject = id_conflict no
-        mutate; remint = NEW ids, lead old stay, edges retarget.
+        leftover 0.9 keep = MERGE-by-id; reject = id_conflict; remint = NEW
+        store keys (not TARGET identity).
       */
     }
     transition import_ok
