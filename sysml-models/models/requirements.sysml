@@ -578,12 +578,14 @@ package MemNetRequirements {
           the wire. Extra 0.16: a second Neo4j *database name* on the
           same Neo4j URL is allowed as the library namespace (cabinet
           vs library). SHALL NOT treat two database names as two cabinet
-          URLs. Library port SHALL emit locators only (generate=false);
-          SHALL NOT hydrate S from the library database; SHALL NOT flush
-          session pins into the library database. SHALL NOT fuse
-          retrieve rankers (RRF / PPR / Leiden / ANN) into Recall /
-          pin_map. HostSearch / RagHostHook SHALL remain outside
-          MemNetSystem with implemented=false until 0.17.
+          URLs. When the library database name is set, it SHALL differ
+          from the cabinet database name (same process, two names;
+          rejectSameNameAsCabinet). Library port SHALL emit locators
+          only (generate=false). SHALL NOT hydrate S from the library
+          database; SHALL NOT flush session pins into the library
+          database. SHALL NOT fuse retrieve rankers (RRF / PPR / Leiden
+          / ANN) into Recall / pin_map. HostSearch / RagHostHook SHALL
+          remain outside MemNetSystem with implemented=false until 0.17.
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }

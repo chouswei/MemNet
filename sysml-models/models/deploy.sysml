@@ -1553,6 +1553,8 @@ package MemNet {
       MUST NOT Snap-on-session. Not a DurableStoreAdapter. HostSearch /
       RagHostHook stay outside MemNetSystem with implemented=false
       (0.17). Hid / elementId / _memnet_hid stay off the emit.
+      Engine-real: reject when MEMNET_NEO4J_LIBRARY_DATABASE equals the
+      cabinet database name (same process, two names).
     */
     port locatorOut : LibraryLocatorOutPort;
     attribute implemented : Boolean = true;
@@ -1562,6 +1564,7 @@ package MemNet {
     attribute flushSessionPins : Boolean = false;
     attribute snapOnSession : Boolean = false;
     attribute fuseRetrieveIntoPinMap : Boolean = false;
+    attribute rejectSameNameAsCabinet : Boolean = true;
     attribute namespace : String = "library";
     attribute sameProcessAsCabinet : Boolean = true;
   }
