@@ -1199,6 +1199,7 @@ package MemNet {
       a dump of S. Hard bounds stay. CueConflict if |Q|>1. Distinct from
       session save/load. MUST NOT Absorb, MERGE-by-id, rag_query, or treat
       leftover ids as law. Hidden handle off the wire. Re-ingest later.
+      MN-REQ-11.1 SysML v2 model representation is not this cut.
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute requireAnchorId : Boolean = false;
@@ -1207,11 +1208,13 @@ package MemNet {
     attribute emptyCueIsOutline : Boolean = true;
     attribute dumpsWholeS : Boolean = false;
     attribute absorb : Boolean = false;
+    attribute sysmlFileGeneration : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
     part cueConflict : CueConflict;
 
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_1_ExportGraphToSysmlV2;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1669,7 +1672,8 @@ package MemNet {
       as Absorb). Chat dump is not export. Hard bounds stay. CueConflict if
       |Q|>1. Hidden handle off the wire. leftover ids are not law.
       Re-ingest / MERGE-by-id identity merge is later (MN-REQ-11.5 SHOULD;
-      roundTripClaimed=false). .sysml file generation is not this cut.
+      roundTripClaimed=false). MN-REQ-11.1 SysML v2 model representation
+      is not this cut (sysmlFileGeneration=false).
       Module: memnet.pin_map_export. CLI: memnet export pin-map.
       MCP: export_pin_map.
     */
@@ -1683,13 +1687,14 @@ package MemNet {
     attribute ragQuery : Boolean = false;
     attribute roundTripClaimed : Boolean = false;
     attribute sysmlFileGeneration : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
     attribute wireDialect : String = "gql";
     port gqlOut : GqlWireOutPort;
     part cueConflict : CueConflict;
 
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_1_ExportGraphToSysmlV2;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
