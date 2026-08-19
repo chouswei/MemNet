@@ -111,6 +111,43 @@ async def session_open(
 
 
 @mcp.tool()
+async def session_list() -> str:
+    """List live session ids in this process (named strata; not ANN rank)."""
+    return await _run(["session", "list"])
+
+
+@mcp.tool()
+async def snap_model(
+    root: str,
+    map_file: str | None = None,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    ttl: int | None = None,
+) -> str:
+    """Snap one SysML load tree into a catalog session plus package interiors.
+
+    Catalog pins carry session= + qname= locators. Look = pin_map on one
+    session id. Join = import_slice of a neighbourhood — not Absorb of a
+    whole S, not one session per requirement, not Layer.
+    """
+    argv = [
+        "snap",
+        "model",
+        "--root",
+        root,
+        "--max-nodes",
+        str(max_nodes),
+        "--max-files",
+        str(max_files),
+    ]
+    if map_file:
+        argv.extend(["--map-file", map_file])
+    if ttl is not None:
+        argv.extend(["--ttl", str(ttl)])
+    return await _run(argv)
+
+
+@mcp.tool()
 async def session_current(session: str | None = None) -> str:
     """Return the current session id and TTL metadata."""
     return await _run(["session", "current"], session=session)

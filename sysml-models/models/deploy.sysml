@@ -30,7 +30,7 @@
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     │   └── McpFacade               // TARGET cue/pattern commands only
     ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
-    ├── PinMapRoadmap               // PinMapIngest_* domains + 0.19 PinMapExport (#66)
+    ├── PinMapRoadmap               // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
         │   ├── SessionHandoffEmit        // session id + scope handoff
@@ -1261,12 +1261,35 @@ package MemNet {
     attribute productCommand : Boolean = true;
   }
 
+  part def CmdCatalogSnap {
+    doc /*
+      TARGET 0.15: Snap(model) → catalog + interiors. List session= ids;
+      look = pin_map; join = ImportAbsorb slice. Locators are properties.
+      SHALL NOT require a store-key id. Not a third operator.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute locatorsAreProperties : Boolean = true;
+    attribute packageGrain : Boolean = true;
+    attribute lookIsPinMap : Boolean = true;
+    attribute joinIsAbsorbSlice : Boolean = true;
+    attribute absorbWholeS : Boolean = false;
+    attribute oneSessionPerReq : Boolean = false;
+    attribute layerProperty : Boolean = false;
+    attribute annRankSessions : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
   part def CliFacade {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
       open/current/save/load, find, pin_map, mutate/Commit, Path-B ingest,
-      pin-map export, Path-B import. MUST NOT nest leftover_read_get, leftover_NEW_mint,
+      pin-map export, Path-B import, catalog Snap. MUST NOT nest leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
       leftover_require_anchor, leftover_allocate_from_locator, or
       leftover id_policy as product commands. MUST NOT nest name_conflict /
@@ -1292,6 +1315,7 @@ package MemNet {
     part ingest : CmdPathBIngest;
     part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
+    part catalogSnap : CmdCatalogSnap;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1322,6 +1346,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_6_FollowPromptRules;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
   }
@@ -1351,7 +1376,8 @@ package MemNet {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
       (MN-REQ-07.1 / 07.5): session_open / current / save / load, find,
-      pin_map, mutate/Commit, Path-B ingest, pin-map export, Path-B import. MUST NOT nest
+      pin_map, mutate/Commit, Path-B ingest, pin-map export, Path-B import,
+      catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
       leftover_allocate_from_locator, or leftover id_policy as product
@@ -1376,6 +1402,7 @@ package MemNet {
     part ingest : CmdPathBIngest;
     part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
+    part catalogSnap : CmdCatalogSnap;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1411,6 +1438,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_5_GrammarMustBeLlmLearnable;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
   }
 
   part def MemNetCoreLibrary {
@@ -1698,15 +1726,51 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
+  part def CatalogSnap {
+    doc /*
+      0.15: Snap(one SysML load tree) → catalog S_cat plus package interiors.
+      Catalog holds session= + qname= locators (properties). Look = pin_map
+      of one interior. Join = ImportAbsorb a slice. Module:
+      memnet.catalog_snap.snap_model. CLI memnet snap model; MCP snap_model.
+      SHALL NOT ANN-rank sessions; Absorb whole S; dump the model into one
+      session; Layer; one session per REQ; invent a store key; emit hid.
+      Not a third operator (Commit of locators into named sessions).
+    */
+    attribute implemented : Boolean = true;
+    attribute packageGrain : Boolean = true;
+    attribute lookIsPinMap : Boolean = true;
+    attribute joinIsAbsorbSlice : Boolean = true;
+    attribute absorbWholeS : Boolean = false;
+    attribute dumpModelIntoOneSession : Boolean = false;
+    attribute oneSessionPerReq : Boolean = false;
+    attribute oneSessionPerTsk : Boolean = false;
+    attribute layerProperty : Boolean = false;
+    attribute annRankSessions : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute locatorsAreProperties : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+    attribute leftoverIngestOnePath : Boolean = true;
+    port pinOut : PinMapOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+  }
+
   part def PinMapRoadmap {
     doc /*
-      Path-B PinMapIngest nest plus 0.19 PinMapExport. Ingest domains: Sysml,
-      Codebase, PcbaAto, SkillsRules (all implemented). Commit create of
-      elements (locators as properties, not a store key) — not a second
-      product operator. 0.9 leftover may still mint by_id from locator
-      strings. Not N-server federation. Export is cue pin_map GQL write-out
-      (#66); MUST NOT treat ingest as export. Re-ingest later.
-      As-is modules: memnet.pin_map_ingest + memnet.pin_map_export.
+      Path-B PinMapIngest nest plus 0.19 PinMapExport and 0.15 CatalogSnap.
+      Ingest domains: Sysml, Codebase, PcbaAto, SkillsRules (all implemented).
+      Commit create of elements (locators as properties, not a store key) —
+      not a second product operator. 0.9 leftover may still mint by_id from
+      locator strings. Not N-server federation. Export is cue pin_map GQL
+      write-out (#66); MUST NOT treat ingest as export. Re-ingest later.
+      CatalogSnap (0.15) nests here: one model → catalog + interiors.
+      As-is modules: memnet.pin_map_ingest + memnet.pin_map_export +
+      memnet.catalog_snap.
     */
     attribute firstDomain : String = "sysml";
     attribute roadmapOnly : Boolean = false;
@@ -1717,6 +1781,7 @@ package MemNet {
     part pcbaAto : PinMapIngest_PcbaAto;
     part skillsRules : PinMapIngest_SkillsRules;
     part export : PinMapExport;
+    part catalog : CatalogSnap;
   }
 
   // =====================================================================
@@ -2333,8 +2398,7 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
       two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit create of GraphElement,
-      not leftover_ingestIsIdRule) +
+      PinMapRoadmap (PinMapIngest_* + CatalogSnap 0.15 + PinMapExport 0.19) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;

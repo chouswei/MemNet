@@ -22,6 +22,7 @@
   tools on McpFacade / CliFacade; leftover id commands stay leftover_*.
   Cousin pointing contrast (MN-VER-02-S02): TARGET vs seven cousins;
   operatorCount stays 2; liveNeo4jClaimed stays false.
+  Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -808,6 +809,8 @@ package MemNetVerification {
           and system.mcp.tools.importSlice.matchByLabelsAndProps == true
           and system.mcp.tools.importSlice.leftoverIdPolicyIsProductCommand
             == false
+          and system.mcp.tools.catalogSnap.requiresStoreKeyId == false
+          and system.core.cli.catalogSnap.requiresStoreKeyId == false
           and system.mcp.tools.leftoverReadGetNested == false
           and system.mcp.tools.leftoverNewNested == false
           and system.mcp.tools.leftoverAssignedIdMapNested == false
@@ -1044,6 +1047,43 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_11_S17_CatalogModelSnap {
+    doc /*
+      MN-REQ-11.17 — Snap(one model) → catalog + package interiors.
+      Look = pin_map; join = Absorb slice. MUST NOT ANN-rank sessions;
+      Absorb whole S; dump one model into one session; Layer; one session
+      per REQ; invent a store key; hid on the wire. operatorCount stays 2.
+      liveNeo4jClaimed stays false.
+    */
+    attribute verificationId : String = "MN-VER-11-S17";
+
+    subject system : MemNetSystem;
+
+    objective catalogSnapPackageGrain {
+      verify catalogModelSnapReq;
+      require constraint {
+        system.pinMaps.catalog.implemented == true
+          and system.pinMaps.catalog.packageGrain == true
+          and system.pinMaps.catalog.lookIsPinMap == true
+          and system.pinMaps.catalog.joinIsAbsorbSlice == true
+          and system.pinMaps.catalog.absorbWholeS == false
+          and system.pinMaps.catalog.dumpModelIntoOneSession == false
+          and system.pinMaps.catalog.oneSessionPerReq == false
+          and system.pinMaps.catalog.oneSessionPerTsk == false
+          and system.pinMaps.catalog.layerProperty == false
+          and system.pinMaps.catalog.annRankSessions == false
+          and system.pinMaps.catalog.hiddenHandleOnWire == false
+          and system.pinMaps.catalog.locatorsAreProperties == true
+          and system.pinMaps.catalog.notAThirdOperator == true
+          and system.core.cli.catalogSnap.implemented == true
+          and system.mcp.tools.catalogSnap.implemented == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .operatorCount == 2
+          and system.durable.liveNeo4jClaimed == false
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -1078,6 +1118,8 @@ package MemNetVerification {
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification recallDoesNotAbsorbVerify
     : MN_VER_13_S02_RecallDoesNotAbsorb;
+  verification catalogModelSnapVerify
+    : MN_VER_11_S17_CatalogModelSnap;
   verification durableCabinetHonestyVerify
     : MN_VER_06_S01_DurableCabinetHonesty;
 }

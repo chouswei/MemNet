@@ -93,6 +93,7 @@ ingest_app = typer.Typer(help="Path-B pin-map ingest (external artefact → pins
 export_app = typer.Typer(
     help="Pin-map export (shaped GQL write-out; ingest is not export)",
 )
+snap_app = typer.Typer(help="Catalog Snap / model Snap (session strata)")
 
 app.add_typer(session_app, name="session")
 app.add_typer(tagmap_app, name="tagmap")
@@ -104,6 +105,7 @@ app.add_typer(relations_app, name="relations")
 app.add_typer(examples_app, name="examples")
 app.add_typer(ingest_app, name="ingest")
 app.add_typer(export_app, name="export")
+app.add_typer(snap_app, name="snap")
 
 
 def _caps() -> Caps:
@@ -787,6 +789,42 @@ def ingest_skills_cmd(
         if dry_run:
             for line in result.gql_lines:
                 emit_stdout(line)
+
+
+@snap_app.command("model")
+def snap_model_cmd(
+    root: Annotated[str, typer.Option("--root", help="SysML load-tree file or directory")],
+    map_file: Annotated[
+        str | None,
+        typer.Option("--map-file", help="Session map (default: schema.sysml.example.txt)"),
+    ] = None,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_files: Annotated[int, typer.Option("--max-files")] = 64,
+    ttl: Annotated[int | None, typer.Option("--ttl")] = None,
+) -> None:
+    """Snap one SysML model into catalog + package interiors (0.15).
+
+    List interiors as session= locators. Look = query pin-map --session.
+    Join = import-slice (Path-B), never Absorb of a whole S. Not Layer.
+    """
+    from memnet.catalog_snap import snap_model
+
+    try:
+        result = snap_model(
+            root,
+            map_file=map_file,
+            max_nodes=max_nodes,
+            max_files=max_files,
+            ttl_minutes=ttl,
+            caps=_caps(),
+        )
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    emit_stdout(f"@SNAP: catalog|{result.catalog_session_id}|interiors={len(result.interiors)}")
+    emit_session(result.catalog_session_id, "catalog")
+    for row in result.interiors:
+        emit_session(row.session_id, row.qname, row.grain, row.kind_band or "package")
 
 
 @relations_app.command("list")

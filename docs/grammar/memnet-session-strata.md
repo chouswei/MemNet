@@ -1,6 +1,6 @@
 # Sessions as strata (not Layer)
 
-**Status:** design — **not** shipped, **not** a SemVer gate, **not** Layer / Tier A.  
+**Status:** 0.15 engine untagged (package stays 0.9.0) — **not** a SemVer gate, **not** Layer / Tier A.  
 **Audience:** product developers. British English.  
 **Homograph.** *Layer* in this repo means the **archived dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
@@ -158,7 +158,7 @@ q = REQ_MN_REQ_00
 
 `satisfy` from requirements to verify: two interiors of the **same** Snap. Second look, or Absorb a slice into the mission. No edge that points at another session’s store.
 
-**Engine leftover (0.12).** Today `ingest_sysml(path, session=current)` is 1→1. Model Snap is 1→k: walk the root, mint the stack, partition, Commit. Caller 0.10 still drops old maps so the stack does not refill the prompt.
+**Engine leftover (pre-0.15).** `ingest_sysml(path, session=current)` is 1→1. Model Snap is 1→k: walk the root, mint the stack, partition, Commit (`memnet snap model`). Caller 0.13 still drops old maps so the stack does not refill the prompt.
 
 ### Steal / reject (SysML)
 
@@ -173,7 +173,7 @@ q = REQ_MN_REQ_00
 
 ## SemVer
 
-Fits **0.12 Catalog Snap**. **SysML model Snap** = one model → session stack (worked application). **0.10** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
+Fits **0.15 Catalog Snap** (untagged; package stays 0.9.0). **SysML model Snap** = one model → session stack. **0.13** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
 
 **MUST NOT** ship: Layer accept; `SessionMerge*`; ANN of the catalog; a `layer=` property as wire; HostSearch nested under `MemNetSystem`.
 

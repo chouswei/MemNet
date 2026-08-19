@@ -16,7 +16,7 @@
                        on find/pin_map emit; same name is a candidate only
     MN-REQ-04.9        Empty-q session outline: Recall census of S (kinds +
                        LIMIT exemplars); leftover empty-seed skip not TARGET
-    MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
+    MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -1061,6 +1061,25 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
+
+      requirement def MN_REQ_11_17_CatalogModelSnap {
+        doc /*
+          0.15 Catalog Snap + session strata + model Snap. SHALL Snap one
+          SysML load tree into a catalog session plus package interiors
+          (optional kind band or child package when an interior exceeds
+          about 2M). Catalog pins SHALL carry session= and qname=
+          locators (properties, not a store key). List = those session=
+          ids. Look = pin_map of one named session. Join = Path-B Absorb
+          of a WorkingMemorySlice. SHALL NOT: rank sessions with ANN;
+          Absorb a whole S; dump one model into one session or the
+          mission; revive Layer / layer=; mint one session per TSK or
+          per requirement def; invent a store key; put HiddenStoreHandle
+          on the wire. SHALL NOT thicken Recall/Commit into a third
+          operator (Snap is Commit of locators; Absorb stays Path-B).
+          ingest_sysml 1-path-into-current-session remains Path-B as-is.
+        */
+        attribute requirementId : String = "MN-REQ-11.17";
+      }
     }
 
     // ----- Multitask Mode (as-is 0.4.x agent operating model) -----
@@ -1544,6 +1563,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_15_PcbaAtoEdgesAreConnectivity;
   requirement pinIngestDeterministicIdsReq
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
+  requirement catalogModelSnapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
 
   requirement multitaskModeReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode;
@@ -1718,6 +1739,7 @@ package MemNetRequirements {
     end #derive ::> pcbaAtoNodesAreNetsComponentsPinsReq;
     end #derive ::> pcbaAtoEdgesAreConnectivityReq;
     end #derive ::> pinIngestDeterministicIdsReq;
+    end #derive ::> catalogModelSnapReq;
   }
 
   #derivation connection deriveMultitaskLeaves {

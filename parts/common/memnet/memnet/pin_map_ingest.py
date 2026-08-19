@@ -171,30 +171,12 @@ class PinMapIngest_Sysml(PinMapIngestBase):
     ) -> IngestResult:
         if not self.implemented:
             return super().project()
-        path_p = Path(path)
-        files = _collect_sysml_files(path_p, max_files=max_files)
-        if not files:
-            raise MemNetError("no_artefact", f"no .sysml files under {path}")
-        root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
-        alloc = IdAllocator()
-        nodes: list[dict[str, str]] = []
-        edges: list[tuple[str, str, str, str]] = []  # eid, src, rel, dst
-        name_index: dict[str, str] = {}  # simple name → last id
-        qname_index: dict[str, str] = {}
-
-        for fpath in files:
-            rel = _rel_path(fpath, root_path)
-            _project_sysml_file(
-                fpath,
-                rel_path=rel,
-                alloc=alloc,
-                nodes=nodes,
-                edges=edges,
-                name_index=name_index,
-                qname_index=qname_index,
-                max_nodes=max_nodes,
-            )
-
+        nodes, edges, _root_path = project_sysml_parts(
+            path,
+            max_nodes=max_nodes,
+            max_files=max_files,
+            root=root,
+        )
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
         node_ids = [n.get("qname") or n.get("name") or "" for n in nodes]
@@ -468,6 +450,39 @@ def ingest_skills(
 # ---------------------------------------------------------------------------
 # SysML projection helpers
 # ---------------------------------------------------------------------------
+
+
+def project_sysml_parts(
+    path: str | Path,
+    *,
+    max_nodes: int = 200,
+    max_files: int = 64,
+    root: str | Path | None = None,
+) -> tuple[list[dict[str, str]], list[tuple[str, str, str, str]], Path]:
+    """Project SysML pins as locator-property records (not a store key)."""
+    path_p = Path(path)
+    files = _collect_sysml_files(path_p, max_files=max_files)
+    if not files:
+        raise MemNetError("no_artefact", f"no .sysml files under {path}")
+    root_path = Path(root).resolve() if root else _infer_root(files, path_arg=path_p)
+    alloc = IdAllocator()
+    nodes: list[dict[str, str]] = []
+    edges: list[tuple[str, str, str, str]] = []
+    name_index: dict[str, str] = {}
+    qname_index: dict[str, str] = {}
+    for fpath in files:
+        rel = _rel_path(fpath, root_path)
+        _project_sysml_file(
+            fpath,
+            rel_path=rel,
+            alloc=alloc,
+            nodes=nodes,
+            edges=edges,
+            name_index=name_index,
+            qname_index=qname_index,
+            max_nodes=max_nodes,
+        )
+    return nodes, edges, root_path
 
 
 def _collect_sysml_files(path: str | Path, *, max_files: int) -> list[Path]:

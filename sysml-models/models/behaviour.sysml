@@ -118,6 +118,12 @@ package MemNetBehaviour {
   attribute def EvPinMapDone {
     doc /* Pin-map ingest/export finished or cancelled. */
   }
+  attribute def EvCatalogSnap {
+    doc /*
+      0.15 Snap(model): mint catalog + package interiors; Commit locators.
+      Look remains pin_map. Join remains Path-B Absorb slice. Not Layer.
+    */
+  }
   attribute def EvHandoffSessionId {
     doc /*
       Parent delivers SessionHandoff (SessionCapability sessionId + CallerId;
@@ -597,10 +603,10 @@ package MemNetBehaviour {
     state pinIdle {
       doc /* No pin-map job running. */
     }
-    transition pin_start
+    transition pin_catalog
       first pinIdle
-      accept EvPinMapSelect
-      then selectingPins;
+      accept EvCatalogSnap
+      then projecting;
 
     state selectingPins {
       doc /* Choose short anchors/locators - not corpus dump. */

@@ -124,6 +124,17 @@ package MemNetConnections {
     attribute view : String;
   }
 
+  item def CatalogSessionLocator {
+    doc /*
+      0.15 catalog pin: session= + qname= properties naming an interior
+      of one model Snap. Look = pin_map that session. Join = Absorb a
+      slice. Not a store key; HiddenStoreHandle stays off the wire.
+    */
+    attribute session : String;
+    attribute qname : String;
+    attribute grain : String;
+  }
+
   item def SessionImportRequest {
     doc /*
       Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
