@@ -2,6 +2,7 @@
 
 **Status:** **M2 shipped** (engine/MCP GQL accept + shaped `pin_map` emit). **M1 SSOT** for conventions remains this file.  
 **Teach cut (2026-08-19):** GQL/openCypher has **no store key**. The graph element is the identity. `MERGE (n:TSK {goal:$g})` is a per-write lookup, not a primary key. Optional property `id` = nickname only. Neo4j `elementId` stays in the store, off the wire. **MUST NOT** invent a replacement application store key. Breaking teach, not a 0.9 Python patch, not a 1.0 SemVer gate. **0.9 leftover invented store:** `by_id` / `validate_id` / `id_first` / `NEW` mint.  
+**Grammar SSOT:** vendored official [`openCypher.bnf`](openCypher.bnf) (Apache-2.0; [`NOTICE-openCypher.md`](NOTICE-openCypher.md)). Spelling/identity only — not TCK compliance, not a second accept path.  
 **Audience:** product developers; M2.5 durable-store authors; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
 **Brand:** MemNet (Net of Memory). **Dialect:** **GQL only** (openCypher-shaped, AgensGraph-compatible).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
@@ -17,7 +18,7 @@
 |------|------|
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
 | **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
-| **No store key** | The graph element is the identity. Grammar has no primary key. `MERGE` is a per-write lookup. **MUST NOT** invent an application store key. Optional `id` = nickname only. `elementId` stays in the store, off the wire. |
+| **No store key** | The graph element is the identity. Grammar has no primary key. `MERGE` is a per-write lookup. **MUST NOT** invent an application store key. Optional `id` = nickname only. `elementId` stays in the store, off the wire. Official BNF has no store-key production. |
 | **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Historical grammar sources live under [`archive/`](archive/) only — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (optional nickname, depth, view budget) that wraps GQL internally and emits a shaped subgraph. Goldfish seeds from cue/pattern (`find`) first. |
@@ -26,17 +27,38 @@
 
 ### External dialect authority
 
-MemNet’s agent wire is **openCypher-shaped** (GQL family). Cypher syntax and semantics are defined **externally** by openCypher CIP materials — MemNet does **not** re-specify the full language here.
+MemNet’s agent wire is **openCypher-shaped** (GQL family). Pattern spelling and identity (node / relationship / property; no store key) use the **vendored official BNF**. Cypher family evolution is defined **externally** by openCypher CIP materials — MemNet does **not** re-specify the full language here, and does **not** claim TCK compliance or the Cypher® / “openCypher” names.
 
 | Authority | Role for MemNet |
 |-----------|-----------------|
-| [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) | Normative **family** home for openCypher Improvement Proposals |
-| [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) | Baseline Cypher 9 dialect |
-| [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable) | Incremental openCypher features in the same family |
-| [ISO/IEC 39075 GQL](https://www.iso.org/standard/76120.html) | Normative for **GQL-native** features; a CIP for those may be informational only (per CIP README) |
+| **Vendored official BNF** [`openCypher.bnf`](openCypher.bnf) | **Spelling / identity SSOT** (Apache-2.0; [`NOTICE-openCypher.md`](NOTICE-openCypher.md); [`LICENSE-Apache-2.0.txt`](LICENSE-Apache-2.0.txt)). One file only. |
+| [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) | Family home for Improvement Proposals — **not** vendored |
+| [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) | Baseline Cypher 9 dialect — **not** vendored |
+| [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable) | Incremental family features — **not** vendored |
+| [ISO/IEC 39075 GQL](https://www.iso.org/standard/76120.html) | Normative for **GQL-native** features |
 | Optional: [CIP process](https://opencypher.org/cips/) | Process / site overview |
 
-**Gated subset wins:** MemNet agent surface = `pin_map`-class read + gated mutate (§1) — **not** full openCypher / every CIP. Unbounded `MATCH` as primary goldfish read remains out. SysML pointer: [`../../sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md) (`GqlCodec`).
+**Productions locked for MemNet identity teach** (cite the BNF; do not rewrite it):
+
+```
+<node pattern> ::=
+  <left paren> [ <node pattern filler> ] <right paren>
+
+<property key value pair> ::=
+  <property name> <colon> <value expression>
+
+<create statement> ::=
+  CREATE <create graph pattern>
+
+<merge statement> ::=
+  MERGE <merge graph pattern> [ <merge action> ]
+```
+
+Filler and property maps are optional. Property is any `<property name> : <value expression>` — `id` is not a required production. CREATE / MERGE have **no store-key production**.
+
+**Behaviour cite (not a vendored suite, not a compliance claim):** upstream TCK `tck/features/clauses/create/Create1.feature` scenario `[1] Create a single node` (`CREATE ()`). Empty node pattern is legal.
+
+**Gated subset wins:** MemNet agent surface = `pin_map`-class read + gated mutate (§1) — **not** full language / every CIP / WITH / UNWIND / CALL / unbounded `MATCH` as goldfish. Vendoring the BNF is spelling/identity SSOT, **not** a promise to accept the whole language, **not** a second Python accept path (do **not** generate a parser/visitor from this BNF). SysML pointer: [`../../sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md) (`GqlCodec`).
 
 ---
 
@@ -184,6 +206,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI). Do **not** vendor a cabinet. Do **not** flip `liveNeo4jClaimed`.
 - Teach full GQL DDL as agent surface in first cut.
 - Pretend the 0.9 Python already dropped `by_id` / `validate_id` / `id_first`.
+- Vendor the whole openCypher repo, TCK, CIP tree, or ANTLR tools; generate a parser/visitor from [`openCypher.bnf`](openCypher.bnf) as a second accept path; claim TCK compliance; describe MemNet as “Cypher” or “openCypher”.
 
 ---
 
@@ -248,6 +271,9 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 | Path | Role |
 |------|------|
+| [`openCypher.bnf`](openCypher.bnf) | Official grammar BNF (spelling/identity SSOT; Apache-2.0) |
+| [`NOTICE-openCypher.md`](NOTICE-openCypher.md) | Attribution; MIT product vs Apache vendored file |
+| [`LICENSE-Apache-2.0.txt`](LICENSE-Apache-2.0.txt) | Apache License 2.0 text (upstream `LICENSE`) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |

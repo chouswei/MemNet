@@ -38,7 +38,10 @@
   Property id is optional nickname only -- not identity. Neo4j elementId
   stays inside the store, off the wire. 0.9 leftover invented store:
   MemStore.by_id / validate_id / SCHEMA id_first / NEW mint. SHALL NOT
-  invent a replacement application store key.
+  invent a replacement application store key. Grammar spelling/identity
+  SSOT is docs/grammar/openCypher.bnf (official file, Apache-2.0;
+  NOTICE-openCypher.md) -- not a MemNet-invented id law, not TCK
+  compliance, not a second accept path.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -222,7 +225,10 @@ package MemNetRequirements {
         doc /*
           Agent-facing grammar and I/O SHALL express node, edge, and property as
           openCypher-shaped GQL (labels, edge/relationship types, property maps).
-          Write = display means shaped subgraph emit matches mutate family.
+          Spelling/identity SSOT is the vendored official BNF
+          docs/grammar/openCypher.bnf (Apache-2.0; NOTICE-openCypher.md) -- not
+          a MemNet-invented id law, not TCK compliance, not a second accept
+          path. Write = display means shaped subgraph emit matches mutate family.
           Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
         attribute requirementId : String = "MN-REQ-02.5";

@@ -133,20 +133,26 @@ package MemNet {
   part def GqlCodec {
     doc /*
       Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
-      GQL under MemNet gates. External dialect authority:
+      GQL under MemNet gates. Grammar spelling/identity SSOT is the vendored
+      official BNF docs/grammar/openCypher.bnf (Apache-2.0;
+      docs/grammar/NOTICE-openCypher.md) -- not a MemNet-invented id law.
+      MUST NOT generate a parser/visitor from that BNF as a second accept
+      path. MUST NOT claim TCK compliance or describe MemNet as Cypher /
+      openCypher. External dialect authority:
+        - vendored grammar/openCypher.bnf (this repo: docs/grammar/openCypher.bnf)
         - openCypher CIP tree (github.com/opencypher/openCypher/tree/main/cip)
         - oC9 baseline under cip/0.baseline (adopted/testable CIPs)
         - ISO/IEC 39075 for GQL-native features
       Agent surface remains MemNet-gated (pin_map + mutate subset) — not full
-      openCypher / every CIP. Mutate accepts GQL patterns; pin_map emit is a
-      shaped subgraph (Write = display). MUST NOT treat raw tabular RETURN as
-      primary goldfish read. Engine accept path = ADR migration M2 (**shipped**).
+      language. Mutate accepts GQL patterns; pin_map emit is a shaped subgraph
+      (Write = display). MUST NOT treat raw tabular RETURN as primary goldfish
+      read. Engine accept path = ADR migration M2 (**shipped**).
       TARGET: property id is optional nickname; emit MAY omit {id:'…'};
       NEW is leftover sugar. GQL has no store key -- the element is
       identity. Hidden elementId stays in the store, off the wire.
       SHALL NOT invent a replacement application store key.
       0.9 leftover: MutateGate / GqlCodec still mint and key by_id.
-      Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
+      Detail: docs/grammar/gql-wire-profile.md.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
