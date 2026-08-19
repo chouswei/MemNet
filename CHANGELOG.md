@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **RAG / Neo4j rethink (design)** — [`docs/grammar/memnet-neo4j-rag-rethink.md`](docs/grammar/memnet-neo4j-rag-rethink.md): two ports; estimates for network, RAM, CPU, and **LLM tokens** (Shape ≲ 4k typical / 8k alarm; serve 4 MiB ≠ token cap; cabinet Bolt 0 tokens; GraphRAG global ×N map calls).
-- **RAG-relative algorithms** — [`docs/grammar/rag-relative-algorithms.md`](docs/grammar/rag-relative-algorithms.md): retrieve pipelines from source. As-is: no RAG hop on the cabinet seam; host Snap is a third hop. Placement: [`docs/grammar/neo4j-buffer.md`](docs/grammar/neo4j-buffer.md).
+- **Why RAG was hot** — [`docs/grammar/rag-relative-algorithms.md`](docs/grammar/rag-relative-algorithms.md): RAG solved **parametric ignorance of a private/changing corpus** (no fine-tune, less paste-the-library); it did not solve session goldfish. GraphRAG-class stacks are the same problem with a fancier retrieve.
 - **MemNet ↔ Neo4j talk** — expand [`docs/grammar/neo4j-buffer.md`](docs/grammar/neo4j-buffer.md): what talks to what; key features on both sides; **RAG relatives** placed on Snap / Shape / cabinet. Honest `liveNeo4jClaimed=false`.
 - **Version map locked** — 0.8 = GQL teach + shape for people; **0.9** = Neo4j client extra (live unclaimed); 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet / live Neo4j. SSOT: `docs/ROADMAP-0.5.md`.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.

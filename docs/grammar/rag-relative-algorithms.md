@@ -12,6 +12,31 @@ Classic RAG is **retrieve a ranked list from a corpus, stuff it, generate**. Mem
 
 ---
 
+## Why RAG became a hot topic
+
+**The problem it solved** is **parametric ignorance of a private or changing corpus** — not goldfish mission memory.
+
+A pretrained LLM stores facts in **weights**. Those weights (1) freeze at train time, (2) do not contain the operator’s PDFs / tickets / SysML, (3) are expensive to update (fine-tune), and (4) **hallucinate** a fluent answer when the fact was never in the weights. Stuffing the *whole* corpus into the prompt hits the **context window** and the **token bill** (the same MN-REQ-00 pressure, different haystack).
+
+**RAG** (Lewis et al., 2020; then every ChatGPT-era stack) is the cheap third path besides “retrain” and “paste the library”:
+
+1. Index the **library** (chunks, later a KG).
+2. At question time, **retrieve** a few passages (BM25 / ANN / hybrid).
+3. **Generate** conditioned on those passages.
+
+That is why it went hot after late 2022: every product suddenly had an LLM **and** a pile of documents, and RAG shipped “use our docs” in days, not a training run. GraphRAG, LightRAG, RAGFlow, Neo4j `generate`, Graphiti hybrid search are **the same problem with a fancier retrieve** (themes over a corpus, incremental docs, chunk MCP, graph-as-retriever, LTM episodes). They still retrieve-then-generate over a **library**.
+
+| It solved | It did **not** solve |
+|-----------|---------------------|
+| Ground answers in **this organisation’s files** without fine-tune | Named **session** \(S\) across agent turns (handoff, `TSK`/`USR`) |
+| Fresh / private facts vs train cutoff | Token dump of **chunks** still burns the window (hence \(k\), rerank, GraphRAG reports) |
+| Some hallucination on **corpus QA** | Global “what are the themes?” (vanilla RAG fails → GraphRAG map-reduce) |
+| One question → one retrieve → one generate | Next call is still a goldfish unless you **also** keep working memory |
+
+MemNet’s problem is the **other** goldfish: the next LLM call forgets the **mission graph**, not the PDF shelf. RAG remains the right **host Snap** of the library. Using RAG **as** MemNet (or as Neo4j goldfish) mixes haystacks — [`../SHAPE.md`](../SHAPE.md). Token/wall-clock budgets: [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md).
+
+---
+
 ## Shared RAG skeleton vs MemNet Recall
 
 | Step | Typical RAG relative | MemNet \(\mathrm{Recall}(q)\) |
