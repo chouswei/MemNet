@@ -23,7 +23,10 @@ Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do
 
 ```text
 HostSearchBridgePart              // MUST NOT nest under MemNetSystem
-└── RagHostHook   implemented=true  fail-open  locator-only
+  locatorIn  --LibraryLocatorFlow-->  RagHostHook.locatorIn
+  RagHostHook   implemented=true  fail-open  locator-only
+    locatorOut --LibraryLocatorFlow--> HostSearchBridgePart.locatorOut
+      --> MutateGate.libraryLocatorIn
 ```
 
 ## Fake mission

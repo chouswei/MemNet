@@ -153,8 +153,9 @@ Do **not** copy ImportGuard leaf-for-leaf. ImportGuard’s hard leaf is **Absorb
 ```text
 HostSearchBridge          // MUST NOT nest under MemNetSystem
 └── RagHostHook           // optional, implemented=true, fail-open
+    locatorIn  ← library / host locators (LibraryLocator; optional line=)
+    locatorOut → existing MutateGate / PinMapIngest
     // skip → pin_map + grep
-    // propose locators → existing MutateGate / PinMapIngest
 ```
 
 **Hook in:** `session_id` (capability; do not log), `anchor`, short question, `max_hits`, timeout. Not the whole session or source artefact.

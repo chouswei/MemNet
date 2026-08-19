@@ -2548,6 +2548,7 @@ package MemNet {
       Extra 0.17 ships the hook outside MemNetSystem. Module:
       memnet.rag_host_hook.
     */
+    port locatorIn : LibraryLocatorInPort;
     port locatorOut : LibraryLocatorOutPort;
     attribute implemented : Boolean = true;
     attribute designOnly : Boolean = false;
@@ -2572,6 +2573,10 @@ package MemNet {
     port locatorIn : LibraryLocatorInPort;
     port locatorOut : LibraryLocatorOutPort;
 
+    connection hookIn : LibraryLocatorFlow {
+      end port source ::> locatorIn;
+      end port sink ::> hook.locatorIn;
+    }
     connection hookEmit : LibraryLocatorFlow {
       end port source ::> hook.locatorOut;
       end port sink ::> locatorOut;

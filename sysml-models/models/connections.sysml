@@ -138,12 +138,14 @@ package MemNetConnections {
   item def LibraryLocator {
     doc /*
       Extra 0.16: locator properties from the Neo4j library namespace
-      (path= / document_id= / qname= / session= / url=). Corpus haystack,
-      not session S. generate=false. HiddenStoreHandle / _memnet_hid stay
-      off the emit. Extra 0.17 MAY commit these via MutateGate / ingest
-      (properties, not leftover locator-as-PK).
+      (path= / line= / document_id= / qname= / session= / url=). Corpus
+      haystack, not session S. generate=false. HiddenStoreHandle /
+      _memnet_hid stay off the emit. Extra 0.17 MAY commit these via
+      MutateGate / ingest (properties, not leftover locator-as-PK).
+      line= is optional; hook emit with line= uses SYM, else MOD.
     */
     attribute path : String;
+    attribute line : String;
     attribute document_id : String;
     attribute qname : String;
     attribute session : String;
@@ -620,8 +622,10 @@ package MemNetConnections {
   }
   port def LibraryLocatorInPort {
     doc /*
-      Accept library locators into MutateGate / ingest later (0.17).
-      Unused as a product goldfish hop this cut. SHALL NOT RRF/PPR.
+      Extra 0.17: accept library / host locators into RagHostHook
+      (outside MemNetSystem) and existing MutateGate / PinMapIngest.
+      Used this cut. SHALL NOT RRF/PPR. SHALL NOT Snap-on-session.
+      Skip is valid when the source emits nothing.
     */
     in item locator : LibraryLocator;
   }
