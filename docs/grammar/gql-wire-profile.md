@@ -1,7 +1,7 @@
 # GQL wire profile (MemNet agent teach)
 
 **Status:** **M2 shipped** (engine/MCP GQL accept + shaped `pin_map` emit). **M1 SSOT** for conventions remains this file.  
-**Teach cut (2026-08-19):** TARGET wire **MUST NOT** require property `id` (MN-REQ-02.8). Breaking teach, not a 0.9 Python patch, not a 1.0 SemVer gate. **0.9 leftover** still keys `by_id` / `validate_id` / `id_first`.  
+**Teach cut (2026-08-19):** GQL/openCypher has **no store key**. The graph element is the identity. `MERGE (n:TSK {goal:$g})` is a per-write lookup, not a primary key. Optional property `id` = nickname only. Neo4j `elementId` stays in the store, off the wire. **MUST NOT** invent a replacement application store key. Breaking teach, not a 0.9 Python patch, not a 1.0 SemVer gate. **0.9 leftover invented store:** `by_id` / `validate_id` / `id_first` / `NEW` mint.  
 **Audience:** product developers; M2.5 durable-store authors; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
 **Brand:** MemNet (Net of Memory). **Dialect:** **GQL only** (openCypher-shaped, AgensGraph-compatible).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
@@ -17,6 +17,7 @@
 |------|------|
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
 | **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
+| **No store key** | The graph element is the identity. Grammar has no primary key. `MERGE` is a per-write lookup. **MUST NOT** invent an application store key. Optional `id` = nickname only. `elementId` stays in the store, off the wire. |
 | **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Historical grammar sources live under [`archive/`](archive/) only — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (optional nickname, depth, view budget) that wraps GQL internally and emits a shaped subgraph. Goldfish seeds from cue/pattern (`find`) first. |
@@ -69,11 +70,11 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `add`/`
 |--------|------------------------|-------|
 | Create node | `CREATE (:TSK {goal:'…'})` | No required `id`. Optional nickname property if you will point again |
 | Create relationship | `MATCH` ends by label + properties, then `CREATE (a)-[:TYPE {…}]->(b)` | Ends by type + properties; leftover 0.9 still MATCH `{id}` |
-| Merge / upsert | `MERGE (n:Label {goal:'…'}) SET n += {…}` | Labels+props; `{id}` MERGE is leftover when a nickname exists |
+| Merge / upsert | `MERGE (n:TSK {goal:$g}) SET n += {…}` | Per-write lookup of labels+props — **not** a primary key. `{id}` MERGE is leftover nickname |
 | Patch properties | `MATCH (n:Label {goal:'…'}) SET n.key = value` | No mint on patch |
 | Delete | `MATCH (n:Label {…}) DETACH DELETE n` or delete one rel by type+ends | Settle / recycle policy elsewhere |
 
-**Leftover sugar (not a product MUST):** `id: 'NEW'` / IdAllocator mint. **0.9 engine still does this** (`by_id`, `validate_id`). Do not teach it as identity.
+**Leftover invented store (not TARGET):** `id: 'NEW'` / IdAllocator / `MemStore.by_id` / SCHEMA `id_first`. **0.9 engine still does this.** Do not teach it as identity. Do not replace it with another application PK.
 
 **Batch:** one mutate payload = ordered list of such clauses (or structured equivalents). Response **MAY** list nicknames if any were assigned; it **MUST NOT** teach hidden storage handles (`elementId` style).
 
@@ -86,38 +87,41 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `add`/`
 | Full GQL **DDL** / graph-type / schema teach in first cut | SCHEMA deferred |
 | Variable-length / shortest-path as default agent read | Store/DBA only |
 | Dual-teach Layer ASCII / Tier A lines as peer or accept wire | User: **no Layer** |
+| Invent a replacement application store key | Grammar has none; locators/`id` are properties, not PK |
 | Invent a third peer dialect | One dialect = GQL |
 | Put constitutive **law** on a relationship | Law lives on the **node** (`law` property) |
 
 ---
 
-## 2. Property / label conventions (optional nickname)
+## 2. No store key (optional nickname)
 
-### 2.1 Optional nickname (`id`) — not identity
+### 2.1 The graph element is the identity
 
-GQL / openCypher / Neo4j: **no required `id` property.** Three elements: node, edge, property. `id` is just a property if present.
+GQL / openCypher grammar has **no store key**. The graph element (node or edge) is the identity. Three elements: node, edge, property. `MERGE (n:TSK {goal:$g})` is a **per-write lookup**, not a primary key. Neo4j `elementId` stays **inside the store** and **off the wire**.
+
+MemNet `by_id` / SCHEMA `id_first` / required property `id` / `NEW` mint are a **store we invented**. That is the TARGET-vs-leftover split. **MUST NOT** invent a replacement application store key (locator-as-PK, qname-as-PK, minted string-as-PK). Optional property `id` = **nickname only**.
 
 | Rule | Detail |
 |------|--------|
-| **Not identity** | MemNet engine TARGET **MUST NOT** require property `id`. Function of `id` = optional nickname/handle so you can point at a row again. |
-| **When present** | Prefer house prefixes `TSK_*`, `USR_*`, `MOD_*`, `SYM_*`, `CST_*`, `E_*`, … — ASCII `[A-Za-z_][A-Za-z0-9_]*`. Copy from shaped `pin_map` if you will re-point. |
-| **Hidden handle** | Store **MAY** keep an off-wire handle (Neo4j `elementId` style). **MUST NOT** teach it on the wire. |
+| **No grammar PK** | Identity = the element. Lookup = labels + properties (or rel type + ends) on that write. |
+| **Nickname** | Property `id` MAY exist so an agent can point at a row again. House prefixes `TSK_*`, `USR_*`, … when present. |
+| **elementId** | Cabinet-internal. **MUST NOT** teach on the wire. |
 | **SCHEMA** | **MUST NOT** put `id` first as a required field. **0.9 leftover:** `tag_map` `id_first` / `validate_id`. |
 | **Id-exists / not-found** | Valid **only when** an optional nickname is present (MN-REQ-03.1 / 03.2). |
 
-**Struck law:** “every durable node and relationship has property `id`.” That over-fitted GQL. **0.9 leftover:** `MemStore.by_id` still keys the Python store — leftoverIssue, not TARGET. This cut does **not** rewrite MutateGate / pin_map / store.
+**Struck law:** “every durable node and relationship has property `id`.” That over-fitted GQL by treating `id` as a store key. **0.9 leftover:** `MemStore.by_id` still keys the Python store — leftoverIssue, not TARGET. This cut does **not** rewrite MutateGate / pin_map / store.
 
 ### 2.2 `NEW` leftover sugar (not a product MUST)
 
-`NEW` is leftover mint sugar from 0.9, **not** a product rule. TARGET create is `CREATE (:TSK {goal:'…'})`.
+`NEW` is leftover mint sugar from the invented `by_id` store, **not** a product rule. TARGET create is `CREATE (:TSK {goal:'…'})`.
 
-| Case | TARGET | 0.9 leftover (as-is engine) |
+| Case | TARGET | 0.9 leftover (invented store) |
 |------|--------|------------------------------|
-| **Create (LLM goldfish)** | Omit `id` | Client `id: 'NEW'`; IdAllocator replaces with a string keyed in `by_id` |
+| **Create (LLM goldfish)** | Omit `id` | Client `id: 'NEW'`; IdAllocator keys a string in `by_id` |
 | **Update / settle** | MATCH label + properties | `NEW` illegal; known nickname only |
-| **External locators** (SysML, `.ato`, paths) | Locator properties on the node | Deterministic ground ids — no client `NEW` for those pins |
+| **External locators** (SysML, `.ato`, paths) | Locator **properties** on the node — not a replacement PK | Deterministic strings stuffed into leftover `by_id` |
 | **Relationship ends** | Type + ends (label + properties) | Known ids after mint |
-| **Cabinet MERGE** | Labels+props; rel type+ends | `MERGE (n {id})` when a nickname exists |
+| **Cabinet MERGE** | Per-write lookup `MERGE (n:TSK {goal:$g})` | `MERGE (n {id})` when a nickname exists |
 
 Surface spelling of leftover mint is the string **`NEW`** in property `id`. Do **not** teach `NEW` as identity. Hidden `elementId` stays off-wire.
 
@@ -162,15 +166,15 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 
 **MUST**
 
-- Teach **GQL only** as the agent wire: **node** (vertex), **edge** (relationship), **property**.
+- Teach **GQL only** as the agent wire: **node** (vertex), **edge** (relationship), **property**. The graph element is the identity; grammar has no store key.
 - Seed goldfish from cue/pattern (`find`); use **`pin_map`-class** walks (depth / view / max_rows). Nickname `anchor` is optional.
 - Emit **shaped subgraph** for primary agent read (same family as mutate). Emit **MAY** omit `{id:'…'}`.
-- Create as `CREATE (:Label {props})` — **MUST NOT** require property `id`. `NEW` is leftover sugar, not a MUST.
+- Create as `CREATE (:Label {props})`. Treat `MERGE (n:TSK {goal:$g})` as a per-write lookup, not a PK. Optional `id` = nickname. `NEW` is leftover sugar.
 - Encode bind as `:bind` + `fromPort`/`toPort`; law on node.
 
 **MUST NOT**
 
-- Require property `id` on every node or relationship; teach hidden `elementId` on the wire; put `id` first as a required SCHEMA field.
+- Require property `id` on every node or relationship; invent a replacement application store key; teach hidden `elementId` on the wire; put `id` first as a required SCHEMA field.
 - Treat `--anchor TSK1` as law for goldfish (cue/pattern first).
 - Unbounded `MATCH` as primary agent read.
 - Primary tabular `RETURN` / binding-table goldfish.

@@ -115,8 +115,9 @@ package MemNet {
       Session schema: node Labels and Properties; relationship-type set;
       validate ingest; reject unknown/reserved kinds.
       TARGET: SHALL NOT put id first as a required field (MN-REQ-02.8).
-      0.9 leftover: memnet.tag_map id_first / validate_id — leftoverIssue
-      id_first; leftoverIdFirst=true. Positional TagMap is legacy surface.
+      id_first is leftover invented store, not grammar. Positional TagMap
+      is legacy surface. 0.9 leftover: memnet.tag_map id_first /
+      validate_id (leftoverIdFirst=true).
     */
     port schemaIn : SchemaInPort;
     port schemaOut : SchemaOutPort;
@@ -140,8 +141,10 @@ package MemNet {
       openCypher / every CIP. Mutate accepts GQL patterns; pin_map emit is a
       shaped subgraph (Write = display). MUST NOT treat raw tabular RETURN as
       primary goldfish read. Engine accept path = ADR migration M2 (**shipped**).
-      TARGET: property id is optional nickname; emit MAY omit {id:'…'}; NEW is
-      leftover sugar. Hidden elementId-style handles MUST NOT be taught.
+      TARGET: property id is optional nickname; emit MAY omit {id:'…'};
+      NEW is leftover sugar. GQL has no store key -- the element is
+      identity. Hidden elementId stays in the store, off the wire.
+      SHALL NOT invent a replacement application store key.
       0.9 leftover: MutateGate / GqlCodec still mint and key by_id.
       Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
     */
@@ -209,13 +212,13 @@ package MemNet {
 
   part def IdAllocator {
     doc /*
-      Leftover 0.9 mint: (1) LLM goldfish mutate -- NEW -> engine id;
-      (2) PinMapIngest_* -- deterministic id from locator key.
-      TARGET: create has no required id; optional id is a nickname;
-      ingest locators remain properties, not identity. Hidden storage
-      handle (elementId style) MUST NOT be taught on the wire.
-      Honesty: memnet.id_allocator / validate_id still run; TARGET
-      required-id mint is NOT claimed (implemented=false).
+      Leftover 0.9 invented store: (1) LLM goldfish mutate -- NEW ->
+      engine id keyed in by_id; (2) PinMapIngest_* -- locator strings
+      treated as ground ids. TARGET: the graph element is identity;
+      locators remain properties, not a replacement store key. Optional
+      id is a nickname only. Neo4j elementId stays inside the store,
+      off the wire. Honesty: memnet.id_allocator / validate_id still
+      run; TARGET required-id mint is NOT claimed (implemented=false).
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
@@ -243,11 +246,14 @@ package MemNet {
       Dual EDGE: bind vs relation as relationship types / endpoint grain.
       Law-on-node as node properties (+ port structure). Agent wire is GQL
       via GqlCodec. Realises session-scoped SharedLlmMemory content.
-      TARGET: three GQL elements only; property id is optional nickname
-      (requiredIdProperty=false). Durable MERGE is labels+props / rel
-      type+ends -- not MERGE (n {id}) as the only path.
-      0.9 leftover: MemStore.by_id still keys rows (leftoverByIdIndex).
-      As-is module: memnet.mem_store.MemStore (+ models).
+      TARGET: GQL/openCypher has no store key -- the graph element is
+      the identity (graphElementIsIdentity=true). Property id is optional
+      nickname (requiredIdProperty=false). MERGE (n:TSK {goal:$g}) is a
+      per-write lookup, not a primary key (mergeIsPerWriteLookup=true).
+      SHALL NOT invent a replacement application store key
+      (noReplacementStoreKey=true). Neo4j elementId stays in the store,
+      off the wire. 0.9 leftover invented store: MemStore.by_id
+      (leftoverByIdIndex). As-is module: memnet.mem_store.MemStore.
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
@@ -257,6 +263,9 @@ package MemNet {
     attribute leftoverByIdIndex : Boolean = true;
     attribute leftoverIssue : String = "by_id";
     attribute mergeByLabelsAndProps : Boolean = true;
+    attribute graphElementIsIdentity : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_1_ExactlyNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_2_NodesHoldAtomisedFacts;
@@ -273,15 +282,13 @@ package MemNet {
   part def MutateGate {
     doc /*
       Orchestrates GQL parse -> schema validate -> leftover NEW mint ->
-      strict add/update into GraphStore -> ack. TARGET create:
-      CREATE (:Label {props}) with no required id; ends MATCH by label +
-      properties; MERGE labels+props / rel type+ends. Goldfish OUT Δ
-      lands here (current session) — not ImportAbsorb. Owns leftover
-      IdAllocator (implemented=false TARGET). Layer/Tier A accept retired
-      (M2). Consults CapsPolicy as before. 0.9 leftover: still by_id /
-      validate_id / NEW. As-is module: memnet.mutate_gate + memnet.acl
-      (GQL primary; @TAG pipe import-once). Python engine NOT rewritten
-      in this cut.
+      strict add/update into GraphStore -> ack.       TARGET create: CREATE (:Label {props}) with no required id. MERGE
+      (n:TSK {goal:$g}) is a per-write lookup, not a primary key. Ends
+      MATCH by label + properties. Goldfish OUT Δ lands here (current
+      session) — not ImportAbsorb. Owns leftover IdAllocator
+      (implemented=false TARGET). Layer/Tier A accept retired (M2).
+      0.9 leftover invented store: still by_id / validate_id / NEW.
+      Python engine NOT rewritten in this cut.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -451,17 +458,15 @@ package MemNet {
 
   part def Commit {
     doc /*
-      Operator Commit(Δ) — ONE gate. mutate / ingest / absorb are Commit
-      rules, not three product verbs. TARGET create has no required id
-      (createRequiresId=false): CREATE (:Label {props}). Durable MERGE
-      endpoints+type / labels+props (mergeByLabelsAndProps=true). MERGE
-      (n {id}) is leftover when a nickname exists. Leftover 0.9: client
-      NEW → engine id (IdAllocator implemented=false TARGET;
-      leftoverNewMint=true). Ingest locators remain properties. Absorb:
-      Path-B only (ImportAbsorb + id_policy keep|reject|remint). Goldfish
-      OUT = sparse Δ via this gate (CREATE/SET; leftover NEW sugar;
-      MUST NOT echo the fetched pin_map). RSV is a lease nested here.
-      Engine/Python cut not this PR.
+      Operator Commit(Δ) — ONE gate. TARGET: the graph element is identity;
+      createRequiresId=false; CREATE (:Label {props}). MERGE
+      (n:TSK {goal:$g}) is a per-write lookup, not a primary key
+      (mergeIsPerWriteLookup=true). SHALL NOT invent a replacement store
+      key. MERGE (n {id}) is leftover when a nickname exists.
+      Leftover 0.9 invented store: client NEW → by_id
+      (IdAllocator.implemented=false TARGET; leftoverNewMint=true).
+      Ingest locators remain properties, not PK. Absorb Path-B only.
+      Python cut not this PR.
     */
     port gqlIn : GqlWireInPort;
     port recordsOut : GraphRecordOutPort;
@@ -479,6 +484,8 @@ package MemNet {
     attribute leftoverNewMint : Boolean = true;
     attribute mergeByLabelsAndProps : Boolean = true;
     attribute leftoverMergeById : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
 
@@ -838,10 +845,11 @@ package MemNet {
       LLM agents as primary. Children are alternative cabinet clients;
       factory binds exactly one adapter (one sync owner). AgensGraph live
       cabinet proven (0.7). Neo4j client landed, liveNeo4jClaimed=false.
-      TARGET cabinet MERGE is labels+props and rel type+ends (not MERGE
-      (n {id}) as the only path). leftoverMergeById=true records 0.9
-      nickname MERGE. liveNeo4jClaimed stays false. Cabinets stay
-      external / not vendored. MN-REQ-06.4.
+      TARGET: no grammar store key; MERGE is a per-write lookup of labels
+      + props / rel type+ends, not a primary key. leftoverMergeById=true
+      records 0.9 nickname MERGE and invented by_id. liveNeo4jClaimed
+      stays false. elementId stays in the cabinet, off the wire.
+      Cabinets stay external / not vendored. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
@@ -852,6 +860,8 @@ package MemNet {
     attribute liveNeo4jClaimed : Boolean = false;
     attribute mergeByLabelsAndProps : Boolean = true;
     attribute leftoverMergeById : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }

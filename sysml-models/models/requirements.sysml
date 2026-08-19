@@ -9,7 +9,7 @@
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
-    MN-REQ-02.8        optional id nickname; wire SHALL NOT require property id
+    MN-REQ-02.8        no grammar store key; optional id = nickname only
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -32,11 +32,13 @@
   Mission SSOT: Net of Memory between LLM pipelines and data searching; aids
   system, programme, software, firmware, hardware, and documentation
   development; save time and tokens; high factual accuracy; LLM-friendly
-  grammar on stdio/MCP; canonical parser for human inspection.   GQL elements:
-  node (vertex), edge (relationship), property. Property id is optional
-  nickname/handle, not identity and not a fourth element. Hidden storage
-  handles (elementId style) are not taught on the wire. 0.9 leftover
-  still keys MemStore.by_id / validate_id / SCHEMA id_first.
+  grammar on stdio/MCP; canonical parser for human inspection. GQL/openCypher
+  has no store key: the graph element (node or edge) is the identity.
+  MERGE (n:TSK {goal:$g}) is a per-write lookup, not a primary key.
+  Property id is optional nickname only -- not identity. Neo4j elementId
+  stays inside the store, off the wire. 0.9 leftover invented store:
+  MemStore.by_id / validate_id / SCHEMA id_first / NEW mint. SHALL NOT
+  invent a replacement application store key.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -160,13 +162,15 @@ package MemNetRequirements {
       doc /*
         Group: the Net of Memory is a GQL property graph whose three elements
         are node (ISO synonym vertex), edge (ISO synonym relationship), and
-        property (ADR-001; gql-wire-profile). Labels name kinds; they are not
+        property (ADR-001; gql-wire-profile). The graph element is the
+        identity; grammar has no store key. Labels name kinds; they are not
         a fourth element. MUST NOT invent PORT (or nested graph) as a
-        graph-element kind — those facts live as property values. Agent wire
-        is openCypher-shaped GQL; primary read is shaped pin_map (not raw
-        MATCH/RETURN tables). Property id is optional nickname
-        (MN-REQ-02.8), not identity. Layer / Tier A are archived (not product
-        accept); @TAG pipe remains import-once only.
+        graph-element kind — those facts live as property values. MUST NOT
+        invent an application store key. Agent wire is openCypher-shaped
+        GQL; primary read is shaped pin_map (not raw MATCH/RETURN tables).
+        Property id is optional nickname (MN-REQ-02.8), not identity.
+        Layer / Tier A are archived (not product accept); @TAG pipe
+        remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
@@ -175,8 +179,10 @@ package MemNetRequirements {
           SHALL model the Net of Memory as a GQL property graph with three
           elements: node (vertex), edge (relationship), and property. Topology
           is node--edge--node; property values attach to nodes and to edges.
-          SHALL NOT add a fourth graph-element kind (PORT nodes, nested graphs,
-          prose blobs).
+          The graph element is the identity. GQL/openCypher grammar has no
+          store key. SHALL NOT add a fourth graph-element kind (PORT nodes,
+          nested graphs, prose blobs) and SHALL NOT invent an application
+          store key in place of the element.
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
@@ -243,15 +249,18 @@ package MemNetRequirements {
 
       requirement def MN_REQ_02_8_IdNotRequiredOnWire {
         doc /*
-          Agent wire SHALL NOT require property id on every node or
-          relationship. Create, find, and pin_map MAY omit id. When present,
-          id is an optional nickname/handle so an agent can point at a row
-          again -- not identity, not a fourth graph-element kind. Hidden
-          storage handles (Neo4j elementId style) MAY exist off-wire and
-          SHALL NOT be taught. Id-exists / not-found (MN-REQ-03.1 / 03.2)
-          remain valid only when an optional id is present. 0.9 leftover:
-          MemStore.by_id, validate_id, SCHEMA id_first, pin_map
-          require_anchor -- not this TARGET.
+          Headline: GQL/openCypher grammar has no store key. The graph
+          element (node or edge) is the identity. MERGE
+          (n:TSK {goal:$g}) is a per-write lookup, not a primary key.
+          Neo4j elementId stays inside the store and off the wire.
+          Agent wire SHALL NOT require property id. Create, find, and
+          pin_map MAY omit it. When present, id is an optional nickname
+          only -- not identity, not a fourth element. SHALL NOT invent a
+          replacement application store key (locator-as-PK, qname-as-PK,
+          minted string-as-PK). Id-exists / not-found (MN-REQ-03.1 / 03.2)
+          remain valid only when an optional nickname is present.
+          0.9 leftover invented store: MemStore.by_id, validate_id,
+          SCHEMA id_first, NEW mint, pin_map require_anchor -- not TARGET.
         */
         attribute requirementId : String = "MN-REQ-02.8";
       }

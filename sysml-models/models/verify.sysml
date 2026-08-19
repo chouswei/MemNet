@@ -13,8 +13,8 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
-  Optional id nickname TARGET (MN-VER-02-S01): wire SHALL NOT require
-  property id; 0.9 by_id leftover explicit.
+  Optional id nickname TARGET (MN-VER-02-S01): no grammar store key;
+  graph element is identity; 0.9 by_id leftover invented store.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -427,14 +427,16 @@ package MemNetVerification {
 
   verification def MN_VER_02_S01_IdNotRequiredOnWire {
     doc /*
-      MN-REQ-02.8 — agent wire SHALL NOT require property id.
-      TARGET flags: GraphStore.requiredIdProperty=false;
-      PinMapShapedRead.requireAnchorId=false; Commit.createRequiresId=false;
-      SchemaRegistry.idFirstRequired=false; IdAllocator.implemented=false
-      (required-id mint not claimed). Honesty leftover: leftoverByIdIndex,
-      leftoverRequireAnchor, leftoverIdFirst, leftoverNewMint,
-      leftoverAsIsEngine. liveNeo4jClaimed stays false. No IdentityHandle
-      nest — thinner flags on the existing RecallCommit nest.
+      MN-REQ-02.8 — GQL/openCypher has no store key; the graph element is
+      the identity. MERGE is a per-write lookup, not a primary key.
+      Optional id = nickname only. SHALL NOT invent a replacement
+      application store key. TARGET flags: graphElementIsIdentity;
+      noReplacementStoreKey; mergeIsPerWriteLookup; requiredIdProperty=false;
+      requireAnchorId=false; createRequiresId=false; idFirstRequired=false;
+      IdAllocator.implemented=false. Honesty leftover: leftoverByIdIndex
+      (invented 0.9 store), leftoverRequireAnchor, leftoverIdFirst,
+      leftoverNewMint. liveNeo4jClaimed stays false. elementId off-wire.
+      No IdentityHandle nest — thinner flags on RecallCommit.
     */
     attribute verificationId : String = "MN-VER-02-S01";
 
@@ -445,6 +447,12 @@ package MemNetVerification {
       require constraint {
         system.core.transport.inProcess.memory.sessions.store
           .requiredIdProperty == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .graphElementIsIdentity == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .noReplacementStoreKey == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .mergeIsPerWriteLookup == true
           and system.core.transport.inProcess.memory.sessions.store
             .leftoverByIdIndex == true
           and system.core.transport.inProcess.memory.sessions.schema
@@ -467,7 +475,12 @@ package MemNetVerification {
             .commit.mutate.allocator.leftoverAsIsEngine == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.allocator.teachHiddenStorageHandle == false
-          and system.durable.mergeByLabelsAndProps == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mergeIsPerWriteLookup == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.noReplacementStoreKey == true
+          and system.durable.mergeIsPerWriteLookup == true
+          and system.durable.noReplacementStoreKey == true
           and system.durable.liveNeo4jClaimed == false
       }
     }
