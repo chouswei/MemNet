@@ -10,6 +10,8 @@
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
+    MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
+    MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; no third operator
     MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -276,6 +278,26 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-02.8";
       }
+
+      requirement def MN_REQ_02_9_MustNotCopyCousinStoreKey {
+        doc /*
+          Cousin pointing contrast (not a product switch). SHALL keep
+          GraphElement identity and TARGET cue → RelativeSeed → ShapeWalk
+          → pin_map emit. MAY copy cue-without-store-key and neighbourhood
+          emit. SHALL NOT copy: GQL engine; content-hash-of-entire-property-map
+          as identity; SQLite-clone product job; unique-name MERGE as
+          universal identity; vector/fulltext as pointing; elementId
+          writeback; Unicode id-normalization; substring/IDF as identity;
+          Leiden; Cypher export as the query API; type:path:name as agent
+          language; Fuse+embeddings as TARGET; commit-the-JSON as the
+          memory product; SiYuan minted block id; NL2GQL vid / id(n) on
+          the query wire; Logseq unique :block/name as required identity
+          law. GraphLite SHALL remain a cabinet/store cousin — SHALL NOT
+          replace the MemNet session-memory product. Cousins confirm
+          TARGET; they SHALL NOT force a store-key back onto the wire.
+        */
+        attribute requirementId : String = "MN-REQ-02.9";
+      }
     }
 
     // ----- Strict mutate -----
@@ -410,6 +432,21 @@ package MemNetRequirements {
           Recall operator (MN-REQ-13.1).
         */
         attribute requirementId : String = "MN-REQ-04.7";
+      }
+
+      requirement def MN_REQ_04_8_CueMultiRootHonest {
+        doc /*
+          Open hard part without a third operator: a codebook cue MAY hit
+          several relative roots (|Q| > 1). RelativeSeed SHALL stay
+          bounded (hard LIMIT L) and honest — emit Q as walk roots, do
+          not invent a node, do not silently pick a store-key. ShapeWalk
+          SHALL union k-hop under one M (not M×|Q|). SHALL NOT add a new
+          verb, Peak_L default, or rag_query / ANN to resolve ambiguity.
+          Re-cue with a tighter token is the product move. Contrast nest
+          CousinPointingContrast records this; Recall/Commit
+          operatorCount stays 2.
+        */
+        attribute requirementId : String = "MN-REQ-04.8";
       }
     }
 
@@ -1282,6 +1319,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   requirement idNotRequiredOnWireReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+  requirement noCopyCousinStoreKeyReq
+    : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
 
   requirement strictMutateReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate;
@@ -1308,6 +1347,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
   requirement relativeSeedThenShapeWalkReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+  requirement cueMultiRootHonestReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1499,6 +1540,7 @@ package MemNetRequirements {
     end #derive ::> parserRecoversNodeAndEdgeReq;
     end #derive ::> schemaValidatedIngestReq;
     end #derive ::> idNotRequiredOnWireReq;
+    end #derive ::> noCopyCousinStoreKeyReq;
   }
 
   #derivation connection deriveStrictMutateLeaves {
@@ -1517,6 +1559,7 @@ package MemNetRequirements {
     end #derive ::> anchoredWalkReq;
     end #derive ::> boundedMatchFindReq;
     end #derive ::> relativeSeedThenShapeWalkReq;
+    end #derive ::> cueMultiRootHonestReq;
   }
 
   #derivation connection deriveHardCapsLeaves {

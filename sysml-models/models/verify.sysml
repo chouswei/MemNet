@@ -18,6 +18,8 @@
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
   tools on McpFacade / CliFacade; leftover id commands stay leftover_*.
+  Cousin pointing contrast (MN-VER-02-S02): TARGET vs seven cousins;
+  operatorCount stays 2; liveNeo4jClaimed stays false.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -25,6 +27,7 @@ package MemNetVerification {
   private import MemNet::*;
   private import MemNetBehaviour::*;
   private import MemNetConnections::*;
+  private import MemNetCousinContrast::*;
 
   // --- MN-REQ-12 verification (group G00 + case-study steps S01–S09) ---
 
@@ -578,6 +581,84 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_02_S02_CousinPointingContrast {
+    doc /*
+      MN-REQ-02.9 / MN-REQ-04.8 — cousin pointing contrast nest.
+      Chosen TARGET: cue → RelativeSeed → ShapeWalk → pin_map emit.
+      MUST NOT copy minted block id, vid-on-wire, unique page-name law,
+      unique-name MERGE as identity, content-hash ids, typed path-ids,
+      vector indexes as identity, or GraphLite as product. MAY copy
+      cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
+      RelativeSeed bounded + honest; no third operator. operatorCount
+      stays 2. liveNeo4jClaimed stays false. Contrast MUST NOT nest
+      under MemNetSystem.
+    */
+    attribute verificationId : String = "MN-VER-02-S02";
+
+    subject contrast : CousinPointingContrast;
+
+    objective cousinPointingConfirmsTarget {
+      verify noCopyCousinStoreKeyReq;
+      verify cueMultiRootHonestReq;
+      require constraint {
+        contrast.mustNotNestUnderMemNetSystem == true
+          and contrast.productSwitchForbidden == true
+          and contrast.copyCueWithoutStoreKey == true
+          and contrast.copyNeighbourhoodEmit == true
+          and contrast.mustNotCopyMintedBlockId == true
+          and contrast.mustNotCopyVidOnWire == true
+          and contrast.mustNotCopyUniquePageNameLaw == true
+          and contrast.mustNotCopyEmbeddingsAsRecall == true
+          and contrast.mustNotCopyGraphLiteAsProduct == true
+          and contrast.mustNotCopyGqlEngine == true
+          and contrast.mustNotCopyContentHashIdentity == true
+          and contrast.mustNotCopyUniqueNameMergeAsIdentity == true
+          and contrast.mustNotCopyTypedPathIdsAsAgentLanguage == true
+          and contrast.mustNotCopyVectorIndexAsIdentity == true
+          and contrast.operatorCountUnchanged == 2
+          and contrast.liveNeo4jClaimed == false
+          and contrast.inventThirdOperatorOnAmbiguity == false
+          and contrast.chosen.storeKeyOnWire == false
+          and contrast.chosen.requiredUniqueName == false
+          and contrast.chosen.cueThenRelativeSeedThenShapeWalk == true
+          and contrast.chosen.cueMayHitSeveralRoots == true
+          and contrast.chosen.relativeSeedHardLimitHolds == true
+          and contrast.chosen.unionWalkUnderOneM == true
+          and contrast.chosen.inventThirdOperatorOnAmbiguity == false
+          and contrast.chosen.nameRequired == false
+          and contrast.nl2gql.storeKeyOnWire == true
+          and contrast.nl2gql.productJob == "nl2gql_translator"
+          and contrast.graphlite.storeKeyOnWire == false
+          and contrast.graphlite.patternCueByLabelAndProps == true
+          and contrast.graphlite.grammarHasMerge == false
+          and contrast.graphlite.contentHashNodeId == true
+          and contrast.graphlite.docsPointWithIdFunction == false
+          and contrast.graphlite.productJob == "embedded_graph_store"
+          and contrast.graphlite.productSwapForbidden == true
+          and contrast.graphlite.sessionVsVault == "durable_cabinet"
+          and contrast.textToSqlGraphRag.storeKeyOnWire == false
+          and contrast.textToSqlGraphRag.requiredUniqueName == true
+          and contrast.textToSqlGraphRag.mergeByUniqueName == true
+          and contrast.textToSqlGraphRag.retrieverReturnsName == true
+          and contrast.textToSqlGraphRag.elementIdWritebackOnly == true
+          and contrast.textToSqlGraphRag.mustNotCopy == true
+          and contrast.graphify.storeKeyOnWire == false
+          and contrast.graphify.humanCueByLabel == true
+          and contrast.graphify.neighbourhoodEmitLikePinMap == true
+          and contrast.graphify.gqlOnAgentPath == false
+          and contrast.understandAnything.storeKeyOnWire == false
+          and contrast.understandAnything.cueIsNameText == true
+          and contrast.understandAnything.typedCompositeStoreId == true
+          and contrast.understandAnything.ingestThenGraphThenQuery == true
+          and contrast.understandAnything.goldfishPinMapEmit == false
+          and contrast.logseq.requiredUniqueName == true
+          and contrast.logseq.closestHumanNameCousin == true
+          and contrast.siyuan.mintedBlockIdOnWire == true
+          and contrast.siyuan.leftoverZeroNineAnchorPath == true
+      }
+    }
+  }
+
   verification def MN_VER_07_S01_TargetCommandListNoRequiredId {
     doc /*
       MN-REQ-07.5 / 07.1 — TARGET CLI/MCP command list is cue/pattern
@@ -770,6 +851,8 @@ package MemNetVerification {
     : MN_VER_04_S02_RelativeSeedWalksFromQ;
   verification idNotRequiredOnWireVerify
     : MN_VER_02_S01_IdNotRequiredOnWire;
+  verification cousinPointingContrastVerify
+    : MN_VER_02_S02_CousinPointingContrast;
   verification targetCommandListNoRequiredIdVerify
     : MN_VER_07_S01_TargetCommandListNoRequiredId;
   verification recallCommitTwoOperatorsVerify

@@ -53,6 +53,9 @@
   APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
   locators into existing MutateGate / ingest. No ImportGuard leaf copy.
   Design only. Grammar: docs/grammar/memnet-host-search-nest.md
+  APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
+  seven cousin pointing/identity designs (sysml-models/models/cousins.sysml).
+  MUST NOT thicken Recall/Commit; operatorCount stays 2.
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -636,6 +639,8 @@ package MemNet {
       under ONE M. Hide recycled. Goldfish IN = that slice.
       leftover 0.9 copy-id then require_anchor is leftover, not TARGET.
       Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
+      Cousin pointing contrast lives outside MemNetSystem
+      (CousinPointingContrast); this nest is not thickened.
     */
     port cueIn : CueInPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -2041,7 +2046,7 @@ package MemNet {
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;
-      MUST NOT nest on product path. HostSearchBridge / EvidenceCentre
+      MUST NOT nest on product path.       HostSearchBridge / EvidenceCentre / CousinPointingContrast
       MUST NOT nest here. Only MN-REQ-00 satisfied here.
     */
     part core : MemNetCoreLibrary;
