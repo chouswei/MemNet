@@ -3,7 +3,8 @@
 
   Product framing (2026-08-13): MemNet = shared LLM memory (SharedLlmMemory);
   session id = pass-by-reference handle for a MissionWorkingSet; durable GQL
-  store (DurableBuffer / AgensGraphAdapter + optional Neo4jAdapter) behind MemNet.
+  store (DurableBuffer / AgensGraphAdapter + optional Neo4jAdapter cabinet
+  + optional Neo4jLibraryPort) behind MemNet.
 
   Nesting (coarse → fine):
     MemNetSystem                    // SharedLlmMemory product
@@ -29,7 +30,8 @@
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     │   └── McpFacade               // TARGET cue/pattern commands only
-    ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
+    ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter cabinet
+    │                                 // + optional Neo4jLibraryPort (0.16; skip unless name)
     ├── PinMapRoadmap               // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
@@ -433,7 +435,8 @@ package MemNet {
       (current session) — not ImportAbsorb. Owns leftover IdAllocator
       (implemented=false TARGET). Layer/Tier A accept retired (M2).
       0.9 leftover invented store: leftover_by_id / leftover_NEW_mint.
-      Python engine NOT rewritten in this cut.
+      Python engine NOT rewritten in this cut. Library locators MAY
+      arrive on libraryLocatorIn later (0.17); unused this cut.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -441,6 +444,8 @@ package MemNet {
     port recordsIn : GraphRecordInPort;
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
+    port libraryLocatorIn : LibraryLocatorInPort;
+    attribute libraryIngestThisCut : Boolean = false;
     part allocator : IdAllocator;
     part caps : CapsPolicy;
 
@@ -1521,7 +1526,10 @@ package MemNet {
       skips unless MEMNET_NEO4J_URL). Live round-trip yes; hid flush;
       leftover-nickname hydrate after hid miss. Do not claim
       hydrate-by-hid proven on live. Agents MUST NOT talk Bolt.
-      MN-REQ-06.4.
+      Cabinet namespace = named database MEMNET_NEO4J_DATABASE
+      (default neo4j). Extra 0.16 library is a sibling port on the
+      same process, not this adapter. MUST NOT bind the library
+      database name as the cabinet. MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
@@ -1530,7 +1538,35 @@ package MemNet {
     part honesty : liveNeo4jClaimed;
     attribute implemented : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = true;
+    attribute namespace : String = "cabinet";
     attribute phase : String = "M2.5";
+  }
+
+  part def Neo4jLibraryPort {
+    doc /*
+      Extra 0.16: second named Neo4j database on the SAME process as
+      Neo4jAdapter (same MEMNET_NEO4J_URL). Library = corpus graph.
+      Skip unless MEMNET_NEO4J_LIBRARY_DATABASE is set (no second bind).
+      Locator-only read (LibraryLocator). generate=false. MUST NOT
+      hydrate session S, MUST NOT flush session pins into the library
+      database, MUST NOT fuse RRF / PPR / Leiden / ANN into pin_map,
+      MUST NOT Snap-on-session. Not a DurableStoreAdapter. HostSearch /
+      RagHostHook stay outside MemNetSystem with implemented=false
+      (0.17). Hid / elementId / _memnet_hid stay off the emit.
+      Engine-real: reject when MEMNET_NEO4J_LIBRARY_DATABASE equals the
+      cabinet database name (same process, two names).
+    */
+    port locatorOut : LibraryLocatorOutPort;
+    attribute implemented : Boolean = true;
+    attribute generate : Boolean = false;
+    attribute skipUnlessNameSet : Boolean = true;
+    attribute hydrateSession : Boolean = false;
+    attribute flushSessionPins : Boolean = false;
+    attribute snapOnSession : Boolean = false;
+    attribute fuseRetrieveIntoPinMap : Boolean = false;
+    attribute rejectSameNameAsCabinet : Boolean = true;
+    attribute namespace : String = "library";
+    attribute sameProcessAsCabinet : Boolean = true;
   }
 
   part def DurableBuffer {
@@ -1545,15 +1581,23 @@ package MemNet {
       + props / rel type+ends, not a primary key. leftoverMergeById=true
       records 0.9 nickname MERGE and invented by_id. elementId stays in
       the cabinet, off the wire. Cabinets stay external / not vendored.
-      Skip live Neo4j pytest unless MEMNET_NEO4J_URL. MN-REQ-06.4.
+      Skip live Neo4j pytest unless MEMNET_NEO4J_URL. Extra 0.16:
+      optional library namespace is a second database name on the same
+      Neo4j URL (Neo4jLibraryPort); skip unless that name is set. Two
+      cabinet URLs still require MEMNET_DURABLE_BACKEND. Factory SHALL
+      NOT treat two database names as two URLs. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
+    part library : Neo4jLibraryPort;
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     attribute clientLanded : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = true;
+    attribute twoNamespaces : Boolean = true;
+    attribute sameNeo4jProcess : Boolean = true;
+    attribute twoUrlsStillNeedBackendPick : Boolean = true;
     attribute mergeByLabelsAndProps : Boolean = true;
     attribute leftoverMergeById : Boolean = true;
     attribute mergeIsPerWriteLookup : Boolean = true;
@@ -2426,6 +2470,7 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
       two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
+      (cabinet hydrate/flush + optional 0.16 library locator port)
       PinMapRoadmap (PinMapIngest_* + CatalogSnap 0.15 + PinMapExport 0.19) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
@@ -2494,7 +2539,7 @@ package MemNet {
       haystack). Locator-only, fail-open, MUST NOT mutate the session,
       MUST NOT appear as memnet-mcp rag_query, MUST NOT ANN-index session
       S (Snap-on-session forbidden). Skip is valid (pin_map Shape + grep).
-      Design only.
+      MUST NOT Snap-on-session. Design only this cut (0.17 ships the hook).
     */
     attribute implemented : Boolean = false;
     attribute designOnly : Boolean = true;
@@ -2510,9 +2555,11 @@ package MemNet {
       MUST NOT be a part of MemNetSystem. Snap = RagHostHook locators;
       Shape stays PinMapShapedRead. Hard commit is existing MutateGate /
       PinMapIngest — no LocatorCommit wrapper. MUST NOT Snap-on-session.
+      Extra 0.16 library locators MAY arrive later; hook stays false.
     */
     attribute designOnly : Boolean = true;
     part hook : RagHostHook;
+    port locatorIn : LibraryLocatorInPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
   }

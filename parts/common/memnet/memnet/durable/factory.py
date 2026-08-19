@@ -29,7 +29,9 @@ def make_adapter_from_env() -> DurableStoreAdapter:
     - ``MEMNET_DURABLE_FAKE`` truthy → Fake (even if URLs are set)
     - else both AgensGraph and Neo4j URLs set → error unless
       ``MEMNET_DURABLE_BACKEND`` is ``agensgraph`` or ``neo4j``
-      (one sync owner; do not silently pick)
+      (one sync owner; do not silently pick). Two Neo4j *database
+      names* on one URL are extra 0.16 (cabinet + optional library
+      port) and are not this conflict.
     - else ``MEMNET_AGENSGRAPH_URL`` set → ``AgensGraphAdapter``
     - else ``MEMNET_NEO4J_URL`` set → ``Neo4jAdapter``
     - else → Fake seam stand-in for tests/dev

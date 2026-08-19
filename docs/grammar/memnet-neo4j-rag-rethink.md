@@ -1,12 +1,12 @@
 # Rethink: RAG, `memnet-llm`, and the Neo4j cabinet
 
-**Status:** design proposal — **not** shipped. Does **not** amend [`../SHAPE.md`](../SHAPE.md) until accepted.  
+**Status:** option **B namespaces** shipped as extra **0.16** (untagged; package stays 0.9.0). Host Snap (`RagHostHook.implemented=true`) remains **0.17**. Does **not** amend [`../SHAPE.md`](../SHAPE.md) beyond the 0.16 locator port.  
 **Decision:** **B** (two Neo4j ports) **+ D** (catalog `session=` ids; join by **Absorb**). **Reject C.** Keep **A** as as-is teach until B is accepted.  
 **Audience:** product developers. British English.
 
 **Pressure:** operators ask how RAG works *between* `memnet-llm` and Neo4j. As-is: it doesn’t (cabinet = hydrate/flush). That job cut is right; as an **operator** architecture it fails — GraphRAG / Graphiti / FTS already run on Neo4j, so they bypass MemNet (LLM↔Bolt).
 
-**Locked:** MN-REQ-00 (wall-clock **and** tokens); Recall/Commit ([`math-skeleton.md`](math-skeleton.md)); GQL `pin_map` / mutate (ADR-001); HostSearch **outside** `MemNetSystem`; locators not chunks; no `rag_query` / `pin_map.generate`; no ANN of mission \(S\); Absorb = Path-B `ImportAbsorb` only; one `DurableSyncOwner` for cabinet; live Neo4j unclaimed.
+**Locked:** MN-REQ-00 (wall-clock **and** tokens); Recall/Commit ([`math-skeleton.md`](math-skeleton.md)); GQL `pin_map` / mutate (ADR-001); HostSearch **outside** `MemNetSystem`; locators not chunks; no `rag_query` / `pin_map.generate`; no ANN of mission \(S\); Absorb = Path-B `ImportAbsorb` only; one `DurableSyncOwner` for cabinet; live Neo4j claimed (0.14).
 
 | Pointer | Role |
 |---------|------|
@@ -103,7 +103,7 @@ LLM  <-->  memnet-llm  (GQL pin_map / mutate)
 
 Same Bolt URL **may** be used. Factory still errors two *cabinet* URLs (Agens + Neo4j).
 
-**Namespace.** Prefer two named databases (`MEMNET_NEO4J_DATABASE` default `neo4j` vs `MEMNET_NEO4J_LIBRARY_DATABASE`, not shipped). Community single-db: cabinet MERGE only `_memnet_tag`; library MATCH **MUST NOT** return those nodes. One database + one label set **is C**.
+**Namespace.** Two named databases (`MEMNET_NEO4J_DATABASE` default `neo4j` vs `MEMNET_NEO4J_LIBRARY_DATABASE`). Skip the library bind when the library name is unset. Community single-db: do **not** put both jobs in one database (that **is C**).
 
 | Port | Writes | Reads |
 |------|--------|-------|

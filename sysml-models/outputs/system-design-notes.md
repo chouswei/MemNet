@@ -14,7 +14,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j extra **0.14** `liveNeo4jClaimed=true`; one sync owner). Cabinets external / not vendored.
+3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j extra **0.14** `liveNeo4jClaimed=true`; extra **0.16** optional library database name on the same Neo4j process, locators only, name MUST differ from the cabinet (`rejectSameNameAsCabinet`); one sync owner). `RagHostHook.implemented=false` until 0.17. Cabinets external / not vendored.
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). TARGET `keep` = MERGE of labels+props / type+ends (GraphElement). leftover_MERGE_by_id is 0.9 leftover, not keep. Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -76,6 +76,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   └── CliFacade                            // catalog Snap + session list (0.15); pin-map export (0.19)
 ├── MemNetMcpServer                          // snap_model / session_list / export_pin_map
 ├── DurableBuffer → AgensGraphAdapter + Neo4jAdapter  // M2.5; Agens 0.7; Neo4j 0.14 claimed
+│                         + Neo4jLibraryPort          // 0.16 locators; rejectSameNameAsCabinet
 ├── PinMapRoadmap                            // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead

@@ -70,7 +70,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional clients `memnet-llm[agensgraph]` and `memnet-llm[neo4j]`; cabinets are external and not vendored. **0.7** AgensGraph live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is the same hydrate/flush seam (`Neo4jAdapter`); extra **0.14** claims `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Skip unless `MEMNET_NEO4J_URL`.
+**Durable:** optional clients `memnet-llm[agensgraph]` and `memnet-llm[neo4j]`; cabinets are external and not vendored. **0.7** AgensGraph live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is the same hydrate/flush seam (`Neo4jAdapter`); extra **0.14** claims `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Extra **0.16**: optional library database (`MEMNET_NEO4J_LIBRARY_DATABASE`) on the same URL emits locators only. Skip unless `MEMNET_NEO4J_URL`.
 
 ## Deferred (honest)
 

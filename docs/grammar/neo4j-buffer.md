@@ -1,6 +1,6 @@
 # Between MemNet and Neo4j
 
-**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
+**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (untagged): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
 **Audience:** product developers.  
 **Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs. Same ABC / owner / budget.  
 **Shape:** cabinet **behind** the session, not instead of it ([`../SHAPE.md`](../SHAPE.md) §5).
@@ -17,15 +17,19 @@ MemNet sits **between** LLM call pipelines and a durable graph. [Neo4j](https://
                     |
                     |  hydrate / flush (one sync owner)
                     v
-               Neo4j  = durable backing graph (external cabinet)
+               Neo4j  = one process, two namespaces (extra 0.16)
+                        cabinet DB  = durable copy of S
+                        library DB  = corpus (optional; locators only)
 ```
 
 | Path | Role |
 |------|------|
 | **LLM ↔ MemNet** | Shared memory via **session**; goldfish `pin_map`; GQL teach; gated mutate |
 | **LLM → LLM handoff** | Pass **session id** (+ anchors / write scope); peer re-`pin_map` — not a chat dump, not a Bolt URI |
-| **MemNet → Neo4j** | Flush settled / durable subgraphs out of the session buffer (`MERGE` nodes, then relationships) |
-| **Neo4j → MemNet** | Hydrate into a session pin budget (ego k-hop under `HydrateBudget`) |
+| **MemNet → Neo4j cabinet** | Flush settled / durable subgraphs out of the session buffer (`MERGE` nodes, then relationships) into `MEMNET_NEO4J_DATABASE` |
+| **Neo4j cabinet → MemNet** | Hydrate into a session pin budget (ego k-hop under `HydrateBudget`) |
+| **MemNet → Neo4j library** | **None** — library is read-only from MemNet |
+| **Neo4j library → locators** | Optional second database (`MEMNET_NEO4J_LIBRARY_DATABASE`); emit locator properties only; skip if unset. MutateGate ingest later (0.17). |
 | **LLM ↔ Neo4j (direct)** | **Out of default MemNet teach** (no agent Bolt / driver / Browser / GraphQL as goldfish or handoff) |
 
 Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) or \(\mathrm{Commit}(\Delta)\). A new process opens a **new** session id, hydrates an ego under budget, and agents keep talking to MemNet ([durable hydrate/flush case study](../../sysml-models/outputs/durable-hydrate-flush-case-study.md)).
@@ -38,17 +42,17 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 ```text
   library / PDFs / web
-       |  host Snap (optional; design only)
-       |  retrieve chunks → locators only
+       |  optional Neo4j library DB (0.16 locators only)
+       |  host Snap still 0.17 (RagHostHook.implemented=false)
        v
-  MutateGate / ingest ---------->  memnet-llm session S
-                                       ^
-  LLM goldfish  <-->  pin_map / mutate |   NOT rag_query
+  locators (not generate) ---- later --> MutateGate / ingest
+                                       |
+  LLM goldfish  <-->  pin_map / mutate |   NOT rag_query; NOT RRF/PPR
                                        |
                                        |  hydrate / flush (DurableSyncOwner)
                                        v
-                                  Neo4j cabinet
-                                  (memnet-llm[neo4j] driver)
+                                  Neo4j cabinet DB
+                                  (same process, different name)
 ```
 
 | Hop | Package / process | What actually runs | RAG? |
@@ -86,7 +90,7 @@ Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapCompose
 
 | Mechanism | Key features |
 |-----------|----------------|
-| **Store** | External **labelled property graph** server. Not vendored. Named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`). |
+| **Store** | External **labelled property graph** server. Not vendored. Cabinet named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`). Optional library database (`MEMNET_NEO4J_LIBRARY_DATABASE`) on the **same** process — skip if unset. |
 | **Transport** | Official `neo4j` driver over **Bolt** (`bolt://` or `neo4j://`). `GraphDatabase.driver` + `driver.session(database=…)`. Extra `memnet-llm[neo4j]` is the driver only. |
 | **Query language** | **Neo4j Cypher** (not Agens SQL/openCypher mix). Variable-length path `[*0..depth]`; `labels(n)` (list); `type(rel)`; `properties(…)`; `IN $node_ids`. Ids and labels parameterised / validated (`neo4j_bad_id` / `neo4j_bad_ident`) before they reach Bolt. |
 | **Hydrate** | (1) Match ego `{_memnet_hid}` (in-process GraphElement handle; off the agent wire) then undirected k-hop, `RETURN labels, properties LIMIT max_nodes`. leftover nickname `id` is a **property** filter only after that hid MATCH is empty. (2) Directed `MATCH (src)-[rel]->(dst)` **only among those cabinet hids**. Map via shared `map_node_row` / `map_edge_row`: `_memnet_tag` wins, else `first_label` (Neo4j nodes may carry **many** labels; MemNet keeps **one** primary tag). Nickname `id` is optional. Edge without `relation`/`type` → drop. Endpoints remap to nicknames for the live session. Then `.bounded(budget)`. |
@@ -112,7 +116,7 @@ Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapCompose
 
 ## Same seam, different dialect
 
-Neo4j and AgensGraph are **two cabinets**, not two products. Factory binds **one** adapter. Dual-write is an error unless `MEMNET_DURABLE_BACKEND` picks one.
+Neo4j and AgensGraph are **two cabinets**, not two products. Factory binds **one** adapter. Dual-write is an error unless `MEMNET_DURABLE_BACKEND` picks one. Two **database names** on one Neo4j URL are extra **0.16** (cabinet + optional library) and are not that URL conflict.
 
 | Shared | Different |
 |--------|-----------|
@@ -219,7 +223,8 @@ Factory / startup semantics (`make_adapter_from_env`):
 
 | Piece | Status |
 |-------|--------|
-| `Neo4jAdapter.from_env()` + hydrate/flush (official `neo4j` driver) | Landed (client) |
+| `Neo4jAdapter.from_env()` + hydrate/flush (official `neo4j` driver) | Landed (client; cabinet database) |
+| `Neo4jLibraryClient` locator-only (second database name) | Landed extra **0.16** (skip if library name unset) |
 | Optional extra `memnet-llm[neo4j]` | Landed (driver only — not the DB server) |
 | Unit tests / recorded Bolt stub | Always-on CI |
 | `pytest -m neo4j_live` | Skip unless `MEMNET_NEO4J_URL` |
@@ -249,6 +254,8 @@ pytest -m neo4j_live
 | Hold **1.0** for live Neo4j | 1.0 = 0.5–0.8 claimed; live Neo4j is extra **0.14** ([`../ROADMAP.md`](../ROADMAP.md)) |
 | `rag_query` / `pin_map.generate` / chunks on the wire | Fusion of retrieve + generate + remember; MN-REQ-00 |
 | Graphiti / GraphRAG / HippoRAG **inside** the engine, or Neo4j as goldfish | Wrong haystack; RRF / PPR / Leiden are not Recall |
+| Fuse RRF / PPR / Leiden / ANN into `pin_map` | Extra 0.16 library is locators only; Recall stays cue then neighbourhood |
+| One Neo4j database as both cabinet and library | That is option C; names MUST differ |
 | Snap-on-session (ANN / embed \(S\)) or vector index as the memory surface | Shape is `pin_map`; cabinet is hydrate/flush |
 
 ---

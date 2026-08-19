@@ -19,6 +19,10 @@ from memnet.durable.agensgraph import AgensGraphAdapter
 from memnet.durable.factory import make_adapter_from_env, reset_adapter_factory_for_tests
 from memnet.durable.fake import FakeDurableAdapter, company_ego_fixture
 from memnet.durable.neo4j import Neo4jAdapter
+from memnet.durable.neo4j_library import (
+    Neo4jLibraryClient,
+    make_library_client_from_env,
+)
 from memnet.durable.sync import (
     DurableSyncOwner,
     get_sync_owner,
@@ -28,6 +32,8 @@ from memnet.durable.sync import (
 __all__ = [
     "AgensGraphAdapter",
     "Neo4jAdapter",
+    "Neo4jLibraryClient",
+    "make_library_client_from_env",
     "DurableStoreAdapter",
     "DurableSubgraph",
     "DurableSyncOwner",

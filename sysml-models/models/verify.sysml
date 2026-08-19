@@ -15,7 +15,9 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
-  Neo4j client implemented with liveNeo4jClaimed=true (0.14).
+  Neo4j client implemented with liveNeo4jClaimed=true (0.14);
+  extra 0.16 library port locator-only (generate=false;
+  rejectSameNameAsCabinet); RagHostHook.implemented=false required.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -899,13 +901,19 @@ package MemNetVerification {
       AgensGraphAdapter.liveCabinetClaimed remains the 0.7 live cabinet.
       Neo4jAdapter.implemented is the client; liveNeo4jClaimed=true
       after 0.14 operator proof (live round-trip yes; hid flush;
-      leftover-nickname hydrate after hid miss). One DurableBuffer;
-      one sync owner. HostSearchBridge stays outside MemNetSystem.
-      Skip unless MEMNET_NEO4J_URL. Server not vendored.
+      leftover-nickname hydrate after hid miss). Extra 0.16: cabinet
+      vs library are two named databases on one Neo4j process;
+      library.generate=false; skipUnlessNameSet; hydrateSession=false;
+      fuseRetrieveIntoPinMap=false; rejectSameNameAsCabinet=true
+      (library namespace differs from cabinet). One DurableBuffer;
+      one sync owner. HostSearchBridge stays outside MemNetSystem;
+      RagHostHook.implemented=false (0.17 owns the flip). Skip unless
+      MEMNET_NEO4J_URL. Server not vendored.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
     subject system : MemNetSystem;
+    subject ragHostHook : RagHostHook;
 
     objective cabinetHonesty {
       verify durableStoreBehindMemNetReq;
@@ -915,8 +923,27 @@ package MemNetVerification {
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == true
           and system.durable.neo4j.honesty.claimed == true
+          and system.durable.neo4j.namespace == "cabinet"
           and system.durable.liveCabinetClaimed == true
           and system.durable.liveNeo4jClaimed == true
+          and system.durable.twoNamespaces == true
+          and system.durable.sameNeo4jProcess == true
+          and system.durable.twoUrlsStillNeedBackendPick == true
+          and system.durable.library.generate == false
+          and system.durable.library.skipUnlessNameSet == true
+          and system.durable.library.hydrateSession == false
+          and system.durable.library.flushSessionPins == false
+          and system.durable.library.fuseRetrieveIntoPinMap == false
+          and system.durable.library.rejectSameNameAsCabinet == true
+          and system.durable.library.namespace == "library"
+          and system.durable.library.sameProcessAsCabinet == true
+          and system.durable.neo4j.namespace
+            != system.durable.library.namespace
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.libraryIngestThisCut == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .hostSearchInsideSystem == false
+          and ragHostHook.implemented == false
       }
     }
   }
