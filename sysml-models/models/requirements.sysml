@@ -9,6 +9,7 @@
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
+    MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -31,8 +32,18 @@
   Mission SSOT: Net of Memory between LLM pipelines and data searching; aids
   system, programme, software, firmware, hardware, and documentation
   development; save time and tokens; high factual accuracy; LLM-friendly
-  grammar on stdio/MCP; canonical parser for human inspection. GQL elements:
-  node (vertex), edge (relationship), property.
+  grammar on stdio/MCP; canonical parser for human inspection. GQL/openCypher
+  has no store key: GraphElement (node or edge) is the identity.
+  CREATE () is legal. properties() MAY be empty. Later MATCH/MERGE =
+  labels + properties; an edge is type + end elements. NicknameIdProperty
+  id is optional -- not identity. HiddenStoreHandle (elementId-style)
+  is not a property, not on the wire, not a business key. 0.9 leftover
+  invented store: leftover_by_id / leftover_id_first / leftover_NEW_mint /
+  leftover_MERGE_by_id / leftover_allocate_from_locator /
+  leftover_ingestIsIdRule. SHALL NOT invent a replacement application
+  store key. Grammar spelling/identity SSOT is docs/grammar/openCypher.bnf
+  (official file, Apache-2.0; NOTICE-openCypher.md) -- not a MemNet-invented
+  id law, not TCK compliance, not a second accept path.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -156,12 +167,16 @@ package MemNetRequirements {
       doc /*
         Group: the Net of Memory is a GQL property graph whose three elements
         are node (ISO synonym vertex), edge (ISO synonym relationship), and
-        property (ADR-001; gql-wire-profile). Labels name kinds; they are not
-        a fourth element. MUST NOT invent PORT (or nested graph) as a
-        graph-element kind — those facts live as property values. Agent wire
-        is openCypher-shaped GQL; primary read is shaped pin_map (not raw
-        MATCH/RETURN tables). Layer / Tier A are archived (not product
-        accept); @TAG pipe remains import-once only.
+        property (ADR-001; gql-wire-profile). GraphElement is the identity
+        (CREATE () legal; properties MAY be empty). Grammar has no store
+        key. Labels name kinds; they are not a fourth element. MUST NOT
+        invent PORT (or nested graph) as a graph-element kind — those facts
+        live as property values. MUST NOT invent an application store key.
+        Agent wire is openCypher-shaped GQL; primary read is shaped pin_map
+        (not raw MATCH/RETURN tables). NicknameIdProperty is optional
+        (MN-REQ-02.8), not identity. HiddenStoreHandle off-wire.
+        Layer / Tier A are archived (not product accept); @TAG pipe
+        remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
 
@@ -170,8 +185,10 @@ package MemNetRequirements {
           SHALL model the Net of Memory as a GQL property graph with three
           elements: node (vertex), edge (relationship), and property. Topology
           is node--edge--node; property values attach to nodes and to edges.
-          SHALL NOT add a fourth graph-element kind (PORT nodes, nested graphs,
-          prose blobs).
+          The graph element is the identity. CREATE () is legal. properties()
+          MAY be empty. GQL grammar has no store key. SHALL NOT add a fourth
+          graph-element kind (PORT nodes, nested graphs, prose blobs) and
+          SHALL NOT invent an application store key in place of the element.
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
@@ -196,13 +213,13 @@ package MemNetRequirements {
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
           Pin map, walk, bounded MATCH find, and query SHALL operate over the
-          node/edge graph (property values included). Primary agent read when an ego/anchor id is
-          known is bounded shaped pin_map wrapping GQL (Recall seed = id).
-          When unanchored (no id) or pin_map caps dropped a needed row,
-          bounded MATCH find (hard LIMIT; shaped subgraph emit) MAY apply
-          (Recall seed = MATCH; leftover #73) — still not unbounded raw
-          MATCH/RETURN dumps as goldfish. Both seeds are one Recall operator
-          (MN-REQ-13).
+          node/edge graph (property values included). Recall SHALL seed from
+          a cue or pattern (find); pin_map then walks a shape. An optional
+          nickname id MAY seed pin_map when present -- SHALL NOT require
+          --anchor as law. Bounded MATCH find (hard LIMIT; shaped subgraph
+          emit) is the un-nicknamed seed (Recall seed = MATCH; leftover #73)
+          -- still not unbounded raw MATCH/RETURN dumps as goldfish. Both
+          seeds are one Recall operator (MN-REQ-13).
         */
         attribute requirementId : String = "MN-REQ-02.4";
       }
@@ -211,7 +228,10 @@ package MemNetRequirements {
         doc /*
           Agent-facing grammar and I/O SHALL express node, edge, and property as
           openCypher-shaped GQL (labels, edge/relationship types, property maps).
-          Write = display means shaped subgraph emit matches mutate family.
+          Spelling/identity SSOT is the vendored official BNF
+          docs/grammar/openCypher.bnf (Apache-2.0; NOTICE-openCypher.md) -- not
+          a MemNet-invented id law, not TCK compliance, not a second accept
+          path. Write = display means shaped subgraph emit matches mutate family.
           Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
         attribute requirementId : String = "MN-REQ-02.5";
@@ -230,8 +250,30 @@ package MemNetRequirements {
           SHALL validate ingest against the session schema and reject unknown
           or reserved surface kinds. Tags MAY realise node labels; GQL
           elements remain node (vertex), edge (relationship), and property.
+          SCHEMA SHALL NOT put id first as a required field. 0.9 leftover
+          tag_map id_first remains engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-02.7";
+      }
+
+          requirement def MN_REQ_02_8_IdNotRequiredOnWire {
+        doc /*
+          Headline: GraphElement is identity. CREATE () is legal.
+          properties() MAY be empty. Later MATCH/MERGE looks up labels +
+          properties; an edge is type + end elements. HiddenStoreHandle
+          stays inside the store -- not a property, not on the wire, not
+          a business key. Agent wire SHALL NOT require NicknameIdProperty.
+          Create, find, and pin_map MAY omit it. When present, id is a
+          nickname only -- not identity. SHALL NOT invent a replacement
+          application store key (locator-as-PK, qname-as-PK, minted
+          string-as-PK). Id-exists / not-found (MN-REQ-03.1 / 03.2)
+          remain valid only when an optional nickname is present.
+          0.9 leftover invented store (not TARGET SHALL): leftover_by_id,
+          leftover_id_first, leftover_NEW_mint, leftover_MERGE_by_id,
+          leftover_allocate_from_locator, leftover_ingestIsIdRule,
+          pin_map require_anchor.
+        */
+        attribute requirementId : String = "MN-REQ-02.8";
       }
     }
 
@@ -245,15 +287,22 @@ package MemNetRequirements {
 
       requirement def MN_REQ_03_1_AddFailsIfExists {
         doc /*
-          SHALL fail create (add) with an id-exists error when the id is taken.
+          When an optional nickname id is present on create, SHALL fail with
+          an id-exists error if that nickname is already taken. SHALL NOT
+          require id on create. TARGET create is CREATE () / CREATE
+          (:Label {props}) without id; properties MAY be empty.
+          leftover_NEW_mint / leftover_by_id is 0.9 as-is, not this
+          contract.
         */
         attribute requirementId : String = "MN-REQ-03.1";
       }
 
       requirement def MN_REQ_03_2_UpdateFailsIfAbsent {
         doc /*
-          SHALL fail replace (update) with a not-found error when the id is
-          absent.
+          When an optional nickname id is present on replace (update), SHALL
+          fail with a not-found error if that nickname is absent. Ends MATCH
+          by label + properties when no nickname. SHALL NOT treat missing id
+          as not-found of identity.
         */
         attribute requirementId : String = "MN-REQ-03.2";
       }
@@ -271,21 +320,24 @@ package MemNetRequirements {
     requirement def MN_REQ_04_SliceEconomy {
       doc /*
         Group: bounded live pin map for LLM turns (not the whole net);
-        hide recyclable rows; optional relation walk; modelled bounded
-        MATCH find when unanchored (MN-REQ-04.6; not shipped). 0.5 names
+        hide recyclable rows; optional relation walk; bounded MATCH find
+        as cue/pattern seed (MN-REQ-04.6; shipped seed-only). 0.5 names
         this family Recall(q) (MN-REQ-13); pin_map and leftover find are
-        the same operator with different seed rules. Engine
-        fixed-law rows (often LAW01-LAW05) are a current realisation, not
-        the contract identity. Legacy name "warm" = live pin map
-        (deprecated alias).
+        the same operator with different seed rules. Nickname id is
+        optional. Engine fixed-law rows (often LAW01-LAW05) are a current
+        realisation, not the contract identity. Legacy name "warm" = live
+        pin map (deprecated alias).
       */
       attribute requirementId : String = "MN-REQ-04";
 
       requirement def MN_REQ_04_1_AnchoredPinMap {
         doc /*
-          SHALL return an anchored live pin map for each turn -- a bounded
-          ego/anchor digest of pins -- not the full session or a raw search
-          dump.
+          SHALL return a bounded live pin map for each turn -- a shaped
+          neighbourhood digest of pins -- not the full session or a raw
+          search dump. Goldfish seeds from a cue or pattern (find); pin_map
+          walks a shape. Nickname id as pin_map anchor is optional when a
+          nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
+          require_anchor / by_id is engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-04.1";
       }
@@ -323,7 +375,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_04_6_BoundedMatchFind {
         doc /*
-          When no ego/anchor id is known, or when pin_map caps dropped a
+          When no nickname id is known, or when pin_map caps dropped a
           needed row, the agent surface SHOULD offer a bounded MATCH find:
           label and/or property/locator predicates with LIMIT required
           (hard); optional max_rows aligned with MN-REQ-04.3; emit the same
@@ -569,8 +621,9 @@ package MemNetRequirements {
       requirement def MN_REQ_09_1_CanonicalParserSsot {
         doc /*
           SHALL provide a single canonical parser (one SSOT parse path) that
-          recovers NODE and EDGE structure (kind, id, fields, endpoints)
-          from the agent-facing grammar, including lawful escape rules.
+          recovers NODE and EDGE structure (kind, optional nickname id,
+          fields, endpoints) from the agent-facing grammar, including
+          lawful escape rules. SHALL NOT require property id to parse.
         */
         attribute requirementId : String = "MN-REQ-09.1";
       }
@@ -846,14 +899,14 @@ package MemNetRequirements {
 
       requirement def MN_REQ_11_16_PinIngestDeterministicIds {
         doc /*
-          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL assign
-          MemNet ids from deterministic locator keys derived from the source,
-          or an engine key with required locator fields (loc, path, refdes,
-          net, pin, qname, skill_id, and similar). The live pin map SHALL emit those
-          ground ids and locator fields for copy. Pin-map ingest SHALL NOT
-          accept client NEW for source elements. LLM NEW remains only for
-          goldfish-authored memory facts that do not yet exist in the net
-          (annotations), not for re-creating schematic or source pins.
+          Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL Commit
+          create of GraphElement from the source. Locators (path, refdes,
+          net, pin, qname, skill_id, and similar) SHALL be properties on
+          those elements -- not identity and not a store key. TARGET SHALL
+          NOT require ground ids (leftover_by_id as PK). Optional nickname
+          id MAY be emitted when present. leftover_allocate_from_locator
+          is leftover 0.9 invented store, not this TARGET. leftover_NEW_mint
+          SHALL NOT be TARGET law for source elements.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
@@ -999,11 +1052,12 @@ package MemNetRequirements {
           no ImportAbsorb. Path B (separate sessions): lead SHALL
           ImportAbsorb a bounded WorkingMemorySlice under owner-gated
           id_policy keep | reject | remint:
-            keep = MERGE-by-id upsert into lead SSOT (not append / not a
-              second copy);
-            reject = id_conflict, no lead mutate;
-            remint = mint NEW ids for conflicts; lead old rows stay; edges
-              retarget.
+            keep = MERGE as a per-write lookup of labels+props / rel
+              type+ends into lead SSOT (GraphElement; not append / not a
+              second copy; leftover_MERGE_by_id is leftover, not this keep);
+            reject = conflict, no lead mutate;
+            remint = leftover_NEW_mint / leftover_by_id for conflicts;
+              lead old rows stay; edges retarget -- not TARGET law.
           Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
           TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
           Members SHALL NOT settle parent-owned TSK_* unless delegated.
@@ -1082,7 +1136,7 @@ package MemNetRequirements {
         doc /*
           SHALL model exactly two product operators: Recall(q) (seed then
           bounded k-hop reconstruct; empty seed ⇒ skip) and Commit(Δ)
-          (one gate; mutate / ingest / absorb are id-mint rules). RSV SHALL
+          (one gate; mutate / ingest / absorb are Commit rules). RSV SHALL
           be a lease under Commit / SessionLifecycle, not a third API.
           HostSearchBridge SHALL remain outside MemNetSystem. Layer / Tier A
           remain REJECTED on accept (retire-from-wheel leftover; hierarchical
@@ -1095,8 +1149,9 @@ package MemNetRequirements {
           view=shell survey, then interior on the task — SHALL NOT default
           to N serial full maps (duplicate LAW / overlap). Seed set |Q|≤L
           SHALL union k-hop under one M (not Path-B M×anchors). Goldfish
-          SHALL emit a sparse Δ (NEW/SET only; SHALL NOT echo the fetched
-          slice); the session SHALL take it via Commit. SHALL NOT call that
+          SHALL emit a sparse Δ (CREATE/SET; leftover NEW sugar allowed
+          on 0.9; SHALL NOT echo the fetched slice); the session SHALL take
+          it via Commit. SHALL NOT call that
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
           id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.
@@ -1153,6 +1208,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_6_ParserRecoversNodeAndEdge;
   requirement schemaValidatedIngestReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+  requirement idNotRequiredOnWireReq
+    : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
 
   requirement strictMutateReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate;
@@ -1365,6 +1422,7 @@ package MemNetRequirements {
     end #derive ::> grammarExpressesNodeAndEdgeReq;
     end #derive ::> parserRecoversNodeAndEdgeReq;
     end #derive ::> schemaValidatedIngestReq;
+    end #derive ::> idNotRequiredOnWireReq;
   }
 
   #derivation connection deriveStrictMutateLeaves {

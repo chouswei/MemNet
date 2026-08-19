@@ -12,12 +12,13 @@
     │       ├── GraphStore
     │       ├── GqlWire             // 1.x primary codec (openCypher-shaped)
     │       ├── RecallCommit        // 0.5 cut: TWO operators only
-    │       │   ├── Recall          // seed(q)+k-hop expand; empty seed ⇒ skip
+    │       │   ├── Recall          // cue/pattern seed + k-hop; empty ⇒ skip
     │       │   │   └── AgentShapedRead // honesty nest (pin_map vs find flags)
-    │       │   │       ├── PinMapShapedRead    // implemented=true — goldfish
+    │       │   │       ├── PinMapShapedRead    // implemented=true; leftover require_anchor
     │       │   │       └── BoundedMatchFind    // implemented=true — #73 seed find
-    │       │   └── Commit          // ONE gate; mutate/ingest/absorb = id rules
+    │       │   └── Commit          // ONE gate; TARGET GraphElement identity
     │       │       ├── MutateGate
+    │       │       ├── IdAllocator // leftover_NEW_mint / leftover_by_id
     │       │       └── NeighbourhoodReserve // RSV lease — not a third API
     │       ├── Schema / Caps (size + shipped ACL) / …
     │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
@@ -113,27 +114,47 @@ package MemNet {
     doc /*
       Session schema: node Labels and Properties; relationship-type set;
       validate ingest; reject unknown/reserved kinds.
-      As-is: memnet.tag_map + fixed_tags (positional TagMap is legacy surface).
+      TARGET: SHALL NOT put id first as a required field (MN-REQ-02.8).
+      leftover_id_first is leftover invented store, not grammar. Positional
+      TagMap is legacy surface. 0.9 leftover: memnet.tag_map id_first /
+      validate_id (leftoverIdFirst=true).
     */
     port schemaIn : SchemaInPort;
     port schemaOut : SchemaOutPort;
     port errOut : ErrorSignalOutPort;
+    part leftover_id_first : leftover_id_first;
+    attribute idFirstRequired : Boolean = false;
+    attribute leftoverIdFirst : Boolean = true;
+    attribute leftoverIssue : String = "id_first";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
   }
 
   part def GqlCodec {
     doc /*
       Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
-      GQL under MemNet gates. External dialect authority:
+      GQL under MemNet gates. Grammar spelling/identity SSOT is the vendored
+      official BNF docs/grammar/openCypher.bnf (Apache-2.0;
+      docs/grammar/NOTICE-openCypher.md) -- not a MemNet-invented id law.
+      MUST NOT generate a parser/visitor from that BNF as a second accept
+      path. MUST NOT claim TCK compliance or describe MemNet as Cypher /
+      openCypher. External dialect authority:
+        - vendored grammar/openCypher.bnf (this repo: docs/grammar/openCypher.bnf)
         - openCypher CIP tree (github.com/opencypher/openCypher/tree/main/cip)
         - oC9 baseline under cip/0.baseline (adopted/testable CIPs)
         - ISO/IEC 39075 for GQL-native features
       Agent surface remains MemNet-gated (pin_map + mutate subset) — not full
-      openCypher / every CIP. Mutate accepts GQL patterns; pin_map emit is a
-      shaped subgraph (Write = display). MUST NOT treat raw tabular RETURN as
-      primary goldfish read. Engine accept path = ADR migration M2 (**shipped**).
-      Detail: docs/grammar/gql-wire-profile.md (External dialect authority).
+      language. Mutate accepts GQL patterns; pin_map emit is a shaped subgraph
+      (Write = display). MUST NOT treat raw tabular RETURN as primary goldfish
+      read. Engine accept path = ADR migration M2 (**shipped**).
+      TARGET: GraphElement is identity; CREATE () is legal; properties()
+      MAY be empty. NicknameIdProperty MAY be omitted. leftover_NEW_mint
+      is leftover sugar. HiddenStoreHandle stays in the store, off the
+      wire -- not a property, not a business key. SHALL NOT invent a
+      replacement application store key. 0.9 leftover: MutateGate /
+      GqlCodec still mint and key leftover_by_id.
+      Detail: docs/grammar/gql-wire-profile.md.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -155,6 +176,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_8_TemplateCopyableShapes;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_1_CanonicalParserSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_2_RejectInvalidWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_4_NoAdHocConsumerSplits;
@@ -196,17 +218,72 @@ package MemNet {
     attribute implemented : Boolean = false;
   }
 
+  part def leftover_id_first {
+    doc /* 0.9 leftover SCHEMA id_first. Nested under SchemaRegistry. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "id_first";
+  }
+
+  part def leftover_by_id {
+    doc /* 0.9 leftover MemStore.by_id index. Nested under GraphStore. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "by_id";
+  }
+
+  part def leftover_MERGE_by_id {
+    doc /* 0.9 leftover MERGE-by-id as PK. Nested under GraphStore. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "MERGE-by-id";
+  }
+
+  part def leftover_NEW_mint {
+    doc /* 0.9 leftover NEW mint. Nested under IdAllocator / remint. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "NEW";
+  }
+
+  part def leftover_allocate_from_locator {
+    doc /* 0.9 leftover PinMapIngest allocate_from_locator. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
+  }
+
+  part def leftover_ingestIsIdRule {
+    doc /* 0.9 leftover ingestIsIdRule=true. TARGET Commit flag is false. */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "ingestIsIdRule";
+  }
+
+  part def liveNeo4jClaimed {
+    doc /*
+      Honesty nest so find/pin_map see liveNeo4jClaimed. TARGET: claimed
+      stays false. Not leftover mint. Not a 1.0 gate.
+    */
+    attribute claimed : Boolean = false;
+  }
+
   part def IdAllocator {
     doc /*
-      Two mint paths: (1) LLM goldfish mutate -- NEW -> engine id;
-      (2) PinMapIngest_* domains (Sysml/Codebase/PcbaAto/SkillsRules) --
-      deterministic id from locator key. As-is: memnet.id_allocator.
+      Leftover 0.9 invented store: leftover_NEW_mint and leftover_by_id.
+      (1) LLM goldfish mutate -- NEW -> engine id keyed in by_id;
+      (2) PinMapIngest_* leftover_allocate_from_locator. TARGET:
+      GraphElement is identity; locators remain properties, not a
+      replacement store key. NicknameIdProperty only. HiddenStoreHandle
+      stays inside the store, off the wire. Honesty: memnet.id_allocator
+      / validate_id still run; TARGET required-id mint is NOT claimed
+      (implemented=false).
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
+    part leftover_NEW_mint : leftover_NEW_mint;
+    attribute implemented : Boolean = false;
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "NEW-by_id";
+    attribute teachHiddenStorageHandle : Boolean = false;
 
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_4_ExternalGroundTruthRequired;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
@@ -223,17 +300,42 @@ package MemNet {
       Dual EDGE: bind vs relation as relationship types / endpoint grain.
       Law-on-node as node properties (+ port structure). Agent wire is GQL
       via GqlCodec. Realises session-scoped SharedLlmMemory content.
-      As-is: memnet.mem_store.MemStore (+ models).
+      TARGET: GraphElement is identity (graphElementIsIdentity=true).
+      CREATE () is legal (emptyCreateLegal=true). properties() MAY be
+      empty (propertiesMayBeEmpty=true). NicknameIdProperty is optional
+      (requiredIdProperty=false). HiddenStoreHandle is NOT a property,
+      NOT on the wire, NOT a business key. Later MATCH/MERGE = labels +
+      properties; edge = type + end elements (mergeIsPerWriteLookup=true).
+      SHALL NOT invent a replacement application store key
+      (noReplacementStoreKey=true). 0.9 leftover invented store:
+      leftover_by_id / leftover_MERGE_by_id (leftoverByIdIndex). As-is
+      module: memnet.mem_store.MemStore.
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
+    part leftover_by_id : leftover_by_id;
+    part leftover_MERGE_by_id : leftover_MERGE_by_id;
+    attribute requiredIdProperty : Boolean = false;
+    attribute leftoverByIdIndex : Boolean = true;
+    attribute leftoverIssue : String = "by_id";
+    attribute mergeByLabelsAndProps : Boolean = true;
+    attribute graphElementIsIdentity : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
+    attribute emptyCreateLegal : Boolean = true;
+    attribute propertiesMayBeEmpty : Boolean = true;
+    attribute hiddenHandleIsProperty : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute hiddenHandleIsBusinessKey : Boolean = false;
+    attribute nicknameIdOptional : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_1_ExactlyNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_2_NodesHoldAtomisedFacts;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_3_EdgesAreFirstClass;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
@@ -243,16 +345,16 @@ package MemNet {
 
   part def MutateGate {
     doc /*
-      Orchestrates GQL parse -> schema validate -> NEW mint -> strict
-      add/update into GraphStore -> assigned ids + ack. Goldfish OUT Δ
-      lands here (current session) — not ImportAbsorb. Owns IdAllocator;
-      uses sibling SchemaRegistry / GqlCodec / GraphStore via AgentMemory
-      wiring. Layer/Tier A accept retired (M2). Consults CapsPolicy: size
-      caps (as-is) plus the shipped CapsPolicy ACL cut when session ACL is
-      enabled: who-check, mutate permission (distinct from pin_map read),
-      WorkerWriteScope HARD reject, and optional SessionBind match. ACL is
-      off by default for the legacy-green path. As-is module:
-      memnet.mutate_gate + memnet.acl (GQL primary; @TAG pipe import-once).
+      Orchestrates GQL parse -> schema validate -> leftover_NEW_mint ->
+      strict add/update into GraphStore -> ack.
+      TARGET create: CREATE () is legal; CREATE (:Label {props}) with no
+      required id; properties MAY be empty. MERGE is a per-write lookup
+      of labels + properties, not a primary key. Ends MATCH by label +
+      properties. Edge = type + end elements. Goldfish OUT Δ lands here
+      (current session) — not ImportAbsorb. Owns leftover IdAllocator
+      (implemented=false TARGET). Layer/Tier A accept retired (M2).
+      0.9 leftover invented store: leftover_by_id / leftover_NEW_mint.
+      Python engine NOT rewritten in this cut.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -267,6 +369,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
 
@@ -276,21 +379,16 @@ package MemNet {
       emits bounded shaped openCypher-family subgraph (ShapedSubgraph /
       LivePinMap) — redefined Write = display. Hide recyclable rows;
       depth/row/view caps; prepend engine-law rows.
-      Default agent goldfish read when an ego/anchor id is known.
-      Product compression = Shape (Recall X̃ of session S) — not host Snap
-      (corpus locators). Goldfish IN: prefer one live TSK ego; optional
-      view=shell survey. As-is compose is one anchor. LLM MUST NOT see
-      raw S; depth/row/fan-out caps plus hide recycled are the budget.
-      Nested under Recall /
-      AgentShapedRead beside BoundedMatchFind — pin_map implemented=true
-      MUST NOT be misread as find shipped. Same Recall operator as leftover
-      BoundedMatchFind; seed rule differs (known id vs bounded MATCH).
-      Consults CapsPolicy: size/depth/row caps plus the shipped ACL cut when
-      session ACL is enabled — who-check, pin_map read permission distinct
-      from mutate, and optional SessionBind match. MUST NOT emit raw
-      unbounded RETURN tables as primary agent read.
+      TARGET: goldfish seeds from cue/pattern (find); pin_map walks a
+      shape. Nickname id as anchor is optional (requireAnchorId=false).
+      Emit MAY omit {id:'…'}. Product compression = Shape (Recall X̃ of
+      session S) — not host Snap. Goldfish IN: prefer one live TSK ego;
+      optional view=shell survey. LLM MUST NOT see raw S.
+      Nested under Recall / AgentShapedRead beside BoundedMatchFind.
+      0.9 leftover: PinMapComposer still require_anchor / by_id
+      (leftoverRequireAnchor=true). Python pin_map NOT rewritten here.
+      MUST NOT emit raw unbounded RETURN tables as primary agent read.
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
-      ACL is off by default; engineAclShipped=true.
     */
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -299,9 +397,13 @@ package MemNet {
     attribute lawPrepend : Boolean = true;
     attribute implemented : Boolean = true;
     attribute compressionKind : String = "shape";
+    attribute requireAnchorId : Boolean = false;
+    attribute leftoverRequireAnchor : Boolean = true;
+    attribute leftoverIssue : String = "require_anchor";
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
@@ -316,17 +418,15 @@ package MemNet {
 
   part def BoundedMatchFind {
     doc /*
-      Bounded MATCH find when there is no ego/anchor id, or when pin_map
-      caps dropped a needed row (#13). Inputs: label and/or property /
-      locator predicates; LIMIT required (hard). Optional max_rows aligned
-      with MN-REQ-04.3. Emit the same shaped subgraph family as pin_map /
-      mutate (MN-REQ-08.9) — not a binding-table RETURN.
-      MUST NOT: missing LIMIT; unbounded MATCH; variable-length path as
-      default; full openCypher (WITH / UNWIND / CALL / subqueries / ORDER BY)
-      as agent teach. Cite openCypher.bnf for MATCH spelling only.
-      Distinct from mutate MATCH (n {id}) SET — this leaf is a read.
-      Nested under Recall / AgentShapedRead beside PinMapShapedRead —
-      same Recall operator; seed = bounded MATCH (hard LIMIT L), not ego id.
+      Bounded MATCH find as Recall seed: cue/pattern when no nickname, or
+      when pin_map caps dropped a needed row (#13). Inputs: label and/or
+      property / locator predicates; LIMIT required (hard). Optional
+      max_rows aligned with MN-REQ-04.3. Emit the same shaped subgraph
+      family as pin_map / mutate (MN-REQ-08.9) — not a binding-table RETURN.
+      MAY omit {id:'…'}. MUST NOT: missing LIMIT; unbounded MATCH;
+      variable-length path as default; full openCypher as agent teach.
+      Distinct from leftover mutate MATCH (n {id}) SET — this leaf is a
+      read. Nested under Recall / AgentShapedRead beside PinMapShapedRead.
       Shipped: CLI query find / MCP find (seed nodes only, hard LIMIT).
       MUST NOT claim find is pin_map or a k-hop walk.
     */
@@ -343,6 +443,7 @@ package MemNet {
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
   }
@@ -350,11 +451,11 @@ package MemNet {
   part def AgentShapedRead {
     doc /*
       Honesty nest under Recall so pin_map shipped cannot be misread as
-      find shipped. Children: PinMapShapedRead (implemented=true; default
-      goldfish when anchored) and BoundedMatchFind (implemented=true;
-      #73 seed-only find). Parent has no single implemented=true — that flag
-      lives on children only. WalkQuery remains a sibling under
-      SessionLifecycle (relation hop lines), not this nest.
+      find shipped. Children: PinMapShapedRead (implemented=true;
+      requireAnchorId=false TARGET; leftoverRequireAnchor=true) and
+      BoundedMatchFind (implemented=true; #73 seed-only find). Parent has
+      no single implemented=true — that flag lives on children only.
+      WalkQuery remains a sibling under SessionLifecycle.
     */
     port pinMapOut : LivePinMapOutPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -388,22 +489,19 @@ package MemNet {
   part def Recall {
     doc /*
       Operator Recall(q) over session graph S (MN-REQ-13). Cue q is a
-      discrete codebook token (id ∪ kind ∪ locator ∪ keyword; optional
-      deferred topology token = local degree peak, #77 note 23 — not a
-      third operator). seed(q,S) = {q} if q is already a node id; else
-      bounded MATCH on label/property/locator with HARD LIMIT L
-      (BoundedMatchFind; #73); else Peak_L if q is the topology cue
-      (modelled, not shipped). Empty seed ⇒ skip (do not invent a node).
-      Reconstruct X̃ = k-hop from seed set Q (|Q|≤L) under ONE M
-      (not M×|Q|; Path-B import budget is different). Hide recycled.
-      Goldfish IN = that slice. Prefer one live TSK ego; extra topic
-      survey = view=shell then TSK interior — not N serial full maps.
-      Multi-ego union-under-M is modelled leftover (engine compose is
-      one anchor). Sparse Δ out via Commit (MUST NOT echo X̃; MUST NOT
-      Absorb). Host Snap stays on RagHostHook (outside MemNetSystem).
-      Empty seed ⇒ skip. Emit the same shaped GQL subgraph family as
-      mutate. Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut
-      not this PR.
+      discrete codebook token (kind ∪ locator ∪ keyword ∪ optional nickname
+      id; optional deferred topology token = local degree peak, #77 note
+      23 — not a third operator). seed(q,S) = bounded MATCH on
+      label/property/locator with HARD LIMIT L (BoundedMatchFind; #73) as
+      the default pattern seed; {q} if q is already a nickname id; else
+      Peak_L if q is the topology cue (modelled, not shipped). Empty seed
+      ⇒ skip (do not invent a node). Reconstruct X̃ = k-hop from seed set
+      Q (|Q|≤L) under ONE M. Hide recycled. Goldfish IN = that slice.
+      Prefer one live TSK ego; extra topic survey = view=shell then TSK
+      interior. Multi-ego union-under-M is modelled leftover (0.9 compose
+      is one require_anchor). Sparse Δ out via Commit. Host Snap stays on
+      RagHostHook (outside MemNetSystem). Emit MAY omit {id:'…'}. Grammar
+      SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
     */
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
@@ -418,6 +516,7 @@ package MemNet {
     part shapedRead : AgentShapedRead;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
@@ -425,17 +524,16 @@ package MemNet {
 
   part def Commit {
     doc /*
-      Operator Commit(Δ) — ONE gate. mutate / ingest / absorb are id-mint
-      rules, not three product verbs. Default: client NEW → engine id
-      (MutateGate / IdAllocator). Ingest: deterministic locator id from
-      artefact (PinMapIngest_* under PinMapRoadmap — not a second gate).
-      Absorb: Path-B only (ImportAbsorb + WorkingMemorySlice + id_policy
-      keep|reject|remint). Goldfish OUT = sparse Δ via this gate (NEW/SET
-      only; MUST NOT echo the fetched pin_map). Colloquial “session
-      absorbs the new slice” is Commit, not ImportAbsorb. Optional
-      ImportGuard / CheapLlmImportGuard stay Path-B soft, fail-open. RSV
-      is a lease nested here, not a third API. HostSearchBridge stays
-      OUTSIDE MemNetSystem. Engine cut not this PR.
+      Operator Commit(Δ) — ONE gate. TARGET: GraphElement is identity;
+      CREATE () legal; createRequiresId=false; properties MAY be empty.
+      MERGE is a per-write lookup of labels + properties / rel type+ends
+      (mergeIsPerWriteLookup=true). SHALL NOT invent a replacement store
+      key. leftover_MERGE_by_id is leftover when a nickname exists.
+      Leftover 0.9 invented store: leftover_NEW_mint → leftover_by_id
+      (IdAllocator.implemented=false TARGET; leftoverNewMint=true).
+      Ingest locators remain properties, not PK (ingestIsIdRule=false;
+      leftover_ingestIsIdRule as-is). Absorb Path-B only.
+      Python cut not this PR. Recall/Commit nest not thickened.
     */
     port gqlIn : GqlWireInPort;
     port recordsOut : GraphRecordOutPort;
@@ -444,14 +542,22 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     attribute oneGate : Boolean = true;
     attribute productVerbs : String = "Commit";
-    attribute ingestIsIdRule : Boolean = true;
+    attribute ingestIsIdRule : Boolean = false;
+    attribute leftoverIngestIdRule : Boolean = true;
     attribute absorbPathBOnly : Boolean = true;
     attribute goldfishWriteback : String = "commit";
     attribute sparseDelta : Boolean = true;
     attribute echoFetchedSlice : Boolean = false;
+    attribute createRequiresId : Boolean = false;
+    attribute leftoverNewMint : Boolean = true;
+    attribute mergeByLabelsAndProps : Boolean = true;
+    attribute leftoverMergeById : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
 
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
@@ -466,7 +572,7 @@ package MemNet {
       Recall(q) and Commit(Δ). Existing PinMapShapedRead / BoundedMatchFind
       nest under Recall; MutateGate / NeighbourhoodReserve nest under
       Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
-      SessionImportReceive as id-mint rules of Commit, not extra operators.
+      SessionImportReceive as Commit rules, not extra operators.
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
       corpus, outside) vs Shape (Recall X̃). Goldfish I/O: slice in
       (Recall), Δ out (Commit); pin topics then fetch slices. Modelled
@@ -795,6 +901,7 @@ package MemNet {
     port flushIn : DurableFlushInPort;
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
+    part honesty : liveNeo4jClaimed;
     attribute implemented : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = false;
     attribute phase : String = "M2.5";
@@ -807,7 +914,11 @@ package MemNet {
       LLM agents as primary. Children are alternative cabinet clients;
       factory binds exactly one adapter (one sync owner). AgensGraph live
       cabinet proven (0.7). Neo4j client landed, liveNeo4jClaimed=false.
-      MN-REQ-06.4.
+      TARGET: no grammar store key; MERGE is a per-write lookup of labels
+      + props / rel type+ends, not a primary key. leftoverMergeById=true
+      records 0.9 nickname MERGE and invented by_id. liveNeo4jClaimed
+      stays false. elementId stays in the cabinet, off the wire.
+      Cabinets stay external / not vendored. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
@@ -816,6 +927,10 @@ package MemNet {
     attribute clientLanded : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute mergeByLabelsAndProps : Boolean = true;
+    attribute leftoverMergeById : Boolean = true;
+    attribute mergeIsPerWriteLookup : Boolean = true;
+    attribute noReplacementStoreKey : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }
@@ -831,10 +946,12 @@ package MemNet {
   part def PinMapIngestBase {
     doc /*
       Shared Path-B ingest interface: project a bounded NODE|EDGE pin map from
-      an external artefact using stable locators (path=, qname=, refdes=, …).
-      Deterministic MemNet ids via IdAllocator.allocate_from_locator
-      (MN-REQ-11.16). Client NEW / [NEW] illegal for source pins. Wire = GQL
-      only (MERGE/CREATE ground ids). Commit into session GraphStore via
+      an external artefact using locator properties (path=, qname=, refdes=,
+      …). TARGET: Commit create of GraphElement; CREATE () legal; no
+      required id; locators are properties, not a mint law or store key.
+      Leftover 0.9: leftover_allocate_from_locator / leftover_by_id
+      (leftoverLocatorMint) and leftover_ingestIsIdRule. leftover_NEW_mint
+      is leftover sugar, not TARGET. Wire = GQL family. Commit via
       MutateGate. As-is module: memnet.pin_map_ingest.
     */
     attribute domainVariant : String;
@@ -842,6 +959,10 @@ package MemNet {
     attribute roadmapOnly : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    part leftover_allocate_from_locator : leftover_allocate_from_locator;
+    part leftover_ingestIsIdRule : leftover_ingestIsIdRule;
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -865,6 +986,8 @@ package MemNet {
     attribute wireDialect : String = "gql";
     attribute nodeKinds : String = "PKG,PRT,REQ,POR";
     attribute edgeRelations : String = "contains,satisfies";
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -891,6 +1014,8 @@ package MemNet {
     attribute wireDialect : String = "gql";
     attribute nodeKinds : String = "MOD,SYM";
     attribute edgeRelations : String = "defines,calls,includes,owns,uses";
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -915,6 +1040,8 @@ package MemNet {
     attribute wireDialect : String = "gql";
     attribute nodeKinds : String = "CMP,NET,PIN";
     attribute edgeRelations : String = "owns,on_net,uses";
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -939,6 +1066,8 @@ package MemNet {
     attribute wireDialect : String = "gql";
     attribute nodeKinds : String = "SKL,RUL";
     attribute edgeRelations : String = "paired_with,triggers,governs,uses";
+    attribute leftoverLocatorMint : Boolean = true;
+    attribute leftoverIssue : String = "locator-as-PK";
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -952,9 +1081,10 @@ package MemNet {
   part def PinMapRoadmap {
     doc /*
       Path-B PinMapIngest nest. Ship order complete for domains: Sysml,
-      Codebase, PcbaAto, SkillsRules (all implemented). Id-mint rule of
-      Commit (deterministic locator ids) — not a second product operator.
-      Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
+      Codebase, PcbaAto, SkillsRules (all implemented). Commit create of
+      elements (locators as properties, not a store key) — not a second
+      product operator. 0.9 leftover may still mint by_id from locator
+      strings. Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
       remains separate (#66). As-is module: memnet.pin_map_ingest.
     */
     attribute firstDomain : String = "sysml";
@@ -1067,9 +1197,10 @@ package MemNet {
 
   part def IdPolicyKeep {
     doc /*
-      id_policy=keep: engine SHALL MERGE-by-id upsert into the lead session
-      SSOT (store.upsert). Not a second copy. Not append. Not product name
-      "merge". Distinct from micro merge=true re-id.
+      id_policy=keep: TARGET MERGE = labels+props / rel type+ends into
+      lead SSOT (GraphElement lookup). Not a store key. leftover_MERGE_by_id
+      is 0.9 leftover, not this keep. Not a second copy. Not append.
+      Not product name "merge". Distinct from micro merge=true re-id.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
@@ -1090,13 +1221,18 @@ package MemNet {
 
   part def IdPolicyRemint {
     doc /*
-      id_policy=remint: engine SHALL mint NEW ids for conflicts; lead old
-      rows stay; edge src/dist retarget via id map. Non-conflict ids kept.
+      id_policy=remint leftover: leftover_NEW_mint / leftover_by_id for
+      conflicts; lead old rows stay; edges retarget. TARGET: no NEW mint
+      law; GraphElement is identity; NicknameIdProperty only.
+      leftoverInventedMint=true. Not TARGET store-key law.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
     attribute idPolicy : String = "remint";
+    attribute leftoverInventedMint : Boolean = true;
+    attribute leftoverIssue : String = "NEW-by_id";
     part allocator : IdAllocator;
+    part leftover_NEW_mint : leftover_NEW_mint;
   }
 
   part def IdPolicyApply {
@@ -1140,8 +1276,11 @@ package MemNet {
       import_slice). Composition of DistinctSessionGate, SliceBudget (on
       export), LawVocabExclude, AclConsultAbsorb, SchemaValidateImport,
       IdPolicyApply (keep|reject|remint), NodesThenEdgesCommit, optional
-      GuardDecisionAtomRecord. Path-B id-mint rule of Commit (keep|reject|
-      remint) — not a second product operator beside Recall/Commit.
+      GuardDecisionAtomRecord. Path-B Commit create of elements
+      (keep|reject|remint) — not a third operator beside Recall/Commit.
+      keep = MERGE per-write lookup (labels+props / type+ends), not a
+      store key; leftover_MERGE_by_id is leftover. remint is leftover
+      leftover_NEW_mint / leftover_by_id.
       Product verb = import. Path A never enters.
       When ImportGuard skipped/disabled, absorb after SessionImportRequest
       + slice alone. Module: memnet.import_absorb.
@@ -1337,9 +1476,10 @@ package MemNet {
       (member slice), absorb.importReqIn (lead request); guard → absorb for
       trimmed slice + decision. Hosts behaviour SessionImportReceive states.
       Disambiguation (once): product verb = import (SessionImport*); micro
-      merge=true ≠ this; keep = MERGE-by-id upsert mechanics inside
-      IdPolicyKeep only. MN-REQ-12.11 is satisfied by CheapLlmImportGuard
-      (not the hook / not this parent alone).
+      merge=true ≠ this; keep = MERGE per-write lookup (labels+props /
+      type+ends) inside IdPolicyKeep; leftover 0.9 may still key by_id.
+      MN-REQ-12.11 is satisfied by CheapLlmImportGuard (not the hook /
+      not this parent alone).
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;
@@ -1545,7 +1685,8 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
       two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit id-mint rules) +
+      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit create of GraphElement,
+      not leftover_ingestIsIdRule) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;

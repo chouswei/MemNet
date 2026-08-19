@@ -20,6 +20,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); Absorb join; one \(S\) per generate |
 | [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox review; all tests are paradox |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
+| [`grammar/openCypher.bnf`](grammar/openCypher.bnf) | Official grammar BNF (spelling/identity SSOT; Apache-2.0) |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.8; RSV + Path-B ingest shipped; full ACL modes to-be) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable adapter: 0.7 live hydrate/flush proven; Fake + URL skip |

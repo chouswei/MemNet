@@ -1,12 +1,12 @@
-# Case study: `id: 'NEW'` mint batch (IdAllocator / MutateGate)
+# Case study: leftover_NEW_mint batch (IdAllocator / MutateGate)
 
-**Shelf:** product canon
+**Shelf:** product canon — **0.9 leftover invented store**, not TARGET GraphElement identity.
 
-Evidence walk of the **NEW mint policy** against `sysml-models/models/` and wire profile §2.2.  
-Companion: [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) (ground ids), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md).  
+Evidence walk of leftover `NEW` mint against `sysml-models/models/` and wire profile §2.2.
+Companion: [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md).
 SSOT: [`docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) §2.2.
 
-**Wire:** GQL only (M2 `GqlCodec`). Surface mint token is the string **`NEW`** in property `id`.
+**Wire:** GQL only (M2 `GqlCodec`). Surface leftover mint token is the string **`NEW`** in nickname property `id`. TARGET create is `CREATE ()` / `CREATE (:Label {props})` with no mint law.
 
 ## 1. Purpose
 
@@ -43,13 +43,13 @@ stateDiagram-v2
 
 ### Policy (wire §2.2)
 
-| Case | Rule |
+| Case | Leftover 0.9 as-is (not TARGET) |
 |------|------|
-| **Create (LLM goldfish)** | Client sets `id: 'NEW'`; engine replaces with a real id |
-| **Update / settle** | `NEW` **illegal** — known ids only |
-| **External locators** (SysML paths, etc.) | Deterministic ground ids — no client `NEW` |
-| **Multiple `NEW` in one batch** | Distinct engine ids; response lists **in order** |
-| **Relationship ends** | Must be known ids (prior pin_map or earlier create **after** mint resolution) |
+| **Create (LLM goldfish)** | Client sets `id: 'NEW'`; engine leftover_by_id |
+| **Update / settle** | `NEW` **illegal** — known nickname only |
+| **External locators** (SysML paths, etc.) | leftover_allocate_from_locator — TARGET locators are properties |
+| **Multiple `NEW` in one batch** | Distinct leftover ids; response lists **in order** |
+| **Relationship ends** | Leftover known ids after mint; TARGET = type + end elements |
 
 Prefer: **create nodes → response ids → create rels** when unsure.
 

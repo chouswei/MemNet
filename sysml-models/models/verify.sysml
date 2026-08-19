@@ -13,6 +13,8 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
+  Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
+  CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -97,6 +99,7 @@ package MemNetVerification {
       Case-study step 3 — Shared session + pin_map (MN-REQ-12.1, MN-REQ-04.1).
       session_open / load one mission session; parent EvPinMapRead in
       parentPreparing. Chat is not mission SSOT (extends MN-REQ-10.1).
+      Nickname id as pin_map anchor remains optional (MN-REQ-02.8 / 04.1).
     */
     attribute verificationId : String = "MN-VER-12-S03";
 
@@ -396,7 +399,8 @@ package MemNetVerification {
     doc /*
       MN-REQ-04.6 — BoundedMatchFind is shipped as seed-only find
       (CLI query find / MCP find; hard LIMIT; shaped nodes, no RETURN).
-      pinMap remains default goldfish when an id is known. MUST NOT treat
+      pinMap remains default goldfish after a cue/pattern seed; nickname
+      id as --anchor is leftover 0.9 (MN-REQ-02.8). MUST NOT treat
       find as pin_map k-hop. Pin-map Multitask verify MN-VER-12-S03 is
       unchanged.
     */
@@ -421,6 +425,89 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_02_S01_IdNotRequiredOnWire {
+    doc /*
+      MN-REQ-02.8 — GraphElement is identity. CREATE () is legal;
+      properties() MAY be empty. MATCH/MERGE = labels + properties;
+      edge = type + end elements. NicknameIdProperty optional.
+      HiddenStoreHandle is not a property, not on the wire, not a
+      business key. SHALL NOT invent a replacement application store key.
+      TARGET flags: graphElementIsIdentity; emptyCreateLegal;
+      propertiesMayBeEmpty; hiddenHandleIsProperty=false;
+      hiddenHandleOnWire=false; hiddenHandleIsBusinessKey=false;
+      noReplacementStoreKey; mergeIsPerWriteLookup; requiredIdProperty=false;
+      requireAnchorId=false; createRequiresId=false; idFirstRequired=false;
+      IdAllocator.implemented=false. Honesty leftover: leftoverByIdIndex
+      (leftover_by_id), leftoverRequireAnchor, leftoverIdFirst,
+      leftoverNewMint, leftover_ingestIsIdRule. liveNeo4jClaimed stays
+      false. No IdentityHandle nest — leftover named parts beside flags.
+      Recall/Commit nest not thickened.
+    */
+    attribute verificationId : String = "MN-VER-02-S01";
+
+    subject system : MemNetSystem;
+
+    objective idNotRequired {
+      verify idNotRequiredOnWireReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.store
+          .requiredIdProperty == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .graphElementIsIdentity == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .emptyCreateLegal == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .propertiesMayBeEmpty == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleIsProperty == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleOnWire == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleIsBusinessKey == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .noReplacementStoreKey == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .mergeIsPerWriteLookup == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftoverByIdIndex == true
+          and system.core.transport.inProcess.memory.sessions.schema
+            .idFirstRequired == false
+          and system.core.transport.inProcess.memory.sessions.schema
+            .leftoverIdFirst == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.requireAnchorId == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.leftoverRequireAnchor == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.createRequiresId == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mergeByLabelsAndProps == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.leftoverNewMint == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.ingestIsIdRule == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.leftoverIngestIdRule == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.implemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.leftoverAsIsEngine == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.teachHiddenStorageHandle == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mergeIsPerWriteLookup == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.noReplacementStoreKey == true
+          and system.durable.mergeIsPerWriteLookup == true
+          and system.durable.noReplacementStoreKey == true
+          and system.durable.liveNeo4jClaimed == false
+          and system.pinMaps.interface.leftoverLocatorMint == true
+          and system.multitask.coordinator.importReceive.absorb.idPolicy
+            .remint.leftoverInventedMint == true
+      }
+    }
+  }
+
   verification def MN_VER_06_S01_DurableCabinetHonesty {
     doc /*
       MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
@@ -440,6 +527,7 @@ package MemNetVerification {
           and system.durable.agens.liveCabinetClaimed == true
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == false
+          and system.durable.neo4j.honesty.claimed == false
           and system.durable.liveCabinetClaimed == true
           and system.durable.liveNeo4jClaimed == false
       }
@@ -509,6 +597,8 @@ package MemNetVerification {
     : MN_VER_12_S14_CheapLlmImportGuard;
   verification boundedMatchFindNotShippedVerify
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
+  verification idNotRequiredOnWireVerify
+    : MN_VER_02_S01_IdNotRequiredOnWire;
   verification recallCommitTwoOperatorsVerify
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification durableCabinetHonestyVerify

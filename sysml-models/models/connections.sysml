@@ -127,9 +127,12 @@ package MemNetConnections {
     doc /*
       Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
       into the mission session. idPolicy: keep | reject | remint
-      (keep = MERGE-by-id upsert into lead SSOT — not append / not a second
-      copy). Distinct from micro merge=true (in-session re-id). Product
-      types are SessionImport* only — no SessionMerge*.
+      (keep = MERGE as a per-write lookup of labels+props / rel type+ends
+      into lead SSOT — not append / not a second copy; not MERGE-by-id as
+      a store key; leftover_MERGE_by_id is 0.9 as-is, not this keep).
+      remint is leftover_NEW_mint / leftover_by_id. Distinct from
+      micro merge=true (in-session re-id). Product types are SessionImport*
+      only — no SessionMerge*.
     */
     attribute leadSessionId : String;
     attribute memberSessionId : String;
@@ -167,20 +170,56 @@ package MemNetConnections {
   // Property-graph ontology (first-class conceptual model)
   // =====================================================================
 
+  item def GraphElement {
+    doc /*
+      TARGET identity: the graph element (node or edge) IS the identity.
+      CREATE () is legal. properties() MAY be empty. Later MATCH/MERGE
+      looks up labels + properties; an edge is type + end elements.
+      SHALL NOT invent a replacement application store key.
+    */
+    attribute emptyCreateLegal : Boolean = true;
+    attribute propertiesMayBeEmpty : Boolean = true;
+    attribute isIdentity : Boolean = true;
+  }
+
+  item def HiddenStoreHandle {
+    doc /*
+      TARGET: cabinet-internal elementId-style handle. NOT a property.
+      NOT on the agent wire. NOT a business key. SHALL NOT be taught
+      as identity or as a nickname.
+    */
+    attribute isProperty : Boolean = false;
+    attribute onWire : Boolean = false;
+    attribute isBusinessKey : Boolean = false;
+  }
+
+  item def NicknameIdProperty {
+    doc /*
+      TARGET: optional property id is a nickname only -- not identity,
+      not a store key, not a fourth graph element. MAY be omitted.
+    */
+    attribute optional : Boolean = true;
+    attribute isIdentity : Boolean = false;
+  }
+
   item def PropertyGraphNode {
     doc /*
-      First-class GQL/property-graph node. Kind → primary Label; id → stable
-      key/property; fields → Property map. Constitutive law (if any) lives on
-      the node as property `law` (and linked port structure), never on an edge.
+      First-class GQL/property-graph node. Identity is GraphElement
+      (CREATE () legal; properties MAY be empty). Kind → primary Label;
+      fields → Property map. Optional NicknameIdProperty id is not
+      identity and not a store key. Constitutive law (if any) lives on
+      the node as property `law` (and linked port structure), never on
+      an edge. HiddenStoreHandle stays inside the store, off the wire.
     */
   }
 
   item def PropertyGraphEdge {
     doc /*
-      First-class GQL relationship (edge). Relationship type + Property map +
-      direction. Dual grain (bind vs relation) is encoded in GQL-compatible
+      First-class GQL relationship (edge). Identity is GraphElement.
+      Later MATCH: relationship type + end elements. Property map MAY
+      be empty. Dual grain (bind vs relation) is encoded in GQL-compatible
       terms — see BindRelationship vs RelationRelationship — not a second
-      agent dialect.
+      agent dialect. Optional nickname id only if present.
     */
   }
 
@@ -188,6 +227,8 @@ package MemNetConnections {
     doc /*
       First-class key=value property on a node or relationship.
       Omit defaults on agent wire; no nested graph-valued properties.
+      NicknameIdProperty is one optional property; HiddenStoreHandle is
+      not a property.
     */
   }
 
@@ -208,7 +249,8 @@ package MemNetConnections {
 
   item def RelationRelationship {
     doc /*
-      Dual-EDGE grain: relation. Both ends bare node ids.
+      Dual-EDGE grain: relation. Ends are GraphElement (type + end
+      elements; labels + properties). Optional nickname id only if present.
       GQL: ordinary node–node relationship; type = sense (knows, owns, …).
     */
   }
@@ -259,8 +301,9 @@ package MemNetConnections {
 
   item def AssignedIdMap {
     doc /*
-      Engine-allocated ids returned after mint of NEW on create.
-      LLM must copy these thereafter (MN-REQ-10.4).
+      Leftover 0.9 invented mint: optional nicknames after NEW / by_id.
+      TARGET create has no NEW and no required id; the graph element is
+      identity. Copy a nickname only if present (MN-REQ-10.4).
     */
   }
 
@@ -458,7 +501,7 @@ package MemNetConnections {
   }
 
   port def AssignedIdOutPort {
-    doc /* Emit engine-assigned ids after NEW mint. */
+    doc /* Leftover 0.9 invented mint nicknames (NEW / by_id), not TARGET. */
     out item ids : AssignedIdMap;
   }
   port def AssignedIdInPort {
@@ -646,7 +689,7 @@ package MemNetConnections {
   }
 
   connection def AssignedIdFlow {
-    doc /* Engine id allocation results after NEW mint. */
+    doc /* Leftover 0.9 invented mint results (NEW / by_id). TARGET create has no NEW. */
     end port source : AssignedIdOutPort;
     end port sink : AssignedIdInPort;
   }
@@ -736,7 +779,8 @@ package MemNetConnections {
     doc /*
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
       RagHostHook Snaps the corpus to locators; existing MutateGate /
-      PinMapIngest commits (Commit id-mint). Skip is valid. MUST NOT call
+      PinMapIngest commits (Commit creates the element; no id-mint law).
+      Skip is valid. MUST NOT call
       this absorb (ImportAbsorb is Path-B slice + id_policy only). MUST
       NOT Snap-on-session. Design only — no rag_query MCP. Product math
       sits above this research: docs/grammar/math-skeleton.md. See

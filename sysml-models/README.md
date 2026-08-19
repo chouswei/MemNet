@@ -44,7 +44,7 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │           │   │   └── AgentShapedRead
 │   │   │           │   │       ├── PinMapShapedRead // implemented=true
 │   │   │           │   │       └── BoundedMatchFind // implemented=true #73 seed find
-│   │   │           │   └── Commit           // ONE gate; id-mint rules
+│   │   │           │   └── Commit           // ONE gate; GraphElement identity
 │   │   │           │       ├── MutateGate
 │   │   │           │       └── NeighbourhoodReserve // lease, not 3rd API
 │   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
