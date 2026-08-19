@@ -1,129 +1,171 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** version map SSOT [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). 0.5–0.8 **this lineage**. **1.0** = 0.5–0.8 claimed. Later = Peak_L / HostSearch / N-server / export. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Later = Peak_L / HostSearch / N-server / export.
 **Audience:** product developers. **British English.**  
-**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
-**Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).
+**Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).  
+**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](memnet-session-strata.md). Thesis: [`memnet-harness-thesis.md`](memnet-harness-thesis.md).
 
-Do **not** train an IB, run a Steiner solver, or ANN-index the session because a paper did.
-
----
-
-## Session and cue
-
-Session \(S\) is a labelled property graph — GQL elements **node** (vertex), **edge** (relationship), **property** — with rate cap \(R\) (rows / bytes).
-
-Cue \(q\) is a **discrete codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (local degree peak) is a **last-resort** optional token — prefer live `TSK` / last mutate; if a peak test is used, count **typed residual** degree (strip `contains`), not raw edge count ([#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25).
-
-Two operators only: \(\mathrm{Recall}(q)\) and \(\mathrm{Commit}(\Delta)\). RSV is a **lease** under Commit, not a third API. Host search stays **outside** `MemNetSystem`.
+Do **not** train an IB, run a Steiner solver, or ANN-index the session because a paper named a cousin.
 
 ---
 
-## Recall(\(q\))
+## Objects
 
-**Seed**
+| Symbol | Meaning |
+|--------|---------|
+| \(S\) | One **named session**: labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). Rate cap \(R\) (rows / bytes). Handle = session id. |
+| \(q\) | Discrete **codebook token**: \(\mathrm{id} \cup \mathrm{kind} \cup \mathrm{locator} \cup \mathrm{keyword}\). Topology (\(\mathrm{Peak}_L\)) is a last-resort optional token, not empty \(q\). |
+| \(\tilde{X}\) | **Recall Shape** — bounded neighbourhood of **this** \(S\) given \(q\). |
+| \(\Delta\) | Sparse mutate batch (same GQL family as the emit). |
+| \(M\) | Goldfish row cap (`max_rows`, default **50**). **One** \(M\) per Shape, not \(M\times|Q|\). |
+| \(k\) | Hop diameter of the ego walk (typical interior \(\approx 2\)). Metric is **hops**, not cosine. |
+| \(L\) | Hard LIMIT on `find` / seed cardinality (\(|Q|\le L\)). |
 
-\[
-\mathrm{seed}(q,S)=\begin{cases}
-\{q\} & \text{if } q \text{ is already a node id}\\
-\mathrm{MATCH}_{L}(q,S) & \text{if } q \text{ is kind / locator / keyword (hard LIMIT } L\text{)}\\
-\mathrm{Peak}_{L}(S) & \text{if } q \text{ is the topology cue (deferred; note 23)}
-\end{cases}
-\]
+**Relevant** means the emit **co-responds to** \(q\): same \(q\) on the same \(S\) → same Shape. It is not “nearest passages to a sentence.” Empty seed \(\Rightarrow\) **skip** (do not invent a node).
 
-Empty seed \(\Rightarrow\) **skip** (do not invent a node). Topology cue is **not** empty \(q\): it is an explicit codebook token.
-
-**Peak (deferred, last resort).** Raw degree local-max is a **footgun** on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks (fan effect). Prefer: id → kind/keyword MATCH → unsettled `TSK_*` / RSV / last mutate. If a topology cue is still wanted: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then the same strict / relative local-max and \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. Fan-out clamp stays.
-
-**Reconstruct** \(\tilde{X}\): \(k\)-hop from a **seed set** \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) (`max_rows`) — **one** \(M\), not \(M\times|Q|\). Hide recycled rows. Emit the **same** shaped GQL subgraph family as mutate — not a tabular `RETURN`.
-
-Engine honesty: `PinMapComposer.compose` / `context_pack` accept a seed set (`anchor` plus optional `anchors`). Union walks, **one** `max_rows` \(M\), **one** LAW prepend. Path-B `export_working_memory_slice` unions by id but budgets \(M\times|\mathrm{anchors}|\) — that is import payload, **not** goldfish.
-
-`pin_map` and `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=true` (`query find` / MCP `find` — seed nodes only, hard LIMIT; then `pin_map` a copied id). \(\mathrm{Peak}_L\) is deferred (not a third operator).
-
-**In-session task already on \(S\).** The work is in MemNet; \(S\) is still too large to dump. That is Shape, not Snap. Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or `find` — then `pin_map`. Isolated `TSK` ⇒ LAW + that node only; attach edges via Commit if pins exist but are unlinked. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
+**Two haystacks.** Library / corpus is **Snap** (host). Mission working memory is **Shape** (this file). Mixing them is the fuse the product forbids.
 
 ---
 
-## Two compressions (Snap vs Shape)
+## Operators (domains)
 
-Same symptom (haystack too large for the LLM). Different owners. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
+Goldfish APIs are **two**: \(\mathrm{Recall}(q)\) and \(\mathrm{Commit}(\Delta)\). Other verbs have **other domains**. RSV is a **lease** under Commit, not a third API. Host search stays **outside** `MemNetSystem`.
 
-| Compression | Haystack | Mechanism | Owner |
-|-------------|----------|-----------|--------|
-| **Snap** | Corpus / library | Host retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | `RagHostHook` **outside** `MemNetSystem` |
-| **Shape** | Session \(S\) | \(\mathrm{Recall}(q)\rightarrow\tilde{X}\) (`pin_map`, depth \(\approx 2\), \(M\approx 50\), fan-out clamp, hide recycled) | `PinMapShapedRead` |
+| Verb | Domain | Maps | Goldfish? |
+|------|--------|------|-----------|
+| **Recall** | One \(S\) | \(q \mapsto \tilde{X}\) (`pin_map`; `find` is seed-only then Shape) | **Yes** (read) |
+| **Commit** | One \(S\) | \(\Delta \mapsto S'\) (`add` / `update` / ingest into current session) | **Yes** (write) |
+| **Absorb** | Member **slice** \(\to\) lead | Path-B `import_slice` + `id_policy` keep / reject / remint | **Join**, not goldfish writeback |
+| **Host Snap** | Corpus / library | Retrieve \(\to\) locators; Commit locators into some \(S\) | **Outside** engine |
+| **hydrate / flush** | Cabinet \(\leftrightarrow\) one named \(S\) | Persist / restore | **Zero** LLM tokens; not Recall |
 
-The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed Commit (locators), then Shape. **MUST NOT** Snap-on-session (no embeddings / ANN of \(S\)).
+Colloquial “the session absorbed that note” = **Commit**. Product **Absorb** is Path-B only. Hydrate ≠ Absorb. **MUST NOT** Absorb whole \(S\), host chunks, or cabinet ego.
 
----
-
-## Goldfish I/O (slice in, \(\Delta\) out)
-
-Goldfish talks only to **relevant slices** of \(S\), never to \(S\) whole. [#77](https://github.com/chouswei/MemNet/issues/77) notes 27–28.
-
-```text
-live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> slice X̃
-    --(LLM)--> sparse Δ  --Commit--> S
-```
-
-| Leg | Object | Operator | Honesty |
-|-----|--------|----------|---------|
-| **In** | One neighbourhood \(\tilde{X}\) | \(\mathrm{Recall}(Q)\) / `pin_map` | Caps + hide recycled; **one** \(M\) |
-| **Out** | Sparse shaped \(\Delta\) | \(\mathrm{Commit}(\Delta)\) / `add`/`update` | NEW/SET only; do not echo \(\tilde{X}\) |
-
-**Optimisation (note 28).** Serial \(N\) `pin_map` calls duplicate LAW rows and overlapping neighbourhoods (MN-REQ-10.3). Prefer:
-
-1. **One primary ego** — unsettled `TSK_*` (HiAgent current subgoal). Skip extra topic pins when that neighbourhood already covers them.
-2. **Topic survey is shell** — at most one extra `pin_map(..., view=shell)` on a `KYWD`/kind hub (composer: ≤8 NODE / ≤12 EDGE). Then `view=interior` on the live `TSK`. Steal LightRAG dual-level *grain*; reject keyword embeddings / hybrid/mix.
-3. **Seed set, not a ranker** — \(|Q|\le L\); union \(k\)-hop under **one** \(M\). Steal PyG `NeighborLoader` seed batch \(B\); keep deterministic fan-out clamp (not GraphSAGE random sample). MUST NOT copy Path-B \(M\times|\mathrm{anchors}|\). MUST NOT RRF slices (Graphiti `EDGE_HYBRID_SEARCH_NODE_DISTANCE` still hybrid-first).
-4. **Sparse \(\Delta\)** — mint/update only what changed. Steal Graphiti `add_episode` *incremental* write; HiAgent **replace** finished subgoal (settle + `delete_on_settle`). Reject Letta rewrite of the whole core block; reject echoing the fetched slice (`id_exists`).
-
-**Pin the topics, then fetch slices.** Topic tokens are already on the graph. Empty topic cue ⇒ skip / grep / host Snap. Default **one** call on the live `TSK`; optional extra `anchors` union under one \(M\) (0.5); a second shell call only when blocked.
-
-**Writeback is Commit, not Absorb.** Colloquial “the session absorbs the new slice” = MutateGate in the *current* session. Product **absorb** stays Path-B only (`ImportAbsorb` + member `WorkingMemorySlice` + `id_policy`). Goldfish \(\Delta\) MUST NOT travel `WorkingMemorySliceExport` / ImportGuard unless this turn *is* Multitask Path-B.
-
-### Named maths (names only)
-
-| Name | In MemNet |
-|------|-----------|
-| **Information bottleneck** | \(\tilde{X}\) compresses \(S\) given \(q\). Skip = empty extra retrieve. |
-| **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; ego from a seed is the polynomial stand-in. |
-| **Cardinality / diameter** | \(M\) and \(k\) are the budget. Metric is **hops**, not cosine. |
-| **Snap vs Shape** | Host Snap compresses the corpus; Recall Shape compresses \(S\). Do not embed \(S\). |
-| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); pin live `TSK` first. |
-| **Local degree peak** (deferred, last) | Typed residual local max of \(\rho^\*\), then ego hop. Not raw `contains`-tree degree. |
-
-Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay REJECTED on accept (archive only; `layer.py` not deleted in this docs PR).
-
-Orthodox = these names as a **base to build from** (rate, codebook, \(k\)-hop, skip, same alphabet, sparse \(\Delta\), two budgets). **All** examination and test is paradox — [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md). Do **not** train an IB or Steiner solver because a name appears here. Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
-
----
-
-## Commit(\(\Delta\))
-
-**One gate.** `mutate` / `ingest` / `absorb` are **id-mint rules**, not three product verbs.
+`mutate` / `ingest` / `absorb` are **id-mint rules** on Commit’s family, not three goldfish verbs.
 
 | Rule | Id |
 |------|----|
 | Default mutate | Client `NEW` \(\rightarrow\) engine id |
 | Ingest | Deterministic locator id from the artefact (`PinMapIngest_*`) |
-| Absorb | Path-B only: member `WorkingMemorySlice` + `id_policy` keep / reject / remint |
+| Absorb | Member `WorkingMemorySlice` + `id_policy` |
 
-Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. RSV nests under Commit / `SessionLifecycle`.
+---
+
+## Token law (three budgets)
+
+MN-REQ-00: few **LLM tokens** to fetch and to maintain. Rows, frames, and tokens are not the same knob.
+
+| Budget | Typical | Owns |
+|--------|---------|------|
+| Goldfish **rows** \(M\) | \(\approx 50\) | Shape (`PinMapComposer`) |
+| Goldfish **prompt** | \(\lesssim 4\,\mathrm{k}\) tokens; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm | Outer harness + emit |
+| Serve **frame** | 4 MiB | Transport — **not** a token budget |
+| Cabinet Bolt | **0** LLM tokens | hydrate / flush |
+
+Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memnet-session-strata.md`](memnet-session-strata.md)). The 0.10 leftover is the **caller**: drop old `pin_map` rows from `messages[]`; stuffing JSON saves zero.
+
+---
+
+## Recall(\(q\))
+
+**Seed** (then reconstruct). Topology cue is explicit, not “no ego.”
+
+\[
+\mathrm{seed}(q,S)=\begin{cases}
+\{q\} & q \text{ is already a node id}\\
+\mathrm{MATCH}_{L}(q,S) & q \text{ is kind / locator / keyword (hard LIMIT } L\text{)}\\
+\mathrm{Peak}_{L}(S) & q \text{ is the topology cue (Later; note 23)}
+\end{cases}
+\]
+
+Empty seed \(\Rightarrow\) **skip**. Prefer live `TSK` / last mutate / `read_list` before topology.
+
+**Peak (Later, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. If a topology cue is still wanted: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](memnet-session-strata.md)).
+
+**Reconstruct** \(\tilde{X}\): \(k\)-hop from seed set \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) — **one** \(M\), not \(M\times|Q|\). Hide recycled. Emit the **same** shaped GQL family as mutate — not tabular `RETURN`.
+
+Engine: `PinMapComposer.compose` / `context_pack` take `anchor` plus optional `anchors`. Union walks, **one** \(M\), **one** LAW prepend. Path-B `export_working_memory_slice` may budget \(M\times|\mathrm{anchors}|\) — that is **import payload**, not goldfish.
+
+`pin_map` and `BoundedMatchFind` are the **same** Recall; seed rule differs. Honesty: `PinMapShapedRead.implemented=true`; `BoundedMatchFind.implemented=true` (`query find` / MCP `find` — seed nodes only, hard LIMIT; then `pin_map` a copied id). \(\mathrm{Peak}_L\) is not a third operator.
+
+**In-session work already on \(S\).** Seed from a known id, `read_list(tag=TSK, active_only)`, a hub `:owns`/`:next`, or `find` — then `pin_map`. Isolated `TSK` \(\Rightarrow\) LAW + that node only; attach edges via Commit. **Switch task:** settle the old `TSK` (`delete_on_settle`); next ego from hub / list / mint — **not** \(\mathrm{Peak}_L\).
+
+---
+
+## Compressions (homographs)
+
+Same symptom (haystack too large). Different owners. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
+
+| Name | Haystack | Mechanism | Owner |
+|------|----------|-----------|--------|
+| **Shape** | One session \(S\) | \(\mathrm{Recall}(q)\to\tilde{X}\) (\(k\), \(M\), fan-out clamp, hide recycled) | `PinMapShapedRead` |
+| **Host Snap** | Corpus / library | Retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | `RagHostHook` **outside** `MemNetSystem` |
+| **Model Snap** (design, 0.12) | One SysML (or design) **model** | \( \mathrm{Snap}(\mathrm{model})\to(S_{\mathrm{cat}},S_1,\ldots,S_k) \) | Session stack; **not** one session per file |
+
+The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed **Commit** (locators), then Shape. Model Snap **partitions** a load tree so each interior stays Shape-sized. **MUST NOT** Snap-on-session (no embeddings / ANN of \(S\)). **MUST NOT** call `pin_map` a Snap.
+
+`view=shell` / `interior` is **grain inside one \(S\)**, not a second session and not a SysML `view def`.
+
+---
+
+## One \(S\) per generate
+
+Goldfish talks to **one** session at a time.
+
+```text
+live TSK (+ ≤L−1 topic pins) --Recall/Shape, one M--> X̃
+    --(LLM)--> sparse Δ  --Commit--> that S
+```
+
+Over \(M\) after narrowing ego and `view=shell`: **mint** \(S_{i+1}\), do not raise \(M\). Catalog of `session=` ids is itself a small session (or Host Snap of locators). Look = `pin_map` **that** id. Join = Absorb a **slice**. Path A (shared mission id, re-`pin_map`) is the cheap stratum. Path B and library-pin sessions are the expensive ones.
+
+**MUST NOT** mint a session per `TSK` (settle in \(S\)). **MUST NOT** mint a session per source file as a habit (`MOD_*` stay nodes). **Exception:** model Snap interiors are partitions of **one** model.
+
+| Leg | Object | Operator | Honesty |
+|-----|--------|----------|---------|
+| **In** | One neighbourhood \(\tilde{X}\) | \(\mathrm{Recall}(Q)\) / `pin_map` | Caps + hide recycled; **one** \(M\) |
+| **Out** | Sparse shaped \(\Delta\) | \(\mathrm{Commit}(\Delta)\) | NEW/SET only; do not echo \(\tilde{X}\) |
+
+**Writeback is Commit, not Absorb.** Goldfish \(\Delta\) MUST NOT travel `WorkingMemorySliceExport` / ImportGuard unless this turn *is* Path-B.
+
+**Optimisation (note 28).** Serial \(N\) `pin_map` calls duplicate LAW (V5). Prefer one primary ego (unsettled `TSK_*`); at most one extra `view=shell` survey; seed set \(|Q|\le L\) under **one** \(M\); sparse \(\Delta\) only. Steal grain, not embeddings: LightRAG dual-level *as view=*; PyG NeighborLoader *as seed batch*; Graphiti incremental write; HiAgent **replace** = settle. Reject RRF, GraphSAGE random sample, Letta rewrite of the core block, Path-B \(M\times|\mathrm{anchors}|\) as goldfish.
+
+**Pin the topics, then fetch slices.** Empty topic cue \(\Rightarrow\) skip / grep / host Snap. Default **one** call on the live `TSK`.
+
+Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay **rejected** on accept (archive only).
+
+---
+
+## Named maths (names only)
+
+Orthodox = these as a **base to build from**. **All** examination and test is paradox — [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md).
+
+| Name | In MemNet |
+|------|-----------|
+| **Information bottleneck** | \(\tilde{X}\) compresses \(S\) given \(q\). Skip = empty extra retrieve. |
+| **Ego \(k\)-hop** | Optimal evidence subgraph is NP-hard; ego from a seed is the polynomial stand-in. |
+| **Cardinality / diameter** | \(M\) and \(k\) are the row budget. Metric is **hops**. |
+| **Shape vs Snap** | Host Snap compresses the corpus; Recall Shape compresses **one** \(S\). Model Snap partitions a model into sessions. Do not embed \(S\). |
+| **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); pin live `TSK` first. |
+| **Strata** | Many \(S_i\); goldfish one; join Absorb a slice. Catalog is codebook of session ids. |
+| **Local degree peak** (Later, last) | Typed residual local max of \(\rho^\*\) **inside one \(S\)**. Not raw `contains`-tree degree; not a nest fix. |
+
+Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 
 ---
 
 ## MUST NOT
 
 - `rag_query`, embeddings, PPR, RRF, GST/Steiner, ANN on the session (Snap-on-session).
-- Goldfish writeback via `ImportAbsorb` / a second absorb-shaped leaf (that verb is Path-B only).
-- Dumping \(S\); fusing several topic slices with RRF / cosine.
-- Goldfish budget \(M\times|Q|\) (that is Path-B import); echoing \(\tilde{X}\) through mutate.
+- Goldfish writeback via `ImportAbsorb` (that verb is Path-B join only).
+- Dump \(S\); fuse several topic slices or several sessions with RRF / cosine.
+- Goldfish budget \(M\times|Q|\) (Path-B import); echo \(\tilde{X}\) through mutate; raise \(M\) instead of minting \(S_{i+1}\).
 - Density-peak **cluster assignment**, Leiden from peaks, or global top-\(k\) degree as goldfish.
+- \(\mathrm{Peak}_L\) as default ego or as the SysML nest encoding.
 - New `HostSearchBridge` leaves, HIT rows, `RagDecision` envelopes.
-- Dual-teach GraphQL / LangChain / HiGram as agent wire.
+- Dual-teach GraphQL / LangChain / HiGram / Layer as agent wire.
 - Free `MATCH`/`RETURN` as goldfish (find is seed nodes only; then `pin_map`).
+- Absorb whole \(S\); Absorb Neo4j library nodes; hydrate as Absorb.
 - A literature pile in this file (that stays on #77).
 
 ---
@@ -133,6 +175,9 @@ Optional `ImportGuard` / `CheapLlmImportGuard` stay Path-B **soft**, fail-open. 
 | Path | Role |
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Shaped GQL wire; `pin_map` vs find honesty |
+| [`memnet-session-strata.md`](memnet-session-strata.md) | Many sessions; model Snap; not Layer |
+| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Snap / Shape / Absorb / hydrate verbs |
+| [`memnet-harness-thesis.md`](memnet-harness-thesis.md) | Memory plane; token law; co-responds |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Application nest **below** this math |
 | [`../../sysml-models/models/deploy.sysml`](../../sysml-models/models/deploy.sysml) | `RecallCommit` nest |
 | [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox |
