@@ -15,7 +15,7 @@ Novel-writer is out of scope.
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
 3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j client not live-claimed; one sync owner). Cabinets external / not vendored.
-4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). `keep` = MERGE-by-id upsert into lead SSOT (not append). Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
+4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). TARGET `keep` = MERGE of labels+props / type+ends (GraphElement). leftover_MERGE_by_id is 0.9 leftover, not keep. Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
    MutateGate, PinMapShapedRead, and SessionHandoffEmit consult.
@@ -160,7 +160,7 @@ reserve and Path-B ingest are **shipped**.
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
 | BoundedMatchFind | `query find` / MCP `find` | Nested under Recall / AgentShapedRead (`implemented=true`; #73 seed-only; then `pin_map`) |
 | RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
-| MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
+| MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); leftover_NEW_mint as-is; TARGET GraphElement create; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
 | AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
 | Neo4jAdapter | `memnet.durable` (optional Neo4j client) | Client landed; `liveNeo4jClaimed=false` |
@@ -183,7 +183,7 @@ reserve and Path-B ingest are **shipped**.
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
-- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; keep = MERGE-by-id, not append)
+- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append)
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT

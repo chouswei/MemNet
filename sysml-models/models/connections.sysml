@@ -129,7 +129,8 @@ package MemNetConnections {
       into the mission session. idPolicy: keep | reject | remint
       (keep = MERGE as a per-write lookup of labels+props / rel type+ends
       into lead SSOT — not append / not a second copy; not MERGE-by-id as
-      a store key). remint is leftover invented by_id mint. Distinct from
+      a store key; leftover_MERGE_by_id is 0.9 as-is, not this keep).
+      remint is leftover_NEW_mint / leftover_by_id. Distinct from
       micro merge=true (in-session re-id). Product types are SessionImport*
       only — no SessionMerge*.
     */
@@ -169,22 +170,56 @@ package MemNetConnections {
   // Property-graph ontology (first-class conceptual model)
   // =====================================================================
 
+  item def GraphElement {
+    doc /*
+      TARGET identity: the graph element (node or edge) IS the identity.
+      CREATE () is legal. properties() MAY be empty. Later MATCH/MERGE
+      looks up labels + properties; an edge is type + end elements.
+      SHALL NOT invent a replacement application store key.
+    */
+    attribute emptyCreateLegal : Boolean = true;
+    attribute propertiesMayBeEmpty : Boolean = true;
+    attribute isIdentity : Boolean = true;
+  }
+
+  item def HiddenStoreHandle {
+    doc /*
+      TARGET: cabinet-internal elementId-style handle. NOT a property.
+      NOT on the agent wire. NOT a business key. SHALL NOT be taught
+      as identity or as a nickname.
+    */
+    attribute isProperty : Boolean = false;
+    attribute onWire : Boolean = false;
+    attribute isBusinessKey : Boolean = false;
+  }
+
+  item def NicknameIdProperty {
+    doc /*
+      TARGET: optional property id is a nickname only -- not identity,
+      not a store key, not a fourth graph element. MAY be omitted.
+    */
+    attribute optional : Boolean = true;
+    attribute isIdentity : Boolean = false;
+  }
+
   item def PropertyGraphNode {
     doc /*
-      First-class GQL/property-graph node (the graph element is identity).
-      Kind → primary Label; fields → Property map. Optional property id is
-      a nickname only -- not identity and not a store key. Constitutive law
-      (if any) lives on the node as property `law` (and linked port
-      structure), never on an edge.
+      First-class GQL/property-graph node. Identity is GraphElement
+      (CREATE () legal; properties MAY be empty). Kind → primary Label;
+      fields → Property map. Optional NicknameIdProperty id is not
+      identity and not a store key. Constitutive law (if any) lives on
+      the node as property `law` (and linked port structure), never on
+      an edge. HiddenStoreHandle stays inside the store, off the wire.
     */
   }
 
   item def PropertyGraphEdge {
     doc /*
-      First-class GQL relationship (edge). Relationship type + Property map +
-      direction. Dual grain (bind vs relation) is encoded in GQL-compatible
+      First-class GQL relationship (edge). Identity is GraphElement.
+      Later MATCH: relationship type + end elements. Property map MAY
+      be empty. Dual grain (bind vs relation) is encoded in GQL-compatible
       terms — see BindRelationship vs RelationRelationship — not a second
-      agent dialect.
+      agent dialect. Optional nickname id only if present.
     */
   }
 
@@ -192,6 +227,8 @@ package MemNetConnections {
     doc /*
       First-class key=value property on a node or relationship.
       Omit defaults on agent wire; no nested graph-valued properties.
+      NicknameIdProperty is one optional property; HiddenStoreHandle is
+      not a property.
     */
   }
 
@@ -212,8 +249,8 @@ package MemNetConnections {
 
   item def RelationRelationship {
     doc /*
-      Dual-EDGE grain: relation. Ends are graph elements (label +
-      properties); optional nickname id only if present.
+      Dual-EDGE grain: relation. Ends are GraphElement (type + end
+      elements; labels + properties). Optional nickname id only if present.
       GQL: ordinary node–node relationship; type = sense (knows, owns, …).
     */
   }

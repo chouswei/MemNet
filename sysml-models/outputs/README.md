@@ -27,7 +27,7 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [session-import-case-study.md](session-import-case-study.md) | Lead **imports** member WM; optional ImportGuard nest (hook + cheap LLM #63); happy path A = re-pin | S10…S12, S14; SessionImportReceive |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5 |
 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
-| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Canon mutate discipline: `id: 'NEW'` → response ids → rels; NEW illegal on settle | `IdAllocator` / `MutateWithNew`; wire §2.2 |
+| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Leftover 0.9 `id: 'NEW'` mint; TARGET is GraphElement create | leftover_NEW_mint / MutateWithNew; wire §2.2 |
 
 ### Application examples (on SharedLlmMemory)
 

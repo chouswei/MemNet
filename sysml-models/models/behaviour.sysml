@@ -32,11 +32,12 @@ package MemNetBehaviour {
   }
   attribute def EvMutateGraph {
     doc /*
-      add/update openCypher-shaped GQL batch (Commit gate; may include NEW).
-      Goldfish OUT: sparse Δ (MUST NOT echo the fetched slice; not
-      ImportAbsorb). Ingest and Path-B absorb are id-mint rules of the
-      same gate, not extra product verbs. Layer / Tier A accept retired
-      (ADR-001 M2).
+      add/update openCypher-shaped GQL batch (Commit gate). TARGET:
+      GraphElement identity; CREATE () legal. leftover_NEW_mint is 0.9
+      leftover, not TARGET law. Goldfish OUT: sparse Δ (MUST NOT echo
+      the fetched slice; not ImportAbsorb). Ingest locators are
+      properties, not leftover_ingestIsIdRule TARGET. Layer / Tier A
+      accept retired (ADR-001 M2).
     */
   }
   attribute def EvSaveSnapshot {
@@ -52,7 +53,7 @@ package MemNetBehaviour {
     doc /* Hard @ERR; command aborts without necessarily closing session. */
   }
   attribute def EvIdsAssigned {
-    doc /* IdAllocator finished minting NEW -> real ids. */
+    doc /* leftover_NEW_mint finished (0.9 leftover; not TARGET identity). */
   }
   attribute def EvParseOk {
     doc /* GqlCodec accepted batch (target). */
@@ -128,9 +129,10 @@ package MemNetBehaviour {
   }
   attribute def EvImportWorkingMemorySlice {
     doc /*
-      Lead ImportAbsorb under id_policy keep|reject|remint (keep =
-      MERGE-by-id upsert into lead SSOT; reject = id_conflict no mutate;
-      remint = NEW ids, lead old stay, edges retarget); nodes then edges.
+      Lead ImportAbsorb under id_policy keep|reject|remint (TARGET keep =
+      labels+props / type+ends MERGE; leftover_MERGE_by_id leftover;
+      reject = id_conflict no mutate; remint = leftover_NEW_mint, lead
+      old stay, edges retarget); nodes then edges.
       After ImportGuard allow/trim or EvGuardSkip.
     */
   }
@@ -380,15 +382,16 @@ package MemNetBehaviour {
       then awaitingPinMap;
   }
 
-  // --- 3. Mutate with NEW mint ---
+  // --- 3. leftover_NEW_mint (0.9 leftover; not TARGET GraphElement) ---
 
   state def MutateWithNew {
     doc /*
-      Single mutate batch: parse GQL (GqlCodec target) -> mint NEW (if any) ->
-      schema check -> strict commit -> emit AssignedIdMap. Aligns MN-REQ-03
-      and 10.4. When the batch has no NEW / [NEW], minting is a no-op (empty
-      id map) and the path proceeds to committing without inventing ids.
-      TierA / Layer line codec parse is RETIRED on product path (M2 done).
+      Leftover 0.9 invented store path: parse GQL -> leftover_NEW_mint
+      (if any) -> schema check -> strict commit -> emit AssignedIdMap.
+      TARGET create is CREATE () / CREATE (:Label {props}) with no mint
+      law. Aligns leftover MN-REQ-03 / 10.4 as-is engine. When the batch
+      has no NEW / [NEW], minting is a no-op. TierA / Layer line codec
+      parse is RETIRED on product path (M2 done).
     */
     entry;
     then idle;
@@ -415,9 +418,10 @@ package MemNetBehaviour {
 
     state minting {
       doc /*
-        IdAllocator replaces NEW / [NEW] with engine ids. If the batch has
-        no NEW tokens, skip allocation and emit an empty AssignedIdMap
-        (EvIdsAssigned) then commit ground ids only.
+        leftover_NEW_mint / leftover_by_id: IdAllocator replaces NEW /
+        [NEW] with engine ids. TARGET has no this mint law. If the batch
+        has no NEW tokens, skip allocation and emit an empty AssignedIdMap
+        (EvIdsAssigned) then commit GraphElement only.
       */
     }
     transition minting_to_committing
@@ -1083,8 +1087,9 @@ package MemNetBehaviour {
         ImportAbsorb engine hard: DistinctSessionGate → AclConsultAbsorb →
         SchemaValidateImport → IdPolicyApply (keep|reject|remint) →
         NodesThenEdgesCommit; optional GuardDecisionAtomRecord.
-        keep = MERGE-by-id upsert into lead SSOT; reject = id_conflict no
-        mutate; remint = NEW ids, lead old stay, edges retarget.
+        TARGET keep = labels+props / type+ends MERGE; leftover_MERGE_by_id
+        leftover; reject = id_conflict no mutate; remint = leftover_NEW_mint,
+        lead old stay, edges retarget.
       */
     }
     transition import_ok

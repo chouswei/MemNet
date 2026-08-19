@@ -13,8 +13,8 @@
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
-  Optional id nickname TARGET (MN-VER-02-S01): no grammar store key;
-  graph element is identity; 0.9 by_id leftover invented store.
+  Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
+  CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -427,17 +427,21 @@ package MemNetVerification {
 
   verification def MN_VER_02_S01_IdNotRequiredOnWire {
     doc /*
-      MN-REQ-02.8 — GQL/openCypher has no store key; the graph element is
-      the identity. MERGE is a per-write lookup, not a primary key.
-      Optional id = nickname only. SHALL NOT invent a replacement
-      application store key. TARGET flags: graphElementIsIdentity;
+      MN-REQ-02.8 — GraphElement is identity. CREATE () is legal;
+      properties() MAY be empty. MATCH/MERGE = labels + properties;
+      edge = type + end elements. NicknameIdProperty optional.
+      HiddenStoreHandle is not a property, not on the wire, not a
+      business key. SHALL NOT invent a replacement application store key.
+      TARGET flags: graphElementIsIdentity; emptyCreateLegal;
+      propertiesMayBeEmpty; hiddenHandleIsProperty=false;
+      hiddenHandleOnWire=false; hiddenHandleIsBusinessKey=false;
       noReplacementStoreKey; mergeIsPerWriteLookup; requiredIdProperty=false;
       requireAnchorId=false; createRequiresId=false; idFirstRequired=false;
       IdAllocator.implemented=false. Honesty leftover: leftoverByIdIndex
-      (invented 0.9 store), leftoverRequireAnchor, leftoverIdFirst,
-      leftoverNewMint. Honesty also leftoverIngestIdRule (ingest is not
-      an id-mint law). liveNeo4jClaimed stays false. elementId off-wire.
-      No IdentityHandle nest — thinner flags on RecallCommit.
+      (leftover_by_id), leftoverRequireAnchor, leftoverIdFirst,
+      leftoverNewMint, leftover_ingestIsIdRule. liveNeo4jClaimed stays
+      false. No IdentityHandle nest — leftover named parts beside flags.
+      Recall/Commit nest not thickened.
     */
     attribute verificationId : String = "MN-VER-02-S01";
 
@@ -450,6 +454,16 @@ package MemNetVerification {
           .requiredIdProperty == false
           and system.core.transport.inProcess.memory.sessions.store
             .graphElementIsIdentity == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .emptyCreateLegal == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .propertiesMayBeEmpty == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleIsProperty == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleOnWire == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleIsBusinessKey == false
           and system.core.transport.inProcess.memory.sessions.store
             .noReplacementStoreKey == true
           and system.core.transport.inProcess.memory.sessions.store
@@ -513,6 +527,7 @@ package MemNetVerification {
           and system.durable.agens.liveCabinetClaimed == true
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == false
+          and system.durable.neo4j.honesty.claimed == false
           and system.durable.liveCabinetClaimed == true
           and system.durable.liveNeo4jClaimed == false
       }

@@ -26,9 +26,9 @@ Product types: `SessionImport*` only (no `SessionMerge*`).
 | Term | Meaning |
 |------|---------|
 | Product **import** | `SessionImportReceive` / `SessionImportRequest` |
-| `id_policy=keep` | MERGE-by-id upsert into lead SSOT (not append / not a second copy) |
+| `id_policy=keep` | TARGET MERGE of labels+props / type+ends (GraphElement). leftover_MERGE_by_id is leftover |
 | `id_policy=reject` | `id_conflict` — no lead mutate |
-| `id_policy=remint` | NEW ids for conflicts; lead old rows stay; edges retarget |
+| `id_policy=remint` | leftover_NEW_mint / leftover_by_id for conflicts; lead old rows stay; edges retarget — not TARGET |
 | Micro `merge=true` | In-session node re-id — not macro path B |
 | **ImportGuardHook** | Host plug-in (`set_import_guard` / `--no-guard`); **shipped** (#49) |
 | **CheapLlmImportGuard** | Optional default LLM adapter in `memnet-llm`; **shipped** (#63 / MN-REQ-12.11; env-gated) |
@@ -162,9 +162,9 @@ ImportGuardDecision { outcome: reject; reason: 'invented ids not on member pin_m
 
 | Policy | Effect |
 |--------|--------|
-| `keep` | MERGE-by-id upsert into lead SSOT |
+| `keep` | TARGET MERGE of labels+props / type+ends; leftover_MERGE_by_id leftover |
 | `reject` | `id_conflict` — no mutate |
-| `remint` | NEW ids; lead old rows stay; edges retarget |
+| `remint` | leftover_NEW_mint; lead old rows stay; edges retarget |
 
 Hard gates ImportGuard MUST NOT replace: schema, ACL, slice budget, anchors, LAW exclude, id_policy.
 

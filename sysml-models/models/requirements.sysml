@@ -9,7 +9,7 @@
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
-    MN-REQ-02.8        no grammar store key; optional id = nickname only
+    MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -33,15 +33,17 @@
   system, programme, software, firmware, hardware, and documentation
   development; save time and tokens; high factual accuracy; LLM-friendly
   grammar on stdio/MCP; canonical parser for human inspection. GQL/openCypher
-  has no store key: the graph element (node or edge) is the identity.
-  MERGE (n:TSK {goal:$g}) is a per-write lookup, not a primary key.
-  Property id is optional nickname only -- not identity. Neo4j elementId
-  stays inside the store, off the wire. 0.9 leftover invented store:
-  MemStore.by_id / validate_id / SCHEMA id_first / NEW mint. SHALL NOT
-  invent a replacement application store key. Grammar spelling/identity
-  SSOT is docs/grammar/openCypher.bnf (official file, Apache-2.0;
-  NOTICE-openCypher.md) -- not a MemNet-invented id law, not TCK
-  compliance, not a second accept path.
+  has no store key: GraphElement (node or edge) is the identity.
+  CREATE () is legal. properties() MAY be empty. Later MATCH/MERGE =
+  labels + properties; an edge is type + end elements. NicknameIdProperty
+  id is optional -- not identity. HiddenStoreHandle (elementId-style)
+  is not a property, not on the wire, not a business key. 0.9 leftover
+  invented store: leftover_by_id / leftover_id_first / leftover_NEW_mint /
+  leftover_MERGE_by_id / leftover_allocate_from_locator /
+  leftover_ingestIsIdRule. SHALL NOT invent a replacement application
+  store key. Grammar spelling/identity SSOT is docs/grammar/openCypher.bnf
+  (official file, Apache-2.0; NOTICE-openCypher.md) -- not a MemNet-invented
+  id law, not TCK compliance, not a second accept path.
 
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
@@ -165,13 +167,14 @@ package MemNetRequirements {
       doc /*
         Group: the Net of Memory is a GQL property graph whose three elements
         are node (ISO synonym vertex), edge (ISO synonym relationship), and
-        property (ADR-001; gql-wire-profile). The graph element is the
-        identity; grammar has no store key. Labels name kinds; they are not
-        a fourth element. MUST NOT invent PORT (or nested graph) as a
-        graph-element kind — those facts live as property values. MUST NOT
-        invent an application store key. Agent wire is openCypher-shaped
-        GQL; primary read is shaped pin_map (not raw MATCH/RETURN tables).
-        Property id is optional nickname (MN-REQ-02.8), not identity.
+        property (ADR-001; gql-wire-profile). GraphElement is the identity
+        (CREATE () legal; properties MAY be empty). Grammar has no store
+        key. Labels name kinds; they are not a fourth element. MUST NOT
+        invent PORT (or nested graph) as a graph-element kind — those facts
+        live as property values. MUST NOT invent an application store key.
+        Agent wire is openCypher-shaped GQL; primary read is shaped pin_map
+        (not raw MATCH/RETURN tables). NicknameIdProperty is optional
+        (MN-REQ-02.8), not identity. HiddenStoreHandle off-wire.
         Layer / Tier A are archived (not product accept); @TAG pipe
         remains import-once only.
       */
@@ -182,10 +185,10 @@ package MemNetRequirements {
           SHALL model the Net of Memory as a GQL property graph with three
           elements: node (vertex), edge (relationship), and property. Topology
           is node--edge--node; property values attach to nodes and to edges.
-          The graph element is the identity. GQL/openCypher grammar has no
-          store key. SHALL NOT add a fourth graph-element kind (PORT nodes,
-          nested graphs, prose blobs) and SHALL NOT invent an application
-          store key in place of the element.
+          The graph element is the identity. CREATE () is legal. properties()
+          MAY be empty. GQL grammar has no store key. SHALL NOT add a fourth
+          graph-element kind (PORT nodes, nested graphs, prose blobs) and
+          SHALL NOT invent an application store key in place of the element.
         */
         attribute requirementId : String = "MN-REQ-02.1";
       }
@@ -253,20 +256,22 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-02.7";
       }
 
-      requirement def MN_REQ_02_8_IdNotRequiredOnWire {
+          requirement def MN_REQ_02_8_IdNotRequiredOnWire {
         doc /*
-          Headline: GQL/openCypher grammar has no store key. The graph
-          element (node or edge) is the identity. MERGE
-          (n:TSK {goal:$g}) is a per-write lookup, not a primary key.
-          Neo4j elementId stays inside the store and off the wire.
-          Agent wire SHALL NOT require property id. Create, find, and
-          pin_map MAY omit it. When present, id is an optional nickname
-          only -- not identity, not a fourth element. SHALL NOT invent a
-          replacement application store key (locator-as-PK, qname-as-PK,
-          minted string-as-PK). Id-exists / not-found (MN-REQ-03.1 / 03.2)
+          Headline: GraphElement is identity. CREATE () is legal.
+          properties() MAY be empty. Later MATCH/MERGE looks up labels +
+          properties; an edge is type + end elements. HiddenStoreHandle
+          stays inside the store -- not a property, not on the wire, not
+          a business key. Agent wire SHALL NOT require NicknameIdProperty.
+          Create, find, and pin_map MAY omit it. When present, id is a
+          nickname only -- not identity. SHALL NOT invent a replacement
+          application store key (locator-as-PK, qname-as-PK, minted
+          string-as-PK). Id-exists / not-found (MN-REQ-03.1 / 03.2)
           remain valid only when an optional nickname is present.
-          0.9 leftover invented store: MemStore.by_id, validate_id,
-          SCHEMA id_first, NEW mint, pin_map require_anchor -- not TARGET.
+          0.9 leftover invented store (not TARGET SHALL): leftover_by_id,
+          leftover_id_first, leftover_NEW_mint, leftover_MERGE_by_id,
+          leftover_allocate_from_locator, leftover_ingestIsIdRule,
+          pin_map require_anchor.
         */
         attribute requirementId : String = "MN-REQ-02.8";
       }
@@ -284,8 +289,9 @@ package MemNetRequirements {
         doc /*
           When an optional nickname id is present on create, SHALL fail with
           an id-exists error if that nickname is already taken. SHALL NOT
-          require id on create. TARGET create is CREATE (:Label {props})
-          without id. Leftover NEW / by_id mint is 0.9 as-is, not this
+          require id on create. TARGET create is CREATE () / CREATE
+          (:Label {props}) without id; properties MAY be empty.
+          leftover_NEW_mint / leftover_by_id is 0.9 as-is, not this
           contract.
         */
         attribute requirementId : String = "MN-REQ-03.1";
@@ -894,13 +900,13 @@ package MemNetRequirements {
       requirement def MN_REQ_11_16_PinIngestDeterministicIds {
         doc /*
           Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL Commit
-          create of graph elements from the source. Locators (path, refdes,
+          create of GraphElement from the source. Locators (path, refdes,
           net, pin, qname, skill_id, and similar) SHALL be properties on
           those elements -- not identity and not a store key. TARGET SHALL
-          NOT require ground ids. Optional nickname id MAY be emitted when
-          present. Locator-as-PK / allocate_from_locator is leftover 0.9
-          invented store (by_id), not this TARGET. Pin-map ingest SHALL NOT
-          treat leftover NEW mint as TARGET law for source elements.
+          NOT require ground ids (leftover_by_id as PK). Optional nickname
+          id MAY be emitted when present. leftover_allocate_from_locator
+          is leftover 0.9 invented store, not this TARGET. leftover_NEW_mint
+          SHALL NOT be TARGET law for source elements.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
@@ -1047,10 +1053,10 @@ package MemNetRequirements {
           ImportAbsorb a bounded WorkingMemorySlice under owner-gated
           id_policy keep | reject | remint:
             keep = MERGE as a per-write lookup of labels+props / rel
-              type+ends into lead SSOT (not append / not a second copy;
-              not MERGE-by-id as a store key);
+              type+ends into lead SSOT (GraphElement; not append / not a
+              second copy; leftover_MERGE_by_id is leftover, not this keep);
             reject = conflict, no lead mutate;
-            remint = leftover invented mint (NEW / by_id) for conflicts;
+            remint = leftover_NEW_mint / leftover_by_id for conflicts;
               lead old rows stay; edges retarget -- not TARGET law.
           Edges after nodes; LAW/vocab SHALL NOT import; lead settles parent
           TSK_*. Chat/transcripts SHALL NOT be the payload (MN-REQ-12.10).
