@@ -140,7 +140,7 @@ Two operators: \(\mathrm{Recall}(q)\), \(\mathrm{Commit}(\Delta)\).
 
 **Unknown pin.** \(q\) is not an id → `find` (seed of \(q\)) then `pin_map`, or **skip**. Do not invent a node so the emit “looks relevant.” Optional catalog of `session=` ids (Snap), then **look** or **join** (Absorb a slice).
 
-**Over \(M\).** Do not raise goldfish \(M\). Narrow the ego; `view=shell`; partition into more sessions. Path-B import payload \(M\times|\mathrm{anchors}|\) is **not** the goldfish budget.
+**Over \(M\).** Do not raise goldfish \(M\). Narrow the ego; `view=shell`; partition into more **sessions** (strata — [`memnet-session-strata.md`](memnet-session-strata.md)). Path-B import payload \(M\times|\mathrm{anchors}|\) is **not** the goldfish budget.
 
 | Leg | Few LLM tokens; high correspondence to \(q\) | Spend instead |
 |-----|-----------------------------------------------|---------------|
