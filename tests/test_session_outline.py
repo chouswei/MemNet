@@ -115,6 +115,9 @@ def test_outline_cue_conflict_if_exemplar_name_collides(memnet_temp):
     assert r.stdout.count("trump") >= 2
     assert "-[:" not in r.stdout
     assert "_el" not in r.stdout
+    from memnet.session import get_session
+
+    assert len(get_session(sid).store.match_nickname("trump")) == 2
 
 
 def test_outline_does_not_require_anchor_or_match_seed(memnet_temp):
