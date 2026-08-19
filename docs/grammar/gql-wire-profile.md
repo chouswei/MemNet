@@ -50,7 +50,7 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 |-------|---------|-----------------|
 | `anchor` | Ego node `id` (required for goldfish) | Stable id string |
 | `depth` | Hop budget from anchor | Typical `2` |
-| `view` | Grain budget | Omit → shell-safe default; teach `shell` / `interior` first |
+| `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first. Not a second session ([`memnet-session-strata.md`](memnet-session-strata.md)) |
 | `max_rows` | Hard row / element cap | Engine default (e.g. 50) |
 
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
@@ -236,4 +236,5 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (not live-claimed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |
+| [`memnet-session-strata.md`](memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |

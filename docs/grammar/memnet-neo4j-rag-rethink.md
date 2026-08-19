@@ -13,7 +13,7 @@
 | [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Why RAG was hot; retrieve from source |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | As-is MemNet ↔ Neo4j seam |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Host Snap steal/reject |
-| [`memnet-harness-thesis.md`](memnet-harness-thesis.md) | Placement: memory plane of a harness |
+| [`memnet-session-strata.md`](memnet-session-strata.md) | Sessions as strata (not Layer); catalog then one Shape |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | One mission SSOT; Path A / B |
 | [`../../sysml-models/outputs/session-import-case-study.md`](../../sysml-models/outputs/session-import-case-study.md) | Absorb: slice → lead; `keep` / `reject` / `remint` |
 

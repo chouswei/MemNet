@@ -14,7 +14,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | **Version map SSOT** |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | **Version map SSOT** — one picture; 1.0 = claim; planned extras 0.10–0.17 |
 | [`ROADMAP.md`](ROADMAP.md) | Pointer to SHAPE + version map |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |
@@ -29,7 +29,8 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host locators into MutateGate (design; Snap vs Shape; goldfish I/O after [#84](https://github.com/chouswei/MemNet/pull/84)) |
 | [`grammar/rag-relative-algorithms.md`](grammar/rag-relative-algorithms.md) | RAG-relative retrieve algorithms (research; GraphRAG / Graphiti / LightRAG / HippoRAG / …) |
 | [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) | Design proposal: two ports; catalog Snap; join by Absorb (not shipped HostSearch) |
-| [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Design thesis: harness memory plane; GitHub mechanisms + critical objections (cache dump, env blob, unshipped caller) |
+| [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Design thesis: harness memory plane; GitHub review + objections |
+| [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md) | Sessions as strata (design; not Layer); goldfish one \(S\) then Absorb |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 | [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | As-is line-codec harness notes (not GQL teach) |
 | [`grammar/archive/`](grammar/archive/) | Quarantined historical Layer / Tier A sources |
