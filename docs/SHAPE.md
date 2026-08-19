@@ -37,7 +37,7 @@ From that problem, the product **must** be this shape:
    - **Session Shape** — compress \(S\) for the next LLM call (`max_rows` \(M\), hop \(k\)).
    - **Host Snap** — optional corpus → **locators** only. MUST NOT Snap-on-session (no ANN / `rag_query` of \(S\)).
 
-5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** proved live AgensGraph hydrate/flush; the server is not vendored. An optional Neo4j client sits on the same seam and is **not** live-claimed. Fake-alone is not a durable claim.
+5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** proved live AgensGraph hydrate/flush; the server is not vendored. An optional Neo4j client sits on the **same** seam: LLM ↔ MemNet (GQL), MemNet ↔ Neo4j (Bolt hydrate/flush, one owner). Live Neo4j is **not** claimed. Fake-alone is not a durable claim. Talk: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
 
 6. **This repo** — engine + generic `memnet-mcp` only. Novel-writer stays dropped. Transport: in-process first (single agent); **Multitask** uses TCP serve or streamable-http so workers share one \(S\).
 

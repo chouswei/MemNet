@@ -116,7 +116,7 @@ Stay out of the 0.5 engine/MCP ship unless a later row already claimed it. **MUS
 
 **GQL:** agent teach/wire only. **MUST NOT** revive Layer teach.
 
-**AgensGraph / Neo4j:** backing graphs for sessions — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct (Bolt), chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path. Neo4j client: [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
+**AgensGraph / Neo4j:** backing graphs for sessions — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct (Bolt), chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path. Between MemNet and Neo4j: [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
 
 ---
 
