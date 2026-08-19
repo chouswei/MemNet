@@ -7,20 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Neo4j durable client** — `Neo4jAdapter` beside `AgensGraphAdapter` on the same `DurableStoreAdapter` hydrate/flush seam and one `DurableSyncOwner`. Optional extra `memnet-llm[neo4j]` (official driver only; server not vendored). Factory errors if both cabinet URLs are set unless `MEMNET_DURABLE_BACKEND` picks one. Unit/Bolt-stub tests always-on; `pytest -m neo4j_live` skips unless `MEMNET_NEO4J_URL`. SysML: `DurableBuffer.neo4j` with `implemented=true` / `liveNeo4jClaimed=false`. Docs: `docs/grammar/neo4j-buffer.md`.
-
 ### Leftover
 - **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
-
-### Changed
-- **docs: 0.8 housekeeping for 1.0 claim** — live docs + application notes aligned to shipped 0.5–0.8 (find, honesty, live cabinet, GQL teach); Layer files stay archive/stub; PyPI lag (0.4.6) stated where install is taught. No engine cut.
 
 ### Added
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
-- **Version map locked** — 0.8 = GQL teach + shape for people; 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet. SSOT: `docs/ROADMAP-0.5.md`.
+- **Version map locked** — 0.8 = GQL teach + shape for people; **0.9** = Neo4j client extra (live unclaimed); 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet / live Neo4j. SSOT: `docs/ROADMAP-0.5.md`.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.
 - **Snap vs Shape (design)** — host RAG **Snaps** corpus topics to locators; `pin_map` **Shapes** session neighbourhood \(\tilde{X}\). In-session TSK already on \(S\): seed then Shape — MUST NOT ANN the session. Grammar: `docs/grammar/math-skeleton.md`. [#77](https://github.com/chouswei/MemNet/issues/77) note 26.
@@ -34,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pinned role** — working set of a few technical documents, goldfish-fast (tens of MiB typical; hundreds of MiB still fine). README + host-search grammar.
 - **Keyword/tag cues (design)** — in-session recall is SCHEMA-kind vocabulary as overlapping cues (human working memory); find by keyword then `pin_map`. Fuzzy for recall only — not ACL, not Absorb, not ANN. [#77](https://github.com/chouswei/MemNet/issues/77).
 - **In-session retrieve vs graph-memory code** — goldfish is **serial** cue then `pin_map` (Graphiti center-distance / HiAgent current subgoal). Reject HippoRAG PPR+OpenIE, Graphiti RRF hybrid, and mem0 vector→prompt as engine. [#77](https://github.com/chouswei/MemNet/issues/77).
+
+## [0.9.0] - 2026-08-19
+
+### Added
+- **Neo4j durable client** — `Neo4jAdapter` beside `AgensGraphAdapter` on the same `DurableStoreAdapter` hydrate/flush seam and one `DurableSyncOwner`. Optional extra `memnet-llm[neo4j]` (official driver only; server not vendored). Factory errors if both cabinet URLs are set unless `MEMNET_DURABLE_BACKEND` picks one. Unit/Bolt-stub tests always-on; `pytest -m neo4j_live` skips unless `MEMNET_NEO4J_URL`. SysML: `DurableBuffer.neo4j` with `implemented=true` / `liveNeo4jClaimed=false`. Docs: `docs/grammar/neo4j-buffer.md`.
+
+### Changed
+- **docs: 0.8 housekeeping for 1.0 claim** — live docs + application notes aligned to shipped 0.5–0.8 (find, honesty, live cabinet, GQL teach); Layer files stay archive/stub; PyPI lag (0.4.6) stated where install is taught. No engine cut.
+- Package **0.9.0**. **1.0** stays 0.5–0.8 claimed (not a live-Neo4j / HostSearch / N-server / Peak_L gate). PyPI `memnet-llm` is still **0.4.6**.
 
 ## [0.8.0] - 2026-08-18
 
@@ -606,7 +609,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/chouswei/MemNet/compare/v0.8.0...v0.9.0
 [0.4.1]: https://github.com/chouswei/MemNet/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/chouswei/MemNet/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/chouswei/MemNet/compare/v0.3.5...v0.3.6

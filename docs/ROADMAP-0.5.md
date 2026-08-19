@@ -1,6 +1,6 @@
 # Roadmap 0.5.0 — one path
 
-**Status:** version map below is the SemVer SSOT. Product shape: [`SHAPE.md`](SHAPE.md). Package **0.8.0** = this teach/shape cut.  
+**Status:** version map below is the SemVer SSOT. Product shape: [`SHAPE.md`](SHAPE.md). Package **0.9.0** = Neo4j cabinet-client extra (`liveNeo4jClaimed=false`).  
 **Audience:** product developers. Agent ops: [`LLM-GUIDE.md`](LLM-GUIDE.md) / [`multi-agent-sessions.md`](multi-agent-sessions.md) — dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)).
 
 **Product:** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory: LLM handoff = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — **MUST NOT** pass a graph dump in chat. Chat is never SSOT ([`multi-agent-sessions.md`](multi-agent-sessions.md)). A durable online GQL store (M2.5) **backs** sessions; it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
@@ -17,12 +17,15 @@
 | **0.6.0** | Honesty: V5 LAW×N pytest, snapshot as offered durable, version-map docs | **Shipped** (`v0.6.0`) |
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`docs/SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Rebase of identity [#87](https://github.com/chouswei/MemNet/pull/87) on 0.7 — cabinet stays claimed | **Shipped** (`v0.8.0`) |
+| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`), factory both-URL rule (`MEMNET_DURABLE_BACKEND`), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip **unclaimed** (`liveNeo4jClaimed=false`). Cabinet extra, not a 1.0 gate | **Shipped** (package 0.9.0; tag by coordinator) |
 | **1.0.0** | **0.5 + 0.6 + 0.7 + 0.8** claimed. Product shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine; Later items stay Later | **Claim next** — PyPI still 0.4.6 |
-| **Later** | `Peak_L`, HostSearch ship, N-server (#47), pin-map export (#66), hosted AgensGraph as a product service, live Neo4j round-trip (`liveNeo4jClaimed`) | **Out** — do not hold 0.8 or 1.0 |
+| **Later** | `Peak_L`, HostSearch ship, N-server (#47), pin-map export (#66), hosted AgensGraph as a product service, live Neo4j round-trip (`liveNeo4jClaimed`) | **Out** — do not hold 0.9 or 1.0 |
 
 **0.8 MUST:** one dialect teach (GQL only; Layer archive only); Write = display = bounded shaped `pin_map`; session id = handoff handle; working memory ≠ corpus (no `rag_query`). Wire SSOT stays [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this engine repo.
 
-**0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second **live** cabinet claim; vendor AgensGraph/Neo4j servers; restore Layer teach or novel-writer; merge stale #87 text that unclaims the Agens cabinet. Optional Neo4j **client** may land with `liveNeo4jClaimed=false`.
+**0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second **live** cabinet claim; vendor AgensGraph/Neo4j servers; restore Layer teach or novel-writer; merge stale #87 text that unclaims the Agens cabinet. Optional Neo4j **client** landed in **0.9** with `liveNeo4jClaimed=false`.
+
+**0.9 MUST NOT:** claim `liveNeo4jClaimed`; vendor a Neo4j server; hold **1.0** for live Neo4j, HostSearch, N-server, or Peak_L.
 
 **1.0 MUST NOT** wait on the Later row.
 
@@ -37,7 +40,7 @@
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
 | **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — Agens client + live hydrate/flush proven; optional Neo4j client (not live-claimed); Fake always-on CI; skip live marks unless URL exported |
 
-**Next SemVer:** **1.0.0** = **claim** of 0.5–0.8 (no extra engine). One-path gates below stay the teach/ops lock. Durable sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). Do **not** wait on Later (Peak_L, HostSearch ship, N-server, export, hosted cabinet).
+**Next SemVer:** **1.0.0** = **claim** of 0.5–0.8 (no extra engine; 0.9 is not a 1.0 gate). One-path gates below stay the teach/ops lock. Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Do **not** wait on Later (Peak_L, HostSearch ship, N-server, export, hosted cabinet, live Neo4j).
 
 User-pack MemNet skills → GQL-only is **in flight separately** (`chouswei/cursor-user-skills`).
 
