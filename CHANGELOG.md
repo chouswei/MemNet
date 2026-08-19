@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
 
 ### Added
+- **Harness thesis (design)** — MemNet as the **memory plane of an agent harness** (not RAG, not Neo4j, not the full scaffold). Homograph vs grammar golden harness. [`docs/grammar/memnet-harness-thesis.md`](docs/grammar/memnet-harness-thesis.md).
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
