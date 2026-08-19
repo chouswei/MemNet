@@ -10,7 +10,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 1. **MemNet = mission working memory** — session-scoped NODE|EDGE buffer (brand SharedLlmMemory); **not** the search corpus, **not** GraphRAG. In-session recall = serial cue then `pin_map`; host RAG may propose locators only.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
-3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter + Neo4jAdapter) — **M2.5 / 0.7** Agens live hydrate/flush proven; Neo4j extra **0.14** `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); cabinets external / not vendored. LLM↔store direct (Bolt) out of teach.
+3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter + Neo4jAdapter) — **M2.5 / 0.7** Agens live hydrate/flush proven; Neo4j extra **0.14** `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); extra **0.16** optional library database (locators only); cabinets external / not vendored. LLM↔store direct (Bolt) out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
@@ -57,7 +57,8 @@ MemNetSystem                                 // SharedLlmMemory product
 ├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
 ├── DurableBuffer                            // M2.5 / 0.7 Agens live proven; cabinet external
 │   ├── AgensGraphAdapter                    // hydrate/flush client; liveCabinetClaimed=true
-│   └── Neo4jAdapter                         // same seam; implemented; liveNeo4jClaimed=true (0.14)
+│   ├── Neo4jAdapter                         // same seam; implemented; liveNeo4jClaimed=true (0.14)
+│   └── Neo4jLibraryPort                     // 0.16; skip unless MEMNET_NEO4J_LIBRARY_DATABASE
 ├── PinMapRoadmap                            // all PinMapIngest_* domains shipped (#64)
 │   ├── PinMapIngest_Sysml                  // first engine (qname=/path=)
 │   ├── PinMapIngest_Codebase               // MOD/SYM (path=/line=/signature=)

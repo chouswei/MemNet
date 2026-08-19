@@ -5,7 +5,8 @@ Connection placeholders (never hardcode secrets):
 - MEMNET_NEO4J_URL        e.g. bolt://127.0.0.1:7687 or neo4j://…
 - MEMNET_NEO4J_USER
 - MEMNET_NEO4J_PASSWORD
-- MEMNET_NEO4J_DATABASE   named database (default: neo4j)
+- MEMNET_NEO4J_DATABASE   cabinet database (default: neo4j)
+- MEMNET_NEO4J_LIBRARY_DATABASE  optional library database (skip if unset)
 
 This module is a **client** only: it speaks Neo4j Cypher over the official
 ``neo4j`` Python driver to a store the operator already runs. It does
@@ -16,7 +17,9 @@ hydrate/flush. Agents MUST NOT talk Bolt.
 
 Live Bolt round-trip is claimed as extra **0.14** (``liveNeo4jClaimed=true``;
 live round-trip yes; hid flush; leftover-nickname hydrate after hid miss).
-Hid stays off the wire. Skip live pytest unless ``MEMNET_NEO4J_URL``.
+Extra **0.16** library namespace is ``neo4j_library`` (second database
+name), not this adapter. Hid stays off the wire. Skip live pytest unless
+``MEMNET_NEO4J_URL``.
 """
 
 from __future__ import annotations
@@ -252,6 +255,16 @@ class Neo4jAdapter(DurableStoreAdapter):
         cfg = Neo4jConfig.from_env()
         if cfg is None:
             return None
+        from memnet.durable.neo4j_library import library_database_name
+
+        lib = library_database_name()
+        if lib and cfg.database_name == lib:
+            raise MemNetError(
+                "neo4j_library_same_as_cabinet",
+                "cabinet MEMNET_NEO4J_DATABASE must differ from "
+                "MEMNET_NEO4J_LIBRARY_DATABASE.",
+                example="export MEMNET_NEO4J_LIBRARY_DATABASE=library",
+            )
         return cls(cfg)
 
     @property

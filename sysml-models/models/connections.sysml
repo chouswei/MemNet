@@ -135,6 +135,21 @@ package MemNetConnections {
     attribute grain : String;
   }
 
+  item def LibraryLocator {
+    doc /*
+      Extra 0.16: locator properties from the Neo4j library namespace
+      (path= / document_id= / qname= / session= / url=). Corpus haystack,
+      not session S. generate=false. HiddenStoreHandle / _memnet_hid stay
+      off the emit. MutateGate / ingest of these locators is later (0.17).
+    */
+    attribute path : String;
+    attribute document_id : String;
+    attribute qname : String;
+    attribute session : String;
+    attribute url : String;
+    attribute generate : Boolean = false;
+  }
+
   item def SessionImportRequest {
     doc /*
       Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
@@ -173,9 +188,11 @@ package MemNetConnections {
       M2.5 client adapter seam (DurableStoreAdapter / Fake / optional
       AgensGraph client with liveCabinetClaimed; optional Neo4j client
       with liveNeo4jClaimed=true (0.14); SessionLifecycle hydrate/flush).
-      Live cabinet is external — not vendored. LLM ↔ store direct
-      (including Bolt) is out of default teach. One sync owner.
-      MN-REQ-06.4.
+      Extra 0.16: one Neo4j process MAY host two named databases —
+      cabinet (flushed S) vs library (corpus). Library is not this
+      hydrate/flush item. Live cabinet is external — not vendored.
+      LLM ↔ store direct (including Bolt) is out of default teach.
+      One sync owner. MN-REQ-06.4.
     */
   }
 
@@ -593,6 +610,21 @@ package MemNetConnections {
     in item locator : CatalogSessionLocator;
   }
 
+  port def LibraryLocatorOutPort {
+    doc /*
+      Extra 0.16: emit library-namespace locators only. Never generate.
+      Never shaped pin_map. Never cabinet hydrate payload.
+    */
+    out item locator : LibraryLocator;
+  }
+  port def LibraryLocatorInPort {
+    doc /*
+      Accept library locators into MutateGate / ingest later (0.17).
+      Unused as a product goldfish hop this cut. SHALL NOT RRF/PPR.
+    */
+    in item locator : LibraryLocator;
+  }
+
   port def SessionImportRequestOutPort {
     doc /* Emit lead-owned SessionImportRequest. */
     out item importReq : SessionImportRequest;
@@ -836,6 +868,17 @@ package MemNetConnections {
     end port sink : DurableHydrateInPort;
   }
 
+  connection def LibraryLocatorFlow {
+    doc /*
+      Extra 0.16: Neo4j library port → locators only. MutateGate /
+      PinMapIngest consume later (0.17 HostSearch). SHALL NOT bind to
+      PinMapShapedRead. SHALL NOT convey generate, RRF, PPR, Leiden,
+      or ANN of S. Skip the source when the library database name is unset.
+    */
+    end port source : LibraryLocatorOutPort;
+    end port sink : LibraryLocatorInPort;
+  }
+
   connection def DurableFlushFlow {
     doc /*
       ROADMAP M2.5: SessionLifecycle / GraphStore → DurableBuffer.
@@ -943,9 +986,11 @@ package MemNetConnections {
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
       RagHostHook Snaps the corpus to locators; existing MutateGate /
       PinMapIngest commits (Commit creates the element; no id-mint law).
+      Extra 0.16 library port MAY feed locators here later (0.17).
       Skip is valid. MUST NOT call
       this absorb (ImportAbsorb is Path-B slice + id_policy only). MUST
-      NOT Snap-on-session. Design only — no rag_query MCP. Product math
+      NOT Snap-on-session. Design only — no rag_query MCP.
+      RagHostHook.implemented stays false this cut. Product math
       sits above this research: docs/grammar/math-skeleton.md. See
       grammar/memnet-host-search-nest.md.
     */

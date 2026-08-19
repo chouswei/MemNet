@@ -209,7 +209,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.
 - Dual-teach two agent dialects.
 - Delete mission budgets (sessions, view, Multitask owner) in favour of raw store access.
-- Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI). Do **not** vendor a cabinet. Do **not** start 0.16 two namespaces from this wire cut.
+- Require the durable cabinet for goldfish / M1–M2 wire (sync is **M2.5 / 0.7**; optional; Fake + URL skip in CI). Do **not** vendor a cabinet. Two Neo4j namespaces are extra **0.16** (not this wire cut).
 - Teach full GQL DDL as agent surface in first cut.
 - Pretend the 0.9 Python already dropped `by_id` / `validate_id` / `id_first`.
 - Vendor the whole openCypher repo, TCK, CIP tree, or ANTLR tools; generate a parser/visitor from [`openCypher.bnf`](openCypher.bnf) as a second accept path; claim TCK compliance; describe MemNet as “Cypher” or “openCypher”.
