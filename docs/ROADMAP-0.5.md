@@ -52,12 +52,36 @@ Handoff = **session id** (+ anchors / write scope). Peers **re-`pin_map`**. Chat
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
 | **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip **unclaimed**. Cabinet extra, **not** a 1.0 gate | **Shipped** (package 0.9.0; tag by coordinator) |
-| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim next** — PyPI still 0.4.6 |
-| **Later** | See table below. Out of 0.9 and 1.0 | **Out** |
+| **0.10–0.17** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Plan** — not tagged |
+| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — PyPI still 0.4.6 |
+| **Later** | Grammar Open / hosted product / leftover ACL; or 0.10+ if untagged. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
 
-**Next SemVer is 1.0.0** = publish the claim (and PyPI when the coordinator tags). No extra engine. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
+**1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras. Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
 
-**1.0 MUST NOT** wait on the Later table — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not a goldfish caller in third-party harnesses.
+**1.0 MUST NOT** wait on 0.10+ — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not OpenHands/SWE-agent adoption.
+
+---
+
+## Planned extras (0.10 …)
+
+One concern per minor. Dependency order. **MUST NOT** treat this table as implemented. Skip a row only if the coordinator writes the skip in CHANGELOG; do not fuse two rows into one tag.
+
+| Version | Owns | Depends on | MUST NOT |
+|---------|------|------------|----------|
+| **0.10.0** | **Goldfish caller contract** (this repo). Playbook + MCP/CLI contract: each turn `pin_map(q)` (or skip); **drop** prior map rows from the prompt; sparse Δ; env blobs stay in the harness. Pytest that a stuffed history of maps is a **fail**. Optional `view=shell` survey. | 0.8 teach; engine already ships `pin_map` | Patch OpenHands/SWE-agent; `rag_query`; raise goldfish \(M\) |
+| **0.11.0** | **Live Neo4j claimed.** Operator cabinet proves hydrate/flush; `liveNeo4jClaimed=true`; skip unless `MEMNET_NEO4J_URL` (mirror 0.7). CI stays Fake + skip. | 0.9 client | Vendor a Neo4j server; LLM↔Bolt; second database name |
+| **0.12.0** | **Catalog Snap.** List `session=` ids as locators; look = `pin_map` on that session; join = Path-B Absorb a **slice** (`keep`/`reject`/`remint`). | Absorb shipped (0.4.x); 0.10 caller so catalog is not a dump | Rank sessions with ANN; Absorb a whole \(S\); Absorb Neo4j library nodes |
+| **0.13.0** | **Two Neo4j namespaces** (rethink option B). Same process; cabinet vs library (`MEMNET_NEO4J_LIBRARY_DATABASE` or labels). Library port emits **locators only**, never `generate`. | 0.11 live claim (else two ports on Fake is theatre) | Fuse RRF/PPR/Leiden into `pin_map`; share `_memnet_tag` with corpus |
+| **0.14.0** | **HostSearch locators.** `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.13 namespaces so Snap does not write the cabinet | `rag_query` MCP; chunk bodies on `note=`; Snap-on-session |
+| **0.15.0** | **`Peak_L` last-resort seed.** Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find + goldfish paradox tests | Peak as default ego; Leiden/cluster assignment |
+| **0.16.0** | **Pin-map export / round-trip.** MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66). Ingest ≠ export. | Shaped emit (M2) | Treat export as Absorb; chat dump as export |
+| **0.17.0** | **N-server session pipe.** [#47](https://github.com/chouswei/MemNet/issues/47). Shared \(S\) across serve processes without Snap-on-session. | TCP/HTTP Multitask (0.8 honesty) | In-process graphs as shared mission; dual-write without one owner |
+
+**After 0.17 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled).
+
+**Not a `memnet-llm` minor:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS. Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.10 caller text; this engine still owns the **fail-the-stuffed-maps** test.
+
+**0.10 MUST NOT** wait on 0.11. **0.12 MUST NOT** wait on HostSearch. **0.15 MUST NOT** wait on Neo4j. Parallel only when the Depends-on cell is already shipped.
 
 **0.8 MUST:** one dialect teach (GQL only; Layer archive only); Write = display = bounded shaped `pin_map`; session id = handoff handle; working memory ≠ corpus (no `rag_query`). Wire SSOT: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
@@ -67,29 +91,21 @@ Handoff = **session id** (+ anchors / write scope). Peers **re-`pin_map`**. Chat
 
 ---
 
-## Later (sorted)
+## Later (unnumbered remainder)
 
-Stay out of 1.0 unless a row already claimed it. **MUST NOT** treat design docs as implemented.
-
-### Engine / product (this repo, after 1.0)
+Numbered fill is **0.10–0.17** above. This list is the overflow. **MUST NOT** treat design docs as implemented.
 
 | Item | Notes |
 |------|--------|
-| Live Neo4j round-trip | Client landed in 0.9; claim `liveNeo4jClaimed` only after an operator cabinet proves flush/hydrate (mirror 0.7). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). |
-| HostSearch ship | Application `HostSearchBridge` **outside** `MemNetSystem`; locators only. No `rag_query`. Design-locked Snap/Shape: [#84](https://github.com/chouswei/MemNet/pull/84), [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Two Neo4j **namespaces** (cabinet vs library) = same Later bucket — [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) option B. |
-| Catalog Snap (`session=` ids) | Option D in the rethink. Join remains Path-B Absorb, not RAG. |
-| `Peak_L` | Last-resort Recall seed. Orthodox plan: [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md). |
-| N-server session pipe | [#47](https://github.com/chouswei/MemNet/issues/47) |
-| Pin-map export / round-trip | MN-REQ-11.1–11.5 / [#66](https://github.com/chouswei/MemNet/issues/66); ingest ≠ export |
-| Hosted AgensGraph as a product service | 0.7 proved **client** live; server not vendored; hosted = Later |
+| Hosted AgensGraph as a product service | 0.7 proved **client** live; server not vendored |
 | First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
-| Full ACL modes / roles / `session_token` | CapsPolicy already ships when enabled; the rest stays design |
+| Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled |
 
 ### Not this repo’s SemVer (harness leftovers)
 
 | Item | Notes |
 |------|--------|
-| Goldfish caller | Outer harness drops old `pin_map` from chat. Unshipped in SWE-agent / OpenHands / Inspect / Letta-code. Teach: user-pack `mcp-memnet` (Cursor). |
+| Goldfish caller in **other** harnesses | 0.10 owns the **contract** in this repo. OpenHands/SWE-agent/Inspect patches are not `memnet-llm` SemVer. |
 | Cache-hit dump vs Shape+Flash | MN-REQ-00 unmeasured. Do not pretend dump always loses. |
 | Env-blob channel | Harness condenser of pytest logs ≠ MemNet Shape. |
 | Eval dual-tape | Inspect (and cousins) keep a transcript for scoring; \(S\) is not that tape. |
@@ -109,7 +125,7 @@ Stay out of 1.0 unless a row already claimed it. **MUST NOT** treat design docs 
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
 | **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — optional Neo4j client 0.9, not live-claimed |
 
-Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
+Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Planned extras: **0.10–0.17** above.
 
 ### Already shipped (from 0.4.x — do not list as deferred)
 
