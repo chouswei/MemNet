@@ -71,14 +71,34 @@ Huang et al. (*Harness the Memory*, 2026) define an **agent harness** as scaffol
 
 | System | What the harness is | What it uses as “memory” | Cut vs MemNet |
 |--------|---------------------|---------------------------|---------------|
-| **SWE-agent** (Yang et al., NeurIPS 2024) | Agent–computer interface; linear trajectory | Full history in the prompt | No named \(S\); goldfish = dump |
-| **mini-SWE-agent** | ~bash-only loop | Linear messages = trajectory | Same |
-| **OpenHands** / SDK (Wang et al., 2024–2025) | Event-sourced loop, Docker, MCP tools | Event history + **condenser** | Transcript compression ≠ `pin_map` |
-| **Inspect AI** (UK AISI) | **Eval** harness (ReAct, deep agents, bridge) | Task state / transcripts | Eval, not mission SSOT |
-| **HiAgent** (ACL 2025) | Env loop + subgoal chunks | Replace finished subgoal with a summary | Steal: live `TSK_*`, settle. Reject: prompt-only, no graph |
-| **Letta / MemGPT** | Tool-edited tiers | Core = prose in the prompt; archival = vectors | Steal: working vs cabinet. Reject: core blocks as Shape; archival **inside** `memnet-mcp` |
+| **SWE-agent** (Yang et al., NeurIPS 2024) | Agent–computer interface; linear trajectory | Full history, optionally **elided** | No named \(S\); goldfish = dump |
+| **mini-SWE-agent** | ~bash-only loop | `self.messages` grows every `query()` | Same |
+| **OpenHands** / SDK (Wang et al., 2024–2025) | Event-sourced loop, Docker, MCP tools | Event `View` + **condenser** (LLM summary) | Transcript compression ≠ `pin_map` |
+| **Inspect AI** (UK AISI) | **Eval** harness (ReAct, MCP, checkpoint) | Chat list + **compaction** / `trim_messages` | Eval, not mission SSOT |
+| **HiAgent** (ACL 2025) | Paper cousin; GitHub is AgentBoard eval | Subgoal replace (paper); repo is SAS scores | Steal: live `TSK_*`, settle. Reject: prompt-only |
+| **Letta / MemGPT** | Now `letta-code` harness + MemFS | Prose **blocks** + `$MEMORY_DIR` files | Steal: working vs cabinet. Reject: blocks as Shape |
 | **Graphiti / GraphRAG** | Often Neo4j | Hybrid search + generate / communities | Library Snap cousins; not goldfish |
 | **This repo (as-is)** | Cursor / MCP caller | `memnet-llm` + `memnet-mcp` | Engine + tools only; novel-writer dropped |
+
+**Not this review.** `parts/memnet-mcp/` is MemNet’s **generic MCP**, not an outer harness. The GitHub harnesses below own bash, sandbox, eval, and the completion API.
+
+### 3.1 GitHub harness codebases (fetched)
+
+As-is on GitHub. None of these ships a GQL session id as the peer handoff. Memory is the **transcript**, a **summary of the transcript**, or **prose files in the prompt**.
+
+**SWE-agent** ([`SWE-agent/SWE-agent`](https://github.com/SWE-agent/SWE-agent)). `AbstractAgent.messages` chains `history_processors` over `self.history` (`sweagent/agent/agents.py`). Classic processor: `LastNObservations` in `sweagent/agent/history_processors.py` — keep last \(n\) env observations (paper \(n=5\)), replace the rest with `Old environment output: (n lines omitted)`. Comments now say large windows often make this **optional**, and that elision **breaks prompt cache** unless `polling` batches the rewrite. Other processors: closed file-windows, regex strip, Anthropic cache marks. That is **lossy trajectory edit**, not \(\mathrm{Recall}(q)\). Same \(q\) next turn does not re-Shape a named neighbourhood; omitted lines are gone.
+
+**mini-SWE-agent** ([`SWE-agent/mini-swe-agent`](https://github.com/SWE-agent/mini-swe-agent)). `DefaultAgent.query()` always calls `self.model.query(self.messages)` then `add_messages` (`src/minisweagent/agents/default.py`). Cost / step / wall-clock **stop** the loop; they do not bound the prompt to a codebook ego. Memory **is** the message list.
+
+**OpenHands** — two repos. [`OpenHands/OpenHands`](https://github.com/OpenHands/OpenHands) is now the **TypeScript UI** (`src/` React). The Python condenser lives in [`OpenHands/software-agent-sdk`](https://github.com/OpenHands/software-agent-sdk): `openhands/sdk/context/condenser/`. `CondenserBase.condense(view)` returns a smaller `View` **or** a `Condensation` the agent must emit instead of an action. `LLMSummarizingCondenser` (default `max_size=80`, `keep_first=4`) fires on event count, token cap, or explicit request; it **LLM-summarises forgotten events** (`summarizing_prompt.j2`) and inserts the summary. Token pressure is **HARD** (next generate would fail); event-count is **SOFT**. That spends an extra completion to shrink **chat**, not to Shape \(S\). Steal: separate summariser LLM from the actor. Reject: fuse that summariser into `pin_map`.
+
+**Inspect AI** ([`UKGovernmentBEIS/inspect_ai`](https://github.com/UKGovernmentBEIS/inspect_ai)). `react()` is a ReAct `while` with tools, MCP, and a checkpointer (`src/inspect_ai/agent/_react.py`). Overflow: `compaction` first, then `truncation="auto"` → `trim_messages`. Trim (`src/inspect_ai/model/_trim.py`) keeps system + sample input, then a **ratio** of remaining conversation (default preserve \(0.7\)–\(0.8\)), repairing tool_call / tool_result pairs. `CompactionTrim` can also `clear_memory_content` on preserved turns. Checkpoint tracks `messages`, not a session graph. Inspect **can** call MemNet as just another MCP tool; it does not **be** MemNet.
+
+**Letta** — landing page [`letta-ai/letta`](https://github.com/letta-ai/letta) points at [`letta-ai/letta-code`](https://github.com/letta-ai/letta-code); V1 Python server is the `archive` branch. Live harness: default blocks `persona` / `human` from `.mdx` (`src/agent/memory.ts`); `memory` tool edits `$MEMORY_DIR` (`str_replace` / `insert` / files under `system/` always in the prompt — `src/tools/descriptions/Memory.md`). MemFS is a backend capability (`memory-runtime.ts`). That is **editable prose + a filesystem**, not labelled property graph Shape. Steal: working files vs remote MemFS. Reject: archival search **inside** `memnet-mcp`.
+
+**HiAgent** ([`HiAgent2024/HiAgent`](https://github.com/HiAgent2024/HiAgent)). Public tree is **AgentBoard** eval (`agentboard/`, `evaluate_model.sh`), not a reusable memory library. The **paper** (subgoal replace) is the cousin; do not cite this repo as shipped hierarchical \(S\).
+
+**Pattern.** Every harness still **packs a chat list** for the next generate. When the list grows, they **elide**, **trim a ratio**, or **summarise with another LLM**. MemNet’s law is the opposite: do not grow the list as SSOT; **skip or Shape** from cue \(q\); sparse \(\Delta\). A condenser of omitted bash is not a pin map of `TSK_*` / `USR_*` / `MOD_*`.
 
 Confucius Code Agent (2025) and OpenHands leaderboard commentary repeat the same moral as Huang: **orchestration and memory handling close gaps** that a stronger backbone alone does not. None of those scaffolds ship a **GQL session id** as the peer handoff.
 
@@ -165,12 +185,12 @@ As-is, `memnet-llm[neo4j]` is cabinet only. Honest, and operator-hostile: GraphR
 Doctrine (this repo): [`../SHAPE.md`](../SHAPE.md), [`math-skeleton.md`](math-skeleton.md), [`gql-wire-profile.md`](gql-wire-profile.md), [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md), [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md), MN-REQ-00 in `sysml-models/models/requirements.sysml`.
 
 1. Lewis et al., *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks*, 2020.
-2. Yang et al., *SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering*, NeurIPS 2024. [arXiv:2405.15793](https://arxiv.org/abs/2405.15793).
-3. Wang et al., OpenDevin / OpenHands line, 2024; OpenHands Software Agent SDK, 2025. [arXiv:2511.03690](https://arxiv.org/abs/2511.03690).
-4. Hu et al., *HiAgent: Hierarchical Working Memory Management…*, ACL 2025. [HiAgent2024/HiAgent](https://github.com/HiAgent2024/HiAgent).
-5. Packer et al., *MemGPT* (Letta), 2023–.
+2. Yang et al., *SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering*, NeurIPS 2024. [arXiv:2405.15793](https://arxiv.org/abs/2405.15793). Code: [`SWE-agent/SWE-agent`](https://github.com/SWE-agent/SWE-agent) `history_processors.py`; [`SWE-agent/mini-swe-agent`](https://github.com/SWE-agent/mini-swe-agent) `agents/default.py`.
+3. Wang et al., OpenDevin / OpenHands line, 2024; OpenHands Software Agent SDK, 2025. [arXiv:2511.03690](https://arxiv.org/abs/2511.03690). UI: [`OpenHands/OpenHands`](https://github.com/OpenHands/OpenHands). Condenser: [`OpenHands/software-agent-sdk`](https://github.com/OpenHands/software-agent-sdk) `sdk/context/condenser/`.
+4. Hu et al., *HiAgent: Hierarchical Working Memory Management…*, ACL 2025. GitHub [`HiAgent2024/HiAgent`](https://github.com/HiAgent2024/HiAgent) is AgentBoard eval, not the memory runtime.
+5. Packer et al., *MemGPT* (Letta), 2023–. Live code: [`letta-ai/letta-code`](https://github.com/letta-ai/letta-code); [`letta-ai/letta`](https://github.com/letta-ai/letta) is the landing page (`archive` = V1 server).
 6. Huang et al., *Harness the Memory: A Holistic Evaluation of Memory Substrates in Memory Agents*, 2026. [arXiv:2608.15008](https://arxiv.org/abs/2608.15008).
-7. UK AISI, *Inspect* — LLM evaluation framework. [inspect.aisi.org.uk](https://inspect.aisi.org.uk/).
+7. UK AISI, *Inspect* — LLM evaluation framework. [inspect.aisi.org.uk](https://inspect.aisi.org.uk/). Code: [`UKGovernmentBEIS/inspect_ai`](https://github.com/UKGovernmentBEIS/inspect_ai) `_react.py`, `_trim.py`.
 8. Edge et al., Microsoft GraphRAG; Zep Graphiti `search` / `rrf` (see [`rag-relative-algorithms.md`](rag-relative-algorithms.md)).
 
 ---
