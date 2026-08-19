@@ -24,6 +24,7 @@
     │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
+    │   └── McpFacade               // TARGET cue/pattern commands only
     ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
     ├── PinMapRoadmap               // all PinMapIngest_* domains shipped (#64)
     └── MultitaskOperatingModel
@@ -228,30 +229,78 @@ package MemNet {
     doc /* 0.9 leftover MemStore.by_id index. Nested under GraphStore. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "by_id";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
   }
 
   part def leftover_MERGE_by_id {
     doc /* 0.9 leftover MERGE-by-id as PK. Nested under GraphStore. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "MERGE-by-id";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
   }
 
   part def leftover_NEW_mint {
     doc /* 0.9 leftover NEW mint. Nested under IdAllocator / remint. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "NEW";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+    attribute implemented : Boolean = true;
   }
 
   part def leftover_allocate_from_locator {
     doc /* 0.9 leftover PinMapIngest allocate_from_locator. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+  }
+
+  part def leftover_require_anchor {
+    doc /*
+      0.9 leftover pin_map require_anchor / by_id. Honesty under
+      PinMapShapedRead. MUST NOT be the TARGET pin_map command.
+    */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "require_anchor";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+    attribute requireAnchorId : Boolean = true;
   }
 
   part def leftover_ingestIsIdRule {
     doc /* 0.9 leftover ingestIsIdRule=true. TARGET Commit flag is false. */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "ingestIsIdRule";
+  }
+
+  part def leftover_read_get {
+    doc /*
+      0.9 leftover MCP/CLI read_get(id) keyed on store-key. Honesty
+      engine only. MUST NOT nest under McpFacade / CliFacade as a
+      product command (MN-REQ-07.5). TARGET implemented=false.
+    */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "read_get";
+    attribute productCommand : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute targetImplemented : Boolean = false;
+    attribute requiresStoreKeyId : Boolean = true;
+  }
+
+  part def leftover_AssignedIdMap {
+    doc /*
+      0.9 leftover required AssignedIdMap emit after NEW. Honesty
+      under IdAllocator. MUST NOT nest as a product command.
+      TARGET implemented=false.
+    */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "AssignedIdMap";
+    attribute productCommand : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute targetImplemented : Boolean = false;
   }
 
   part def liveNeo4jClaimed {
@@ -278,7 +327,10 @@ package MemNet {
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
     part leftover_NEW_mint : leftover_NEW_mint;
+    part leftover_AssignedIdMap : leftover_AssignedIdMap;
     attribute implemented : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+    attribute productCommand : Boolean = false;
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "NEW-by_id";
     attribute teachHiddenStorageHandle : Boolean = false;
@@ -317,6 +369,7 @@ package MemNet {
     part caps : CapsPolicy;
     part leftover_by_id : leftover_by_id;
     part leftover_MERGE_by_id : leftover_MERGE_by_id;
+    part leftover_read_get : leftover_read_get;
     attribute requiredIdProperty : Boolean = false;
     attribute leftoverByIdIndex : Boolean = true;
     attribute leftoverIssue : String = "by_id";
@@ -400,6 +453,7 @@ package MemNet {
     attribute requireAnchorId : Boolean = false;
     attribute leftoverRequireAnchor : Boolean = true;
     attribute leftoverIssue : String = "require_anchor";
+    part leftover_require_anchor : leftover_require_anchor;
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
@@ -762,11 +816,115 @@ package MemNet {
   // Facades / MCP
   // =====================================================================
 
+  // =====================================================================
+  // TARGET agent/CLI/MCP commands (cue/pattern; no store-key id)
+  // Leftover 0.9 id tools live under engine leftover_* — not here.
+  // =====================================================================
+
+  part def CmdSessionOpen {
+    doc /* TARGET: session_open. Session handle is not a graph store key. */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdSessionCurrent {
+    doc /* TARGET: session current. Session handle is not a graph store key. */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdSessionSave {
+    doc /* TARGET: session save. Session handle is not a graph store key. */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdSessionLoad {
+    doc /* TARGET: session load. Session handle is not a graph store key. */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdFind {
+    doc /*
+      TARGET Recall cue: bounded MATCH by kind / labels / properties /
+      keyword (hard LIMIT). SHALL NOT require a store-key id.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute limitRequired : Boolean = true;
+  }
+
+  part def CmdPinMap {
+    doc /*
+      TARGET Recall shape: neighbourhood walk from a cue/pattern
+      (labels+props; optional nickname id). SHALL NOT require a
+      store-key anchor. leftover_require_anchor is leftover engine.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute requireAnchorId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdMutate {
+    doc /*
+      TARGET Commit of GQL: CREATE () legal; MERGE/SET/DELETE by
+      labels+properties; edge = type + two end elements. No NEW.
+      No AssignedIdMap. SHALL NOT fail for missing store-key id.
+      leftover add/update-by-id remains engine honesty.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute createRequiresId : Boolean = false;
+    attribute noNewVerb : Boolean = true;
+    attribute noAssignedIdMapRequired : Boolean = true;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdPathBIngest {
+    doc /*
+      TARGET Path-B ingest: locators are properties, not PK. No client
+      NEW. leftover_allocate_from_locator is leftover engine, not a
+      TARGET command.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute locatorsAreProperties : Boolean = true;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
+  part def CmdPathBImport {
+    doc /*
+      TARGET Path-B import: match by labels+properties. leftover
+      import_slice id_policy keep|reject|remint keyed on store-key is
+      leftover engine, not a TARGET command.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+  }
+
   part def CliFacade {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
-      TierA / Layer line codecs are RETIRED on product path (M2 done) — not
-      target accept doctrine. As-is: memnet.cli (+ serve_client).
+      TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
+      open/current/save/load, find, pin_map, mutate/Commit, Path-B ingest,
+      Path-B import. MUST NOT nest leftover_read_get, leftover_NEW_mint,
+      leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
+      leftover_require_anchor, leftover_allocate_from_locator, or
+      leftover id_policy as product commands. TierA / Layer line codecs
+      are RETIRED on product path (M2 done). As-is: memnet.cli
+      (+ serve_client). Python rewrite out of scope.
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
@@ -775,11 +933,33 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     port sessionOut : SessionIdOutPort;
     port errOut : ErrorSignalOutPort;
+    part sessionOpen : CmdSessionOpen;
+    part sessionCurrent : CmdSessionCurrent;
+    part sessionSave : CmdSessionSave;
+    part sessionLoad : CmdSessionLoad;
+    part find : CmdFind;
+    part pinMap : CmdPinMap;
+    part mutate : CmdMutate;
+    part ingest : CmdPathBIngest;
+    part importSlice : CmdPathBImport;
+    attribute leftoverReadGetNested : Boolean = false;
+    attribute leftoverNewNested : Boolean = false;
+    attribute leftoverAssignedIdMapNested : Boolean = false;
+    attribute leftoverByIdNested : Boolean = false;
+    attribute leftoverMergeByIdNested : Boolean = false;
+    attribute leftoverRequireAnchorNested : Boolean = false;
+    attribute leftoverAllocateFromLocatorNested : Boolean = false;
+    attribute leftoverIdPolicyCommandNested : Boolean = false;
+    attribute leftoverElementIdOnWire : Boolean = false;
+    attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_1_LlmFriendlyStdio;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_3_NoHostilePositionalDump;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_4_BoundaryFriendlyIfInternalDiffers;
@@ -813,14 +993,40 @@ package MemNet {
 
   part def McpFacade {
     doc /*
-      Generic FastMCP tools. Agent memory payloads: GQL mutate + shaped
-      pin_map (target). Structured JSON envelopes. No domain-product tools.
-      LLM agents connect here to MemNet — not to DurableBuffer.
+      Generic FastMCP tools. TARGET commands are cue/pattern only
+      (MN-REQ-07.1 / 07.5): session_open / current / save / load, find,
+      pin_map, mutate/Commit, Path-B ingest, Path-B import. MUST NOT nest
+      leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
+      leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
+      leftover_allocate_from_locator, or leftover id_policy as product
+      commands. Agent memory payloads: GQL mutate + shaped pin_map.
+      Structured JSON envelopes. No domain-product tools. LLM agents
+      connect here to MemNet — not to DurableBuffer. Python rewrite
+      out of scope.
     */
     port apiOut : InProcessOutPort;
     port hostOut : JsonEnvelopeOutPort;
     port fromHost : GqlWireInPort;
     port errOut : ErrorSignalOutPort;
+    part sessionOpen : CmdSessionOpen;
+    part sessionCurrent : CmdSessionCurrent;
+    part sessionSave : CmdSessionSave;
+    part sessionLoad : CmdSessionLoad;
+    part find : CmdFind;
+    part pinMap : CmdPinMap;
+    part mutate : CmdMutate;
+    part ingest : CmdPathBIngest;
+    part importSlice : CmdPathBImport;
+    attribute leftoverReadGetNested : Boolean = false;
+    attribute leftoverNewNested : Boolean = false;
+    attribute leftoverAssignedIdMapNested : Boolean = false;
+    attribute leftoverByIdNested : Boolean = false;
+    attribute leftoverMergeByIdNested : Boolean = false;
+    attribute leftoverRequireAnchorNested : Boolean = false;
+    attribute leftoverAllocateFromLocatorNested : Boolean = false;
+    attribute leftoverIdPolicyCommandNested : Boolean = false;
+    attribute leftoverElementIdOnWire : Boolean = false;
+    attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -829,6 +1035,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_2_StructuredToolEnvelope;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_2_LlmFriendlyMcp;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_3_NoHostilePositionalDump;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_5_IoActorIsLlm;
@@ -963,12 +1171,16 @@ package MemNet {
     part leftover_ingestIsIdRule : leftover_ingestIsIdRule;
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute locatorsAreProperties : Boolean = true;
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
   part def PinMapIngest_Sysml {
@@ -1199,12 +1411,17 @@ package MemNet {
     doc /*
       id_policy=keep: TARGET MERGE = labels+props / rel type+ends into
       lead SSOT (GraphElement lookup). Not a store key. leftover_MERGE_by_id
-      is 0.9 leftover, not this keep. Not a second copy. Not append.
-      Not product name "merge". Distinct from micro merge=true re-id.
+      is 0.9 leftover, not this keep, not a TARGET product command.
+      Not a second copy. Not append. Not product name "merge". Distinct from
+      micro merge=true re-id.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
     attribute idPolicy : String = "keep";
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute leftoverKeyedOnStoreKey : Boolean = true;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
+    part leftover_MERGE_by_id : leftover_MERGE_by_id;
   }
 
   part def IdPolicyReject {
@@ -1231,8 +1448,11 @@ package MemNet {
     attribute idPolicy : String = "remint";
     attribute leftoverInventedMint : Boolean = true;
     attribute leftoverIssue : String = "NEW-by_id";
+    attribute productCommand : Boolean = false;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
     part allocator : IdAllocator;
     part leftover_NEW_mint : leftover_NEW_mint;
+    part leftover_by_id : leftover_by_id;
   }
 
   part def IdPolicyApply {
@@ -1247,6 +1467,9 @@ package MemNet {
     part keep : IdPolicyKeep;
     part reject : IdPolicyReject;
     part remint : IdPolicyRemint;
+    attribute leftoverKeyedOnStoreKey : Boolean = true;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
   }
 
   part def NodesThenEdgesCommit {
@@ -1281,6 +1504,9 @@ package MemNet {
       keep = MERGE per-write lookup (labels+props / type+ends), not a
       store key; leftover_MERGE_by_id is leftover. remint is leftover
       leftover_NEW_mint / leftover_by_id.
+      leftover id_policy keep|reject|remint keyed on store-key is NOT a
+      TARGET product command (MN-REQ-07.5). TARGET Path-B import is
+      pattern match (labels+properties).
       Product verb = import. Path A never enters.
       When ImportGuard skipped/disabled, absorb after SessionImportRequest
       + slice alone. Module: memnet.import_absorb.
@@ -1289,6 +1515,8 @@ package MemNet {
     attribute actor : String = "engine";
     attribute doctrineAsIs : Boolean = false;
     attribute implemented : Boolean = true;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
     port sliceIn : WorkingMemorySliceInPort;
     port decisionIn : ImportGuardDecisionInPort;
     port importReqIn : SessionImportRequestInPort;
@@ -1305,6 +1533,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
   // --- Path B ImportGuard nest (OPTIONAL soft; PinMapIngest-style split) ---

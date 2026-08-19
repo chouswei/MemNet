@@ -301,9 +301,10 @@ package MemNetConnections {
 
   item def AssignedIdMap {
     doc /*
-      Leftover 0.9 invented mint: optional nicknames after NEW / by_id.
-      TARGET create has no NEW and no required id; the graph element is
-      identity. Copy a nickname only if present (MN-REQ-10.4).
+      TARGET: optional nicknames after leftover NEW / by_id. TARGET
+      create has no NEW and no required AssignedIdMap emit; the graph
+      element is identity. Copy a nickname only if present (MN-REQ-10.4).
+      MUST NOT be a product command on McpFacade / CliFacade.
     */
   }
 

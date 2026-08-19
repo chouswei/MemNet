@@ -15,6 +15,8 @@
   Neo4j client implemented with liveNeo4jClaimed=false.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
+  TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
+  tools on McpFacade / CliFacade; leftover id commands stay leftover_*.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -508,6 +510,105 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_07_S01_TargetCommandListNoRequiredId {
+    doc /*
+      MN-REQ-07.5 / 07.1 — TARGET CLI/MCP command list is cue/pattern
+      only. Session handle is not a store key. find / pin_map / mutate /
+      Path-B ingest / Path-B import SHALL NOT require a store-key id.
+      leftover_read_get, NEW, AssignedIdMap, by_id, MERGE-by-id,
+      require_anchor, allocate_from_locator, and id_policy keyed on
+      store-key MUST NOT nest as product commands (leftover_* engine
+      honesty; TARGET implemented=false). liveNeo4jClaimed stays false.
+      No Layer revival.
+    */
+    attribute verificationId : String = "MN-VER-07-S01";
+
+    subject system : MemNetSystem;
+
+    objective targetCommandsCuePatternOnly {
+      verify noStoreKeyToolSurfaceReq;
+      require constraint {
+        system.mcp.tools.noRequiredIdTools == true
+          and system.core.cli.noRequiredIdTools == true
+          and system.mcp.tools.sessionOpen.requiresStoreKeyId == false
+          and system.mcp.tools.sessionCurrent.requiresStoreKeyId == false
+          and system.mcp.tools.sessionSave.requiresStoreKeyId == false
+          and system.mcp.tools.sessionLoad.requiresStoreKeyId == false
+          and system.mcp.tools.find.requiresStoreKeyId == false
+          and system.mcp.tools.pinMap.requiresStoreKeyId == false
+          and system.mcp.tools.pinMap.requireAnchorId == false
+          and system.mcp.tools.mutate.requiresStoreKeyId == false
+          and system.mcp.tools.mutate.createRequiresId == false
+          and system.mcp.tools.mutate.noNewVerb == true
+          and system.mcp.tools.mutate.noAssignedIdMapRequired == true
+          and system.mcp.tools.ingest.requiresStoreKeyId == false
+          and system.mcp.tools.ingest.matchByLabelsAndProps == true
+          and system.mcp.tools.ingest.leftoverAllocateIsProductCommand == false
+          and system.mcp.tools.importSlice.requiresStoreKeyId == false
+          and system.mcp.tools.importSlice.matchByLabelsAndProps == true
+          and system.mcp.tools.importSlice.leftoverIdPolicyIsProductCommand
+            == false
+          and system.mcp.tools.leftoverReadGetNested == false
+          and system.mcp.tools.leftoverNewNested == false
+          and system.mcp.tools.leftoverAssignedIdMapNested == false
+          and system.mcp.tools.leftoverByIdNested == false
+          and system.mcp.tools.leftoverMergeByIdNested == false
+          and system.mcp.tools.leftoverRequireAnchorNested == false
+          and system.mcp.tools.leftoverAllocateFromLocatorNested == false
+          and system.mcp.tools.leftoverIdPolicyCommandNested == false
+          and system.mcp.tools.leftoverElementIdOnWire == false
+          and system.core.cli.leftoverReadGetNested == false
+          and system.core.cli.leftoverNewNested == false
+          and system.core.cli.leftoverAssignedIdMapNested == false
+          and system.core.cli.leftoverByIdNested == false
+          and system.core.cli.leftoverMergeByIdNested == false
+          and system.core.cli.leftoverRequireAnchorNested == false
+          and system.core.cli.leftoverAllocateFromLocatorNested == false
+          and system.core.cli.leftoverIdPolicyCommandNested == false
+          and system.core.cli.leftoverElementIdOnWire == false
+          and system.core.cli.find.requiresStoreKeyId == false
+          and system.core.cli.pinMap.requireAnchorId == false
+          and system.core.cli.mutate.createRequiresId == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftover_read_get.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftover_read_get.targetImplemented == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftover_by_id.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .leftover_MERGE_by_id.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.implemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.targetImplemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.leftover_NEW_mint.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.allocator.leftover_AssignedIdMap.productCommand
+            == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.leftover_require_anchor.productCommand
+            == false
+          and system.pinMaps.interface.matchByLabelsAndProps == true
+          and system.pinMaps.interface.leftoverAllocateIsProductCommand
+            == false
+          and system.pinMaps.interface.leftover_allocate_from_locator
+            .productCommand == false
+          and system.multitask.coordinator.importReceive.absorb
+            .leftoverIdPolicyIsProductCommand == false
+          and system.multitask.coordinator.importReceive.absorb
+            .matchByLabelsAndProps == true
+          and system.multitask.coordinator.importReceive.absorb.idPolicy
+            .leftoverIdPolicyIsProductCommand == false
+          and system.multitask.coordinator.importReceive.absorb.idPolicy
+            .remint.productCommand == false
+          and system.durable.liveNeo4jClaimed == false
+      }
+    }
+  }
+
   verification def MN_VER_06_S01_DurableCabinetHonesty {
     doc /*
       MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
@@ -599,6 +700,8 @@ package MemNetVerification {
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
   verification idNotRequiredOnWireVerify
     : MN_VER_02_S01_IdNotRequiredOnWire;
+  verification targetCommandListNoRequiredIdVerify
+    : MN_VER_07_S01_TargetCommandListNoRequiredId;
   verification recallCommitTwoOperatorsVerify
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification durableCabinetHonestyVerify

@@ -20,8 +20,10 @@ package MemNetBehaviour {
   }
   attribute def EvPinMapRead {
     doc /*
-      Fetch shaped pin_map (Recall seed = known id; PinMapShapedRead wraps
-      GQL; emits ShapedSubgraph). Goldfish IN: prefer one live TSK slice
+      Fetch shaped pin_map (Recall seed = cue/pattern or optional nickname;
+      PinMapShapedRead wraps GQL; emits ShapedSubgraph). SHALL NOT require
+      a store-key --anchor (leftover_require_anchor is leftover engine).
+      Goldfish IN: prefer one live TSK slice
       (optional view=shell survey) — not a dump of S, not N full maps,
       not host Snap. Same Recall operator as leftover BoundedMatchFind
       (#73; seed = bounded MATCH). Legacy alias: query_warm / PinMapComposer.
@@ -32,9 +34,9 @@ package MemNetBehaviour {
   }
   attribute def EvMutateGraph {
     doc /*
-      add/update openCypher-shaped GQL batch (Commit gate). TARGET:
-      GraphElement identity; CREATE () legal. leftover_NEW_mint is 0.9
-      leftover, not TARGET law. Goldfish OUT: sparse Δ (MUST NOT echo
+      add/update become one Commit of GQL (TARGET). GraphElement identity;
+      CREATE () legal. leftover_NEW_mint / AssignedIdMap is 0.9 leftover
+      engine, not a TARGET product verb. Goldfish OUT: sparse Δ (MUST NOT echo
       the fetched slice; not ImportAbsorb). Ingest locators are
       properties, not leftover_ingestIsIdRule TARGET. Layer / Tier A
       accept retired (ADR-001 M2).
@@ -483,11 +485,11 @@ package MemNetBehaviour {
 
     state projecting {
       doc /*
-        Project selected artefacts to NODE|EDGE pins. Assign MemNet ids from
-        deterministic locator keys (refdes, net, pin, path, qname, skill_id)
-        or engine key plus required locator fields (MN-REQ-11.16). Reject
-        client NEW / [NEW] for source elements (PCBA R1/U2, SysML qnames,
-        module paths, …). LLM NEW remains only for later goldfish annotations.
+        TARGET Path-B: Commit create of GraphElement; locators (refdes, net,
+        pin, path, qname, skill_id) are properties, not PK. Pattern match
+        by labels+properties. leftover_allocate_from_locator / MERGE-by-id
+        is leftover 0.9 engine, not a TARGET command (MN-REQ-07.5 / 11.16).
+        Reject client NEW / [NEW] for source elements.
       */
     }
     transition project_commit
@@ -1087,9 +1089,11 @@ package MemNetBehaviour {
         ImportAbsorb engine hard: DistinctSessionGate → AclConsultAbsorb →
         SchemaValidateImport → IdPolicyApply (keep|reject|remint) →
         NodesThenEdgesCommit; optional GuardDecisionAtomRecord.
-        TARGET keep = labels+props / type+ends MERGE; leftover_MERGE_by_id
-        leftover; reject = id_conflict no mutate; remint = leftover_NEW_mint,
-        lead old stay, edges retarget.
+        TARGET keep = labels+props / type+ends MERGE (pattern match);
+        leftover_MERGE_by_id leftover, not a TARGET command; reject =
+        id_conflict no mutate; remint = leftover_NEW_mint, lead
+        old stay, edges retarget — leftover engine, not TARGET command
+        (MN-REQ-07.5 / 12.9).
       */
     }
     transition import_ok
