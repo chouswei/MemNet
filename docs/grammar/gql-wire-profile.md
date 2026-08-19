@@ -94,7 +94,8 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `add`/`
 |--------|------------------------|-------|
 | Create node | `CREATE ()` or `CREATE (:TSK {goal:'…'})` | GraphElement identity. Empty properties legal. No required `id`. Optional nickname if you will point again |
 | Create relationship | `MATCH` ends by label + properties, then `CREATE (a)-[:TYPE {…}]->(b)` | Ends by type + properties; leftover 0.9 still MATCH `{id}` |
-| Merge / upsert | `MERGE (n:TSK {goal:$g}) SET n += {…}` | Per-write lookup of labels+props — **not** a primary key. `{id}` MERGE is leftover nickname |
+| Merge / upsert | `MERGE (n:TSK {goal:$g}) SET n += {…}` | Per-write lookup of labels+props — **not** a primary key. `{id}` MERGE is leftover nickname. When \|Q\|>1, CueConflict (do not absorb) |
+| SameThingAbsorb (Commit rule) | `MATCH (a:Label {…}), (b:Label {…}) SET a += b` | After CueConflict: agent-gated collapse of two patterns into one GraphElement (`aka` on the survivor). Not a product verb. Not MERGE-by-id / MERGE-by-name. Distinct from ImportAbsorb |
 | Patch properties | `MATCH (n:Label {goal:'…'}) SET n.key = value` | No mint on patch |
 | Delete | `MATCH (n:Label {…}) DETACH DELETE n` or delete one rel by type+ends | Settle / recycle policy elsewhere |
 

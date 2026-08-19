@@ -42,6 +42,10 @@ class NodeRec:
     fields: list[Field] = field(default_factory=list)
     raw: str = ""
     match_props: dict[str, str] = field(default_factory=dict)
+    # SameThingAbsorb Commit (MATCH (a),(b) SET a += b). Not a product verb.
+    same_thing: bool = False
+    absorb_kind: str = ""
+    absorb_match_props: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
