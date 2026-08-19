@@ -23,9 +23,12 @@ package MemNetCousinContrast {
     doc /*
       Chosen MemNet TARGET pointing. Cue q is a codebook token (kind /
       labels, properties the node actually has, keyword; nickname id only
-      if already set). name is NOT required. RelativeSeed MATCH_L yields
+      if already set). name is NOT required. Empty q is session outline
+      (census of S: kinds + LIMIT exemplars) — ask the session, not a
+      node; then pick a seen cue and pin_map. RelativeSeed MATCH_L yields
       walk-root graph elements Q; ShapeWalk walks k hops from Q under one
-      M; pin_map emits that bounded neighbourhood. Commit is pattern MERGE
+      M; pin_map emits that bounded neighbourhood. view=shell is grain
+      on a seeded walk, not the outline. Commit is pattern MERGE
       by labels+properties. Re-cue to point again. GraphElement is
       identity; optional id is a nickname only. HiddenStoreHandle stays
       off the wire. SHALL NOT require --anchor <store-key> as product law.
@@ -42,6 +45,10 @@ package MemNetCousinContrast {
     attribute inventThirdOperatorOnAmbiguity : Boolean = false;
     attribute graphElementIsIdentity : Boolean = true;
     attribute nameRequired : Boolean = false;
+    attribute emptyCueIsSessionOutline : Boolean = true;
+    attribute viewShellIsNotOutline : Boolean = true;
+    attribute mustNotDumpSOnEmptyCue : Boolean = true;
+    attribute mustNotSkipEmptyCueAsTarget : Boolean = true;
   }
 
   // =====================================================================
@@ -240,10 +247,14 @@ package MemNetCousinContrast {
       typed path-ids, or vector indexes as identity. Open hard part (no
       third operator): a cue may hit several relative roots; RelativeSeed
       stays bounded (LIMIT L) and honest when |Q| > 1; find / pin_map
-      emit CueConflict rather than silently picking one root. Cousins confirm
-      TARGET; they do not force a store-key back onto the wire. GraphLite
-      is a cabinet, not the product. Logseq pages are the closest
-      name-you-have cousin; SiYuan / NL2GQL are the leftover-id path.
+      emit CueConflict rather than silently picking one root. Empty q
+      is outline (census of S), not skip, not dump S, not getAllPages,
+      not Pattern C tour, not Pattern D seeded RAG, not view=shell.
+      Cousins confirm TARGET; they do not force a store-key back onto
+      the wire. GraphLite is a cabinet, not the product. Logseq pages
+      are the closest name-you-have cousin; SiYuan / NL2GQL are the
+      leftover-id path. MUST NOT invert MemNetSystem to copy Logseq /
+      SiYuan / llm-graph-builder identity.
     */
     attribute designOnly : Boolean = true;
     attribute mustNotNestUnderMemNetSystem : Boolean = true;
@@ -264,6 +275,10 @@ package MemNetCousinContrast {
     attribute operatorCountUnchanged : Integer = 2;
     attribute liveNeo4jClaimed : Boolean = false;
     attribute inventThirdOperatorOnAmbiguity : Boolean = false;
+    attribute mustNotCopyGetAllPages : Boolean = true;
+    attribute mustNotCopyPatternCTour : Boolean = true;
+    attribute mustNotCopyPatternDSeededRag : Boolean = true;
+    attribute mustNotCopyViewShellAsOutline : Boolean = true;
     part chosen : MemNetTargetPointing;
     part nl2gql : CousinNl2Gql;
     part graphlite : CousinGraphLite;
@@ -277,6 +292,7 @@ package MemNetCousinContrast {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
   }

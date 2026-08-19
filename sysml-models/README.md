@@ -21,11 +21,11 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1) |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1; 04.9 empty-q outline) |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs seven cousin pointing/identity designs (not a product switch) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01; MN-VER-13-S01 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S03; MN-VER-13-S01 |
 | `outputs/recall-commit-orthodox-plan.md` | — | Orthodox review; all tests are paradox |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
@@ -41,7 +41,8 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │           ├── GraphStore
 │   │   │           ├── GqlCodec             // CIP/oC9 dialect authority
 │   │   │           ├── RecallCommit         // 0.5: TWO operators only
-│   │   │           │   ├── Recall           // seed + k-hop; empty ⇒ skip
+│   │   │           │   ├── Recall           // seed + k-hop; empty q ⇒ outline
+│   │   │           │   │   ├── SessionOutline   // 0.11 TARGET census of S
 │   │   │           │   │   └── AgentShapedRead
 │   │   │           │   │       ├── PinMapShapedRead // implemented=true
 │   │   │           │   │       └── BoundedMatchFind // implemented=true #73 seed find
@@ -84,7 +85,7 @@ CousinPointingContrast                         // APPLICATION contrast — MUST 
 
 ## Target subsystems
 
-- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
+- **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: SessionOutline empty-q census + AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter **client** + 0.7 live hydrate/flush; Neo4jAdapter **client** (`liveNeo4jClaimed=false`); cabinets external / not vendored
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
@@ -122,6 +123,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | TCP / streamable-http shared Multitask (transport) | [outputs/tcp-shared-multitask-case-study.md](outputs/tcp-shared-multitask-case-study.md) |
 | Session import + optional ImportGuard (path B) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
+| Empty-cue session outline | [outputs/session-outline-case-study.md](outputs/session-outline-case-study.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
 | `NEW` mint batch (leftover; not product Commit) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
 
@@ -139,7 +141,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` from a cue) when the seed is non-empty. leftover `--anchor` is leftover. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. When \(|Q|>1\), CueConflict. Both seeds are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` from a cue) when the seed is non-empty. leftover `--anchor` is leftover. A dark session with empty q is **outline** (Recall census of S: kinds + LIMIT exemplars) — not a neighbourhood, not leftover skip, not `view=shell`. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. When \(|Q|>1\), CueConflict. Both seeds and the outline are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
 
 ## Property-graph ontology (first-class)
 

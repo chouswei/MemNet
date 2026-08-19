@@ -6,7 +6,7 @@ Novel-writer is out of scope.
 **Paradox (GQL wire):** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) (historical filename).  
 **Case-study shelves:** [outputs/README.md](README.md) — **product canon** (mechanism) vs **application examples** (patterns on SharedLlmMemory). Do not flatten application studies as peer product cores.
 
-**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [NEW mint](new-mint-batch-case-study.md).
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [NEW mint](new-mint-batch-case-study.md) · [session outline](session-outline-case-study.md).
 
 **Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md).
 
@@ -54,6 +54,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Snapshot passport | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
 | Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | `NEW` mint batch | [new-mint-batch-case-study.md](new-mint-batch-case-study.md) |
+| Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 
 ## Nesting outline
 
@@ -63,7 +64,8 @@ MemNetSystem                                 // SharedLlmMemory
 │   ├── TransportBoundary
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
 │   │   │     ├── GqlCodec / GraphStore / RecallCommit
-│   │   │     │     Recall / AgentShapedRead /
+│   │   │     │     Recall / SessionOutline (empty-q census; 0.11 TARGET) /
+│   │   │     │     AgentShapedRead /
 │   │   │     │     PinMapShapedRead (shipped; CueConflict mark when |Q|>1) /
 │   │   │     │     BoundedMatchFind (shipped #73 seed-only)
 │   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease) /
@@ -187,7 +189,7 @@ reserve and Path-B ingest are **shipped**.
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
-- RecallCommit — modelled two-operator cut (MN-REQ-13.1); SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); CueConflict is an emit mark on find/pin_map when `|Q|>1` (`implemented=false`; not a product command); engine cut not claimed; **1.0** = claim of 0.5–0.8
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); empty q is **session outline** (MN-REQ-04.9; `implemented=false`); leftover empty-seed skip is leftover; SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); CueConflict is an emit mark on find/pin_map when `|Q|>1` (`implemented=false`; not a product command); engine cut not claimed; **1.0** = claim of 0.5–0.8
 - ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append). Distinct from SameThingAbsorb (in-session collapse; SHALL NOT entity-resolve).
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease

@@ -28,6 +28,7 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5 |
 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
 | [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Leftover 0.9 `id: 'NEW'` mint; TARGET is GraphElement create | leftover_NEW_mint / MutateWithNew; wire §2.2 |
+| [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 
 ### Application examples (on SharedLlmMemory)
 

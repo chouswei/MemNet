@@ -14,6 +14,8 @@
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
                        on find/pin_map emit; same name is a candidate only
+    MN-REQ-04.9        Empty-q session outline: Recall census of S (kinds +
+                       LIMIT exemplars); leftover empty-seed skip not TARGET
     MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -348,10 +350,12 @@ package MemNetRequirements {
       doc /*
         Group: bounded live pin map for LLM turns (not the whole net);
         hide recyclable rows; optional relation walk; bounded MATCH find
-        as cue/pattern seed (MN-REQ-04.6; shipped seed-only). 0.5 names
-        this family Recall(q) (MN-REQ-13); pin_map and leftover find are
-        the same operator with different seed rules. Nickname id is
-        optional. Engine fixed-law rows (often LAW01-LAW05) are a current
+        as cue/pattern seed (MN-REQ-04.6; shipped seed-only). Dark session
+        empty q is session outline (MN-REQ-04.9) — census of S, not a
+        neighbourhood and not leftover skip. 0.5 names this family
+        Recall(q) (MN-REQ-13); pin_map and leftover find are the same
+        operator with different seed rules. Nickname id is optional.
+        Engine fixed-law rows (often LAW01-LAW05) are a current
         realisation, not the contract identity. Legacy name "warm" = live
         pin map (deprecated alias).
       */
@@ -363,9 +367,11 @@ package MemNetRequirements {
           neighbourhood digest of pins -- not the full session or a raw
           search dump. Goldfish seeds from a cue or pattern (find); pin_map
           walks a shape. RelativeSeed MATCH_L yields walk-root elements Q;
-          ShapeWalk walks from Q. Nickname id as pin_map anchor is optional
-          when a nickname exists. SHALL NOT require --anchor as law. 0.9 leftover
-          require_anchor / by_id is engine as-is, not TARGET.
+          ShapeWalk walks from Q. A dark session with empty q is outline
+          (MN-REQ-04.9), not this neighbourhood and not view=shell grain.
+          Nickname id as pin_map anchor is optional when a nickname exists.
+          SHALL NOT require --anchor as law. 0.9 leftover require_anchor /
+          by_id is engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-04.1";
       }
@@ -426,14 +432,17 @@ package MemNetRequirements {
           a prose/embedding sentence, not rag_query / cosine / ANN, not
           free MATCH RETURN. Recall SHALL seed by RelativeSeed MATCH_L on
           those tokens (hard LIMIT L) yielding seed set Q of graph elements
-          (relative nodes). Empty token / empty Q SHALL skip (do not invent
-          a node). ShapeWalk SHALL walk k hops from Q under one M (not
+          (relative nodes). Empty token / empty q SHALL be session outline
+          (MN-REQ-04.9): Recall of S as a census — not skip, not invent a
+          node, not MATCH a leftover id / --anchor as seed. leftover 0.10
+          empty-seed skip remains leftover_* (productCommand=false; not
+          TARGET). ShapeWalk SHALL walk k hops from Q under one M (not
           M×|Q|), hide recycled, and emit a shaped subgraph. SHALL NOT
           require a store-key anchor. Peak_L is Later, not this mechanism.
           leftover 0.9 require_anchor / by_id / copied-id is leftover,
           not TARGET law. BoundedMatchFind / CmdFind realize RelativeSeed;
-          PinMapShapedRead / CmdPinMap realize ShapeWalk. Still ONE
-          Recall operator (MN-REQ-13.1).
+          PinMapShapedRead / CmdPinMap realize ShapeWalk (and empty-q
+          outline). Still ONE Recall operator (MN-REQ-13.1).
         */
         attribute requirementId : String = "MN-REQ-04.7";
       }
@@ -462,6 +471,30 @@ package MemNetRequirements {
           records this; Recall/Commit operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.8";
+      }
+
+      requirement def MN_REQ_04_9_SessionOutlineEmptyCue {
+        doc /*
+          Teach name = outline. A dark session SHALL join the handed
+          session id and ask the session, not a node. Empty q SHALL be
+          Recall of S: a census of kinds that exist plus a few real
+          nodes of each, with their actual labels and properties, under
+          one hard LIMIT (Neo4j Browser / db.labels / AGE ag_label style
+          + LIMIT exemplars). SHALL NOT MATCH a node as the seed (no
+          leftover id, no --anchor). SHALL NOT skip empty seed as TARGET
+          (leftover_empty_seed_skip is leftover only). SHALL NOT dump
+          edges, dump S, absorb on the outline, MATCH-all, RAG search,
+          HostSearch, getAllPages, Pattern C precomputed tour, or
+          Pattern D seeded RAG. view=shell SHALL NOT be the outline
+          (that is grain on an already-seeded walk). Leftover ids are
+          not the next law; after outline the agent picks one seen cue
+          and pin_maps. Still ONE Recall operator. CueConflict applies
+          if exemplars collide on a name cue (two roots stay two).
+          SHALL NOT: third operator; required property id; elementId on
+          the wire; invent a store key; SameThingAbsorb as this cut;
+          revive Layer; flip liveNeo4jClaimed.
+        */
+        attribute requirementId : String = "MN-REQ-04.9";
       }
     }
 
@@ -1258,7 +1291,8 @@ package MemNetRequirements {
       requirement def MN_REQ_13_1_TwoOperators {
         doc /*
           SHALL model exactly two product operators: Recall(q) (seed then
-          bounded k-hop reconstruct; empty seed ⇒ skip) and Commit(Δ)
+          bounded k-hop reconstruct; empty q ⇒ session outline census of
+          S — leftover empty-seed skip is leftover, not TARGET) and Commit(Δ)
           (one gate; mutate / ingest / ImportAbsorb / SameThingAbsorb are
           Commit rules — absorb is a rule family, not extra operators). RSV SHALL
           be a lease under Commit / SessionLifecycle, not a third API.
@@ -1269,9 +1303,9 @@ package MemNetRequirements {
           Goldfish SHALL be Shape: the LLM SHALL NOT receive raw session S
           (pin_map depth/row/fan-out caps; hide recycled). Goldfish SHALL
           interact only with relevant slices. Prefer one pin_map on the
-          live TSK (HiAgent current subgoal). Extra topics: at most one
-          view=shell survey, then interior on the task — SHALL NOT default
-          to N serial full maps (duplicate LAW / overlap). Seed set |Q|≤L
+          live TSK (HiAgent current subgoal).           Extra topics: at most one view=shell survey, then interior on
+          the task — SHALL NOT default to N serial full maps (duplicate
+          LAW / overlap). view=shell is not session outline (MN-REQ-04.9). Seed set |Q|≤L
           SHALL union k-hop under one M (not Path-B M×anchors). Goldfish
           SHALL emit a sparse Δ (CREATE/SET; leftover NEW sugar allowed
           on 0.9; SHALL NOT echo the fetched slice); the session SHALL take
@@ -1392,6 +1426,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
   requirement cueMultiRootHonestReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+  requirement sessionOutlineEmptyCueReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1605,6 +1641,7 @@ package MemNetRequirements {
     end #derive ::> boundedMatchFindReq;
     end #derive ::> relativeSeedThenShapeWalkReq;
     end #derive ::> cueMultiRootHonestReq;
+    end #derive ::> sessionOutlineEmptyCueReq;
   }
 
   #derivation connection deriveHardCapsLeaves {
@@ -1711,6 +1748,12 @@ package MemNetRequirements {
     end #derive ::> sameThingAbsorbReq;
   }
 
+  #derivation connection deriveOutlineFromRecallHonesty {
+    end #original ::> relativeSeedThenShapeWalkReq;
+    end #original ::> twoOperatorsReq;
+    end #derive ::> sessionOutlineEmptyCueReq;
+  }
+
   #derivation connection deriveTargetsFromMapOfPins {
     end #original ::> mapOfPinsReq;
     end #derive ::> exportGraphToSysmlV2Req;
@@ -1792,6 +1835,7 @@ package MemNetRequirements {
     end #derive ::> recallCommitReq;
     end #derive ::> twoOperatorsReq;
     end #derive ::> sameThingAbsorbReq;
+    end #derive ::> sessionOutlineEmptyCueReq;
   }
 
   #derivation connection deriveSnapshotFromNodeEdge {
