@@ -1742,6 +1742,12 @@ package MemNetRequirements {
     end #derive ::> sameThingAbsorbReq;
   }
 
+  #derivation connection deriveSameThingFromCueHonesty {
+    end #original ::> cueMultiRootHonestReq;
+    end #original ::> twoOperatorsReq;
+    end #derive ::> sameThingAbsorbReq;
+  }
+
   #derivation connection deriveOutlineFromRecallHonesty {
     end #original ::> relativeSeedThenShapeWalkReq;
     end #original ::> twoOperatorsReq;
