@@ -54,7 +54,7 @@ git describe --tags --always
 
 ### MemNet use
 
-- Human/parser SSOT for future `.g4` grammars that mirror the LLM wire book.
+- Human/parser SSOT for **historical** `.g4` sketches only. Product agent wire is GQL, not ANTLR codegen.
 - Prefer docs under `third_party/antlr4/doc/` (e.g. `grammars.md`, `getting-started.md`) before pulling runtimes.
 
 ## MemNet grammar design (in-repo)
@@ -62,7 +62,8 @@ git describe --tags --always
 Normative design for the LLM-facing dialect (Write = display, NODE|EDGE, pin-map warm):
 
 - [`docs/grammar/memnet-grammar-design.md`](../docs/grammar/memnet-grammar-design.md)
-- Starter ANTLR stub: [`docs/grammar/MemNet.g4`](../docs/grammar/MemNet.g4)
+- Starter ANTLR stub (unused; quarantine): [`docs/grammar/archive/antlr/MemNet.g4`](../docs/grammar/archive/antlr/MemNet.g4)
+- Product wire: [`docs/grammar/gql-wire-profile.md`](../docs/grammar/gql-wire-profile.md)
 - Fixtures: [`docs/grammar/examples/`](../docs/grammar/examples/)
 
 Vendor trees below remain lineage / tooling references only.

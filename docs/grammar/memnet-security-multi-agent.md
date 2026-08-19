@@ -440,7 +440,7 @@ Do not ship pin-map `SES`/`ACL`/`RSV` display without enforcing the gates.
 ## 12. Grammar / doctrine constraints (preserve)
 
 - Shared dialect Write = display for all new agent-visible lines (`SES`, `ACL`, `RSV`).
-- Preserve formal grammar benefits (`MemNet.g4`, golden fixtures, `tier_a.py`) — present kinds follow existing KIND / field patterns; ACL/reserve lifecycle stays on MCP/CLI in MVP.
+- Preserve line-dialect golden fixtures and `tier_a.py` for archive/tests — **not** `MemNet.g4` codegen. Present kinds follow existing KIND / field patterns; ACL/reserve lifecycle stays on MCP/CLI in MVP. Product agent wire is GQL.
 - British English in this doc and related notes.
 - Novel-writer stays dropped.
 

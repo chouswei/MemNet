@@ -5,9 +5,9 @@ Package / file names keep `tier_a` for **as-is engine harness** continuity until
 
 | Path | Role |
 |------|------|
-| `tier_a.py` | As-is pure-Python parse / emit (legacy line dialect in engine) |
-| `../MemNet.g4` | ANTLR4 stub for that harness |
+| `tier_a.py` | As-is pure-Python parse / emit (legacy line dialect; rejected on product mutate) |
 | `../examples/` | Golden fixtures for as-is harness |
+| [`../archive/antlr/MemNet.g4`](../archive/antlr/MemNet.g4) | Unused ANTLR stub (quarantine; do not generate) |
 | [`../archive/tools/layer_soft_validate.py`](../archive/tools/layer_soft_validate.py) | Quarantined Layer soft-validate |
 
 ## Run golden tests
