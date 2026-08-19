@@ -89,8 +89,7 @@ def test_empty_cue_with_view_shell_is_still_outline_not_shell_hop(memnet_temp):
 def test_outline_hard_limit_exemplars_not_dump_s(memnet_temp):
     sid = _open(memnet_temp)
     lines = [
-        f"CREATE (:TSK {{id: 'TSK_{i}', goal: 'g{i}', status: 'in_progress'}})"
-        for i in range(8)
+        f"CREATE (:TSK {{id: 'TSK_{i}', goal: 'g{i}', status: 'in_progress'}})" for i in range(8)
     ]
     add = runner.invoke(app, ["add", "--stdin", "--session", sid], input="\n".join(lines) + "\n")
     assert add.exit_code == 0, add.stderr
