@@ -24,6 +24,8 @@ An LLM call is goldfish. The industry answered **parametric ignorance of a libra
 
 Fetch: Shape of \(q\), clamp \(M\approx 50\). Maintain: sparse \(\Delta\), settle, Absorb a **slice**. Do not dump \(S\), echo \(\tilde{X}\), or stuff chunks. Typical goldfish prompt **≲ 4k** LLM tokens; **≳ 8k** from one `pin_map` is alarm. The 4 MiB frame is **not** a token budget. Cabinet Bolt uses **zero** LLM tokens.
 
+**Many small calls, not one stuffed call.** A Shape-sized context is cheap enough that the harness can **re-`pin_map` every turn** (goldfish). That favours **Flash-class** models (fast, small context, low $/token) over a single frontier completion stuffed with RAG or a dump of \(S\). GraphRAG global (tens–hundreds of completions × fat prompts) is the opposite spend. Wall-clock in MN-REQ-00 is this loop: **ms** Shape + **one** Flash-class generate per turn, not map-reduce.
+
 If that plane is missing, harnesses fall back to chat dumps, linear trajectories, or corpus retrieve — all of which violate this law on **agentic** turns.
 
 ---
@@ -48,7 +50,7 @@ Lewis et al. (2020) solved a different problem: freeze, private files, dear fine
 
 **C1. Placement.** MemNet sits **in the harness**, between LLM call pipelines and data search — as MCP tools (`pin_map`, mutate, `find`, `import_slice`) plus an in-process engine. The outer harness (Cursor, OpenHands, SWE-agent, Inspect, Claude Code) owns bash, sandbox, eval, and the completion API.
 
-**C2. Substrate.** The memory medium is a **labelled property graph** with codebook cues (id / kind / locator / keyword), serial Recall, clamp \(M\approx 50\), **Write = display** (shaped GQL, not tabular `RETURN`). **Few tokens in, sparse tokens out.** It is not embeddings of \(S\), not Letta core-memory **prose blocks**, not an OpenHands condenser of the transcript.
+**C2. Substrate.** The memory medium is a **labelled property graph**. Cue \(q\) is a codebook **token**. Emit \(\tilde{X}\) **co-responds** to \(q\) (serial Recall, \(M\approx 50\), Write = display). **Few LLM tokens in, sparse Δ out** — so the harness can afford **many** goldfish completions. **Flash-class** (fast, small-context) models are the intended consumer; a stuffed frontier call is the anti-pattern. Not embeddings of \(S\); not Letta prose blocks; not a condenser of the transcript.
 
 **C3. Composition.** RAG **Snaps** a library to locators. Absorb **joins** a member **slice** into the lead session (Path-B, shipped). Hydrate/flush **persists** one named \(S\). Mixing those verbs is the fuse this product forbids (option C in the rethink).
 
@@ -59,6 +61,7 @@ Falsifiers (any one kills the thesis as product doctrine):
 - Absorb used for host chunks or cabinet ego
 - Chat or the cabinet URI as handoff handle
 - Dump \(S\), echo \(\tilde{X}\), or stuff library chunks to “maintain memory”
+- Design goldfish as **one** fat completion (GraphRAG global / paste the library) instead of **N** Shape-sized Flash-class calls
 
 ---
 
@@ -141,7 +144,7 @@ As-is, `memnet-llm[neo4j]` is cabinet only. Honest, and operator-hostile: GraphR
 
 - That MemNet wins SWE-Bench without an outer harness.
 - That a graph substrate always beats condensers (Huang: **regime-dependent**; graphs can win QA and lose acting if you retrieve too broadly — hence \(M\)).
-- That HostSearch, Peak_L, or live Neo4j are shipped.
+- That MemNet **requires** a named Flash SKU. Flash-class = small context, low latency, many turns. A larger model MAY still run; the plane does not grow the prompt to match it.
 - That “harness” in `docs/grammar/examples/` is this architecture.
 
 ---
