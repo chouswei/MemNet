@@ -218,7 +218,7 @@ def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
 
     warm_raw = asyncio.run(pin_map(anchor="PLR01", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
-    # leftover nickname miss / empty cue skips (0.11 owns outline). No LAW dump.
+    # leftover nickname miss is leftover empty (not outline). No LAW dump.
     assert warm_payload["exit_code"] == 0, warm_payload
     assert "LAW01" not in warm_payload["stdout"]
 

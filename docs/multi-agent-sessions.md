@@ -21,7 +21,7 @@ see `docs/grammar/memnet-security-multi-agent.md` and
 
 When Multitask is **on**, one **shared MemNet session** \(S\) is mission SSOT. Chat is never SSOT. Parent coordinates; workers execute under assigned scope.
 
-Goldfish: cue then `pin_map(q)` (Recall Shape \(\tilde{X}\)); skip if the seed is empty. **Drop** prior map rows from the pack each turn (`stuffed_maps`). Sparse gated mutate. Env blobs stay in the harness. leftover `--anchor` is not law. Host search MAY Snap **locators** only — MUST NOT Snap-on-session (`rag_query` / ANN of \(S\)). Durable GQL **backs** \(S\) (0.7 live path); it is not the handoff handle.
+Goldfish: cue then `pin_map(q)` (Recall Shape \(\tilde{X}\)); empty cue is session outline (0.11 census of \(S\)). **Drop** prior map rows from the pack each turn (`stuffed_maps`). Sparse gated mutate. Env blobs stay in the harness. leftover `--anchor` is not law. Host search MAY Snap **locators** only — MUST NOT Snap-on-session (`rag_query` / ANN of \(S\)). Durable GQL **backs** \(S\) (0.7 live path); it is not the handoff handle.
 
 ## Inter-module session pipe
 

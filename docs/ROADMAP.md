@@ -72,7 +72,7 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 
 ## Code vs TARGET (0.9 leftover)
 
-The nest on master (#108–#118) already models GraphElement identity, CueConflict on emit, empty-cue **outline** as Recall TARGET (#118 / 0.11 nest — engine still skips; outline engine is not this cut), and SameThingAbsorb (SysML `implemented=false`). **0.12** engine cut (unreleased, this tree): agent-gated Commit `MATCH (a),(b) SET a += b` after CueConflict. Do not revert the 0.11 nest.
+The nest on master (#108–#118) models GraphElement identity, CueConflict on emit, empty-cue **session outline** (MN-REQ-04.9 / `#118`), and SameThingAbsorb (SysML `implemented=false`; 0.12 engine already on master: agent-gated Commit `MATCH (a),(b) SET a += b` after CueConflict). The **0.11** engine cut emits the outline census (untagged; package stays 0.9.0). leftover empty-seed skip is leftover only. Outline SHALL NOT absorb. Do **not** flip `liveNeo4jClaimed`. Do **not** claim **1.0**. Do not revert the 0.11 nest or the 0.12 Commit rule.
 
 The **0.9 engine** still runs leftover invented store. Planned extras start at **0.10** because this gap is not named in 0.5–0.9:
 

@@ -1270,10 +1270,10 @@ def query_pin_map(
 ) -> None:
     """Live pin map from a cue (kind / locators / keyword).
 
-    Goldfish caller (0.13): each turn pin_map(q) or skip; drop prior map rows
-    from the prompt; sparse Δ; env blobs stay in the harness. leftover --anchor
-    is a nickname cue, not TARGET law. Empty cue skips (0.11 owns outline).
-    view=shell is grain on a seed, not session outline.
+    Goldfish caller (0.13): each turn pin_map(q) or outline-on-empty; drop prior
+    map rows from the prompt; sparse Δ; env blobs stay in the harness. leftover
+    --anchor is a nickname cue, not TARGET law. Empty cue is session outline
+    (0.11 Recall census of S). view=shell is grain on a seed, not session outline.
     """
     _run_pin_map(
         anchor=anchor,

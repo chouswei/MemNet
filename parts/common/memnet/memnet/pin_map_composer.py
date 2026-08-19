@@ -3,13 +3,20 @@
 Emits openCypher-family node and relationship lines (gql-wire-profile §5).
 Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
 ``parts`` / ``statechart`` accepted with soft shell caps.
+
+Empty cue is session outline (0.11): kinds + LIMIT exemplars of S. ``view=shell``
+without a seed is still that census, not a 1-hop of the session.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
+from memnet.config import (
+    DEFAULT_QUERY_DEPTH,
+    DEFAULT_QUERY_MAX_ROWS,
+    OUTLINE_EXEMPLAR_LIMIT,
+)
 from memnet.exceptions import MemNetError
 from memnet.gql import emit_node_shaped
 from memnet.models import Record
@@ -230,8 +237,14 @@ class PinMapComposer:
                 return [], ""
             seed_ids = [r.hid for r in Q]
         else:
-            # Empty q skips (0.11 owns outline). Do not default-anchor.
-            return [], ""
+            # Empty q: Recall census of S (0.11 outline). Ask the session, not a
+            # node. view=shell is grain on a seed — ignore it here (not a 1-hop
+            # of everything). leftover empty-seed skip is leftover only.
+            return compose_session_outline(
+                self.ss.store,
+                active_only=active_only,
+                max_rows=max_rows,
+            )
         stale_warnings: list = []
         eff_depth, eff_max_rows, soft_cap = resolve_view_budget(
             view, depth=depth, max_rows=max_rows
@@ -281,6 +294,51 @@ class PinMapComposer:
     # Back-compat alias used by older call sites / tests during M2 cutover
     def emit_tier_a(self, rows: list[Record]) -> str:
         return self.emit_gql(rows)
+
+
+def compose_session_outline(
+    store,
+    *,
+    active_only: bool = True,
+    max_rows: int = DEFAULT_QUERY_MAX_ROWS,
+    exemplar_limit: int = OUTLINE_EXEMPLAR_LIMIT,
+) -> tuple[list[Record], str]:
+    """Empty-q Recall of S: kinds that exist plus LIMIT exemplars.
+
+    Teach name = outline. Still one Recall operator. No edges, no MATCH seed,
+    no dump of S, no hidden handle on the wire. CueConflict if shown
+    exemplars collide on a nickname cue (two roots stay two).
+    """
+    per_kind = max(1, exemplar_limit)
+    total_cap = max(1, max_rows)
+    rows = [r for r in store.list_records(active_only=active_only) if r.tag != "EDG"]
+    by_kind: dict[str, list[Record]] = {}
+    for rec in rows:
+        by_kind.setdefault(rec.tag, []).append(rec)
+    kinds = sorted(by_kind.keys(), key=lambda k: (k == "", k))
+    kind_names = [k if k else "(unlabeled)" for k in kinds]
+    kinds_s = ",".join(kind_names)
+    lines = [f"## outline LIMIT={per_kind} kinds={kinds_s}"]
+    exemplars: list[Record] = []
+    nick_counts: dict[str, int] = {}
+    for kind in kinds:
+        if len(exemplars) >= total_cap:
+            break
+        bucket = sorted(by_kind[kind], key=lambda r: (r.id, r.hid))
+        room = min(per_kind, total_cap - len(exemplars))
+        taken = bucket[:room]
+        exemplars.extend(taken)
+        for rec in taken:
+            nick = rec.id
+            if nick:
+                nick_counts[nick] = nick_counts.get(nick, 0) + 1
+            lines.append(record_to_gql_line(rec, store=store))
+    colliding_nicks = {n for n, c in nick_counts.items() if c > 1}
+    text = "\n".join(lines) + "\n"
+    if colliding_nicks:
+        hits = [r for r in exemplars if r.id in colliding_nicks]
+        text += emit_cue_conflict(hits, cardinality=len(hits), store=store)
+    return exemplars, text
 
 
 def parse_find_locators(raw: list[str] | None) -> list[tuple[str, str]]:
@@ -352,3 +410,4 @@ def bounded_match_find(
 # SysML-facing alias
 PinMapShapedRead = PinMapComposer
 BoundedMatchFind = bounded_match_find
+SessionOutline = compose_session_outline

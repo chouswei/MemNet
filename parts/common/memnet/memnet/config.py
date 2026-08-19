@@ -14,6 +14,8 @@ MAX_WRN_PER_CALL = 12
 
 DEFAULT_QUERY_MAX_ROWS = 50
 DEFAULT_QUERY_DEPTH = 2
+# 0.11 session outline: Browser-style LIMIT k exemplars per kind (one hard LIMIT).
+OUTLINE_EXEMPLAR_LIMIT = 3
 
 
 def _env_int(name: str, default: int) -> int:

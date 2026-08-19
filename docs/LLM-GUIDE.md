@@ -22,7 +22,7 @@
 
 ### Non-negotiable rules
 
-> **Always read from a seed set \(Q\)** — cue/`find` (RelativeSeed MATCH_L) then `pin_map(q)` (ShapeWalk from those graph elements). leftover 0.9 `pin_map(anchor=…)` / `--anchor` / copy-id is leftover engine, not TARGET law. Empty \(q\) still skips until 0.11. Do not dump the whole session. Do not stuff prior maps. Do not treat raw tabular `RETURN` as the goldfish read.
+> **Always read from a seed set \(Q\)** — cue/`find` (RelativeSeed MATCH_L) then `pin_map(q)` (ShapeWalk from those graph elements). leftover 0.9 `pin_map(anchor=…)` / `--anchor` / copy-id is leftover engine, not TARGET law. Empty \(q\) is **session outline** (0.11). Do not dump the whole session. Do not stuff prior maps. Do not treat raw tabular `RETURN` as the goldfish read.
 
 > **Atomise** — GQL elements: **node** (vertex), **edge** (relationship), **property**. One idea per property; wire relations as edges. No prose blobs in a property value.
 
@@ -76,7 +76,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map(q)` (or skip). **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
 
-1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(Q\) ⇒ skip (do not invent; 0.11 owns session outline). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
+1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(q\) (no cue) ⇒ **session outline** (0.11: kinds + LIMIT exemplars of \(S\)); then pick one seen cue. Empty \(Q\) on a *kind* cue ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
 2. **ShapeWalk one slice** from \(Q\) (one \(M\), not \(M\times|Q|\)):
 
    MCP: `pin_map` from the cue/pattern (`kind` / `locators` / `keyword`)  
@@ -95,7 +95,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 
 Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; **not** live-claimed (`liveNeo4jClaimed=false`; skip unless `MEMNET_NEO4J_URL`). Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
-Repeat. Each new turn starts with `pin_map(q)` (or skip). Drop the previous map from the pack.
+Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the previous map from the pack.
 
 ### MCP quick reference (primary)
 
@@ -248,7 +248,8 @@ update(wire_lines=[
   "MATCH (t:TSK {goal:'Negotiate with the guild'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
 ])
 
-# 4. Next turn — empty cue still skips (0.11 owns outline)
+# 4. Next turn — empty cue outlines S (0.11); then pin from a seen cue
+pin_map()
 pin_map(kind='TSK')
 ```
 

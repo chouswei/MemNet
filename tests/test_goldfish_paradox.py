@@ -53,16 +53,18 @@ def test_v1_isolated_tsk_hides_unlinked_mod(memnet_temp):
     assert "MOD_y" in second.stdout
 
 
-def test_v3_empty_read_list_then_empty_cue_skips(memnet_temp):
+def test_v3_empty_read_list_then_empty_cue_outlines_s(memnet_temp):
     sid = _open_coding(memnet_temp)
     listed = runner.invoke(app, ["read", "list", "--tag", "TSK", "--active-only", "--session", sid])
     assert listed.exit_code == 0, listed.stderr
     assert "TSK" not in listed.stdout or "(:TSK" not in listed.stdout
     assert "TSK_" not in listed.stdout
-    missing = runner.invoke(app, ["query", "pin-map", "--session", sid])
-    assert missing.exit_code == 0, missing.stderr
-    assert "no_anchor" not in missing.stderr
-    assert missing.stdout.strip() == ""
+    outlined = runner.invoke(app, ["query", "pin-map", "--session", sid])
+    assert outlined.exit_code == 0, outlined.stderr
+    assert "no_anchor" not in outlined.stderr
+    assert "## outline" in outlined.stdout
+    assert "TSK_" not in outlined.stdout
+    assert "-[:" not in outlined.stdout
 
 
 def test_v4_sparse_owns_edge(memnet_temp):

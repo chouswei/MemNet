@@ -5,8 +5,9 @@ tokens only if that pack **drops** prior ``pin_map`` rows. Stuffing MCP JSON int
 a growing ``messages`` list is a fail (``stuffed_maps``).
 
 Env blobs (pytest logs, screenshots) stay on the harness channel. Sparse Δ is a
-Commit rule: do not echo the fetched map. Empty cue still skips (0.11 owns
-outline). ``view=shell`` is grain on a seed, not a session outline.
+Commit rule: do not echo the fetched map. Empty cue is session outline (0.11
+census of S). leftover empty-seed skip is leftover only. ``view=shell`` is grain
+on a seed, not a session outline.
 
 This module is the in-repo fail surface. A sibling user-pack may absorb the
 caller playbook later; the stuffed-maps test stays here.
