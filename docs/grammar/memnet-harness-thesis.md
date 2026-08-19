@@ -18,7 +18,11 @@ An LLM call is goldfish. The industry answered **parametric ignorance of a libra
 
 **Thesis.** MemNet is not a RAG engine, not a graph database, and not the full agent. It is the **memory plane of a harness**: a named session graph \(S\) that the scaffold **re-Shapes** (`pin_map`) and **sparsely Commits** (mutate), with **Absorb** only as session-to-session join, and a durable cabinet **behind** the session id.
 
-**Token law (MN-REQ-00).** Use **very few tokens** to (1) **fetch** the facts the next call needs and (2) **maintain** \(S\). Fetch is Shape of a **named** neighbourhood (\(M\approx 50\), skip if empty) — not RAG top‑\(k\) then generate. Maintain is sparse \(\Delta\), settle/`delete_on_settle`, Absorb a **slice** — not dump \(S\), not echo \(\tilde{X}\), not chunk stuffing. Typical goldfish prompt **≲ 4k** tokens; **≳ 8k** from one `pin_map` is alarm. The 4 MiB serve frame is **not** a token budget. Cabinet Bolt uses **zero** LLM tokens.
+**Token law (MN-REQ-00).** Use **very few LLM tokens** to (1) **fetch** facts and (2) **maintain** \(S\).
+
+**Relevant** here means the emit **co-responds to the input cue** \(q\) — a codebook token (id / kind / locator / keyword). \(\tilde{X}=\mathrm{Recall}(q)\) is that token’s bounded neighbourhood (or **skip** if the seed is empty). Same \(q\) → same Shape. It is **not** RAG “nearest passages to a sentence,” and not a scored pick from a pool.
+
+Fetch: Shape of \(q\), clamp \(M\approx 50\). Maintain: sparse \(\Delta\), settle, Absorb a **slice**. Do not dump \(S\), echo \(\tilde{X}\), or stuff chunks. Typical goldfish prompt **≲ 4k** LLM tokens; **≳ 8k** from one `pin_map` is alarm. The 4 MiB frame is **not** a token budget. Cabinet Bolt uses **zero** LLM tokens.
 
 If that plane is missing, harnesses fall back to chat dumps, linear trajectories, or corpus retrieve — all of which violate this law on **agentic** turns.
 
@@ -87,14 +91,14 @@ Two operators: \(\mathrm{Recall}(q)\), \(\mathrm{Commit}(\Delta)\).
 
 **Commit id rules** (not three goldfish APIs): mutate (`NEW`); ingest (locator from artefact); Absorb (member slice + `keep` / `reject` / `remint`).
 
-**Unknown pin.** `find`, then skip — not “most relevant pin.” Optional catalog of `session=` ids (Snap), then **look** (`pin_map`) or **join** (Absorb a slice).
+**Unknown pin.** \(q\) is not an id → `find` (seed of \(q\)) then `pin_map`, or **skip**. Do not invent a node so the emit “looks relevant.” Optional catalog of `session=` ids (Snap), then **look** or **join** (Absorb a slice).
 
 **Over \(M\).** Do not raise goldfish \(M\). Narrow the ego; `view=shell`; partition into more sessions. Path-B import payload \(M\times|\mathrm{anchors}|\) is **not** the goldfish budget.
 
-| Leg | Few tokens means | Spend instead |
-|-----|------------------|---------------|
-| **Fetch** | One `pin_map` on live `TSK_*` (optional `view=shell`); skip if no seed | RAG top‑\(k\) chunks; \(N\) full maps; dump \(S\) |
-| **Maintain** | Sparse mutate; settle finished `TSK`; Absorb a **slice** only on Path B | Echo the slice; merge sessions; generate-on-retrieve |
+| Leg | Few LLM tokens; high correspondence to \(q\) | Spend instead |
+|-----|-----------------------------------------------|---------------|
+| **Fetch** | \(\tilde{X}=\mathrm{Recall}(q)\): one `pin_map` (optional `view=shell`); skip if seed empty | Cosine top‑\(k\); \(N\) maps; dump \(S\) |
+| **Maintain** | Sparse mutate of what \(q\)’s work changed; Absorb a **slice** on Path B | Echo \(\tilde{X}\); merge sessions; generate-on-retrieve |
 
 Verbs in full: [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Token budgets: same file, estimates section.
 
