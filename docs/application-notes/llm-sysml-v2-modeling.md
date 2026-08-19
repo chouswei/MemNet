@@ -88,17 +88,19 @@ Same device may appear in both — keep ids stable; relate across grains with ba
 
 ---
 
-## 6. Snap SysML across session strata
+## 6. Snap **one** SysML model into multiple sessions
 
-**Do not** `ingest_sysml` a whole `models/` tree into the mission session. Goldfish \(M\approx 50\); ingest `max_nodes` is a **Commit** cap (requirements.sysml ~193 pins), not a Shape budget. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
+`ingest_sysml` today is 1 path → **current** session. The intended Snap is **one model** (root package / load tree) → a **stack** of sessions (catalog + interiors). Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
 
-| Session | Holds |
-|---------|--------|
-| Lead mission | `TSK` / `USR` / `MOD` locators (`path=…sysml`) |
-| One library session **per** `models/*.sysml` file | PKG/PRT/REQ/POR from `ingest_sysml` |
-| Catalog | `session=` + `path=` for those files (`root.sysml` imports) |
+Goldfish \(M\approx 50\); ingest `max_nodes` is Commit into **one interior**, not a Shape of the whole model. `.sysml` stays SSOT.
 
-Open each library session with `schema.sysml.example.txt`. Cue `qname=` / `requirementId=` then `pin_map` **that** session. Cross-file `satisfy`: look the other `session=`, or Absorb a **slice** into the lead — not one walk across stores. Idempotent re-ingest after a validated edit. **MUST NOT** mint a session per requirement. **MUST NOT** Layer. **MUST NOT** `rag_query` the textual SysML.
+| Session in the Snap | Holds |
+|---------------------|--------|
+| Catalog \(S_{\mathrm{cat}}\) | `session=` + `qname=` of packages in **this** model |
+| Interiors \(S_1\ldots S_k\) | Pins for one **package** (kind band if still over ~2\(M\)) |
+| Lead mission (not in the Snap) | `TSK` / `USR`; locators into the catalog |
+
+Worked grain for **this** product model: interiors follow `root.sysml` imports (`MemNetRequirements`, `MemNetVerification`, …), not “a session because a file exists.” Cue `qname=` then `pin_map` **one** interior. Cross-package `satisfy`: second look or Absorb a **slice**. Re-Snap that package after a validated edit. **MUST NOT** one session per requirement. **MUST NOT** Layer. **MUST NOT** `rag_query` textual SysML.
 
 ---
 
@@ -116,7 +118,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 | Prose blobs in `CLM` / `USR` | Distilled codes / short values |
 | Stale `SYM.line` after edit | Re-grep + `update` |
 | Merging electrical `PIN` teach into SysML | Use GQL circuit note for circuits |
-| Ingest whole `models/` into the mission | One `ingest_sysml` per file session; catalog of `session=` |
+| One `ingest_sysml` per file as if each were a Snap | **One** model Snap → session stack; files are SSOT storage |
 
 ---
 
@@ -125,7 +127,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — file sessions as strata; SysML Snap
+- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — Snap one SysML model into many sessions
 - `~/.cursor/skills/sysml-memnet-documentation/`
 
 ---
