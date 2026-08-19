@@ -34,6 +34,7 @@ ENV_GRAPH = "MEMNET_AGENSGRAPH_GRAPH"
 
 DEFAULT_GRAPH = "memnet"
 _MEMNET_TAG_KEY = "_memnet_tag"
+_MEMNET_HID_KEY = "_memnet_hid"
 _SAFE_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_.:/@+-]+$")
 
@@ -101,13 +102,17 @@ def props_to_set_clause(alias: str, fields: dict[str, str], *, skip: set[str]) -
 
 
 def build_hydrate_nodes_cypher(ego_id: str, budget: HydrateBudget) -> str:
-    """Ego-bounded node walk: vertices within ``budget.depth`` of ego."""
+    """Ego-bounded node walk: vertices within ``budget.depth`` of ego.
+
+    Cabinet identity is the hidden handle ``_memnet_hid`` (off the agent wire).
+    leftover nickname ``id`` is a property, not the MERGE key.
+    """
     ego = cypher_id_literal(ego_id)
     depth = max(0, int(budget.depth))
     limit = max(1, int(budget.max_nodes))
     # *0..depth includes the ego vertex itself.
     return (
-        f"MATCH (ego {{id: {ego}}})\n"
+        f"MATCH (ego {{{_MEMNET_HID_KEY}: {ego}}})\n"
         f"OPTIONAL MATCH (ego)-[*0..{depth}]-(n)\n"
         f"WITH DISTINCT n\n"
         f"WHERE n IS NOT NULL\n"
@@ -132,7 +137,7 @@ def build_hydrate_edges_cypher(
     limit = max(0, int(budget.max_edges))
     if limit == 0:
         return (
-            f"MATCH (ego {{id: {ego}}})\n"
+            f"MATCH (ego {{{_MEMNET_HID_KEY}: {ego}}})\n"
             f"WHERE false\n"
             f"RETURN null AS label, null AS props, null AS src, null AS dist\n"
             f"LIMIT 0"
@@ -140,7 +145,7 @@ def build_hydrate_edges_cypher(
     ids = [i for i in (node_ids or []) if i]
     if not ids:
         return (
-            f"MATCH (ego {{id: {ego}}})\n"
+            f"MATCH (ego {{{_MEMNET_HID_KEY}: {ego}}})\n"
             f"WHERE false\n"
             f"RETURN null AS label, null AS props, null AS src, null AS dist\n"
             f"LIMIT 0"
@@ -148,21 +153,31 @@ def build_hydrate_edges_cypher(
     lits = ", ".join(cypher_id_literal(i) for i in ids)
     return (
         f"MATCH (src)-[rel]->(dst)\n"
-        f"WHERE src.id IN [{lits}] AND dst.id IN [{lits}]\n"
+        f"WHERE src.{_MEMNET_HID_KEY} IN [{lits}] AND dst.{_MEMNET_HID_KEY} IN [{lits}]\n"
         f"RETURN DISTINCT label(rel) AS label, properties(rel) AS props, "
-        f"src.id AS src, dst.id AS dist\n"
+        f"src.{_MEMNET_HID_KEY} AS src, dst.{_MEMNET_HID_KEY} AS dist\n"
         f"LIMIT {limit}"
     )
 
 
+def _cabinet_hid(record: Record) -> str:
+    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    return cypher_id_literal(hid)
+
+
 def build_merge_node_cypher(record: Record) -> str:
-    """MERGE/SET one MemNet node record into the named graph."""
+    """MERGE/SET one MemNet node record into the named graph.
+
+    Pattern key is hidden handle ``_memnet_hid`` (off the agent wire), not ``{id}``.
+    """
     tag = cypher_ident(record.tag.upper(), kind="vertex label")
-    rid = cypher_id_literal(record.id)
-    sets = props_to_set_clause("n", dict(record.fields), skip={"id"})
+    hid_lit = _cabinet_hid(record)
+    skip = {_MEMNET_HID_KEY, _MEMNET_TAG_KEY}
+    sets = props_to_set_clause("n", dict(record.fields), skip=skip)
     tag_set = f"n.{_MEMNET_TAG_KEY} = {cypher_quote(record.tag.upper())}"
-    set_body = f"{sets}, {tag_set}" if sets else tag_set
-    return f"MERGE (n:{tag} {{id: {rid}}})\nSET {set_body}"
+    hid_set = f"n.{_MEMNET_HID_KEY} = {hid_lit}"
+    extras = ", ".join(p for p in (sets, tag_set, hid_set) if p)
+    return f"MERGE (n:{tag} {{{_MEMNET_HID_KEY}: {hid_lit}}})\nSET {extras}"
 
 
 def build_merge_edge_cypher(record: Record) -> str:
@@ -183,17 +198,23 @@ def build_merge_edge_cypher(record: Record) -> str:
     rel_label = cypher_ident(rel, kind="edge label")
     src_lit = cypher_id_literal(src)
     dist_lit = cypher_id_literal(dist)
-    rid = cypher_id_literal(record.id) if record.id else None
-    skip = {"src", "dist", "relation"}
+    skip = {"src", "dist", "relation", _MEMNET_HID_KEY, _MEMNET_TAG_KEY}
     sets = props_to_set_clause("r", dict(record.fields), skip=skip)
     tag_set = f"r.{_MEMNET_TAG_KEY} = 'EDG'"
     rel_set = f"r.relation = {cypher_quote(rel)}"
+    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
     extras = ", ".join(p for p in (sets, tag_set, rel_set) if p)
-    if rid is not None:
-        merge_edge = f"MERGE (a)-[r:{rel_label} {{id: {rid}}}]->(b)"
+    if hid:
+        hid_lit = cypher_id_literal(hid)
+        merge_edge = f"MERGE (a)-[r:{rel_label} {{{_MEMNET_HID_KEY}: {hid_lit}}}]->(b)"
+        hid_set = f"r.{_MEMNET_HID_KEY} = {hid_lit}"
+        extras = f"{extras}, {hid_set}" if extras else hid_set
     else:
         merge_edge = f"MERGE (a)-[r:{rel_label}]->(b)"
-    return f"MATCH (a {{id: {src_lit}}}), (b {{id: {dist_lit}}})\n{merge_edge}\nSET {extras}"
+    return (
+        f"MATCH (a {{{_MEMNET_HID_KEY}: {src_lit}}}), (b {{{_MEMNET_HID_KEY}: {dist_lit}}})\n"
+        f"{merge_edge}\nSET {extras}"
+    )
 
 
 def _coerce_props(raw: Any) -> dict[str, str]:
@@ -241,20 +262,26 @@ def _coerce_scalar(raw: Any) -> str:
 def map_node_row(label: Any, props: Any) -> Record | None:
     """Map a hydrate node row → MemNet Record (or None if unusable)."""
     fields = _coerce_props(props)
+    hid = fields.pop(_MEMNET_HID_KEY, "")
     tag = fields.pop(_MEMNET_TAG_KEY, None) or _coerce_scalar(label) or "NOD"
     tag = str(tag).upper()
     if not tag or tag == "AG_VERTEX":
         tag = str(fields.get("tag") or "NOD").upper()
     rid = fields.get("id") or ""
-    if not rid:
+    if not rid and not hid:
         return None
-    fields["id"] = rid
-    return Record(tag=tag, fields=fields)
+    if rid:
+        fields["id"] = rid
+    rec = Record(tag=tag, fields=fields)
+    if hid:
+        rec.hid = hid
+    return rec
 
 
 def map_edge_row(label: Any, props: Any, src: Any, dist: Any) -> Record | None:
     """Map a hydrate edge row → MemNet EDG Record."""
     fields = _coerce_props(props)
+    hid = fields.pop(_MEMNET_HID_KEY, "")
     fields.pop(_MEMNET_TAG_KEY, None)
     rel = fields.get("relation") or _coerce_scalar(label) or ""
     if not rel or rel.upper() == "AG_EDGE":
@@ -268,7 +295,10 @@ def map_edge_row(label: Any, props: Any, src: Any, dist: Any) -> Record | None:
     fields["src"] = src_id
     fields["dist"] = dist_id
     fields["relation"] = rel
-    return Record(tag="EDG", fields=fields)
+    rec = Record(tag="EDG", fields=fields)
+    if hid:
+        rec.hid = hid
+    return rec
 
 
 class AgensGraphAdapter(DurableStoreAdapter):
@@ -358,7 +388,7 @@ class AgensGraphAdapter(DurableStoreAdapter):
         conn = self._ensure_conn()
         statements: list[str] = []
         for rec in subgraph.nodes:
-            if not rec.id:
+            if not (getattr(rec, "hid", "") or rec.id):
                 continue
             statements.append(build_merge_node_cypher(rec))
         for rec in subgraph.edges:

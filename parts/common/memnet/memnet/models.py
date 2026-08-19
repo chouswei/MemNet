@@ -36,8 +36,8 @@ class Record(BaseModel):
     fields: dict[str, str]
     agent: str | None = None
     written_at: float | None = None
-    # GraphElement identity in-process. MUST NOT appear on GQL emit.
-    hid: str = Field(default_factory=new_hid)
+    # GraphElement identity in-process. MUST NOT appear on GQL emit / jsonl.
+    hid: str = Field(default_factory=new_hid, exclude=True)
 
     @property
     def id(self) -> str:

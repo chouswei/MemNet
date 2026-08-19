@@ -1,4 +1,4 @@
-"""Minimal tests for IdAllocator NEW mint and no-op."""
+"""Leftover IdAllocator NEW mint — not a product contract (0.10 identity cut)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ from memnet.id_allocator import IdAllocator
 from memnet.tier_a import parse
 
 
-def test_mint_new_nodes_and_edges() -> None:
+def test_leftover_mint_new_nodes_and_edges() -> None:
+    """leftover AssignedIdMap / NEW mint still works; product Commit does not use it."""
     doc = parse(
         "+ CLM [NEW] ; type=fact ; code=x ; recycle=persistent\n"
         "+ NEW [A1] --(about)--> [A1] ; recycle=persistent\n"
@@ -20,7 +21,7 @@ def test_mint_new_nodes_and_edges() -> None:
     assert doc.items[1].edge_id.startswith("E")
 
 
-def test_mint_noop_when_no_new() -> None:
+def test_leftover_mint_noop_when_no_new() -> None:
     doc = parse("+ CLM [C10] ; type=fact ; code=x ; recycle=persistent\n")
     alloc = IdAllocator()
     assigned = alloc.mint_document(doc)
@@ -28,7 +29,7 @@ def test_mint_noop_when_no_new() -> None:
     assert doc.items[0].id == "C10"
 
 
-def test_allocate_from_locator_leftover_not_product() -> None:
+def test_leftover_allocate_from_locator_not_product() -> None:
     """leftover helper still deterministic; product ingest does not use it as PK."""
     alloc = IdAllocator()
     a = alloc.allocate_from_locator("CMP", "R1")

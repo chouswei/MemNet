@@ -999,8 +999,12 @@ def import_slice_cmd(
     )
     for old, new in sorted(result.reminted.items()):
         emit_stdout(f"@ID: {old}->{new}")
+    lead_ss = get_session(lead_id)
     for rid in result.imported_ids:
-        emit_stdout(f"@IMPORTED: {rid}")
+        rec = lead_ss.store._by_hid.get(rid)
+        nick = rec.id if rec is not None else ""
+        if nick:
+            emit_stdout(f"@IMPORTED: {nick}")
 
 
 @app.command("delete")
@@ -1046,12 +1050,20 @@ def read_get(
     tag: Annotated[str | None, typer.Option("--tag")] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Leftover read_get (not a product command). Unique nickname or hidden handle."""
+    """Leftover read_get (not a product command). Unique nickname only."""
     if not record_id:
         raise MemNetError("no_id", "provide --id")
     ss, lock = _load_session(session)
     with lock:
-        rec = ss.store.get(record_id)
+        hits = ss.store.match_nickname(record_id)
+        if len(hits) > 1:
+            _handle_error(
+                MemNetError(
+                    "cue_conflict",
+                    f"read get |Q|={len(hits)}; unique nickname only",
+                )
+            )
+        rec = hits[0] if len(hits) == 1 else None
         if not rec:
             _handle_error(MemNetError("not_found", f"id {record_id}"))
         if tag and rec.tag != tag.upper():

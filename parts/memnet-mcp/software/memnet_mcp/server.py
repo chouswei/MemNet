@@ -642,12 +642,6 @@ async def ingest_skills(
 
 
 @mcp.tool()
-async def read_get(id: str, session: str | None = None) -> str:
-    """Leftover read_get (not a product command). Unique nickname only."""
-    return await _run(["read", "get", "--id", id], session=session)
-
-
-@mcp.tool()
 async def read_list(
     tag: str | None = None,
     active_only: bool = False,

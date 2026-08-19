@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **0.10 identity cut (untagged)** — GraphElement is identity; hidden handle off the wire; optional `id` is a nickname. `CREATE ()` is legal. MERGE/SET/DELETE by labels+properties. `pin_map` from cue; CueConflict on find/`pin_map` emit when \(|Q|>1\). SCHEMA is not `id_first`. leftover NEW mint, `require_anchor`, `read_get`, ingest `allocate_from_locator` as PK, import MERGE-by-id, and `id_policy keep|reject|remint` as product commands stay leftover (not taught). Package SemVer remains **0.9.0**. Do not claim **1.0**. `liveNeo4jClaimed` stays false. Neo4j adapter flush uses hidden-handle pattern MERGE (not `{id}`).
+- **0.10 follow-up (hid off the product wire)** — Internal `_elN` / `hid` MUST NOT appear on CLI stdout, MCP emit, GQL ack, or jsonl. MERGE ack is labels+props / nickname only. MCP does not register leftover `read_get`. AgensGraph client MERGE uses `_memnet_hid` (same pattern as Neo4j; no live-Agens claim; server not vendored). leftover IdAllocator NEW mint and import remint tests are named leftover, not product contracts.
 
 ### Leftover
 - **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
