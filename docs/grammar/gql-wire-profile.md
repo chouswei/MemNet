@@ -231,7 +231,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
-| [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT |
+| [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (not live-claimed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
