@@ -118,3 +118,73 @@ MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This rethink on
 3. Do not close live Neo4j cabinet leftover from this note.
 
 Until accepted, as-is teaching stays: no RAG hop on the cabinet seam; host Snap unshipped; operators who fuse on one graph do so **outside** MemNet.
+
+---
+
+## Estimates (order of magnitude, not a benchmark)
+
+These are **design budgets** so option A/B/C can be compared. They are **not** measured SLAs and **not** a live-Neo4j claim. Caps from the engine: `pin_map` default depth 2 / `max_rows` 50 (`DEFAULT_QUERY_*`); `HydrateBudget` 50 nodes / 100 edges / depth 2; TCP/IPC frame **4 MiB** (`MEMNET_SERVE_MAX_FRAME_BYTES`); session store cap `MEMNET_MAX_ROWS` default 5000. Role size: tens of MiB typical, hundreds still in role, gigabytes = library/cabinet ([`memnet-host-search-nest.md`](memnet-host-search-nest.md)).
+
+**RTT** = one request/response on that hop. **Local** = same host or LAN &lt;1 ms. **WAN** = 20–80 ms class. **LLM** = one chat completion (0.5–30 s, dominates everything else).
+
+### Network (latency / bytes on the wire)
+
+| Hop | Bytes / turn (typical) | RTT count | Wall-clock (local) | Wall-clock (WAN) |
+|-----|------------------------|-----------|--------------------|------------------|
+| **Shape** `pin_map` in-process | 10–100 KiB shaped GQL (~50 rows × 0.2–2 KiB) | 0 (same process) | **0.1–5 ms** CPU, no NIC | n/a |
+| **Shape** via `memnet serve` / MCP | Same payload; frame ≤ 4 MiB | 1 | **1–10 ms** | **20–100 ms** |
+| **Cabinet hydrate** | Two Cypher reads; ≤50 nodes + ≤100 edges ≈ 20–200 KiB | **2** Bolt | **1–20 ms** | **40–200 ms** |
+| **Cabinet flush** | One `MERGE` **per** node then per edge (`session.run` auto-commit) | **≤150** Bolt | **50–500 ms** local (chatty) | **seconds** on WAN — avoid remote flush every turn |
+| **Library Snap (B, locators only)** | 1–3 Cypher or ANN queries; emit a few locators (bytes, not chunks) | 1–3 Bolt | **2–30 ms** (+ ANN) | **50–250 ms** |
+| **Option A sibling RAG MCP** | Chunk bodies often 2–20 KiB × top‑\(k\) | 1 HTTP | **10–100 ms** + embed | **100 ms–2 s** |
+| **Graphiti RRF (C / bypass)** | 3–4 parallel searches × `2×limit` candidates | 3–8 Bolt | **10–80 ms** | **100–400 ms** |
+| **GraphRAG local generate** | Mixed tables stuffed into prompt (often 4–16 KiB+ tokens) | 1 LLM | **LLM-bound** | LLM-bound |
+| **GraphRAG global map-reduce** | One LLM call **per** community-report chunk, then reduce | **tens–hundreds** LLM | **tens of seconds–minutes** | same |
+| **Neo4j GraphQL `generate`** | GraphQL retrieve + 1 LLM per field | 1 Bolt-ish + 1 LLM | **LLM-bound** | LLM-bound |
+
+**Design rule.** Goldfish must stay **milliseconds** without an LLM. Cabinet flush is the expensive MemNet hop (N round-trips); do it on **settle / process death**, not every `pin_map`. Library Snap must stay **locator-sized** or it becomes RAGFlow on the goldfish path. Any path that calls **generate** leaves the millisecond budget.
+
+### Size of memory (RAM / store)
+
+| Store | Working set | Notes |
+|-------|-------------|--------|
+| **Live \(S\)** (`memnet-llm` GraphStore) | **Tens of MiB** typical; **hundreds of MiB** still in role; hard row cap 5000 (default) | Atoms + locators; PDF bytes stay on disk. Goldfish **sees** ~50 rows, not all of \(S\). |
+| **`pin_map` / hydrate slice** | **~10–200 KiB** in RAM + prompt | Bound by \(M\) and 4 MiB frame — not by Neo4j heap. |
+| **Cabinet namespace** (option B) | Same order as \(S\) (flushed ego balls, not the whole library) | Neo4j page cache: plan **0.5–2 GiB** for a mission cabinet; not a corpus. |
+| **Library namespace** (option B) | **Gigabytes–terabytes** class (docs, KG, vectors) | Operator’s GraphRAG/FTS heap/index. MemNet must not load this into \(S\). |
+| **Embedding index** (library only) | ~1–4 KiB × vectors (e.g. 768-d float32 ≈ 3 KiB) × chunks | 1 M chunks ≈ **3 GiB** vectors **plus** graph. Forbidden on cabinet labels. |
+| **GraphRAG Leiden + reports** | Graph + **LLM-sized** report text per community | Index-time disk/RAM; query-time still prompt-bound. |
+| **HippoRAG three stores + igraph** | Facts + entities + passages **all** in RAM for PPR | Fine for QA benchmarks; not a goldfish working set. |
+| **Option C fused** | Library **plus** \(S\) in one hot graph | RAM follows the **library**; goldfish budget is lost. |
+
+**Design rule.** If it does not fit in **hundreds of MiB**, it is library or cabinet-of-library, not live Shape. Option B keeps two heaps conceptually even when one `java` process holds both databases.
+
+### CPU effort (one turn, no LLM unless stated)
+
+| Work | Complexity (sketch) | Effort class |
+|------|---------------------|--------------|
+| **`find` + `pin_map`** | Scan/index by kind + BFS ≤ depth 2, clamp \(M=50\), fan-out clamp | **µs–ms**, one core. Deterministic. |
+| **MutateGate** | Parse + mint + SCHEMA | **µs–ms**. |
+| **Hydrate Cypher** `[*0..2]` LIMIT 50 | Planner + expand; bounded | **ms** on cabinet-sized graphs; **degrades** if cabinet was stuffed with the corpus (then you already fused). |
+| **Flush N MERGE** | \(O(N)\) commits | **CPU cheap**; **network/fsync** dominate (see table above). |
+| **Library FTS / Lucene** | Inverted index | **ms** for locator top‑\(k\). |
+| **Library vector KNN** | HNSW/ANN | **ms–tens of ms**; extra **embed query** CPU/GPU ~1–10 ms local model, or a network embed call. |
+| **Graphiti RRF \(k=1\)** | 3 lists + \(O(\sum r)\) | **Cheap vs Bolt**. Cross-encoder rerank = **GPU/LLM**. |
+| **LightRAG hl/ll keywords** | **1 LLM** before any graph | Leaves the ms budget immediately. |
+| **HippoRAG PPR** | ~sparse \(|V|\) with damping 0.5 on the **whole** graph | **10 ms–seconds** as \(|V|\) grows; plus fact ANN + optional LLM fact filter. |
+| **GraphRAG Leiden** | Index-time community detection | **Seconds–hours** once per corpus, not per goldfish turn. |
+| **GraphRAG global map** | LLM × report chunks | **Dominant cost** of that product. |
+| **Option C on cabinet** | RRF/PPR/Leiden/**generate** on \(S\) | Pays **library** CPU **every turn**; contradicts MN-REQ-00 wall-clock. |
+
+**Design rule.** Option **B** library port is allowed to spend **ANN/FTS milliseconds** (and must **timeout** / fail-open). It is **not** allowed to spend **LLM seconds** on the goldfish turn. Keyword extraction and generate stay host-side and **off** the default miss path, or the miss path is skipped.
+
+### Option A / B / C scored on these budgets
+
+| | Network | Memory | CPU / turn |
+|--|---------|--------|------------|
+| **A Firewall** | Goldfish ms; corpus RAG is another MCP (chunky). Two servers if they obey. | \(S\) small; library elsewhere | Shape ms; RAG MCP extra |
+| **B Two ports** | Shape ms; hydrate 2 RTT; flush batched/offline; Snap 1–3 RTT locators | Two namespaces; cabinet hundreds of MiB; library GiB **not** in \(S\) | Shape ms; Snap ms–tens of ms; **no** generate |
+| **C Fuse** | Every turn looks like Graphiti/GraphRAG (parallel Bolt + prompt) | One hot heap = library | PPR/Leiden/LLM — **seconds+** |
+
+MN-REQ-00 (wall-clock + tokens) **selects B** when one Neo4j process is a given: keep the millisecond goldfish, pay Bolt only for bounded hydrate and rare flush, pay library ANN only on **miss**, never pay map-reduce on `pin_map`.
+
