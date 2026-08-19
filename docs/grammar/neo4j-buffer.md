@@ -143,7 +143,7 @@ The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. A Neo4
 | **Microsoft GraphRAG** `LocalSearch` / `global_search` | Corpus KG: Leiden communities + report map-reduce, then **generate** | Host Snap of the **library**. | Local *shape* ≈ ego walk — keep as host retrieve. | Community reports as goldfish. Corpus KG **as** session. Map-reduce **on** Neo4j via MemNet. |
 | **LightRAG** `aquery` (local/global/hybrid/mix) | Incremental **document** Q&A; default path generates; chunks in the payload | Host locators (`file_path`). | Dual-level grain ≈ `view=shell` then TSK `interior`. Empty keywords → skip. | hybrid/mix **in** `memnet-llm`. Chunk JSON as `pin_map`. |
 | **RAGFlow** MCP `ragflow_retrieval` | Sibling tool returns **chunks** | Host Snap. | Locator-shaped hits if the host strips bodies. | Chunks on `note=`. Nest under `MemNetSystem`. |
-| **Graphiti** `search` / `add_episode` (often Neo4j/FalkorDB) | Cross-session **LTM**; BM25 \|\| cosine \|\| BFS **RRF**; `node_distance` given a centre | Closest *algorithm* to `pin_map` is **distance from centre**. Closest *temptation* is using **Neo4j as goldfish**. | Serialise: lexical cue, then hop (do not RRF). Incremental Δ. `group_ids` ≈ session scope. Episodes ≈ locators. | Neo4j goldfish. Default embeddings in-engine. Community nodes. Bi-temporal LTM **as** session. |
+| **Graphiti** `search` / `add_episode` (often Neo4j/FalkorDB) | Cross-session **LTM**; parallel BM25 \|\| cosine \|\| BFS, then RRF (\(k=1\)) / MMR / CE. `node_distance` is **1-hop** `RELATES_TO` to `center_node_uuid`, not a \(k\)-hop shortest path | Closest *temptation* is Neo4j as goldfish. Centre bias is a cousin of `pin_map(anchor)`, not the same walk. | Serialise: lexical cue, then hop (do not RRF). Incremental Δ. `group_ids` ≈ session scope. | Neo4j goldfish. RRF hybrid in-engine. Copy 1-hop distance as Recall (MemNet default depth 2). |
 | **HippoRAG 2** `retrieve` | Embed facts → PPR on OpenIE graph → **chunk bodies** | Host RAG (serial, but wrong haystack). | Empty facts → skip / grep / host. Fan-in as budget, not PPR. | OpenIE, three vector stores, PPR, chunks as memory surface. |
 | **mem0** `Memory.search` | Vector store → `{memory, score}` into the **system prompt** | Chat-as-memory cousin. | Scope filter before cue. Threshold as skip. | Vector store as memory. Dumping prose into chat as SSOT. |
 | **Letta** core vs archival | Core = **prose in the prompt**; archival = second retrieve hop | Working-set vs cabinet *idea* only. | Recycle / settle keeps goldfish small. Cabinet ≠ prompt block. | Core-memory blocks as `pin_map`. Archival search on `memnet-mcp`. |
@@ -223,7 +223,8 @@ pytest -m neo4j_live
 |------|------|
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | First cabinet client; 0.7 live claim |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire SSOT (not Bolt) |
-| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | RAG relatives SSOT (steal/reject of retrieve functions); this file places them on the cabinet cut |
+| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
+| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | What those retrieve functions actually compute |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
 | [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Version map; 0.9 client extra; live Neo4j is Later |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |

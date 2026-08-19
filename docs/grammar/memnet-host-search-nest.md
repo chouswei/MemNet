@@ -3,6 +3,7 @@
 **Status:** design only — **not** shipped. No `rag_query` MCP; no embeddings in the engine.  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
 **Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
+**Retrieve algorithms (what the functions do):** [`rag-relative-algorithms.md`](rag-relative-algorithms.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
 
@@ -188,6 +189,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
+| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Retrieve pipelines from source (GraphRAG, Graphiti RRF \(k=1\), LightRAG modes, HippoRAG PPR, …) |
 | [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
