@@ -13,6 +13,7 @@ model_files:
   # 2) System models (root last)
   - connections.sysml
   - requirements.sysml
+  - cousins.sysml
   - deploy.sysml
   - behaviour.sysml
   - verify.sysml

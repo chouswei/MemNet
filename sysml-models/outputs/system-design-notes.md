@@ -37,6 +37,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Company analytical SSOT | `CompanyAnalyticalSsot` (**application pattern section** in connections — not core item zoo) → [company-memory-case-study.md](company-memory-case-study.md) |
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
+| Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs seven cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8) |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
@@ -89,7 +90,8 @@ MemNetSystem                                 // SharedLlmMemory
     │       └── WorkingMemorySliceExport     // hard: anchors, budget, LAW skip
     └── MultitaskSharedStoreBinding
 
-HostSearchBridge / EvidenceCentre / CompanyMemory  // APPLICATION — MUST NOT nest here
+HostSearchBridge / EvidenceCentre / CompanyMemory / CousinPointingContrast
+    // APPLICATION — MUST NOT nest here
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
@@ -190,6 +192,6 @@ reserve and Path-B ingest are **shipped**.
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
 - PinMapIngest — all leftover domains **shipped** (#64); export/round-trip (#66) not claimed
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
-- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** — application patterns only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); design [`../../docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md))
+- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** — application / contrast nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored
 - RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed; **1.0** = claim of 0.5–0.8

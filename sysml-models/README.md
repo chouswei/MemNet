@@ -21,7 +21,8 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit) |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1) |
+| `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs seven cousin pointing/identity designs (not a product switch) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01; MN-VER-13-S01 |
@@ -73,6 +74,8 @@ MemNetSystem                                 // SharedLlmMemory product
     ├── WorkerPool
     │   └── MultitaskWorker[1..*]            // async parallel members
     └── MultitaskSharedStoreBinding
+
+CousinPointingContrast                         // APPLICATION contrast — MUST NOT nest here
 ```
 
 **Happy path Multitask:** Path A shared session → re-`pin_map` (ImportGuard unused). Path B uses optional ImportGuard nest then ImportAbsorb. Hook shipped ≠ cheap LLM shipped.
@@ -89,7 +92,7 @@ MemNetSystem                                 // SharedLlmMemory product
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
-- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** MUST NOT nest under MemNetSystem (optional host locators — design only)
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** MUST NOT nest under MemNetSystem (optional host locators / cousin pointing contrast — design only)
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 
 ### CapsPolicy ACL (as-is 0.8)
