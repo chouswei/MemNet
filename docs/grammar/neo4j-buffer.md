@@ -89,8 +89,8 @@ Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapCompose
 | **Store** | External **labelled property graph** server. Not vendored. Named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`). |
 | **Transport** | Official `neo4j` driver over **Bolt** (`bolt://` or `neo4j://`). `GraphDatabase.driver` + `driver.session(database=…)`. Extra `memnet-llm[neo4j]` is the driver only. |
 | **Query language** | **Neo4j Cypher** (not Agens SQL/openCypher mix). Variable-length path `[*0..depth]`; `labels(n)` (list); `type(rel)`; `properties(…)`; `IN $node_ids`. Ids and labels parameterised / validated (`neo4j_bad_id` / `neo4j_bad_ident`) before they reach Bolt. |
-| **Hydrate** | (1) Match ego `{id}` then undirected k-hop, `RETURN labels, properties LIMIT max_nodes`. (2) Directed `MATCH (src)-[rel]->(dst)` **only among those ids**. Map via shared `map_node_row` / `map_edge_row`: `_memnet_tag` wins, else `first_label` (Neo4j nodes may carry **many** labels; MemNet keeps **one** primary tag). Missing `id` → drop. Edge without `relation`/`type` → drop. Then `.bounded(budget)`. |
-| **Flush** | Nodes first: `MERGE (n:TAG {id: $id}) SET n += $props, n._memnet_tag = $tag`. Then edges: `MATCH` both ends by `id`, `MERGE` relationship by type (+ `id` when present), `SET r += $props`, stamp `_memnet_tag='EDG'` and `relation`. Skip nodes with empty id; skip non-`EDG` rows. |
+| **Hydrate** | (1) Match ego `{_memnet_hid}` (in-process GraphElement handle; off the agent wire) then undirected k-hop, `RETURN labels, properties LIMIT max_nodes`. leftover nickname `id` is a **property** filter only after that hid MATCH is empty. (2) Directed `MATCH (src)-[rel]->(dst)` **only among those cabinet hids**. Map via shared `map_node_row` / `map_edge_row`: `_memnet_tag` wins, else `first_label` (Neo4j nodes may carry **many** labels; MemNet keeps **one** primary tag). Nickname `id` is optional. Edge without `relation`/`type` → drop. Endpoints remap to nicknames for the live session. Then `.bounded(budget)`. |
+| **Flush** | Nodes first: `MERGE (n:TAG {_memnet_hid: $hid}) SET n += $props, n._memnet_tag = $tag` (optional nickname `id` stays a property). Then edges: `MATCH` both ends by `_memnet_hid` (resolved from the in-process node records, not leftover `src`/`dist` nicknames), `MERGE` relationship by type (+ hid when present), `SET r += $props`, stamp `_memnet_tag='EDG'` and `relation`. Skip nodes with empty hid; skip non-`EDG` rows. |
 | **Commit grain** | Each `session.run` **auto-commits**. A later hydrate error cannot roll back a successful MERGE (0.7 Agens lesson). MemNet does **not** open a single wrapping transaction, create uniqueness constraints, or install indexes. |
 | **Unused on this seam** | Browser, `@neo4j/graphql`, procedures/APOC, GDS, vector/FTS indexes, native RBAC as agent ACL, unbounded analytic Cypher, LLM-as-resolver. Those stay operator/host — not goldfish. |
 
@@ -100,7 +100,8 @@ Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapCompose
 |--------|----------------------|
 | SCHEMA kind / `Record.tag` | Primary node **label** + `_memnet_tag` |
 | `EDG.relation` | Relationship **type** + property `relation` |
-| `id` (minted or ground) | Property `id` on node and (when present) on relationship |
+| `id` (optional nickname) | Property `id` on node and (when present) on relationship — **not** the MERGE/MATCH key |
+| Cabinet GraphElement handle (off the wire) | Property `_memnet_hid` — flush MERGE and hydrate ego MATCH |
 | Other fields | Node/rel **properties** (`SET +=` map; string values) |
 | `pin_map` k-hop + `max_rows` | Hydrate `[*0..depth]` + `LIMIT` + second edge query |
 | MutateGate / `NEW` | **Not** on Neo4j — mint happens in MemNet; cabinet only MERGE known ids |
@@ -121,12 +122,14 @@ Neo4j and AgensGraph are **two cabinets**, not two products. Factory binds **one
 | Record shape; `_memnet_tag` round-trip | Named database (`MEMNET_NEO4J_DATABASE`, default `neo4j`) vs Agens graph name |
 | Fake always-on CI; live mark skips unless URL | Live claim: Agens **0.7** proven; Neo4j **unclaimed** |
 
-Cypher sketches (Neo4j; parameterised ids):
+Cypher sketches (Neo4j; parameterised; `_memnet_hid` is internal, not agent wire):
 
-- **Hydrate nodes:** `MATCH (ego {id: $ego_id}) OPTIONAL MATCH (ego)-[*0..depth]-(n) RETURN labels(n), properties(n) LIMIT max_nodes`
-- **Hydrate edges:** among ids in that ego ball, `MATCH (a)-[r]->(b) … RETURN type(rel), properties, a.id, b.id LIMIT max_edges`
-- **Flush nodes:** `MERGE (n:TAG {id: $id}) SET n += $props, n._memnet_tag = 'TAG'`
-- **Flush edges:** `MATCH (a {id: $src}), (b {id: $dist}) MERGE (a)-[r:REL {id: $id}]->(b) SET …`
+- **Hydrate nodes:** `MATCH (ego {_memnet_hid: $ego_hid}) OPTIONAL MATCH (ego)-[*0..depth]-(n) RETURN labels(n), properties(n) LIMIT max_nodes`
+- **Hydrate edges:** among cabinet hids in that ego ball, `MATCH (a)-[r]->(b) … RETURN type(rel), properties, a._memnet_hid, b._memnet_hid LIMIT max_edges`
+- **Flush nodes:** `MERGE (n:TAG {_memnet_hid: $hid}) SET n += $props, n._memnet_tag = 'TAG'`
+- **Flush edges:** `MATCH (a {_memnet_hid: $src}), (b {_memnet_hid: $dist}) MERGE (a)-[r:REL {_memnet_hid: $hid}]->(b) SET …`
+
+Official fixture (`company_ego_fixture` / `COM_acme_live_neo4j`): flush, then hydrate by the **same hid** that was written. Do not MATCH `(ego {id: $nickname})` as the live contract. leftover nickname hydrate is a property filter after hid miss only. **MUST NOT** claim `liveNeo4jClaimed` from this identity fix.
 
 MemNet tags become vertex labels; `EDG.relation` becomes the relationship type. Mapping back prefers `_memnet_tag`, else `first_label`. Identifiers and ids are validated before they reach Bolt (`neo4j_bad_ident` / `neo4j_bad_id`). Each `session.run` auto-commits so a later hydrate error cannot roll back a successful flush.
 

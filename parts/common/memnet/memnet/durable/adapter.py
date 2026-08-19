@@ -8,6 +8,57 @@ from dataclasses import dataclass, field
 from memnet.models import Record
 
 
+def record_cabinet_hid(record: Record) -> str:
+    """Hidden handle used as cabinet identity. Nickname ``id`` is not the key."""
+    hid = getattr(record, "hid", "") or ""
+    if hid:
+        return hid
+    return record.id or ""
+
+
+def resolve_endpoint_hid(endpoint: str, nodes: list[Record]) -> str:
+    """Map EDG ``src``/``dist`` (usually a nickname) to that node's cabinet hid."""
+    if not endpoint:
+        return ""
+    for node in nodes:
+        if node.id == endpoint or (getattr(node, "hid", "") or "") == endpoint:
+            return record_cabinet_hid(node)
+    return endpoint
+
+
+def node_cabinet_keys(nodes: list[Record]) -> list[str]:
+    """Edge-filter keys: hid first, nickname only as a leftover extra."""
+    keys: list[str] = []
+    seen: set[str] = set()
+    for node in nodes:
+        hid = getattr(node, "hid", "") or ""
+        nick = node.id or ""
+        for key in (hid, nick):
+            if key and key not in seen:
+                seen.add(key)
+                keys.append(key)
+    return keys
+
+
+def remap_edge_endpoints_to_nicknames(edge: Record, nodes: list[Record]) -> Record:
+    """Restore session nicknames on EDG ends after a hid-keyed cabinet walk."""
+    hid_to_nick = {
+        (getattr(node, "hid", "") or ""): node.id
+        for node in nodes
+        if (getattr(node, "hid", "") or "") and node.id
+    }
+    src = edge.fields.get("src") or ""
+    dist = edge.fields.get("dist") or ""
+    if src not in hid_to_nick and dist not in hid_to_nick:
+        return edge
+    fields = dict(edge.fields)
+    if src in hid_to_nick:
+        fields["src"] = hid_to_nick[src]
+    if dist in hid_to_nick:
+        fields["dist"] = hid_to_nick[dist]
+    return edge.model_copy(update={"fields": fields})
+
+
 @dataclass(frozen=True)
 class HydrateBudget:
     """Pin / depth / view budget for ego-bounded hydrate (MN-REQ-06.4)."""
@@ -35,9 +86,21 @@ class DurableSubgraph:
         """Apply soft node/edge caps (depth is adapter-side for real stores)."""
         nodes = list(self.nodes)
         if self.ego_id:
-            nodes = sorted(nodes, key=lambda r: (0 if r.id == self.ego_id else 1, r.id))
+            nodes = sorted(
+                nodes,
+                key=lambda r: (
+                    0 if r.id == self.ego_id or (getattr(r, "hid", "") or "") == self.ego_id else 1,
+                    r.id,
+                ),
+            )
         nodes = nodes[: max(0, budget.max_nodes)]
-        kept = {r.id for r in nodes}
+        kept: set[str] = set()
+        for rec in nodes:
+            if rec.id:
+                kept.add(rec.id)
+            hid = getattr(rec, "hid", "") or ""
+            if hid:
+                kept.add(hid)
         edges: list[Record] = []
         if budget.max_edges > 0:
             for e in sorted(self.edges, key=lambda r: r.id):
