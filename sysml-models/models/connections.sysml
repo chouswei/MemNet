@@ -159,7 +159,9 @@ package MemNetConnections {
       AgensGraph client with liveCabinetClaimed; optional Neo4j client
       with liveNeo4jClaimed=false; one DurableSyncOwner; SessionLifecycle
       hydrate/flush). Cabinet is not in the memnet-llm wheel and is not
-      installed on the 2 GiB droplet. LLM ↔ store direct (including Bolt)
+      installed on the 2 GiB droplet. Graph `id` is a MERGE key on
+      working-memory records flushed into this store — not an attribute
+      on the server part itself. LLM ↔ store direct (including Bolt)
       is out of default teach. MN-REQ-06.4 / 06.5 / 06.6.
     */
   }
@@ -171,8 +173,11 @@ package MemNetConnections {
   item def PropertyGraphNode {
     doc /*
       First-class GQL/property-graph node. Kind → primary Label; id → stable
-      key/property; fields → Property map. Constitutive law (if any) lives on
-      the node as property `law` (and linked port structure), never on an edge.
+      MERGE key on addressable working-memory records (ego, pin anchors,
+      mutate targets, reserved ids); fields → Property map. Constitutive law
+      (if any) lives on the node as property `law` (and linked port
+      structure), never on an edge. MUST NOT put a graph id on SysML part
+      defs (hosts, extras, ports, honesty flags, the cabinet server).
     */
   }
 
@@ -181,7 +186,10 @@ package MemNetConnections {
       First-class GQL relationship (edge). Relationship type + Property map +
       direction. Dual grain (bind vs relation) is encoded in GQL-compatible
       terms — see BindRelationship vs RelationRelationship — not a second
-      agent dialect.
+      agent dialect. Present engine MERGE key MAY be a relationship id
+      (soak example E_about_q3) when the record has one; that is as-is
+      flush spelling, not a law that every relationship needs a
+      user-supplied id. Commit may mint NEW.
     */
   }
 
@@ -189,6 +197,8 @@ package MemNetConnections {
     doc /*
       First-class key=value property on a node or relationship.
       Omit defaults on agent wire; no nested graph-valued properties.
+      MUST NOT invent an id for a property (or for warnings / allocation
+      notes).
     */
   }
 
@@ -309,7 +319,7 @@ package MemNetConnections {
   }
 
   item def ErrorSignal {
-    doc /* @ERR: code|message|example? on stderr path. */
+    doc /* @ERR: code|message|example? on stderr path. MUST NOT invent a graph id for warnings. */
     attribute errCode : String;
     attribute detailText : String;
   }

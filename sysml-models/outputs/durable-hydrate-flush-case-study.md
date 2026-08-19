@@ -73,7 +73,7 @@ flowchart LR
 | | As-is | Target / leftover |
 |--|-------|-------------------|
 | Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=false`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
-| External server part | **Modelled** — `DurableCabinet` (Neo4j on Pi operator host; AgensGraph still a possible kind); not in wheel; not on 2 GiB droplet | Operator soak ≠ product live Neo4j claim |
+| External server part | **Modelled** — `DurableCabinet` (Neo4j on Pi operator host; AgensGraph still a possible kind); not in wheel; not on 2 GiB droplet; **no graph id on the server part** | Operator soak ≠ product live Neo4j claim; edge `id` is present MERGE key |
 | Live cabinet | Agens external / operator-proven (0.7); Neo4j client not live-claimed; **not** vendored; skip live marks unless URL | Not a hosted product service |
 | Satisfy | MN-REQ-06.4 on `DurableBuffer`; 06.5 / 06.6 on `DurableCabinet` + operator sites | Live Neo4j claim stays false |
 

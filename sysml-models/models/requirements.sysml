@@ -429,9 +429,16 @@ package MemNetRequirements {
           psycopg). Two possible server kinds: AgensGraph (default product
           cabinet option; 0.7 live claim) and Neo4j (operator Pi server).
           Clients (Pi writer, droplet MCP) SHALL be adapters, not the
-          database. Desk EvidenceCentre / CompanyMemory SHALL NOT bind this
-          Bolt; MUST NOT federate over InvestorApi. Lab-critical InvenTree
-          ports on the Pi (:80/:443) SHALL NOT be disturbed.
+          database. Graph id SHALL apply only to addressable working-memory
+          records and cabinet MERGE keys (ego, pin anchors, mutate targets,
+          reserved ids). SHALL NOT require a SysML `id` on hosts, extras,
+          ports, honesty flags, or the cabinet server. Present edge MERGE
+          MAY use a relationship id when the engine record has one; that
+          SHALL NOT be a law that every relationship needs a user-supplied
+          id (Commit may mint NEW). Desk EvidenceCentre / CompanyMemory
+          SHALL NOT bind this Bolt; MUST NOT federate over InvestorApi.
+          Lab-critical InvenTree ports on the Pi (:80/:443) SHALL NOT be
+          disturbed.
         */
         attribute requirementId : String = "MN-REQ-06.5";
       }

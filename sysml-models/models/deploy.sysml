@@ -226,7 +226,8 @@ package MemNet {
       Dual EDGE: bind vs relation as relationship types / endpoint grain.
       Law-on-node as node properties (+ port structure). Agent wire is GQL
       via GqlCodec. Realises session-scoped SharedLlmMemory content.
-      As-is: memnet.mem_store.MemStore (+ models).
+      Graph id is on addressable records (ego / pin / mutate / RSV), not
+      on every item in this nest. As-is: memnet.mem_store.MemStore (+ models).
     */
     port recordsIn : GraphRecordInPort;
     port recordsOut : GraphRecordOutPort;
@@ -816,7 +817,10 @@ package MemNet {
       hydrate/flush ABC, same DurableSyncOwner, same ego HydrateBudget.
       Optional extra memnet-llm[neo4j] = official neo4j Python driver
       (>=5.14) only — not a Neo4j server. Client hydrate/flush IS
-      implemented. Live Bolt round-trip is NOT a product claim
+      implemented. Flush MERGEs addressable working-memory records by
+      graph id (nodes) and, when present, relationship id (edges);
+      Commit may mint NEW — not a user-supplied id on every edge.
+      Live Bolt round-trip is NOT a product claim
       (liveNeo4jClaimed=false; pytest.mark.neo4j_live skips unless
       MEMNET_NEO4J_URL). Proof port = Neo4jAdapter.from_env() — no CLI/MCP
       hydrate/flush tools. Agents MUST NOT talk Bolt. MN-REQ-06.4.
@@ -860,13 +864,14 @@ package MemNet {
   part def Neo4jCabinetServer {
     doc /*
       External Neo4j *server* kind (not the adapter). Not in memnet-llm.
-      Operator evidence 2026-08-19 (rpi5-syson / Devicor): Bolt reachable;
-      soak flush/hydrate of company_ego_fixture("COM_soak_pi") returned
-      nodes COM_soak_pi, TSK_mission_q3 and edge
-      TSK_mission_q3 -[:ABOUT]-> COM_soak_pi (E_about_q3). HTTP browser
-      :7474 stayed loopback. This is operator evidence only —
-      liveNeo4jClaimed MUST stay false. MUST NOT install on the 2 GiB
-      droplet. No secrets in this model.
+      This part has no graph id — the server is not a working-memory
+      record. Operator evidence 2026-08-19 (rpi5-syson / Devicor): Bolt
+      reachable; soak flush/hydrate of company_ego_fixture("COM_soak_pi")
+      returned nodes COM_soak_pi, TSK_mission_q3 and edge
+      TSK_mission_q3 -[:ABOUT]-> COM_soak_pi (E_about_q3 as present MERGE
+      key, not a universal edge-id law). HTTP browser :7474 stayed
+      loopback. This is operator evidence only — liveNeo4jClaimed MUST
+      stay false. MUST NOT install on the 2 GiB droplet. No secrets.
     */
     attribute inMemnetLlmWheel : Boolean = false;
     attribute vendoredInRepo : Boolean = false;
@@ -875,10 +880,10 @@ package MemNet {
     attribute operatorEvidenceOnly : Boolean = true;
     attribute operatorEvidenceDate : String = "2026-08-19";
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute sysmlPartHasGraphId : Boolean = false;
     attribute boltListenPort : Integer = 7687;
     attribute httpBrowserPort : Integer = 7474;
     attribute httpBrowserLoopbackOnly : Boolean = true;
-    attribute soakEgoId : String = "COM_soak_pi";
   }
 
   part def AgensGraphCabinetServer {
@@ -892,6 +897,7 @@ package MemNet {
     attribute defaultProductCabinetOption : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
     attribute operatorInstalledOnRpi5Syson : Boolean = false;
+    attribute sysmlPartHasGraphId : Boolean = false;
   }
 
   part def DurableCabinet {
@@ -899,7 +905,9 @@ package MemNet {
       First-class EXTERNAL durable database (cabinet process). Sibling of
       DurableBuffer — not inside the wheel, not a client adapter.
       Two possible server kinds: Neo4j (operator Pi) and AgensGraph
-      (default product option). MemNet ships clients only. MN-REQ-06.5.
+      (default product option). MemNet ships clients only. This part has
+      no graph id. MERGE keys live on flushed working-memory records;
+      present edge id is a MERGE spelling, not a law. MN-REQ-06.5.
     */
     part neo4j : Neo4jCabinetServer;
     part agens : AgensGraphCabinetServer;
@@ -907,6 +915,10 @@ package MemNet {
     attribute vendoredInRepo : Boolean = false;
     attribute installedOnDroplet : Boolean = false;
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute sysmlPartHasGraphId : Boolean = false;
+    attribute mergeKeyOnWorkingMemoryRecords : Boolean = true;
+    attribute edgeIdUserSuppliedRequired : Boolean = false;
+    attribute commitMayMintNew : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
@@ -1747,6 +1759,7 @@ package MemNet {
     part rpi5Syson : Rpi5SysonSite;
     part droplet2GiB : DropletMemNetSite;
     attribute liveNeo4jClaimed : Boolean = false;
+    attribute sysmlPartHasGraphId : Boolean = false;
   }
 
   part operatorDurableSites : OperatorDurableSites;

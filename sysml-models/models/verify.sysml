@@ -456,7 +456,10 @@ package MemNetVerification {
       MN-REQ-06.5 / 06.6 — external cabinet is a first-class server part;
       clients are adapters. No Neo4j server on the 2 GiB droplet. Extras
       are drivers only. Operator soak on rpi5-syson is evidence only —
-      liveNeo4jClaimed stays false. One sync owner; no dual-write.
+      liveNeo4jClaimed stays false. Graph id is a MERGE key on working-
+      memory records, not on SysML hosts / extras / the server part.
+      Present edge id is a MERGE spelling (Commit may mint NEW), not a
+      universal user-supplied-id law. One sync owner; no dual-write.
       OperatorDurableSites stays outside MemNetSystem.
     */
     attribute verificationId : String = "MN-VER-06-S02";
@@ -472,7 +475,12 @@ package MemNetVerification {
           and system.cabinet.vendoredInRepo == false
           and system.cabinet.installedOnDroplet == false
           and system.cabinet.liveNeo4jClaimed == false
+          and system.cabinet.sysmlPartHasGraphId == false
+          and system.cabinet.mergeKeyOnWorkingMemoryRecords == true
+          and system.cabinet.edgeIdUserSuppliedRequired == false
+          and system.cabinet.commitMayMintNew == true
           and system.cabinet.neo4j.liveNeo4jClaimed == false
+          and system.cabinet.neo4j.sysmlPartHasGraphId == false
           and system.cabinet.neo4j.operatorEvidenceOnly == true
           and system.cabinet.neo4j.installedOnDroplet == false
           and system.cabinet.agens.defaultProductCabinetOption == true
@@ -492,6 +500,7 @@ package MemNetVerification {
           and sites.rpi5Syson.writerIsAdapterClient == true
           and sites.rpi5Syson.inventreeLabCriticalDoNotTouch == true
           and sites.liveNeo4jClaimed == false
+          and sites.sysmlPartHasGraphId == false
       }
     }
   }
