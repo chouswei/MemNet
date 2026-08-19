@@ -7,7 +7,7 @@ User / product direction (post ADR-001 supersession): **one dialect = GQL** ([`.
 | Path | What it was |
 |------|-------------|
 | [`docs/`](docs/) | Former Layer ontology, GQL consideration narrative, Layer↔GQL crosswalk |
-| [`antlr/`](antlr/) | `MemNetLayer.g4` + generated Python + smoke |
+| [`antlr/`](antlr/) | `MemNetLayer.g4` + generated Python + smoke; unused `MemNet.g4` stub (never codegen) |
 | [`examples-layer/`](examples-layer/) | Layer golden fixtures |
 | [`tools/layer_soft_validate.py`](tools/layer_soft_validate.py) | Layer soft-validate harness |
 

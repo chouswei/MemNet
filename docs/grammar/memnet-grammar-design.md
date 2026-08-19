@@ -131,7 +131,7 @@ Ground **id** is the Write=display copy key (stable locator doctrine). `~` field
 
 ### 4.2.0b Numeric incremental update (`+=` / `-=`) — locked
 
-On **patch** (`~`) only, a field may use **`key+=N`** or **`key-=N`** where `N` is a number literal (`NUMBER` in `MemNet.g4`). The engine reads the **current stored value** for `key`, applies the delta, and persists the **absolute** result. Create (`+`) and drop (`-`) are unchanged — create uses plain `key=value` only.
+On **patch** (`~`) only, a field may use **`key+=N`** or **`key-=N`** where `N` is a number literal (same as `NUMBER` in the archived `MemNet.g4` / `tier_a` twin). The engine reads the **current stored value** for `key`, applies the delta, and persists the **absolute** result. Create (`+`) and drop (`-`) are unchanged — create uses plain `key=value` only.
 
 | Rule | Detail |
 |------|--------|
@@ -427,12 +427,14 @@ Contrast (from memnet-format): durable graph = this grammar (or its compile); se
 ### SSOT plan
 
 ```text
-1. Spec book (this doc + examples/)              — human + LLM normative shapes
-2. MemNet.g4 (ANTLR 4)                           — lexer/parser of shared dialect (stub; keep)
-3. docs/grammar/tools/tier_a.py                  — R1 Python twin: parse → AST → emit + soft lint
-4. tests/grammar/test_tier_a_golden.py           — golden accept/reject/lint + round-trip
+1. Spec book (this doc + examples/)              — historical line-dialect shapes
+2. docs/grammar/tools/tier_a.py                  — R1 Python twin: parse → AST → emit + soft lint
+3. tests/grammar/test_tier_a_golden.py           — golden accept/reject/lint + round-trip
+4. Product accept                                — GQL (`memnet.gql_codec`); not ANTLR
 5. Forbidden                                     — ad-hoc str.split in consumers (MN-REQ-09.4)
 ```
+
+`MemNet.g4` (ANTLR) was a stub that never generated runtime code; it is quarantine-only under `docs/grammar/archive/antlr/`. **MUST NOT** codegen it as a second accept path.
 
 (Harness / package names keep `tier_a` for continuity; they implement the shared dialect.)
 
@@ -445,8 +447,8 @@ Contrast (from memnet-format): durable graph = this grammar (or its compile); se
 | Step | Deliverable |
 |------|-------------|
 | R0 | This design + example fixtures |
-| R1 | `MemNet.g4` + `tier_a.py` twin + golden harness — **current** (preserve) |
-| R2 | Optional: generate visitor from `.g4`; keep twin or replace |
+| R1 | `tier_a.py` twin + golden harness — **current** (preserve fixtures) |
+| R2 | ANTLR generate from `.g4` — **cancelled** (stub archived) |
 | R3 | CLI `memnet parse --stdin` / MCP inspect hook |
 | R4 | Pin map + mutate agent I/O fully shared dialect; deprecate pipe as agent ingest |
 | R5 | Legacy pipe = import-once only (session upgrade; keep import rules) |
@@ -542,7 +544,7 @@ Re-id (`id=` / `merge=true`) is a mutate: only the lease holder may run it on co
 | MN-REQ-02.7 | Kind tokens + TagMap/schema validation on ingest |
 | MN-REQ-03.* | `+` create vs `~` update; create uses `NEW` (engine id); update needs existing id |
 | MN-REQ-08.* | LLM-facing named fields; Write=display; prompt checklist; mint `NEW` not invented ids |
-| MN-REQ-09.* | `tier_a.py` + `.g4` path; reject invalid; golden harness (**keep**) |
+| MN-REQ-09.* | `tier_a.py` golden harness for the line dialect; product accept is GQL |
 | MN-REQ-10.* | Learnable templates; pin-map caps in envelope; ground ids from pin map/response |
 | MN-REQ-11.13 | Pins as short locator nodes/edges; no corpus dump |
 
@@ -554,7 +556,7 @@ No requirement text is edited in `requirements.sysml` by this task. Thin note: e
 
 | Path | Role |
 |------|------|
-| `docs/grammar/MemNet.g4` | ANTLR stub (R1; atom values; `KW_NEW`; lawPin; edge ids) — **keep** |
+| `docs/grammar/archive/antlr/MemNet.g4` | Unused ANTLR stub (quarantine; never codegen) |
 | `docs/grammar/tools/tier_a.py` | Python parse / emit / soft lint twin — **keep** |
 | `docs/grammar/memnet-grammar-antlr.md` | ANTLR coherence + locked defaults |
 | `docs/grammar/memnet-field-formulas.md` | **Generic** formula-as-EDGE (`derives`/`feeds`; design; no engine): MVP = one EDGE, `src_fields` **list** + `expr`, one `tgt_field` — any domain; not circuit-specific |

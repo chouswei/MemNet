@@ -1,8 +1,8 @@
 # MemNet grammar × ANTLR4 — coherence notes
 
-**Status:** R1 twin live (`docs/grammar/tools/tier_a.py` + package `memnet.tier_a`); `.g4` remains teaching / future codegen stub  
-**Pair with:** `memnet-grammar-design.md`, `MemNet.g4`, `examples/`, `tools/`  
-**Tooling pin:** `third_party/antlr4/` **4.13.2** (Python3 target docs: `doc/python-target.md`)  
+**Status:** ANTLR codegen **cancelled**. `MemNet.g4` is quarantine-only under [`archive/antlr/MemNet.g4`](archive/antlr/MemNet.g4). Product wire is **GQL** ([`gql-wire-profile.md`](gql-wire-profile.md)). Line-dialect twin remains `memnet.tier_a` (rejected on product mutate).  
+**Pair with:** `memnet-grammar-design.md`, `examples/`, `tools/`  
+**Tooling pin:** `third_party/antlr4/` **4.13.2** is optional historical reference only.  
 **British English.**
 
 **Naming:** agent-facing name is **shared dialect** (Write = display). Code/harness names `tier_a` / “Tier A” denote the **same** dialect — keep them for continuity. This note preserves formal ANTLR fit, locked defaults, and golden coverage; it does not thin the grammar into slogans.
@@ -11,7 +11,7 @@
 
 ## Verdict
 
-The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 has a **pure-Python twin** that parses fixtures, soft-lints semantic bad cases, and round-trips pin-map examples — without requiring `antlr4-python3-runtime` in the core package. Write=display means **one AST + one emit shape** for pin map and mutate. Legacy `@TAG` pipe is **not** in this grammar and **not** a preferred agent dialect (import-once footnote only; keep import paths if present).
+The retired line dialect was a **good fit for ANTLR4** as a line-oriented language. R1 shipped a **pure-Python twin** (`tier_a.py`) instead of generating from `.g4`. That stub was **never** compiled into the engine. **Do not** add `antlr4 -Dlanguage=Python3` as an accept path. Product teach/accept is GQL (`GqlCodec`). Legacy `@TAG` pipe is **not** preferred agent I/O.
 
 ---
 
@@ -33,13 +33,13 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 
 ---
 
-## 2. Is `MemNet.g4` adequate?
+## 2. `MemNet.g4` — dropped from the live tree
 
 | Role | Judgement |
 |------|-----------|
-| Teaching shapes for R1 | Yes — lawPin, edge-id forms, `KW_NEW`, STRING escapes aligned with design. **Keep.** |
-| Codegen-ready SSOT | Still a stub; **runtime twin** is `tier_a.py` until optional ANTLR generate. **Keep twin.** |
-| Policy | R1 = atoms only; pipe **out** of this `.g4` (pipe remains import/store footnote); focus/caps **out** of body grammar. |
+| Product wire | **GQL** — not this `.g4`. |
+| Engine parse | `memnet.tier_a` (line dialect, reject on mutate) and `memnet.gql_codec` (accept). |
+| Stub | Archived; **MUST NOT** generate a visitor as a second dialect. |
 
 ---
 
@@ -58,7 +58,7 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 |------|------|
 | R1 twin | `memnet.tier_a` / `docs/grammar/tools/tier_a.py` — no antlr4 dependency (**keep**) |
 | Golden | `python -m pytest tests/grammar -q` (**keep**) |
-| Future | Optional `antlr4 -Dlanguage=Python3 -visitor MemNet.g4` under a generated tree |
+| ANTLR generate | **Cancelled** — stub archived; do not codegen |
 | Host | Python ≥3.11 |
 | Legacy pipe | Deprecated import-once only — not in `.g4`, not preferred agent I/O |
 
@@ -66,7 +66,7 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 
 ## 5. Pipe is not preferred agent I/O
 
-**Locked:** shared dialect only for agent I/O. Do not add `@` lexer modes to the shared-dialect `.g4`. Bad fixtures `05_` / `09_` are **parse-reject** (pipe as agent surface) — **keep** those fixtures; they teach illegal shapes. Historical compile sketches live under `examples/deprecated/` if kept.
+**Locked:** line-dialect agent I/O for those fixtures. Do not add `@` lexer modes. Bad fixtures `05_` / `09_` are **parse-reject** (pipe as agent surface) — **keep** those fixtures; they teach illegal shapes. Historical compile sketches live under `examples/deprecated/` if kept. Product mutate accept is GQL, not this dialect.
 
 ---
 
@@ -106,7 +106,7 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 | R1 value rule atoms-only | Done |
 | Golden harness | Done — `tests/grammar/` (**preserve**) |
 | Parse / emit twin | Done — `tier_a.py` (**preserve**) |
-| Visitor from `.g4` | Optional later |
+| Visitor from `.g4` | **Cancelled** |
 | Legacy pipe compile sketch | Deprecated (`examples/deprecated/`) — retained for history |
 
 ---
@@ -115,7 +115,7 @@ The shared dialect is a **good fit for ANTLR4** as a line-oriented language. R1 
 
 | Leaf | ANTLR / twin angle |
 |------|--------------------|
-| MN-REQ-08.* | Shared-dialect `.g4` + emit twin = sole LLM-facing dialect |
+| MN-REQ-08.* | Product LLM-facing dialect = GQL; line twin is archive/tests only |
 | MN-REQ-08.9 | Pin-map emit same grammar as mutate input |
 | MN-REQ-09.1–09.2 | Canonical parse + reject invalid |
 | MN-REQ-09.3–09.4 | Inspect via AST render; no ad-hoc splits |

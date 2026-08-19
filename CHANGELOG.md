@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Leftover
 - **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
 
+### Removed
+- **`docs/grammar/MemNet.g4` from the live tree** — unused ANTLR stub (never generated into the engine). Quarantined as [`docs/grammar/archive/antlr/MemNet.g4`](docs/grammar/archive/antlr/MemNet.g4). Product wire stays GQL; line-dialect twin stays `memnet.tier_a` (rejected on mutate). **MUST NOT** codegen the stub as a second accept path.
+
 ### Added
 - **Harness thesis (design)** — memory plane of a harness; few LLM tokens; relevant = Shape co-responds to \(q\); **many Flash-class calls**, not one stuffed generate. GitHub review plus **critical objections**: cache-hit dump, env-blob vs \(S\), Commit-before-Recall, cue \(q\), Letta closeness, unshipped goldfish caller. [`docs/grammar/memnet-harness-thesis.md`](docs/grammar/memnet-harness-thesis.md).
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).

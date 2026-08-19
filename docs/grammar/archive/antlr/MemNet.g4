@@ -1,8 +1,10 @@
-// MemNet.g4 — shared dialect agent surface (NODE | EDGE lines).
+// QUARANTINE — not product wire. Not compiled. Not CI.
+// Historical ANTLR stub for the retired line dialect (Tier A / shared dialect).
+// Agent teach = GQL (docs/grammar/gql-wire-profile.md). Twin: memnet.tier_a.
+//
 // Also known historically as "Tier A"; harness/package names keep tier_a.
-// Normative prose: docs/grammar/memnet-grammar-design.md
-// ANTLR notes:    docs/grammar/memnet-grammar-antlr.md
-// Tooling:        third_party/antlr4/ (4.13.2); Python twin: docs/grammar/tools/tier_a.py
+// Design notes: docs/grammar/memnet-grammar-design.md
+// ANTLR notes:  docs/grammar/memnet-grammar-antlr.md
 //
 // Conceptual kinds from the visitor / twin: Node | Edge only.
 // Uppercase kind spellings (TSK, CLM, ...) are IDENT data, not extra kinds.

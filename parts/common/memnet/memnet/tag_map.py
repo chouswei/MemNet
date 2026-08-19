@@ -81,7 +81,7 @@ def parse_schema_shared_line(line: str) -> tuple[str, list[str]] | None:
     raw_fields = kv.get("fields", "").strip()
     if not raw_fields:
         raise MemNetError("empty_fields", f"SCHEMA {tag} missing fields=")
-    # Space-separated field names (R1 atom; matches MemNet.g4 BARE_ATOM).
+    # Space-separated field names (R1 atom; IDENT-shaped, same as the line-dialect twin).
     field_names = [p for p in raw_fields.split() if p]
     if not field_names:
         raise MemNetError("empty_fields", f"SCHEMA {tag} has no fields")
