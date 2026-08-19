@@ -86,6 +86,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765`; `--ipc` / `MEMNET_IPC_SOCKET` (MN-REQ-06.2) |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
 | Path-B ingest (all domains) | `parts/common/memnet/memnet/pin_map_ingest.py` | `PinMapIngest_Sysml` / `_Codebase` / `_PcbaAto` / `_SkillsRules` |
+| Pin-map export | `parts/common/memnet/memnet/pin_map_export.py` | Cue `pin_map` GQL write-out (0.19 / #66); not Absorb |
 | Path-B session import | `parts/common/memnet/memnet/import_absorb.py` | `import_slice` + optional ImportGuard host hook |
 
 Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/grammar/memnet-grammar-design.md`.
@@ -105,7 +106,8 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 - Invent a third peer agent wire dialect — teach is **GQL only** (ADR-001 + `gql-wire-profile.md`).
 - Claim **pin-map export / round-trip** (MN-REQ-11.1–11.5 / #66) from ingest alone —
   Path-B `PinMapIngest_*` domains (Sysml/Codebase/PcbaAto/SkillsRules) are as-is;
-  export remains separate.
+  0.19 export is a separate cue `pin_map` GQL write-out (`memnet export pin-map`).
+  MUST NOT treat export as Absorb, a chat dump, or `.sysml` reverse this cut.
 - Invent N-server federation for Path-B ingest.
 - Vendor the whole user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. The five SysML modeling trees above are the allowed copies so cloud VMs can load them.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.

@@ -40,6 +40,7 @@ def guide_text(*, loose: bool = False) -> str:
             "leftover --anchor is a nickname cue, not TARGET law.",
             "Goldfish caller: one pin_map(q) per generate; drop prior maps.",
             "Pin-map ingest: locators (path=, qname=, refdes=, skill_id=); no client NEW.",
+            "Pin-map export: memnet export pin-map (cue GQL write-out; empty cue = outline).",
             "Transport: MCP in-process first; serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
             "Legacy @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
             "MCP LawSeedHelper: GQL LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
@@ -53,6 +54,7 @@ Doctrine:
   Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
   Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
   leftover id:'NEW' mint is leftover; pin-map ingest uses locators, not client NEW
+  Pin-map export: memnet export pin-map (shaped GQL of cue pin_map; empty cue = outline)
   Goldfish caller: pin_map(q) or empty-q outline; drop prior maps; sparse Δ; env blobs in harness
   Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
@@ -62,6 +64,7 @@ Quick start (CLI sessions still need serve today):
   memnet session open --map-file schema.example.txt
   memnet add --file workflow.example.txt   # GQL preferred; @TAG pipe import-once
   memnet query pin-map --kind TSK          # shaped GQL subgraph (cue; leftover --anchor = nickname)
+  memnet export pin-map --kind TSK --out slice.gql   # write-out; ingest is not export
 
 GQL sketch:
   CREATE (:TSK {goal: 'Clear warehouse', status: 'in_progress'})

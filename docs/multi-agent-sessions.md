@@ -128,6 +128,7 @@ Shipped vs to-be. Full ACL modes stay design-only:
 | Path-B `PinMapIngest_Codebase` | MN-REQ-11.6–11.8, 11.16; #64 | **Shipped** — CLI `ingest codebase` / MCP `ingest_codebase` |
 | Path-B `PinMapIngest_PcbaAto` | MN-REQ-11.9, 11.14–11.15, 11.16; #64 | **Shipped** — CLI `ingest pcba` / MCP `ingest_pcba` |
 | Path-B `PinMapIngest_SkillsRules` | MN-REQ-11.10–11.12, 11.16; #64 | **Shipped** — CLI `ingest skills` / MCP `ingest_skills` |
+| Pin-map export | MN-REQ-11.1–11.4; #66 | **Shipped (0.19 untagged)** — CLI `export pin-map` / MCP `export_pin_map` (cue GQL; empty q = outline). Re-ingest later. |
 
 Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md).
 

@@ -144,7 +144,7 @@ Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
 | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-Client `NEW` is illegal for source pins. Prefer ingest for bounded pin maps; `seed_lines` / `add` remain valid for one-off locators. Export / round-trip (#66) is **not** claimed.
+Client `NEW` is illegal for source pins. Prefer ingest for bounded pin maps; `seed_lines` / `add` remain valid for one-off locators. Ingest is not export. 0.19 cue `pin_map` GQL write-out is `memnet export pin-map`; re-ingest later (#66).
 
 | Method | When |
 |--------|------|

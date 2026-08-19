@@ -1068,7 +1068,8 @@ package MemNetRequirements {
     // CapsPolicy ACL is shipped when enabled per session. Neighbourhood
     // reserve is shipped. Path-B PinMapIngest_* domains are shipped
     // (Sysml/Codebase/PcbaAto/SkillsRules). Full private/shared/open +
-    // session_token modes remain design-only. Export (#66) not claimed.
+    // session_token modes remain design-only. Pin-map export (#66) is 0.19
+    // cue GQL write-out; re-ingest not claimed.
 
     requirement def MN_REQ_12_MultitaskMode {
       doc /*

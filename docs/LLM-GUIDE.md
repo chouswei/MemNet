@@ -174,7 +174,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 | PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Export / round-trip (MN-REQ-11.1–11.5) is **not** claimed (#66). See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
+Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Ingest is not export. 0.19 pin-map export writes a cue `pin_map` (or empty-q outline) as shaped GQL (`memnet export pin-map` / MCP `export_pin_map`). Re-ingest / `.sysml` reverse (MN-REQ-11.5 SHOULD) remains later (#66). See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
 
 ### Multi-agent / Multitask
 
@@ -185,7 +185,7 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 - Full session ACL modes / roles / `session_token` (CapsPolicy ACL ships when enabled)
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
-- Pin-map export / round-trip (MN-REQ-11.1–11.5 / #66) — ingest is not export
+- SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / #66) — 0.19 GQL write-out is not identity merge
 - Host search / RAG as a MemNet MCP tool — application nest **outside** `MemNetSystem` only (`docs/grammar/memnet-host-search-nest.md`)
 
 ### Neighbourhood reserve (MN-REQ-12.13)

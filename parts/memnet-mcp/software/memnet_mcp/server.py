@@ -521,6 +521,58 @@ async def release(
 
 
 @mcp.tool()
+async def export_pin_map(
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
+    depth: int = 2,
+    max_rows: int = 50,
+    view: str | None = None,
+    out: str | None = None,
+    session: str | None = None,
+    caller: str | None = None,
+    anchor: str | None = None,
+    anchors: list[str] | None = None,
+) -> str:
+    """Write out a cue pin_map (or empty-q outline) as shaped GQL.
+
+    MN-REQ-11.1–11.5 / #66. Ingest is not export. Empty cue is 0.11 outline
+    (not a dump of S). Hard bounds stay. CueConflict if |Q|>1. Distinct from
+    ``session_save``. Not Absorb. leftover ``anchor`` / ``anchors`` are nickname
+    cues, not TARGET law. Optional ``out`` writes the GQL body to a path.
+    """
+    argv = [
+        "export",
+        "pin-map",
+        "--depth",
+        str(depth),
+        "--max-rows",
+        str(max_rows),
+    ]
+    if kind:
+        argv.extend(["--kind", kind])
+    for loc in locators or []:
+        argv.extend(["--locator", loc])
+    if keyword:
+        argv.extend(["--keyword", keyword])
+    if view:
+        argv.extend(["--view", view])
+    if out:
+        argv.extend(["--out", out])
+    if caller:
+        argv.extend(["--caller", caller])
+    ids: list[str] = []
+    for aid in list(anchors or []):
+        if aid and aid not in ids:
+            ids.append(aid)
+    if anchor and anchor not in ids:
+        ids.append(anchor)
+    for aid in ids:
+        argv.extend(["--anchor", aid])
+    return await _run(argv, session=session)
+
+
+@mcp.tool()
 async def ingest_sysml(
     path: str,
     max_nodes: int = 200,

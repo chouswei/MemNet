@@ -29,6 +29,7 @@ Only two product parts (novel-writer is out of scope; see root `DROP-NOVEL-WRITE
 | TcpServeBridge | `tcp_serve_bridge.py` (`serve`) | TCP migration |
 | CliFacade | `cli.py` | Thin entry; console script `memnet` |
 | PinMapIngest_* | `pin_map_ingest.py` | Path-B ingest (Sysml/Codebase/PcbaAto/SkillsRules; MN-REQ-11; #31/#64) |
+| PinMapExport | `pin_map_export.py` | 0.19 cue pin_map GQL write-out (MN-REQ-11.1–11.4; #66); not Absorb |
 
 ## MCP (`memnet_mcp`)
 

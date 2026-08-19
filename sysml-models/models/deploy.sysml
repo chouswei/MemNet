@@ -30,7 +30,7 @@
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     │   └── McpFacade               // TARGET cue/pattern commands only
     ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
-    ├── PinMapRoadmap               // all PinMapIngest_* domains shipped (#64)
+    ├── PinMapRoadmap               // PinMapIngest_* domains + 0.19 PinMapExport (#66)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
         │   ├── SessionHandoffEmit        // session id + scope handoff
@@ -1192,6 +1192,32 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
+  part def CmdPinMapExport {
+    doc /*
+      0.19 product command: write out a cue pin_map (or empty-q outline)
+      as shaped GQL. Ingest is not export. Empty q is SessionOutline, not
+      a dump of S. Hard bounds stay. CueConflict if |Q|>1. Distinct from
+      session save/load. MUST NOT Absorb, MERGE-by-id, rag_query, or treat
+      leftover ids as law. Hidden handle off the wire. Re-ingest later.
+      MN-REQ-11.1 SysML v2 model representation is not this cut.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute requireAnchorId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute emptyCueIsOutline : Boolean = true;
+    attribute dumpsWholeS : Boolean = false;
+    attribute absorb : Boolean = false;
+    attribute sysmlFileGeneration : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
+    part cueConflict : CueConflict;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
   part def CmdMutate {
     doc /*
       TARGET Commit of GQL: CREATE () legal; MERGE/SET/DELETE by
@@ -1240,7 +1266,7 @@ package MemNet {
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
       open/current/save/load, find, pin_map, mutate/Commit, Path-B ingest,
-      Path-B import. MUST NOT nest leftover_read_get, leftover_NEW_mint,
+      pin-map export, Path-B import. MUST NOT nest leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
       leftover_require_anchor, leftover_allocate_from_locator, or
       leftover id_policy as product commands. MUST NOT nest name_conflict /
@@ -1264,6 +1290,7 @@ package MemNet {
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
     part ingest : CmdPathBIngest;
+    part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
@@ -1324,7 +1351,7 @@ package MemNet {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
       (MN-REQ-07.1 / 07.5): session_open / current / save / load, find,
-      pin_map, mutate/Commit, Path-B ingest, Path-B import. MUST NOT nest
+      pin_map, mutate/Commit, Path-B ingest, pin-map export, Path-B import. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
       leftover_allocate_from_locator, or leftover id_policy as product
@@ -1347,6 +1374,7 @@ package MemNet {
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
     part ingest : CmdPathBIngest;
+    part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
@@ -1483,7 +1511,7 @@ package MemNet {
   // =====================================================================
   // MN-REQ-11 Path-B PinMapIngest (selective external artefact → pins)
   // Domains shipped: Sysml, Codebase, PcbaAto, SkillsRules (#31 / #64).
-  // Export / round-trip (MN-REQ-11.1–11.5) is separate (#66) — not claimed.
+  // PinMapExport (0.19 / #66) is the cue pin_map GQL write-out — not ingest.
   // Module: memnet.pin_map_ingest. Distinct from SnapshotStore + live
   // PinMapShapedRead. MUST NOT invent N-server federation.
   // =====================================================================
@@ -1524,8 +1552,9 @@ package MemNet {
     doc /*
       FIRST Path-B engine (ship order). Selective SysML v2 .sysml → PKG / PRT /
       REQ (+ optional POR) pins with path= + qname= (+ requirementId=).
-      Bounded (max_nodes / file caps). As-is: implemented (MN-REQ-11.1–11.5,
-      11.13, 11.16; issue #31). Module: memnet.pin_map_ingest.PinMapIngest_Sysml.
+      Bounded (max_nodes / file caps). As-is: implemented (MN-REQ-11.13,
+      11.16; issue #31). MUST NOT satisfy MN-REQ-11.1–11.5 (ingest is not
+      export). Module: memnet.pin_map_ingest.PinMapIngest_Sysml.
     */
     attribute domainVariant : String = "sysml";
     attribute implemented : Boolean = true;
@@ -1544,11 +1573,7 @@ package MemNet {
     port recordsOut : GraphRecordOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_1_ExportGraphToSysmlV2;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_2_NodeMapsToSysmlStructure;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_3_EdgeMapsToSysmlConnection;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_5_SysmlRoundTripShould;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
@@ -1639,14 +1664,49 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   }
 
+  part def PinMapExport {
+    doc /*
+      0.19 product command. Write out a cue pin_map (or empty-q outline) as
+      shaped GQL. Ingest ≠ export. Distinct from SnapshotStore (MN-REQ-11.4)
+      and from ImportAbsorb / WorkingMemorySliceExport (MUST NOT treat export
+      as Absorb). Chat dump is not export. Hard bounds stay. CueConflict if
+      |Q|>1. Hidden handle off the wire. leftover ids are not law.
+      Re-ingest / MERGE-by-id identity merge is later (MN-REQ-11.5 SHOULD;
+      roundTripClaimed=false). MN-REQ-11.1 SysML v2 model representation
+      is not this cut (sysmlFileGeneration=false).
+      Module: memnet.pin_map_export. CLI: memnet export pin-map.
+      MCP: export_pin_map.
+    */
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute emptyCueIsOutline : Boolean = true;
+    attribute dumpsWholeS : Boolean = false;
+    attribute absorb : Boolean = false;
+    attribute leftoverIdsAsLaw : Boolean = false;
+    attribute mergeByIdOnExport : Boolean = false;
+    attribute ragQuery : Boolean = false;
+    attribute roundTripClaimed : Boolean = false;
+    attribute sysmlFileGeneration : Boolean = false;
+    attribute hiddenHandleOnWire : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
+    attribute wireDialect : String = "gql";
+    port gqlOut : GqlWireOutPort;
+    part cueConflict : CueConflict;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
   part def PinMapRoadmap {
     doc /*
-      Path-B PinMapIngest nest. Ship order complete for domains: Sysml,
+      Path-B PinMapIngest nest plus 0.19 PinMapExport. Ingest domains: Sysml,
       Codebase, PcbaAto, SkillsRules (all implemented). Commit create of
       elements (locators as properties, not a store key) — not a second
       product operator. 0.9 leftover may still mint by_id from locator
-      strings. Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
-      remains separate (#66). As-is module: memnet.pin_map_ingest.
+      strings. Not N-server federation. Export is cue pin_map GQL write-out
+      (#66); MUST NOT treat ingest as export. Re-ingest later.
+      As-is modules: memnet.pin_map_ingest + memnet.pin_map_export.
     */
     attribute firstDomain : String = "sysml";
     attribute roadmapOnly : Boolean = false;
@@ -1656,6 +1716,7 @@ package MemNet {
     part codebase : PinMapIngest_Codebase;
     part pcbaAto : PinMapIngest_PcbaAto;
     part skillsRules : PinMapIngest_SkillsRules;
+    part export : PinMapExport;
   }
 
   // =====================================================================
