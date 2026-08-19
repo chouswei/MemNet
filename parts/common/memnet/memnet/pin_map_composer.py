@@ -190,7 +190,10 @@ class PinMapComposer:
         if anchor and anchor not in leftover_nicks:
             leftover_nicks.append(anchor)
         if require_anchor and not leftover_nicks and not cue_on:
-            raise MemNetError("no_anchor", "pin map leftover --anchor is not product; cue with kind/locator/keyword")
+            raise MemNetError(
+                "no_anchor",
+                "pin map leftover --anchor is not product; cue with kind/locator/keyword",
+            )
         Q: list[Record] = []
         if cue_on:
             found = bounded_match_find(

@@ -639,8 +639,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         cm = _RE_CREATE_REL.match(rest)
         if not cm:
             raise ParseError(
-                "MATCH … CREATE only supports relationship create "
-                "(a)-[:TYPE]->(b)",
+                "MATCH … CREATE only supports relationship create (a)-[:TYPE]->(b)",
                 line_no,
             )
         frm_v, rel, props_s, to_v = cm.groups()

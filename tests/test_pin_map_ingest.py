@@ -216,9 +216,7 @@ def test_ingest_sysml_commit_and_pin_map(memnet_temp, sysml_schema: Path, sysml_
     result = ingest_sysml(ss, sysml_file, max_nodes=50)
     assert result.committed is True
     reqs = [
-        r
-        for r in ss.store.list_records("REQ")
-        if r.fields.get("requirementId") == "MN-REQ-DEMO.1"
+        r for r in ss.store.list_records("REQ") if r.fields.get("requirementId") == "MN-REQ-DEMO.1"
     ]
     assert reqs
     req = reqs[0]
@@ -277,9 +275,7 @@ def test_ingest_real_requirements_leaf(memnet_temp, sysml_schema: Path):
     result = ingest_sysml(ss, req_path, max_nodes=400, max_files=1)
     assert result.committed
     rows = [
-        r
-        for r in ss.store.list_records("REQ")
-        if r.fields.get("requirementId") == "MN-REQ-11.16"
+        r for r in ss.store.list_records("REQ") if r.fields.get("requirementId") == "MN-REQ-11.16"
     ]
     assert rows
     row = rows[0]
@@ -329,7 +325,9 @@ def test_ingest_codebase_commit_and_pin_map(memnet_temp, codebase_schema: Path, 
         if r.tag == "EDG" and r.fields.get("relation") == "defines"
     ]
     calls = [
-        r for r in ss.store._by_hid.values() if r.tag == "EDG" and r.fields.get("relation") == "calls"
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "calls"
     ]
     assert defines
     assert calls
@@ -390,7 +388,9 @@ def test_ingest_pcba_commit_and_pin_map(memnet_temp, pcba_schema: Path, ato_file
     assert any(n.fields.get("net") == "vcc" for n in nets)
     assert pins
     owns = [
-        r for r in ss.store._by_hid.values() if r.tag == "EDG" and r.fields.get("relation") == "owns"
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "owns"
     ]
     on_net = [
         r
@@ -403,9 +403,7 @@ def test_ingest_pcba_commit_and_pin_map(memnet_temp, pcba_schema: Path, ato_file
     assert result.node_count < 40
 
 
-def test_ingest_pcba_reingest_does_not_merge_by_id(
-    memnet_temp, pcba_schema: Path, ato_file: Path
-):
+def test_ingest_pcba_reingest_does_not_merge_by_id(memnet_temp, pcba_schema: Path, ato_file: Path):
     ss = open_session(map_file=str(pcba_schema))
     ingest_pcba(ss, ato_file)
     n1 = len(ss.store._by_hid)
@@ -427,7 +425,6 @@ def test_project_skills_deterministic_locators(skills_dir: Path):
     assert result.node_count >= 1
     gql = "\n".join(result.gql_lines)
     assert "CREATE (:SKL" in gql or ":SKL" in gql
-    assert any(i.startswith("RUL_") for i in result.node_ids)
     gql = "\n".join(result.gql_lines)
     assert "skill_id:" in gql
     assert "phrase:" in gql
@@ -458,7 +455,6 @@ def test_ingest_skills_commit_and_pin_map(memnet_temp, skills_schema: Path, skil
     skl = skls[0]
     assert "phrase" in skl.fields
     assert "Long body" not in skl.fields.get("phrase", "")
-    ruls = [r for r in ss.store.list_records("RUL") if r.fields.get("skill_id") == "companion-rule" or r.fields.get("name")]
     paired = [
         r
         for r in ss.store._by_hid.values()

@@ -69,10 +69,17 @@ def test_import_keep_accepts_and_upserts(memnet_temp, schema_file):
         id_policy="keep",
         enable_guard=False,
     )
-    assert "MOD_amp" in result.imported_ids
-    assert "SYM_Rin" in result.imported_ids
-    assert lead.store.get("MOD_amp").fields.get("path") == "docs/note.md"
-    assert lead.store.get("EDG_amp_rin") is not None
+    # Product keep = pattern match, not MERGE-by-nickname. Distinct path ⇒ two elements.
+    mods = lead.store.match_nickname("MOD_amp")
+    assert len(mods) == 2
+    paths = {r.fields.get("path") for r in mods}
+    assert "docs/note.md" in paths
+    assert "old.md" in paths
+    assert any(
+        lead.store._by_hid[hid].tag == "EDG"
+        for hid in result.imported_ids
+        if hid in lead.store._by_hid
+    )
     assert result.guard_skipped is True
 
 
@@ -113,24 +120,27 @@ def test_import_remint_conflicts(memnet_temp, schema_file):
         id_policy="remint",
         enable_guard=False,
     )
-    assert "MOD_amp" in result.reminted
-    assert "SYM_Rin" in result.reminted
+    assert result.reminted.get("MOD_amp")
+    assert result.reminted.get("SYM_Rin")
     new_mod = result.reminted["MOD_amp"]
     new_rin = result.reminted["SYM_Rin"]
     assert lead.store.get(new_mod) is not None
     assert lead.store.get(new_rin) is not None
     # Original lead rows preserved.
     assert lead.store.get("MOD_amp").fields.get("path") == "old.md"
-    # Reminted edge endpoints retargeted.
-    edge_ids = [i for i in result.imported_ids if i.startswith("EDG") or "EDG" in i]
-    assert edge_ids
+    imported_edges = [
+        lead.store._by_hid[hid]
+        for hid in result.imported_ids
+        if hid in lead.store._by_hid and lead.store._by_hid[hid].tag == "EDG"
+    ]
+    assert imported_edges
     for eid in result.imported_ids:
         rec = lead.store.get(eid)
         if rec and rec.tag == "EDG":
-            assert (
-                rec.fields.get("src") in {new_mod, "MOD_amp"}
-                or rec.fields.get("src") in result.reminted.values()
-            )
+            src_h = lead.store.resolve_one(new_mod)
+            dst_h = lead.store.resolve_one(new_rin)
+            allowed = {x.hid for x in (src_h, dst_h) if x is not None}
+            assert rec.fields.get("src") in allowed or rec.fields.get("dist") in allowed
 
 
 def test_guard_skip_when_disabled(memnet_temp, schema_file):
@@ -273,7 +283,11 @@ def test_law_vocab_excluded_on_absorb(memnet_temp, schema_file):
         ],
     )
     result = absorb_working_memory_slice(lead, slice_, id_policy="keep", enable_guard=False)
-    assert "MOD_amp" in result.imported_ids
     assert "LAW_vocab" in result.skipped
     assert lead.store.get("LAW_vocab") is None
-    assert lead.store.get("MOD_amp") is not None
+    assert lead.store.match_nickname("MOD_amp")
+    assert any(
+        lead.store._by_hid[hid].fields.get("id") == "MOD_amp"
+        for hid in result.imported_ids
+        if hid in lead.store._by_hid
+    )

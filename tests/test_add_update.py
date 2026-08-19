@@ -23,7 +23,10 @@ def test_add_then_update(memnet_temp, schema_file):
 def test_add_two_same_nickname_gql(memnet_temp, schema_file):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
-    line = "CREATE (:PLR {id: 'PLR01', identity: 'Beggar', wealth: 1, cashflow: 0, monopoly: 0, reputation: 0, inventory: 'bag'})\n"
+    line = (
+        "CREATE (:PLR {id: 'PLR01', identity: 'Beggar', wealth: 1, "
+        "cashflow: 0, monopoly: 0, reputation: 0, inventory: 'bag'})\n"
+    )
     assert runner.invoke(app, ["add", "--stdin", "--session", sid], input=line).exit_code == 0
     dup = runner.invoke(app, ["add", "--stdin", "--session", sid], input=line)
     assert dup.exit_code == 0, dup.stderr

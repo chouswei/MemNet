@@ -145,10 +145,7 @@ def build_hydrate_edges_cypher(
 def build_merge_node_cypher(record: Record) -> tuple[str, dict[str, Any]]:
     """MERGE/SET one MemNet node record into Neo4j."""
     tag = cypher_ident(record.tag.upper(), kind="node label")
-    query = (
-        f"MERGE (n:{tag} {{_memnet_hid: $hid}})\n"
-        f"SET n += $props, n.{_MEMNET_TAG_KEY} = $tag"
-    )
+    query = f"MERGE (n:{tag} {{_memnet_hid: $hid}})\nSET n += $props, n.{_MEMNET_TAG_KEY} = $tag"
     hid = record.hid if getattr(record, "hid", "") else (record.id or "")
     if hid:
         hid = require_id(hid, kind="hid")

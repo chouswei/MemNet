@@ -228,9 +228,7 @@ async def query_warm(
     anchors: list[str] | None = None,
 ) -> str:
     """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(
-        anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
-    )
+    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors, None, None, None)
 
 
 @mcp.tool()
@@ -241,9 +239,11 @@ async def find(
     keyword: str | None = None,
     session: str | None = None,
 ) -> str:
-    """Bounded MATCH find: seed nodes only (hard LIMIT). When |Q|>1 emit CueConflict (do not copy-id).
+    """Bounded MATCH find: seed nodes only (hard LIMIT).
 
-    At least one of kind / locators (KEY=VAL) / keyword. Not rag_query. SHALL NOT absorb.
+    When |Q|>1 emit CueConflict (do not copy-id).
+    At least one of kind / locators (KEY=VAL) / keyword. Not rag_query.
+    SHALL NOT absorb.
     """
     argv = ["query", "find", "--limit", str(limit)]
     if kind:

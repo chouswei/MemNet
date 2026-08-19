@@ -22,6 +22,7 @@ def _edges_to(ss, nick: str) -> list:
     hid = _hid(ss, nick)
     return [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == hid]
 
+
 _PLR = (
     "CREATE (:PLR {id: 'PLR01', identity: 'Hero', wealth: 1, cashflow: 0, "
     "monopoly: 0, reputation: 0, inventory: 'bag'})"

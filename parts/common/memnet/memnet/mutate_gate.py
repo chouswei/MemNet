@@ -309,7 +309,9 @@ class MutateGate:
                 bound = None
                 if not (it.raw.upper().lstrip().startswith("MERGE") and it.id in merge_upsert_ids):
                     if it.raw.upper().lstrip().startswith("MERGE"):
-                        bound = self.ss.store._by_hid.get(it.id) if it.id in merge_upsert_ids else None
+                        bound = None
+                        if it.id in merge_upsert_ids:
+                            bound = self.ss.store._by_hid.get(it.id)
                     else:
                         hits = self._pattern_hits(it)
                         if len(hits) > 1:
@@ -404,12 +406,8 @@ class MutateGate:
                         f"{f.key}{f.op} illegal on create; use =",
                         example=f"{f.key}={f.value}",
                     )
-            it.frm = self._resolve_end(
-                it.frm, it.frm_label, it.frm_props, pending=pending
-            )
-            it.to = self._resolve_end(
-                it.to, it.to_label, it.to_props, pending=pending
-            )
+            it.frm = self._resolve_end(it.frm, it.frm_label, it.frm_props, pending=pending)
+            it.to = self._resolve_end(it.to, it.to_label, it.to_props, pending=pending)
             rec = self._item_to_record(it)
             records.append(rec)
             ack_items.append(it)
@@ -509,7 +507,11 @@ class MutateGate:
                 if (mode == "update" or rec.hid in merge_upsert_ids) and old is not None:
                     merged = dict(old.fields)
                     merged.update({k: v for k, v in rec.fields.items() if v != "" or k == "id"})
-                    rec = Record(tag=old.tag if not rec.tag else rec.tag, fields=merged, hid=old.hid)
+                    rec = Record(
+                        tag=old.tag if not rec.tag else rec.tag,
+                        fields=merged,
+                        hid=old.hid,
+                    )
                 if rec.hid in added and mode == "update":
                     apply = self.ss.store.add_row
                 warns = apply(
@@ -571,9 +573,7 @@ class MutateGate:
                     warnings.extend(warns)
                     orig_nick = source_backup.fields.get("id") or ""
                     if orig_nick != new_id:
-                        applied_renames.append(
-                            (old.hid, new_id, False, source_backup, ep_changes)
-                        )
+                        applied_renames.append((old.hid, new_id, False, source_backup, ep_changes))
             self.ss.mark_written()
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
@@ -663,9 +663,17 @@ class MutateGate:
         store = self.ss.store
         want = {k: str(v) for k, v in (props or {}).items() if str(v) != ""}
         if label or want:
-            hits = self._match_nodes_with_pending(
-                tag=label or None, props=want, pending=pending
-            )
+            hits = self._match_nodes_with_pending(tag=label or None, props=want, pending=pending)
+            pending_set = {r.hid for r in (pending or [])}
+            pending_hits = [h for h in hits if h.hid in pending_set]
+            # Same-batch CREATE wins for wiring; not absorb of historical twins.
+            if len(pending_hits) == 1:
+                return pending_hits[0].hid
+            if len(pending_hits) > 1:
+                raise MemNetError(
+                    "cue_conflict",
+                    f"relationship end |Q|={len(pending_hits)}; SHALL NOT pick one root or absorb",
+                )
             if len(hits) > 1:
                 raise MemNetError(
                     "cue_conflict",

@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from memnet.exceptions import MemNetError
-from memnet.gql import _emit_props, _escape_str
+from memnet.gql import _emit_props
 from memnet.id_allocator import IdAllocator
 from memnet.mutate_gate import MutateGate
 
@@ -148,10 +148,9 @@ class PinMapIngestBase:
             if ln.lstrip().upper().startswith("MATCH") or "-[" in ln.lstrip()[:40]
         ]
         gate = MutateGate(session)
-        if node_lines:
-            gate.apply(node_lines, mode="add", allow_new_relation=True)
-        if edge_lines:
-            gate.apply(edge_lines, mode="add", allow_new_relation=True)
+        batch = node_lines + edge_lines
+        if batch:
+            gate.apply(batch, mode="add", allow_new_relation=True)
         result.committed = True
         return result
 

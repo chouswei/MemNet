@@ -220,7 +220,7 @@ class MemStore:
                 )
             self._retarget_endpoints(old.hid, target.hid)
             self.delete(old.hid)
-            warnings.append(f"merged|{old_id}->{new_id}")
+            warnings.append(f"merged|{old.fields.get('id') or old.hid}->{new_id}")
             return warnings
 
         old.fields["id"] = new_id
@@ -266,11 +266,7 @@ class MemStore:
         """Pattern lookup (labels + properties the node actually has)."""
         tag_u = tag.upper() if tag else None
         if tag_u:
-            rows = [
-                self._by_hid[i]
-                for i in self._by_tag.get(tag_u, set())
-                if i in self._by_hid
-            ]
+            rows = [self._by_hid[i] for i in self._by_tag.get(tag_u, set()) if i in self._by_hid]
         else:
             rows = [r for r in self._by_hid.values() if r.tag != "EDG"]
         want = {k: str(v) for k, v in (props or {}).items() if v is not None}
@@ -349,10 +345,14 @@ class MemStore:
         )
 
     def _edges_from(self, node_id: str) -> list[Record]:
-        return self._edge_records(self._edges_by_src.get(node_id))
+        rec = self.resolve_one(node_id)
+        hid = rec.hid if rec is not None else node_id
+        return self._edge_records(self._edges_by_src.get(hid))
 
     def _edges_to(self, node_id: str) -> list[Record]:
-        return self._edge_records(self._edges_by_dist.get(node_id))
+        rec = self.resolve_one(node_id)
+        hid = rec.hid if rec is not None else node_id
+        return self._edge_records(self._edges_by_dist.get(hid))
 
     def neighbors(
         self,
@@ -386,9 +386,10 @@ class MemStore:
                 out_edges = out_edges[: self.caps.max_fanout]
             in_edges = self._edges_to(current)
             for edge in out_edges + in_edges:
-                if edge.id not in edge_seen:
-                    edge_seen.add(edge.id)
-                    edge_results.append(edge)
+                if edge.hid in edge_seen:
+                    continue
+                edge_seen.add(edge.hid)
+                edge_results.append(edge)
                 for endpoint in (edge.fields.get("src"), edge.fields.get("dist")):
                     if not endpoint or endpoint in visited:
                         continue
@@ -430,9 +431,9 @@ class MemStore:
             for edge in out_edges + in_edges:
                 if active_only and edge.is_recyclable():
                     continue
-                if edge.id in seen_edges:
+                if edge.hid in seen_edges:
                     continue
-                seen_edges.add(edge.id)
+                seen_edges.add(edge.hid)
                 src = edge.fields.get("src", "")
                 dst = edge.fields.get("dist", "")
                 rel = edge.fields.get("relation", "")

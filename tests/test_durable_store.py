@@ -277,7 +277,7 @@ def test_build_merge_node_and_edge_cypher():
         },
     )
     n_cypher = build_merge_node_cypher(node)
-    assert "MERGE (n:COM {_memnet_hid:" in n_cypher or "_memnet_hid" in n_cypher
+    assert "MERGE (n:COM {id:" in n_cypher
     assert "n.name = 'Acme'" in n_cypher
     assert "_memnet_tag" in n_cypher
 
@@ -447,7 +447,7 @@ def test_neo4j_build_hydrate_edges_cypher_filters_ids():
         node_ids=["COM_acme", "TSK_mission_q3"],
     )
     assert params["node_ids"] == ["COM_acme", "TSK_mission_q3"]
-    assert "src.id IN $node_ids" in cypher
+    assert "src._memnet_hid IN $node_ids" in cypher
     assert "type(rel)" in cypher
     assert "label(rel)" not in cypher
 
