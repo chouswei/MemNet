@@ -4,9 +4,9 @@
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). Placement (design): [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md). British English.
 
-**Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; `liveNeo4jClaimed=false`). **PyPI `memnet-llm` is still 0.4.6.**
+**Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; `liveNeo4jClaimed=false`). **PyPI `memnet-llm==0.9.0`** (published 2026-08-19). Tag **`v0.9.0`** exists.
 
-**Last updated:** 2026-08-19 (merged former `ROADMAP.md` pointer into this file).
+**Last updated:** 2026-08-19 (PyPI 0.9.0 + external cabinet topology honesty).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -29,7 +29,9 @@ MemNet is **mission working memory** — the **memory plane of an agent harness*
     host Snap (RAG)              cabinet Bolt
     locators only                hydrate / flush
     HostSearch Later             Agens live claimed (0.7)
-    outside MemNetSystem         Neo4j client 0.9, live unclaimed
+    outside MemNetSystem         Neo4j server on rpi5-syson (external)
+                                 two MemNet clients (Pi writer, droplet MCP)
+                                 live claim still 0.11 (`liveNeo4jClaimed=false`)
 ```
 
 | Layer | Job | This repo? |
@@ -37,9 +39,11 @@ MemNet is **mission working memory** — the **memory plane of an agent harness*
 | Outer harness | Loop, tools, env blob, eval tape | **No** |
 | Memory plane | Named session \(S\); goldfish Shape; sparse mutate; Path-B Absorb | **Yes** — engine + `memnet-mcp` |
 | Library RAG | Corpus → locators (Snap) | **Later** (HostSearch outside `MemNetSystem`) |
-| Cabinet | Persist one \(S\) | Agens **0.7 claimed**; Neo4j **Later** to claim live |
+| Cabinet | Persist one \(S\) | Agens **0.7 claimed**. Neo4j **server exists** (rpi5-syson; not in the wheel); **live claim** still **0.11** (`liveNeo4jClaimed=false`) |
 
 Handoff = **session id** (+ anchors / write scope). Peers **re-`pin_map`**. Chat is never SSOT. A durable store **backs** \(S\); it is not the handle and not the default teach surface. **MUST NOT** reframe MemNet as a Cypher proxy or as GraphRAG.
+
+**External cabinet topology (operator as-is, not a new minor).** The Neo4j **server** lives on **rpi5-syson**. It is not vendored in `memnet-llm`. **MUST NOT** install Neo4j on the 2 GB droplet. The Pi MemNet writer (`memnet-llm` 0.9.0) is a **client**. Droplet `memnet-mcp` 0.9.0 `[mcp,neo4j]` is a **second client** to the same Bolt (`bolt://100.118.79.40:7687`). One `DurableSyncOwner` **per process**. Two MemNet processes flushing the same cabinet is a **dual-flush** risk: **MUST NOT** treat “droplet MCP + Pi serve both flush Neo4j” as one owner. Desk EvidenceCentre / CompanyMemory stay off this Bolt. No InvestorApi federation. Bolt-speak works; that does **not** flip `liveNeo4jClaimed`.
 
 **Two channels (thesis leftover, not a SemVer gate).** Mission names (`TSK`/`USR`/`MOD`) live on \(S\). Env blobs (test logs, screenshots) stay in the outer harness (or its condenser). Do not put bash on \(S\) and call that Shape.
 
@@ -55,9 +59,9 @@ Handoff = **session id** (+ anchors / write scope). Peers **re-`pin_map`**. Chat
 | **0.6.0** | Honesty: V5 LAW×N pytest; snapshot as offered durable; version-map docs | **Shipped** (`v0.6.0`) |
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
-| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip **unclaimed**. Cabinet extra, **not** a 1.0 gate | **Shipped** (package 0.9.0; tag by coordinator) |
+| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip **unclaimed**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0`; PyPI `memnet-llm==0.9.0`) |
 | **0.10–0.17** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Plan** — not tagged |
-| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — PyPI still 0.4.6 |
+| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** |
 | **Later** | Grammar Open / hosted product / leftover ACL; or 0.10+ if untagged. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
 
 **1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras. Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
@@ -92,6 +96,8 @@ One concern per minor. Dependency order. **MUST NOT** treat this table as implem
 **0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second **live** cabinet claim; vendor AgensGraph/Neo4j servers; restore Layer teach or novel-writer.
 
 **0.9 MUST NOT:** claim `liveNeo4jClaimed`; vendor a Neo4j server; hold **1.0** for live Neo4j, HostSearch, N-server, or Peak_L.
+
+**0.9 leftovers (mention only — not 0.10+ rows).** `company_ego_fixture` hardcodes `TSK_mission_q3` / `E_about_q3` (not namespaced by ego). Droplet proof `COM_droplet_pi` collided with Pi soak `COM_soak_pi`. Bolt-speak works; per-ego live proof is not green. That blocks a clean **0.11** claim until fixture ids are minted or namespaced. Other engine leftovers stay bugs, not SemVer extras.
 
 ---
 
@@ -164,6 +170,8 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 |------|----------|
 | Bridge HTTP MCP to **`memnet serve`** (TCP `:18765`) so one process owns the store | Run HTTP MCP with a separate `InProcessEngine` **and** TCP serve as two writers |
 | Default remote HTTP so tools share the serve graph | Dual-write the same mission across two engines |
+
+**As-is (leftover, not a 0.10 gate).** The lock above is still the MUST. Operator reality on 2026-08-19: `memnet-serve.service` on `:18765` plus MCP on `:18766` (same venv, no systemd unit, in-process graph unless `MEMNET_MCP_TRANSPORT=tcp`). The Pi still has **two engines** unless MCP is bridged to serve. Do not pretend the lock is already satisfied.
 
 ### 4. Footguns (Cursor just works)
 

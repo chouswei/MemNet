@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
+- **docs: ROADMAP PyPI 0.9.0 and cabinet topology** — SemVer SSOT matches operator reality (2026-08-19): PyPI `memnet-llm==0.9.0` tagged; Neo4j server on rpi5-syson with two MemNet clients and dual-flush risk; Pi two-engine leftover under the one-owner lock; `company_ego_fixture` id collision mentioned, not numbered as 0.10+. `liveNeo4jClaimed` stays false. Same PyPI honesty in README / `docs/SHAPE.md`.
 - **Math skeleton refined** — objects, operator **domains** (Recall/Commit goldfish; Absorb = Path-B join; Host Snap outside; hydrate = 0 tokens), three budgets (\(M\) rows ≠ prompt tokens ≠ 4 MiB frame), one \(S\) per generate, Snap homographs (host / model / not Shape), \(\mathrm{Peak}_L\) last-resort **inside** one \(S\). [`docs/grammar/math-skeleton.md`](docs/grammar/math-skeleton.md).
 - **SemVer SSOT is `docs/ROADMAP.md`** — former `docs/ROADMAP-0.5.md` is a pointer so old links do not 404. One version table only.
 - **SysML model Snap (design)** — one model → many sessions (catalog + package interiors). **Solves** as-is Snap’s `:contains` nest (PKG peaks, smashed abstraction layers, truncated ingest, Layer relapse). Not one session per `.sysml` file. [`docs/grammar/memnet-session-strata.md`](docs/grammar/memnet-session-strata.md).
@@ -48,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **docs: 0.8 housekeeping for 1.0 claim** — live docs + application notes aligned to shipped 0.5–0.8 (find, honesty, live cabinet, GQL teach); Layer files stay archive/stub; PyPI lag (0.4.6) stated where install is taught. No engine cut.
-- Package **0.9.0**. **1.0** stays 0.5–0.8 claimed (not a live-Neo4j / HostSearch / N-server / Peak_L gate). PyPI `memnet-llm` is still **0.4.6**.
+- Package **0.9.0**. **1.0** stays 0.5–0.8 claimed (not a live-Neo4j / HostSearch / N-server / Peak_L gate). PyPI `memnet-llm==0.9.0` published 2026-08-19 (tag `v0.9.0`).
 
 ## [0.8.0] - 2026-08-18
 
