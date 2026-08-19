@@ -8,7 +8,7 @@
 
 Classic RAG is **retrieve a ranked list from a corpus, stuff it, generate**. MemNet goldfish is **discrete cue → bounded reconstruct of session \(S\) → shaped GQL**; generate stays off the wire. The relatives below all implement some mix of (1) embed, (2) lexical rank, (3) graph walk / community, (4) fuse, (5) generate. This note records **what the retrieve functions actually do**, then the MemNet cut.
 
-**Between `memnet-llm` and Neo4j (as-is):** RAG does **not** run on the **cabinet** seam. `memnet-llm[neo4j]` is hydrate/flush only. Host Snap (if any) is a **third** hop over the library — locators into MutateGate, never chunks through Bolt. **Rethink (option B, not shipped):** same Neo4j process, **library port** disjoint from cabinet — [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Walk: [`neo4j-buffer.md`](neo4j-buffer.md) § “How RAG sits between `memnet-llm` and the Neo4j cabinet”.
+**Between `memnet-llm` and Neo4j (as-is):** RAG does **not** run on the **cabinet** seam. `memnet-llm[neo4j]` is hydrate/flush only. Host Snap (if any) is a **third** hop over the library — locators into MutateGate, never chunks through Bolt. **Rethink (B+D, not shipped):** library port disjoint from cabinet; join sessions with **Absorb**, not generate. [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Walk: [`neo4j-buffer.md`](neo4j-buffer.md) § “How RAG sits between `memnet-llm` and the Neo4j cabinet”.
 
 ---
 
