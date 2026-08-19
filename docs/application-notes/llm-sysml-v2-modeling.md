@@ -90,7 +90,7 @@ Same device may appear in both — keep ids stable; relate across grains with ba
 
 ## 6. Snap **one** SysML model into multiple sessions
 
-`ingest_sysml` today is 1 path → **current** session. The intended Snap is **one model** (root package / load tree) → a **stack** of sessions (catalog + interiors). Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
+`ingest_sysml` remains 1 path → **current** session (Path-B as-is). **Model Snap (0.15)** is **one model** (root package / load tree) → a **stack** of sessions (catalog + interiors): `memnet snap model --root …`. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
 
 Goldfish \(M\approx 50\); ingest `max_nodes` is Commit into **one interior**, not a Shape of the whole model. `.sysml` stays SSOT.
 

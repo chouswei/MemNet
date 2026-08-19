@@ -49,6 +49,9 @@ package MemNetCousinContrast {
     attribute viewShellIsNotOutline : Boolean = true;
     attribute mustNotDumpSOnEmptyCue : Boolean = true;
     attribute mustNotSkipEmptyCueAsTarget : Boolean = true;
+    attribute catalogAnnRank : Boolean = false;
+    attribute catalogAbsorbWholeS : Boolean = false;
+    attribute oneSessionPerReq : Boolean = false;
   }
 
   // =====================================================================

@@ -118,6 +118,12 @@ package MemNetBehaviour {
   attribute def EvPinMapDone {
     doc /* Pin-map ingest/export finished or cancelled. */
   }
+  attribute def EvCatalogSnap {
+    doc /*
+      0.15 Snap(model): mint catalog + package interiors; Commit locators.
+      Look remains pin_map. Join remains Path-B Absorb slice. Not Layer.
+    */
+  }
   attribute def EvHandoffSessionId {
     doc /*
       Parent delivers SessionHandoff (SessionCapability sessionId + CallerId;
@@ -588,8 +594,12 @@ package MemNetBehaviour {
   state def PinMapIngestCycle {
     doc /*
       Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
-      PcbaAto / SkillsRules (#31 / #64). Not SnapshotStore. Pin-map export
-      (0.19 / #66) is a separate cue GQL write-out — not this ingest cycle.
+      Path-B MN-REQ-11 selective pin ingest. As-is: Sysml / Codebase /
+      PcbaAto / SkillsRules (#31 / #64). Catalog Snap (0.15) is a sibling
+      transition from pinIdle (EvCatalogSnap → projecting); it SHALL NOT
+      replace EvPinMapSelect → selectingPins. Not SnapshotStore. Pin-map
+      export (0.19 / #66) is a separate cue GQL write-out — not this ingest
+      cycle. MN-REQ-11.1 SysML file reverse remains later.
     */
     entry;
     then pinIdle;
@@ -601,6 +611,10 @@ package MemNetBehaviour {
       first pinIdle
       accept EvPinMapSelect
       then selectingPins;
+    transition pin_catalog
+      first pinIdle
+      accept EvCatalogSnap
+      then projecting;
 
     state selectingPins {
       doc /* Choose short anchors/locators - not corpus dump. */

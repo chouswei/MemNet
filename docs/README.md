@@ -31,7 +31,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`grammar/rag-relative-algorithms.md`](grammar/rag-relative-algorithms.md) | RAG-relative retrieve algorithms (research; GraphRAG / Graphiti / LightRAG / HippoRAG / …) |
 | [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) | Design proposal: two ports; catalog Snap; join by Absorb (not shipped HostSearch) |
 | [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Design thesis: harness memory plane; GitHub review + objections |
-| [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md) | Sessions as strata (design; not Layer); goldfish one \(S\) then Absorb |
+| [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog Snap |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 | [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | As-is line-codec harness notes (not GQL teach) |
 | [`grammar/archive/`](grammar/archive/) | Quarantined historical Layer / Tier A sources |
