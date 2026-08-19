@@ -187,6 +187,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 | Path | Role |
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
+| [`neo4j-buffer.md`](neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
 | [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
