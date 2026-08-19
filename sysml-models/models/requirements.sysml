@@ -585,7 +585,9 @@ package MemNetRequirements {
           database; SHALL NOT flush session pins into the library
           database. SHALL NOT fuse retrieve rankers (RRF / PPR / Leiden
           / ANN) into Recall / pin_map. HostSearch / RagHostHook SHALL
-          remain outside MemNetSystem with implemented=false until 0.17.
+          remain outside MemNetSystem. Extra 0.17: RagHostHook.implemented
+          SHALL be true outside MemNetSystem (skip is valid); SHALL NOT
+          nest the hook under MemNetSystem; SHALL NOT add rag_query MCP.
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }

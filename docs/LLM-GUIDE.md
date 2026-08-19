@@ -187,7 +187,7 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
 - SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / #66) — 0.19 GQL write-out is not identity merge
-- Host search / RAG as a MemNet MCP tool — application nest **outside** `MemNetSystem` only (`docs/grammar/memnet-host-search-nest.md`)
+- Host search / RAG as a MemNet MCP tool — extra **0.17** hook is **outside** `MemNetSystem` only (`docs/grammar/memnet-host-search-nest.md`); skip valid; no `rag_query`
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 

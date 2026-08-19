@@ -2,7 +2,7 @@
 
 **Shelf:** application example (on SharedLlmMemory)
 
-Host corpus lookup MAY propose **locators**; MemNet **MutateGate** commits them. Skip is valid. Not a product MCP tool.  
+Host corpus lookup MAY propose **locators**; MemNet **MutateGate** commits them. Skip is valid. Not a product MCP tool. Extra **0.17**: `RagHostHook.implemented=true` outside `MemNetSystem` (`memnet.rag_host_hook`).  
 Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md). Product math (above #77): [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master` via [#84](https://github.com/chouswei/MemNet/pull/84)).
 
 ## Binding
@@ -17,13 +17,13 @@ Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-ho
 | Term | Meaning |
 |------|---------|
 | **`HostSearchBridge`** | Application nest — **MUST NOT** sit under `MemNetSystem` |
-| **`RagHostHook`** | Optional host Snap (`implemented=false`) — locators, not chunks |
+| **`RagHostHook`** | Optional host Snap (`implemented=true`) — locators, not chunks |
 
-Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Do not teach `rag_query` on `memnet-mcp`. Do not ANN-index the session (Snap-on-session).
+Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Extra 0.17 ships the fail-open hook; it still does **not** absorb. Do not teach `rag_query` on `memnet-mcp`. Do not ANN-index the session (Snap-on-session).
 
 ```text
 HostSearchBridgePart              // MUST NOT nest under MemNetSystem
-└── RagHostHook   implemented=false  fail-open  locator-only
+└── RagHostHook   implemented=true  fail-open  locator-only
 ```
 
 ## Fake mission

@@ -140,7 +140,8 @@ package MemNetConnections {
       Extra 0.16: locator properties from the Neo4j library namespace
       (path= / document_id= / qname= / session= / url=). Corpus haystack,
       not session S. generate=false. HiddenStoreHandle / _memnet_hid stay
-      off the emit. MutateGate / ingest of these locators is later (0.17).
+      off the emit. Extra 0.17 MAY commit these via MutateGate / ingest
+      (properties, not leftover locator-as-PK).
     */
     attribute path : String;
     attribute document_id : String;
@@ -870,10 +871,11 @@ package MemNetConnections {
 
   connection def LibraryLocatorFlow {
     doc /*
-      Extra 0.16: Neo4j library port → locators only. MutateGate /
-      PinMapIngest consume later (0.17 HostSearch). SHALL NOT bind to
-      PinMapShapedRead. SHALL NOT convey generate, RRF, PPR, Leiden,
-      or ANN of S. Skip the source when the library database name is unset.
+      Extra 0.16: Neo4j library port → locators only. Extra 0.17:
+      HostSearch / MutateGate / PinMapIngest MAY consume them (properties,
+      not a store key). SHALL NOT bind to PinMapShapedRead. SHALL NOT
+      convey generate, RRF, PPR, Leiden, or ANN of S. Skip the source
+      when the library database name is unset.
     */
     end port source : LibraryLocatorOutPort;
     end port sink : LibraryLocatorInPort;
@@ -986,11 +988,11 @@ package MemNetConnections {
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
       RagHostHook Snaps the corpus to locators; existing MutateGate /
       PinMapIngest commits (Commit creates the element; no id-mint law).
-      Extra 0.16 library port MAY feed locators here later (0.17).
-      Skip is valid. MUST NOT call
-      this absorb (ImportAbsorb is Path-B slice + id_policy only). MUST
-      NOT Snap-on-session. Design only — no rag_query MCP.
-      RagHostHook.implemented stays false this cut. Product math
+      Extra 0.16 library port MAY feed locators here (0.17 consumes
+      them; library stays locators-only / generate=false). Skip is
+      valid. MUST NOT call this absorb (ImportAbsorb is Path-B slice +
+      id_policy only). MUST NOT Snap-on-session. No rag_query MCP.
+      RagHostHook.implemented=true outside MemNetSystem. Product math
       sits above this research: docs/grammar/math-skeleton.md. See
       grammar/memnet-host-search-nest.md.
     */

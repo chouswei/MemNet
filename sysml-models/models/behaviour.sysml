@@ -220,6 +220,24 @@ package MemNetBehaviour {
       SHALL NOT hydrate S. SHALL NOT generate.
     */
   }
+  attribute def EvHostSearchCue {
+    doc /*
+      Extra 0.17: cue the outside RagHostHook (corpus Snap). SHALL NOT
+      pass session S. SHALL NOT ANN-index S.
+    */
+  }
+  attribute def EvHostSearchSkip {
+    doc /*
+      Extra 0.17: hook unset, host miss, timeout, or parse — skip is
+      valid. Goldfish continues with pin_map / grep / existing pins.
+    */
+  }
+  attribute def EvHostSearchLocators {
+    doc /*
+      Extra 0.17: locators only. Commit via existing MutateGate /
+      PinMapIngest. MUST NOT absorb. MUST NOT emit chunk bodies.
+    */
+  }
   attribute def EvMintParentTask {
     doc /*
       Parent creates MissionTaskPin (TSK_*) / USR_* in the shared session
@@ -1408,5 +1426,53 @@ package MemNetBehaviour {
       first emittingLocators
       accept EvError
       then libraryIdle;
+  }
+
+  // --- Extra 0.17: host Snap locators (outside MemNetSystem) ---
+
+  state def HostSearchLocatorRoadmap {
+    doc /*
+      RagHostHook outside MemNetSystem. Cue → locators or skip.
+      Commit via existing MutateGate / ingest. MUST NOT absorb.
+      MUST NOT rag_query. MUST NOT Snap-on-session.
+    */
+    entry;
+    then hostIdle;
+
+    state hostIdle {
+      doc /* Hook waiting; skip is the default when unset. */
+    }
+    transition idle_skip
+      first hostIdle
+      accept EvHostSearchSkip
+      then hostIdle;
+    transition idle_to_cue
+      first hostIdle
+      accept EvHostSearchCue
+      then proposingLocators;
+
+    state proposingLocators {
+      doc /* Locator-only Snap of the library. Not pin_map. */
+    }
+    transition propose_skip
+      first proposingLocators
+      accept EvHostSearchSkip
+      then hostIdle;
+    transition propose_locators
+      first proposingLocators
+      accept EvHostSearchLocators
+      then committingLocators;
+
+    state committingLocators {
+      doc /* Existing MutateGate / PinMapIngest. Not ImportAbsorb. */
+    }
+    transition commit_ok
+      first committingLocators
+      accept EvCommitOk
+      then hostIdle;
+    transition commit_fail
+      first committingLocators
+      accept EvError
+      then hostIdle;
   }
 }

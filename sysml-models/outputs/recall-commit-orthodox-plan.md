@@ -1,6 +1,6 @@
 # Recall / Commit — orthodox review and plan
 
-**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Remaining erect is **Later** (`Peak_L`, HostSearch ship).  
+**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Remaining erect is **Later** (`Peak_L`). HostSearch locators extra **0.17**.  
 **Audience:** product developers. British English.  
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
@@ -24,7 +24,7 @@ Orthodox = a theorem you can **build from**. Paradox = **all** examination and t
 | Same alphabet | Shaped GQL emit = mutate family | Shipped M2 |
 | Incremental coding | Sparse Δ: `add`/`update`; `id_exists` on echo | Shipped strict mutate; playbook must not echo \(\tilde{X}\) |
 | One working chunk | Live `TSK` as default ego; settle / `delete_on_settle` | Shipped recycle hide; playbook after [#84](https://github.com/chouswei/MemNet/pull/84) |
-| Two rate budgets | Snap (host corpus) vs Shape (session) | Design-locked; `RagHostHook.implemented=false` |
+| Two rate budgets | Snap (host corpus) vs Shape (session) | Extra **0.17**: `RagHostHook.implemented=true` outside `MemNetSystem`; skip valid |
 | Path-B ≠ goldfish writeback | Goldfish Δ is Commit, not Absorb-named writeback. `ImportAbsorb` = Path-B slice + leftover `id_policy` only. `SameThingAbsorb` = distinct in-session Commit rule (not Recall) | Shipped Path-B; MUST NOT send goldfish Δ to ImportAbsorb; SameThingAbsorb modelled |
 
 Load-bearing orthodox: rate, codebook, \(k\)-hop, skip-after-probe, same alphabet, sparse Δ, two budgets. Names-only (do not erect a solver): IB Lagrangian, DPI-as-proof, Pearl blanket, Miller 7±2. Hilbert IR / QQL / ZX-on-Cypher / Gremlin quantum walks are **paradox cousins** (stress), not GQL semantics and not a Hilbert store.
@@ -78,9 +78,9 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 
 `rag_query` on `memnet-mcp`; ANN / PPR / RRF / GST in-engine; HostSearch under `MemNetSystem`; goldfish Δ via ImportAbsorb; Peak_L as default goldfish; Layer teach; Hilbert / QQL store; Gremlin-walk goldfish.
 
-### Host Snap (application; not this engine)
+### Host Snap (application; outside MemNetSystem)
 
-`RagHostHook` stays `implemented=false` until a **locator-only** adapter lives **outside** `MemNetSystem`. Validate V10 in the host-search case study, not in `memnet-llm` retrieve.
+`RagHostHook.implemented=true` extra **0.17** — locator-only adapter **outside** `MemNetSystem`. Skip is valid. Validate V10 in the host-search case study, not by fusing retrieve into `pin_map`.
 
 ---
 
@@ -94,7 +94,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
-Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); playbook still one-TSK; #73 claimed as seed-only find then `pin_map` (**yes**). Done for **#77** when HostSearch ship / Peak_L are decided — **Later**, not 1.0.
+Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); playbook still one-TSK; #73 claimed as seed-only find then `pin_map` (**yes**). HostSearch locators extra **0.17**. **Peak_L** remains Later, not 1.0.
 
 ---
 

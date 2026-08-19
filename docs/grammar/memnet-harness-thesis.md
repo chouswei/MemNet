@@ -180,7 +180,7 @@ The security note already says spoofing `llm_id` in-process is a **trust-the-har
 
 As-is, `memnet-llm[neo4j]` is cabinet only. Honest, and operator-hostile: GraphRAG already lives on Neo4j, so the LLM leaves the harness memory plane for Browser.
 
-**Proposal (B namespaces shipped 0.16):** one Neo4j **process**, two **namespaces** (cabinet vs library corpus). Library port emits locators, never `generate`. Catalog Snap may return `session=` ids. Join remains Absorb, not RAG. Live Neo4j is extra **0.14** claimed. HostSearch locators remain **0.17**. Estimates: rethink note (design budgets, not SLAs).
+**Proposal (B namespaces shipped 0.16):** one Neo4j **process**, two **namespaces** (cabinet vs library corpus). Library port emits locators, never `generate`. Catalog Snap may return `session=` ids. Join remains Absorb, not RAG. Live Neo4j is extra **0.14** claimed. HostSearch locators extra **0.17**. Estimates: rethink note (design budgets, not SLAs).
 
 ---
 
@@ -188,7 +188,7 @@ As-is, `memnet-llm[neo4j]` is cabinet only. Honest, and operator-hostile: GraphR
 
 - That MemNet wins SWE-Bench without an outer harness.
 - That a graph substrate always beats condensers (Huang: **regime-dependent**; graphs can win QA and lose acting if you retrieve too broadly — hence \(M\)).
-- That HostSearch, Peak_L, or live Neo4j are shipped.
+- That HostSearch, Peak_L, or live Neo4j are unshipped as extras (0.14 live Neo4j claimed; 0.17 HostSearch locators; Peak_L still Later).
 - That MemNet **requires** a named Flash SKU. Flash-class = small context, low latency, many turns. A larger model MAY still run; the plane does not grow the prompt to match it.
 - That “harness” in `docs/grammar/examples/` is this architecture.
 

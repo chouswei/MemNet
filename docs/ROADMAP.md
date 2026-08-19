@@ -4,9 +4,9 @@
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). Placement (design): [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md). British English.
 
-**Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`; extra **0.16** two namespaces). **PyPI `memnet-llm` is still 0.4.6.**
+**Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`; extra **0.16** two namespaces; extra **0.17** HostSearch locators). **PyPI `memnet-llm` is still 0.4.6.**
 
-**Last updated:** 2026-08-19 (extra **0.16** two Neo4j namespaces; **0.14** live Neo4j claimed; catalog Snap **0.15** on master #124 @ 7767ed84; pin-map export **0.19**; package stays 0.9.0).
+**Last updated:** 2026-08-19 (extra **0.17** HostSearch locators; extra **0.16** two Neo4j namespaces; **0.14** live Neo4j claimed; catalog Snap **0.15** on master #124 @ 7767ed84; pin-map export **0.19**; package stays 0.9.0).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -28,7 +28,7 @@ MemNet is **mission working memory** — the **memory plane of an agent harness*
          |                             |
     host Snap (RAG)              cabinet Bolt
     locators only                hydrate / flush
-    HostSearch Later (0.17)      Agens live claimed (0.7)
+    HostSearch locators (0.17)   Agens live claimed (0.7)
     outside MemNetSystem         Neo4j live claimed (0.14)
                                  0.16 library DB (locators)
 ```
@@ -37,7 +37,7 @@ MemNet is **mission working memory** — the **memory plane of an agent harness*
 |-------|-----|------------|
 | Outer harness | Loop, tools, env blob, eval tape | **No** |
 | Memory plane | Named session \(S\); goldfish Shape; sparse mutate; Path-B Absorb | **Yes** — engine + `memnet-mcp` |
-| Library RAG | Corpus → locators (Snap) | **Later** (HostSearch outside `MemNetSystem`) |
+| Library RAG | Corpus → locators (Snap) | **0.17** HostSearch outside `MemNetSystem` (skip valid) |
 | Cabinet | Persist one \(S\) | Agens **0.7 claimed**; Neo4j **0.14 claimed** |
 
 Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labels+properties (or a kind/keyword cue). Chat is never SSOT. A durable store **backs** \(S\); it is not the handle and not the default teach surface. **MUST NOT** reframe MemNet as a Cypher proxy or as GraphRAG.
@@ -106,7 +106,7 @@ One concern per minor. Dependency order. **MUST NOT** treat this table as implem
 | **0.14.0** | **Live Neo4j claimed** (old 0.11). **Done this cut** (untagged; package stays 0.9.0). Operator proof rpi5-syson @ d23cc71: `live_round_trip` yes; hid flush; leftover-nickname hydrate after hid miss. `liveNeo4jClaimed=true`. Skip unless `MEMNET_NEO4J_URL`. Hid stays off the wire. | 0.10 identity (else live claim cements leftover_MERGE_by_id) | Vendor Neo4j server; LLM↔Bolt; second database name (0.16); claim hydrate-by-hid proven on live |
 | **0.15.0** | **Catalog Snap** + session strata + model Snap (old 0.12). **On master** (#124 @ 7767ed84). [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md). Catalog cut's own fence: that extra does not own `liveNeo4jClaimed`. | ImportAbsorb pattern match (0.10); ingest locators as props | ANN rank sessions; Absorb whole \(S\); Layer; one session per REQ |
 | **0.16.0** | **Two Neo4j namespaces** (old 0.13). **Done this cut** (untagged; package stays 0.9.0). Same process; cabinet vs library. Library port emits **locators only**, never `generate`. Skip library unless `MEMNET_NEO4J_LIBRARY_DATABASE`. `liveNeo4jClaimed` stays **true**. | 0.14 live claim | Fuse RRF/PPR into `pin_map`; `rag_query`; Snap-on-session; vendor Neo4j; LLM↔Bolt |
-| **0.17.0** | **HostSearch locators** (old 0.14). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
+| **0.17.0** | **HostSearch locators** (old 0.14). **Done this cut** (untagged; package stays 0.9.0). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
 | **0.18.0** | **Peak_L** last-resort (old 0.15). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
 | **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). Ingest ≠ export. | Shaped emit | Export as Absorb |
 
