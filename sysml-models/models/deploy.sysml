@@ -3,7 +3,7 @@
 
   Product framing (2026-08-13): MemNet = shared LLM memory (SharedLlmMemory);
   session id = pass-by-reference handle for a MissionWorkingSet; durable GQL
-  store (DurableBuffer / AgensGraphAdapter) planned M2.5 behind MemNet.
+  store (DurableBuffer / AgensGraphAdapter + optional Neo4jAdapter) behind MemNet.
 
   Nesting (coarse → fine):
     MemNetSystem                    // SharedLlmMemory product
@@ -23,7 +23,7 @@
     │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
-    ├── DurableBuffer               // AgensGraphAdapter planned M2.5
+    ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter clients
     ├── PinMapRoadmap               // all PinMapIngest_* domains shipped (#64)
     └── MultitaskOperatingModel
         ├── MultitaskCoordinator          // team lead
@@ -781,18 +781,41 @@ package MemNet {
     attribute phase : String = "M2.5";
   }
 
+  part def Neo4jAdapter {
+    doc /*
+      Second DurableStoreAdapter client beside AgensGraphAdapter — same
+      hydrate/flush ABC, same DurableSyncOwner, same ego HydrateBudget.
+      Optional extra memnet-llm[neo4j] (official neo4j Python driver only).
+      Cabinet is external; this repo does not vendor a Neo4j server.
+      Client hydrate/flush IS implemented. Live Bolt round-trip is NOT
+      claimed (liveNeo4jClaimed=false; pytest.mark.neo4j_live skips
+      unless MEMNET_NEO4J_URL). Agents MUST NOT talk Bolt. MN-REQ-06.4.
+    */
+    port hydrateOut : DurableHydrateOutPort;
+    port flushIn : DurableFlushInPort;
+    port gqlIn : GqlWireInPort;
+    port gqlOut : GqlWireOutPort;
+    attribute implemented : Boolean = true;
+    attribute liveNeo4jClaimed : Boolean = false;
+    attribute phase : String = "M2.5";
+  }
+
   part def DurableBuffer {
     doc /*
       Optional durable property-graph buffer behind MemNet SharedLlmMemory.
       Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
-      LLM agents as primary. M2.5 client hydrate/flush landed; live
-      external cabinet proven (0.7; URL skip in CI). MN-REQ-06.4.
+      LLM agents as primary. Children are alternative cabinet clients;
+      factory binds exactly one adapter (one sync owner). AgensGraph live
+      cabinet proven (0.7). Neo4j client landed, liveNeo4jClaimed=false.
+      MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
+    part neo4j : Neo4jAdapter;
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     attribute clientLanded : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
+    attribute liveNeo4jClaimed : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }

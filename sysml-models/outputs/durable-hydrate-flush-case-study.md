@@ -5,7 +5,7 @@
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 
-**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** live hydrate/flush proven; cabinet external / not vendored.
+**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** Agens live hydrate/flush proven; optional Neo4j client not live-claimed; cabinets external / not vendored.
 
 ## 1. Purpose
 
@@ -15,7 +15,7 @@ Show how a mission or company ego **survives process death**: settled / durable 
 
 | Concern | Model element |
 |---------|----------------|
-| Parts | `DurableBuffer`, `AgensGraphAdapter`, `SessionLifecycle` hydrate/flush ports |
+| Parts | `DurableBuffer`, `AgensGraphAdapter`, `Neo4jAdapter`, `SessionLifecycle` hydrate/flush ports |
 | Connections | `DurableHydrateFlow`, `DurableFlushFlow` |
 | Behaviour | `DurableHydrateFlushRoadmap` (`EvHydrateFromDurable`, `EvFlushToDurable`) |
 | Items | `DurableGraphStore` (connections), `MissionWorkingSet` / `SharedLlmMemory` |
@@ -49,12 +49,12 @@ CREATE (t:Task {id: 'TSK_mission_q3', status: 'settled'})
 CREATE (t)-[:ABOUT]->(c)
 ```
 
-Agents continue with `pin_map(anchor='COM_acme', depth=2, max_rows=50)` on the **new** session. They do **not** open a direct AgensGraph client.
+Agents continue with `pin_map(anchor='COM_acme', depth=2, max_rows=50)` on the **new** session. They do **not** open a direct AgensGraph or Neo4j/Bolt client.
 
 ```mermaid
 flowchart LR
   LLM[LLM agents] --> MemNet[SharedLlmMemory / SessionLifecycle]
-  MemNet -->|EvFlushToDurable| DB[DurableBuffer / AgensGraphAdapter]
+  MemNet -->|EvFlushToDurable| DB[DurableBuffer / cabinet adapter]
   DB -->|EvHydrateFromDurable| MemNet
   LLM -.->|MUST NOT primary| DB
 ```
@@ -72,9 +72,9 @@ flowchart LR
 
 | | As-is | Target / leftover |
 |--|-------|-------------------|
-| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` client (`memnet-llm[agensgraph]`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` (`implemented=true`; `liveCabinetClaimed=true` in 0.7) | Keep Fake as CI seam |
+| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=false`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
 | Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
-| Live cabinet | External / operator-proven (0.7); **not** vendored; skip unless `MEMNET_AGENSGRAPH_URL` | Not a hosted product service |
+| Live cabinet | Agens external / operator-proven (0.7); Neo4j client not live-claimed; **not** vendored; skip live marks unless URL | Not a hosted product service |
 | Satisfy | MN-REQ-06.4 on `DurableBuffer` | Live claim is operator URL + pytest mark |
 
 ## 6. Related

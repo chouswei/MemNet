@@ -48,6 +48,10 @@ mcp = [
 agensgraph = [
     "psycopg[binary]>=3.1",
 ]
+# Client driver only — does NOT install or vendor a Neo4j server.
+neo4j = [
+    "neo4j>=5.14",
+]
 
 [project.scripts]
 memnet = "memnet.cli:main"
@@ -84,6 +88,7 @@ pythonpath = [
 markers = [
     "scheme(id): integration scheme identifier from plan S01-S115",
     "agensgraph_live: needs MEMNET_AGENSGRAPH_URL pointing at external AgensGraph",
+    "neo4j_live: needs MEMNET_NEO4J_URL pointing at external Neo4j",
 ]
 
 [tool.ruff]

@@ -401,13 +401,17 @@ package MemNetRequirements {
 
       requirement def MN_REQ_06_4_DurableStoreBehindMemNet {
         doc /*
-          When a durable online GQL store (AgensGraph-class) is present,
-          MemNet SHALL remain the sole agent-facing shared memory. The store
-          SHALL sit behind MemNet (hydrate/flush). LLM ↔ store direct SHALL
-          NOT be the default teach path. M2.5 client hydrate/flush adapter
-          seam IS landed (Fake always; optional AgensGraph client; one sync
-          owner). Live external cabinet SHALL NOT be claimed shipped until
-          operator-proven; AgensGraph SHALL NOT be vendored in-repo.
+          When a durable online GQL store (AgensGraph-class or Neo4j-class)
+          is present, MemNet SHALL remain the sole agent-facing shared
+          memory. The store SHALL sit behind MemNet (hydrate/flush). LLM ↔
+          store direct (Bolt / driver) SHALL NOT be the default teach path.
+          M2.5 client hydrate/flush adapter seam IS landed (Fake always;
+          optional AgensGraph client with liveCabinetClaimed; optional
+          Neo4j client with liveNeo4jClaimed=false until a live round-trip;
+          one DurableSyncOwner). Live external cabinet SHALL NOT be claimed
+          shipped until operator-proven. Neither AgensGraph nor Neo4j
+          servers SHALL be vendored in-repo. Two cabinet URLs SHALL require
+          an explicit backend pick (MUST NOT silently bind two owners).
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }

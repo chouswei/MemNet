@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Neo4j durable client** — `Neo4jAdapter` beside `AgensGraphAdapter` on the same `DurableStoreAdapter` hydrate/flush seam and one `DurableSyncOwner`. Optional extra `memnet-llm[neo4j]` (official driver only; server not vendored). Factory errors if both cabinet URLs are set unless `MEMNET_DURABLE_BACKEND` picks one. Unit/Bolt-stub tests always-on; `pytest -m neo4j_live` skips unless `MEMNET_NEO4J_URL`. SysML: `DurableBuffer.neo4j` with `implemented=true` / `liveNeo4jClaimed=false`. Docs: `docs/grammar/neo4j-buffer.md`.
+
+### Leftover
+- **Live Neo4j round-trip** — client is landed; do not claim `liveNeo4jClaimed` until an operator cabinet proves flush/hydrate (mirror 0.7 Agens honesty). Not a close of [#65](https://github.com/chouswei/MemNet/issues/65). GitHub issue not filed from this agent (read-only `gh`).
+
 ### Changed
 - **docs: 0.8 housekeeping for 1.0 claim** — live docs + application notes aligned to shipped 0.5–0.8 (find, honesty, live cabinet, GQL teach); Layer files stay archive/stub; PyPI lag (0.4.6) stated where install is taught. No engine cut.
 

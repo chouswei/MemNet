@@ -11,6 +11,8 @@
   (#63 / S14; env-gated). Path-B ingest domains + RSV are shipped.
   BoundedMatchFind shipped seed-only (MN-VER-04-S01 / #73).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
+  DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
+  Neo4j client implemented with liveNeo4jClaimed=false.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -419,6 +421,31 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S01_DurableCabinetHonesty {
+    doc /*
+      MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
+      AgensGraphAdapter.liveCabinetClaimed remains the 0.7 live cabinet.
+      Neo4jAdapter.implemented is the client; liveNeo4jClaimed stays
+      false until a live Bolt round-trip. One DurableBuffer; one sync
+      owner. HostSearchBridge stays outside MemNetSystem.
+    */
+    attribute verificationId : String = "MN-VER-06-S01";
+
+    subject system : MemNetSystem;
+
+    objective cabinetHonesty {
+      verify durableStoreBehindMemNetReq;
+      require constraint {
+        system.durable.agens.implemented == true
+          and system.durable.agens.liveCabinetClaimed == true
+          and system.durable.neo4j.implemented == true
+          and system.durable.neo4j.liveNeo4jClaimed == false
+          and system.durable.liveCabinetClaimed == true
+          and system.durable.liveNeo4jClaimed == false
+      }
+    }
+  }
+
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
       MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
@@ -484,4 +511,6 @@ package MemNetVerification {
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
   verification recallCommitTwoOperatorsVerify
     : MN_VER_13_S01_RecallCommitTwoOperators;
+  verification durableCabinetHonestyVerify
+    : MN_VER_06_S01_DurableCabinetHonesty;
 }

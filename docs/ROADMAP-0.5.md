@@ -18,11 +18,11 @@
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`docs/SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Rebase of identity [#87](https://github.com/chouswei/MemNet/pull/87) on 0.7 — cabinet stays claimed | **Shipped** (`v0.8.0`) |
 | **1.0.0** | **0.5 + 0.6 + 0.7 + 0.8** claimed. Product shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine; Later items stay Later | **Claim next** — PyPI still 0.4.6 |
-| **Later** | `Peak_L`, HostSearch ship, N-server (#47), pin-map export (#66), hosted AgensGraph as a product service | **Out** — do not hold 0.8 or 1.0 |
+| **Later** | `Peak_L`, HostSearch ship, N-server (#47), pin-map export (#66), hosted AgensGraph as a product service, live Neo4j round-trip (`liveNeo4jClaimed`) | **Out** — do not hold 0.8 or 1.0 |
 
 **0.8 MUST:** one dialect teach (GQL only; Layer archive only); Write = display = bounded shaped `pin_map`; session id = handoff handle; working memory ≠ corpus (no `rag_query`). Wire SSOT stays [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this engine repo.
 
-**0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second cabinet claim; vendor AgensGraph; restore Layer teach or novel-writer; merge stale #87 text that unclaims the cabinet.
+**0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second **live** cabinet claim; vendor AgensGraph/Neo4j servers; restore Layer teach or novel-writer; merge stale #87 text that unclaims the Agens cabinet. Optional Neo4j **client** may land with `liveNeo4jClaimed=false`.
 
 **1.0 MUST NOT** wait on the Later row.
 
@@ -35,7 +35,7 @@
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** (docs) |
-| **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — client + live hydrate/flush proven; Fake always-on CI; skip unless `MEMNET_AGENSGRAPH_URL` |
+| **M2.5** | Durable online GQL store **behind** mission working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — Agens client + live hydrate/flush proven; optional Neo4j client (not live-claimed); Fake always-on CI; skip live marks unless URL exported |
 
 **Next SemVer:** **1.0.0** = **claim** of 0.5–0.8 (no extra engine). One-path gates below stay the teach/ops lock. Durable sketch: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md). Do **not** wait on Later (Peak_L, HostSearch ship, N-server, export, hosted cabinet).
 
@@ -113,7 +113,7 @@ Stay out of the 0.5 engine/MCP ship unless a later row already claimed it. **MUS
 
 **GQL:** agent teach/wire only. **MUST NOT** revive Layer teach.
 
-**AgensGraph:** backing graph for sessions — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct, chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path.
+**AgensGraph / Neo4j:** backing graphs for sessions — **not** a MemNet substitute and **not** the agent handoff handle (handoff = session id). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ store direct (Bolt), chat-as-SSOT, or MemNet-as-Cypher-proxy as default agent path. Neo4j client: [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
 
 ---
 
@@ -126,6 +126,7 @@ Stay out of the 0.5 engine/MCP ship unless a later row already claimed it. **MUS
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
+| [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | Second cabinet client (not live-claimed) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math (no engine cut) |
 | [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; 0.5 leftover shipped; Peak_L Later |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not 0.5 engine) |

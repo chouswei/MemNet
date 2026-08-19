@@ -14,8 +14,9 @@ Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.8
 # Until 0.8 is on PyPI, install from this repo (editable) rather than claiming pip 0.8:
 pip install -e ".[mcp]"
 # PyPI lag: `pip install memnet-llm` currently resolves 0.4.6, not 0.8.0.
-# optional durable client (psycopg only — not an AgensGraph server):
+# optional durable clients (drivers only — not AgensGraph/Neo4j servers):
 # pip install -e ".[agensgraph]"
+# pip install -e ".[neo4j]"
 ```
 
 CLI needs a serve process. Prefer local IPC; TCP is the fallback.
@@ -72,7 +73,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional client `memnet-llm[agensgraph]`; cabinet is external and not vendored. **0.7** live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set.
+**Durable:** optional clients `memnet-llm[agensgraph]` and `memnet-llm[neo4j]`; cabinets are external and not vendored. **0.7** AgensGraph live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is the same hydrate/flush seam (`Neo4jAdapter`) but **not** live-claimed (`liveNeo4jClaimed=false`; skip unless `MEMNET_NEO4J_URL`).
 
 ## Deferred (honest)
 
