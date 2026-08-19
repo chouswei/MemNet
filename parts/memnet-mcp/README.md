@@ -13,8 +13,9 @@ Generic MemNet MCP server (`memnet_mcp`) — goldfish-loop tools via **InProcess
 
 Primary read: **`pin_map`** (`query_warm` = deprecated alias). Emits shaped
 openCypher-family subgraph (GQL wire). Cue with `kind` / `locators` /
-`keyword`; leftover `anchor` is a nickname cue. Empty cue skips (0.11 owns
-outline). Goldfish caller (0.13): each turn `pin_map(q)` or skip; **drop**
+`keyword`; leftover `anchor` is a nickname cue. Empty cue is session outline
+(0.11: kinds + LIMIT exemplars of S). Goldfish caller (0.13): each turn
+`pin_map(q)` or empty-q outline; **drop**
 prior map rows from the prompt; sparse Δ; env blobs stay in the harness.
 Optional additive `view=` — teach `shell` | `interior` **on a seed** (not
 session outline); soft-accept `flowchart` | `parts` | `statechart`

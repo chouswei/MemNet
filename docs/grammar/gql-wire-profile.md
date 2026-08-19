@@ -80,7 +80,7 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
 
-**Caller (0.13).** Each generate packs **at most one** live `pin_map` (or skip). Drop prior map rows from the chat list. Sparse Commit Δ. Env blobs (test logs, screenshots) stay in the outer harness. `view=shell` is grain on a seed — **not** session outline (0.11). Empty cue still skips. leftover `--anchor` is not law. Pytest fail code: `stuffed_maps`. Sibling user-pack may absorb caller text; this repo owns the fail.
+**Caller (0.13).** Each generate packs **at most one** live `pin_map` (or empty-q outline). Drop prior map rows from the chat list. Sparse Commit Δ. Env blobs (test logs, screenshots) stay in the outer harness. `view=shell` is grain on a seed — **not** session outline (0.11). Empty cue is outline of \(S\) (kinds + LIMIT exemplars). leftover `--anchor` is not law. Pytest fail code: `stuffed_maps`. Sibling user-pack may absorb caller text; this repo owns the fail.
 
 **Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), neighbourhood-bounded and view-filtered. Emit **MAY** omit `{id:'…'}`.
 

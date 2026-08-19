@@ -21,7 +21,7 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 | \(k\) | Hop diameter of the ego walk (typical interior \(\approx 2\)). Metric is **hops**, not cosine. |
 | \(L\) | Hard LIMIT on `find` / seed cardinality (\(|Q|\le L\)). |
 
-**Relevant** means the emit **co-responds to** \(q\): same \(q\) on the same \(S\) → same Shape. It is not “nearest passages to a sentence.” Goldfish query SHALL be codebook tokens. Empty token / empty seed \(\Rightarrow\) **skip** (do not invent a node).
+**Relevant** means the emit **co-responds to** \(q\): same \(q\) on the same \(S\) → same Shape. It is not “nearest passages to a sentence.” Goldfish query SHALL be codebook tokens. Empty token / empty \(q\) ⇒ **session outline** (0.11 census of \(S\): kinds + LIMIT exemplars). leftover empty-seed skip is leftover, not TARGET.
 
 **Two haystacks.** Library / corpus is **Snap** (host). Mission working memory is **Shape** (this file). Mixing them is the fuse the product forbids.
 

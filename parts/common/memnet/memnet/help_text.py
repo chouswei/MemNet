@@ -36,7 +36,7 @@ def guide_text(*, loose: bool = False) -> str:
             "Mutate: CREATE / MATCH…SET / MERGE / DELETE; "
             "SameThingAbsorb: MATCH (a),(b) SET a += b after CueConflict.",
             "Create by labels+properties. leftover id:'NEW' mint is leftover, not product.",
-            "Live pin map: query pin-map --kind/--locator/--keyword (or skip).",
+            "Live pin map: query pin-map --kind/--locator/--keyword (empty cue = outline).",
             "leftover --anchor is a nickname cue, not TARGET law.",
             "Goldfish caller: one pin_map(q) per generate; drop prior maps.",
             "Pin-map ingest: locators (path=, qname=, refdes=, skill_id=); no client NEW.",
@@ -53,7 +53,7 @@ Doctrine:
   Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
   Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
   leftover id:'NEW' mint is leftover; pin-map ingest uses locators, not client NEW
-  Goldfish caller: pin_map(q) or skip; drop prior maps; sparse Δ; env blobs in harness
+  Goldfish caller: pin_map(q) or empty-q outline; drop prior maps; sparse Δ; env blobs in harness
   Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
 Quick start (CLI sessions still need serve today):

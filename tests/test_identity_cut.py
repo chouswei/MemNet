@@ -66,13 +66,16 @@ def test_find_cue_conflict_when_q_gt_1(memnet_temp):
     assert "RETURN" not in r.stdout
 
 
-def test_pin_map_empty_cue_skips(memnet_temp):
+def test_pin_map_empty_cue_is_session_outline(memnet_temp):
     del memnet_temp
     sid = _open()
-    missing = runner.invoke(app, ["query", "pin-map", "--session", sid])
-    assert missing.exit_code == 0, missing.stderr
-    assert "no_anchor" not in missing.stderr
-    assert missing.stdout.strip() == ""
+    outlined = runner.invoke(app, ["query", "pin-map", "--session", sid])
+    assert outlined.exit_code == 0, outlined.stderr
+    assert "no_anchor" not in outlined.stderr
+    assert "## outline" in outlined.stdout
+    assert "-[:" not in outlined.stdout
+    assert "_el" not in outlined.stdout
+    assert "_memnet_hid" not in outlined.stdout
 
 
 def test_pin_map_from_cue_kind(memnet_temp):

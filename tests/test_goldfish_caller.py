@@ -88,7 +88,7 @@ def _open_coding(memnet_temp) -> str:
     return r.stdout.strip().split("|")[0].replace("@SESSION: ", "")
 
 
-def test_empty_cue_skips_even_with_view_shell(memnet_temp):
+def test_empty_cue_with_view_shell_is_outline_not_skip(memnet_temp):
     sid = _open_coding(memnet_temp)
     add = runner.invoke(
         app,
@@ -96,18 +96,22 @@ def test_empty_cue_skips_even_with_view_shell(memnet_temp):
         input=(
             "CREATE (:TSK {id: 'TSK_live', goal: 'work', status: 'in_progress'})\n"
             "CREATE (:MOD {id: 'MOD_x', path: 'src/x.py', summary: 'mod', status: 'active'})\n"
+            "MATCH (t {id: 'TSK_live'}), (m {id: 'MOD_x'})\n"
+            "CREATE (t)-[:owns {id: 'E_link'}]->(m)\n"
         ),
     )
     assert add.exit_code == 0, add.stderr
-    skipped = runner.invoke(
+    outlined = runner.invoke(
         app,
         ["query", "pin-map", "--view", "shell", "--session", sid],
     )
-    assert skipped.exit_code == 0, skipped.stderr
-    assert skipped.stdout.strip() == ""
-    assert "no_anchor" not in skipped.stderr
-    assert "TSK_live" not in skipped.stdout
-    assert "outline" not in skipped.stdout.lower()
+    assert outlined.exit_code == 0, outlined.stderr
+    assert "## outline" in outlined.stdout
+    assert "no_anchor" not in outlined.stderr
+    assert "TSK_live" in outlined.stdout
+    assert "MOD_x" in outlined.stdout
+    assert "-[:" not in outlined.stdout
+    assert "owns" not in outlined.stdout
 
 
 def test_view_shell_is_grain_on_a_seed_not_session_outline(memnet_temp):
@@ -122,11 +126,15 @@ def test_view_shell_is_grain_on_a_seed_not_session_outline(memnet_temp):
         ],
         mode="add",
     )
-    empty, empty_text = PinMapComposer(ss).compose(
+    census, census_text = PinMapComposer(ss).compose(
         anchor=None, view="shell", kind=None, locators=None, keyword=None
     )
-    assert empty == []
-    assert empty_text == ""
+    assert "## outline" in census_text
+    assert "TSK_live" in census_text
+    assert "MOD_unlinked" in census_text
+    assert "USR_one" in census_text
+    assert "-[:" not in census_text
+    assert all(r.tag != "EDG" for r in census)
 
     rows, text = PinMapComposer(ss).compose(
         anchor=None,

@@ -1,6 +1,6 @@
 # Case study: empty-cue session outline (Recall census of S)
 
-**Shelf:** product canon — **0.11 TARGET** (modelled; engine `implemented=false`). leftover 0.10 empty-seed skip is leftover, not TARGET.
+**Shelf:** product canon — **0.11** (engine emits outline; SysML nest `#118` remains `SessionOutline.implemented=false`). leftover 0.10 empty-seed skip is leftover, not TARGET.
 
 Evidence walk of a dark session that needs an **outline**, not a neighbourhood and not a skip, against `sysml-models/models/`.
 Companions: [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md).
@@ -67,4 +67,4 @@ Agent cues `TSK` / `status=open` (a seen pattern) and `pin_map`s. If two exempla
 
 ## 5. Honesty
 
-Python engine is **not** rewritten in this cut. `SessionOutline.implemented=false`. leftover skip may still fire in 0.9/0.10 code.
+Python engine emits empty-q outline (untagged 0.11; package stays 0.9.0). SysML nest remains `SessionOutline.implemented=false` until a nest sync. leftover skip is leftover only.
