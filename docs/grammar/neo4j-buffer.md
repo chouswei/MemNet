@@ -32,6 +32,37 @@ Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) 
 
 ---
 
+## How RAG sits between `memnet-llm` and the Neo4j cabinet
+
+There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both and is **not shipped** (`RagHostHook.implemented=false`). Algorithms of the relatives: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
+
+```text
+  library / PDFs / web
+       |  host Snap (optional; design only)
+       |  retrieve chunks → locators only
+       v
+  MutateGate / ingest ---------->  memnet-llm session S
+                                       ^
+  LLM goldfish  <-->  pin_map / mutate |   NOT rag_query
+                                       |
+                                       |  hydrate / flush (DurableSyncOwner)
+                                       v
+                                  Neo4j cabinet
+                                  (memnet-llm[neo4j] driver)
+```
+
+| Hop | Package / process | What actually runs | RAG? |
+|-----|-------------------|--------------------|------|
+| Agent read/write | `memnet-llm` / `memnet-mcp` | GQL `pin_map` / `find` / `add` / `update` | **No** — Shape of \(S\) |
+| Optional corpus | Host (grep, docs MCP, RAGFlow, GraphRAG, …) | Ranked retrieve, then **locators** into MutateGate | **Yes** — Snap of the **library**; never of \(S\) |
+| Survive process death | `memnet-llm[neo4j]` → external Neo4j | Ego `MERGE` / `MATCH [*0..k]` under `HydrateBudget` | **No** — cabinet, not retrieve-then-generate |
+
+**If someone wires RAG “through Neo4j” (the footgun).** LLM → Cypher/GraphQL/`generate` on the same store that holds flushed pins, or a vector index **on** that cabinet used as goldfish. That collapses three jobs: library Snap, session Shape, durable hydrate. Symptoms: `rag_query` on MCP, `pin_map.generate`, chunk bodies on `note=`, Graphiti-style RRF against the cabinet, ANN of \(S\).
+
+**Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice.
+
+---
+
 ## Key features on both sides
 
 Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapComposer`, `MutateGate`, `DurableSyncOwner` / `SessionLifecycle` ports, `Neo4jAdapter`. Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Math: [`math-skeleton.md`](math-skeleton.md).
