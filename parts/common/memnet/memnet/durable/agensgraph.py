@@ -23,7 +23,15 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from memnet.durable.adapter import DurableStoreAdapter, DurableSubgraph, HydrateBudget
+from memnet.durable.adapter import (
+    DurableStoreAdapter,
+    DurableSubgraph,
+    HydrateBudget,
+    node_cabinet_keys,
+    record_cabinet_hid,
+    remap_edge_endpoints_to_nicknames,
+    resolve_endpoint_hid,
+)
 from memnet.exceptions import MemNetError
 from memnet.models import Record
 
@@ -37,6 +45,7 @@ _MEMNET_TAG_KEY = "_memnet_tag"
 _MEMNET_HID_KEY = "_memnet_hid"
 _SAFE_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_.:/@+-]+$")
+_HYDRATE_MATCH_KEYS = (_MEMNET_HID_KEY, "id")
 
 
 @dataclass(frozen=True)
@@ -101,18 +110,29 @@ def props_to_set_clause(alias: str, fields: dict[str, str], *, skip: set[str]) -
     return ", ".join(parts)
 
 
-def build_hydrate_nodes_cypher(ego_id: str, budget: HydrateBudget) -> str:
+def build_hydrate_nodes_cypher(
+    ego_id: str,
+    budget: HydrateBudget,
+    *,
+    match_key: str = _MEMNET_HID_KEY,
+) -> str:
     """Ego-bounded node walk: vertices within ``budget.depth`` of ego.
 
     Cabinet identity is the hidden handle ``_memnet_hid`` (off the agent wire).
-    leftover nickname ``id`` is a property, not the MERGE key.
+    leftover nickname ``id`` is a property filter only after a hid miss.
     """
+    if match_key not in _HYDRATE_MATCH_KEYS:
+        raise MemNetError(
+            "agensgraph_bad_ident",
+            f"hydrate match_key must be {_MEMNET_HID_KEY!r} or 'id', got {match_key!r}",
+        )
+    key = cypher_ident(match_key, kind="property")
     ego = cypher_id_literal(ego_id)
     depth = max(0, int(budget.depth))
     limit = max(1, int(budget.max_nodes))
     # *0..depth includes the ego vertex itself.
     return (
-        f"MATCH (ego {{{_MEMNET_HID_KEY}: {ego}}})\n"
+        f"MATCH (ego {{{key}: {ego}}})\n"
         f"OPTIONAL MATCH (ego)-[*0..{depth}]-(n)\n"
         f"WITH DISTINCT n\n"
         f"WHERE n IS NOT NULL\n"
@@ -161,8 +181,7 @@ def build_hydrate_edges_cypher(
 
 
 def _cabinet_hid(record: Record) -> str:
-    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
-    return cypher_id_literal(hid)
+    return cypher_id_literal(record_cabinet_hid(record))
 
 
 def build_merge_node_cypher(record: Record) -> str:
@@ -180,8 +199,15 @@ def build_merge_node_cypher(record: Record) -> str:
     return f"MERGE (n:{tag} {{{_MEMNET_HID_KEY}: {hid_lit}}})\nSET {extras}"
 
 
-def build_merge_edge_cypher(record: Record) -> str:
-    """MERGE/SET one MemNet EDG record (relation → edge label)."""
+def build_merge_edge_cypher(
+    record: Record,
+    *,
+    nodes: list[Record] | None = None,
+) -> str:
+    """MERGE/SET one MemNet EDG record (relation → edge label).
+
+    Endpoints MATCH by the node cabinet hid, not leftover nickname ``id``.
+    """
     if record.tag.upper() != "EDG":
         raise MemNetError(
             "agensgraph_bad_edge",
@@ -196,13 +222,13 @@ def build_merge_edge_cypher(record: Record) -> str:
             "flush edge requires fields src, dist, relation",
         )
     rel_label = cypher_ident(rel, kind="edge label")
-    src_lit = cypher_id_literal(src)
-    dist_lit = cypher_id_literal(dist)
+    src_lit = cypher_id_literal(resolve_endpoint_hid(src, nodes or []))
+    dist_lit = cypher_id_literal(resolve_endpoint_hid(dist, nodes or []))
     skip = {"src", "dist", "relation", _MEMNET_HID_KEY, _MEMNET_TAG_KEY}
     sets = props_to_set_clause("r", dict(record.fields), skip=skip)
     tag_set = f"r.{_MEMNET_TAG_KEY} = 'EDG'"
     rel_set = f"r.relation = {cypher_quote(rel)}"
-    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    hid = record_cabinet_hid(record)
     extras = ", ".join(p for p in (sets, tag_set, rel_set) if p)
     if hid:
         hid_lit = cypher_id_literal(hid)
@@ -324,28 +350,35 @@ class AgensGraphAdapter(DurableStoreAdapter):
             raise MemNetError("no_ego", "hydrate requires ego_id")
         budget = budget or HydrateBudget()
         conn = self._ensure_conn()
-        nodes_cypher = build_hydrate_nodes_cypher(ego_id, budget)
-        try:
-            node_rows = self._execute(conn, nodes_cypher)
-        except MemNetError:
-            raise
-        except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
-            raise MemNetError(
-                "agensgraph_query_failed",
-                f"AgensGraph hydrate query failed: {type(exc).__name__}: {exc}",
-                example="Check MEMNET_AGENSGRAPH_URL / graph name / network",
-            ) from exc
+        node_rows: list[Any] = []
+        for match_key in _HYDRATE_MATCH_KEYS:
+            nodes_cypher = build_hydrate_nodes_cypher(ego_id, budget, match_key=match_key)
+            try:
+                node_rows = self._execute(conn, nodes_cypher)
+            except MemNetError:
+                raise
+            except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
+                raise MemNetError(
+                    "agensgraph_query_failed",
+                    f"AgensGraph hydrate query failed: {type(exc).__name__}: {exc}",
+                    example="Check MEMNET_AGENSGRAPH_URL / graph name / network",
+                ) from exc
+            if node_rows:
+                break
 
         nodes: list[Record] = []
         seen_nodes: set[str] = set()
         for row in node_rows:
             rec = map_node_row(_row_get(row, 0, "label"), _row_get(row, 1, "props"))
-            if rec is None or rec.id in seen_nodes:
+            if rec is None:
                 continue
-            seen_nodes.add(rec.id)
+            seen_key = rec.id or record_cabinet_hid(rec)
+            if not seen_key or seen_key in seen_nodes:
+                continue
+            seen_nodes.add(seen_key)
             nodes.append(rec)
 
-        edges_cypher = build_hydrate_edges_cypher(ego_id, budget, node_ids=[n.id for n in nodes])
+        edges_cypher = build_hydrate_edges_cypher(ego_id, budget, node_ids=node_cabinet_keys(nodes))
         try:
             edge_rows = self._execute(conn, edges_cypher) if budget.max_edges > 0 else []
         except MemNetError:
@@ -370,7 +403,7 @@ class AgensGraphAdapter(DurableStoreAdapter):
             if rec is None or rec.id in seen_edges:
                 continue
             seen_edges.add(rec.id)
-            edges.append(rec)
+            edges.append(remap_edge_endpoints_to_nicknames(rec, nodes))
             rel = rec.fields.get("relation") or ""
             if rel:
                 relations.add(rel)
@@ -388,13 +421,13 @@ class AgensGraphAdapter(DurableStoreAdapter):
         conn = self._ensure_conn()
         statements: list[str] = []
         for rec in subgraph.nodes:
-            if not (getattr(rec, "hid", "") or rec.id):
+            if not record_cabinet_hid(rec):
                 continue
             statements.append(build_merge_node_cypher(rec))
         for rec in subgraph.edges:
             if rec.tag.upper() != "EDG":
                 continue
-            statements.append(build_merge_edge_cypher(rec))
+            statements.append(build_merge_edge_cypher(rec, nodes=subgraph.nodes))
         if not statements:
             return
         try:

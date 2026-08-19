@@ -24,7 +24,15 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from memnet.durable.adapter import DurableStoreAdapter, DurableSubgraph, HydrateBudget
+from memnet.durable.adapter import (
+    DurableStoreAdapter,
+    DurableSubgraph,
+    HydrateBudget,
+    node_cabinet_keys,
+    record_cabinet_hid,
+    remap_edge_endpoints_to_nicknames,
+    resolve_endpoint_hid,
+)
 from memnet.durable.agensgraph import map_edge_row, map_node_row
 from memnet.exceptions import MemNetError
 from memnet.models import Record
@@ -36,8 +44,10 @@ ENV_DATABASE = "MEMNET_NEO4J_DATABASE"
 
 DEFAULT_DATABASE = "neo4j"
 _MEMNET_TAG_KEY = "_memnet_tag"
+_MEMNET_HID_KEY = "_memnet_hid"
 _SAFE_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_.:/@+-]+$")
+_HYDRATE_MATCH_KEYS = (_MEMNET_HID_KEY, "id")
 
 
 @dataclass(frozen=True)
@@ -94,16 +104,28 @@ def props_for_set(fields: dict[str, str], *, skip: set[str]) -> dict[str, str]:
     return out
 
 
-def build_hydrate_nodes_cypher(ego_id: str, budget: HydrateBudget) -> tuple[str, dict[str, Any]]:
+def build_hydrate_nodes_cypher(
+    ego_id: str,
+    budget: HydrateBudget,
+    *,
+    match_key: str = _MEMNET_HID_KEY,
+) -> tuple[str, dict[str, Any]]:
     """Ego-bounded node walk: vertices within ``budget.depth`` of ego.
 
-    Neo4j Cypher: ``labels(n)`` (list), not AgensGraph ``label(n)``.
+    Cabinet identity is ``_memnet_hid``. leftover nickname ``id`` is a property
+    filter only (``match_key='id'`` after a hid miss). Neo4j Cypher: ``labels(n)``
+    (list), not AgensGraph ``label(n)``.
     """
+    if match_key not in _HYDRATE_MATCH_KEYS:
+        raise MemNetError(
+            "neo4j_bad_ident",
+            f"hydrate match_key must be {_MEMNET_HID_KEY!r} or 'id', got {match_key!r}",
+        )
     ego = require_id(ego_id, kind="ego id")
     depth = max(0, int(budget.depth))
     limit = max(1, int(budget.max_nodes))
     query = (
-        "MATCH (ego {_memnet_hid: $ego_id})\n"
+        f"MATCH (ego {{{match_key}: $ego_id}})\n"
         f"OPTIONAL MATCH (ego)-[*0..{depth}]-(n)\n"
         "WITH DISTINCT n\n"
         "WHERE n IS NOT NULL\n"
@@ -122,7 +144,7 @@ def build_hydrate_edges_cypher(
     ego = require_id(ego_id, kind="ego id")
     limit = max(0, int(budget.max_edges))
     skip = (
-        "MATCH (ego {_memnet_hid: $ego_id})\n"
+        f"MATCH (ego {{{_MEMNET_HID_KEY}: $ego_id}})\n"
         "WHERE false\n"
         "RETURN null AS rel_type, null AS props, null AS src, null AS dist\n"
         "LIMIT 0"
@@ -134,9 +156,9 @@ def build_hydrate_edges_cypher(
         return skip, {"ego_id": ego}
     query = (
         "MATCH (src)-[rel]->(dst)\n"
-        "WHERE src._memnet_hid IN $node_ids AND dst._memnet_hid IN $node_ids\n"
+        f"WHERE src.{_MEMNET_HID_KEY} IN $node_ids AND dst.{_MEMNET_HID_KEY} IN $node_ids\n"
         "RETURN DISTINCT type(rel) AS rel_type, properties(rel) AS props, "
-        "src._memnet_hid AS src, dst._memnet_hid AS dist\n"
+        f"src.{_MEMNET_HID_KEY} AS src, dst.{_MEMNET_HID_KEY} AS dist\n"
         f"LIMIT {limit}"
     )
     return query, {"node_ids": ids}
@@ -145,16 +167,26 @@ def build_hydrate_edges_cypher(
 def build_merge_node_cypher(record: Record) -> tuple[str, dict[str, Any]]:
     """MERGE/SET one MemNet node record into Neo4j."""
     tag = cypher_ident(record.tag.upper(), kind="node label")
-    query = f"MERGE (n:{tag} {{_memnet_hid: $hid}})\nSET n += $props, n.{_MEMNET_TAG_KEY} = $tag"
-    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    query = (
+        f"MERGE (n:{tag} {{{_MEMNET_HID_KEY}: $hid}})\n"
+        f"SET n += $props, n.{_MEMNET_TAG_KEY} = $tag, n.{_MEMNET_HID_KEY} = $hid"
+    )
+    hid = record_cabinet_hid(record)
     if hid:
         hid = require_id(hid, kind="hid")
-    props = props_for_set(dict(record.fields), skip=set())
+    props = props_for_set(dict(record.fields), skip={_MEMNET_HID_KEY, _MEMNET_TAG_KEY})
     return query, {"hid": hid, "props": props, "tag": record.tag.upper()}
 
 
-def build_merge_edge_cypher(record: Record) -> tuple[str, dict[str, Any]]:
-    """MERGE/SET one MemNet EDG record (relation → relationship type)."""
+def build_merge_edge_cypher(
+    record: Record,
+    *,
+    nodes: list[Record] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """MERGE/SET one MemNet EDG record (relation → relationship type).
+
+    Endpoints MATCH by the node cabinet hid, not leftover nickname ``id``.
+    """
     if record.tag.upper() != "EDG":
         raise MemNetError(
             "neo4j_bad_edge",
@@ -169,23 +201,23 @@ def build_merge_edge_cypher(record: Record) -> tuple[str, dict[str, Any]]:
             "flush edge requires fields src, dist, relation",
         )
     rel_type = cypher_ident(rel, kind="relationship type")
-    src_id = require_id(src, kind="src hid")
-    dist_id = require_id(dist, kind="dist hid")
-    skip = {"src", "dist", "relation"}
+    src_hid = require_id(resolve_endpoint_hid(src, nodes or []), kind="src hid")
+    dist_hid = require_id(resolve_endpoint_hid(dist, nodes or []), kind="dist hid")
+    skip = {"src", "dist", "relation", _MEMNET_HID_KEY, _MEMNET_TAG_KEY}
     props = props_for_set(dict(record.fields), skip=skip)
-    hid = record.hid if getattr(record, "hid", "") else (record.id or "")
+    hid = record_cabinet_hid(record)
     merge_edge = f"MERGE (a)-[r:{rel_type}]->(b)"
     params: dict[str, Any] = {
-        "src": src_id,
-        "dist": dist_id,
+        "src": src_hid,
+        "dist": dist_hid,
         "props": props,
         "rel": rel,
     }
     if hid:
         params["hid"] = require_id(hid, kind="hid")
-        merge_edge = f"MERGE (a)-[r:{rel_type} {{_memnet_hid: $hid}}]->(b)"
+        merge_edge = f"MERGE (a)-[r:{rel_type} {{{_MEMNET_HID_KEY}: $hid}}]->(b)"
     query = (
-        "MATCH (a {_memnet_hid: $src}), (b {_memnet_hid: $dist})\n"
+        f"MATCH (a {{{_MEMNET_HID_KEY}: $src}}), (b {{{_MEMNET_HID_KEY}: $dist}})\n"
         f"{merge_edge}\n"
         f"SET r += $props, r.{_MEMNET_TAG_KEY} = 'EDG', r.relation = $rel"
     )
@@ -229,17 +261,23 @@ class Neo4jAdapter(DurableStoreAdapter):
             raise MemNetError("no_ego", "hydrate requires ego_id")
         budget = budget or HydrateBudget()
         self._ensure_driver()
-        nodes_cypher, nodes_params = build_hydrate_nodes_cypher(ego_id, budget)
-        try:
-            node_rows = self._run(nodes_cypher, nodes_params)
-        except MemNetError:
-            raise
-        except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
-            raise MemNetError(
-                "neo4j_query_failed",
-                f"Neo4j hydrate query failed: {type(exc).__name__}: {exc}",
-                example="Check MEMNET_NEO4J_URL / database / network",
-            ) from exc
+        node_rows: list[Any] = []
+        for match_key in _HYDRATE_MATCH_KEYS:
+            nodes_cypher, nodes_params = build_hydrate_nodes_cypher(
+                ego_id, budget, match_key=match_key
+            )
+            try:
+                node_rows = self._run(nodes_cypher, nodes_params)
+            except MemNetError:
+                raise
+            except Exception as exc:  # noqa: BLE001 — surface driver errors clearly
+                raise MemNetError(
+                    "neo4j_query_failed",
+                    f"Neo4j hydrate query failed: {type(exc).__name__}: {exc}",
+                    example="Check MEMNET_NEO4J_URL / database / network",
+                ) from exc
+            if node_rows:
+                break
 
         nodes: list[Record] = []
         seen_nodes: set[str] = set()
@@ -248,13 +286,16 @@ class Neo4jAdapter(DurableStoreAdapter):
                 first_label(_row_get(row, 0, "labels")),
                 _row_get(row, 1, "props"),
             )
-            if rec is None or rec.id in seen_nodes:
+            if rec is None:
                 continue
-            seen_nodes.add(rec.id)
+            seen_key = rec.id or record_cabinet_hid(rec)
+            if not seen_key or seen_key in seen_nodes:
+                continue
+            seen_nodes.add(seen_key)
             nodes.append(rec)
 
         edges_cypher, edges_params = build_hydrate_edges_cypher(
-            ego_id, budget, node_ids=[n.id for n in nodes]
+            ego_id, budget, node_ids=node_cabinet_keys(nodes)
         )
         try:
             edge_rows = self._run(edges_cypher, edges_params) if budget.max_edges > 0 else []
@@ -280,7 +321,7 @@ class Neo4jAdapter(DurableStoreAdapter):
             if rec is None or rec.id in seen_edges:
                 continue
             seen_edges.add(rec.id)
-            edges.append(rec)
+            edges.append(remap_edge_endpoints_to_nicknames(rec, nodes))
             rel = rec.fields.get("relation") or ""
             if rel:
                 relations.add(rel)
@@ -298,13 +339,13 @@ class Neo4jAdapter(DurableStoreAdapter):
         self._ensure_driver()
         statements: list[tuple[str, dict[str, Any]]] = []
         for rec in subgraph.nodes:
-            if not rec.id:
+            if not record_cabinet_hid(rec):
                 continue
             statements.append(build_merge_node_cypher(rec))
         for rec in subgraph.edges:
             if rec.tag.upper() != "EDG":
                 continue
-            statements.append(build_merge_edge_cypher(rec))
+            statements.append(build_merge_edge_cypher(rec, nodes=subgraph.nodes))
         if not statements:
             return
         # Auto-commit each MERGE (Neo4j session.run). A later hydrate error

@@ -112,10 +112,14 @@ Second cabinet (same ABC / owner / budget; **not** a live claim). What talks to 
 
 ### Hydrate / flush Cypher (sketch)
 
-- **Hydrate nodes:** `MATCH (ego {id}) OPTIONAL MATCH (ego)-[*0..depth]-(n) RETURN label(n), properties(n) LIMIT max_nodes`
-- **Hydrate edges:** among nodes in that ego ball, `MATCH (a)-[r]->(b) RETURN label(r), properties(r), a.id, b.id LIMIT max_edges`
-- **Flush nodes:** `MERGE (n:TAG {id}) SET n.field = …, n._memnet_tag = 'TAG'`
-- **Flush edges:** `MATCH (a {id: src}), (b {id: dist}) MERGE (a)-[r:REL {id}]->(b) SET …`
+Cabinet identity is hidden handle `_memnet_hid` (off the agent wire). Optional property `id` is a nickname.
+
+- **Hydrate nodes:** `MATCH (ego {_memnet_hid}) OPTIONAL MATCH (ego)-[*0..depth]-(n) RETURN label(n), properties(n) LIMIT max_nodes`
+- **Hydrate edges:** among cabinet hids in that ego ball, `MATCH (a)-[r]->(b) RETURN label(r), properties(r), a._memnet_hid, b._memnet_hid LIMIT max_edges`
+- **Flush nodes:** `MERGE (n:TAG {_memnet_hid}) SET n.field = …, n._memnet_tag = 'TAG'`
+- **Flush edges:** `MATCH (a {_memnet_hid: src}), (b {_memnet_hid: dist}) MERGE (a)-[r:REL {_memnet_hid}]->(b) SET …`
+
+Official fixture (`company_ego_fixture`): flush then hydrate by the **same hid** that was written. leftover nickname `id` is a property filter after hid miss only. **MUST NOT** MERGE-by-name.
 
 MemNet tags become vertex labels; `EDG.relation` becomes the edge label. Mapping back uses `_memnet_tag` when present.
 

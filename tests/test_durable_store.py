@@ -236,6 +236,8 @@ def test_hydrate_missing_ego_is_empty(memnet_temp):
 
 def test_build_hydrate_nodes_cypher_includes_budget():
     cypher = build_hydrate_nodes_cypher("COM_acme", HydrateBudget(max_nodes=12, depth=2))
+    assert "{_memnet_hid:" in cypher
+    assert "MATCH (ego {id:" not in cypher
     assert "COM_acme" in cypher
     assert "*0..2" in cypher
     assert "LIMIT 12" in cypher
@@ -264,19 +266,10 @@ def test_build_hydrate_edges_cypher_empty_ids_is_skip():
 
 
 def test_build_merge_node_and_edge_cypher():
-    node = Record(
-        tag="COM",
-        fields={"id": "COM_acme", "name": "Acme", "kind": "company"},
-    )
-    edge = Record(
-        tag="EDG",
-        fields={
-            "id": "E_about_q3",
-            "src": "TSK_mission_q3",
-            "relation": "ABOUT",
-            "dist": "COM_acme",
-        },
-    )
+    fixture = company_ego_fixture()
+    node = next(n for n in fixture.nodes if n.tag == "COM")
+    task = next(n for n in fixture.nodes if n.tag == "TSK")
+    edge = fixture.edges[0]
     n_cypher = build_merge_node_cypher(node)
     assert "MERGE (n:COM {_memnet_hid:" in n_cypher
     assert "MERGE (n:COM {id:" not in n_cypher
@@ -284,11 +277,12 @@ def test_build_merge_node_and_edge_cypher():
     assert "_memnet_tag" in n_cypher
     assert node.hid in n_cypher
 
-    e_cypher = build_merge_edge_cypher(edge)
+    e_cypher = build_merge_edge_cypher(edge, nodes=fixture.nodes)
     assert "_memnet_hid" in e_cypher
     assert "MERGE (a)-[r:ABOUT {id:" not in e_cypher
-    assert "TSK_mission_q3" in e_cypher
-    assert "COM_acme" in e_cypher
+    assert "MATCH (a {id:" not in e_cypher
+    assert task.hid in e_cypher
+    assert node.hid in e_cypher
 
 
 def test_map_node_and_edge_rows():
@@ -369,7 +363,8 @@ def test_agens_flush_emits_merge_statements(monkeypatch):
 
     monkeypatch.setattr(adapter, "_execute", _exec)
     adapter.flush(company_ego_fixture())
-    assert any("MERGE (n:COM" in c for c in seen)
+    assert any("MERGE (n:COM {_memnet_hid:" in c for c in seen)
+    assert not any("MERGE (n:COM {id:" in c for c in seen)
     assert any("MERGE (n:TSK" in c for c in seen)
     assert any("MERGE (a)-[r:ABOUT" in c for c in seen)
 
@@ -381,9 +376,10 @@ def test_agens_live_flush_hydrate_round_trip(memnet_temp):
     adapter = AgensGraphAdapter.from_env()
     assert adapter is not None
     fixture = company_ego_fixture(ego_id="COM_acme_live_m25")
+    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
     try:
         adapter.flush(fixture)
-        loaded = adapter.hydrate(fixture.ego_id, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
+        loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
     finally:
         adapter.close()
     assert any(n.id == fixture.ego_id for n in loaded.nodes)
@@ -437,6 +433,8 @@ def test_neo4j_build_hydrate_nodes_cypher():
         "COM_acme", HydrateBudget(max_nodes=12, depth=2)
     )
     assert params["ego_id"] == "COM_acme"
+    assert "{_memnet_hid: $ego_id}" in cypher
+    assert "MATCH (ego {id:" not in cypher
     assert "*0..2" in cypher
     assert "LIMIT 12" in cypher
     assert "labels(n)" in cypher
@@ -468,29 +466,23 @@ def test_neo4j_build_hydrate_edges_zero_or_empty():
 
 
 def test_neo4j_build_merge_node_and_edge_cypher():
-    node = Record(
-        tag="COM",
-        fields={"id": "COM_acme", "name": "Acme", "kind": "company"},
-    )
-    edge = Record(
-        tag="EDG",
-        fields={
-            "id": "E_about_q3",
-            "src": "TSK_mission_q3",
-            "relation": "ABOUT",
-            "dist": "COM_acme",
-        },
-    )
+    fixture = company_ego_fixture()
+    node = next(n for n in fixture.nodes if n.tag == "COM")
+    task = next(n for n in fixture.nodes if n.tag == "TSK")
+    edge = fixture.edges[0]
     n_cypher, n_params = neo4j_cypher.build_merge_node_cypher(node)
     assert "MERGE (n:COM {_memnet_hid: $hid})" in n_cypher
+    assert "MERGE (n:COM {id:" not in n_cypher
     assert n_params["hid"] == node.hid
     assert n_params["props"]["name"] == "Acme"
+    assert n_params["props"]["id"] == "COM_acme"
     assert "_memnet_tag" in n_cypher
 
-    e_cypher, e_params = neo4j_cypher.build_merge_edge_cypher(edge)
+    e_cypher, e_params = neo4j_cypher.build_merge_edge_cypher(edge, nodes=fixture.nodes)
     assert "_memnet_hid" in e_cypher
-    assert e_params["src"] == "TSK_mission_q3"
-    assert e_params["dist"] == "COM_acme"
+    assert "MATCH (a {id:" not in e_cypher
+    assert e_params["src"] == task.hid
+    assert e_params["dist"] == node.hid
 
 
 def test_neo4j_rejects_unsafe_ident_and_id():
@@ -547,20 +539,27 @@ def test_neo4j_hydrate_maps_mocked_rows(monkeypatch):
 
 def test_neo4j_flush_emits_merge_statements(monkeypatch):
     adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    seen: list[str] = []
+    seen: list[tuple[str, dict]] = []
     monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
 
     def _run(cypher: str, params=None):
-        seen.append(cypher)
+        seen.append((cypher, params or {}))
         return []
 
     monkeypatch.setattr(adapter, "_run", _run)
-    adapter.flush(company_ego_fixture())
-    assert any("MERGE (n:COM" in c for c in seen)
-    assert any("MERGE (n:TSK" in c for c in seen)
-    assert any("MERGE (a)-[r:ABOUT" in c for c in seen)
-    assert seen.index(next(c for c in seen if "MERGE (n:COM" in c)) < seen.index(
-        next(c for c in seen if "MERGE (a)-[r:ABOUT" in c)
+    fixture = company_ego_fixture()
+    ego = next(n for n in fixture.nodes if n.tag == "COM")
+    task = next(n for n in fixture.nodes if n.tag == "TSK")
+    adapter.flush(fixture)
+    cyphers = [c for c, _p in seen]
+    assert any("MERGE (n:COM {_memnet_hid: $hid})" in c for c in cyphers)
+    assert not any("MERGE (n:COM {id:" in c for c in cyphers)
+    assert any("MERGE (n:TSK" in c for c in cyphers)
+    about = next((c, p) for c, p in seen if "MERGE (a)-[r:ABOUT" in c)
+    assert about[1]["src"] == task.hid
+    assert about[1]["dist"] == ego.hid
+    assert cyphers.index(next(c for c in cyphers if "MERGE (n:COM" in c)) < cyphers.index(
+        next(c for c in cyphers if "MERGE (a)-[r:ABOUT" in c)
     )
 
 
@@ -608,6 +607,189 @@ def test_neo4j_recorded_session_stub(monkeypatch):
     assert any("labels(n)" in q for q in session.queries)
 
 
+def test_neo4j_hydrate_after_flush_uses_hid(monkeypatch):
+    """Official fixture: flush then hydrate by the same hid that was written."""
+    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
+    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
+    fixture = company_ego_fixture(ego_id="COM_acme_live_neo4j")
+    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
+    task = next(n for n in fixture.nodes if n.tag == "TSK")
+    seen: list[tuple[str, dict]] = []
+
+    def _run(cypher: str, params=None):
+        params = params or {}
+        seen.append((cypher, params))
+        if "labels(n)" in cypher:
+            if params.get("ego_id") != ego.hid:
+                return []
+            return [
+                {
+                    "labels": ["COM"],
+                    "props": {
+                        "id": "COM_acme_live_neo4j",
+                        "name": "Acme",
+                        "_memnet_tag": "COM",
+                        "_memnet_hid": ego.hid,
+                    },
+                },
+                {
+                    "labels": ["TSK"],
+                    "props": {
+                        "id": "TSK_mission_q3",
+                        "goal": "Q3 mission",
+                        "status": "settled",
+                        "_memnet_tag": "TSK",
+                        "_memnet_hid": task.hid,
+                    },
+                },
+            ]
+        if "type(rel)" in cypher:
+            node_ids = params.get("node_ids") or []
+            if ego.hid not in node_ids or task.hid not in node_ids:
+                return []
+            return [
+                {
+                    "rel_type": "ABOUT",
+                    "props": {
+                        "id": "E_about_q3",
+                        "relation": "ABOUT",
+                        "_memnet_tag": "EDG",
+                    },
+                    "src": task.hid,
+                    "dist": ego.hid,
+                }
+            ]
+        return []
+
+    monkeypatch.setattr(adapter, "_run", _run)
+    adapter.flush(fixture)
+    merge_com = next(c for c, _p in seen if "MERGE (n:COM" in c)
+    assert "MERGE (n:COM {_memnet_hid: $hid})" in merge_com
+    assert "MERGE (n:COM {id:" not in merge_com
+    assert next(p["hid"] for c, p in seen if "MERGE (n:COM" in c) == ego.hid
+    about_params = next(p for c, p in seen if "MERGE (a)-[r:ABOUT" in c)
+    assert about_params["src"] == task.hid
+    assert about_params["dist"] == ego.hid
+
+    seen.clear()
+    loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
+    ego_match = next(c for c, _p in seen if "labels(n)" in c)
+    assert "{_memnet_hid: $ego_id}" in ego_match
+    assert "MATCH (ego {id:" not in ego_match
+    assert any(n.id == "COM_acme_live_neo4j" for n in loaded.nodes)
+    assert any(e.fields.get("relation") == "ABOUT" for e in loaded.edges)
+    about = next(e for e in loaded.edges if e.fields.get("relation") == "ABOUT")
+    assert about.fields.get("dist") == "COM_acme_live_neo4j"
+    assert about.fields.get("src") == "TSK_mission_q3"
+
+
+def test_neo4j_hydrate_nickname_after_hid_miss(monkeypatch):
+    """Leftover: nickname as property ``id`` only after hid MATCH is empty."""
+    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
+    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
+    keys: list[str] = []
+
+    def _run(cypher: str, params=None):
+        if "labels(n)" in cypher:
+            if "{_memnet_hid:" in cypher.split("OPTIONAL", 1)[0]:
+                keys.append("hid")
+                return []
+            keys.append("id")
+            return [
+                {
+                    "labels": ["COM"],
+                    "props": {
+                        "id": "COM_acme_live_neo4j",
+                        "name": "Acme",
+                        "_memnet_tag": "COM",
+                        "_memnet_hid": "_el2",
+                    },
+                }
+            ]
+        return []
+
+    monkeypatch.setattr(adapter, "_run", _run)
+    g = adapter.hydrate("COM_acme_live_neo4j", HydrateBudget(max_nodes=5, max_edges=0))
+    assert keys == ["hid", "id"]
+    assert any(n.id == "COM_acme_live_neo4j" for n in g.nodes)
+
+
+def test_agens_hydrate_after_flush_uses_hid(monkeypatch):
+    """Same hid story as Neo4j: fixture flush then hydrate by written hid."""
+    adapter = AgensGraphAdapter(AgensGraphConfig(url="postgresql://localhost/memnet"))
+    seen: list[str] = []
+
+    class _Txn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class _Conn:
+        def transaction(self):
+            return _Txn()
+
+    monkeypatch.setattr(adapter, "_ensure_conn", lambda: _Conn())
+    fixture = company_ego_fixture(ego_id="COM_acme_live_m25")
+    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
+    task = next(n for n in fixture.nodes if n.tag == "TSK")
+
+    def _exec(_conn, cypher: str):
+        seen.append(cypher)
+        if "properties(n)" in cypher:
+            if f"_memnet_hid: '{ego.hid}'" not in cypher:
+                return []
+            return [
+                (
+                    "COM",
+                    {
+                        "id": "COM_acme_live_m25",
+                        "name": "Acme",
+                        "_memnet_tag": "COM",
+                        "_memnet_hid": ego.hid,
+                    },
+                ),
+                (
+                    "TSK",
+                    {
+                        "id": "TSK_mission_q3",
+                        "goal": "Q3 mission",
+                        "status": "settled",
+                        "_memnet_tag": "TSK",
+                        "_memnet_hid": task.hid,
+                    },
+                ),
+            ]
+        if "src._memnet_hid" in cypher:
+            if ego.hid not in cypher or task.hid not in cypher:
+                return []
+            return [
+                (
+                    "ABOUT",
+                    {"id": "E_about_q3", "relation": "ABOUT", "_memnet_tag": "EDG"},
+                    task.hid,
+                    ego.hid,
+                )
+            ]
+        return []
+
+    monkeypatch.setattr(adapter, "_execute", _exec)
+    adapter.flush(fixture)
+    assert any("MERGE (n:COM {_memnet_hid:" in c for c in seen)
+    assert not any("MERGE (n:COM {id:" in c for c in seen)
+    about = next(c for c in seen if "MERGE (a)-[r:ABOUT" in c)
+    assert task.hid in about
+    assert ego.hid in about
+    seen.clear()
+    loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
+    assert any("_memnet_hid:" in c and "properties(n)" in c for c in seen)
+    assert not any("MATCH (ego {id:" in c for c in seen)
+    assert any(n.id == "COM_acme_live_m25" for n in loaded.nodes)
+    about_e = next(e for e in loaded.edges if e.fields.get("relation") == "ABOUT")
+    assert about_e.fields.get("dist") == "COM_acme_live_m25"
+
+
 @pytest.mark.neo4j_live
 @pytest.mark.skipif(not _NEO4J_LIVE, reason="MEMNET_NEO4J_URL not set")
 def test_neo4j_live_flush_hydrate_round_trip(memnet_temp):
@@ -615,9 +797,10 @@ def test_neo4j_live_flush_hydrate_round_trip(memnet_temp):
     adapter = Neo4jAdapter.from_env()
     assert adapter is not None
     fixture = company_ego_fixture(ego_id="COM_acme_live_neo4j")
+    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
     try:
         adapter.flush(fixture)
-        loaded = adapter.hydrate(fixture.ego_id, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
+        loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
     finally:
         adapter.close()
     assert any(n.id == fixture.ego_id for n in loaded.nodes)
