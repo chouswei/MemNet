@@ -6,7 +6,7 @@
 
 **Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; `liveNeo4jClaimed=false`). **PyPI `memnet-llm` is still 0.4.6.**
 
-**Last updated:** 2026-08-20 (planned extras remapped to SysML TARGET after [#108](https://github.com/chouswei/MemNet/pull/108)/[#112](https://github.com/chouswei/MemNet/pull/112)/[#113](https://github.com/chouswei/MemNet/pull/113)/[#114](https://github.com/chouswei/MemNet/pull/114) and the code-vs-model gap scan).
+**Last updated:** 2026-08-20 (N-server session pipe parked as Later research; numbered extras **0.10–0.19**).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -58,13 +58,13 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
 | **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip **unclaimed**. Cabinet extra, **not** a 1.0 gate | **Shipped** (package 0.9.0; tag by coordinator) |
-| **0.10–0.20** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Plan** — not tagged |
+| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Plan** — not tagged |
 | **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — PyPI still 0.4.6 |
 | **Later** | Grammar Open / hosted product / leftover ACL; GraphGlot parse-front after 0.10; or 0.10+ if untagged. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
 
 **1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras. Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
 
-**1.0 MUST NOT** wait on 0.10+ — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not OpenHands/SWE-agent adoption, not GraphGlot.
+**1.0 MUST NOT** wait on 0.10+ — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not OpenHands/SWE-agent adoption, not GraphGlot, not N-server.
 
 **GraphGlot** ([#109](https://github.com/chouswei/MemNet/issues/109) / PR) stays **HOLD** until the identity store cut (**0.10**) is done. Parse-front only after that. Do not merge GraphGlot into 0.10.
 
@@ -92,7 +92,7 @@ Do **not** flip `liveNeo4jClaimed` to close this gap. Do **not** claim **1.0** f
 
 ---
 
-## Planned extras (0.10 …)
+## Planned extras (0.10–0.19)
 
 One concern per minor. Dependency order. **MUST NOT** treat this table as implemented. Skip a row only if the coordinator writes the skip in CHANGELOG; do not fuse two rows into one tag.
 
@@ -108,9 +108,8 @@ One concern per minor. Dependency order. **MUST NOT** treat this table as implem
 | **0.17.0** | **HostSearch locators** (old 0.14). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
 | **0.18.0** | **Peak_L** last-resort (old 0.15). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
 | **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). Ingest ≠ export. | Shaped emit | Export as Absorb |
-| **0.20.0** | **N-server session pipe** (old 0.17 / [#47](https://github.com/chouswei/MemNet/issues/47)). Shared \(S\) across serve processes without Snap-on-session. | TCP/HTTP Multitask | Dual-write without one owner |
 
-**After 0.20 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). GraphGlot parse-front after **0.10** identity (HOLD until then).
+**After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). GraphGlot parse-front after **0.10** identity (HOLD until then). N-server session pipe stays research (no cut).
 
 **Not a `memnet-llm` minor:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS. Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
 
@@ -128,7 +127,7 @@ One concern per minor. Dependency order. **MUST NOT** treat this table as implem
 
 ## Later (unnumbered remainder)
 
-Numbered fill is **0.10–0.20** above. This list is the overflow. **MUST NOT** treat design docs as implemented.
+Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** treat design docs as implemented.
 
 | Item | Notes |
 |------|--------|
@@ -136,6 +135,7 @@ Numbered fill is **0.10–0.20** above. This list is the overflow. **MUST NOT** 
 | First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
 | Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled |
 | GraphGlot parse-front (#109) | HOLD until 0.10 identity store cut; then parse-front only |
+| N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47)) | **Research** — no cut exists; **MUST NOT** treat the issue as a SemVer owns. Shared \(S\) across serve processes without Snap-on-session stays a research question. Not in 0.8; **1.0 MUST NOT** wait on it. |
 
 ### Not this repo’s SemVer (harness leftovers)
 
@@ -161,7 +161,7 @@ Numbered fill is **0.10–0.20** above. This list is the overflow. **MUST NOT** 
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. Notes still teach leftover `--anchor` / `id:'NEW'`. **0.10** owns the TARGET teach rewrite. |
 | **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7) — optional Neo4j client 0.9, not live-claimed |
 
-Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Planned extras: **0.10–0.20** above.
+Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Planned extras: **0.10–0.19** above.
 
 ### Already shipped (from 0.4.x — do not list as deferred)
 
