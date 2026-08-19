@@ -567,11 +567,15 @@ package MemNetRequirements {
           store direct (Bolt / driver) SHALL NOT be the default teach path.
           M2.5 client hydrate/flush adapter seam IS landed (Fake always;
           optional AgensGraph client with liveCabinetClaimed; optional
-          Neo4j client with liveNeo4jClaimed=false until a live round-trip;
-          one DurableSyncOwner). Live external cabinet SHALL NOT be claimed
-          shipped until operator-proven. Neither AgensGraph nor Neo4j
-          servers SHALL be vendored in-repo. Two cabinet URLs SHALL require
-          an explicit backend pick (MUST NOT silently bind two owners).
+          Neo4j client with liveNeo4jClaimed=true after operator live
+          round-trip (0.14: live round-trip yes; hid flush;
+          leftover-nickname hydrate after hid miss); one DurableSyncOwner).
+          Live external cabinet SHALL NOT be claimed shipped until
+          operator-proven. Neither AgensGraph nor Neo4j servers SHALL be
+          vendored in-repo. Two cabinet URLs SHALL require an explicit
+          backend pick (MUST NOT silently bind two owners). Live Neo4j
+          tests SHALL skip unless MEMNET_NEO4J_URL. Hid SHALL stay off
+          the wire. SHALL NOT start 0.16 two namespaces in this claim.
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }

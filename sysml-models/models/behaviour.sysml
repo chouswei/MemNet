@@ -1316,9 +1316,11 @@ package MemNetBehaviour {
       flush_to_durable via DurableSyncOwner and DurableStoreAdapter
       (FakeDurableAdapter always; optional AgensGraphAdapter client with
       liveCabinetClaimed; optional Neo4jAdapter client with
-      liveNeo4jClaimed=false). MemNet remains sole agent-facing memory;
-      LLM ↔ DurableGraphStore direct (Bolt) is out of default teach.
-      Client seam landed; 0.7 Agens live hydrate/flush proven (MN-REQ-06.4).
+      liveNeo4jClaimed=true, 0.14). MemNet remains sole agent-facing
+      memory; LLM ↔ DurableGraphStore direct (Bolt) is out of default
+      teach. Client seam landed; 0.7 Agens live hydrate/flush proven;
+      0.14 Neo4j live round-trip yes; hid flush; leftover-nickname
+      hydrate after hid miss (MN-REQ-06.4).
     */
     entry;
     then durableIdle;

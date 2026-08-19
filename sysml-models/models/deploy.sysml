@@ -329,10 +329,12 @@ package MemNet {
 
   part def liveNeo4jClaimed {
     doc /*
-      Honesty nest so find/pin_map see liveNeo4jClaimed. TARGET: claimed
-      stays false. Not leftover mint. Not a 1.0 gate.
+      Honesty nest so find/pin_map see liveNeo4jClaimed. Product claim
+      is extra 0.14 (operator proof rpi5-syson): live round-trip yes;
+      hid flush; leftover-nickname hydrate after hid miss. Not leftover
+      mint. Not a 1.0 gate. Hid stays off the wire.
     */
-    attribute claimed : Boolean = false;
+    attribute claimed : Boolean = true;
   }
 
   part def IdAllocator {
@@ -1514,9 +1516,12 @@ package MemNet {
       hydrate/flush ABC, same DurableSyncOwner, same ego HydrateBudget.
       Optional extra memnet-llm[neo4j] (official neo4j Python driver only).
       Cabinet is external; this repo does not vendor a Neo4j server.
-      Client hydrate/flush IS implemented. Live Bolt round-trip is NOT
-      claimed (liveNeo4jClaimed=false; pytest.mark.neo4j_live skips
-      unless MEMNET_NEO4J_URL). Agents MUST NOT talk Bolt. MN-REQ-06.4.
+      Client hydrate/flush IS implemented. Live Bolt round-trip IS
+      claimed (liveNeo4jClaimed=true; extra 0.14; pytest.mark.neo4j_live
+      skips unless MEMNET_NEO4J_URL). Live round-trip yes; hid flush;
+      leftover-nickname hydrate after hid miss. Do not claim
+      hydrate-by-hid proven on live. Agents MUST NOT talk Bolt.
+      MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
@@ -1524,7 +1529,7 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     part honesty : liveNeo4jClaimed;
     attribute implemented : Boolean = true;
-    attribute liveNeo4jClaimed : Boolean = false;
+    attribute liveNeo4jClaimed : Boolean = true;
     attribute phase : String = "M2.5";
   }
 
@@ -1534,12 +1539,13 @@ package MemNet {
       Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
       LLM agents as primary. Children are alternative cabinet clients;
       factory binds exactly one adapter (one sync owner). AgensGraph live
-      cabinet proven (0.7). Neo4j client landed, liveNeo4jClaimed=false.
-      TARGET: no grammar store key; MERGE is a per-write lookup of labels
+      cabinet proven (0.7). Neo4j live claimed (0.14): live round-trip
+      yes; hid flush; leftover-nickname hydrate after hid miss. TARGET:
+      no grammar store key; MERGE is a per-write lookup of labels
       + props / rel type+ends, not a primary key. leftoverMergeById=true
-      records 0.9 nickname MERGE and invented by_id. liveNeo4jClaimed
-      stays false. elementId stays in the cabinet, off the wire.
-      Cabinets stay external / not vendored. MN-REQ-06.4.
+      records 0.9 nickname MERGE and invented by_id. elementId stays in
+      the cabinet, off the wire. Cabinets stay external / not vendored.
+      Skip live Neo4j pytest unless MEMNET_NEO4J_URL. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
@@ -1547,7 +1553,7 @@ package MemNet {
     port flushIn : DurableFlushInPort;
     attribute clientLanded : Boolean = true;
     attribute liveCabinetClaimed : Boolean = true;
-    attribute liveNeo4jClaimed : Boolean = false;
+    attribute liveNeo4jClaimed : Boolean = true;
     attribute mergeByLabelsAndProps : Boolean = true;
     attribute leftoverMergeById : Boolean = true;
     attribute mergeIsPerWriteLookup : Boolean = true;

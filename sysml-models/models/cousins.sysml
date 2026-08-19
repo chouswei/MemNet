@@ -8,8 +8,9 @@
   (no clone). Cite paths in part docs.
 
   Load: after requirements.sysml, before deploy.sysml (config.yaml).
-  Root last. Recall/Commit operatorCount stays 2; liveNeo4jClaimed stays
-  false. Python engine and leftover 0.9 store drop are out of this cut.
+  Root last. Recall/Commit operatorCount stays 2; cousin nest
+  liveNeo4jClaimed stays false (product claim is DurableBuffer 0.14).
+  Python engine and leftover 0.9 store drop are out of this cut.
 */
 package MemNetCousinContrast {
   private import ScalarValues::*;

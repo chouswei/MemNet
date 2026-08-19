@@ -63,7 +63,8 @@ Agent cues `TSK` / `status=open` (a seen pattern) and `pin_map`s. If two exempla
 | `getAllPages` / Pattern C tour / Pattern D seeded RAG | Cousin pointing; do not invert MemNetSystem |
 | RAG / HostSearch | Outside `MemNetSystem` |
 | SameThingAbsorb this cut | 0.12; `implemented=false` |
-| Layer / live Neo4j claim | Do not revive; `liveNeo4jClaimed` stays false |
+| Layer | Do not revive |
+| Live Neo4j claim | Extra **0.14** (`liveNeo4jClaimed=true`); not this outline cut |
 
 ## 5. Honesty
 

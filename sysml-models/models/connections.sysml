@@ -172,9 +172,10 @@ package MemNetConnections {
       behind MemNet. Hydrate into / flush from the live session via the
       M2.5 client adapter seam (DurableStoreAdapter / Fake / optional
       AgensGraph client with liveCabinetClaimed; optional Neo4j client
-      with liveNeo4jClaimed=false; SessionLifecycle hydrate/flush). Live
-      cabinet is external — not vendored. LLM ↔ store direct (including
-      Bolt) is out of default teach. One sync owner. MN-REQ-06.4.
+      with liveNeo4jClaimed=true (0.14); SessionLifecycle hydrate/flush).
+      Live cabinet is external — not vendored. LLM ↔ store direct
+      (including Bolt) is out of default teach. One sync owner.
+      MN-REQ-06.4.
     */
   }
 
