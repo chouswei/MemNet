@@ -34,8 +34,10 @@ def guide_text(*, loose: bool = False) -> str:
             "MemNet (Net of Memory): in-memory NODE|EDGE working graph for agents.",
             "Agent dialect: gated openCypher-shaped GQL only (docs/grammar/gql-wire-profile.md).",
             "Mutate: CREATE / MATCH…SET / MERGE / DELETE; live pin map emits shaped subgraph.",
-            "Create with id: 'NEW'; engine mints ids. Patch/settle: known ids only (no NEW).",
-            "Live pin map: memnet query pin-map --anchor <id> (query warm is legacy alias).",
+            "Create by labels+properties. leftover id:'NEW' mint is leftover, not product.",
+            "Live pin map: query pin-map --kind/--locator/--keyword (or skip).",
+            "leftover --anchor is a nickname cue, not TARGET law.",
+            "Goldfish caller: one pin_map(q) per generate; drop prior maps.",
             "Pin-map ingest: locators (path=, qname=, refdes=, skill_id=); no client NEW.",
             "Transport: MCP in-process first; serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
             "Legacy @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
@@ -49,7 +51,8 @@ def guide_text(*, loose: bool = False) -> str:
 Doctrine:
   Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
   Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
-  Create with id: 'NEW'; pin-map ingest uses locators, not client NEW
+  leftover id:'NEW' mint is leftover; pin-map ingest uses locators, not client NEW
+  Goldfish caller: pin_map(q) or skip; drop prior maps; sparse Δ; env blobs in harness
   Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
 Quick start (CLI sessions still need serve today):
@@ -57,15 +60,15 @@ Quick start (CLI sessions still need serve today):
   # or: export MEMNET_IPC_SOCKET=/tmp/memnet.sock && memnet serve --ipc
   memnet session open --map-file schema.example.txt
   memnet add --file workflow.example.txt   # GQL preferred; @TAG pipe import-once
-  memnet query pin-map --anchor ...        # shaped GQL subgraph
+  memnet query pin-map --kind TSK          # shaped GQL subgraph (cue; leftover --anchor = nickname)
 
 GQL sketch:
-  CREATE (:TSK {id: 'NEW', goal: 'Clear warehouse', status: 'in_progress'})
-  MATCH (a {id: 'N03'}), (b {id: 'T42'})
-  CREATE (a)-[:helps {id: 'NEW'}]->(b)
+  CREATE (:TSK {goal: 'Clear warehouse', status: 'in_progress'})
+  MATCH (a:NPC {role: 'helper'}), (b:TSK {goal: 'Clear warehouse'})
+  CREATE (a)-[:helps {note: 'labour'}]->(b)
   # live pin map (emit): shaped present — no CREATE
-  (:TSK {id: 'T42', goal: 'Clear warehouse', status: 'in_progress'})
-  (:NPC {id: 'N03'})-[:helps {id: 'E77'}]->(:TSK {id: 'T42'})
+  (:TSK {goal: 'Clear warehouse', status: 'in_progress'})
+  (:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: 'Clear warehouse'})
 
 TagMap maps (schema.*.example.txt) use shared-dialect SCHEMA lines for session_open.
 Legacy @TAG: id|field pipe maps remain accepted on load. Not agent mutate dialect.
@@ -77,10 +80,11 @@ See: docs/grammar/gql-wire-profile.md, examples/README.md, README.md, memnet gui
 def agent_guide_text() -> str:
     return (
         "Agent playbook pointer (British English docs in-repo).\n"
-        "Forward dialect: docs/grammar/gql-wire-profile.md - GQL only, pin map, NEW vs locators.\n"
+        "Forward dialect: docs/grammar/gql-wire-profile.md — GQL only; "
+        "leftover NEW named leftover.\n"
         "Operational loop: LLM-GUIDE.md "
         "(M3 body rewrite pending; prefer grammar when they conflict).\n"
-        "Turn habit: query pin-map --anchor before inventing ids; mutate with GQL; reuse ids.\n"
+        "Turn habit: cue then pin-map (drop prior maps); leftover --anchor is not law.\n"
         "See also: memnet guide, memnet guide --loose, README.md."
     )
 

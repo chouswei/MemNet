@@ -64,7 +64,8 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 - HostSearch nested under `MemNetSystem`
 - Layer / Tier A as accept or teach
 - LLM talking to the durable store directly
-- Claiming goldfish from `pin_map` alone when there is no cue — use bounded `find` then `pin_map`. leftover `--anchor` is a nickname cue, not a store key.
+- Claiming goldfish from `pin_map` alone when there is no cue — use bounded `find` then `pin_map`. leftover `--anchor` is a nickname cue, not a store key. Empty \(q\) still skips (0.11 owns outline).
+- Stuffing every `pin_map` into a growing chat list — drop prior map rows; env blobs stay in the harness (`stuffed_maps`, 0.13)
 - Claiming the live cabinet on Fake alone
 
 ---

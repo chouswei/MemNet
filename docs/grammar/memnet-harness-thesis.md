@@ -225,5 +225,5 @@ Doctrine (this repo): [`../SHAPE.md`](../SHAPE.md), [`math-skeleton.md`](math-sk
 - Do not close live Neo4j or HostSearch from this file.
 - Do not rename the grammar **golden harness** — keep the homograph documented.
 - Price **prompt-cache dump** vs Shape+Flash (MN-REQ-00). Unmeasured.
-- Goldfish **caller**: drop old `pin_map` rows from the chat list. Unshipped in §3.1 harnesses.
+- Goldfish **caller**: drop old `pin_map` rows from the chat list. **0.13** owns the in-repo contract (playbook + `stuffed_maps` pytest). Still unshipped as a patch of §3.1 public harnesses (OpenHands/SWE-agent).
 - Keep **env blob** (test logs, screenshots) out of \(S\); do not condenser-replace it with GQL theatre.

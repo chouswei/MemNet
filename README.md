@@ -49,7 +49,7 @@ Shaped pin map (illustrative; nickname `id` only if set):
 (:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: 'Clear warehouse'})
 ```
 
-Create by labels+properties (`CREATE ()` is legal). leftover `id:'NEW'` mint / `@ID:` AssignedIdMap is leftover, not product. Cue then `pin_map`; leftover `--anchor` is a nickname cue. The agent dialect is **GQL only** (openCypher-shaped). Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
+Create by labels+properties (`CREATE ()` is legal). leftover `id:'NEW'` mint / `@ID:` AssignedIdMap is leftover, not product. Each turn `pin_map(q)` (or skip); **drop** prior maps from the prompt; leftover `--anchor` is a nickname cue. The agent dialect is **GQL only** (openCypher-shaped). Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
 
 MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
 

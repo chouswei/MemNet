@@ -202,6 +202,11 @@ async def pin_map(
 ) -> str:
     """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
 
+    Goldfish caller (0.13): each turn call this with a cue ``q`` (or skip).
+    Drop prior pin_map rows from the prompt before the next generate. Sparse Δ
+    on mutate. Env blobs stay in the outer harness. ``view=shell`` is grain on
+    a seed — not session outline (0.11).
+
     Optional ``view``: ``shell`` | ``interior`` (teach); ``flowchart`` | ``parts`` |
     ``statechart`` accepted with soft shell caps (grain filters deferred).
     Omit ``view`` for default depth/max_rows behaviour.
@@ -209,8 +214,9 @@ async def pin_map(
     Optional ``caller``: CapsPolicy ACL who-check when session ACL is enabled.
 
     Cue with ``kind`` / ``locators`` / ``keyword`` (product). leftover ``anchor`` /
-    ``anchors`` are nickname cues. Empty cue skips (0.11 owns outline). When the
-    cue yields |Q|>1 the emit carries CueConflict (no silent root pick).
+    ``anchors`` are nickname cues, not TARGET law. Empty cue skips (0.11 owns
+    outline). When the cue yields |Q|>1 the emit carries CueConflict (no silent
+    root pick).
     """
     return await _pin_map(
         anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
