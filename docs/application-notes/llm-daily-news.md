@@ -1,6 +1,6 @@
 # LLM daily news digest
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Multi-stage RSS digest pipeline with session-scoped working memory — not part of the MemNet engine. The graph is built during one run, queried for analysis, and drives final prose; readers see Markdown/HTML, not raw wires.
 
@@ -93,11 +93,13 @@ CREATE (:CST {id:'LAW_short', role:'rule', name:'short_term', law:'$session_scop
 
 ## 5. Agent / bridge loop
 
+Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-process only for a **single** agent.
+
 1. Ensure session (TTL / day).
 2. Skeleton `DAY` / `SEC` / empty `ENT` shells.
 3. Stage-1 LLM → gated GQL `add` KYWD + rels; upsert pattern: `update` then `add` if missing.
 4. Finalize continues / fact-check nodes.
-5. Analyst `pin_map` on keyword / cluster anchors → `SYN`.
+5. Analyst **cue** (keyword / cluster id, or `find`) then `pin_map` → `SYN`.
 6. Editorial stages read `pin_map` slices — never the whole session.
 
 ---

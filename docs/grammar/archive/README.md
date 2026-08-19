@@ -11,6 +11,6 @@ User / product direction (post ADR-001 supersession): **one dialect = GQL** ([`.
 | [`examples-layer/`](examples-layer/) | Layer golden fixtures |
 | [`tools/layer_soft_validate.py`](tools/layer_soft_validate.py) | Layer soft-validate harness |
 
-**MUST NOT** cite these as 1.x wire, legacy-accept teach, or peer dialect.  
-**M2** removes as-is engine codecs that still parse Layer lines from the product path.  
+**MUST NOT** cite these as product wire, legacy-accept teach, or peer dialect.  
+**M2 done:** product accept rejects Layer/Tier A. Sources here stay quarantine-only.  
 Default pytest **does not** collect [`../../../tests/grammar/archive/`](../../../tests/grammar/archive/).

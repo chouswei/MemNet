@@ -1,11 +1,11 @@
 # Recall / Commit — orthodox review and plan
 
-**Status:** plan (docs). **MUST NOT** treat leftover engine as shipped.  
+**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Remaining erect is **Later** (`Peak_L`, HostSearch ship).  
 **Audience:** product developers. British English.  
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master`).  
-**Model honesty:** MN-VER-13-S01. **0.5 engine next notch remains live M2.5 cabinet** ([`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md)) — this plan is a leftover **goldfish** track, not a bid to replace that notch.
+**Model honesty:** MN-VER-13-S01. Live cabinet is **0.7** (`liveCabinetClaimed=true`). **1.0** = 0.5–0.8 claimed — this file is not a bid to invent extra 1.0 engine.
 
 Orthodox = a theorem you can **build from**. Paradox = **all** examination and test after the build (pytest, MN-VER, V-cases, cousin papers). Resolve by **scope**, not a third operator / `rag_query` / Snap-on-session. There is **no** third kind of work called “exam”. Filename `gql-model-exam.md` is historical paradox, not a second orthodox.
 
@@ -16,9 +16,9 @@ Orthodox = a theorem you can **build from**. Paradox = **all** examination and t
 | Orthodox (build from) | Erected in MemNet | As-is honesty |
 |-----------------------|-------------------|---------------|
 | Rate–distortion | `max_rows`, `depth`, `MEMNET_MAX_FANOUT`, hide recycled, LAW prepend | Shipped (`context_pack` / `PinMapComposer`) |
-| Discrete codebook | id ∪ kind ∪ locator ∪ keyword; one primary GQL label | Shipped mutate + schema; leftover [#73](https://github.com/chouswei/MemNet/issues/73) find |
+| Discrete codebook | id ∪ kind ∪ locator ∪ keyword; one primary GQL label | Shipped mutate + schema; [#73](https://github.com/chouswei/MemNet/issues/73) `find` **shipped** (seed-only) |
 | Encoding specificity | Token must be written before it retrieves | Shipped: miss ≠ invent a node. Agent still mints cues via Commit |
-| Ecphory (cue then reconstruct) | Recall = seed then Shape | Seed = known id (`pin_map`). Kind/keyword seed = #73 `implemented=false` |
+| Ecphory (cue then reconstruct) | Recall = seed then Shape | Seed = known id (`pin_map`) **or** kind/keyword `find` then `pin_map` (`implemented=true`) |
 | Polynomial \(k\)-hop (not GST) | Ego walk + fan-out clamp | Shipped; metric = hops (`cosineMetric=false`) |
 | Empty retrieve | `emptySeedSkip` | Modelled skip; engine today errors `no_anchor` if pin_map has no ego — probe is `read_list` / known id |
 | Same alphabet | Shaped GQL emit = mutate family | Shipped M2 |
@@ -48,31 +48,31 @@ Every test below is paradox. Each **must pass on the orthodox base**. Fail = wro
 | **V9** | Raw degree peak = `contains` parent | Ingest tree: PKG/MOD is local max. Live TSK preferred; \(\rho^*\) last (not shipped) | Default goldfish = Peak_L; Leiden |
 | **V10** | Host Snap vs Shape | Locators only; chunk body not on `note=` | Nest HostSearch under `MemNetSystem` |
 
-Pytest already covering part of this (still paradox): `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). **Gaps:** V1 fixture, V3 `read_list`→`pin_map` chain, V4 sparse re-pin, V5 LAW-count, V9 \(\rho^*\) (defer with Peak_L). GQL-wire paradox: [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) (stale M2/M3 “next” dropped; live nest is `sysml-models/README.md`).
+Pytest covering part of this (still paradox): `tests/test_goldfish_paradox.py` (V1/V3/V4/V6), `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). **Gaps:** V9 \(\rho^*\) (defer with Peak_L). GQL-wire paradox: [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).
 
 ---
 
 ## Development sequence
 
-Do **not** reorder ahead of live M2.5 cabinet for 0.5.0 claim. Goldfish leftover is **after or beside** that notch, not instead.
+Goldfish leftover for **0.5 is shipped**. Do **not** hold **1.0** for Peak_L / HostSearch.
 
 ### Already done (do not rebuild)
 
-M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Absorb / RSV. Playbook goldfish loop (one TSK, sparse Δ). Design Snap vs Shape, Peak_L last, HostSearch outside.
+M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Absorb / RSV. **0.5** BoundedMatchFind + multi-ego `pin_map` + paradox pytest. **0.7** live cabinet. **0.8** GQL teach. Playbook goldfish loop (one TSK, sparse Δ). Design Snap vs Shape, Peak_L last, HostSearch outside.
 
 ### Leftover **paradox** (tests first)
 
 | Order | Work | Stresses |
 |-------|------|----------|
-| 1 | Pytest for V1, V3, V4, V6 (fixtures; no new MCP) | Isolated ego; probe then Shape; sparse Δ; `id_exists`. CI green; no `rag_query` |
+| — | V1, V3, V4, V6 pytest | **Shipped** in 0.5 (`tests/test_goldfish_paradox.py`) |
 
 ### Leftover **erect** (orthodox construction)
 
 | Order | Work | Orthodox it erects | Paradox gate |
 |-------|------|--------------------|--------------|
-| 2 | Leftover [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); shaped emit not RETURN | `implemented=true` only with LIMIT tests; MN-VER-13 honesty flips find flag |
-| 3 | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | Must **not** copy Path-B \(M\times\)anchors. Single LAW prepend |
-| 4 | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | Behind explicit cue; never default; no cluster assignment |
+| — | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); seed nodes not RETURN | **Shipped** `implemented=true` |
+| — | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | **Shipped** in 0.5 |
+| **Later** | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | Behind explicit cue; never default; no cluster assignment |
 
 ### Must not erect (abandons orthodox)
 
@@ -88,13 +88,13 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 
 | Check | Stresses |
 |-------|----------|
-| MN-VER-13-S01 | Two operators, find not shipped, skip flag, hops not cosine |
+| MN-VER-13-S01 | Two operators, find **shipped** seed-only, skip flag, hops not cosine |
 | V1–V10 | Cases above (pytest where engine already exists; playbook for the rest) |
 | [`gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-only wire; M2/M3 done |
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
-Done for **this leftover track** when: V1/V3/V4/V6 have pytest; playbook still one-TSK; #73 still not claimed from pin_map alone. Done for **#77** when HostSearch ship / #73 / Peak_L are decided — not when this plan exists.
+Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); playbook still one-TSK; #73 claimed as seed-only find then `pin_map` (**yes**). Done for **#77** when HostSearch ship / Peak_L are decided — **Later**, not 1.0.
 
 ---
 
@@ -106,6 +106,6 @@ Done for **this leftover track** when: V1/V3/V4/V6 have pytest; playbook still o
 | [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Snap/Shape; after #84 status |
 | [`host-search-nest-case-study.md`](host-search-nest-case-study.md) | Paths A–E |
-| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | 0.5 one path; leftover vs M2.5 |
-| [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded find leftover |
+| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | SemVer SSOT; 0.5–0.8 shipped; 1.0 = claim |
+| [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded find (**shipped** seed-only) |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (citations) |

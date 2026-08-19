@@ -1,6 +1,6 @@
 # LLM circuit schematic and s-domain analysis — circuit domain
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can warm a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row.
 
@@ -182,10 +182,13 @@ MemNet does **not** solve KCL. It holds **devices, binds, and result laws** in \
 
 ## 7. Agent loop (circuit turn)
 
-1. **`pin_map`** on the focus (`CST_U1`, `CST_A`, or analysis `TSK`) — prefer `view=shell`, descend with `view=interior` / re-anchor when blocked.
-2. **Reason** only from that slice + user ask (goldfish).
-3. **Mutate** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). Copy assigned ids.
-4. **Re-warm** before the next edit.
+Cue then `pin_map`. Skip if the seed is empty (`find` / known id first). MCP arg is **`session`**. In-process MCP only for a **single** agent.
+
+1. **Cue** — known `CST_*` / analysis `TSK`, or `find(kind='CST', limit=L)` then copy an id.
+2. **`pin_map`** on that ego — prefer `view=shell`, descend with `view=interior` / re-anchor when blocked.
+3. **Reason** only from that slice + user ask (goldfish).
+4. **Mutate** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). Copy assigned ids.
+5. **Re-`pin_map`** before the next edit.
 
 ```cypher
 CREATE (t:TSK {id:'TSK_inv_nfb', goal:'Analyse inverting NFB amp in s-domain', phase:'nodal', status:'in_progress'})

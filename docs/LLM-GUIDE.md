@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md).
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.8.0.** **1.0** = 0.5–0.8 claimed. PyPI `memnet-llm` is still **0.4.6**.
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
@@ -28,7 +28,7 @@
 
 ### GQL wire (Write = display redefined)
 
-**1.x teach = GQL** — primary label ≈ kind (`:TSK`, `:CST`, …); bind = `:bind` + `fromPort`/`toPort`; chart links = other rel types on bare node ids; law = node property `law`. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).
+**Product teach (0.8) = GQL** — primary label ≈ kind (`:TSK`, `:CST`, …); bind = `:bind` + `fromPort`/`toPort`; chart links = other rel types on bare node ids; law = node property `law`. Profile: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Case study: [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md).
 
 **Mutate sketch:**
 
@@ -64,7 +64,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 | Mode | When | Setup |
 |------|------|-------|
-| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; `pip install memnet-llm[mcp]` — **no** `memnet serve` |
+| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. **PyPI is still 0.4.6** — install from this repo for 0.8. **No** `memnet serve` |
 | **CLI + serve** | Scripts, TCP shared process | Terminal 1: `memnet serve`; Terminal 2: CLI with `MEMNET_SESSION` |
 | **MCP streamable-http** | Remote shared graph | `memnet-mcp --transport streamable-http` on `:18766/mcp` |
 
@@ -284,7 +284,7 @@ Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@W
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
 - `memnet guide --loose` — short cheat sheet
 
-**0.4.x / 0.5 default:** in-process stdio MCP needs no serve. Use serve or streamable-http when you need a **shared** graph across processes.
+**0.8 default (single agent):** in-process stdio MCP needs no serve. Use serve or streamable-http when you need a **shared** graph across processes.
 
 ---
 

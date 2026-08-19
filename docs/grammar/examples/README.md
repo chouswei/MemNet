@@ -1,9 +1,9 @@
 # Fixture labels for as-is shared-line harness (`docs/grammar/tools/tier_a.py`)
 
-> **Not 1.x teach.** Agent wire = GQL ([`../gql-wire-profile.md`](../gql-wire-profile.md)).  
-> These fixtures exercise the **as-is** engine codec until M2. Historical Layer fixtures: [`../archive/examples-layer/`](../archive/examples-layer/).
+> **Not agent teach.** Agent wire = GQL ([`../gql-wire-profile.md`](../gql-wire-profile.md)).  
+> These fixtures exercise the **as-is** line-codec harness. Historical Layer fixtures: [`../archive/examples-layer/`](../archive/examples-layer/).
 
-Harness / package names keep `tier_a` for continuity. **Do not delete** these fixtures when renaming prose — they guard as-is parse/emit until M2.
+Harness / package names keep `tier_a` for continuity. **Do not delete** these fixtures when renaming prose — they guard as-is parse/emit. Product accept is GQL (**M2 done**).
 
 #
 # Header marker (first lines):

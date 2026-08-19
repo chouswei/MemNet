@@ -1,6 +1,6 @@
 # LLM technical docs decomposition
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** Atomise long instrument manuals (PDFs, SCPI references) into a MemNet graph so an agent can **`pin_map`** one remote-mode subsection and drive the instrument — without storing manual prose in row fields.
 
@@ -94,8 +94,10 @@ CREATE (a:ART {id:'ART_rto_um', title:'R&S RTO User Manual', source:'1332_9725_0
 
 ## 5. MCP turn sketch
 
+Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent.
+
 ```text
-pin_map(anchor="TSK_rto_capture_ch1", depth=3)
+pin_map(anchor="TSK_rto_capture_ch1", depth=3, session=sid)
 add(wire_lines=["CREATE (c:CLM {id:'CLM_ch1_1v_div', sec:'S_chan_remote', type:'constraint', code:'ch1_scale_1v_div', status:'active'})"])
 update(wire_lines=["MATCH (t:TSK {id:'TSK_rto_capture_ch1'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'"])
 ```

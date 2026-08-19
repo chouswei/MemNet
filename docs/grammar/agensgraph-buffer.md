@@ -2,7 +2,7 @@
 
 **Status:** version map SSOT [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). 0.7 live cabinet **shipped**. 0.8 is teach/shape, not a second cabinet claim. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers.  
-**Promotion:** user direction 2026-08-13 — durable online GQL store adapter is the **next product notch after M2** (engine/MCP GQL). Order: M1 → M2 → **M2.5** → M3. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
+**Promotion (historical):** durable adapter was the notch after M2 (named M2.5). **Done in 0.7.** M3 playbook GQL rewrite is **done in 0.8**. See [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
 
 **Product framing (2026-08-13):** MemNet is **mission working memory for LLMs** — not the search corpus, not GraphRAG. Multi-agent / Multitask sessions; goldfish re-read via shaped `pin_map`; gated mutate. In-session recall is serial cue then neighbourhood. A MemNet **session** can be SSOT for a mission / that shared memory (“SOMETHING”): handoff between LLMs = deliver **session id** (+ anchors / write scope); peers **re-pin_map** — do **not** receive a graph dump in chat. Chat is never SSOT ([`../multi-agent-sessions.md`](../multi-agent-sessions.md)). [AgensGraph](https://github.com/skaiworldwide-oss/agensgraph) (Postgres + property graph / openCypher / partial GQL) is the **durable / backing** graph **behind** sessions — it does **not** replace the session handle for agent handoff, and is not the default agent teach surface. **MUST NOT** reframe MemNet as a Cypher proxy to AgensGraph.
 
@@ -57,7 +57,7 @@
 | Use durable store (or chat dump) as agent **handoff** instead of session id | Session is the SSOT handle; peers re-`pin_map` |
 | Thin Cypher-relay-only (drop MemNet; “just a proxy”) | Collapses product value — MemNet is the shared memory |
 | Dual-write without a single sync owner | Two writers → split brain |
-| Claim adapter shipped before M2.5 lands | Plan only until implemented |
+| Claim adapter shipped before M2.5 lands | Historical — **0.7** live path is the claim |
 | Revive Layer / Tier A | ADR-001 supersession |
 
 

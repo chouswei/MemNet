@@ -109,7 +109,7 @@ sequenceDiagram
 | Parent on TCP, worker on default in-process stdio | Worker writes a **private** graph; parent never sees pins | MN-REQ-12.1, **12.2** |
 | Both in-process in **separate** agent processes | Two isolated stores | MN-REQ-12.2 |
 | Pass graph dump in chat instead of session id | Chat becomes false SSOT | MN-REQ-12.1 / 10.1; `SessionHandoffById` |
-| Assume LocalIpc / reserve enforces sharing | LocalIpc stub; reserve to-be — not shipped | MN-REQ-12.7 (ACL cut is separate and shipped when enabled) |
+| Assume LocalIpc / RSV without a shared store | LocalIpc is **shipped**; RSV is **shipped**; neither replaces TCP/HTTP shared serve for Multitask |
 
 **Single-agent exception:** trivial goldfish MAY use in-process (**MN-REQ-06.1**) when Multitask is off (`EvTrivialSingleAgent`).
 

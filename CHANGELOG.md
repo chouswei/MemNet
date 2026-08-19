@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **docs: 0.8 housekeeping for 1.0 claim** — live docs + application notes aligned to shipped 0.5–0.8 (find, honesty, live cabinet, GQL teach); Layer files stay archive/stub; PyPI lag (0.4.6) stated where install is taught. No engine cut.
+
 ### Added
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
@@ -597,7 +600,7 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.8.0...HEAD
 [0.4.1]: https://github.com/chouswei/MemNet/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/chouswei/MemNet/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/chouswei/MemNet/compare/v0.3.5...v0.3.6

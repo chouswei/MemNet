@@ -20,7 +20,7 @@ All examination and test of MemNet is **paradox**. Orthodox is only what you ere
 | Dual EDGE / law | `:bind` + ports; `law` on node | Layer `--bind-->` teach |
 | Milestone honesty | M1/M2/M3 **done**; M2.5 live cabinet **0.7** | Claim M2 or M3 still “next”; claim live cabinet on Fake alone |
 
-**Pass** for the GQL-wire orthodox under this stress. Leftover goldfish paradox (V1–V10, pytest, #73 LIMIT) lives on the plan, not in this file.
+**Pass** for the GQL-wire orthodox under this stress. Goldfish paradox (V1–V10, pytest, #73 LIMIT) lives on the plan; **#73 find is shipped** (seed-only).
 
 ## Related
 

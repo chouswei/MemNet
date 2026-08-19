@@ -45,13 +45,13 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 **Harder / honest costs**
 
-- As-is 0.4.x Python may still parse old line dialects until **M2** removes them — implementation lag, not doctrine.
-- In-repo playbook / application-notes bodies still need **M3** GQL rewrite; doctrine headers already point at GQL. **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) are migrating to GQL-only in `chouswei/cursor-user-skills` **in flight separately** — not owned by this product-repo PR.
+- Layer / Tier A remain on disk for archive/tests; default mutate **rejects** them (`legacy_dialect_retired`) — **M2 done**.
+- In-repo playbook / application-notes teach GQL (**M3 / 0.8 done**). **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) may still migrate in `chouswei/cursor-user-skills` **in flight separately**.
 - Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
 **Non-goals for first cut (M1–M2 wire)**
 
-- Full application-notes body rewrite (M3).
+- Treat user-pack skill rewrite as this repo’s M3 gate (sibling repo; in flight separately).
 - Teach full GQL schema/DDL or unbounded analytic `MATCH` as primary read.
 - Implement or teach **every** openCypher CIP — family authority only; agent surface stays MemNet-gated (`pin_map` + mutate subset).
 - Revive Layer as accept path.
@@ -59,17 +59,17 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 **Migration plan (updated 2026-08-13)**
 
-User promotion (2026-08-13): durable online GQL store adapter is the **next notch after M2** — named **M2.5** so M3 (in-repo playbook / app-notes) does not block it.
+User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did not block it. **All M-phases are done** (M2.5 = 0.7 live path; M3 = 0.8 GQL docs). **1.0** = claim, not a new M-phase.
 
 | Phase | Action |
 |-------|--------|
 | **M0** | ADR accept; reverse “map only” stance. |
-| **M1 (this)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
-| **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. **Done.** |
-| **M2.5** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). **0.7** live hydrate/flush proven (external cabinet; not vendored). **MUST NOT** reframe MemNet as a Cypher proxy. |
-| **M3** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite is **in flight separately** (`chouswei/cursor-user-skills`). |
+| **M1 (done)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs; archive Layer grammar. |
+| **M2 (done)** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). Live hydrate/flush proven (external cabinet; not vendored). **MUST NOT** reframe MemNet as a Cypher proxy. |
+| **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite remains **in flight separately** (`chouswei/cursor-user-skills`). |
 
-**Order:** M1 → M2 → **M2.5** → M3. **MUST NOT** bury the adapter past all of 0.5 or treat it as deferred forever.
+**Order (historical):** M1 → M2 → **M2.5** → M3. All done. **MUST NOT** treat the adapter as deferred, or hold **1.0** for Later items.
 
 **Open question — locked in M1:** **B with A’s emit shape** (`pin_map`-class wrapper; shaped subgraph emit). Option C out. See wire profile.
 

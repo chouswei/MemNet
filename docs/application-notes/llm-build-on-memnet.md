@@ -1,6 +1,6 @@
 # LLM Build on MemNet — A MemNet Application Note
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
@@ -41,11 +41,12 @@ A skill without an MCP only documents; an MCP without a skill is invisible to th
 
 ```mermaid
 flowchart LR
-  subgraph engine [Engine layer]
-    SERVE["memnet serve (TCP, in-memory graph)"]
+  subgraph engine [Engine]
+    SERVE["memnet serve — only when sharing a graph"]
+    INLINE["In-process MCP — single agent; no serve"]
   end
-  subgraph mcps [MCP layer]
-    MMCP["memnet-mcp (graph wrapper)"]
+  subgraph mcps [MCP]
+    MMCP["memnet-mcp"]
     APP3["optional domain MCPs"]
   end
   subgraph cursor [Cursor]
@@ -54,8 +55,9 @@ flowchart LR
   end
   AGENT --> SKILL
   SKILL -.routes.-> MMCP
-  MMCP --> SERVE
-  APP3 --> SERVE
+  MMCP --> INLINE
+  MMCP -.-> SERVE
+  APP3 -.-> SERVE
 ```
 
 | Surface | Owns | Does **not** own |
@@ -98,7 +100,7 @@ async def pin_map(anchor: str, depth: int = 2, max_rows: int = 50,
          "--depth", str(depth), "--max-rows", str(max_rows)],
         session=session,
     )
-# Legacy alias query_warm / query warm still accepted in 0.4.x — do not teach as primary.
+# Legacy alias query_warm / query warm still accepted — do not teach as primary.
 
 def main() -> None:
     mcp.run(transport="stdio")
@@ -120,7 +122,7 @@ Every tool returns the same shape (`MemNetResponse.to_json()`):
 ```json
 {
   "exit_code": 0,
-  "stdout": "TSK [T42] ; goal=… ; status=in_progress\nE77 [N03] --helps--> [T42]\n",
+  "stdout": "(:TSK {id: 'T42', goal: '…', status: 'in_progress'})\n(:NPC {id: 'N03'})-[:helps {id: 'E77'}]->(:TSK {id: 'T42'})\n",
   "stderr": "",
   "session_id": "mn_abcd",
   "errors": []
@@ -135,8 +137,8 @@ Agents branch on `errors[]` and `exit_code`; parse `stdout` for shaped GQL / `pi
 
 ```python
 # parts/memnet-mcp/software/memnet_mcp/seed.py
-# Engine may still seed LAW rows as Write=display or legacy pipe (accept path).
-# Prefer pin_map-first discipline in agent docs; do not teach pipe as primary.
+# Engine may still seed LAW rows as historical line codec (archive/tests).
+# Agent teach is GQL + pin_map; do not teach pipe / Tier A as wire.
 DEFAULT_LAW_LINES = (
     "LAW [LAW01] ; name=edge_recycle ; cycle=on_context ; mechanism=hide ; constraint=settled_edg_unless_anchor",
     "LAW [LAW02] ; name=unique ; cycle=on_add ; mechanism=unique ; constraint=one_id_add_then_update",
@@ -165,7 +167,7 @@ memnet-mcp = "memnet_mcp.server:main"
 mcp = ["mcp>=1.2,<2"]
 ```
 
-Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package.
+Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. **PyPI is still 0.4.6** — for product 0.8 install from this repo (`pip install -e ".[mcp]"`).
 
 ---
 
@@ -231,8 +233,8 @@ token_guardrails: |
   - **Read:** pin_map with anchor — never bare full-session dump.
   - **Write:** add new ids; update changes; copy ids from pin_map.
   - **Coding:** grep/LSP to verify — then store compact MOD/SYM atoms.
-  - **Session:** pass session on tools or MEMNET_SESSION in mcp.json.
-  - **Server:** memnet serve / HTTP reachable when sharing a graph.
+  - **Session:** pass MCP arg `session` (not `session_id`) on tools.
+  - **Server:** in-process for a single agent; `memnet serve` / HTTP when sharing a graph.
 ---
 ```
 
@@ -380,7 +382,7 @@ If step 3 fails: `description` triggers are too narrow or YAML frontmatter has a
 
 | Pitfall | Fix |
 |---------|-----|
-| MCP auto-spawns `memnet serve` | Don't — `serve_status` first, fail loudly if down |
+| MCP auto-spawns `memnet serve` | Don't — single-agent in-process needs no serve; `serve_status` only when sharing |
 | Domain logic in `memnet-mcp` | Split into new MCP package + own `pyproject` script entry |
 | `SKILL.md` >200 lines | Move per-domain content into `references/<name>.md` |
 | No `token_guardrails` in frontmatter | Agent will not self-limit on prose / verbosity |
@@ -424,7 +426,7 @@ pytest tests/test_mcp.py -v
 
 Expected:
 
-- `memnet-mcp` connects without auto-starting serve; `serve_required` error if serve is down
+- `memnet-mcp` in-process needs no serve; shared graph uses TCP/HTTP (`serve_required` if you bound to serve and it is down)
 - Tool JSON envelope has all five fields (`exit_code`, `stdout`, `stderr`, `session_id`, `errors`)
 - Settled rows do not appear in subsequent `pin_map` (LAW01)
 - New agent invocation surfaces the skill within one turn of a trigger phrase

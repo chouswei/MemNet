@@ -1,6 +1,6 @@
 # System development with Multitask — A MemNet application note
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
 **Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
@@ -12,7 +12,7 @@
 
 This note complements:
 
-- [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.4.x)
+- [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.8; RSV + Path-B ingest shipped)
 - [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — single-agent SysML memory (no Multitask transport)
 - [`llm-software-development.md`](llm-software-development.md) — single-agent coding memory
@@ -115,7 +115,7 @@ When work touches both **`sysml-models/`** and implementation files:
 
 **Alternative:** one worker if the mission is small and files do not overlap.
 
-**MUST NOT** run two workers on the **same** anchor slice without serialisation (0.4.x last-write-wins; no neighbourhood reserve).
+**MUST NOT** run two workers on the **same** anchor slice without serialisation or an **RSV** lease (last-write-wins if you skip both).
 
 ---
 
@@ -177,7 +177,7 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | Chat as SSOT | Duplicate ids, stale paths | `pin_map` every turn; parent reconcile from session |
 | Parent polls / re-investigates | Token waste; gate violation | End turn after spawn; next turn pin_map only |
 | Parallel same-anchor writers | Silent clobber | Serial worker or disjoint scopes |
-| Assuming ACL / `RSV` / ingest | False confidence in isolation | MN-REQ-12.7; seed Path-B manually |
+| Assuming full ACL modes / `session_token` | False isolation | CapsPolicy when enabled; RSV + Path-B ingest **are** shipped; full modes still to-be |
 | SysML vs MemNet drift | Model and pins disagree | SysML in git wins for structure; MemNet holds locators + mission state |
 | Worker settles parent `TSK_*` | Lifecycle violation | Parent-only settle unless delegated |
 
@@ -185,10 +185,10 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 
 ## 10. Open decisions (record in `DEC_*`)
 
-- Local IPC vs TCP when `LocalIpcGateway` ships (MN-REQ-06.2).
+- Local IPC vs TCP: `LocalIpcGateway` **is shipped** (`memnet serve --ipc`); choose per host.
 - Whether to add product-specific `SYS_REQ_MT_*` leaves or doc-only adoption.
 - Single worker vs SysML-then-code split per mission class.
-- When engine **WorkerWriteScope** enforcement lands (currently doctrine-only; MN-VER-12-S09 gate).
+- Full ACL modes / `session_token` remain to-be; `WorkerWriteScope` **hard-rejects** when session ACL is enabled.
 
 ---
 
@@ -200,5 +200,5 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | MemNet product MN-REQ-12 model | [`sysml-models/models/requirements.sysml`](../../sysml-models/models/requirements.sysml) |
 | Verify package | [`sysml-models/models/verify.sysml`](../../sysml-models/models/verify.sysml) (MN-VER-12-G00, S01…S09) |
 | Case study | [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) |
-| ACL / reserve (design) | [`docs/grammar/memnet-security-multi-agent.md`](../grammar/memnet-security-multi-agent.md), [`memnet-neighbourhood-reserve.md`](../grammar/memnet-neighbourhood-reserve.md) |
+| ACL / reserve (RSV shipped; full ACL modes design) | [`docs/grammar/memnet-security-multi-agent.md`](../grammar/memnet-security-multi-agent.md), [`memnet-neighbourhood-reserve.md`](../grammar/memnet-neighbourhood-reserve.md) |
 | SysML modeling (single-agent) | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) |

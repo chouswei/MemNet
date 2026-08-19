@@ -1,6 +1,6 @@
 # Nodal analysis — circuit domain (ports / law / bind)
 
-> **Dialect (1.x):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
 
 **Teach:** GQL wire profile + shaped `pin_map` + gated mutate.  
 **Documentation only** — does **not** implement a solver.  
@@ -111,7 +111,7 @@ Classical: \(I_1 + I_2 + \cdots = 0\) at a non-reference node.
 | Ohm, KCL, gain | **`law` LaTeX on node** | Create/patch node; never put live maths on the relationship |
 | Topology | `:bind` between ports | Port grain both ends |
 
-Shaped `pin_map` = goldfish read. Agents evaluate offline and write absolutes until an evaluator exists.
+Shaped `pin_map` = goldfish read. Cue then `pin_map`; skip if empty. Agents evaluate offline and write absolutes until an evaluator exists.
 
 ---
 
