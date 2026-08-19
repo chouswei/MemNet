@@ -62,6 +62,8 @@ Falsifiers (any one kills the thesis as product doctrine):
 - Chat or the cabinet URI as handoff handle
 - Dump \(S\), echo \(\tilde{X}\), or stuff library chunks to “maintain memory”
 - Design goldfish as **one** fat completion (GraphRAG global / paste the library) instead of **N** Shape-sized Flash-class calls
+- Stuff `pin_map` into an ever-growing `messages` list (no goldfish caller)
+- Put env blobs (test logs, screenshots) on \(S\) and call that Shape
 
 ---
 
@@ -100,7 +102,29 @@ As-is on GitHub. None of these ships a GQL session id as the peer handoff. Memor
 
 **Pattern.** Every harness still **packs a chat list** for the next generate. When the list grows, they **elide**, **trim a ratio**, or **summarise with another LLM**. MemNet’s law is the opposite: do not grow the list as SSOT; **skip or Shape** from cue \(q\); sparse \(\Delta\). A condenser of omitted bash is not a pin map of `TSK_*` / `USR_*` / `MOD_*`.
 
-Confucius Code Agent (2025) and OpenHands leaderboard commentary repeat the same moral as Huang: **orchestration and memory handling close gaps** that a stronger backbone alone does not. None of those scaffolds ship a **GQL session id** as the peer handoff.
+### 3.2 Critical objections (harnesses *and* this thesis)
+
+The §3.1 catalogue is true as **mechanism**. It is too neat as **verdict**. Steelman the other side; then say what still stands.
+
+**1. Dump is not a 2024 fossil.** SWE-agent’s own comment on `LastNObservations`: SotA windows often make elision **optional**; elision **breaks prompt cache**. `DefaultHistoryProcessor` is identity. Coding agents **moved toward stuffing** once cache + 100k+ context paid. That is an empirical competitor to the Flash-class goldfish loop, not a confused substitute. If a cached 80k dump is cheaper in wall-clock and dollars than \(N\) Flash calls plus a fresh `pin_map` each turn, MN-REQ-00 can **favour dump**. The thesis has not priced cache-hit dump vs Shape+Flash. Until it does, “they violate the token law” is doctrine, not a measurement.
+
+**2. Two channels, not one plane.** Last-\(n\) observations exist because **pytest logs are not a labelled graph**. \(M\approx 50\) GQL rows is not 50 lines of a failing test. A honest split: **mission names** (`TSK`/`USR`/`MOD`) belong on \(S\); **last env blob** stays in chat (or a condenser of *that* blob). If MemNet tries to eat bash, it becomes a worse condenser. If the thesis pretends one `pin_map` replaces both, SWE-agent is right to ignore it.
+
+**3. The missing operator is Commit, not Recall.** OpenHands summarises **because the event stream was never atomised**. There is nothing to Shape if the actor did not \(\mathrm{Commit}(\Delta)\). Elide / trim / summarise are rational given **write failure**. Citing them as proof that graphs beat condensers skips the adoption problem: no GitHub harness in §3.1 **calls** `pin_map` and **drops** old maps. MCP JSON stuffed into the same `messages` list saves **zero** tokens. C1 (placement *in* the harness) is an **unshipped caller**, not an observed architecture.
+
+**4. Cue \(q\) is the hard step.** “Co-responds to \(q\)” assumes a codebook token. SWE-agent’s actual cue is **instance template + latest observation** — a sentence, not `TSK_*`. `find` then `pin_map` on a keyword is still retrieve; the difference is **deterministic neighbourhood vs scored chunks**, not “not retrieve.” Wrong \(q\) plus \(M=50\) is Huang’s failure mode: extra rows **hurt acting**. Huang is evidence *for* clamping \(M\), and a **falsifier** if agents pin contains-parents or a stale `TSK`.
+
+**5. Named handle ≠ shaped emit.** OpenHands has `ConversationState` / event ids; Inspect checkpoints `messages`; Letta has `agentId` + MemFS. They **do** pass a name. What they lack is **Write = display**: the next generate is a **shaped subgraph**, not the conversation object. Saying “none ship a session id” is a category error. Say: none ship **shaped emit as the goldfish read**.
+
+**6. Letta is closer than the table says.** `system/` files always in the prompt, edit tools, working vs remote MemFS — that *is* a working set with a cabinet. Alphabet is markdown, join is `str_replace`, not gated GQL. Substrate uniqueness is **overclaimed**; the steal (working vs archival, explicit edit) is **underclaimed**. If MemNet cannot beat a small named file in the system prompt on MN-REQ-00, the graph is ceremony.
+
+**7. Inspect must keep a transcript.** Eval scoring and compaction science **require** a reconstructable chat. Replacing SSOT with \(S\) without dual-logging breaks the unit of analysis. Inspect *should* treat MemNet as a tool, not as the log. Do not sell “chat is never SSOT” into an eval harness without a second tape.
+
+**8. Condenser spend can be the right spend.** `LLMSummarizingCondenser` HARD-on-tokens is the same 8k alarm with a different operator. When events are unstructured, summarise is the only compression. Criterion: **if a named ego exists, Shape; if not, do not invent nodes — summarise or skip.** Fusing summarise into `pin_map` stays forbidden. Pretending summarise is always a law violation is false.
+
+**What still stands.** Chat-as-SSOT still fails **peer re-read** and **mission names**. RAG still solves a **library** haystack. None of these repos implement goldfish **replace history with \(\tilde{X}\)**. The thesis is a **caller contract** the outer harness has not signed. Adoption, cache pricing, and the env-blob channel are leftover; they are not solved by GQL wire.
+
+Confucius Code Agent (2025) and OpenHands leaderboard commentary repeat the same moral as Huang: **orchestration and memory handling close gaps** that a stronger backbone alone does not. None of those scaffolds ship **shaped emit** (`pin_map`) as the peer goldfish read.
 
 **Repo homograph (do not confuse).** `tests/grammar/` golden **harness** = codec fixtures. Product teach is GQL (`ADR-001`).
 
@@ -200,3 +224,6 @@ Doctrine (this repo): [`../SHAPE.md`](../SHAPE.md), [`math-skeleton.md`](math-sk
 - Optional one-sentence pointer from [`../SHAPE.md`](../SHAPE.md) §1 **if** this thesis is accepted (“MemNet is the harness memory plane”).
 - Do not close live Neo4j or HostSearch from this file.
 - Do not rename the grammar **golden harness** — keep the homograph documented.
+- Price **prompt-cache dump** vs Shape+Flash (MN-REQ-00). Unmeasured.
+- Goldfish **caller**: drop old `pin_map` rows from the chat list. Unshipped in §3.1 harnesses.
+- Keep **env blob** (test logs, screenshots) out of \(S\); do not condenser-replace it with GQL theatre.
