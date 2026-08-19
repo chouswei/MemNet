@@ -235,10 +235,12 @@ package MemNetCousinContrast {
       Thin contrast nest on the identity / Recall story. States chosen
       TARGET pointing; places each cousin as an alternative. TARGET
       impact: copy cue-without-store-key and neighbourhood emit. SHALL
-      NOT copy engines, unique-name MERGE as identity, content-hash ids,
+      NOT copy engines, unique-name MERGE as identity, silent LLM merge
+      of same-name nodes into the store, content-hash ids,
       typed path-ids, or vector indexes as identity. Open hard part (no
       third operator): a cue may hit several relative roots; RelativeSeed
-      stays bounded (LIMIT L) and honest when |Q| > 1. Cousins confirm
+      stays bounded (LIMIT L) and honest when |Q| > 1; find / pin_map
+      emit CueConflict rather than silently picking one root. Cousins confirm
       TARGET; they do not force a store-key back onto the wire. GraphLite
       is a cabinet, not the product. Logseq pages are the closest
       name-you-have cousin; SiYuan / NL2GQL are the leftover-id path.
@@ -256,6 +258,7 @@ package MemNetCousinContrast {
     attribute mustNotCopyGqlEngine : Boolean = true;
     attribute mustNotCopyContentHashIdentity : Boolean = true;
     attribute mustNotCopyUniqueNameMergeAsIdentity : Boolean = true;
+    attribute mustNotCopySilentLlmSameNameMerge : Boolean = true;
     attribute mustNotCopyTypedPathIdsAsAgentLanguage : Boolean = true;
     attribute mustNotCopyVectorIndexAsIdentity : Boolean = true;
     attribute operatorCountUnchanged : Integer = 2;
@@ -275,6 +278,7 @@ package MemNetCousinContrast {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
   }
 
   part cousinPointing : CousinPointingContrast;

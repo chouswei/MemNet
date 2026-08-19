@@ -23,7 +23,8 @@ package MemNetConnections {
       search corpus and not GraphRAG. Goldfish pins topic egos, Shapes
       slices (pin_map), Commits Δ; host Snap locators also via MutateGate.
       MUST NOT ANN-index the session. MUST NOT call goldfish writeback
-      Absorb (Path-B ImportAbsorb only). Realised by AgentMemory +
+      Absorb (Path-B ImportAbsorb only). SameThingAbsorb is a distinct
+      in-session Commit rule, not that writeback naming. Realised by AgentMemory +
       SessionLifecycle in deploy — not by chat and not by direct LLM
       access to the durable store.
     */
@@ -289,6 +290,8 @@ package MemNetConnections {
       openCypher-family graph text (nodes + relationships), produced by a
       pin_map-class tool that wraps GQL internally. Primary goldfish read.
       SHALL NOT be a raw tabular MATCH/RETURN dump. ShapeWalk emit of X̃.
+      When |Q| > 1 the emit SHALL carry CueConflict (Q listed,
+      cardinality visible). SHALL NOT silently pick one root.
     */
   }
 
@@ -315,6 +318,23 @@ package MemNetConnections {
     */
     attribute seedsAreGraphElements : Boolean = true;
     attribute isAssignedIdMap : Boolean = false;
+    attribute listAllRoots : Boolean = true;
+    attribute cardinalityVisible : Boolean = true;
+    attribute silentPickOne : Boolean = false;
+  }
+
+  item def CueConflictMark {
+    doc /*
+      Payload mark on the existing find / pin_map shaped emit when a cue
+      yields |Q| > 1. See MemNet::CueConflict. NOT a product command.
+    */
+    attribute qListed : Boolean = true;
+    attribute cardinalityVisible : Boolean = true;
+    attribute silentPickOneRoot : Boolean = false;
+    attribute productCommand : Boolean = false;
+    attribute usualCaseSharedName : Boolean = true;
+    attribute anySharedCue : Boolean = true;
+    attribute differentWorldThingsStayTwoRoots : Boolean = true;
   }
 
   item def EmptySkip {

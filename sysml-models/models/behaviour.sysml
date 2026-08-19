@@ -26,6 +26,12 @@ package MemNetBehaviour {
   attribute def EvSeedReady {
     doc /* RelativeSeed produced non-empty Q of graph elements. */
   }
+  attribute def EvCueConflict {
+    doc /*
+      Recall shaped emit when |Q| > 1: Q listed, cardinality visible,
+      CueConflict mark. SHALL NOT pick one root. Not a product command.
+    */
+  }
   attribute def EvEmptySeedSkip {
     doc /* Empty Q: skip ShapeWalk; do not invent a node. */
   }
@@ -48,7 +54,9 @@ package MemNetBehaviour {
       add/update become one Commit of GQL (TARGET). GraphElement identity;
       CREATE () legal. leftover_NEW_mint / AssignedIdMap is 0.9 leftover
       engine, not a TARGET product verb. Goldfish OUT: sparse Δ (MUST NOT echo
-      the fetched slice; not ImportAbsorb). Ingest locators are
+      the fetched slice; not ImportAbsorb). SameThingAbsorb MAY run as a
+      Commit rule after the agent sees CueConflict on find / pin_map emit
+      — not inside Recall. Ingest locators are
       properties, not leftover_ingestIsIdRule TARGET. Layer / Tier A
       accept retired (ADR-001 M2).
     */
@@ -73,6 +81,13 @@ package MemNetBehaviour {
   }
   attribute def EvCommitOk {
     doc /* GraphStore create/replace succeeded. */
+  }
+  attribute def EvSameThingAbsorb {
+    doc /*
+      Agent-gated Commit collapse of two live elements judged the same
+      world-thing. Pattern match labels+properties. Not Recall. Distinct
+      from ImportAbsorb. Same name is a candidate only.
+    */
   }
   attribute def EvPinMapSelect {
     doc /* Begin selective pin projection (MN-REQ-11). */
@@ -353,7 +368,10 @@ package MemNetBehaviour {
       then seeding;
 
     state seeding {
-      doc /* RelativeSeed MATCH_L → Q of graph elements (not store-key ids). */
+      doc /*
+        RelativeSeed MATCH_L → Q of graph elements (not store-key ids).
+        SHALL emit Q honestly when |Q| > 1. SHALL NOT absorb.
+      */
     }
     transition seed_to_walk
       first seeding
@@ -369,11 +387,18 @@ package MemNetBehaviour {
       then awaitingCue;
 
     state walking {
-      doc /* ShapeWalk k-hop from Q under one M; leftover require_anchor not TARGET. */
+      doc /*
+        ShapeWalk k-hop from Q under one M; leftover require_anchor not TARGET.
+        |Q| > 1 carries CueConflict on the emit.
+      */
     }
     transition walk_to_present
       first walking
       accept EvShapeWalk
+      then presenting;
+    transition walk_cue_conflict
+      first walking
+      accept EvCueConflict
       then presenting;
     transition walk_via_pin_map
       first walking
@@ -385,11 +410,19 @@ package MemNetBehaviour {
       then awaitingCue;
 
     state presenting {
-      doc /* LLM sees X̃ (shaped subgraph); may reason. */
+      doc /*
+        LLM sees X̃ (shaped subgraph); may reason. Same-name hits are
+        candidates pointed out as CueConflict (two roots, not one merged
+        node); agent MAY later Commit SameThingAbsorb.
+      */
     }
     transition present_to_commit
       first presenting
       accept EvMutateGraph
+      then applyingMutate;
+    transition present_to_same_thing
+      first presenting
+      accept EvSameThingAbsorb
       then applyingMutate;
     transition present_to_settle_only
       first presenting
@@ -405,7 +438,10 @@ package MemNetBehaviour {
       then awaitingCue;
 
     state applyingMutate {
-      doc /* TARGET Commit (no NEW). leftover MutateWithNew is leftover 0.9. */
+      doc /*
+        TARGET Commit (no NEW). leftover MutateWithNew is leftover 0.9.
+        SameThingAbsorb is a Commit rule here, not Recall.
+      */
     }
     transition mutate_to_settle
       first applyingMutate
