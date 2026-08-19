@@ -10,7 +10,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 1. **MemNet = mission working memory** — session-scoped NODE|EDGE buffer (brand SharedLlmMemory); **not** the search corpus, **not** GraphRAG. In-session recall = serial cue then `pin_map`; host RAG may propose locators only.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
-3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5 / 0.7** live hydrate/flush proven; cabinet external / not vendored. LLM↔store direct out of teach.
+3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter + Neo4jAdapter) — **M2.5 / 0.7** Agens live hydrate/flush proven; Neo4j client landed / `liveNeo4jClaimed=false`; cabinets external / not vendored. LLM↔store direct (Bolt) out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
@@ -53,8 +53,9 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   └── TcpServeBridge
 │   └── CliFacade                            // LLM <-> MemNet (GQL)
 ├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
-├── DurableBuffer                            // M2.5 / 0.7 live proven; cabinet external
-│   └── AgensGraphAdapter                    // hydrate/flush client; cabinet external
+├── DurableBuffer                            // M2.5 / 0.7 Agens live proven; cabinet external
+│   ├── AgensGraphAdapter                    // hydrate/flush client; liveCabinetClaimed=true
+│   └── Neo4jAdapter                         // same seam; implemented; liveNeo4jClaimed=false
 ├── PinMapRoadmap                            // all PinMapIngest_* domains shipped (#64)
 │   ├── PinMapIngest_Sysml                  // first engine (qname=/path=)
 │   ├── PinMapIngest_Codebase               // MOD/SYM (path=/line=/signature=)
@@ -82,7 +83,7 @@ MemNetSystem                                 // SharedLlmMemory product
 
 - **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
-- **DurableBuffer:** AgensGraphAdapter **client** + 0.7 live hydrate/flush; cabinet external / not vendored
+- **DurableBuffer:** AgensGraphAdapter **client** + 0.7 live hydrate/flush; Neo4jAdapter **client** (`liveNeo4jClaimed=false`); cabinets external / not vendored
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). Export/round-trip (#66) not claimed.
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard

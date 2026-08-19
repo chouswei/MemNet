@@ -16,7 +16,7 @@ MemNet is **mission working memory** — named session \(S\), bounded Recall Sha
 | MUST | MUST NOT |
 |------|----------|
 | `session_open` with `SCHEMA` covering every kind you mutate (`map_file` / `map_lines`) | Game `schema.example.txt` unless that *is* the domain |
-| Cue then `pin_map`; skip if the seed is empty | Dump \(S\); `query_warm` as primary; ANN / `rag_query` of \(S\) |
+| Cue then `pin_map`; skip if the seed is empty | Dump \(S\); `query_warm` as primary; ANN / `rag_query` of \(S\); Neo4j/Bolt as goldfish |
 | `id:'NEW'` for goldfish creates; copy minted ids | Client `NEW` or invented ids on Path-B ingest / locator pins |
 | MCP tool arg **`session`** | Tool arg `session_id` (JSON envelope may still *return* `session_id`) |
 | In-process MCP for a single agent | In-process MCP under Multitask (use TCP / streamable-http) |

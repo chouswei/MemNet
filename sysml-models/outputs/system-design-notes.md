@@ -14,7 +14,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 / **0.7** live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; one sync owner). Cabinet external / not vendored.
+3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j client not live-claimed; one sync owner). Cabinets external / not vendored.
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). `keep` = MERGE-by-id upsert into lead SSOT (not append). Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -70,7 +70,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   └── TcpServeBridge
 │   └── CliFacade
 ├── MemNetMcpServer
-├── DurableBuffer → AgensGraphAdapter        // M2.5 client landed; live cabinet external
+├── DurableBuffer → AgensGraphAdapter + Neo4jAdapter  // M2.5; Agens live; Neo4j client unclaimed
 ├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead
@@ -147,7 +147,7 @@ reserve and Path-B ingest are **shipped**.
 | SessionHandoffFlow | Coordinator → Worker | Target |
 | WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
 | ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
-| DurableHydrate/FlushFlow | AgensGraphAdapter ↔ SessionLifecycle | M2.5 client landed; live cabinet external |
+| DurableHydrate/FlushFlow | DurableBuffer adapters ↔ SessionLifecycle | M2.5; Agens live; Neo4j client unclaimed |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)
@@ -163,6 +163,7 @@ reserve and Path-B ingest are **shipped**.
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); ingest/absorb are id-mint rules; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
 | AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
+| Neo4jAdapter | `memnet.durable` (optional Neo4j client) | Client landed; `liveNeo4jClaimed=false` |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 

@@ -153,12 +153,13 @@ package MemNetConnections {
 
   item def DurableGraphStore {
     doc /*
-      Online durable property-graph store (AgensGraph-class) behind MemNet.
-      Hydrate into / flush from the live session via the M2.5 client adapter
-      seam (DurableStoreAdapter / Fake / optional AgensGraph client;
-      SessionLifecycle hydrate/flush). Live cabinet is external — not
-      vendored; 0.7 hydrate/flush proven. LLM ↔ store direct is out of
-      default teach. MN-REQ-06.4.
+      Online durable property-graph store (AgensGraph-class or Neo4j-class)
+      behind MemNet. Hydrate into / flush from the live session via the
+      M2.5 client adapter seam (DurableStoreAdapter / Fake / optional
+      AgensGraph client with liveCabinetClaimed; optional Neo4j client
+      with liveNeo4jClaimed=false; SessionLifecycle hydrate/flush). Live
+      cabinet is external — not vendored. LLM ↔ store direct (including
+      Bolt) is out of default teach. One sync owner. MN-REQ-06.4.
     */
   }
 
