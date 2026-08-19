@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Later = Peak_L / N-server / hosted cabinet. Host Snap locators = extra **0.17** (`RagHostHook` outside `MemNetSystem`).
+**Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Extra **0.17** = Host Snap locators (`RagHostHook` outside `MemNetSystem`). Extra **0.18** = Peak_L last-resort cue. Later = N-server / hosted cabinet.
 **Audience:** product developers. **British English.**  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](memnet-session-strata.md). Thesis: [`memnet-harness-thesis.md`](memnet-harness-thesis.md).
@@ -14,7 +14,7 @@ Do **not** train an IB, run a Steiner solver, or ANN-index the session because a
 | Symbol | Meaning |
 |--------|---------|
 | \(S\) | One **named session**: labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). Rate cap \(R\) (rows / bytes). Handle = session id. |
-| \(q\) | Discrete **codebook token**: kind / primary label \(\cup\) properties (locators as properties) \(\cup\) keyword \(\cup\) optional nickname `id` if already set. NOT store-key id, elementId/handle, prose/embedding sentence. Topology (\(\mathrm{Peak}_L\)) is Later, not empty \(q\). |
+| \(q\) | Discrete **codebook token**: kind / primary label \(\cup\) properties (locators as properties) \(\cup\) keyword \(\cup\) optional nickname `id` if already set. NOT store-key id, elementId/handle, prose/embedding sentence. Topology (\(\mathrm{Peak}_L\)) is last-resort on codebook miss (0.18), not empty \(q\). |
 | \(\tilde{X}\) | **Recall Shape** — bounded neighbourhood of **this** \(S\) given \(q\). |
 | \(\Delta\) | Sparse mutate batch (same GQL family as the emit). |
 | \(M\) | Goldfish row cap (`max_rows`, default **50**). **One** \(M\) per Shape, not \(M\times|Q|\). |
@@ -74,13 +74,13 @@ Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memne
 \mathrm{seed}(q,S)=\begin{cases}
 \mathrm{MATCH}_{L}(q,S) & q \text{ is labels + properties + keyword (hard LIMIT } L\text{); } Q \text{ = relative nodes}\\
 \{q\} & \text{leftover 0.9: optional nickname / by\_id copied id (not TARGET; not a store key)}\\
-\mathrm{Peak}_{L}(S) & q \text{ is the topology cue (Later; note 23)}
+\mathrm{Peak}_{L}(S) & q \text{ is a non-empty codebook miss (MATCH}_L\text{ empty; 0.18 last resort)}
 \end{cases}
 \]
 
-Empty seed \(\Rightarrow\) **skip** (do not invent a node). \(Q\) elements **are** the walk roots. Prefer MATCH_L on live `TSK` kind before topology. \(\mathrm{Peak}_L\) is not default.
+Empty seed \(\Rightarrow\) **skip** (do not invent a node). Empty \(q\) \(\Rightarrow\) **session outline**, not \(\mathrm{Peak}_L\). \(Q\) elements **are** the walk roots. Prefer MATCH_L on live `TSK` kind before topology. \(\mathrm{Peak}_L\) is not default goldfish.
 
-**Peak (Later, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. If a topology cue is still wanted: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](memnet-session-strata.md)).
+**Peak (0.18 extra, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. Topology cue on codebook miss: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](memnet-session-strata.md)). **MUST NOT** be default goldfish.
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop from seed set \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) — **one** \(M\), not \(M\times|Q|\). Hide recycled. Emit the **same** shaped GQL family as mutate — not tabular `RETURN`.
 
@@ -148,7 +148,7 @@ Orthodox = these as a **base to build from**. **All** examination and test is pa
 | **Shape vs Snap** | Host Snap compresses the corpus; Recall Shape compresses **one** \(S\). Model Snap partitions a model into sessions. Do not embed \(S\). |
 | **Slice I/O** | Goldfish in = \(\tilde{X}\); out = sparse \(\Delta\) via Commit. One \(M\); pin live `TSK` first. |
 | **Strata** | Many \(S_i\); goldfish one; join Absorb a slice. Catalog is codebook of session ids. |
-| **Local degree peak** (Later, last) | Typed residual local max of \(\rho^\*\) **inside one \(S\)**. Not raw `contains`-tree degree; not a nest fix. |
+| **Local degree peak** (0.18 extra, last) | Typed residual local max of \(\rho^\*\) **inside one \(S\)**. Not raw `contains`-tree degree; not a nest fix. Not default goldfish. |
 
 Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 

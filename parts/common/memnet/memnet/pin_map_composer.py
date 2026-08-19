@@ -6,6 +6,9 @@ Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
 
 Empty cue is session outline (0.11): kinds + LIMIT exemplars of S. ``view=shell``
 without a seed is still that census, not a 1-hop of the session.
+
+Non-empty codebook miss (tokens present, MATCH_L empty) is Peak_L last-resort
+residual cue (0.18), then ShapeWalk — not outline, not default goldfish.
 """
 
 from __future__ import annotations
@@ -218,7 +221,20 @@ class PinMapComposer:
                 text = emit_cue_conflict(found.seeds, cardinality=found.total, store=self.ss.store)
                 return found.seeds, text
             if not Q:
-                return [], ""
+                # Last-resort Peak_L: non-empty codebook miss, not empty-q outline.
+                from memnet.peak_l import peak_l
+
+                peaks, npeak = peak_l(
+                    self.ss.store,
+                    limit=limit or max(1, max_rows),
+                    active_only=active_only,
+                )
+                if npeak > 1:
+                    text = emit_cue_conflict(peaks, cardinality=npeak, store=self.ss.store)
+                    return peaks, text
+                if not peaks:
+                    return [], ""
+                Q = list(peaks)
             seed_ids = [r.hid for r in Q]
         elif leftover_nicks:
             seen_h: set[str] = set()

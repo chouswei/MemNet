@@ -142,7 +142,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 
 ## Live pin map (MN-REQ-04)
 
-Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` from a cue) when the seed is non-empty. leftover `--anchor` is leftover. A dark session with empty q is **outline** (Recall census of S: kinds + LIMIT exemplars) — not a neighbourhood, not leftover skip, not `view=shell`. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. When \(|Q|>1\), CueConflict. Both seeds and the outline are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
+Turn-facing agent payload = **shaped subgraph** via **PinMapShapedRead** (`pin_map` from a cue) when the seed is non-empty. leftover `--anchor` is leftover. A dark session with empty q is **outline** (Recall census of S: kinds + LIMIT exemplars) — not a neighbourhood, not leftover skip, not `view=shell`, not Peak_L. A **non-empty codebook miss** last-resorts **Peak_L** (\(\rho^*\) residual local max) then ShapeWalk — never default goldfish. Sibling **BoundedMatchFind** (MN-REQ-04.6) is shipped as seed-only `query find` / MCP `find` (`implemented=true`; #73) — not a k-hop walk; do not teach MATCH…RETURN as goldfish. When \(|Q|>1\), CueConflict. MATCH_L, Peak_L, outline, and ShapeWalk are one **Recall** operator ([`docs/grammar/math-skeleton.md`](../docs/grammar/math-skeleton.md)).
 
 ## Property-graph ontology (first-class)
 

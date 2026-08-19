@@ -54,13 +54,19 @@ package MemNetBehaviour {
       node, dump edges, absorb, or treat view=shell as this census.
     */
   }
+  attribute def EvPeakL {
+    doc /*
+      Last-resort residual Peak_L cue after a non-empty codebook miss.
+      Not empty-q outline. Not default goldfish. Not a third operator.
+    */
+  }
   attribute def EvShapeWalk {
     doc /* ShapeWalk k-hop from Q under one M; emit shaped subgraph. */
   }
   attribute def EvPinMapRead {
     doc /*
       Fetch shaped pin_map (Recall = RelativeSeed then ShapeWalk, or
-      empty-q SessionOutline). SHALL NOT require a store-key --anchor
+      empty-q SessionOutline, or Peak_L last-resort on codebook miss). SHALL NOT require a store-key --anchor
       (leftover_require_anchor is leftover engine). Goldfish IN: X̃ from
       Q, or outline census when q is empty. Same Recall operator as
       BoundedMatchFind MATCH_L. Legacy alias: query_warm.
@@ -405,7 +411,8 @@ package MemNetBehaviour {
       TARGET goldfish: cue q → RelativeSeed → ShapeWalk → LLM sees X̃ →
       sparse Commit Δ (CREATE () legal; MERGE by labels+props; no NEW
       as TARGET). Empty q → SessionOutline census of S, then the agent
-      picks a seen cue and pin_maps. leftover MutateWithNew is leftover
+      picks a seen cue and pin_maps. Codebook miss → Peak_L last-resort
+      then ShapeWalk (never default goldfish). leftover MutateWithNew is leftover
       0.9 only. leftover EvEmptySeedSkip is leftover 0.10 only.
     */
     entry;
@@ -441,12 +448,39 @@ package MemNetBehaviour {
       first seeding
       accept EvEmptySeedSkip
       then awaitingCue;
+    transition seed_miss_to_peak
+      first seeding
+      accept EvPeakL
+      then peaking;
     transition seed_empty_to_outline
       first seeding
       accept EvEmptyCue
       then outlining;
     transition seed_error
       first seeding
+      accept EvError
+      then awaitingCue;
+
+    state peaking {
+      doc /*
+        Peak_L typed residual local max of ρ* inside one S after MATCH_L
+        miss. Not outline. Not default goldfish. Two peaks → CueConflict.
+      */
+    }
+    transition peak_to_walk
+      first peaking
+      accept EvSeedReady
+      then walking;
+    transition peak_cue_conflict
+      first peaking
+      accept EvCueConflict
+      then presenting;
+    transition peak_empty_skip
+      first peaking
+      accept EvEmptySeedSkip
+      then awaitingCue;
+    transition peak_error
+      first peaking
       accept EvError
       then awaitingCue;
 

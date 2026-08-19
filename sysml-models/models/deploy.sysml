@@ -14,7 +14,8 @@
     │       ├── GqlWire             // 1.x primary codec (openCypher-shaped)
     │       ├── RecallCommit        // 0.5 cut: TWO operators only
     │       │   ├── Recall          // TWO-operator child: seed then Shape
-    │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; not a third op
+    │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; Peak_L last-resort cue
+    │       │   │   │     └── Peak_L     // ρ* residual local max; never default goldfish
     │       │   │   ├── SessionOutline   // empty q = census of S (0.11 TARGET)
     │       │   │   └── AgentShapedRead
     │       │   │       ├── RelativeSeed + ShapeWalk  // seedToWalk: Q → k-hop
@@ -472,7 +473,9 @@ package MemNet {
       set Q of graph elements (relative nodes). Those Q elements ARE
       the walk roots. Empty token / empty q ⇒ SessionOutline (census
       of S); inventOnEmpty=false. leftover_empty_seed_skip is leftover
-      0.10, not TARGET. Peak_L is Later, not this mechanism. leftover 0.9:
+      0.10, not TARGET. Peak_L is a last-resort residual cue (0.18) when
+      MATCH_L is empty and q is a non-empty codebook token — not a third
+      operator, not empty-q outline, not default goldfish. leftover 0.9:
       seed = {node id}; copy find id then pin_map(anchor=id); require_anchor.
       BoundedMatchFind / CmdFind realize this part.
       SHALL emit Q honestly when |Q| > 1. SHALL NOT absorb, SHALL NOT
@@ -493,6 +496,7 @@ package MemNet {
     attribute emptySeedSkip : Boolean = false;
     attribute emptyCueIsOutline : Boolean = true;
     attribute peakLDefault : Boolean = false;
+    attribute defaultGoldfish : Boolean = false;
     attribute leftoverCopiedIdThenAnchor : Boolean = false;
     attribute leftoverIssue : String = "copy-id-anchor";
     attribute queryIsTokens : Boolean = true;
@@ -509,6 +513,7 @@ package MemNet {
     attribute emitQHonestWhenMulti : Boolean = true;
     attribute silentPickOneRoot : Boolean = false;
     part leftoverEmptySkip : leftover_empty_seed_skip;
+    part peak : Peak_L;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
@@ -516,6 +521,49 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
+  }
+
+  part def Peak_L {
+    doc /*
+      Last-resort residual topology cue under RelativeSeed — not a third
+      operator. Fires only when codebook tokens are present and MATCH_L
+      is empty. Empty q stays SessionOutline (0.11). ρ* = incident edges
+      except hierarchical contains (hide recycled); Peak_L is the typed
+      residual local max of ρ* inside one S. Not raw contains-tree
+      degree. Not a nest fix. CueConflict if two peaks / two roots.
+      SHALL NOT absorb in Recall. SHALL NOT silent MERGE-by-name.
+      defaultGoldfish=false. MUST NOT density-peak cluster assignment,
+      Leiden from peaks, or global top-k degree as goldfish.
+      As-is: memnet.peak_l.peak_l (0.18 extra; package stays 0.9.0).
+    */
+    port cueIn : CueInPort;
+    port seedOut : SeedSetOutPort;
+    port emptySkip : EmptySkipOutPort;
+    attribute implemented : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+    attribute lastResort : Boolean = true;
+    attribute codebookMissOnly : Boolean = true;
+    attribute emptyQIsOutline : Boolean = true;
+    attribute defaultGoldfish : Boolean = false;
+    attribute residualRhoStar : Boolean = true;
+    attribute notRawContainsDegree : Boolean = true;
+    attribute notNestFix : Boolean = true;
+    attribute notDensityPeakCluster : Boolean = true;
+    attribute notLeidenFromPeaks : Boolean = true;
+    attribute notGlobalTopKDegree : Boolean = true;
+    attribute cueConflictOnTwoPeaks : Boolean = true;
+    attribute absorbs : Boolean = false;
+    attribute silentMergeByName : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
+    part cueConflict : CueConflict;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
   }
 
   part def SessionOutline {
@@ -640,9 +688,11 @@ package MemNet {
     attribute goldfishBudgetTimesAnchors : Boolean = false;
     attribute emptyCueIsOutline : Boolean = true;
     attribute viewShellIsOutline : Boolean = false;
+    attribute defaultGoldfish : Boolean = false;
     part leftover_require_anchor : leftover_require_anchor;
     part walk : ShapeWalk;
     part outline : SessionOutline;
+    part peak : Peak_L;
     part caps : CapsPolicy;
     part cueConflict : CueConflict;
 
@@ -655,6 +705,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
@@ -703,9 +754,10 @@ package MemNet {
     doc /*
       Honesty nest under Recall so pin_map shipped cannot be misread as
       find shipped.       Mechanism: RelativeSeed (Q) → seedToWalk → ShapeWalk
-      (X̃); empty q → SessionOutline (census of S). Children:
-      PinMapShapedRead realizes ShapeWalk and empty-q outline;
-      BoundedMatchFind realizes RelativeSeed. Parent has no single
+      (X̃); empty q → SessionOutline (census of S); codebook miss →
+      Peak_L last-resort then ShapeWalk (never default goldfish). Children:
+      PinMapShapedRead realizes ShapeWalk, empty-q outline, and Peak_L;
+      BoundedMatchFind realizes RelativeSeed MATCH_L (not Peak). Parent has no single
       implemented=true — that flag lives on children only.
       WalkQuery remains a sibling under SessionLifecycle.
       MUST NOT add a third operator beside Recall and Commit.
@@ -718,6 +770,7 @@ package MemNet {
     part seed : RelativeSeed;
     part walk : ShapeWalk;
     part outline : SessionOutline;
+    part peak : Peak_L;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
     connection seedToWalk : SeedSetFlow {
@@ -755,7 +808,8 @@ package MemNet {
     doc /*
       Emit mark on the existing find / pin_map shaped subgraph when a
       cue yields |Q| > 1. Usual case: shared name. Any shared cue with
-      several roots is the same signal. Q listed; cardinality visible.
+      several roots is the same signal — including two Peak_L residual
+      local maxima. Q listed; cardinality visible.
       SHALL NOT silently pick one root. Two different world-things that
       share a name stay two roots. NOT a product command (no
       name_conflict / merge / absorb tool). Not a third operator.
@@ -820,11 +874,13 @@ package MemNet {
     doc /*
       Operator Recall(q) over session graph S (MN-REQ-13). ONE operator:
       RelativeSeed then ShapeWalk. Cue q is labels + properties + keyword
-      (optional nickname id if already set; Peak_L Later — not a third
-      operator). seed(q,S) = MATCH_L → Q of graph elements; empty q ⇒
-      SessionOutline census of S (inventOnEmpty=false; leftover skip is
-      leftover_empty_seed_skip). Reconstruct X̃ = k-hop from Q (|Q|≤L)
-      under ONE M. Hide recycled. Goldfish IN = that slice (or the
+      (optional nickname id if already set). Peak_L is a last-resort
+      residual cue when MATCH_L misses a non-empty codebook token — not a
+      third operator and not default goldfish. seed(q,S) = MATCH_L → Q of
+      graph elements; empty q ⇒ SessionOutline census of S
+      (inventOnEmpty=false; leftover skip is leftover_empty_seed_skip);
+      codebook miss ⇒ Peak_L then ShapeWalk. Reconstruct X̃ = k-hop from Q
+      (|Q|≤L) under ONE M. Hide recycled. Goldfish IN = that slice (or the
       outline census when q is empty).
       leftover 0.9 copy-id then require_anchor is leftover, not TARGET.
       Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
@@ -853,6 +909,7 @@ package MemNet {
     attribute cueConflictOnMultiRoot : Boolean = true;
     part seed : RelativeSeed;
     part outline : SessionOutline;
+    part peak : Peak_L;
     part leftoverEmptySkip : leftover_empty_seed_skip;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
@@ -867,6 +924,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 

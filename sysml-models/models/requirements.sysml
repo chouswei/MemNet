@@ -16,6 +16,8 @@
                        on find/pin_map emit; same name is a candidate only
     MN-REQ-04.9        Empty-q session outline: Recall census of S (kinds +
                        LIMIT exemplars); leftover empty-seed skip not TARGET
+    MN-REQ-04.10       Peak_L last-resort residual cue on codebook miss;
+                       never default goldfish
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -438,11 +440,13 @@ package MemNetRequirements {
           empty-seed skip remains leftover_* (productCommand=false; not
           TARGET). ShapeWalk SHALL walk k hops from Q under one M (not
           M×|Q|), hide recycled, and emit a shaped subgraph. SHALL NOT
-          require a store-key anchor. Peak_L is Later, not this mechanism.
-          leftover 0.9 require_anchor / by_id / copied-id is leftover,
-          not TARGET law. BoundedMatchFind / CmdFind realize RelativeSeed;
-          PinMapShapedRead / CmdPinMap realize ShapeWalk (and empty-q
-          outline). Still ONE Recall operator (MN-REQ-13.1).
+          require a store-key anchor. Peak_L is a last-resort residual
+          cue on codebook miss (MN-REQ-04.10), not this MATCH_L mechanism
+          and not default goldfish. leftover 0.9 require_anchor / by_id /
+          copied-id is leftover, not TARGET law. BoundedMatchFind / CmdFind
+          realize RelativeSeed; PinMapShapedRead / CmdPinMap realize
+          ShapeWalk (and empty-q outline). Peak_L nests under RelativeSeed.
+          Still ONE Recall operator (MN-REQ-13.1).
         */
         attribute requirementId : String = "MN-REQ-04.7";
       }
@@ -495,6 +499,25 @@ package MemNetRequirements {
           revive Layer; flip liveNeo4jClaimed.
         */
         attribute requirementId : String = "MN-REQ-04.9";
+      }
+
+      requirement def MN_REQ_04_10_PeakLLastResort {
+        doc /*
+          Peak_L is a cue under RelativeSeed, not a third operator.
+          When seed MATCH_L is empty and q is a non-empty codebook token
+          (kind / props / keyword present, no hit), Recall SHALL seed from
+          the typed residual local max of ρ* inside one S (incident edges
+          except hierarchical contains; hide recycled), then ShapeWalk as
+          usual. Empty q SHALL remain session outline (MN-REQ-04.9) —
+          Peak_L SHALL NOT hijack outline. Peak_L SHALL NOT be default
+          goldfish (defaultGoldfish=false). SHALL NOT use raw contains-tree
+          degree, density-peak cluster assignment, Leiden from peaks, or
+          global top-k degree as goldfish. SHALL NOT be a nest fix.
+          Two peaks / two roots SHALL CueConflict (MN-REQ-04.8); SHALL NOT
+          absorb in Recall; SHALL NOT silent MERGE-by-name. Hidden handle
+          stays off the wire. operatorCount stays 2.
+        */
+        attribute requirementId : String = "MN-REQ-04.10";
       }
     }
 
@@ -1464,6 +1487,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
   requirement sessionOutlineEmptyCueReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+  requirement peakLLastResortReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1680,6 +1705,7 @@ package MemNetRequirements {
     end #derive ::> relativeSeedThenShapeWalkReq;
     end #derive ::> cueMultiRootHonestReq;
     end #derive ::> sessionOutlineEmptyCueReq;
+    end #derive ::> peakLLastResortReq;
   }
 
   #derivation connection deriveHardCapsLeaves {
@@ -1791,6 +1817,12 @@ package MemNetRequirements {
     end #original ::> relativeSeedThenShapeWalkReq;
     end #original ::> twoOperatorsReq;
     end #derive ::> sessionOutlineEmptyCueReq;
+  }
+
+  #derivation connection derivePeakFromRecallHonesty {
+    end #original ::> relativeSeedThenShapeWalkReq;
+    end #original ::> twoOperatorsReq;
+    end #derive ::> peakLLastResortReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {

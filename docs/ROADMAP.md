@@ -6,7 +6,7 @@
 
 **Package now:** Hatch **0.9.0** (Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`; extra **0.16** two namespaces; extra **0.17** HostSearch locators). **PyPI `memnet-llm` is still 0.4.6.**
 
-**Last updated:** 2026-08-19 (extra **0.17** HostSearch locators; extra **0.16** two Neo4j namespaces; **0.14** live Neo4j claimed; catalog Snap **0.15** on master #124 @ 7767ed84; pin-map export **0.19**; package stays 0.9.0).
+**Last updated:** 2026-08-19 (extra **0.18** Peak_L last-resort this cut; extra **0.17** HostSearch locators on master #129 @ 00e74dfb; extra **0.16** two Neo4j namespaces; **0.14** live Neo4j claimed; catalog Snap **0.15** on master #124 @ 7767ed84; pin-map export **0.19**; package stays 0.9.0).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -106,8 +106,8 @@ One concern per minor. Dependency order. **MUST NOT** treat this table as implem
 | **0.14.0** | **Live Neo4j claimed** (old 0.11). **Done this cut** (untagged; package stays 0.9.0). Operator proof rpi5-syson @ d23cc71: `live_round_trip` yes; hid flush; leftover-nickname hydrate after hid miss. `liveNeo4jClaimed=true`. Skip unless `MEMNET_NEO4J_URL`. Hid stays off the wire. | 0.10 identity (else live claim cements leftover_MERGE_by_id) | Vendor Neo4j server; LLM↔Bolt; second database name (0.16); claim hydrate-by-hid proven on live |
 | **0.15.0** | **Catalog Snap** + session strata + model Snap (old 0.12). **On master** (#124 @ 7767ed84). [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md). Catalog cut's own fence: that extra does not own `liveNeo4jClaimed`. | ImportAbsorb pattern match (0.10); ingest locators as props | ANN rank sessions; Absorb whole \(S\); Layer; one session per REQ |
 | **0.16.0** | **Two Neo4j namespaces** (old 0.13). **Done this cut** (untagged; package stays 0.9.0). Same process; cabinet vs library. Library port emits **locators only**, never `generate`. Skip library unless `MEMNET_NEO4J_LIBRARY_DATABASE`. `liveNeo4jClaimed` stays **true**. | 0.14 live claim | Fuse RRF/PPR into `pin_map`; `rag_query`; Snap-on-session; vendor Neo4j; LLM↔Bolt |
-| **0.17.0** | **HostSearch locators** (old 0.14). **Done this cut** (untagged; package stays 0.9.0). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
-| **0.18.0** | **Peak_L** last-resort (old 0.15). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
+| **0.17.0** | **HostSearch locators** (old 0.14). **Done** (untagged; package stays 0.9.0; master #129 @ 00e74dfb). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
+| **0.18.0** | **Peak_L** last-resort (old 0.15). **This cut (untagged; package stays 0.9.0).** Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
 | **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). Ingest ≠ export. | Shaped emit | Export as Absorb |
 
 **After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). GraphGlot parse-front after **0.10** identity (HOLD until then). N-server session pipe stays research (no cut).
@@ -234,7 +234,7 @@ Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.m
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
 | [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math |
-| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; Peak_L Later |
+| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; Peak_L 0.18 last-resort |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not engine) |
 | [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |

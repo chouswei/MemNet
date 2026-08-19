@@ -1,4 +1,4 @@
-"""Goldfish paradox V1/V3/V4/V6 + V5 — coding map + GQL."""
+"""Goldfish paradox V1/V3/V4/V6 + V5 + V9 — coding map + GQL."""
 
 from __future__ import annotations
 
@@ -166,3 +166,41 @@ def test_v5_n_pin_maps_repeat_law(memnet_temp):
             first_out = r.stdout
     assert law_hits == 5
     assert "TSK_v5" in first_out
+
+
+def test_v9_raw_degree_contains_parent_is_not_peak(memnet_temp):
+    """V9: ingest-style contains parent is raw-degree local max; Peak_L uses ρ*."""
+    sid = _open_coding(memnet_temp)
+    _add(
+        sid,
+        "CREATE (:MOD {id: 'MOD_pkg', path: 'pkg/', summary: 'tree', status: 'active'})\n"
+        "CREATE (:SYM {id: 'SYM_a', name: 'a', path: 'a.py', status: 'active'})\n"
+        "CREATE (:SYM {id: 'SYM_b', name: 'b', path: 'b.py', status: 'active'})\n"
+        "CREATE (:SYM {id: 'SYM_c', name: 'c', path: 'c.py', status: 'active'})\n"
+        "CREATE (:SYM {id: 'SYM_d', name: 'd', path: 'd.py', status: 'active'})\n"
+        "MATCH (m {id: 'MOD_pkg'}), (a {id: 'SYM_a'})\n"
+        "CREATE (m)-[:contains {id: 'NEW'}]->(a)\n"
+        "MATCH (m {id: 'MOD_pkg'}), (b {id: 'SYM_b'})\n"
+        "CREATE (m)-[:contains {id: 'NEW'}]->(b)\n"
+        "MATCH (m {id: 'MOD_pkg'}), (c {id: 'SYM_c'})\n"
+        "CREATE (m)-[:contains {id: 'NEW'}]->(c)\n"
+        "MATCH (m {id: 'MOD_pkg'}), (d {id: 'SYM_d'})\n"
+        "CREATE (m)-[:contains {id: 'NEW'}]->(d)\n"
+        "CREATE (:TSK {id: 'TSK_live', goal: 'work', status: 'in_progress'})\n"
+        "CREATE (:USR {id: 'USR_x', topic: 'x', content: 'y', status: 'open'})\n"
+        "MATCH (t {id: 'TSK_live'}), (a {id: 'SYM_a'})\n"
+        "CREATE (t)-[:owns {id: 'NEW'}]->(a)\n"
+        "MATCH (t {id: 'TSK_live'}), (u {id: 'USR_x'})\n"
+        "CREATE (t)-[:next {id: 'NEW'}]->(u)\n",
+    )
+    miss = runner.invoke(
+        app,
+        ["query", "pin-map", "--keyword", "zzznosuchcue018", "--depth", "1", "--session", sid],
+    )
+    assert miss.exit_code == 0, miss.stderr
+    assert "## outline" not in miss.stdout
+    assert "TSK_live" in miss.stdout
+    assert "owns" in miss.stdout
+    assert "contains" not in miss.stdout
+    assert "CueConflict" not in miss.stdout
+    assert "_el" not in miss.stdout

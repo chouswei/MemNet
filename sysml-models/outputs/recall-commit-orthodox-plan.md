@@ -1,6 +1,6 @@
 # Recall / Commit — orthodox review and plan
 
-**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Remaining erect is **Later** (`Peak_L`). HostSearch locators extra **0.17**.  
+**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Extra **0.17** HostSearch locators. Extra **0.18** Peak_L last-resort shipped this cut (untagged). Remaining Later is N-server / hosted cabinet — not 1.0.
 **Audience:** product developers. British English.  
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
@@ -45,20 +45,20 @@ Every test below is paradox. Each **must pass on the orthodox base**. Fail = wro
 | **V6** | `add` of an id already in \(\tilde{X}\) | `id_exists` / use `update` | Upsert; Letta-style rewrite of the slice |
 | **V7** | Session too large | Caps truncate; no embedding store in engine | `rag_query` / ANN of \(S\) |
 | **V8** | Colloquial “absorb the slice” | Goldfish Δ → MutateGate. Member export → ImportAbsorb only | `LocatorCommit`; goldfish through ImportGuard |
-| **V9** | Raw degree peak = `contains` parent | Ingest tree: PKG/MOD is local max. Live TSK preferred; \(\rho^*\) last (not shipped) | Default goldfish = Peak_L; Leiden |
+| **V9** | Raw degree peak = `contains` parent | Ingest tree: PKG/MOD is local max. Live TSK preferred; \(\rho^*\) last (0.18 Peak_L) | Default goldfish = Peak_L; Leiden |
 | **V10** | Host Snap vs Shape | Locators only; chunk body not on `note=` | Nest HostSearch under `MemNetSystem` |
 
-Pytest covering part of this (still paradox): `tests/test_goldfish_paradox.py` (V1/V3/V4/V6), `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). **Gaps:** V9 \(\rho^*\) (defer with Peak_L). GQL-wire paradox: [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).
+Pytest covering part of this (still paradox): `tests/test_goldfish_paradox.py` (V1/V3/V4/V6 + **V9**), `tests/test_peak_l.py` (Peak last-resort; never default), `tests/test_pin_map_view.py` (V2 grain / fan), `tests/test_add_update.py` (V6), `tests/test_mem_store.py` / `test_mission_warm.py` (recycle hide). GQL-wire paradox: [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md).
 
 ---
 
 ## Development sequence
 
-Goldfish leftover for **0.5 is shipped**. Do **not** hold **1.0** for Peak_L / HostSearch.
+Goldfish leftover for **0.5 is shipped**. Extra **0.18** Peak_L last-resort is shipped this cut. Do **not** hold **1.0** for HostSearch.
 
 ### Already done (do not rebuild)
 
-M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Absorb / RSV. **0.5** BoundedMatchFind + multi-ego `pin_map` + paradox pytest. **0.7** live cabinet. **0.8** GQL teach. Playbook goldfish loop (one TSK, sparse Δ). Design Snap vs Shape, Peak_L last, HostSearch outside.
+M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Absorb / RSV. **0.5** BoundedMatchFind + multi-ego `pin_map` + paradox pytest. **0.7** live cabinet. **0.8** GQL teach. Playbook goldfish loop (one TSK, sparse Δ). Design Snap vs Shape, Peak_L last (0.18 extra), HostSearch outside.
 
 ### Leftover **paradox** (tests first)
 
@@ -72,7 +72,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 |-------|------|--------------------|--------------|
 | — | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); seed nodes not RETURN | **Shipped** `implemented=true` |
 | — | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | **Shipped** in 0.5 |
-| **Later** | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | Behind explicit cue; never default; no cluster assignment |
+| — | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | **Shipped** extra 0.18 (untagged): codebook miss only; never default; no cluster assignment; V9 pytest |
 
 ### Must not erect (abandons orthodox)
 
@@ -94,7 +94,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 | MN-REQ-10.2 / 10.3 | Pin map fits context; no \(N\)-map LAW burn |
 | MN-REQ-11.13 | No chunk bodies as memory surface |
 
-Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); playbook still one-TSK; #73 claimed as seed-only find then `pin_map` (**yes**). HostSearch locators extra **0.17**. **Peak_L** remains Later, not 1.0.
+Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); playbook still one-TSK; #73 claimed as seed-only find then `pin_map` (**yes**). HostSearch locators extra **0.17**. Done for **Peak_L** when V9 \(\rho^*\) pytest exists and Peak is not default goldfish (**yes**, extra 0.18). Do **not** claim **1.0**.
 
 ---
 
