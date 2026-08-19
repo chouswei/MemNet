@@ -61,6 +61,8 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 **Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice.
 
+**Rethink (design, not shipped):** as-is “RAG never touches Neo4j” pushes operators to LLM↔Bolt. Proposed **two ports, one server** — cabinet hydrate/flush vs library `RagHostHook` (disjoint database/labels, locators only). [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Does not amend SHAPE until accepted.
+
 ---
 
 ## Key features on both sides
@@ -257,5 +259,5 @@ pytest -m neo4j_live
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
 | [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | What those retrieve functions actually compute |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | Version map; 0.9 client extra; live Neo4j is Later |
+| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Design proposal: two ports on one Neo4j (cabinet vs library Snap) |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |
