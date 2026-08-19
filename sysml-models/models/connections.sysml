@@ -299,13 +299,16 @@ package MemNetConnections {
     doc /*
       Recall cue q: a discrete codebook token — kind / primary label,
       properties (locators as properties), keyword; optional nickname
-      id only if already set. Not a store-key id, not elementId, not a
-      prose/embedding sentence, not AssignedIdMap.
+      id only if already set. Empty q is legal: it is the session
+      outline (census of S), not a skip and not a node seed.
+      Not a store-key id, not elementId, not a prose/embedding
+      sentence, not AssignedIdMap.
     */
     attribute tokenKind : Boolean = true;
     attribute tokenProps : Boolean = true;
     attribute tokenKeyword : Boolean = true;
     attribute tokenNicknameOptional : Boolean = true;
+    attribute emptyCueMeansOutline : Boolean = true;
     attribute notEmbedding : Boolean = true;
     attribute notStoreKey : Boolean = true;
   }
@@ -314,7 +317,8 @@ package MemNetConnections {
     doc /*
       Q = MATCH_L(q, S): a set of graph elements (relative nodes).
       Walk roots for ShapeWalk. NOT AssignedIdMap. NOT store-key ids.
-      Empty Q ⇒ skip (do not invent a node).
+      Empty q is not this item — that is SessionOutlineCensus.
+      leftover EmptySkip remains 0.10 honesty, not TARGET.
     */
     attribute seedsAreGraphElements : Boolean = true;
     attribute isAssignedIdMap : Boolean = false;
@@ -338,7 +342,35 @@ package MemNetConnections {
   }
 
   item def EmptySkip {
-    doc /* Empty Q: skip Recall reconstruct; do not invent a node. */
+    doc /*
+      leftover 0.10 empty Q skip (do not invent a node). Not TARGET.
+      TARGET empty q is SessionOutlineCensus. productCommand=false.
+    */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+  }
+
+  item def SessionOutlineCensus {
+    doc /*
+      Teach name = outline. Recall of session S with empty q: kinds
+      that exist plus a few real nodes of each, with their actual
+      labels and properties, under one hard LIMIT. Browser-shaped
+      (Neo4j Browser / db.labels / AGE ag_label + LIMIT exemplars).
+      Ask the session, not a node. SHALL NOT MATCH a seed node,
+      dump edges, dump S, absorb, MATCH-all, RAG/HostSearch,
+      getAllPages, Pattern C tour, or Pattern D seeded RAG.
+      view=shell is grain on an already-seeded walk — not this census.
+      After outline the agent picks one seen cue and pin_maps.
+    */
+    attribute kindsCatalog : Boolean = true;
+    attribute realExemplars : Boolean = true;
+    attribute actualLabelsAndProps : Boolean = true;
+    attribute oneHardLimit : Boolean = true;
+    attribute dumpEdges : Boolean = false;
+    attribute dumpS : Boolean = false;
+    attribute matchAll : Boolean = false;
+    attribute viewShellIsOutline : Boolean = false;
   }
 
   item def GraphRecordBatch {
@@ -507,8 +539,13 @@ package MemNetConnections {
   }
 
   port def EmptySkipOutPort {
-    doc /* Signal empty Q skip (do not invent). */
+    doc /* leftover empty Q skip signal (not TARGET product). */
     out item skip : EmptySkip;
+  }
+
+  port def OutlineCensusOutPort {
+    doc /* Emit session outline census (empty-q Recall of S). */
+    out item census : SessionOutlineCensus;
   }
 
   port def SessionHandoffOutPort {

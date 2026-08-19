@@ -14,6 +14,7 @@
     │       ├── RecallCommit        // 0.5 cut: TWO operators only
     │       │   ├── Recall          // TWO-operator child: seed then Shape
     │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; not a third op
+    │       │   │   ├── SessionOutline   // empty q = census of S (0.11 TARGET)
     │       │   │   └── AgentShapedRead
     │       │   │       ├── RelativeSeed + ShapeWalk  // seedToWalk: Q → k-hop
     │       │   │       ├── PinMapShapedRead    // ShapeWalk emit; CueConflict when |Q|>1
@@ -280,6 +281,18 @@ package MemNet {
     attribute requireAnchorId : Boolean = true;
   }
 
+  part def leftover_empty_seed_skip {
+    doc /*
+      leftover 0.10 empty Q skip ShapeWalk. Honesty under Recall /
+      RelativeSeed. TARGET empty q is SessionOutline. MUST NOT be a
+      product command. Python engine NOT rewritten in this cut.
+    */
+    attribute leftoverAsIsEngine : Boolean = true;
+    attribute leftoverIssue : String = "empty-cue-skip";
+    attribute productCommand : Boolean = false;
+    attribute targetImplemented : Boolean = false;
+  }
+
   part def leftover_ingestIsIdRule {
     doc /* 0.9 leftover ingestIsIdRule=true. TARGET Commit flag is false. */
     attribute leftoverAsIsEngine : Boolean = true;
@@ -447,9 +460,10 @@ package MemNet {
       elementId/handle, free MATCH RETURN, rag_query / cosine / ANN.
       q + S → Q. MATCH_L on those tokens (hard LIMIT L) yields seed
       set Q of graph elements (relative nodes). Those Q elements ARE
-      the walk roots. Empty token / empty Q ⇒ skip (inventOnEmpty=false).
-      Peak_L is Later, not this mechanism. leftover 0.9: seed = {node id};
-      copy find id then pin_map(anchor=id); require_anchor.
+      the walk roots. Empty token / empty q ⇒ SessionOutline (census
+      of S); inventOnEmpty=false. leftover_empty_seed_skip is leftover
+      0.10, not TARGET. Peak_L is Later, not this mechanism. leftover 0.9:
+      seed = {node id}; copy find id then pin_map(anchor=id); require_anchor.
       BoundedMatchFind / CmdFind realize this part.
       SHALL emit Q honestly when |Q| > 1. SHALL NOT absorb, SHALL NOT
       silent MERGE-by-name, SHALL NOT call an LLM to collapse inside Recall.
@@ -466,7 +480,8 @@ package MemNet {
     attribute seedsAreWalkRoots : Boolean = true;
     attribute requireStoreKeyAnchor : Boolean = false;
     attribute inventOnEmpty : Boolean = false;
-    attribute emptySeedSkip : Boolean = true;
+    attribute emptySeedSkip : Boolean = false;
+    attribute emptyCueIsOutline : Boolean = true;
     attribute peakLDefault : Boolean = false;
     attribute leftoverCopiedIdThenAnchor : Boolean = false;
     attribute leftoverIssue : String = "copy-id-anchor";
@@ -483,12 +498,76 @@ package MemNet {
     attribute sameNameIsCandidateOnly : Boolean = true;
     attribute emitQHonestWhenMulti : Boolean = true;
     attribute silentPickOneRoot : Boolean = false;
+    part leftoverEmptySkip : leftover_empty_seed_skip;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+  }
+
+  part def SessionOutline {
+    doc /*
+      Teach name = outline. TARGET empty-q branch of ONE Recall —
+      not a third operator. Join the handed session id; ask the
+      session, not a node. Empty q → census of S: kinds that exist
+      plus a few real nodes of each, with their actual labels and
+      properties, under one hard LIMIT. Browser-shaped (Neo4j
+      Browser / db.labels / AGE ag_label + LIMIT exemplars).
+      SHALL NOT MATCH a seed node (no leftover id, no --anchor).
+      SHALL NOT skip empty seed as TARGET. SHALL NOT dump edges,
+      dump S, absorb, MATCH-all, RAG/HostSearch, getAllPages,
+      Pattern C tour, or Pattern D seeded RAG. view=shell is grain
+      on an already-seeded walk — not this census. Leftover ids
+      are not the next law; after outline the agent picks one seen
+      cue and pin_maps. CueConflict if exemplars collide on a name
+      cue (two roots stay two). Modelled; engine cut not this PR
+      (implemented=false). leftover_empty_seed_skip honesty nested.
+    */
+    port cueIn : CueInPort;
+    port censusOut : OutlineCensusOutPort;
+    port shapedOut : ShapedSubgraphOutPort;
+    port gqlOut : GqlWireOutPort;
+    attribute implemented : Boolean = false;
+    attribute notAThirdOperator : Boolean = true;
+    attribute emptyCue : Boolean = true;
+    attribute asksSessionNotNode : Boolean = true;
+    attribute noMatchSeedNode : Boolean = true;
+    attribute noLeftoverAnchor : Boolean = true;
+    attribute kindsCatalog : Boolean = true;
+    attribute realExemplars : Boolean = true;
+    attribute actualLabelsAndProps : Boolean = true;
+    attribute oneHardLimit : Boolean = true;
+    attribute dumpEdges : Boolean = false;
+    attribute dumpS : Boolean = false;
+    attribute absorbOnOutline : Boolean = false;
+    attribute leftoverIdsAreNextLaw : Boolean = false;
+    attribute afterOutlinePickCueThenPinMap : Boolean = true;
+    attribute viewShellIsOutline : Boolean = false;
+    attribute matchAll : Boolean = false;
+    attribute ragSearch : Boolean = false;
+    attribute hostSearch : Boolean = false;
+    attribute getAllPages : Boolean = false;
+    attribute patternCPrecomputedTour : Boolean = false;
+    attribute patternDSeededRag : Boolean = false;
+    attribute browserShaped : Boolean = true;
+    attribute dbLabelsStyle : Boolean = true;
+    attribute ageAgLabelStyle : Boolean = true;
+    attribute requiredPropertyId : Boolean = false;
+    attribute elementIdOnWire : Boolean = false;
+    attribute cueConflictIfExemplarNameCollides : Boolean = true;
+    attribute twoRootsStayTwo : Boolean = true;
+    part cueConflict : CueConflict;
+    part leftoverEmptySkip : leftover_empty_seed_skip;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
   part def ShapeWalk {
@@ -532,6 +611,8 @@ package MemNet {
       0.10: PinMapComposer pin_map from cue; leftoverRequireAnchor=false.
       leftover --anchor remains a nickname cue. MUST NOT emit raw unbounded RETURN tables as primary agent read.
       As-is: memnet.pin_map_composer.PinMapComposer / query pin-map (M2).
+      Empty q SHALL emit SessionOutline, not view=shell grain and not
+      leftover require_anchor. view=shell remains grain on a seeded walk.
     */
     port seedIn : SeedSetInPort;
     port pinMapOut : LivePinMapOutPort;
@@ -547,8 +628,11 @@ package MemNet {
     attribute leftoverIssue : String = "require_anchor";
     attribute unionUnderOneM : Boolean = true;
     attribute goldfishBudgetTimesAnchors : Boolean = false;
+    attribute emptyCueIsOutline : Boolean = true;
+    attribute viewShellIsOutline : Boolean = false;
     part leftover_require_anchor : leftover_require_anchor;
     part walk : ShapeWalk;
+    part outline : SessionOutline;
     part caps : CapsPolicy;
     part cueConflict : CueConflict;
 
@@ -560,6 +644,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_4_EngineLawPrepend;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
@@ -607,8 +692,9 @@ package MemNet {
   part def AgentShapedRead {
     doc /*
       Honesty nest under Recall so pin_map shipped cannot be misread as
-      find shipped. Mechanism: RelativeSeed (Q) → seedToWalk → ShapeWalk
-      (X̃). Children: PinMapShapedRead realizes ShapeWalk;
+      find shipped.       Mechanism: RelativeSeed (Q) → seedToWalk → ShapeWalk
+      (X̃); empty q → SessionOutline (census of S). Children:
+      PinMapShapedRead realizes ShapeWalk and empty-q outline;
       BoundedMatchFind realizes RelativeSeed. Parent has no single
       implemented=true — that flag lives on children only.
       WalkQuery remains a sibling under SessionLifecycle.
@@ -621,6 +707,7 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     part seed : RelativeSeed;
     part walk : ShapeWalk;
+    part outline : SessionOutline;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
     connection seedToWalk : SeedSetFlow {
@@ -724,9 +811,11 @@ package MemNet {
       Operator Recall(q) over session graph S (MN-REQ-13). ONE operator:
       RelativeSeed then ShapeWalk. Cue q is labels + properties + keyword
       (optional nickname id if already set; Peak_L Later — not a third
-      operator). seed(q,S) = MATCH_L → Q of graph elements; empty Q ⇒
-      skip (inventOnEmpty=false). Reconstruct X̃ = k-hop from Q (|Q|≤L)
-      under ONE M. Hide recycled. Goldfish IN = that slice.
+      operator). seed(q,S) = MATCH_L → Q of graph elements; empty q ⇒
+      SessionOutline census of S (inventOnEmpty=false; leftover skip is
+      leftover_empty_seed_skip). Reconstruct X̃ = k-hop from Q (|Q|≤L)
+      under ONE M. Hide recycled. Goldfish IN = that slice (or the
+      outline census when q is empty).
       leftover 0.9 copy-id then require_anchor is leftover, not TARGET.
       Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
       Cousin pointing contrast lives outside MemNetSystem
@@ -739,7 +828,8 @@ package MemNet {
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
-    attribute emptySeedSkip : Boolean = true;
+    attribute emptySeedSkip : Boolean = false;
+    attribute emptyCueIsOutline : Boolean = true;
     attribute hopMetric : String = "hops";
     attribute cosineMetric : Boolean = false;
     attribute compressionKind : String = "shape";
@@ -752,6 +842,8 @@ package MemNet {
     attribute sameNameIsCandidateOnly : Boolean = true;
     attribute cueConflictOnMultiRoot : Boolean = true;
     part seed : RelativeSeed;
+    part outline : SessionOutline;
+    part leftoverEmptySkip : leftover_empty_seed_skip;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
       end port source ::> seed.seedOut;
@@ -764,6 +856,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
@@ -1076,9 +1169,10 @@ package MemNet {
   part def CmdPinMap {
     doc /*
       TARGET command realizing ShapeWalk from seed set Q (not a required
-      store-key --anchor). leftover_require_anchor is leftover engine.
-      When |Q| > 1 the emit SHALL carry CueConflict. SHALL NOT nest
-      name_conflict / merge / absorb as a product command.
+      store-key --anchor). Empty q SHALL emit SessionOutline (census of
+      S), not leftover skip and not view=shell. leftover_require_anchor
+      is leftover engine. When |Q| > 1 the emit SHALL carry CueConflict.
+      SHALL NOT nest name_conflict / merge / absorb as a product command.
     */
     port seedIn : SeedSetInPort;
     attribute requiresStoreKeyId : Boolean = false;
@@ -1086,11 +1180,15 @@ package MemNet {
     attribute requireStoreKeyAnchor : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
+    attribute emptyCueIsOutline : Boolean = true;
+    attribute viewShellIsOutline : Boolean = false;
     part walk : ShapeWalk;
+    part outline : SessionOutline;
     part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1179,6 +1277,8 @@ package MemNet {
     attribute leftoverMergeCommandNested : Boolean = false;
     attribute leftoverAbsorbCommandNested : Boolean = false;
     attribute leftoverElementIdOnWire : Boolean = false;
+    attribute leftoverEmptySeedSkipCommandNested : Boolean = false;
+    attribute emptyCueIsOutline : Boolean = true;
     attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
@@ -1194,6 +1294,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_5_IoActorIsLlm;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_6_FollowPromptRules;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
   }
@@ -1259,6 +1360,8 @@ package MemNet {
     attribute leftoverMergeCommandNested : Boolean = false;
     attribute leftoverAbsorbCommandNested : Boolean = false;
     attribute leftoverElementIdOnWire : Boolean = false;
+    attribute leftoverEmptySeedSkipCommandNested : Boolean = false;
+    attribute emptyCueIsOutline : Boolean = true;
     attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
@@ -1279,6 +1382,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_5_GrammarExpressesNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_5_GrammarMustBeLlmLearnable;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
   }
 
   part def MemNetCoreLibrary {

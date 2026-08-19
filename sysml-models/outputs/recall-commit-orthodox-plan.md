@@ -20,7 +20,7 @@ Orthodox = a theorem you can **build from**. Paradox = **all** examination and t
 | Encoding specificity | Token must be written before it retrieves | Shipped: miss ≠ invent a node. Agent still mints cues via Commit |
 | Ecphory (cue then reconstruct) | Recall = seed then Shape | Seed = known id (`pin_map`) **or** kind/keyword `find` then `pin_map` (`implemented=true`) |
 | Polynomial \(k\)-hop (not GST) | Ego walk + fan-out clamp | Shipped; metric = hops (`cosineMetric=false`) |
-| Empty retrieve | `emptySeedSkip` | Modelled skip; engine today errors `no_anchor` if pin_map has no ego — probe is `read_list` / known id |
+| Empty retrieve | `SessionOutline` empty-q census of \(S\) | TARGET modelled (MN-REQ-04.9); leftover `emptySeedSkip` / `no_anchor` leftover 0.10 |
 | Same alphabet | Shaped GQL emit = mutate family | Shipped M2 |
 | Incremental coding | Sparse Δ: `add`/`update`; `id_exists` on echo | Shipped strict mutate; playbook must not echo \(\tilde{X}\) |
 | One working chunk | Live `TSK` as default ego; settle / `delete_on_settle` | Shipped recycle hide; playbook after [#84](https://github.com/chouswei/MemNet/pull/84) |

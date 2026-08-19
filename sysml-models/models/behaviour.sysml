@@ -8,6 +8,8 @@
   SessionImportReceive (lead imports member working memory; ImportGuard);
   Multitask Mode for relevant tasks only (MN-REQ-12);
   optional DurableBuffer hydrate/flush roadmap (M2.5).
+  Empty-q GoldfishLoop: SessionOutline census of S (0.11 TARGET);
+  leftover EvEmptySeedSkip is leftover 0.10 only.
 */
 package MemNetBehaviour {
   private import ScalarValues::*;
@@ -33,17 +35,35 @@ package MemNetBehaviour {
     */
   }
   attribute def EvEmptySeedSkip {
-    doc /* Empty Q: skip ShapeWalk; do not invent a node. */
+    doc /*
+      leftover 0.10 empty Q skip ShapeWalk; do not invent a node.
+      Not TARGET. TARGET empty q is EvSessionOutline. productCommand=false.
+    */
+  }
+  attribute def EvEmptyCue {
+    doc /*
+      Empty codebook token q: dark session asks S, not a node.
+      TARGET Recall branch = session outline (not skip, not ShapeWalk).
+    */
+  }
+  attribute def EvSessionOutline {
+    doc /*
+      Teach name = outline. Recall of S with empty q: kinds that exist
+      plus a few real nodes of each (actual labels and properties)
+      under one hard LIMIT. Browser-shaped. SHALL NOT MATCH a seed
+      node, dump edges, absorb, or treat view=shell as this census.
+    */
   }
   attribute def EvShapeWalk {
     doc /* ShapeWalk k-hop from Q under one M; emit shaped subgraph. */
   }
   attribute def EvPinMapRead {
     doc /*
-      Fetch shaped pin_map (Recall = RelativeSeed then ShapeWalk).
-      SHALL NOT require a store-key --anchor (leftover_require_anchor
-      is leftover engine). Goldfish IN: X̃ from Q. Same Recall operator
-      as BoundedMatchFind MATCH_L. Legacy alias: query_warm.
+      Fetch shaped pin_map (Recall = RelativeSeed then ShapeWalk, or
+      empty-q SessionOutline). SHALL NOT require a store-key --anchor
+      (leftover_require_anchor is leftover engine). Goldfish IN: X̃ from
+      Q, or outline census when q is empty. Same Recall operator as
+      BoundedMatchFind MATCH_L. Legacy alias: query_warm.
     */
   }
   attribute def EvWalkRead {
@@ -349,8 +369,9 @@ package MemNetBehaviour {
     doc /*
       TARGET goldfish: cue q → RelativeSeed → ShapeWalk → LLM sees X̃ →
       sparse Commit Δ (CREATE () legal; MERGE by labels+props; no NEW
-      as TARGET). leftover MutateWithNew is leftover 0.9 only.
-      Reason is external; presenting covers that gap.
+      as TARGET). Empty q → SessionOutline census of S, then the agent
+      picks a seen cue and pin_maps. leftover MutateWithNew is leftover
+      0.9 only. leftover EvEmptySeedSkip is leftover 0.10 only.
     */
     entry;
     then awaitingCue;
@@ -362,6 +383,10 @@ package MemNetBehaviour {
       first awaitingCue
       accept EvCue
       then seeding;
+    transition cue_empty_outline
+      first awaitingCue
+      accept EvEmptyCue
+      then outlining;
     transition leftover_pin_as_cue
       first awaitingCue
       accept EvPinMapRead
@@ -377,10 +402,14 @@ package MemNetBehaviour {
       first seeding
       accept EvSeedReady
       then walking;
-    transition seed_empty_skip
+    transition leftover_seed_empty_skip
       first seeding
       accept EvEmptySeedSkip
       then awaitingCue;
+    transition seed_empty_to_outline
+      first seeding
+      accept EvEmptyCue
+      then outlining;
     transition seed_error
       first seeding
       accept EvError
@@ -409,11 +438,32 @@ package MemNetBehaviour {
       accept EvError
       then awaitingCue;
 
+    state outlining {
+      doc /*
+        TARGET empty-q Recall of S: kinds catalog + LIMIT exemplars.
+        Ask the session, not a node. SHALL NOT MATCH a seed, dump
+        edges, absorb, or treat view=shell as this census.
+      */
+    }
+    transition outline_to_present
+      first outlining
+      accept EvSessionOutline
+      then presenting;
+    transition outline_cue_conflict
+      first outlining
+      accept EvCueConflict
+      then presenting;
+    transition outline_error
+      first outlining
+      accept EvError
+      then awaitingCue;
+
     state presenting {
       doc /*
-        LLM sees X̃ (shaped subgraph); may reason. Same-name hits are
-        candidates pointed out as CueConflict (two roots, not one merged
-        node); agent MAY later Commit SameThingAbsorb.
+        LLM sees X̃ (shaped subgraph) or the session outline census;
+        may reason. After outline, pick one seen cue and pin_map.
+        Same-name hits are candidates pointed out as CueConflict (two
+        roots, not one merged node); agent MAY later Commit SameThingAbsorb.
       */
     }
     transition present_to_commit

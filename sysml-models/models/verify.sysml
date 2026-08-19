@@ -11,6 +11,7 @@
   (#63 / S14; env-gated). Path-B ingest domains + RSV are shipped.
   BoundedMatchFind shipped seed-only (MN-VER-04-S01 / #73).
   RelativeSeed codebook tokens then ShapeWalk (MN-VER-04-S02).
+  Empty-q session outline is Recall census of S (MN-VER-04-S03).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
@@ -436,8 +437,10 @@ package MemNetVerification {
     doc /*
       MN-REQ-04.7 — RelativeSeed MATCH_L yields walk-root graph elements
       Q; ShapeWalk walks from Q under one M. requireStoreKeyAnchor=false;
-      inventOnEmpty=false. leftover copy-id / require_anchor is leftover.
-      operatorCount stays 2. liveNeo4jClaimed stays false.
+      inventOnEmpty=false. Empty q is SessionOutline (emptyCueIsOutline);
+      leftover_empty_seed_skip is leftover, not TARGET. leftover copy-id /
+      require_anchor is leftover. operatorCount stays 2. liveNeo4jClaimed
+      stays false.
     */
     attribute verificationId : String = "MN-VER-04-S02";
 
@@ -452,6 +455,12 @@ package MemNetVerification {
             .recall.seed.requireStoreKeyAnchor == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.inventOnEmpty == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.emptySeedSkip == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.emptyCueIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.leftoverEmptySkip.productCommand == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.cueByLabelsAndProps == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -494,6 +503,97 @@ package MemNetVerification {
           and system.mcp.tools.pinMap.walk.requireStoreKeyAnchor == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
+          and system.durable.liveNeo4jClaimed == false
+      }
+    }
+  }
+
+  verification def MN_VER_04_S03_SessionOutlineEmptyCue {
+    doc /*
+      MN-REQ-04.9 — empty q is Recall census of S (teach name outline).
+      Join session id; ask the session, not a node. kinds + LIMIT
+      exemplars; Browser-shaped. leftover skip is leftover
+      (productCommand=false). MUST NOT: MATCH seed node; dump edges;
+      absorb; view=shell as outline; MATCH-all; RAG/HostSearch;
+      getAllPages; Pattern C/D; required property id; elementId on
+      wire; third operator; SameThingAbsorb this cut; Layer;
+      flip liveNeo4jClaimed. Engine not claimed (implemented=false).
+    */
+    attribute verificationId : String = "MN-VER-04-S03";
+
+    subject system : MemNetSystem;
+
+    objective emptyCueIsOutlineCensus {
+      verify sessionOutlineEmptyCueReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+          .operatorCount == 2
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.emptyCueIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.emptySeedSkip == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.implemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.notAThirdOperator == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.asksSessionNotNode == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.noMatchSeedNode == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.kindsCatalog == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.realExemplars == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.actualLabelsAndProps == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.oneHardLimit == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.dumpEdges == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.dumpS == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.absorbOnOutline == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.viewShellIsOutline == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.matchAll == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.ragSearch == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.hostSearch == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.getAllPages == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.patternCPrecomputedTour == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.patternDSeededRag == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.requiredPropertyId == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.elementIdOnWire == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.cueConflictIfExemplarNameCollides == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.twoRootsStayTwo == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.afterOutlinePickCueThenPinMap == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.leftoverEmptySkip.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.leftoverEmptySkip.targetImplemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.emptyCueIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.viewShellIsOutline == false
+          and system.core.cli.pinMap.emptyCueIsOutline == true
+          and system.core.cli.pinMap.viewShellIsOutline == false
+          and system.core.cli.emptyCueIsOutline == true
+          and system.core.cli.leftoverEmptySeedSkipCommandNested == false
+          and system.mcp.tools.emptyCueIsOutline == true
+          and system.mcp.tools.leftoverEmptySeedSkipCommandNested == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.implemented == false
           and system.durable.liveNeo4jClaimed == false
       }
     }
@@ -629,6 +729,14 @@ package MemNetVerification {
           and contrast.chosen.unionWalkUnderOneM == true
           and contrast.chosen.inventThirdOperatorOnAmbiguity == false
           and contrast.chosen.nameRequired == false
+          and contrast.chosen.emptyCueIsSessionOutline == true
+          and contrast.chosen.viewShellIsNotOutline == true
+          and contrast.chosen.mustNotDumpSOnEmptyCue == true
+          and contrast.chosen.mustNotSkipEmptyCueAsTarget == true
+          and contrast.mustNotCopyGetAllPages == true
+          and contrast.mustNotCopyPatternCTour == true
+          and contrast.mustNotCopyPatternDSeededRag == true
+          and contrast.mustNotCopyViewShellAsOutline == true
           and contrast.nl2gql.storeKeyOnWire == true
           and contrast.nl2gql.productJob == "nl2gql_translator"
           and contrast.graphlite.storeKeyOnWire == false
@@ -712,6 +820,7 @@ package MemNetVerification {
           and system.mcp.tools.leftoverMergeCommandNested == false
           and system.mcp.tools.leftoverAbsorbCommandNested == false
           and system.mcp.tools.leftoverElementIdOnWire == false
+          and system.mcp.tools.leftoverEmptySeedSkipCommandNested == false
           and system.core.cli.leftoverReadGetNested == false
           and system.core.cli.leftoverNewNested == false
           and system.core.cli.leftoverAssignedIdMapNested == false
@@ -724,6 +833,7 @@ package MemNetVerification {
           and system.core.cli.leftoverMergeCommandNested == false
           and system.core.cli.leftoverAbsorbCommandNested == false
           and system.core.cli.leftoverElementIdOnWire == false
+          and system.core.cli.leftoverEmptySeedSkipCommandNested == false
           and system.core.cli.find.requiresStoreKeyId == false
           and system.core.cli.pinMap.requireAnchorId == false
           and system.core.cli.mutate.createRequiresId == false
@@ -826,7 +936,11 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.find.implemented == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.emptySeedSkip == true
+            .recall.emptySeedSkip == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.emptyCueIsOutline == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.outline.notAThirdOperator == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.cosineMetric == false
           and leftoverLayer.deleteThisPr == false
@@ -952,6 +1066,8 @@ package MemNetVerification {
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
   verification relativeSeedWalksFromQVerify
     : MN_VER_04_S02_RelativeSeedWalksFromQ;
+  verification sessionOutlineEmptyCueVerify
+    : MN_VER_04_S03_SessionOutlineEmptyCue;
   verification idNotRequiredOnWireVerify
     : MN_VER_02_S01_IdNotRequiredOnWire;
   verification cousinPointingContrastVerify
