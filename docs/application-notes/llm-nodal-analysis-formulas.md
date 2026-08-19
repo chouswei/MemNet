@@ -123,11 +123,11 @@ CREATE (r1:CST {id:'CST_R1', R:1000, ports:{a:{direc:'inout', V:'@va1', I:'@ia1'
 CREATE (r2:CST {id:'CST_R2', R:1000, ports:{a:{direc:'inout', V:'@va2', I:'@ia2'}, b:{direc:'inout', V:'@vb2', I:'@ib2'}}, law:'$@va2-@vb2=@ia2*R$,$@ia2=-@ib2$'})
 CREATE (gnd:CST {id:'CST_Gnd', name:'GND', ports:{a:{direc:'inout', V:'@vg', I:'@ig'}}, law:'$@vg=0$'})
 MATCH (vin:CST {id:'CST_Vin'}), (r1:CST {id:'CST_R1'})
-CREATE (vin)-[:bind {id:'NEW', fromPort:'p', toPort:'a', carries:'I'}]->(r1)
+CREATE (vin)-[:bind {fromPort:'p', toPort:'a', carries:'I'}]->(r1)
 MATCH (r1:CST {id:'CST_R1'}), (r2:CST {id:'CST_R2'})
-CREATE (r1)-[:bind {id:'NEW', fromPort:'b', toPort:'a', carries:'I'}]->(r2)
+CREATE (r1)-[:bind {fromPort:'b', toPort:'a', carries:'I'}]->(r2)
 MATCH (r2:CST {id:'CST_R2'}), (gnd:CST {id:'CST_Gnd'})
-CREATE (r2)-[:bind {id:'NEW', fromPort:'b', toPort:'a', carries:'I'}]->(gnd)
+CREATE (r2)-[:bind {fromPort:'b', toPort:'a', carries:'I'}]->(gnd)
 ```
 
 Illustrative mid absolutes after a hand solve (equal divider): \(V_\mathrm{mid}=2.5\,\mathrm{V}\), \(I=2.5\,\mathrm{mA}\). Full InvAmp GQL: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).

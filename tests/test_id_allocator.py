@@ -28,7 +28,8 @@ def test_mint_noop_when_no_new() -> None:
     assert doc.items[0].id == "C10"
 
 
-def test_allocate_from_locator_stable() -> None:
+def test_allocate_from_locator_leftover_not_product() -> None:
+    """leftover helper still deterministic; product ingest does not use it as PK."""
     alloc = IdAllocator()
     a = alloc.allocate_from_locator("CMP", "R1")
     b = alloc.allocate_from_locator("CMP", "R1")

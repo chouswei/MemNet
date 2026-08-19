@@ -47,7 +47,8 @@ def test_reserve_expire_auto_release(memnet_temp, schema_file):
         now=t0,
     )
     assert lease.rid == "R1"
-    assert "PLR01" in lease.ids
+    hid = ss.store.get("PLR01").hid
+    assert hid in lease.ids
 
     # Still active within TTL
     set_now_override(t0 + timedelta(seconds=30))

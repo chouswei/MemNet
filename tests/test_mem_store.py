@@ -97,8 +97,13 @@ def test_linked_law_scope_reduces_warm_laws():
 
 def test_context_walk_hops_from_anchor():
     store = _store_with_linked_laws()
+
+    def nick(hid: str) -> str:
+        rec = store._by_hid.get(hid)
+        return rec.id if rec and rec.id else hid
+
     hops = store.context_walk_hops(anchor_id="STEP01", depth=2, active_only=True)
-    hop_set = {(s, r, d) for s, r, d in hops}
+    hop_set = {(nick(s), r, nick(d)) for s, r, d in hops}
     assert ("STEP01", "governs", "USR01") in hop_set
     assert ("USR01", "governs", "LAW-B") in hop_set
     assert ("STEP01", "focus", "SCN01") in hop_set
@@ -121,6 +126,9 @@ def test_edge_index_maintained_on_update_and_delete():
     assert {e.id for e in store._edges_to("PLR01")} == {"E01"}
 
     updated = parse_line("@EDG: E01|PLR01|seeks_help|N01||persistent", tm)
+    existing = store.resolve_one("E01")
+    assert existing is not None
+    updated.hid = existing.hid
     store.replace_row(updated, relations={"seeks_help"})
     assert store._edges_from("N01") == []
     assert {e.id for e in store._edges_from("PLR01")} == {"E01"}
@@ -133,7 +141,7 @@ def test_edge_index_maintained_on_update_and_delete():
 
 def test_edge_index_rebuilt_on_load_records():
     store, tm = _store_with_plr()
-    records = [store.by_id[rid] for rid in store.write_order]
+    records = [store._by_hid[rid] for rid in store.write_order]
     reloaded = MemStore(tm)
     reloaded.load_records(records)
     assert {e.id for e in reloaded._edges_from("N01")} == {"E01"}

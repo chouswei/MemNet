@@ -20,7 +20,7 @@ from typing import Literal
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
 from memnet.exceptions import MemNetError
 from memnet.id_allocator import IdAllocator
-from memnet.models import Record
+from memnet.models import Record, new_hid
 from memnet.pin_map_composer import PinMapComposer
 from memnet.session import SessionStore, get_session
 
@@ -260,7 +260,7 @@ def _record_decision_atom(
     agent: str | None,
 ) -> str | None:
     """Optionally record ImportGuardDecision as a structured atom (not chat)."""
-    alloc = IdAllocator(set(lead.store.by_id.keys()))
+    alloc = IdAllocator(set(lead.store._by_hid.keys()))
     rid = alloc.mint("IGD")
     # Soft: only write if SCHEMA for a free-form tag is not required;
     # use CFG-like fields on a dedicated tag only when map knows it.
@@ -340,36 +340,40 @@ def absorb_working_memory_slice(
         raise MemNetError("empty_slice", "nothing to import after guard")
 
     # Validate edges reference known nodes in slice or already in lead.
-    lead_ids = set(lead.store.by_id.keys())
-    slice_node_ids = {r.id for r in nodes}
+    lead_hids = set(lead.store._by_hid.keys())
+    slice_node_hids = {r.hid for r in nodes}
     for e in edges:
         for key in ("src", "dist"):
             eid = e.fields.get(key, "")
-            if eid and eid not in slice_node_ids and eid not in lead_ids:
-                raise MemNetError(
-                    "dangling_import_endpoint",
-                    f"edge {e.id} {key}={eid} not in slice or lead session",
-                )
+            if eid and eid not in slice_node_hids and eid not in lead_hids:
+                if lead.store.resolve_one(eid) is None:
+                    raise MemNetError(
+                        "dangling_import_endpoint",
+                        f"edge {e.hid} {key}={eid} not in slice or lead session",
+                    )
 
     id_map: dict[str, str] = {}
     reminted: dict[str, str] = {}
 
     if policy == "reject":
-        conflicts = [r.id for r in nodes + edges if r.id in lead_ids]
+        # leftover façade: unique nickname collision — not product.
+        conflicts = [
+            r.id for r in nodes + edges if r.id and lead.store.resolve_one(r.id) is not None
+        ]
         if conflicts:
             raise MemNetError(
                 "id_conflict",
-                "id_policy=reject: ids already in lead session: "
+                "leftover id_policy=reject nickname already in lead: "
                 + ",".join(sorted(conflicts)[:12]),
             )
     elif policy == "remint":
-        alloc = IdAllocator(lead_ids)
+        alloc = IdAllocator(lead_hids)
         for r in nodes + edges:
-            if r.id in lead_ids:
+            if r.id and lead.store.resolve_one(r.id) is not None:
                 new_id = alloc.mint(_prefix_for(r.id))
                 id_map[r.id] = new_id
                 reminted[r.id] = new_id
-            else:
+            elif r.id:
                 alloc.observe(r.id)
     # keep: upsert; no remint map
 
@@ -392,37 +396,92 @@ def absorb_working_memory_slice(
         if decision is not None and record_decision:
             _record_decision_atom(lead, decision, agent=agent)
         for rec in prepared_nodes:
+            work_rec = rec
             if policy == "keep":
-                lead.store.upsert(
-                    rec,
+                props = {k: v for k, v in rec.fields.items() if k != "id" and v}
+                hits = lead.store.match_nodes(tag=rec.tag, props=props)
+                if len(hits) > 1:
+                    skipped.append(rec.id or rec.hid)
+                    continue
+                if len(hits) == 1:
+                    merged = dict(hits[0].fields)
+                    merged.update(rec.fields)
+                    work_rec = Record(tag=rec.tag, fields=merged, hid=hits[0].hid)
+                    lead.store.replace_row(
+                        work_rec,
+                        agent=agent,
+                        allow_new_relation=True,
+                        relations=lead.relations,
+                    )
+                    imported.append(work_rec.hid)
+                    continue
+                work_rec = Record(tag=rec.tag, fields=dict(rec.fields), hid=new_hid())
+                lead.store.add_row(
+                    work_rec,
                     agent=agent,
                     allow_new_relation=True,
                     relations=lead.relations,
                 )
             else:
                 lead.store.add_row(
-                    rec,
+                    work_rec,
                     agent=agent,
                     allow_new_relation=True,
                     relations=lead.relations,
                 )
-            imported.append(rec.id)
+            imported.append(work_rec.hid)
         for rec in prepared_edges:
+            work_rec = rec
             if policy == "keep":
-                lead.store.upsert(
-                    rec,
+                rel = rec.fields.get("relation", "")
+                src = rec.fields.get("src", "")
+                dist = rec.fields.get("dist", "")
+                src_r = lead.store.resolve_one(src)
+                dst_r = lead.store.resolve_one(dist)
+                matched = None
+                if src_r and dst_r:
+                    for e in lead.store.list_records("EDG"):
+                        if (
+                            e.fields.get("relation") == rel
+                            and e.fields.get("src") == src_r.hid
+                            and e.fields.get("dist") == dst_r.hid
+                        ):
+                            matched = e
+                            break
+                if matched is not None:
+                    merged = dict(matched.fields)
+                    merged.update(rec.fields)
+                    merged["src"] = src_r.hid if src_r else merged.get("src", "")
+                    merged["dist"] = dst_r.hid if dst_r else merged.get("dist", "")
+                    work_rec = Record(tag="EDG", fields=merged, hid=matched.hid)
+                    lead.store.replace_row(
+                        work_rec,
+                        agent=agent,
+                        allow_new_relation=True,
+                        relations=lead.relations,
+                    )
+                    imported.append(work_rec.hid)
+                    continue
+                fields = dict(rec.fields)
+                if src_r:
+                    fields["src"] = src_r.hid
+                if dst_r:
+                    fields["dist"] = dst_r.hid
+                work_rec = Record(tag="EDG", fields=fields, hid=new_hid())
+                lead.store.add_row(
+                    work_rec,
                     agent=agent,
                     allow_new_relation=True,
                     relations=lead.relations,
                 )
             else:
                 lead.store.add_row(
-                    rec,
+                    work_rec,
                     agent=agent,
                     allow_new_relation=True,
                     relations=lead.relations,
                 )
-            imported.append(rec.id)
+            imported.append(work_rec.hid)
         lead.mark_written()
 
     return ImportAbsorbResult(

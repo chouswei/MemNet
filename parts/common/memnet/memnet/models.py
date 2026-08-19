@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import itertools
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+# Hidden store handle (elementId-style). Off the agent wire. Not a nickname.
+_HID_SEQ = itertools.count(1)
+
+
+def new_hid() -> str:
+    return f"_el{next(_HID_SEQ)}"
 
 
 class TagDef(BaseModel):
@@ -28,9 +36,12 @@ class Record(BaseModel):
     fields: dict[str, str]
     agent: str | None = None
     written_at: float | None = None
+    # GraphElement identity in-process. MUST NOT appear on GQL emit.
+    hid: str = Field(default_factory=new_hid)
 
     @property
     def id(self) -> str:
+        """Optional nickname property — not identity, not a store key."""
         return self.fields.get("id", "")
 
     @property

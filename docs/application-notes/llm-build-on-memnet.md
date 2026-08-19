@@ -21,7 +21,7 @@ This note complements:
 
 `memnet serve` is a TCP daemon. Raw consumers must:
 
-- Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --anchor ...`)
+- Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --kind TSK …`)
 - Parse shaped GQL / `pin_map` lines and warnings off stdout/stderr
 - Track session ids manually
 - Re-discover atomisation discipline, LAW invariants, and the goldfish loop every chat
@@ -92,14 +92,16 @@ async def _run(argv, *, stdin=None, session=None) -> str:
     return resp.to_json()
 
 @mcp.tool()
-async def pin_map(anchor: str, depth: int = 2, max_rows: int = 50,
+async def pin_map(kind: str | None = None, keyword: str | None = None,
+                  depth: int = 2, max_rows: int = 50,
                   session: str | None = None) -> str:
-    """Read the live pin-map slice anchored on a node id (primary teach)."""
-    return await _run(
-        ["query", "pin-map", "--anchor", anchor,
-         "--depth", str(depth), "--max-rows", str(max_rows)],
-        session=session,
-    )
+    """Read the live pin-map slice from a cue (primary teach). leftover --anchor is leftover."""
+    argv = ["query", "pin-map", "--depth", str(depth), "--max-rows", str(max_rows)]
+    if kind:
+        argv.extend(["--kind", kind])
+    if keyword:
+        argv.extend(["--keyword", keyword])
+    return await _run(argv, session=session)
 # Legacy alias query_warm / query warm still accepted — do not teach as primary.
 
 def main() -> None:

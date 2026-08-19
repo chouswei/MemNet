@@ -11,6 +11,18 @@ from memnet.session import get_session, open_session
 
 runner = CliRunner()
 
+
+def _hid(ss, nick: str) -> str:
+    rec = ss.store.get(nick)
+    assert rec is not None, nick
+    return rec.hid
+
+
+def _edges_to(ss, nick: str) -> list:
+    hid = _hid(ss, nick)
+    return [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == hid]
+
+
 _PLR = (
     "CREATE (:PLR {id: 'PLR01', identity: 'Hero', wealth: 1, cashflow: 0, "
     "monopoly: 0, reputation: 0, inventory: 'bag'})"
@@ -41,27 +53,30 @@ def test_classify_rejects_tier_a():
     assert ei.value.code == "legacy_dialect_retired"
 
 
-def test_gql_add_mints_new(memnet_temp, schema_file):
+def test_gql_add_create_without_new_mint(memnet_temp, schema_file):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
     batch = (
-        "CREATE (:PLR {id: 'NEW', identity: 'Hero', wealth: 1, cashflow: 0, "
+        "CREATE (:PLR {identity: 'Hero', wealth: 1, cashflow: 0, "
         "monopoly: 0, reputation: 0, inventory: 'bag'})\n"
     )
     add = runner.invoke(app, ["add", "--stdin", "--session", sid], input=batch)
     assert add.exit_code == 0, add.stderr
     assert "CREATE (:PLR" in add.stdout
     assert "id: 'NEW'" not in add.stdout
-    assert "@ID:" in add.stderr
+    assert "@ID:" not in add.stderr
     ss = get_session(sid)
     plrs = [r for r in ss.store.list_records("PLR") if r.fields.get("identity") == "Hero"]
     assert len(plrs) == 1
-    warm = runner.invoke(app, ["query", "warm", "--anchor", plrs[0].id, "--session", sid])
-    assert warm.exit_code == 0
-    assert plrs[0].id in warm.stdout
-    assert f"id: '{plrs[0].id}'" in warm.stdout
+    warm = runner.invoke(
+        app,
+        ["query", "pin-map", "--kind", "PLR", "--locator", "identity=Hero", "--session", sid],
+    )
+    assert warm.exit_code == 0, warm.stderr
+    assert "(:PLR" in warm.stdout
     assert "CREATE (:PLR" not in warm.stdout
     assert "@PLR:" not in warm.stdout
+    assert plrs[0].hid not in warm.stdout
 
 
 def test_pin_map_composer_unit(memnet_temp, schema_file):
@@ -99,9 +114,9 @@ def test_rename_free_retargets_edges(memnet_temp, schema_file):
     assert ss.store.get("PLR_BAD") is None
     assert ss.store.get("PLR01") is not None
     assert ss.store.get("PLR01").fields["identity"] == "Hero"
-    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR01"]
+    edges = _edges_to(ss, "PLR01")
     assert len(edges) == 1
-    assert edges[0].fields.get("src") == "N01"
+    assert edges[0].fields.get("src") == _hid(ss, "N01")
     assert "PLR01" in result.ack_lines[0]
 
 
@@ -170,9 +185,9 @@ def test_batch_rollback_undoes_rename_id(memnet_temp, schema_file):
     assert ss.store.get("PLR_OK").fields["identity"] == "Hero"
     assert ss.store.get("PLR_BAD") is not None
     assert ss.store.get("PLR01").fields["identity"] == "Keep"
-    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR_OK"]
+    edges = _edges_to(ss, "PLR_OK")
     assert len(edges) == 1
-    assert not any(r.fields.get("dist") == "PLR_RENAMED" for r in ss.store.list_records("EDG"))
+    assert ss.store.get("PLR_RENAMED") is None
 
 
 def test_batch_rollback_undoes_merge_rename(memnet_temp, schema_file):
@@ -208,9 +223,9 @@ def test_batch_rollback_undoes_merge_rename(memnet_temp, schema_file):
     assert ss.store.get("PLR_BAD") is not None
     assert ss.store.get("PLR_BAD").fields["identity"] == "Wrong"
     assert ss.store.get("PLR01").fields["identity"] == "Hero"
-    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR_BAD"]
+    edges = _edges_to(ss, "PLR_BAD")
     assert len(edges) == 1
-    assert not any(r.fields.get("dist") == "PLR01" for r in ss.store.list_records("EDG"))
+    assert not _edges_to(ss, "PLR01")
 
 
 def test_rename_occupied_merge_retargets(memnet_temp, schema_file):
@@ -235,7 +250,7 @@ def test_rename_occupied_merge_retargets(memnet_temp, schema_file):
     )
     assert ss.store.get("PLR_BAD") is None
     assert ss.store.get("PLR01").fields["identity"] == "Hero"
-    edges = [r for r in ss.store.list_records("EDG") if r.fields.get("dist") == "PLR01"]
+    edges = _edges_to(ss, "PLR01")
     assert len(edges) == 1
     assert any("merged|PLR_BAD->PLR01" == w for w in result.warnings)
 

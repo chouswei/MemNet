@@ -18,7 +18,7 @@
 - Each turn you re-inject only the live slice via **`pin_map`** (MCP) or **`query pin-map`** (CLI).
 - When a sub-task is done, **settle** it (`status` / recycle policy) so it disappears from future pin maps.
 - Never rely on your own previous messages for durable ids or facts.
-- Handoff between agents = **session id** (+ anchors / write scope). Prefer **import** for absorbing a member slice — chat is never SSOT.
+- Handoff between agents = **session id** (+ write scope). Re-`pin_map` from a cue. Prefer **import** for absorbing a member slice — chat is never SSOT.
 
 ### Non-negotiable rules
 
@@ -33,18 +33,18 @@
 **Mutate sketch:**
 
 ```cypher
-CREATE (t:TSK {id:'NEW', goal:'Clear warehouse', status:'in_progress'})
-MATCH (n:NPC {id:'NPC_03'}), (t:TSK {id:'TSK_42'})
-CREATE (n)-[:helps {id:'NEW', note:'labour'}]->(t)
-MATCH (t:TSK {id:'TSK_42'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'
+CREATE (t:TSK {goal:'Clear warehouse', status:'in_progress'})
+MATCH (n:NPC {role:'helper'}), (t:TSK {goal:'Clear warehouse'})
+CREATE (n)-[:helps {note:'labour'}]->(t)
+MATCH (t:TSK {goal:'Clear warehouse'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'
 ```
 
-**Shaped `pin_map` out** (copy ids from here):
+**Shaped `pin_map` out** (properties the node actually has; nickname `id` only if set):
 
 ```cypher
-(:TSK {id:'TSK_42', goal:'Clear warehouse', status:'in_progress'})
-(:NPC {id:'NPC_03', role:'helper', status:'active'})
-(:NPC {id:'NPC_03'})-[:helps {id:'E_77', note:'labour'}]->(:TSK {id:'TSK_42'})
+(:TSK {goal:'Clear warehouse', status:'in_progress'})
+(:NPC {role:'helper', status:'active'})
+(:NPC {role:'helper'})-[:helps {note:'labour'}]->(:TSK {goal:'Clear warehouse'})
 ```
 
 Circuit / law-leaf sketch:
@@ -54,9 +54,9 @@ Circuit / law-leaf sketch:
 (:CST {id:'CST_Src'})-[:bind {id:'E_1', fromPort:'p', toPort:'a', carries:'I'}]->(:CST {id:'CST_R'})
 ```
 
-- **Create:** `id: 'NEW'` — engine mints; copy from the next pin map.
-- **Update / settle:** known ids only; `NEW` illegal on patch.
-- **External artefact pins** (SysML, `.ato`, codebase, skills): deterministic ground ids + locators — **no** client `NEW`.
+- **Create:** `CREATE (:Kind {props})` — GraphElement identity; no required `id`. leftover `id:'NEW'` mint is leftover, not product.
+- **Update / settle:** MATCH by labels+properties; SET/DELETE. When \(|Q|>1\), CueConflict — do not pick one root.
+- **External artefact pins:** locators are properties, not a PK. **no** client `NEW`.
 
 Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
@@ -82,7 +82,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 
    Blocked on a topic hub: at most one extra `pin_map(..., view=shell)`, then interior on the live `TSK`. Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
 3. **Act / reason** using only that pin-map slice + the current user request.
-4. **Commit sparse Δ** — NEW nodes/edges and SET on changed pins only. Do **not** echo the fetched slice (`id_exists`).
+4. **Commit sparse Δ** — CREATE / SET on changed elements only. leftover `id_exists` / NEW mint is leftover.
 
    MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])`  
    CLI: `memnet add --stdin` / `memnet update --stdin`
@@ -214,36 +214,39 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 
 | Mistake | Fix |
 |---------|-----|
-| Whole-session read | Anchor `pin_map` only |
-| `add` when id exists | `update` with id from pin map |
-| `update` with typo id | Copy id from pin map |
+| Whole-session read | Cue then `pin_map` only |
+| `add` when the pattern already matches | `update` / `MATCH…SET` by labels+properties |
+| SET/DELETE when \(|Q|>1\) | CueConflict — do not pick one root; do not absorb |
 | Settled but `recycle=persistent` | Set `delete_on_settle` on settle |
 | Ignoring stderr `@WRN:` | Read warnings (caps, staleness) |
 | Teaching Layer / `@TAG` pipe / Tier A | **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) |
 | Unbounded tabular `MATCH`/`RETURN` as goldfish read | Shaped `pin_map` only |
-| Chat / graph dump as handoff | Session id + re-`pin_map` (import for path B) |
+| Chat / graph dump as handoff | Session id + cue / re-`pin_map` (import for path B) |
+| leftover `id:'NEW'` / copy-id `--anchor` as law | Pattern Commit; cue `pin_map` (those are leftover 0.9) |
 
 ### Minimal complete turn (MCP)
 
 ```text
-# 1. Add (first time) — GQL clauses in wire_lines
+# 1. Commit (first time) — GQL clauses in wire_lines
 add(wire_lines=[
-  "CREATE (t:TSK {id:'NEW', goal:'Negotiate with the guild', status:'in_progress', recycle:'persistent'})",
-  "MATCH (b {id:'B01'}), (t {id:'T07'}) CREATE (b)-[:seeks_help {id:'NEW', note:'terms', recycle:'persistent'}]->(t)",
+  "CREATE (t:TSK {goal:'Negotiate with the guild', status:'in_progress', recycle:'persistent'})",
+  "MATCH (b {name:'Guild'}), (t:TSK {goal:'Negotiate with the guild'}) CREATE (b)-[:seeks_help {note:'terms', recycle:'persistent'}]->(t)",
 ])
 
-# 2. Read
-pin_map(anchor=T07, depth=2, max_rows=30)
+# 2. Recall
+find(kind='TSK', limit=8)
+pin_map(kind='TSK', locators=['goal=Negotiate with the guild'], depth=2, max_rows=30)
 
 # 3. Later — settle
 update(wire_lines=[
-  "MATCH (t:TSK {id:'T07'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
-  "MATCH ()-[e {id:'E19'}]->() SET e.recycle = 'delete_on_settle'",
+  "MATCH (t:TSK {goal:'Negotiate with the guild'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
 ])
 
-# 4. Next turn — T07 absent from pin map
-pin_map(anchor=PLR01, depth=2)
+# 4. Next turn — empty cue still skips (0.11 owns outline)
+pin_map(kind='TSK')
 ```
+
+leftover 0.9 `id:'NEW'` / `pin_map(anchor=…)` / copy-id is leftover engine, not this loop.
 
 ### Application notes
 
@@ -280,7 +283,7 @@ Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@W
 ### CLI quick reference
 
 - `memnet serve` — TCP daemon (`127.0.0.1:18765`); required for CLI unless `MEMNET_TEST_INLINE=1`
-- `memnet query pin-map --anchor <id>` — live pin map (`query warm` = deprecated alias)
+- `memnet query pin-map --kind TSK` — live pin map from a cue (`query warm` = deprecated alias). leftover `--anchor` = nickname cue.
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
 - `memnet guide --loose` — short cheat sheet
 

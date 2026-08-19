@@ -37,7 +37,7 @@ def snapshot_text(ss: SessionStore) -> str:
         lines.append(f"@REL: {rel}")
     lines.append(_SECTION_REC)
     for rid in ss.store.write_order:
-        rec = ss.store.by_id.get(rid)
+        rec = ss.store._by_hid.get(rid)
         if rec:
             lines.append(emit_record(rec, ss.tag_map))
     return "\n".join(lines) + "\n"

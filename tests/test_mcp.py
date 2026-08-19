@@ -217,9 +217,9 @@ def test_session_open_default_law(memnet_temp, schema_file, monkeypatch):
 
     warm_raw = asyncio.run(pin_map(anchor="PLR01", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
-    # anchor missing — still get all LAW rows (goldfish invariants)
-    assert "LAW01" in warm_payload["stdout"]
-    assert "LAW05" in warm_payload["stdout"]
+    # leftover nickname miss / empty cue skips (0.11 owns outline). No LAW dump.
+    assert warm_payload["exit_code"] == 0, warm_payload
+    assert "LAW01" not in warm_payload["stdout"]
 
 
 def test_session_open_seed_lines_unknown_relation_aborts(memnet_temp, schema_file, monkeypatch):

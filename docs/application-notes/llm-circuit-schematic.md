@@ -77,9 +77,9 @@ flowchart TB
 **Agent I/O teach = GQL.** Mutate / present sketches:
 
 ```cypher
-CREATE (n:CST {id:'NEW', name:'…', ports:{…}, law:'$…$', R:50})
-MATCH (a:CST {id:'A'}), (b:CST {id:'B'})
-CREATE (a)-[:bind {id:'NEW', fromPort:'p', toPort:'q', carries:'I'}]->(b)
+CREATE (n:CST {name:'…', ports:{…}, law:'$…$', R:50})
+MATCH (a:CST {name:'A'}), (b:CST {name:'B'})
+CREATE (a)-[:bind {fromPort:'p', toPort:'q', carries:'I'}]->(b)
 ```
 
 | Field / shape | Role |
@@ -184,16 +184,16 @@ MemNet does **not** solve KCL. It holds **devices, binds, and result laws** in \
 
 Cue then `pin_map`. Skip if the seed is empty (`find` / known id first). MCP arg is **`session`**. In-process MCP only for a **single** agent.
 
-1. **Cue** — known `CST_*` / analysis `TSK`, or `find(kind='CST', limit=L)` then copy an id.
-2. **`pin_map`** on that ego — prefer `view=shell`, descend with `view=interior` / re-anchor when blocked.
+1. **Cue** — labels+properties / keyword, or `find(kind='CST', limit=L)`. Empty \(Q\) ⇒ skip. When \(|Q|>1\), CueConflict (do not pick one root; do not absorb). leftover copy-id `--anchor` is leftover.
+2. **`pin_map`** from that cue — prefer `view=shell`, descend with `view=interior` when blocked.
 3. **Reason** only from that slice + user ask (goldfish).
-4. **Mutate** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). Copy assigned ids.
-5. **Re-`pin_map`** before the next edit.
+4. **Commit** gated GQL (`CREATE` / `MATCH`…`SET` / `:bind`). leftover `id:'NEW'` mint is leftover.
+5. **Re-`pin_map`** from the cue before the next edit.
 
 ```cypher
 CREATE (t:TSK {id:'TSK_inv_nfb', goal:'Analyse inverting NFB amp in s-domain', phase:'nodal', status:'in_progress'})
-MATCH (t:TSK {id:'TSK_inv_nfb'}), (u:CST {id:'CST_U1'}) CREATE (t)-[:about {id:'NEW'}]->(u)
-MATCH (t:TSK {id:'TSK_inv_nfb'}), (a:CST {id:'CST_A'}) CREATE (t)-[:about {id:'NEW'}]->(a)
+MATCH (t:TSK {id:'TSK_inv_nfb'}), (u:CST {id:'CST_U1'}) CREATE (t)-[:about]->(u)
+MATCH (t:TSK {id:'TSK_inv_nfb'}), (a:CST {id:'CST_A'}) CREATE (t)-[:about]->(a)
 ```
 
 ---

@@ -87,24 +87,24 @@ CREATE (r3:ROM {id:'ROM03', key:'long_hall', zone:'underground', flags:'lit'})
 CREATE (alice:CHR {id:'PLR01', name:'Alice', kind:'plr', cur:10, size:'norm', status:'idle'})
 CREATE (rabbit:CHR {id:'NPC02', name:'White_Rabbit', kind:'npc', cur:8, size:'norm', status:'idle'})
 CREATE (bottle:OBJ {id:'OBJ01', name:'drink_me', kind:'bottle', code:'shrink'})
-MATCH (a:ROM {id:'ROM01'}), (b:ROM {id:'ROM02'}) CREATE (a)-[:exit {id:'NEW', note:'south'}]->(b)
-MATCH (b:ROM {id:'ROM02'}), (c:ROM {id:'ROM03'}) CREATE (b)-[:exit {id:'NEW', note:'down'}]->(c)
-MATCH (p:CHR {id:'PLR01'}), (b:ROM {id:'ROM02'}) CREATE (p)-[:located {id:'NEW'}]->(b)
-MATCH (n:CHR {id:'NPC02'}), (a:ROM {id:'ROM01'}) CREATE (n)-[:located {id:'NEW'}]->(a)
+MATCH (a:ROM {id:'ROM01'}), (b:ROM {id:'ROM02'}) CREATE (a)-[:exit {note:'south'}]->(b)
+MATCH (b:ROM {id:'ROM02'}), (c:ROM {id:'ROM03'}) CREATE (b)-[:exit {note:'down'}]->(c)
+MATCH (p:CHR {id:'PLR01'}), (b:ROM {id:'ROM02'}) CREATE (p)-[:located]->(b)
+MATCH (n:CHR {id:'NPC02'}), (a:ROM {id:'ROM01'}) CREATE (n)-[:located]->(a)
 ```
 
 ---
 
 ## 5. Worked beats
 
-**Client look** — `pin_map(anchor=ROM02)` then generate prose from keys/flags/edges (no graph sentences).
+**Client look** — `pin_map` from a room cue (e.g. `kind=ROM` + `key=rabbit_hole`) then generate prose from keys/flags/edges (no graph sentences). leftover `pin_map(anchor=ROM02)` is leftover nickname cue.
 
 **Deterministic go south** (Alice at ROM01) — prefer one `:located` edge per actor:
 
 ```cypher
 MATCH (p:CHR {id:'PLR01'}) SET p.status = 'moving'
 MATCH (p:CHR {id:'PLR01'})-[e:located]->() DELETE e
-MATCH (p:CHR {id:'PLR01'}), (r:ROM {id:'ROM02'}) CREATE (p)-[:located {id:'NEW'}]->(r)
+MATCH (p:CHR {id:'PLR01'}), (r:ROM {id:'ROM02'}) CREATE (p)-[:located]->(r)
 ```
 
 **Server tick beat** (rabbit flees):
@@ -114,8 +114,8 @@ CREATE (bt:BEAT {id:'BT01', key:'rabbit_chase', kind:'pursuit', recycle:'delete_
 CREATE (ev:EVT {id:'EVT01', kind:'flee', actor:'NPC02', room:'ROM01', when:'late', recycle:'delete_on_settle'})
 MATCH (n:CHR {id:'NPC02'}) SET n.status = 'fled'
 MATCH (n:CHR {id:'NPC02'})-[e:located]->() DELETE e
-MATCH (n:CHR {id:'NPC02'}), (r:ROM {id:'ROM02'}) CREATE (n)-[:located {id:'NEW'}]->(r)
-MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {id:'NEW', recycle:'delete_on_settle'}]->(bt)
+MATCH (n:CHR {id:'NPC02'}), (r:ROM {id:'ROM02'}) CREATE (n)-[:located]->(r)
+MATCH (rom:ROM {id:'ROM01'}), (bt:BEAT {id:'BT01'}) CREATE (rom)-[:active {recycle:'delete_on_settle'}]->(bt)
 ```
 
 ---

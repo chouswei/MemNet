@@ -32,7 +32,7 @@ def _categorise(
     orphan_include_tags: set[str] | None = None,
 ) -> _Buckets:
     """One pass over the store; emits all housekeep buckets + counts."""
-    by_id = store.store.by_id
+    by_id = store.store._by_hid
     node_ids: set[str] = set()
     incident: set[str] = set()
     records: list[Record] = []
@@ -74,7 +74,7 @@ def _categorise(
 
 
 def recyclable_rows(store: SessionStore) -> list[Record]:
-    return [r for r in store.store.by_id.values() if r.is_recyclable()]
+    return [r for r in store.store._by_hid.values() if r.is_recyclable()]
 
 
 def dangling_rows(store: SessionStore) -> list[Record]:

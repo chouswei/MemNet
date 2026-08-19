@@ -125,10 +125,10 @@ Engine `LAW01`… rows may still appear on `pin_map` from the session seed — t
 ## 6. MCP turn sketch
 
 ```text
-pin_map(anchor="TSK_mcp_session_load", depth=2, session=sid)
+pin_map(kind="TSK", locators=["goal=Expose session_load"], session=sid)
 add(wire_lines=[
   "CREATE (s:SYM {id:'SYM_mcp_session_load', name:'session_load', kind:'fn', path:'parts/memnet-mcp/software/memnet_mcp/server.py', line:100, signature:'async def session_load(...)', status:'active'})",
-  "MATCH (a:SYM {id:'SYM_mcp_session_load'}), (b:SYM {id:'SYM_cli_session_load'}) CREATE (a)-[:implements {id:'NEW', note:'wraps_cli'}]->(b)",
+  "MATCH (a:SYM {id:'SYM_mcp_session_load'}), (b:SYM {id:'SYM_cli_session_load'}) CREATE (a)-[:implements {note:'wraps_cli'}]->(b)",
 ])
 update(wire_lines=[
   "MATCH (t:TSK {id:'TSK_mcp_session_load'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
