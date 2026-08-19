@@ -64,9 +64,7 @@ def test_same_database_name_is_rejected(monkeypatch):
 
 
 def test_library_emit_is_locators_only_stub():
-    client = Neo4jLibraryClient(
-        Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library")
-    )
+    client = Neo4jLibraryClient(Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library"))
     rows = [
         {
             "path": "docs/SHAPE.md",
@@ -102,9 +100,7 @@ def test_locator_fields_strips_hid():
 
 
 def test_library_must_not_hydrate_or_flush():
-    client = Neo4jLibraryClient(
-        Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library")
-    )
+    client = Neo4jLibraryClient(Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library"))
     with pytest.raises(MemNetError) as h:
         client.hydrate("COM_acme")
     assert h.value.code == "neo4j_library_not_cabinet"
@@ -135,9 +131,7 @@ def test_pin_map_does_not_fuse_rrf_ppr():
 
 
 def test_library_session_uses_library_database():
-    client = Neo4jLibraryClient(
-        Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library")
-    )
+    client = Neo4jLibraryClient(Neo4jLibraryConfig(url="bolt://127.0.0.1:7687", database="library"))
     cabinet = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687", database="neo4j"))
 
     class _Sess:

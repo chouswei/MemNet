@@ -212,8 +212,7 @@ class Neo4jLibraryClient:
         except ImportError as exc:
             raise MemNetError(
                 "neo4j_unavailable",
-                "MEMNET_NEO4J_LIBRARY_DATABASE is set but the neo4j driver "
-                "is not installed.",
+                "MEMNET_NEO4J_LIBRARY_DATABASE is set but the neo4j driver is not installed.",
                 example="pip install 'memnet-llm[neo4j]'",
             ) from exc
         return GraphDatabase

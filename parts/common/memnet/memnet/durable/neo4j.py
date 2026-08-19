@@ -261,8 +261,7 @@ class Neo4jAdapter(DurableStoreAdapter):
         if lib and cfg.database_name == lib:
             raise MemNetError(
                 "neo4j_library_same_as_cabinet",
-                "cabinet MEMNET_NEO4J_DATABASE must differ from "
-                "MEMNET_NEO4J_LIBRARY_DATABASE.",
+                "cabinet MEMNET_NEO4J_DATABASE must differ from MEMNET_NEO4J_LIBRARY_DATABASE.",
                 example="export MEMNET_NEO4J_LIBRARY_DATABASE=library",
             )
         return cls(cfg)
