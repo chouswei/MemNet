@@ -190,7 +190,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
 | [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Retrieve pipelines from source |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Two ports on one Neo4j (proposal) |
+| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Two ports; catalog Snap; join by Absorb (proposal) |
 | [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
