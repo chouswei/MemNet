@@ -1,7 +1,7 @@
 # Product shape (from the problem)
 
 **Status:** identity SSOT (0.8 teach). British English.  
-**Not** the same word as **Recall Shape** \(\tilde{X}\) (the `pin_map` neighbourhood of a session). This file is the **form of the product**. Operator math stays in [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Versions stay in [`ROADMAP-0.5.md`](ROADMAP-0.5.md). Mission contract: **MN-REQ-00** in `sysml-models/models/requirements.sysml`.
+**Not** the same word as **Recall Shape** \(\tilde{X}\) (the `pin_map` neighbourhood of a session). This file is the **form of the product**. Operator math stays in [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Versions stay in [`ROADMAP.md`](ROADMAP.md). Mission contract: **MN-REQ-00** in `sysml-models/models/requirements.sysml`.
 
 ---
 
@@ -73,7 +73,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 
 **0.8.0** is this shape **taught for people** in-repo: this file, GQL-only playbook, application-note contract, Multitask honesty (RSV + Path-B ingest shipped; full ACL modes still to-be).
 
-**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map: [`ROADMAP-0.5.md`](ROADMAP-0.5.md). **Honest install:** current package is **0.9.0** (Neo4j client extra; live unclaimed). PyPI `memnet-llm` is still **0.4.6**; do not claim `pip install memnet-llm` yields 0.9 until that release is published. Use this repo until then.
+**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map: [`ROADMAP.md`](ROADMAP.md). **Honest install:** current package is **0.9.0** (Neo4j client extra; live unclaimed). PyPI `memnet-llm` is still **0.4.6**; do not claim `pip install memnet-llm` yields 0.9 until that release is published. Use this repo until then.
 
 ---
 

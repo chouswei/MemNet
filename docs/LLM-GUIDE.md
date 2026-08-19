@@ -89,7 +89,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; **not** live-claimed (`liveNeo4jClaimed=false`; skip unless `MEMNET_NEO4J_URL`). Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP-0.5.md`](ROADMAP-0.5.md).
+Process death: `session save` / `session load` (snapshot) is the offered file durable. Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; **not** live-claimed (`liveNeo4jClaimed=false`; skip unless `MEMNET_NEO4J_URL`). Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
 Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 

@@ -5,7 +5,7 @@ Domain patterns for **using** MemNet (not engine internals). Index: [`../README.
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
 **Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.9.0**; **1.0** = 0.5–0.8 claimed (no extra engine). PyPI `memnet-llm` is still **0.4.6**.  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
-**Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md).
+**Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 
 Note **bodies teach GQL**. Historical Layer / Tier A ASCII lives under [`../grammar/archive/`](../grammar/archive/) only — not agent wire.
 

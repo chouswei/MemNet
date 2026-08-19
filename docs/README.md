@@ -14,8 +14,8 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | **Version map SSOT** — one picture; 1.0 = claim; planned extras 0.10–0.17 |
-| [`ROADMAP.md`](ROADMAP.md) | Pointer to SHAPE + version map |
+| [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; planned extras 0.10–0.17 |
+| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Historical pointer (old SemVer filename) |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); above #77 |
 | [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox review; all tests are paradox |
