@@ -106,6 +106,6 @@ Done for **the 0.5 leftover track** when: V1/V3/V4/V6 have pytest (**yes**); pla
 | [`docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Snap/Shape; after #84 status |
 | [`host-search-nest-case-study.md`](host-search-nest-case-study.md) | Paths A–E |
-| [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) | SemVer SSOT; 0.5–0.8 shipped; 1.0 = claim |
+| [`docs/ROADMAP.md`](../../docs/ROADMAP.md) | SemVer SSOT; 0.5–0.8 shipped; 1.0 = claim |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded find (**shipped** seed-only) |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (citations) |

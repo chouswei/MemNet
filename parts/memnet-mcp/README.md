@@ -47,7 +47,7 @@ Same tool surface as stdio; the HTTP process owns the graph via InProcessEngine 
 
 ### Cursor `url` example (default remote — one path)
 
-Teach **`memnet-pi`** only for remote / shared graph. Project **`memnet-local`** (stdio) is **optional / dev-only** — omit by default; do not run it alongside Pi HTTP as a second writer. See [`docs/ROADMAP-0.5.md`](../../docs/ROADMAP-0.5.md) and [`.cursor/mcp.json.example`](../../.cursor/mcp.json.example).
+Teach **`memnet-pi`** only for remote / shared graph. Project **`memnet-local`** (stdio) is **optional / dev-only** — omit by default; do not run it alongside Pi HTTP as a second writer. See [`docs/ROADMAP.md`](../../docs/ROADMAP.md) and [`.cursor/mcp.json.example`](../../.cursor/mcp.json.example).
 
 ```json
 {

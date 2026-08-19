@@ -78,7 +78,7 @@ User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
 - [`../grammar/archive/README.md`](../grammar/archive/README.md) — quarantined Layer sources
 - [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
-- [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) — one-path plan; phase order M2 → M2.5 → M3
+- [`../ROADMAP.md`](../ROADMAP.md) — one-path plan; phase order M2 → M2.5 → M3
 - [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
 - [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline
 - [Adopted CIPs](https://github.com/opencypher/openCypher/tree/main/cip/1.adopted) / [testable CIPs](https://github.com/opencypher/openCypher/tree/main/cip/2.testable)

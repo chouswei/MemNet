@@ -229,7 +229,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 |------|------|
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
-| [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md) | SemVer map SSOT |
+| [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
 | [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |

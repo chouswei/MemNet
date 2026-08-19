@@ -243,7 +243,7 @@ pytest -m neo4j_live
 | Vendor a Neo4j server in this repo | Client extra only |
 | Treat Neo4j as a MemNet substitute or as the agent handoff handle | Handoff = session id; peers re-`pin_map` |
 | Thin Cypher-relay-only (drop MemNet; “just a proxy”) | Collapses product value — MemNet is the shared memory |
-| Hold **1.0** for live Neo4j | 1.0 = 0.5–0.8 claimed; live Neo4j is **Later** ([`../ROADMAP-0.5.md`](../ROADMAP-0.5.md)) |
+| Hold **1.0** for live Neo4j | 1.0 = 0.5–0.8 claimed; live Neo4j is **Later** ([`../ROADMAP.md`](../ROADMAP.md)) |
 | `rag_query` / `pin_map.generate` / chunks on the wire | Fusion of retrieve + generate + remember; MN-REQ-00 |
 | Graphiti / GraphRAG / HippoRAG **inside** the engine, or Neo4j as goldfish | Wrong haystack; RRF / PPR / Leiden are not Recall |
 | Snap-on-session (ANN / embed \(S\)) or vector index as the memory surface | Shape is `pin_map`; cabinet is hydrate/flush |

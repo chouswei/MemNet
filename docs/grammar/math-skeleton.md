@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** version map SSOT [`../ROADMAP-0.5.md`](../ROADMAP-0.5.md). Product shape [`../SHAPE.md`](../SHAPE.md). 0.5–0.8 **this lineage**. **1.0** = 0.5–0.8 claimed. Later = Peak_L / HostSearch / N-server / export. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** version map SSOT [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). 0.5–0.8 **this lineage**. **1.0** = 0.5–0.8 claimed. Later = Peak_L / HostSearch / N-server / export. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers. **British English.**  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Citations stay on #77. Notes 22–28 are on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)).  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).
