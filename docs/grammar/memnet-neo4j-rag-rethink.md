@@ -1,7 +1,7 @@
 # Rethink: RAG, `memnet-llm`, and the Neo4j cabinet
 
 **Status:** design proposal — **not** shipped. Does **not** amend [`../SHAPE.md`](../SHAPE.md) until accepted.  
-**Decision proposed:** option **B** (two ports, one Neo4j process). Reject **C**. Keep **A** only as the as-is teach until B is accepted.  
+**Decision proposed:** option **B** (two ports, one Neo4j process) **plus** a **session-catalog Snap** (RAG grain = session id, then `pin_map`). Reject **C**. Keep **A** only as the as-is teach until B is accepted.  
 **Audience:** product developers. British English.
 
 **Pressure:** operators ask how RAG works *between* `memnet-llm` and Neo4j. As-is the answer is “it doesn’t” (cabinet = hydrate/flush only). That job cut is right; as an **operator** architecture it fails: GraphRAG / Graphiti / FTS already run **on Neo4j**. If MemNet forbids every retrieve on that server, they bypass MemNet (LLM↔Bolt).
@@ -13,6 +13,7 @@
 | [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Why RAG was hot; retrieve functions from source |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | As-is MemNet ↔ Neo4j seam; RAG relatives on Snap / Shape / cabinet |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Host Snap steal/reject |
+| [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Many sessions in the engine; **one** shared \(S\) per Multitask mission; Path-B import |
 
 ---
 
@@ -27,7 +28,7 @@ RAG got hot because **weights do not contain the operator’s library**. MemNet 
 | **Hot after** | ChatGPT-era “chat with our docs” (Lewis et al. 2020 → 2023 stacks) | Agents / Multitask that must **re-`pin_map`**, not re-read the PDF |
 | **On Neo4j today** | GraphRAG local/global, Graphiti RRF, FTS/vector, GraphQL `generate` | `Neo4jAdapter` MERGE/MATCH ego under `HydrateBudget` only |
 
-GraphRAG-class products are **fancier retrieve for the first problem**. They do not become MemNet. The rethink is only: **may the same Neo4j process host the library port without becoming goldfish?**
+GraphRAG-class products are **fancier retrieve for the first problem**. They do not become MemNet. The rethink is: **(B)** may the same Neo4j process host the library port without becoming goldfish, and **(session catalog)** may RAG pick a **session** rather than a chunk?
 
 ---
 
@@ -58,8 +59,11 @@ As-is MUST NOTs stay. What we rethink is **“Neo4j = cabinet only, retrieve is 
 | **A. Firewall** (as-is) | RAG never uses the MemNet Neo4j URL. Host Snap is a sibling MCP (RAGFlow, Cursor index). | Simplest engine. Honest “no RAG hop.” | Operators fuse on the same URI anyway; MemNet becomes optional. Extra chunk prompt (**2–8k tokens**) beside Shape. |
 | **B. Two ports, one server** (propose) | Same Neo4j **process**; **two namespaces**. Cabinet port = hydrate/flush of \(S\). Library port = `RagHostHook` adapter → **locators only**. | Jobs unfused. LLM still never talks Bolt. Goldfish **1–4k** tokens, Snap **0** LLM. | Need namespace law, fail-open, no generate. HostSearch remains Later to ship. |
 | **C. Fuse** (reject) | `pin_map` / hydrate runs RRF, PPR, Leiden, or GraphQL `generate` on the cabinet. | Matches Graphiti/GraphRAG products. | Contradicts MN-REQ-00 / 13.1. Session becomes the library. Tokens ×N communities. |
+| **D. Session-catalog Snap** (propose, with B) | Host RAG ranks **library session ids** (or a directory session of `session=` locators). Next hop is `pin_map` / Path-B **import**, not generate. | Uses MemNet’s existing multiplicity. Answers “no pin” and “>50 rows” without ANN of mission \(S\). | Catalog must stay locator-sized. Must not merge/RRF sessions into one prompt. Multitask mission SSOT stays **one** \(S\). |
 
 **Reject C.** That is Graphiti-as-MemNet — RAG’s problem wearing MemNet’s name.
+
+**D is not C.** Ranking **which named graph** to open is Snap. Ranking **pins inside** the mission graph, or stuffing \(N\) sessions into one completion, is C.
 
 **Do not pick A as the long-term operator story** unless we also tell them to run a *second* graph server for the corpus. Most will not.
 
@@ -111,12 +115,14 @@ Algorithms from source: [`rag-relative-algorithms.md`](rag-relative-algorithms.m
 ### Serial miss path (goldfish I/O, already designed)
 
 ```text
-cue → find / pin_map
+cue in mission S → find / pin_map
   seed hit     → Shape \(\tilde{X}\) → sparse Δ → Commit
-  seed empty   → skip OR host Snap (library port) → locators → Commit → pin_map
+  seed empty   → skip OR session-catalog Snap → session= locators
+               → pin_map that library session
+                 OR Path-B import slice into mission → pin_map
 ```
 
-Emit `path=` / `document_id=` / `qname=` only. Adapter **MUST NOT** mutate \(S\). Fail-open: timeout / miss → skip; **MUST NOT** fail `pin_map`. Skip Snap when grep / ingest / existing pins suffice.
+Emit `session=` / `path=` / `document_id=` / `qname=` only. Adapter **MUST NOT** mutate mission \(S\). Fail-open: timeout / miss → skip; **MUST NOT** fail `pin_map`. Skip Snap when grep / ingest / existing pins suffice. Multitask workers **MUST NOT** open a library session unless the parent assigned it.
 
 ### What hydrate is (still not RAG)
 
@@ -124,13 +130,58 @@ Cabinet hydrate remains: ego `{id}` → `[*0..depth]` → `LIMIT` → upsert int
 
 ### What the LLM sees
 
-Still one goldfish: shaped GQL from `memnet-llm` (**≲ 4k tokens** typical). Never Neo4j Browser, never GraphQL `generate`, never `{memory, score}` prompt stuffing from the cabinet. Never chunk bodies from the library port.
+Still one goldfish: shaped GQL from `memnet-llm` (**≲ 4k tokens** typical). Never Neo4j Browser, never GraphQL `generate`, never `{memory, score}` prompt stuffing from the cabinet. Never chunk bodies from the library port. Never \(N\) sessions pasted into one prompt.
+
+---
+
+## RAG process on multiple sessions (option D)
+
+The engine **already** holds many sessions (each `session_open` mints an id). Multitask still uses **one shared mission \(S\)**. Those are compatible: extra sessions are **library / member / directory** graphs, not a second SSOT for the same mission.
+
+RAG’s retrieve grain in this design is **which session**, not which pin and not which chunk.
+
+```text
+                    LLM  <-->  memnet-llm
+                                 |
+              mission S (goldfish pin_map, M≈50)
+                                 |
+              Snap (host) ranks catalog of session ids
+                                 |
+         +-----------+-----------+-----------+
+         |           |           |           |
+      S_lib_a     S_lib_b     S_dir      S_member
+      (topic A)   (topic B)   (session=) (Path-B worker)
+```
+
+| Kind of session | Role | RAG? |
+|-----------------|------|------|
+| **Mission** \(S\) | SSOT for this job. Cue → `pin_map`. Workers share **this** id. | **No** — Shape only. MUST NOT ANN. |
+| **Library** \(S_{\mathrm{lib}}\) | One topic / package / ingest that must stay Shape-sized. Host owns ingest; MemNet goldfish if opened. | Snap **picks the id**; Shape **inside**. |
+| **Directory** \(S_{\mathrm{dir}}\) | Pins that *are* locators: `session=mn_…`, keyword, path. \(M=50\) **sessions listed**, not 50 chunks. No new SCHEMA kind required. | Catalog for Snap; still `pin_map`, not generate. |
+| **Member** (Path-B) | Separate worker session; lead **imports** a bounded slice. Shipped. | Not RAG. Import ≠ host Snap. |
+
+**Unknown pin (question 1).** `find` in mission \(S\). Empty → Snap the **directory** (or host index of session ids + keywords) → emit `session=` locators → either `pin_map` that library session **or** Path-B import a slice into mission \(S\) → `pin_map`. Still skip if the catalog misses. Do not invent a pin; do not rank mission pins by embedding.
+
+**Larger than 50 rows (question 2).** Do not raise \(M\). **Partition** the library into more sessions so each graph is goldfish-sized. A fat `PKG` is a sign to split sessions, not to fuse. Path-B import still uses a **slice** (\(M\times|\mathrm{anchors}|\) is import payload, not goldfish).
+
+Steal / reject vs relatives:
+
+| Relative | Steal | Reject |
+|----------|-------|--------|
+| Graphiti `group_ids` | One group ≈ one session id | RRF groups into one search hit list |
+| GraphRAG communities | One community ≈ one library session (id, not report prose) | Map-reduce reports as goldfish |
+| LightRAG dual-level | Directory = shell; library session = interior | Keyword LLM + chunk JSON |
+| MemNet Path-B | Import slice into lead \(S\) | Absorb host RAG hits; merge whole sessions |
+
+**MUST NOT:** one session per chunk; RRF / union of \(N\) `pin_map` dumps in chat; workers opening library sessions as a shadow mission SSOT; ANN of mission \(S\) “because we have many sessions.”
+
+Cabinet (B): hydrate/flush **the session id you named**. Library Neo4j namespace may back **library** sessions; cabinet labels stay `_memnet_tag` per session, never a cross-session vector index used as goldfish.
 
 ---
 
 ## SHAPE delta (only if this note is accepted)
 
-[`../SHAPE.md`](../SHAPE.md) §4–5 stay two jobs (Shape vs Snap) and cabinet-behind. Add one sentence: **Snap MAY use the same Neo4j process as the cabinet iff the library namespace is disjoint; Snap MUST NOT read `_memnet_tag` / cabinet database as a corpus.** § forbids still: `rag_query` as MemNet; GraphRAG **as** MemNet; LLM↔store direct.
+[`../SHAPE.md`](../SHAPE.md) §4–5 stay two jobs (Shape vs Snap) and cabinet-behind. Add: **Snap MAY use the same Neo4j process as the cabinet iff the library namespace is disjoint; Snap MUST NOT read `_memnet_tag` / cabinet database as a corpus.** Add: **Snap MAY return `session=` locators (library / directory sessions); goldfish remains `pin_map` of one named \(S\); Multitask mission SSOT remains one session.** § forbids still: `rag_query` as MemNet; GraphRAG **as** MemNet; LLM↔store direct; ranking pins inside mission \(S\).
 
 MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This rethink only **binds** that hook to a namespaced Neo4j as one allowed backend — it does not nest HostSearch under `MemNetSystem` and does not ship the hook.
 
@@ -141,16 +192,19 @@ MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This rethink on
 **MUST**
 
 - Keep cabinet and library as **two ports** even on one Bolt URL (named database preferred; else `_memnet_tag` vs corpus labels).
-- Locator-only host emit; next goldfish is `pin_map`.
+- Locator-only host emit (`session=` / `path=` / `document_id=` / `qname=`); next goldfish is `pin_map` of **one** named session.
+- Partition a fat library into **more sessions**, not a larger \(M\).
 - Fail-open skip on host miss.
 - One `DurableSyncOwner` for cabinet writes.
 - Flush cabinet on **settle / process death**, not every `pin_map` (N auto-commit MERGEs).
 - Keep goldfish prompt **≲ 4k tokens** typical; treat **≳ 8k** from one `pin_map` as alarm.
+- Keep **one** mission session under Multitask; library sessions are extra ids, not a second SSOT.
 
 **MUST NOT**
 
 - Rank/generate inside `pin_map` or hydrate (option C).
-- ANN / FTS **cabinet** labels as goldfish (Snap-on-session).
+- ANN / FTS **mission** \(S\) or **cabinet** labels as goldfish (Snap-on-session).
+- RRF or paste \(N\) sessions into one completion.
 - Dual-write the same node id as both mission pin and corpus chunk.
 - Teach LLM↔Neo4j as the miss path.
 - Treat the **4 MiB** serve frame as a token budget.
@@ -251,22 +305,24 @@ Tokens here are **chat-completion** tokens (prompt + completion), not embedding 
 
 **Design rule.** MN-REQ-00 counts **tokens as well as wall-clock**. Option B keeps **one** completion per goldfish turn, context ≈ Shape only. A sibling RAG that **also** stuffs chunks **doubles** prompt tokens (A). Fuse (C) or GraphRAG global spends **orders of magnitude** more tokens per question than `pin_map`.
 
-### Option A / B / C scored on these budgets
+### Option A / B / C / D scored on these budgets
 
 | | Network | Memory | CPU / turn | LLM tokens / question |
 |--|---------|--------|------------|------------------------|
 | **A Firewall** | Goldfish ms; corpus RAG is another MCP (chunky). Two servers if they obey. | \(S\) small; library elsewhere | Shape ms; RAG MCP extra | Shape **1–4k** **plus** chunk prompt **2–8k** if they RAG |
 | **B Two ports** | Shape ms; hydrate 2 RTT; flush batched/offline; Snap 1–3 RTT locators | Two namespaces; cabinet hundreds of MiB; library GiB **not** in \(S\) | Shape ms; Snap ms–tens of ms; **no** generate | **1–4k** Shape; Snap **0**; hydrate **0** |
 | **C Fuse** | Every turn looks like Graphiti/GraphRAG (parallel Bolt + prompt) | One hot heap = library | PPR/Leiden/LLM — **seconds+** | **1–4k+** stuffed graph **plus** generate; global = **×N communities** |
+| **D Catalog** (with B) | Same as B; Snap returns a few `session=` ids | Many small \(S_{\mathrm{lib}}\); mission \(S\) stays tens of MiB | Catalog rank on **ids**, then one Shape | **1–4k** one `pin_map`; **not** \(N\times\) maps |
 
-MN-REQ-00 (wall-clock + tokens) **selects B** when one Neo4j process is a given: keep the millisecond goldfish, pay Bolt only for bounded hydrate and rare flush, pay library ANN only on **miss**, never pay map-reduce on `pin_map`. One completion, Shape-sized context. RAG still solves the **library** problem; MemNet still solves the **session** problem.
+MN-REQ-00 (wall-clock + tokens) **selects B+D** when one Neo4j process is a given and the engine already has many sessions: keep the millisecond goldfish, pay Bolt only for bounded hydrate and rare flush, pay library ANN only on **miss** and only to pick a **session id**, never pay map-reduce on `pin_map`. One completion, Shape-sized context. RAG still solves the **library** problem; MemNet still solves the **session** problem.
 
 ---
 
 ## Leftover if accepted
 
 1. Spec `MEMNET_NEO4J_LIBRARY_DATABASE` (or label law) in the Neo4j extra — docs first; adapter Later with HostSearch. Same URL as `MEMNET_NEO4J_URL` is allowed; **different database name** (or labels).
-2. SysML: `RagHostHook` backend `Neo4jLibraryAdapter` `implemented=false`.
-3. Do not close live Neo4j cabinet leftover from this note.
+2. SysML: `RagHostHook` backend `Neo4jLibraryAdapter` `implemented=false`; emit type `session=` (directory / library ids) beside path locators.
+3. Teach: catalog Snap vs Path-B import (already shipped) — do not invent a second absorb for host hits.
+4. Do not close live Neo4j cabinet leftover from this note.
 
 Until accepted, as-is teaching stays: no RAG hop on the **cabinet** seam; host Snap unshipped; operators who fuse on one graph do so **outside** MemNet.
