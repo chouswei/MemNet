@@ -23,7 +23,8 @@ package MemNetConnections {
       search corpus and not GraphRAG. Goldfish pins topic egos, Shapes
       slices (pin_map), Commits Δ; host Snap locators also via MutateGate.
       MUST NOT ANN-index the session. MUST NOT call goldfish writeback
-      Absorb (Path-B ImportAbsorb only). Realised by AgentMemory +
+      Absorb (Path-B ImportAbsorb only). SameThingAbsorb is a distinct
+      in-session Commit rule, not that writeback naming. Realised by AgentMemory +
       SessionLifecycle in deploy — not by chat and not by direct LLM
       access to the durable store.
     */

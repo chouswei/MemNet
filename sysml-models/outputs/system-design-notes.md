@@ -37,7 +37,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Company analytical SSOT | `CompanyAnalyticalSsot` (**application pattern section** in connections — not core item zoo) → [company-memory-case-study.md](company-memory-case-study.md) |
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
-| Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs seven cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, content-hash ids, typed path-ids, or vector indexes as identity. |
+| Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs seven cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. |
 | Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
@@ -65,7 +65,8 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   │     ├── GqlCodec / GraphStore / RecallCommit
 │   │   │     │     Recall / AgentShapedRead /
 │   │   │     │     PinMapShapedRead (shipped) / BoundedMatchFind (shipped #73 seed-only)
-│   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease)
+│   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease) /
+│   │   │     │     SameThingAbsorb (in-session Commit rule; not ImportAbsorb)
 │   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
 │   │   ├── LocalIpcGateway
 │   │   └── TcpServeBridge
@@ -161,7 +162,7 @@ reserve and Path-B ingest are **shipped**.
 | (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
 | BoundedMatchFind | `query find` / MCP `find` | Nested under Recall / AgentShapedRead (`implemented=true`; #73 seed-only; then `pin_map`) |
-| RecallCommit | — | Modelled two-operator parent (MN-REQ-13); no engine cut |
+| RecallCommit | — | Modelled two-operator parent (MN-REQ-13); SameThingAbsorb is a Commit rule, not a third operator; no engine cut |
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); leftover_NEW_mint as-is; TARGET GraphElement create; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
 | AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
@@ -185,7 +186,8 @@ reserve and Path-B ingest are **shipped**.
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
-- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append)
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); engine cut not claimed; **1.0** = claim of 0.5–0.8
+- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append). Distinct from SameThingAbsorb (in-session collapse; SHALL NOT entity-resolve).
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
@@ -194,4 +196,3 @@ reserve and Path-B ingest are **shipped**.
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** — application / contrast nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored
-- RecallCommit — modelled two-operator cut (MN-REQ-13.1); engine cut not claimed; **1.0** = claim of 0.5–0.8

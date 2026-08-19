@@ -12,6 +12,7 @@
   BoundedMatchFind shipped seed-only (MN-VER-04-S01 / #73).
   RelativeSeed codebook tokens then ShapeWalk (MN-VER-04-S02).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
+  SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=false.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
@@ -586,7 +587,8 @@ package MemNetVerification {
       MN-REQ-02.9 / MN-REQ-04.8 — cousin pointing contrast nest.
       Chosen TARGET: cue → RelativeSeed → ShapeWalk → pin_map emit.
       MUST NOT copy minted block id, vid-on-wire, unique page-name law,
-      unique-name MERGE as identity, content-hash ids, typed path-ids,
+          unique-name MERGE as identity, silent LLM merge of same-name
+          nodes into the store, content-hash ids, typed path-ids,
       vector indexes as identity, or GraphLite as product. MAY copy
       cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
       RelativeSeed bounded + honest; no third operator. operatorCount
@@ -613,6 +615,7 @@ package MemNetVerification {
           and contrast.mustNotCopyGqlEngine == true
           and contrast.mustNotCopyContentHashIdentity == true
           and contrast.mustNotCopyUniqueNameMergeAsIdentity == true
+          and contrast.mustNotCopySilentLlmSameNameMerge == true
           and contrast.mustNotCopyTypedPathIdsAsAgentLanguage == true
           and contrast.mustNotCopyVectorIndexAsIdentity == true
           and contrast.operatorCountUnchanged == 2
@@ -827,6 +830,71 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_13_S02_RecallDoesNotAbsorb {
+    doc /*
+      MN-REQ-13.2 / MN-REQ-04.8 — Recall SHALL NOT absorb. RelativeSeed /
+      find emit Q honestly; same name is a candidate only. SameThingAbsorb
+      MAY collapse under Commit (agent-gated, labels+properties), distinct
+      from ImportAbsorb. operatorCount stays 2. liveNeo4jClaimed stays false.
+    */
+    attribute verificationId : String = "MN-VER-13-S02";
+
+    subject system : MemNetSystem;
+
+    objective recallDoesNotAbsorbCommitMay {
+      verify sameThingAbsorbReq;
+      verify twoOperatorsReq;
+      verify cueMultiRootHonestReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+          .operatorCount == 2
+          and system.durable.liveNeo4jClaimed == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.absorbs == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.silentMergeByName == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.llmCollapseInsideRecall == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.sameNameIsCandidateOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.absorbs == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.silentMergeByName == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.llmCollapseInsideRecall == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.sameNameIsCandidateOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.emitQHonestWhenMulti == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThingAbsorbIsCommitRule == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.absorbPathBOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.notRecall == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.distinctFromImportAbsorb == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.matchByLabelsAndProps == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.leftoverMergeByIdForbidden == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.sameNameIsCandidateOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.differentWorldThingsRemainTwo == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.mintSecondNodeOnRename == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.akaOnSameNode == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.goldfishWritebackNaming == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.implemented == false
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -857,6 +925,8 @@ package MemNetVerification {
     : MN_VER_07_S01_TargetCommandListNoRequiredId;
   verification recallCommitTwoOperatorsVerify
     : MN_VER_13_S01_RecallCommitTwoOperators;
+  verification recallDoesNotAbsorbVerify
+    : MN_VER_13_S02_RecallDoesNotAbsorb;
   verification durableCabinetHonestyVerify
     : MN_VER_06_S01_DurableCabinetHonesty;
 }

@@ -25,7 +25,7 @@ Orthodox = a theorem you can **build from**. Paradox = **all** examination and t
 | Incremental coding | Sparse Δ: `add`/`update`; `id_exists` on echo | Shipped strict mutate; playbook must not echo \(\tilde{X}\) |
 | One working chunk | Live `TSK` as default ego; settle / `delete_on_settle` | Shipped recycle hide; playbook after [#84](https://github.com/chouswei/MemNet/pull/84) |
 | Two rate budgets | Snap (host corpus) vs Shape (session) | Design-locked; `RagHostHook.implemented=false` |
-| Path-B ≠ goldfish writeback | Absorb = `ImportAbsorb` + `id_policy` only | Shipped Path-B; MUST NOT send goldfish Δ there |
+| Path-B ≠ goldfish writeback | Goldfish Δ is Commit, not Absorb-named writeback. `ImportAbsorb` = Path-B slice + leftover `id_policy` only. `SameThingAbsorb` = distinct in-session Commit rule (not Recall) | Shipped Path-B; MUST NOT send goldfish Δ to ImportAbsorb; SameThingAbsorb modelled |
 
 Load-bearing orthodox: rate, codebook, \(k\)-hop, skip-after-probe, same alphabet, sparse Δ, two budgets. Names-only (do not erect a solver): IB Lagrangian, DPI-as-proof, Pearl blanket, Miller 7±2. Hilbert IR / QQL / ZX-on-Cypher / Gremlin quantum walks are **paradox cousins** (stress), not GQL semantics and not a Hilbert store.
 

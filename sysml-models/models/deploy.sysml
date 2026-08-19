@@ -21,7 +21,8 @@
     │       │   └── Commit          // ONE gate; TARGET GraphElement identity
     │       │       ├── MutateGate
     │       │       ├── IdAllocator // leftover_NEW_mint / leftover_by_id
-    │       │       └── NeighbourhoodReserve // RSV lease — not a third API
+    │       │       ├── NeighbourhoodReserve // RSV lease — not a third API
+    │       │       └── SameThingAbsorb // in-session collapse; not ImportAbsorb
     │       ├── Schema / Caps (size + shipped ACL) / …
     │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
@@ -38,7 +39,7 @@
         │       │   ├── ImportGuardHook   // shipped #49 (set_import_guard)
         │       │   ├── CheapLlmImportGuard // shipped #63 / 12.11 (env-gated)
         │       │   └── Soft* leaves      // allow|trim|reject; trim subtractive
-        │       └── ImportAbsorb          // engine SHALL hard
+        │       └── ImportAbsorb          // Path-B slice; not SameThingAbsorb
         │           ├── DistinctSession / SliceBudget / LawVocabExclude / Acl
         │           ├── IdPolicyKeep|Reject|Remint
         │           └── NodesThenEdgesCommit (+ optional decision atom)
@@ -48,6 +49,9 @@
   Path A: shared mission sessionId → pin_map only (no import nest).
   Path B: bounded WorkingMemorySlice → optional ImportGuard → ImportAbsorb
   (id_policy keep|reject|remint). Not append. Not N-server federation.
+  SameThingAbsorb is a distinct Commit rule (in-session same-thing collapse);
+  ImportAbsorb SHALL NOT do entity resolution. Goldfish writeback is still
+  not called Absorb.
   Hook shipped ≠ cheap LLM shipped. Module cite: memnet.import_absorb.
 
   APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
@@ -447,6 +451,9 @@ package MemNet {
       Peak_L is Later, not this mechanism. leftover 0.9: seed = {node id};
       copy find id then pin_map(anchor=id); require_anchor.
       BoundedMatchFind / CmdFind realize this part.
+      SHALL emit Q honestly when |Q| > 1. SHALL NOT absorb, SHALL NOT
+      silent MERGE-by-name, SHALL NOT call an LLM to collapse inside Recall.
+      Same name is a candidate only.
     */
     port cueIn : CueInPort;
     port seedOut : SeedSetOutPort;
@@ -468,8 +475,14 @@ package MemNet {
     attribute tokenNicknameOptional : Boolean = true;
     attribute notEmbedding : Boolean = true;
     attribute notStoreKey : Boolean = true;
+    attribute absorbs : Boolean = false;
+    attribute silentMergeByName : Boolean = false;
+    attribute llmCollapseInsideRecall : Boolean = false;
+    attribute sameNameIsCandidateOnly : Boolean = true;
+    attribute emitQHonestWhenMulti : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
@@ -576,6 +589,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
   }
 
@@ -629,6 +643,43 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
   }
 
+  part def SameThingAbsorb {
+    doc /*
+      In-session collapse of two live elements the agent judged as one
+      world-thing. Commit rule — not a product verb, not Recall, not
+      RelativeSeed / ShapeWalk / pin_map. Distinct from ImportAbsorb
+      (Path-B WorkingMemorySlice + leftover id_policy). Agent-gated;
+      pattern match labels+properties (rel type+ends). SHALL NOT leftover
+      MERGE-by-id / store-key / elementId. Same name is a candidate only.
+      Two same-name nodes that are different world-things remain two.
+      Name-change: optional aka on the same node; SHALL NOT mint a second
+      thing-node. CHANGED between two thing-nodes only if the world split.
+      Modelled; engine cut not this PR.
+    */
+    attribute implemented : Boolean = false;
+    attribute gateKind : String = "agent";
+    attribute actor : String = "llm_then_commit";
+    attribute notAProductVerb : Boolean = true;
+    attribute notRecall : Boolean = true;
+    attribute distinctFromImportAbsorb : Boolean = true;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute leftoverMergeByIdForbidden : Boolean = true;
+    attribute sameNameIsCandidateOnly : Boolean = true;
+    attribute differentWorldThingsRemainTwo : Boolean = true;
+    attribute akaOnSameNode : Boolean = true;
+    attribute mintSecondNodeOnRename : Boolean = false;
+    attribute nameTokenHistoryRequired : Boolean = false;
+    attribute changedEdgeOnlyIfWorldSplit : Boolean = true;
+    attribute goldfishWritebackNaming : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+  }
+
   part def Recall {
     doc /*
       Operator Recall(q) over session graph S (MN-REQ-13). ONE operator:
@@ -641,6 +692,8 @@ package MemNet {
       Grammar SSOT: docs/grammar/math-skeleton.md. Engine cut not this PR.
       Cousin pointing contrast lives outside MemNetSystem
       (CousinPointingContrast); this nest is not thickened.
+      SHALL NOT absorb / MERGE-by-name / LLM-collapse Q. Same name is a
+      candidate only; agent may later SameThingAbsorb under Commit.
     */
     port cueIn : CueInPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -653,6 +706,10 @@ package MemNet {
     attribute snapOnSession : Boolean = false;
     attribute unionUnderOneM : Boolean = true;
     attribute goldfishBudgetTimesAnchors : Boolean = false;
+    attribute absorbs : Boolean = false;
+    attribute silentMergeByName : Boolean = false;
+    attribute llmCollapseInsideRecall : Boolean = false;
+    attribute sameNameIsCandidateOnly : Boolean = true;
     part seed : RelativeSeed;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
@@ -665,6 +722,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
@@ -678,8 +736,12 @@ package MemNet {
       Leftover 0.9 invented store: leftover_NEW_mint → leftover_by_id
       (IdAllocator.implemented=false TARGET; leftoverNewMint=true).
       Ingest locators remain properties, not PK (ingestIsIdRule=false;
-      leftover_ingestIsIdRule as-is). Absorb Path-B only.
-      Python cut not this PR. Recall/Commit nest not thickened.
+      leftover_ingestIsIdRule as-is). Two absorb *rules* under Commit (not
+      extra operators): ImportAbsorb stays Path-B WorkingMemorySlice +
+      leftover id_policy (absorbPathBOnly — goldfish writeback is still
+      not called Absorb; ImportAbsorb SHALL NOT entity-resolve); SameThingAbsorb
+      is in-session collapse, nested here. Python cut not this PR.
+      Recall/Commit operatorCount stays 2.
     */
     port gqlIn : GqlWireInPort;
     port recordsOut : GraphRecordOutPort;
@@ -700,8 +762,10 @@ package MemNet {
     attribute leftoverMergeById : Boolean = true;
     attribute mergeIsPerWriteLookup : Boolean = true;
     attribute noReplacementStoreKey : Boolean = true;
+    attribute sameThingAbsorbIsCommitRule : Boolean = true;
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
+    part sameThing : SameThingAbsorb;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
@@ -710,15 +774,17 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
   }
 
   part def RecallCommit {
     doc /*
       0.5 mechanism parent under SessionLifecycle: TWO operators only —
       Recall(q) and Commit(Δ). Existing PinMapShapedRead / BoundedMatchFind
-      nest under Recall; MutateGate / NeighbourhoodReserve nest under
-      Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
-      SessionImportReceive as Commit rules, not extra operators.
+      nest under Recall; MutateGate / NeighbourhoodReserve / SameThingAbsorb
+      nest under Commit. PinMapIngest_* and ImportAbsorb remain in PinMapRoadmap /
+      SessionImportReceive as Commit rules, not extra operators (ImportAbsorb
+      is Path-B only; SameThingAbsorb is the in-session collapse).
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
       corpus, outside) vs Shape (Recall X̃). Goldfish I/O: slice in
       (Recall), Δ out (Commit); pin topics then fetch slices. Modelled
@@ -1635,6 +1701,8 @@ package MemNet {
       TARGET product command (MN-REQ-07.5). TARGET Path-B import is
       pattern match (labels+properties).
       Product verb = import. Path A never enters.
+      Distinct from SameThingAbsorb: this nest SHALL NOT entity-resolve
+      two live mission-session nodes that share a name.
       When ImportGuard skipped/disabled, absorb after SessionImportRequest
       + slice alone. Module: memnet.import_absorb.
     */

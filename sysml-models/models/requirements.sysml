@@ -9,9 +9,11 @@
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
+    MN-REQ-13.2        SameThingAbsorb — in-session Commit rule (not ImportAbsorb)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
-    MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; no third operator
+    MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; no third operator;
+                       same name is a candidate only; Recall SHALL NOT absorb
     MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -286,7 +288,9 @@ package MemNetRequirements {
           → pin_map emit. MAY copy cue-without-store-key and neighbourhood
           emit. SHALL NOT copy: GQL engine; content-hash-of-entire-property-map
           as identity; SQLite-clone product job; unique-name MERGE as
-          universal identity; vector/fulltext as pointing; elementId
+          universal identity; silent LLM merge of same-name nodes into
+          the store (Recall SHALL NOT collapse; SameThingAbsorb is an
+          agent-gated Commit rule); vector/fulltext as pointing; elementId
           writeback; Unicode id-normalization; substring/IDF as identity;
           Leiden; Cypher export as the query API; type:path:name as agent
           language; Fuse+embeddings as TARGET; commit-the-JSON as the
@@ -442,9 +446,12 @@ package MemNetRequirements {
           not invent a node, do not silently pick a store-key. ShapeWalk
           SHALL union k-hop under one M (not M×|Q|). SHALL NOT add a new
           verb, Peak_L default, or rag_query / ANN to resolve ambiguity.
-          Re-cue with a tighter token is the product move. Contrast nest
-          CousinPointingContrast records this; Recall/Commit
-          operatorCount stays 2.
+          Re-cue with a tighter token is the product move. Same name (or
+          any shared cue) is a candidate only — not a find hit that
+          collapses, not silent MERGE-by-name, not an LLM merge inside
+          Recall. RelativeSeed / find SHALL emit Q honestly when |Q| > 1
+          and SHALL NOT absorb. Contrast nest CousinPointingContrast
+          records this; Recall/Commit operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.8";
       }
@@ -1244,7 +1251,8 @@ package MemNetRequirements {
         doc /*
           SHALL model exactly two product operators: Recall(q) (seed then
           bounded k-hop reconstruct; empty seed ⇒ skip) and Commit(Δ)
-          (one gate; mutate / ingest / absorb are Commit rules). RSV SHALL
+          (one gate; mutate / ingest / ImportAbsorb / SameThingAbsorb are
+          Commit rules — absorb is a rule family, not extra operators). RSV SHALL
           be a lease under Commit / SessionLifecycle, not a third API.
           HostSearchBridge SHALL remain outside MemNetSystem. Layer / Tier A
           remain REJECTED on accept (retire-from-wheel leftover; hierarchical
@@ -1261,7 +1269,9 @@ package MemNetRequirements {
           on 0.9; SHALL NOT echo the fetched slice); the session SHALL take
           it via Commit. SHALL NOT call that
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
-          id_policy only). Host Snap (corpus locators via RagHostHook) SHALL
+          leftover id_policy only — not entity resolution). SameThingAbsorb
+          is a distinct in-session Commit rule, not goldfish-writeback naming
+          and not ImportAbsorb. Host Snap (corpus locators via RagHostHook) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.
           In-session task already on S SHALL RelativeSeed MATCH_L then
           ShapeWalk (leftover read_list / copy-id --anchor named leftover)
@@ -1273,6 +1283,29 @@ package MemNetRequirements {
           LangChain / HiGram as agent wire.
         */
         attribute requirementId : String = "MN-REQ-13.1";
+      }
+
+      requirement def MN_REQ_13_2_SameThingAbsorb {
+        doc /*
+          Second absorb case under Commit, distinct from ImportAbsorb.
+          SameThingAbsorb SHALL collapse two live session elements only
+          when the agent judges they are one world-thing. It is a Commit
+          rule, not a product verb, not Recall, not RelativeSeed /
+          ShapeWalk / pin_map. Pattern match is labels + properties (and
+          relationship type + ends); SHALL NOT leftover MERGE-by-id /
+          store-key / elementId. Same name (or any shared cue) is a
+          candidate only. Two same-name nodes that are different
+          world-things SHALL remain two (two "First National Bank"s stay
+          two). Name is a handle, not the thing: a name-change SHALL NOT
+          mint a second thing-node; optional aka (or name tokens pointing
+          at one element) is enough; name-token history is optional.
+          CHANGED between two thing-nodes only if the world actually split.
+          ImportAbsorb SHALL remain Path-B WorkingMemorySlice + leftover
+          id_policy and SHALL NOT do this entity resolution. Goldfish
+          writeback SHALL still not be called Absorb (MN-REQ-13.1).
+          operatorCount stays 2.
+        */
+        attribute requirementId : String = "MN-REQ-13.2";
       }
     }
   }
@@ -1498,6 +1531,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit;
   requirement twoOperatorsReq
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  requirement sameThingAbsorbReq
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -1657,6 +1692,13 @@ package MemNetRequirements {
   #derivation connection deriveRecallCommitLeaves {
     end #original ::> recallCommitReq;
     end #derive ::> twoOperatorsReq;
+    end #derive ::> sameThingAbsorbReq;
+  }
+
+  #derivation connection deriveSameThingFromCueHonesty {
+    end #original ::> cueMultiRootHonestReq;
+    end #original ::> twoOperatorsReq;
+    end #derive ::> sameThingAbsorbReq;
   }
 
   #derivation connection deriveTargetsFromMapOfPins {
@@ -1739,6 +1781,7 @@ package MemNetRequirements {
     end #original ::> sliceEconomyReq;
     end #derive ::> recallCommitReq;
     end #derive ::> twoOperatorsReq;
+    end #derive ::> sameThingAbsorbReq;
   }
 
   #derivation connection deriveSnapshotFromNodeEdge {
