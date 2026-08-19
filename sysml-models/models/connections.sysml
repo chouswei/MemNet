@@ -290,6 +290,8 @@ package MemNetConnections {
       openCypher-family graph text (nodes + relationships), produced by a
       pin_map-class tool that wraps GQL internally. Primary goldfish read.
       SHALL NOT be a raw tabular MATCH/RETURN dump. ShapeWalk emit of X̃.
+      When |Q| > 1 the emit SHALL carry CueConflict (Q listed,
+      cardinality visible). SHALL NOT silently pick one root.
     */
   }
 
@@ -316,6 +318,23 @@ package MemNetConnections {
     */
     attribute seedsAreGraphElements : Boolean = true;
     attribute isAssignedIdMap : Boolean = false;
+    attribute listAllRoots : Boolean = true;
+    attribute cardinalityVisible : Boolean = true;
+    attribute silentPickOne : Boolean = false;
+  }
+
+  item def CueConflictMark {
+    doc /*
+      Payload mark on the existing find / pin_map shaped emit when a cue
+      yields |Q| > 1. See MemNet::CueConflict. NOT a product command.
+    */
+    attribute qListed : Boolean = true;
+    attribute cardinalityVisible : Boolean = true;
+    attribute silentPickOneRoot : Boolean = false;
+    attribute productCommand : Boolean = false;
+    attribute usualCaseSharedName : Boolean = true;
+    attribute anySharedCue : Boolean = true;
+    attribute differentWorldThingsStayTwoRoots : Boolean = true;
   }
 
   item def EmptySkip {

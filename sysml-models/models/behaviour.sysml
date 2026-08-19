@@ -26,6 +26,12 @@ package MemNetBehaviour {
   attribute def EvSeedReady {
     doc /* RelativeSeed produced non-empty Q of graph elements. */
   }
+  attribute def EvCueConflict {
+    doc /*
+      Recall shaped emit when |Q| > 1: Q listed, cardinality visible,
+      CueConflict mark. SHALL NOT pick one root. Not a product command.
+    */
+  }
   attribute def EvEmptySeedSkip {
     doc /* Empty Q: skip ShapeWalk; do not invent a node. */
   }
@@ -49,8 +55,8 @@ package MemNetBehaviour {
       CREATE () legal. leftover_NEW_mint / AssignedIdMap is 0.9 leftover
       engine, not a TARGET product verb. Goldfish OUT: sparse Δ (MUST NOT echo
       the fetched slice; not ImportAbsorb). SameThingAbsorb MAY run as a
-      Commit rule after the agent sees both neighbourhoods — not inside
-      Recall. Ingest locators are
+      Commit rule after the agent sees CueConflict on find / pin_map emit
+      — not inside Recall. Ingest locators are
       properties, not leftover_ingestIsIdRule TARGET. Layer / Tier A
       accept retired (ADR-001 M2).
     */
@@ -381,11 +387,18 @@ package MemNetBehaviour {
       then awaitingCue;
 
     state walking {
-      doc /* ShapeWalk k-hop from Q under one M; leftover require_anchor not TARGET. */
+      doc /*
+        ShapeWalk k-hop from Q under one M; leftover require_anchor not TARGET.
+        |Q| > 1 carries CueConflict on the emit.
+      */
     }
     transition walk_to_present
       first walking
       accept EvShapeWalk
+      then presenting;
+    transition walk_cue_conflict
+      first walking
+      accept EvCueConflict
       then presenting;
     transition walk_via_pin_map
       first walking
@@ -399,7 +412,8 @@ package MemNetBehaviour {
     state presenting {
       doc /*
         LLM sees X̃ (shaped subgraph); may reason. Same-name hits are
-        candidates; agent MAY later Commit SameThingAbsorb.
+        candidates pointed out as CueConflict (two roots, not one merged
+        node); agent MAY later Commit SameThingAbsorb.
       */
     }
     transition present_to_commit

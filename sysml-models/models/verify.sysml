@@ -708,6 +708,9 @@ package MemNetVerification {
           and system.mcp.tools.leftoverRequireAnchorNested == false
           and system.mcp.tools.leftoverAllocateFromLocatorNested == false
           and system.mcp.tools.leftoverIdPolicyCommandNested == false
+          and system.mcp.tools.leftoverNameConflictCommandNested == false
+          and system.mcp.tools.leftoverMergeCommandNested == false
+          and system.mcp.tools.leftoverAbsorbCommandNested == false
           and system.mcp.tools.leftoverElementIdOnWire == false
           and system.core.cli.leftoverReadGetNested == false
           and system.core.cli.leftoverNewNested == false
@@ -717,6 +720,9 @@ package MemNetVerification {
           and system.core.cli.leftoverRequireAnchorNested == false
           and system.core.cli.leftoverAllocateFromLocatorNested == false
           and system.core.cli.leftoverIdPolicyCommandNested == false
+          and system.core.cli.leftoverNameConflictCommandNested == false
+          and system.core.cli.leftoverMergeCommandNested == false
+          and system.core.cli.leftoverAbsorbCommandNested == false
           and system.core.cli.leftoverElementIdOnWire == false
           and system.core.cli.find.requiresStoreKeyId == false
           and system.core.cli.pinMap.requireAnchorId == false
@@ -833,9 +839,10 @@ package MemNetVerification {
   verification def MN_VER_13_S02_RecallDoesNotAbsorb {
     doc /*
       MN-REQ-13.2 / MN-REQ-04.8 — Recall SHALL NOT absorb. RelativeSeed /
-      find emit Q honestly; same name is a candidate only. SameThingAbsorb
-      MAY collapse under Commit (agent-gated, labels+properties), distinct
-      from ImportAbsorb. operatorCount stays 2. liveNeo4jClaimed stays false.
+      find emit Q honestly; CueConflict on shaped emit when |Q|>1 (Q listed,
+      cardinality visible; not a product command). Same name is a candidate
+      only. SameThingAbsorb MAY collapse under Commit after that mark,
+      distinct from ImportAbsorb. operatorCount stays 2. liveNeo4jClaimed stays false.
     */
     attribute verificationId : String = "MN-VER-13-S02";
 
@@ -867,6 +874,34 @@ package MemNetVerification {
             .recall.seed.sameNameIsCandidateOnly == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.emitQHonestWhenMulti == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.seed.silentPickOneRoot == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.cueConflictOnMultiRoot == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.cueConflict.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.cueConflict.qListed == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.cueConflict.cardinalityVisible == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.cueConflict.silentPickOneRoot == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.cueConflict.differentWorldThingsStayTwoRoots
+            == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.find.cueConflict.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.cueConflict.productCommand == false
+          and system.mcp.tools.leftoverNameConflictCommandNested == false
+          and system.mcp.tools.leftoverMergeCommandNested == false
+          and system.mcp.tools.leftoverAbsorbCommandNested == false
+          and system.core.cli.leftoverNameConflictCommandNested == false
+          and system.core.cli.find.cueConflict.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.afterCueConflictVisible == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.sameThing.notAProductCommand == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.sameThingAbsorbIsCommitRule == true
           and system.core.transport.inProcess.memory.sessions.recallCommit

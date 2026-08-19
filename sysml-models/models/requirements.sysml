@@ -12,8 +12,8 @@
     MN-REQ-13.2        SameThingAbsorb — in-session Commit rule (not ImportAbsorb)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
-    MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; no third operator;
-                       same name is a candidate only; Recall SHALL NOT absorb
+    MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
+                       on find/pin_map emit; same name is a candidate only
     MN-REQ-07.5        TARGET agent/CLI/MCP SHALL NOT key tools on store-key id
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -450,7 +450,15 @@ package MemNetRequirements {
           any shared cue) is a candidate only — not a find hit that
           collapses, not silent MERGE-by-name, not an LLM merge inside
           Recall. RelativeSeed / find SHALL emit Q honestly when |Q| > 1
-          and SHALL NOT absorb. Contrast nest CousinPointingContrast
+          and SHALL NOT absorb. The existing find / pin_map shaped emit
+          SHALL point the conflict out: Q listed, cardinality visible,
+          CueConflict mark (usual case: shared name property; any shared
+          cue that yields several roots is the same signal). SHALL NOT
+          silently pick one root. Two different world-things that share a
+          name SHALL appear as conflict (two roots), not as one merged
+          node. SHALL NOT add name_conflict / merge / absorb as a product
+          command. SameThingAbsorb stays a Commit rule after the agent
+          sees the conflict. Contrast nest CousinPointingContrast
           records this; Recall/Commit operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.8";
@@ -1296,7 +1304,9 @@ package MemNetRequirements {
           store-key / elementId. Same name (or any shared cue) is a
           candidate only. Two same-name nodes that are different
           world-things SHALL remain two (two "First National Bank"s stay
-          two). Name is a handle, not the thing: a name-change SHALL NOT
+          two) and SHALL appear on Recall as CueConflict (two roots), not
+          as one merged node. Collapse SHALL wait until the agent has
+          seen that conflict on find / pin_map emit. Name is a handle, not the thing: a name-change SHALL NOT
           mint a second thing-node; optional aka (or name tokens pointing
           at one element) is enough; name-token history is optional.
           CHANGED between two thing-nodes only if the world actually split.

@@ -16,8 +16,8 @@
     │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; not a third op
     │       │   │   └── AgentShapedRead
     │       │   │       ├── RelativeSeed + ShapeWalk  // seedToWalk: Q → k-hop
-    │       │   │       ├── PinMapShapedRead    // realizes ShapeWalk from Q
-    │       │   │       └── BoundedMatchFind    // realizes RelativeSeed MATCH_L
+    │       │   │       ├── PinMapShapedRead    // ShapeWalk emit; CueConflict when |Q|>1
+    │       │   │       └── BoundedMatchFind    // RelativeSeed MATCH_L; CueConflict on emit
     │       │   └── Commit          // ONE gate; TARGET GraphElement identity
     │       │       ├── MutateGate
     │       │       ├── IdAllocator // leftover_NEW_mint / leftover_by_id
@@ -453,7 +453,9 @@ package MemNet {
       BoundedMatchFind / CmdFind realize this part.
       SHALL emit Q honestly when |Q| > 1. SHALL NOT absorb, SHALL NOT
       silent MERGE-by-name, SHALL NOT call an LLM to collapse inside Recall.
-      Same name is a candidate only.
+      Same name is a candidate only. The find / pin_map emit SHALL carry
+      CueConflict (Q listed, cardinality visible). SHALL NOT silently
+      pick one root.
     */
     port cueIn : CueInPort;
     port seedOut : SeedSetOutPort;
@@ -480,6 +482,7 @@ package MemNet {
     attribute llmCollapseInsideRecall : Boolean = false;
     attribute sameNameIsCandidateOnly : Boolean = true;
     attribute emitQHonestWhenMulti : Boolean = true;
+    attribute silentPickOneRoot : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
@@ -495,6 +498,8 @@ package MemNet {
       (not M×|Q|). Hide recycled. Emit shaped subgraph (GQL family).
       leftover 0.9 require_anchor / by_id / copied-id is leftover, not
       this mechanism. PinMapShapedRead / CmdPinMap realize this part.
+      When |Q| > 1 the shaped emit SHALL carry CueConflict. SHALL NOT
+      silently pick one root.
     */
     port seedIn : SeedSetInPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -505,8 +510,10 @@ package MemNet {
     attribute requireStoreKeyAnchor : Boolean = false;
     attribute leftoverRequireAnchor : Boolean = true;
     attribute leftoverIssue : String = "require_anchor";
+    part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
@@ -544,6 +551,7 @@ package MemNet {
     part leftover_require_anchor : leftover_require_anchor;
     part walk : ShapeWalk;
     part caps : CapsPolicy;
+    part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
@@ -552,6 +560,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_4_EngineLawPrepend;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
@@ -568,6 +577,8 @@ package MemNet {
       MATCH (n {id}) SET. Nested under Recall / AgentShapedRead beside
       PinMapShapedRead. Shipped: CLI query find / MCP find (#73).
       MUST NOT claim find is pin_map or a k-hop walk.
+      When |Q| > 1 SHALL emit CueConflict (Q listed, cardinality visible).
+      SHALL NOT silently pick one root. SHALL NOT be a name_conflict command.
     */
     port cueIn : CueInPort;
     port seedOut : SeedSetOutPort;
@@ -584,6 +595,7 @@ package MemNet {
     attribute doctrineAsIs : Boolean = false;
     part seed : RelativeSeed;
     part caps : CapsPolicy;
+    part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
@@ -643,6 +655,30 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
   }
 
+  part def CueConflict {
+    doc /*
+      Emit mark on the existing find / pin_map shaped subgraph when a
+      cue yields |Q| > 1. Usual case: shared name. Any shared cue with
+      several roots is the same signal. Q listed; cardinality visible.
+      SHALL NOT silently pick one root. Two different world-things that
+      share a name stay two roots. NOT a product command (no
+      name_conflict / merge / absorb tool). Not a third operator.
+      SameThingAbsorb remains a Commit rule after the agent sees this.
+    */
+    attribute implemented : Boolean = false;
+    attribute productCommand : Boolean = false;
+    attribute qListed : Boolean = true;
+    attribute cardinalityVisible : Boolean = true;
+    attribute silentPickOneRoot : Boolean = false;
+    attribute usualCaseSharedName : Boolean = true;
+    attribute anySharedCue : Boolean = true;
+    attribute differentWorldThingsStayTwoRoots : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  }
+
   part def SameThingAbsorb {
     doc /*
       In-session collapse of two live elements the agent judged as one
@@ -654,6 +690,8 @@ package MemNet {
       Two same-name nodes that are different world-things remain two.
       Name-change: optional aka on the same node; SHALL NOT mint a second
       thing-node. CHANGED between two thing-nodes only if the world split.
+      Collapse SHALL wait until Recall has pointed CueConflict out on
+      find / pin_map emit. SHALL NOT be a product command.
       Modelled; engine cut not this PR.
     */
     attribute implemented : Boolean = false;
@@ -671,6 +709,8 @@ package MemNet {
     attribute nameTokenHistoryRequired : Boolean = false;
     attribute changedEdgeOnlyIfWorldSplit : Boolean = true;
     attribute goldfishWritebackNaming : Boolean = false;
+    attribute afterCueConflictVisible : Boolean = true;
+    attribute notAProductCommand : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
@@ -693,7 +733,8 @@ package MemNet {
       Cousin pointing contrast lives outside MemNetSystem
       (CousinPointingContrast); this nest is not thickened.
       SHALL NOT absorb / MERGE-by-name / LLM-collapse Q. Same name is a
-      candidate only; agent may later SameThingAbsorb under Commit.
+      candidate only; agent may later SameThingAbsorb under Commit
+      after CueConflict is visible on the emit.
     */
     port cueIn : CueInPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -710,6 +751,7 @@ package MemNet {
     attribute silentMergeByName : Boolean = false;
     attribute llmCollapseInsideRecall : Boolean = false;
     attribute sameNameIsCandidateOnly : Boolean = true;
+    attribute cueConflictOnMultiRoot : Boolean = true;
     part seed : RelativeSeed;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
@@ -1012,6 +1054,8 @@ package MemNet {
       TARGET command realizing RelativeSeed: MATCH_L by kind / labels /
       properties / keyword (hard LIMIT). SHALL NOT require a store-key
       id. SHALL NOT teach copy-id then pin_map(anchor=id).
+      When |Q| > 1 the emit SHALL carry CueConflict. SHALL NOT nest
+      name_conflict / merge / absorb as a product command.
     */
     port cueIn : CueInPort;
     port seedOut : SeedSetOutPort;
@@ -1023,8 +1067,10 @@ package MemNet {
     attribute cueByKeyword : Boolean = true;
     attribute hardLimit : Boolean = true;
     part seed : RelativeSeed;
+    part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1032,6 +1078,8 @@ package MemNet {
     doc /*
       TARGET command realizing ShapeWalk from seed set Q (not a required
       store-key --anchor). leftover_require_anchor is leftover engine.
+      When |Q| > 1 the emit SHALL carry CueConflict. SHALL NOT nest
+      name_conflict / merge / absorb as a product command.
     */
     port seedIn : SeedSetInPort;
     attribute requiresStoreKeyId : Boolean = false;
@@ -1040,8 +1088,10 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
     part walk : ShapeWalk;
+    part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1096,7 +1146,9 @@ package MemNet {
       Path-B import. MUST NOT nest leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
       leftover_require_anchor, leftover_allocate_from_locator, or
-      leftover id_policy as product commands. TierA / Layer line codecs
+      leftover id_policy as product commands. MUST NOT nest name_conflict /
+      merge / absorb as product commands (CueConflict is an emit mark;
+      SameThingAbsorb is a Commit rule). TierA / Layer line codecs
       are RETIRED on product path (M2 done). As-is: memnet.cli
       (+ serve_client). Python rewrite out of scope.
     */
@@ -1124,6 +1176,9 @@ package MemNet {
     attribute leftoverRequireAnchorNested : Boolean = false;
     attribute leftoverAllocateFromLocatorNested : Boolean = false;
     attribute leftoverIdPolicyCommandNested : Boolean = false;
+    attribute leftoverNameConflictCommandNested : Boolean = false;
+    attribute leftoverMergeCommandNested : Boolean = false;
+    attribute leftoverAbsorbCommandNested : Boolean = false;
     attribute leftoverElementIdOnWire : Boolean = false;
     attribute noRequiredIdTools : Boolean = true;
 
@@ -1173,7 +1228,9 @@ package MemNet {
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
       leftover_allocate_from_locator, or leftover id_policy as product
-      commands. Agent memory payloads: GQL mutate + shaped pin_map.
+      commands. MUST NOT nest name_conflict / merge / absorb as product
+      commands (CueConflict is an emit mark; SameThingAbsorb is a Commit
+      rule). Agent memory payloads: GQL mutate + shaped pin_map.
       Structured JSON envelopes. No domain-product tools. LLM agents
       connect here to MemNet — not to DurableBuffer. Python rewrite
       out of scope.
@@ -1199,6 +1256,9 @@ package MemNet {
     attribute leftoverRequireAnchorNested : Boolean = false;
     attribute leftoverAllocateFromLocatorNested : Boolean = false;
     attribute leftoverIdPolicyCommandNested : Boolean = false;
+    attribute leftoverNameConflictCommandNested : Boolean = false;
+    attribute leftoverMergeCommandNested : Boolean = false;
+    attribute leftoverAbsorbCommandNested : Boolean = false;
     attribute leftoverElementIdOnWire : Boolean = false;
     attribute noRequiredIdTools : Boolean = true;
 

@@ -239,7 +239,8 @@ package MemNetCousinContrast {
       of same-name nodes into the store, content-hash ids,
       typed path-ids, or vector indexes as identity. Open hard part (no
       third operator): a cue may hit several relative roots; RelativeSeed
-      stays bounded (LIMIT L) and honest when |Q| > 1. Cousins confirm
+      stays bounded (LIMIT L) and honest when |Q| > 1; find / pin_map
+      emit CueConflict rather than silently picking one root. Cousins confirm
       TARGET; they do not force a store-key back onto the wire. GraphLite
       is a cabinet, not the product. Logseq pages are the closest
       name-you-have cousin; SiYuan / NL2GQL are the leftover-id path.

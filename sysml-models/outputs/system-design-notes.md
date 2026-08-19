@@ -64,7 +64,8 @@ MemNetSystem                                 // SharedLlmMemory
 │   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
 │   │   │     ├── GqlCodec / GraphStore / RecallCommit
 │   │   │     │     Recall / AgentShapedRead /
-│   │   │     │     PinMapShapedRead (shipped) / BoundedMatchFind (shipped #73 seed-only)
+│   │   │     │     PinMapShapedRead (shipped; CueConflict mark when |Q|>1) /
+│   │   │     │     BoundedMatchFind (shipped #73 seed-only)
 │   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease) /
 │   │   │     │     SameThingAbsorb (in-session Commit rule; not ImportAbsorb)
 │   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
