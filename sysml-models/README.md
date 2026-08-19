@@ -59,7 +59,8 @@ MemNetSystem                                 // SharedLlmMemory product
 │   └── Neo4jAdapter                         // same seam; implemented; liveNeo4jClaimed=false
 ├── DurableCabinet                           // EXTERNAL server; not in wheel; not on droplet
 │   ├── Neo4jCabinetServer                   // operator Pi; evidence ≠ product claim
-│   └── AgensGraphCabinetServer              // default product cabinet option (0.7)
+│   ├── AgensGraphCabinetServer              // default product cabinet option (0.7)
+│   └── CompanyEgoFixtureGap                 // leftover: global neighbour/edge MERGE keys
 ├── PinMapRoadmap                            // all PinMapIngest_* domains shipped (#64)
 │   ├── PinMapIngest_Sysml                  // first engine (qname=/path=)
 │   ├── PinMapIngest_Codebase               // MOD/SYM (path=/line=/signature=)

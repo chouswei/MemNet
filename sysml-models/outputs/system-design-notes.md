@@ -71,7 +71,7 @@ MemNetSystem                                 // SharedLlmMemory
 │   └── CliFacade
 ├── MemNetMcpServer
 ├── DurableBuffer → DurableSyncOwner + AgensGraphAdapter + Neo4jAdapter  // clients
-├── DurableCabinet → Neo4jCabinetServer + AgensGraphCabinetServer  // EXTERNAL server
+├── DurableCabinet → Neo4jCabinetServer + AgensGraphCabinetServer + CompanyEgoFixtureGap  // EXTERNAL server; fixture leftover
 ├── PinMapRoadmap                            // PinMapIngest_* domains shipped (#64)
 └── MultitaskOperatingModel
     ├── MultitaskCoordinator                 // team lead

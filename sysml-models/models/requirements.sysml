@@ -447,7 +447,10 @@ package MemNetRequirements {
         doc /*
           Operator soak / Bolt reachability SHALL NOT set liveNeo4jClaimed.
           AgensGraph remains the default product live-cabinet claim (0.7).
-          One DurableSyncOwner per process; serve/MCP SHALL call
+          Per-ego live proof SHALL NOT be claimed green while
+          company_ego_fixture neighbour/edge ids are global (not namespaced
+          per ego); Bolt-client reachability is not isolation. One
+          DurableSyncOwner per process; serve/MCP SHALL call
           get_sync_owner() once at start. MUST NOT dual-write in-process
           MCP and TCP serve.
         */

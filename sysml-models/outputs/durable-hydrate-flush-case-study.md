@@ -74,6 +74,7 @@ flowchart LR
 |--|-------|-------------------|
 | Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=false`), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
 | External server part | **Modelled** — `DurableCabinet` (Neo4j on Pi operator host; AgensGraph still a possible kind); not in wheel; not on 2 GiB droplet; **no graph id on the server part** | Operator soak ≠ product live Neo4j claim; edge `id` is present MERGE key |
+| `company_ego_fixture` leftover | Only COM ego id is parameterised; neighbour `TSK_mission_q3` / edge `E_about_q3` are global MERGE keys | Two egos not isolated (`COM_soak_pi` then `COM_droplet_pi`); per-ego live proof **not** green; do not patch fixture in this cut |
 | Live cabinet | Agens external / operator-proven (0.7); Neo4j client not live-claimed; **not** vendored; skip live marks unless URL | Not a hosted product service |
 | Satisfy | MN-REQ-06.4 on `DurableBuffer`; 06.5 / 06.6 on `DurableCabinet` + operator sites | Live Neo4j claim stays false |
 

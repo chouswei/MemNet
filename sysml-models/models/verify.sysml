@@ -459,8 +459,12 @@ package MemNetVerification {
       liveNeo4jClaimed stays false. Graph id is a MERGE key on working-
       memory records, not on SysML hosts / extras / the server part.
       Present edge id is a MERGE spelling (Commit may mint NEW), not a
-      universal user-supplied-id law. One sync owner; no dual-write.
-      OperatorDurableSites stays outside MemNetSystem.
+      universal user-supplied-id law. Known leftover:
+      company_ego_fixture_global_neighbor_ids — neighbour/edge ids are
+      global, so two egos are not isolated; per-ego live proof is NOT
+      green. Droplet Bolt client works; that is not a live Neo4j claim.
+      One sync owner; no dual-write. OperatorDurableSites stays outside
+      MemNetSystem.
     */
     attribute verificationId : String = "MN-VER-06-S02";
 
@@ -479,6 +483,13 @@ package MemNetVerification {
           and system.cabinet.mergeKeyOnWorkingMemoryRecords == true
           and system.cabinet.edgeIdUserSuppliedRequired == false
           and system.cabinet.commitMayMintNew == true
+          and system.cabinet.perEgoLiveProofGreen == false
+          and system.cabinet.fixtureGap.twoEgosIsolated == false
+          and system.cabinet.fixtureGap.neighborAndEdgeIdsGlobal == true
+          and system.cabinet.fixtureGap.onlyEgoIdParameterized == true
+          and system.cabinet.fixtureGap.perEgoLiveProofGreen == false
+          and system.cabinet.fixtureGap.leftoverIssue
+            == "company_ego_fixture_global_neighbor_ids"
           and system.cabinet.neo4j.liveNeo4jClaimed == false
           and system.cabinet.neo4j.sysmlPartHasGraphId == false
           and system.cabinet.neo4j.operatorEvidenceOnly == true
@@ -496,11 +507,14 @@ package MemNetVerification {
           and sites.droplet2GiB.deskEvidenceCentreOnThisBolt == false
           and sites.droplet2GiB.companyMemoryOnThisBolt == false
           and sites.droplet2GiB.federateOverInvestorApi == false
+          and sites.droplet2GiB.boltClientWorks == true
+          and sites.droplet2GiB.perEgoLiveProofGreen == false
           and sites.rpi5Syson.neo4jServerInstalled == true
           and sites.rpi5Syson.writerIsAdapterClient == true
           and sites.rpi5Syson.inventreeLabCriticalDoNotTouch == true
           and sites.liveNeo4jClaimed == false
           and sites.sysmlPartHasGraphId == false
+          and sites.perEgoLiveProofGreen == false
       }
     }
   }

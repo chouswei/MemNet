@@ -869,9 +869,12 @@ package MemNet {
       reachable; soak flush/hydrate of company_ego_fixture("COM_soak_pi")
       returned nodes COM_soak_pi, TSK_mission_q3 and edge
       TSK_mission_q3 -[:ABOUT]-> COM_soak_pi (E_about_q3 as present MERGE
-      key, not a universal edge-id law). HTTP browser :7474 stayed
-      loopback. This is operator evidence only — liveNeo4jClaimed MUST
-      stay false. MUST NOT install on the 2 GiB droplet. No secrets.
+      key, not a universal edge-id law). A later droplet flush with a
+      different ego collided on those global neighbour/edge keys — see
+      CompanyEgoFixtureGap; per-ego live proof is NOT green.
+      HTTP browser :7474 stayed loopback. Operator evidence only —
+      liveNeo4jClaimed MUST stay false. MUST NOT install on the 2 GiB
+      droplet. No secrets.
     */
     attribute inMemnetLlmWheel : Boolean = false;
     attribute vendoredInRepo : Boolean = false;
@@ -900,6 +903,27 @@ package MemNet {
     attribute sysmlPartHasGraphId : Boolean = false;
   }
 
+  part def CompanyEgoFixtureGap {
+    doc /*
+      Known gap (do not patch the Python fixture in this cut).
+      memnet.durable.fake.company_ego_fixture parameterises only the COM
+      ego id. Neighbour id TSK_mission_q3 and edge id E_about_q3 are
+      hardcoded — global MERGE keys in that cabinet. Operator collision:
+      Pi soak COM_soak_pi then droplet proof COM_droplet_pi; hydrate of
+      the new ego also returned the old COM; ABOUT stayed on COM_soak_pi.
+      Cabinet keys MUST be unique in that store; two egos are not isolated
+      when neighbour/edge ids are shared. This is why SysML parts do not
+      carry one global graph id, and why ids we keep must be namespaced
+      or minted (Commit MAY mint NEW). leftoverIssue pointer only.
+    */
+    attribute onlyEgoIdParameterized : Boolean = true;
+    attribute neighborAndEdgeIdsGlobal : Boolean = true;
+    attribute twoEgosIsolated : Boolean = false;
+    attribute perEgoLiveProofGreen : Boolean = false;
+    attribute leftoverIssue : String = "company_ego_fixture_global_neighbor_ids";
+    attribute sysmlPartHasGraphId : Boolean = false;
+  }
+
   part def DurableCabinet {
     doc /*
       First-class EXTERNAL durable database (cabinet process). Sibling of
@@ -907,10 +931,13 @@ package MemNet {
       Two possible server kinds: Neo4j (operator Pi) and AgensGraph
       (default product option). MemNet ships clients only. This part has
       no graph id. MERGE keys live on flushed working-memory records;
-      present edge id is a MERGE spelling, not a law. MN-REQ-06.5.
+      present edge id is a MERGE spelling, not a law. Fixture neighbour/
+      edge ids are a known uniqueness leftover (CompanyEgoFixtureGap).
+      MN-REQ-06.5.
     */
     part neo4j : Neo4jCabinetServer;
     part agens : AgensGraphCabinetServer;
+    part fixtureGap : CompanyEgoFixtureGap;
     attribute inMemnetLlmWheel : Boolean = false;
     attribute vendoredInRepo : Boolean = false;
     attribute installedOnDroplet : Boolean = false;
@@ -919,6 +946,7 @@ package MemNet {
     attribute mergeKeyOnWorkingMemoryRecords : Boolean = true;
     attribute edgeIdUserSuppliedRequired : Boolean = false;
     attribute commitMayMintNew : Boolean = true;
+    attribute perEgoLiveProofGreen : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_ExternalCabinetServer;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_OperatorEvidenceNotLiveClaim;
@@ -1733,7 +1761,9 @@ package MemNet {
       server here. Invisor-approved wiring: droplet memnet-mcp 0.9.0 extra
       [mcp,neo4j] (driver) to Pi Bolt over tailnet. Desk EvidenceCentre /
       CompanyMemory SHALL NOT point at this Bolt. MUST NOT federate over
-      InvestorApi. No secrets in this model.
+      InvestorApi. Operator evidence: droplet Bolt *client* works.
+      Per-ego live proof is NOT green (fixture neighbour/edge ids global).
+      No secrets in this model.
     */
     attribute neo4jServerInstalled : Boolean = false;
     attribute memnetRole : String = "client";
@@ -1742,6 +1772,8 @@ package MemNet {
     attribute extraIsDriverOnly : Boolean = true;
     attribute boltViaTailnet : Boolean = true;
     attribute boltUrl : String = "bolt://100.118.79.40:7687";
+    attribute boltClientWorks : Boolean = true;
+    attribute perEgoLiveProofGreen : Boolean = false;
     attribute deskEvidenceCentreOnThisBolt : Boolean = false;
     attribute companyMemoryOnThisBolt : Boolean = false;
     attribute federateOverInvestorApi : Boolean = false;
@@ -1760,6 +1792,7 @@ package MemNet {
     part droplet2GiB : DropletMemNetSite;
     attribute liveNeo4jClaimed : Boolean = false;
     attribute sysmlPartHasGraphId : Boolean = false;
+    attribute perEgoLiveProofGreen : Boolean = false;
   }
 
   part operatorDurableSites : OperatorDurableSites;
