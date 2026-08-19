@@ -1,56 +1,74 @@
 # Rethink: RAG, `memnet-llm`, and the Neo4j cabinet
 
 **Status:** design proposal — **not** shipped. Does **not** amend [`../SHAPE.md`](../SHAPE.md) until accepted.  
-**Decision proposed:** option **B** (two Neo4j ports) **plus** **D** (catalog of session ids, join by **Absorb**). Reject **C**. Keep **A** only as the as-is teach until B is accepted.  
+**Decision:** **B** (two Neo4j ports) **+ D** (catalog `session=` ids; join by **Absorb**). **Reject C.** Keep **A** as as-is teach until B is accepted.  
 **Audience:** product developers. British English.
 
-**Pressure:** operators ask how RAG works *between* `memnet-llm` and Neo4j. As-is the answer is “it doesn’t” (cabinet = hydrate/flush only). That job cut is right; as an **operator** architecture it fails: GraphRAG / Graphiti / FTS already run **on Neo4j**. If MemNet forbids every retrieve on that server, they bypass MemNet (LLM↔Bolt).
+**Pressure:** operators ask how RAG works *between* `memnet-llm` and Neo4j. As-is: it doesn’t (cabinet = hydrate/flush). That job cut is right; as an **operator** architecture it fails — GraphRAG / Graphiti / FTS already run on Neo4j, so they bypass MemNet (LLM↔Bolt).
 
-**Locked (do not rethink these):** MN-REQ-00 (wall-clock **and** tokens); two operators Recall/Commit ([`math-skeleton.md`](math-skeleton.md)); GQL `pin_map` / mutate (ADR-001); HostSearch **outside** `MemNetSystem` (MN-REQ-13.1); locators not chunk bodies; no `rag_query` / `pin_map.generate`; no ANN of session \(S\); **Absorb** = Path-B `ImportAbsorb` only (not goldfish Δ, not host Snap); one `DurableSyncOwner` for **cabinet** hydrate/flush; live Neo4j still unclaimed.
+**Locked:** MN-REQ-00 (wall-clock **and** tokens); Recall/Commit ([`math-skeleton.md`](math-skeleton.md)); GQL `pin_map` / mutate (ADR-001); HostSearch **outside** `MemNetSystem`; locators not chunks; no `rag_query` / `pin_map.generate`; no ANN of mission \(S\); Absorb = Path-B `ImportAbsorb` only; one `DurableSyncOwner` for cabinet; live Neo4j unclaimed.
 
 | Pointer | Role |
 |---------|------|
-| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Why RAG was hot; retrieve functions from source |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | As-is MemNet ↔ Neo4j seam; RAG relatives on Snap / Shape / cabinet |
+| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Why RAG was hot; retrieve from source |
+| [`neo4j-buffer.md`](neo4j-buffer.md) | As-is MemNet ↔ Neo4j seam |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Host Snap steal/reject |
-| [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Many sessions; **one** mission SSOT; Path-B import |
-| [`../../sysml-models/outputs/session-import-case-study.md`](../../sysml-models/outputs/session-import-case-study.md) | Absorb: member slice → lead; `keep` / `reject` / `remint` |
+| [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | One mission SSOT; Path A / B |
+| [`../../sysml-models/outputs/session-import-case-study.md`](../../sysml-models/outputs/session-import-case-study.md) | Absorb: slice → lead; `keep` / `reject` / `remint` |
+
+---
+
+## Verbs (do not rename)
+
+Two operators only: \(\mathrm{Recall}(q)\) / \(\mathrm{Commit}(\Delta)\). These names are **id rules or hops**, not extra operators.
+
+| Verb | Haystack | Does | Does not |
+|------|----------|------|----------|
+| **Shape** | Mission (or named) session \(S\) | Cue → `find` / `pin_map` neighbourhood, clamp \(M\approx 50\) | Rank pins; generate |
+| **mutate** | Current \(S\) | Sparse goldfish \(\Delta\) (`NEW`) | Import another session |
+| **ingest** | Artefact | Deterministic locator ids | Host ANN |
+| **Snap** | **Library** (corpus) | Host retrieve → `session=` / `path=` / `document_id=` / `qname=` | Generate; Absorb |
+| **Absorb** | **Other session** | Path-B `import_slice`: member `WorkingMemorySlice` → lead + `id_policy` | Host RAG; goldfish Δ; cabinet; whole \(S\) |
+| **hydrate / flush** | Durable copy of **one** named \(S\) | Ego MERGE/MATCH under `HydrateBudget` | RAG; Absorb |
+
+Colloquial “the session absorbed that note” = **mutate**. Product **Absorb** is shipped Path-B only. Host Snap **MUST NOT** grow a second absorb leaf.
+
+**Two “library” words.** Neo4j **library namespace** = corpus KG/FTS/vector (option B). MemNet **library session** \(S_{\mathrm{lib}}\) = a Shape-sized session of pins/locators. Absorb joins **sessions**. Snap reads the **corpus** (or a directory of `session=` ids). Do not Absorb Neo4j library nodes as a member slice.
 
 ---
 
 ## Two problems (do not fuse)
 
-RAG got hot because **weights do not contain the operator’s library**. MemNet exists because **the next LLM call does not contain the mission graph**. Same symptom (too much text for the prompt); **two haystacks**. Detail: [`rag-relative-algorithms.md`](rag-relative-algorithms.md) § “Why RAG became a hot topic”.
+RAG: weights lack the operator’s **library**. MemNet: the next LLM call lacks the **mission graph**. Same symptom (too much text); **two haystacks**. Detail: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
 
-| | RAG (library Snap) | MemNet (session Shape) |
-|--|--------------------|-------------------------|
-| **Problem** | Parametric ignorance: freeze, no private PDFs, fine-tune too dear, paste-the-corpus blows the window, fluent hallucination on corpus QA | Goldfish call: forgets `TSK`/`USR`/settled files; chat is not a named graph; dump \(S\) burns tokens |
-| **Move** | Index library → retrieve few passages → **generate** | Cue → bounded `pin_map` → sparse Commit; **no** generate on the wire |
-| **Hot after** | ChatGPT-era “chat with our docs” (Lewis et al. 2020 → 2023 stacks) | Agents / Multitask that must **re-`pin_map`**, not re-read the PDF |
-| **On Neo4j today** | GraphRAG local/global, Graphiti RRF, FTS/vector, GraphQL `generate` | `Neo4jAdapter` MERGE/MATCH ego under `HydrateBudget` only |
+| | RAG (Snap) | MemNet (Shape) |
+|--|------------|----------------|
+| **Pick** | Top‑\(k\) passages (BM25 / ANN / RRF) then **generate** | Named seed then \(k\)-hop; **skip** if empty; **no** generate on the wire |
+| **Empty** | Often still generate / fallback retriever | Skip |
+| **Over budget** | Smaller \(k\), rerank, GraphRAG reports | Narrow ego; `view=shell`; **more sessions**; do not raise goldfish \(M\) |
 
-GraphRAG-class products are **fancier retrieve for the first problem**. They do not become MemNet. Think again: sessions already **join** without RAG. `ImportAbsorb` is shipped. RAG is still Snap of a **library**. The composition is catalog → **Absorb a slice** (or Shape the other session), never retrieve-then-generate on \(S\).
+GraphRAG-class stacks are fancier retrieve for the **first** problem. Sessions already **join** without RAG (`ImportAbsorb`). Composition: catalog → **look** (`pin_map`) or **join** (Absorb a **slice**) — never retrieve-then-generate on \(S\).
 
 ---
 
 ## What is wrong with the as-is design
 
-As-is we taught **two haystacks** but **three stores**, then wired Neo4j only to the cabinet:
+Two haystacks, three stores; Neo4j wired only to the cabinet:
 
-| Store | Haystack | As-is owner | As-is Neo4j role |
-|-------|----------|-------------|------------------|
-| Library | RAG’s | Host Snap (unshipped) | **Unused** — vector/FTS/GraphQL listed as “not on this seam” |
-| Live \(S\) | MemNet’s | `memnet-llm` Shape | Not on Neo4j except via flush |
-| Durable \(S\) | still MemNet’s | `Neo4jAdapter` cabinet | Ego MERGE/MATCH only |
+| Store | Haystack | As-is Neo4j |
+|-------|----------|-------------|
+| Corpus | RAG | Unused on this seam |
+| Live \(S\) | MemNet | Only via flush |
+| Durable \(S\) | still MemNet | Ego MERGE/MATCH |
 
-Live and durable \(S\) are **one** haystack (the mission graph) with two persistence forms. Treating the cabinet as a third haystack is how operators paste Graphiti onto `_memnet_tag`. Three failures follow:
+Live and durable \(S\) are **one** haystack, two persistence forms. Four failures:
 
-1. **Naming gap.** Cabinet hydrate *is* a graph retrieve of durable \(S\) (k-hop, `LIMIT`). It is not RAG (no ranker, no generate). Operators still hear “graph retrieve on Neo4j” and paste Graphiti RRF onto `_memnet_tag` nodes.
-2. **Single-server gravity.** One Neo4j process is cheap. GraphRAG local, LightRAG entity-ANN, and Graphiti already live there. A doctrine that says “RAG never touches Neo4j” does not move the corpus; it moves the **LLM off MemNet**.
-3. **Miss path is mute.** Goldfish skip-on-empty-seed is right. The next hop (grep / host Snap) has **no** first-class port onto the cabinet’s server, so the practical miss path is Bolt Browser.
-4. **Join verb unused.** The engine already **absorbs** a member `WorkingMemorySlice` into the lead session (`import_slice`, `id_policy`). As-is RAG talk skipped that and invented “rank pins” or “stuff chunks.” Absorb is how **two sessions** meet. It is not how a corpus meets a prompt.
+1. **Naming.** Cabinet hydrate is bounded graph **read** of durable \(S\), not RAG. Operators paste Graphiti onto `_memnet_tag`.
+2. **Single-server gravity.** Forbidding every retrieve on that process moves the LLM off MemNet (Bolt Browser).
+3. **Mute miss path.** Skip-on-empty is right; the next hop has no port, so people use Browser.
+4. **Join unused.** `import_slice` already Absorb. RAG talk skipped it and invented “rank pins.”
 
-As-is MUST NOTs stay. What we rethink is **“Neo4j = cabinet only, retrieve is someone else’s laptop”** and **“RAG will pick the pins.”** We do **not** rethink “RAG solved session memory,” and we do **not** rename Snap or mutate as Absorb.
+Rethink **“Neo4j = cabinet only”** and **“RAG will pick the pins.”** Do not rethink “RAG solved session memory.”
 
 ---
 
@@ -58,145 +76,92 @@ As-is MUST NOTs stay. What we rethink is **“Neo4j = cabinet only, retrieve is 
 
 | Option | Idea | Keep | Cost |
 |--------|------|------|------|
-| **A. Firewall** (as-is) | RAG never uses the MemNet Neo4j URL. Host Snap is a sibling MCP (RAGFlow, Cursor index). | Simplest engine. Honest “no RAG hop.” | Operators fuse on the same URI anyway; MemNet becomes optional. Extra chunk prompt (**2–8k tokens**) beside Shape. |
-| **B. Two ports, one server** (propose) | Same Neo4j **process**; **two namespaces**. Cabinet port = hydrate/flush of \(S\). Library port = `RagHostHook` adapter → **locators only**. | Jobs unfused. LLM still never talks Bolt. Goldfish **1–4k** tokens, Snap **0** LLM. | Need namespace law, fail-open, no generate. HostSearch remains Later to ship. |
-| **C. Fuse** (reject) | `pin_map` / hydrate runs RRF, PPR, Leiden, or GraphQL `generate` on the cabinet. | Matches Graphiti/GraphRAG products. | Contradicts MN-REQ-00 / 13.1. Session becomes the library. Tokens ×N communities. |
-| **D. Catalog + Absorb** (propose, with B) | Host Snap MAY emit `session=` ids. **Join** into mission SSOT is Path-B **`ImportAbsorb`** of a **slice** (`keep` / `reject` / `remint`). Look-only = `pin_map` that session. | Absorb already shipped. Answers “no pin” / “>50” without ANN of mission \(S\). | Host RAG MUST NOT call itself absorb. Do not absorb whole \(S\) or \(N\) sessions. Multitask SSOT stays **one** \(S\). |
+| **A Firewall** (as-is) | RAG never uses the MemNet Bolt URL. Sibling MCP. | Honest “no RAG hop.” | Operators fuse on one URI; extra **2–8k** chunk tokens. |
+| **B Two ports** (propose) | One Neo4j **process**; cabinet vs library **namespaces**. Library port → locators only. | Jobs unfused. LLM never Bolt. | Namespace law. HostSearch Later. |
+| **C Fuse** (reject) | RRF / PPR / Leiden / `generate` inside `pin_map` or hydrate. | Product-shaped like Graphiti. | MN-REQ-00 / 13.1. Session = library. |
+| **D Catalog + Absorb** (propose, with B) | Snap MAY emit `session=`. **Join** = Absorb a **slice**. **Look** = `pin_map` that session. | Absorb shipped. No ANN of mission \(S\). | Do not Absorb whole \(S\) / \(N\) sessions. Path A skips Absorb. |
 
-**Reject C.** That is Graphiti-as-MemNet — RAG’s problem wearing MemNet’s name.
+**C** is Graphiti-as-MemNet. **D is not C:** catalog Snap picks a **named graph**; Absorb copies a **slice** into the lead; ranking pins inside mission \(S\) or stuffing \(N\) sessions is C.
 
-**D is not C and not RAG-as-MemNet.** Ranking **which named graph** (catalog) is Snap. **Absorb** copies a bounded member slice into the lead. Ranking **pins inside** mission \(S\), stuffing \(N\) sessions, or generate-on-retrieve is C.
-
-**Do not pick A as the long-term operator story** unless we also tell them to run a *second* graph server for the corpus. Most will not.
+Do not keep **A** as the long-term operator story unless they run a second graph server for the corpus.
 
 ---
 
-## Proposed design (option B)
+## B — two ports on one Neo4j process
 
 ```text
-                    LLM  <-->  memnet-llm   (GQL pin_map / mutate only)
-                                 |
-            +--------------------+--------------------+
-            | cabinet port       | library port       |
-            | DurableSyncOwner   | RagHostHook        |
-            | hydrate / flush    | locators, fail-open|
-            v                    v
-         Neo4j db/label          Neo4j db/label
-         MEMNET_NEO4J_DATABASE   MEMNET_NEO4J_LIBRARY_DATABASE
-         nodes with _memnet_tag  corpus KG / FTS / vector
-         (session S durable)     (library — RAG’s haystack)
+LLM  <-->  memnet-llm  (GQL pin_map / mutate)
+              |
+     cabinet port              library port
+     DurableSyncOwner          RagHostHook (locators, fail-open)
+     hydrate / flush           not a DurableStoreAdapter
+              v                         v
+     MEMNET_NEO4J_DATABASE     MEMNET_NEO4J_LIBRARY_DATABASE
+     _memnet_tag (durable S)   corpus KG / FTS / vector
 ```
 
-Same Bolt URL **may** be used. Library is **not** a second `DurableStoreAdapter`. Factory today errors two *cabinet* URLs (Agens + Neo4j); that rule stays.
+Same Bolt URL **may** be used. Factory still errors two *cabinet* URLs (Agens + Neo4j).
 
-### Namespace law (the whole of option B)
-
-Preferred: **two named databases** on one process — `MEMNET_NEO4J_DATABASE` (cabinet, default `neo4j`) vs `MEMNET_NEO4J_LIBRARY_DATABASE` (library; **not** shipped). Fallback on Community single-db: **label split** — cabinet MERGE only writes `_memnet_tag`; library MATCH **MUST NOT** return those nodes.
+**Namespace.** Prefer two named databases (`MEMNET_NEO4J_DATABASE` default `neo4j` vs `MEMNET_NEO4J_LIBRARY_DATABASE`, not shipped). Community single-db: cabinet MERGE only `_memnet_tag`; library MATCH **MUST NOT** return those nodes. One database + one label set **is C**.
 
 | Port | Writes | Reads |
 |------|--------|-------|
-| Cabinet | `MERGE` nodes/edges with `_memnet_tag` under `HydrateBudget` | Ego `{id}` `[*0..depth]` `LIMIT` — never FTS/ANN |
-| Library | **None** from MemNet (host / GraphRAG / Graphiti own ingest) | FTS / vector / 1-hop corpus walk → **locators** only |
+| Cabinet | `_memnet_tag` under `HydrateBudget` | Ego `{id}` `[*0..depth]` `LIMIT` — never FTS/ANN |
+| Library | **None** from MemNet | FTS / vector / 1-hop → **locators** only |
 
-**MUST NOT** dual-write the same Neo4j node as both a mission pin and a corpus chunk. If the operator has only one database and one label set, they are on **C** whether they meant to be.
+Hydrate: ego → `LIMIT` → upsert into a **new** session. **Zero** LLM tokens. Hydrate ≠ Absorb. Vector index on cabinet labels **MUST NOT** be goldfish (Snap-on-session).
 
-### Library port — steal retrieve, reject generate
-
-Algorithms from source: [`rag-relative-algorithms.md`](rag-relative-algorithms.md). Graphiti `node_distance` is **one hop** of `RELATES_TO` to `center_node_uuid`, not a \(k\)-hop shortest path and not MemNet depth-2 Recall.
-
-| Relative | Steal on library port | Reject (cabinet / goldfish) |
-|----------|----------------------|-----------------------------|
-| GraphRAG **local** | Entity access points + neighbour **tables as locators** | Mixed-context **generate**; global Leiden **map-reduce** |
-| GraphRAG **global** | Nothing on the goldfish turn | Community reports as `pin_map` |
-| LightRAG **local** | 1-hop entity ids as locators | hl/ll **keyword LLM**; chunk JSON as Shape |
-| Graphiti | `center_node_uuid` → next `pin_map` **anchor**; `group_ids` ≈ session | RRF (\(k=1\)) of BM25\|\|cosine\|\|BFS; 1-hop distance **as** Recall; `add_episode` onto `_memnet_tag` |
-| HippoRAG 2 | Passage **ids** after host PPR | PPR / fact-ANN **on** \(S\); chunk bodies in the prompt |
-| RAGFlow / mem0 | Host MCP; emit paths / memory **ids** | Weighted chunk fusion or `{memory, score}` stuffing through MemNet |
-| Neo4j GraphQL `generate` | GraphQL **retrieve** of corpus types | Resolver `generate` as goldfish |
-
-### Serial miss path (goldfish I/O + shipped Absorb)
-
-```text
-cue in mission S → find / pin_map
-  seed hit     → Shape \(\tilde{X}\) → sparse Δ → mutate (Commit)
-  seed empty   → skip
-               OR catalog Snap → session= locators
-                  look:  pin_map the named session (do not change SSOT)
-                  join:  Path-B export slice → ImportGuard? → ImportAbsorb
-                         → pin_map mission S
-```
-
-Host emit `session=` / `path=` / `document_id=` / `qname=` only — then **mutate** if those locators belong in the *current* session. **Absorb** only when the source is another **session’s** `WorkingMemorySlice`. Adapter **MUST NOT** mutate mission \(S\). Fail-open: timeout / miss → skip; **MUST NOT** fail `pin_map`. Skip Snap when grep / ingest / existing pins suffice. Multitask: Path **A** (shared id) **skips** absorb; workers **MUST NOT** open a library session unless the parent assigned it.
-
-### What hydrate is (still not RAG)
-
-Cabinet hydrate remains: ego `{id}` → `[*0..depth]` → `LIMIT` → upsert into a **new** session. No embedding of \(S\), no RRF, no community reports, no `generate`. **Zero LLM tokens.** Hydrate is **not** Absorb (cabinet → session, not member slice → lead). If the operator enabled a vector index on cabinet labels, MemNet **MUST NOT** use it on this port (Snap-on-session).
-
-### What the LLM sees
-
-Still one goldfish: shaped GQL from `memnet-llm` (**≲ 4k tokens** typical). Never Neo4j Browser, never GraphQL `generate`, never `{memory, score}` prompt stuffing from the cabinet. Never chunk bodies from the library port. Never \(N\) sessions pasted into one prompt.
-
----
-
-## Multiple sessions: catalog Snap, join Absorb (option D)
-
-Think again from the last cut. “Design RAG on multiple sessions” is the wrong owner. **MemNet already joins sessions.** RAG still only **Snaps a library**. Absorb is the session function; Snap is the corpus function.
-
-**Commit has three id-mint rules** (not three goldfish operators) — [`math-skeleton.md`](math-skeleton.md):
-
-| Rule | Id | When |
-|------|-----|------|
-| **mutate** | Client `NEW` → engine id | Goldfish \(\Delta\) in the **current** \(S\) |
-| **ingest** | Deterministic locator from an artefact | Path-B `PinMapIngest_*` |
-| **absorb** | Member slice + `id_policy` `keep` / `reject` / `remint` | Path-B `ImportAbsorb` / `import_slice` **only** |
-
-Colloquial “the session absorbed that note” = **mutate**. Product **Absorb** = lead imports a member `WorkingMemorySlice`. Host search **MUST NOT** absorb (no second absorb-shaped leaf). Optional ImportGuard is **soft**, fail-open; the engine still hard-gates.
-
-```text
-                    LLM  <-->  memnet-llm
-                                 |
-              mission S  ←—— Absorb slice ——  member / library S
-              pin_map + mutate                    pin_map (look)
-                                 |
-              Snap (host) MAY emit session= / path=
-              (library haystack — not Absorb)
-```
-
-| Kind of session | Role | RAG? | Absorb? |
-|-----------------|------|------|---------|
-| **Mission** \(S\) | SSOT. Cue → `pin_map`. Shared id = Path **A** (no import). | **No** Shape. MUST NOT ANN. | **Lead** (receiver). |
-| **Library** \(S_{\mathrm{lib}}\) | Topic graph kept Shape-sized. | Snap **may pick** `session=`. Shape **inside**. | **Member** only if the parent assigned Path **B**. |
-| **Directory** \(S_{\mathrm{dir}}\) | Locator pins: `session=mn_…`. \(M=50\) **ids**, not chunks. | Catalog for Snap or `find`. | No — listing ids is Shape. |
-| **Member** (Path-B) | Worker / other session. | **No.** | **Yes** — export slice → Absorb into lead. Shipped. |
-
-**Path A vs B.** Same `sessionId` → re-`pin_map` only (**no** Absorb). Separate ids → bounded slice → Absorb. Prefer Path A for Multitask. Prefer **import** over session merge (there is no `SessionMerge*`).
-
-**Unknown pin.** `find` in mission \(S\). Empty → directory `pin_map` / host catalog → `session=` locators. Then **look** (`pin_map` that session) or **join** (Absorb a **slice**, then `pin_map` mission \(S\)). Still **skip** if nothing hits. Do not invent a pin; do not rank mission pins; do not Absorb the Neo4j library namespace as if it were a member session.
-
-**Larger than 50 rows.** Do not raise goldfish \(M\). Partition into more sessions. Absorb still takes a **slice** (Path-B payload may use \(M\times|\mathrm{anchors}|\); that is **not** the goldfish budget). Absorbing whole \(S\) or \(N\) sessions is C.
-
-`id_policy`: `keep` = MERGE-by-id into lead (not append); `reject` = conflict, no lead mutate; `remint` = NEW ids, retarget edges. Micro `merge=true` is in-session re-id, **not** Path B.
-
-Steal / reject:
+**Steal retrieve, reject generate** (algorithms: [`rag-relative-algorithms.md`](rag-relative-algorithms.md)). Graphiti `node_distance` is **one hop** of `RELATES_TO` to `center_node_uuid`, not MemNet depth-2 Recall.
 
 | Relative | Steal | Reject |
 |----------|-------|--------|
-| Graphiti `group_ids` | One group ≈ one session id | RRF groups; `add_episode` as Absorb |
-| GraphRAG communities | One community ≈ one library session **id** | Map-reduce reports; Absorb report prose |
-| LightRAG dual-level | Directory = shell; library session = interior | Keyword LLM; Absorb chunk JSON |
-| MemNet Path-B | **Absorb** member slice (shipped) | Absorb host RAG hits; merge whole sessions; goldfish Δ via `ImportAbsorb` |
-
-**MUST NOT:** one session per chunk; RRF / union of \(N\) `pin_map` dumps; workers opening library sessions as a shadow SSOT; ANN of mission \(S\); call Snap or hydrate **Absorb**.
-
-Cabinet (B): hydrate/flush **the session id you named**. Hydrate ≠ Absorb. Library Neo4j may back **library** sessions; never a cross-session vector index as goldfish.
+| GraphRAG local | Neighbour tables as locators | **generate**; global map-reduce |
+| GraphRAG global | Nothing on the goldfish turn | Reports as `pin_map` |
+| LightRAG local | 1-hop entity **ids** | Keyword LLM; chunk JSON as Shape |
+| Graphiti | Centre uuid → `pin_map` **anchor**; `group_ids` ≈ session | RRF (\(k=1\)); 1-hop **as** Recall; `add_episode` onto `_memnet_tag` |
+| HippoRAG 2 | Passage **ids** | PPR/ANN **on** \(S\); chunk bodies |
+| RAGFlow / mem0 | Paths / memory **ids** | Score stuffing through MemNet |
+| Neo4j GraphQL | Retrieve of corpus types | Resolver `generate` |
 
 ---
 
-## SHAPE delta (only if this note is accepted)
+## D — catalog Snap, join Absorb
 
-[`../SHAPE.md`](../SHAPE.md) §4–5 stay two jobs (Shape vs Snap) and cabinet-behind. Add: **Snap MAY use the same Neo4j process as the cabinet iff the library namespace is disjoint; Snap MUST NOT read `_memnet_tag` / cabinet database as a corpus.** Add: **Snap MAY return `session=` locators; join into the mission SSOT is Path-B Absorb of a slice, not RAG generate; goldfish remains `pin_map` of one named \(S\); Multitask Path A skips Absorb.** § forbids still: `rag_query` as MemNet; GraphRAG **as** MemNet; LLM↔store direct; ranking pins inside mission \(S\); calling Snap or hydrate Absorb.
+The engine already holds many sessions. Multitask still uses **one** mission \(S\) (Path **A**: shared id, **no** Absorb). Extra sessions are library / directory / member graphs — not a second SSOT.
 
-MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This rethink only **binds** that hook to a namespaced Neo4j as one allowed backend — it does not nest HostSearch under `MemNetSystem` and does not ship the hook.
+```text
+cue in mission S → find / pin_map
+  hit    → Shape → mutate Δ
+  miss   → skip
+           OR catalog (directory pin_map / host Snap) → session= locators
+              look:  pin_map that session (SSOT unchanged)
+              join:  export slice → ImportGuard? → ImportAbsorb → pin_map mission S
+```
+
+Host locators into the **current** session = **mutate**. Absorb **only** from another session’s `WorkingMemorySlice`. Fail-open: Snap miss **MUST NOT** fail `pin_map`. Skip Snap when grep / ingest / pins suffice. Workers **MUST NOT** open a library session unless the parent assigned it. No `SessionMerge*`.
+
+| Session | Role | Snap? | Absorb? |
+|---------|------|-------|---------|
+| **Mission** \(S\) | SSOT; Path A | No (Shape only) | **Lead** |
+| **Library** \(S_{\mathrm{lib}}\) | Topic graph, Shape-sized | MAY pick `session=` | **Member** if Path B assigned |
+| **Directory** \(S_{\mathrm{dir}}\) | Pins that *are* `session=` ids (\(M=50\) **ids**) | Catalog | No |
+| **Member** | Worker / other session | No | **Yes** — shipped Path B |
+
+**Unknown pin.** `find` in mission \(S\). Empty → directory / host catalog. Then look or Absorb a **slice**. Still skip if nothing hits. Do not invent a pin; do not rank mission pins.
+
+**Larger than 50 goldfish rows.** Do not raise \(M\). Split into more sessions. Absorb payload may be \(M\times|\mathrm{anchors}|\) — that is **import**, not goldfish. Absorbing whole \(S\) or \(N\) sessions is C.
+
+`id_policy`: `keep` = MERGE-by-id (not append); `reject` = no lead mutate; `remint` = NEW ids, retarget edges. Micro `merge=true` is **not** Path B.
+
+The LLM still sees **one** goldfish Shape (**≲ 4k** tokens typical): never Browser, GraphQL `generate`, cabinet `{memory, score}`, chunk bodies, or \(N\) `pin_map` dumps.
+
+---
+
+## SHAPE delta (only if accepted)
+
+§4–5 stay Shape vs Snap and cabinet-behind. Add: Snap **MAY** share the Neo4j **process** iff the library namespace is disjoint and **MUST NOT** read `_memnet_tag` as corpus. Snap **MAY** emit `session=`; join is Path-B Absorb of a slice; goldfish is `pin_map` of one named \(S\); Path A skips Absorb. Still forbid: `rag_query` as MemNet; GraphRAG as MemNet; LLM↔store; ranking pins in mission \(S\); calling Snap or hydrate Absorb.
+
+MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This note **binds** that hook to a namespaced Neo4j — it does not nest or ship HostSearch.
 
 ---
 
@@ -204,28 +169,26 @@ MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This rethink on
 
 **MUST**
 
-- Keep cabinet and library as **two ports** even on one Bolt URL (named database preferred; else `_memnet_tag` vs corpus labels).
-- Locator-only host emit (`session=` / `path=` / `document_id=` / `qname=`); next goldfish is `pin_map` of **one** named session.
-- Join two sessions with **Absorb** of a **slice** (`keep` / `reject` / `remint`); prefer Path A (shared id, no Absorb).
+- Two ports on one Bolt URL (named database preferred; else `_memnet_tag` vs corpus labels).
+- Host emit locators only; next goldfish = `pin_map` of **one** named session.
+- Join sessions with Absorb of a **slice**; prefer Path A.
 - Partition a fat library into **more sessions**, not a larger goldfish \(M\).
-- Fail-open skip on host miss and on ImportGuard transport failure.
-- One `DurableSyncOwner` for cabinet writes.
-- Flush cabinet on **settle / process death**, not every `pin_map` (N auto-commit MERGEs).
-- Keep goldfish prompt **≲ 4k tokens** typical; treat **≳ 8k** from one `pin_map` as alarm.
-- Keep **one** mission session under Multitask; library sessions are extra ids, not a second SSOT.
+- Fail-open on Snap miss and ImportGuard transport failure.
+- One `DurableSyncOwner`; flush on settle / process death, not every `pin_map`.
+- Goldfish **≲ 4k** tokens typical; **≳ 8k** from one `pin_map` = alarm.
+- One mission session under Multitask.
 
 **MUST NOT**
 
-- Rank/generate inside `pin_map` or hydrate (option C).
-- ANN / FTS **mission** \(S\) or **cabinet** labels as goldfish (Snap-on-session).
-- Call host Snap, goldfish \(\Delta\), or cabinet hydrate **Absorb**.
-- Absorb whole \(S\), \(N\) sessions, or Neo4j library nodes as a member slice.
-- Invent a second absorb-shaped leaf for RAG hits (those are mutate locators).
-- RRF or paste \(N\) sessions into one completion.
-- Dual-write the same node id as both mission pin and corpus chunk.
-- Teach LLM↔Neo4j as the miss path.
-- Treat the **4 MiB** serve frame as a token budget.
-- Hold **1.0** for this (HostSearch ship remains **Later**).
+- Rank/generate inside `pin_map` or hydrate (C).
+- ANN/FTS of mission \(S\) or cabinet labels as goldfish.
+- Call Snap, mutate Δ, or hydrate **Absorb**.
+- Absorb whole \(S\), \(N\) sessions, or Neo4j library nodes.
+- A second absorb leaf for RAG hits.
+- RRF / paste \(N\) sessions into one completion.
+- Dual-write the same node as mission pin and corpus chunk.
+- Teach LLM↔Neo4j as the miss path; treat the **4 MiB** frame as a token budget.
+- Hold **1.0** for HostSearch (Later).
 
 ---
 
@@ -342,7 +305,7 @@ MN-REQ-00 (wall-clock + tokens) **selects B+D** when one Neo4j process is a give
 
 1. Spec `MEMNET_NEO4J_LIBRARY_DATABASE` (or label law) in the Neo4j extra — docs first; adapter Later with HostSearch. Same URL as `MEMNET_NEO4J_URL` is allowed; **different database name** (or labels).
 2. SysML: `RagHostHook` backend `Neo4jLibraryAdapter` `implemented=false`; emit type `session=` beside path locators. **Do not** add an absorb leaf under HostSearch.
-3. Teach Absorb vs Snap vs hydrate in the playbook (Path A skip; Path B slice only). Absorb is already shipped — this note only binds it to the RAG miss path.
+3. Playbook: Absorb vs Snap vs hydrate vs mutate (Path A skip; Path B slice only). Absorb is already shipped — this note only places it next to catalog Snap.
 4. Do not close live Neo4j cabinet leftover from this note.
 
-Until accepted, as-is teaching stays: no RAG hop on the **cabinet** seam; host Snap unshipped; operators who fuse on one graph do so **outside** MemNet.
+Until accepted, as-is teaching stays: no RAG hop on the **cabinet** seam; host Snap unshipped; Absorb stays Path-B only; operators who fuse on one graph do so **outside** MemNet.
