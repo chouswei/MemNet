@@ -27,7 +27,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | MemNet ↔ Neo4j; RAG relatives on Snap / Shape / cabinet; live claimed (0.14); two namespaces (0.16) |
 | [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (shipped RSV; grammar still the design note) |
-| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host locators into MutateGate (design; Snap vs Shape; goldfish I/O after [#84](https://github.com/chouswei/MemNet/pull/84)) |
+| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host locators into MutateGate (0.17 `RagHostHook`; Snap vs Shape; skip valid) |
 | [`grammar/rag-relative-algorithms.md`](grammar/rag-relative-algorithms.md) | RAG-relative retrieve algorithms (research; GraphRAG / Graphiti / LightRAG / HippoRAG / …) |
 | [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) | Design proposal: two ports; catalog Snap; join by Absorb (not shipped HostSearch) |
 | [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Design thesis: harness memory plane; GitHub review + objections |

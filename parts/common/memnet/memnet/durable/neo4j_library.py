@@ -9,7 +9,8 @@ Same Bolt URL / process as the cabinet ``Neo4jAdapter``. Extra **0.16**.
 - Never flush session pins into the library database.
 
 Hid / elementId / ``_memnet_hid`` stay off the emit. Not a
-``DurableStoreAdapter``. ``RagHostHook`` stays unimplemented (0.17).
+``DurableStoreAdapter``. Extra **0.17** ``RagHostHook`` MAY consume
+these locators; this port stays locators-only / ``generate=false``.
 """
 
 from __future__ import annotations

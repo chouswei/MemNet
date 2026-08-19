@@ -29,7 +29,7 @@ MemNet sits **between** LLM call pipelines and a durable graph. [Neo4j](https://
 | **MemNet → Neo4j cabinet** | Flush settled / durable subgraphs out of the session buffer (`MERGE` nodes, then relationships) into `MEMNET_NEO4J_DATABASE` |
 | **Neo4j cabinet → MemNet** | Hydrate into a session pin budget (ego k-hop under `HydrateBudget`) |
 | **MemNet → Neo4j library** | **None** — library is read-only from MemNet |
-| **Neo4j library → locators** | Optional second database (`MEMNET_NEO4J_LIBRARY_DATABASE`); emit locator properties only; skip if unset. MutateGate ingest later (0.17). |
+| **Neo4j library → locators** | Optional second database (`MEMNET_NEO4J_LIBRARY_DATABASE`); emit locator properties only; skip if unset. Extra 0.17 MAY consume via `RagHostHook` / MutateGate. |
 | **LLM ↔ Neo4j (direct)** | **Out of default MemNet teach** (no agent Bolt / driver / Browser / GraphQL as goldfish or handoff) |
 
 Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) or \(\mathrm{Commit}(\Delta)\). A new process opens a **new** session id, hydrates an ego under budget, and agents keep talking to MemNet ([durable hydrate/flush case study](../../sysml-models/outputs/durable-hydrate-flush-case-study.md)).
@@ -38,12 +38,12 @@ Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) 
 
 ## How RAG sits between `memnet-llm` and the Neo4j cabinet
 
-There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both and is **not shipped** (`RagHostHook.implemented=false`). Algorithms of the relatives: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
+There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both (`RagHostHook.implemented=true`, extra **0.17**; skip valid). Algorithms of the relatives: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
 
 ```text
   library / PDFs / web
        |  optional Neo4j library DB (0.16 locators only)
-       |  host Snap still 0.17 (RagHostHook.implemented=false)
+       |  host Snap extra 0.17 (RagHostHook.implemented=true; skip valid)
        v
   locators (not generate) ---- later --> MutateGate / ingest
                                        |
@@ -171,7 +171,7 @@ Retrieve, generate, and remember all “put less text in the prompt”. Only **r
 
 | Haystack | Compression | Owner on this cut |
 |----------|-------------|-------------------|
-| Library (PDFs, web, docs MCP) | **Snap** → locators | Host (`RagHostHook` design; **not** shipped). Not `Neo4jAdapter`. |
+| Library (PDFs, web, docs MCP) | **Snap** → locators | Host (`RagHostHook` extra **0.17**; skip valid). Not `Neo4jAdapter`. |
 | Live session \(S\) | **Shape** → \(\tilde{X}\) | MemNet `pin_map` / `find`. MUST NOT ANN \(S\). |
 | Durable graph behind \(S\) | Ego hydrate budget | Neo4j (or Agens) **cabinet**. Not GraphRAG. Not goldfish. |
 
@@ -225,6 +225,7 @@ Factory / startup semantics (`make_adapter_from_env`):
 |-------|--------|
 | `Neo4jAdapter.from_env()` + hydrate/flush (official `neo4j` driver) | Landed (client; cabinet database) |
 | `Neo4jLibraryClient` locator-only (second database name) | Landed extra **0.16** (skip if library name unset) |
+| `RagHostHook` locators outside `MemNetSystem` | Landed extra **0.17** (skip valid; optional `MEMNET_HOST_SEARCH_URL`) |
 | Optional extra `memnet-llm[neo4j]` | Landed (driver only — not the DB server) |
 | Unit tests / recorded Bolt stub | Always-on CI |
 | `pytest -m neo4j_live` | Skip unless `MEMNET_NEO4J_URL` |

@@ -17,7 +17,8 @@
   DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
   Neo4j client implemented with liveNeo4jClaimed=true (0.14);
   extra 0.16 library port locator-only (generate=false;
-  rejectSameNameAsCabinet); RagHostHook.implemented=false required.
+  rejectSameNameAsCabinet); RagHostHook.implemented=true required
+  outside MemNetSystem (hostSearchInsideSystem stays false).
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -907,7 +908,8 @@ package MemNetVerification {
       fuseRetrieveIntoPinMap=false; rejectSameNameAsCabinet=true
       (library namespace differs from cabinet). One DurableBuffer;
       one sync owner. HostSearchBridge stays outside MemNetSystem;
-      RagHostHook.implemented=false (0.17 owns the flip). Skip unless
+      RagHostHook.implemented=true (0.17) with fail-open locators;
+      hostSearchInsideSystem stays false. Skip unless
       MEMNET_NEO4J_URL. Server not vendored.
     */
     attribute verificationId : String = "MN-VER-06-S01";
@@ -940,10 +942,15 @@ package MemNetVerification {
           and system.durable.neo4j.namespace
             != system.durable.library.namespace
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .commit.mutate.libraryIngestThisCut == false
+            .commit.mutate.libraryIngestThisCut == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .hostSearchInsideSystem == false
-          and ragHostHook.implemented == false
+          and ragHostHook.implemented == true
+          and ragHostHook.designOnly == false
+          and ragHostHook.failOpen == true
+          and ragHostHook.locatorOnly == true
+          and ragHostHook.snapOnSession == false
+          and ragHostHook.mcpRagQuery == false
       }
     }
   }

@@ -1,22 +1,23 @@
 # Host search (design)
 
-**Status:** design only — **not** shipped. No `rag_query` MCP; no embeddings in the engine.  
+**Status:** extra **0.17** hook shipped (untagged; package stays 0.9.0) — `RagHostHook.implemented=true` **outside** `MemNetSystem`. Skip is valid. No `rag_query` MCP; no embeddings in the engine.  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
 **Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
 **Retrieve algorithms (what the functions do):** [`rag-relative-algorithms.md`](rag-relative-algorithms.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
 
-### After #84 (locked design)
+### After 0.17 (hook shipped)
 
-Note 13 remains the close bar for the original Neo4j / RAGFlow / Meilisearch questions. Notes 22–28 lock the **session** side. Engine cut still not this issue.
+Note 13 remains the close bar for the original Neo4j / RAGFlow / Meilisearch questions. Notes 22–28 lock the **session** side. The **locator hook** is extra **0.17** (`memnet.rag_host_hook`); skip remains valid.
 
-| Locked on `master` (design) | Still leftover |
-|-----------------------------|----------------|
-| Four jobs (corpus GraphRAG / LightRAG / Letta archival / session goldfish) | Ship `HostSearchBridge` |
-| Snap (host corpus) vs Shape (`pin_map`) — MUST NOT ANN \(S\) | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` |
-| Goldfish: one live `TSK` `pin_map`; optional `view=shell` survey; sparse Commit Δ | `Peak_L` (typed residual, last resort) |
-| Writeback = mutate, not Path-B Absorb | Multi-ego union-under-one-\(M\) (`pin_map` still one `anchor`) |
+| Locked on `master` | Still leftover |
+|--------------------|----------------|
+| Four jobs (corpus GraphRAG / LightRAG / Letta archival / session goldfish) | `Peak_L` (typed residual, last resort) |
+| Snap (host corpus) vs Shape (`pin_map`) — MUST NOT ANN \(S\) | Multi-ego union-under-one-\(M\) as a later goldfish validate |
+| Goldfish: one live `TSK` `pin_map`; optional `view=shell` survey; sparse Commit Δ | |
+| Writeback = mutate, not Path-B Absorb | |
+| `RagHostHook` locators outside `MemNetSystem` (0.17) | |
 
 MN-REQ-00: MemNet is mission working memory, **not** the search corpus. Host retrieval MAY propose **locators**; **MutateGate** (or Path-B ingest) commits them. Skip is valid.
 
@@ -151,9 +152,10 @@ Do **not** copy ImportGuard leaf-for-leaf. ImportGuard’s hard leaf is **Absorb
 
 ```text
 HostSearchBridge          // MUST NOT nest under MemNetSystem
-└── RagHostHook           // optional, implemented=false, fail-open
+└── RagHostHook           // optional, implemented=true, fail-open
+    locatorIn  ← library / host locators (LibraryLocator; optional line=)
+    locatorOut → existing MutateGate / PinMapIngest
     // skip → pin_map + grep
-    // propose locators → existing MutateGate / PinMapIngest
 ```
 
 **Hook in:** `session_id` (capability; do not log), `anchor`, short question, `max_hits`, timeout. Not the whole session or source artefact.
@@ -171,7 +173,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 - Store embeddings or chunk text as the memory surface (MN-REQ-11.13).
 - Teach RAG emit as shaped `pin_map`, or `generate` *on* MemNet.
 - Dual-write a vector index and MutateGate.
-- Claim this shipped because ImportGuard or ingest shipped.
+- Claim this shipped because ImportGuard or ingest shipped (0.17 ships the hook; it still does not absorb).
 - Call host locator commit **absorb** (that word is `ImportAbsorb` only).
 - Fuse overlapping **recall cues** with identity (primary label), ACL `labels=`, or Absorb.
 - Run Graphiti-style **RRF** (lexical || vector || BFS) or HippoRAG **PPR** / OpenIE **inside** the engine.

@@ -59,7 +59,8 @@
 
   APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
   locators into existing MutateGate / ingest. No ImportGuard leaf copy.
-  Design only. Grammar: docs/grammar/memnet-host-search-nest.md
+  Extra 0.17: RagHostHook.implemented=true outside MemNetSystem; skip
+  is valid. Grammar: docs/grammar/memnet-host-search-nest.md
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   seven cousin pointing/identity designs (sysml-models/models/cousins.sysml).
   MUST NOT thicken Recall/Commit; operatorCount stays 2.
@@ -435,8 +436,10 @@ package MemNet {
       (current session) — not ImportAbsorb. Owns leftover IdAllocator
       (implemented=false TARGET). Layer/Tier A accept retired (M2).
       0.9 leftover invented store: leftover_by_id / leftover_NEW_mint.
-      Python engine NOT rewritten in this cut. Library locators MAY
-      arrive on libraryLocatorIn later (0.17); unused this cut.
+      Extra 0.17: library / host locators MAY arrive on libraryLocatorIn
+      (properties, not leftover allocate_from_locator-as-PK). Host
+      search MUST NOT absorb. Skip the hop when the hook is unset or
+      the host misses.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -445,7 +448,7 @@ package MemNet {
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
     port libraryLocatorIn : LibraryLocatorInPort;
-    attribute libraryIngestThisCut : Boolean = false;
+    attribute libraryIngestThisCut : Boolean = true;
     part allocator : IdAllocator;
     part caps : CapsPolicy;
 
@@ -927,9 +930,9 @@ package MemNet {
       SessionImportReceive as Commit rules, not extra operators (ImportAbsorb
       is Path-B only; SameThingAbsorb is the in-session collapse).
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
-      corpus, outside) vs Shape (Recall X̃). Goldfish I/O: slice in
-      (Recall), Δ out (Commit); pin topics then fetch slices. Modelled
-      math skeleton; no engine cut in this PR. Docs:
+      corpus, outside; 0.17 RagHostHook locators) vs Shape (Recall X̃).
+      Goldfish I/O: slice in (Recall), Δ out (Commit); pin topics then
+      fetch slices. operatorCount stays 2. Docs:
       docs/grammar/math-skeleton.md.
     */
     port shapedOut : ShapedSubgraphOutPort;
@@ -1550,9 +1553,10 @@ package MemNet {
       Locator-only read (LibraryLocator). generate=false. MUST NOT
       hydrate session S, MUST NOT flush session pins into the library
       database, MUST NOT fuse RRF / PPR / Leiden / ANN into pin_map,
-      MUST NOT Snap-on-session. Not a DurableStoreAdapter. HostSearch /
-      RagHostHook stay outside MemNetSystem with implemented=false
-      (0.17). Hid / elementId / _memnet_hid stay off the emit.
+      MUST NOT Snap-on-session. Not a DurableStoreAdapter. Extra 0.17
+      MAY consume these locators via RagHostHook outside MemNetSystem;
+      this port stays locators-only / generate=false (not goldfish).
+      Hid / elementId / _memnet_hid stay off the emit.
       Engine-real: reject when MEMNET_NEO4J_LIBRARY_DATABASE equals the
       cabinet database name (same process, two names).
     */
@@ -2528,25 +2532,31 @@ package MemNet {
 
   // =====================================================================
   // APPLICATION NEST — HostSearchBridge (MUST NOT instantiate under
-  // MemNetSystem). Optional locators into existing MutateGate. Design only.
+  // MemNetSystem). Optional locators into existing MutateGate / ingest.
+  // Extra 0.17: RagHostHook.implemented=true; skip is valid.
   // Grammar: docs/grammar/memnet-host-search-nest.md
   // =====================================================================
 
   part def RagHostHook {
     doc /*
-      Optional host corpus plug-in (Cursor index / sibling RAG MCP).
-      Product compression = Snap (topics / locators from the library
-      haystack). Locator-only, fail-open, MUST NOT mutate the session,
-      MUST NOT appear as memnet-mcp rag_query, MUST NOT ANN-index session
-      S (Snap-on-session forbidden). Skip is valid (pin_map Shape + grep).
-      MUST NOT Snap-on-session. Design only this cut (0.17 ships the hook).
+      Optional host corpus plug-in (grep / docs MCP / optional 0.16
+      library locators / fail-open URL). Product compression = Snap
+      (topics / locators from the library haystack). Locator-only,
+      fail-open, MUST NOT mutate the session, MUST NOT appear as
+      memnet-mcp rag_query, MUST NOT ANN-index session S
+      (Snap-on-session forbidden). Skip is valid (pin_map Shape + grep).
+      Extra 0.17 ships the hook outside MemNetSystem. Module:
+      memnet.rag_host_hook.
     */
-    attribute implemented : Boolean = false;
-    attribute designOnly : Boolean = true;
+    port locatorIn : LibraryLocatorInPort;
+    port locatorOut : LibraryLocatorOutPort;
+    attribute implemented : Boolean = true;
+    attribute designOnly : Boolean = false;
     attribute failOpen : Boolean = true;
     attribute locatorOnly : Boolean = true;
     attribute compressionKind : String = "snap";
     attribute snapOnSession : Boolean = false;
+    attribute mcpRagQuery : Boolean = false;
   }
 
   part def HostSearchBridgePart {
@@ -2555,12 +2565,42 @@ package MemNet {
       MUST NOT be a part of MemNetSystem. Snap = RagHostHook locators;
       Shape stays PinMapShapedRead. Hard commit is existing MutateGate /
       PinMapIngest — no LocatorCommit wrapper. MUST NOT Snap-on-session.
-      Extra 0.16 library locators MAY arrive later; hook stays false.
+      Extra 0.16 library locators MAY feed locatorIn; hook consumes
+      them as locators only (library generate stays false).
     */
-    attribute designOnly : Boolean = true;
+    attribute designOnly : Boolean = false;
     part hook : RagHostHook;
     port locatorIn : LibraryLocatorInPort;
+    port locatorOut : LibraryLocatorOutPort;
+
+    connection hookIn : LibraryLocatorFlow {
+      end port source ::> locatorIn;
+      end port sink ::> hook.locatorIn;
+    }
+    connection hookEmit : LibraryLocatorFlow {
+      end port source ::> hook.locatorOut;
+      end port sink ::> locatorOut;
+    }
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  }
+
+  part hostSearch : HostSearchBridgePart;
+
+  connection libraryToHostSearch : LibraryLocatorFlow {
+    doc /* Extra 0.16 library locators MAY feed the outside hook. */
+    end port source ::> memNetSystem.durable.library.locatorOut;
+    end port sink ::> hostSearch.locatorIn;
+  }
+
+  connection hostSearchToMutate : LibraryLocatorFlow {
+    doc /*
+      Host locators into existing MutateGate. MUST NOT absorb
+      (ImportAbsorb is Path-B only). Skip is valid when the hook
+      emits nothing.
+    */
+    end port source ::> hostSearch.locatorOut;
+    end port sink ::> memNetSystem.core.transport.inProcess.memory.sessions.recallCommit.commit.mutate.libraryLocatorIn;
   }
 }

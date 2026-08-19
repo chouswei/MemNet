@@ -1,6 +1,6 @@
 # Rethink: RAG, `memnet-llm`, and the Neo4j cabinet
 
-**Status:** option **B namespaces** shipped as extra **0.16** (untagged; package stays 0.9.0). Host Snap (`RagHostHook.implemented=true`) remains **0.17**. Does **not** amend [`../SHAPE.md`](../SHAPE.md) beyond the 0.16 locator port.  
+**Status:** option **B namespaces** shipped as extra **0.16** (untagged; package stays 0.9.0). Host Snap (`RagHostHook.implemented=true`) extra **0.17**. Does **not** amend [`../SHAPE.md`](../SHAPE.md) beyond the 0.16 locator port.  
 **Decision:** **B** (two Neo4j ports) **+ D** (catalog `session=` ids; join by **Absorb**). **Reject C.** Keep **A** as as-is teach until B is accepted.  
 **Audience:** product developers. British English.
 
@@ -162,7 +162,7 @@ The LLM still sees **one** goldfish Shape (**≲ 4k** tokens typical): never Bro
 
 §4–5 stay Shape vs Snap and cabinet-behind. Add: Snap **MAY** share the Neo4j **process** iff the library namespace is disjoint and **MUST NOT** read `_memnet_tag` as corpus. Snap **MAY** emit `session=`; join is Path-B Absorb of a slice; goldfish is `pin_map` of one named \(S\); Path A skips Absorb. Still forbid: `rag_query` as MemNet; GraphRAG as MemNet; LLM↔store; ranking pins in mission \(S\); calling Snap or hydrate Absorb.
 
-MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. This note **binds** that hook to a namespaced Neo4j — it does not nest or ship HostSearch.
+MN-REQ-13.1 already allows `RagHostHook` outside `MemNetSystem`. Extra **0.17** ships that hook (locators; skip valid). This note **binds** optional 0.16 library locators as one host source — it does not nest HostSearch under `MemNetSystem`.
 
 ---
 
@@ -304,9 +304,9 @@ MN-REQ-00 (wall-clock + tokens) **selects B+D** when one Neo4j process is a give
 
 ## Leftover if accepted
 
-1. Spec `MEMNET_NEO4J_LIBRARY_DATABASE` (or label law) in the Neo4j extra — docs first; adapter Later with HostSearch. Same URL as `MEMNET_NEO4J_URL` is allowed; **different database name** (or labels).
-2. SysML: `RagHostHook` backend `Neo4jLibraryAdapter` `implemented=false`; emit type `session=` beside path locators. **Do not** add an absorb leaf under HostSearch.
+1. Spec `MEMNET_NEO4J_LIBRARY_DATABASE` — extra **0.16** shipped (skip if unset; reject same name as cabinet).
+2. `RagHostHook` extra **0.17** MAY consume library locators; emit type `session=` beside path locators. **Do not** add an absorb leaf under HostSearch.
 3. Playbook: Absorb vs Snap vs hydrate vs mutate (Path A skip; Path B slice only). Absorb is already shipped — this note only places it next to catalog Snap.
 4. Do not close live Neo4j cabinet leftover from this note.
 
-Until accepted, as-is teaching stays: no RAG hop on the **cabinet** seam; host Snap unshipped; Absorb stays Path-B only; operators who fuse on one graph do so **outside** MemNet.
+As-is teaching: no RAG hop on the **cabinet** seam; host Snap is extra **0.17** (skip valid); Absorb stays Path-B only; operators who fuse on one graph do so **outside** MemNet.
