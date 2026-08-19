@@ -101,7 +101,8 @@ Repeat. Each new turn starts with `pin_map` on the live `TSK`.
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = legacy alias) |
 | `add` / `update` | Mutate — openCypher-shaped GQL (gated) |
-| `read_get` / `read_list` | Lookup / enumerate |
+| `read_list` | Enumerate (optional). Product read is find then `pin_map` |
+| leftover `read_get` | **Not** an MCP product tool. CLI `read get` is leftover, unique nickname only |
 | `housekeep_stats` | Caps and row counts |
 | `serve_status` | TCP serve probe (optional in-process) |
 
@@ -121,7 +122,7 @@ Copy ids from pin map output — never retype from memory. There is no upsert.
 - IDs are **global within a session** and unique per kind.
 - **Reuse** the same id for the same thing forever.
 - **Never mint a duplicate** for something already in the graph.
-- Unsure? `read_get` or `pin_map` first.
+- Unsure? cue/`find` then `pin_map`. leftover CLI `read get` is not the product read.
 
 ### `recycle` field
 

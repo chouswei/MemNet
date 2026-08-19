@@ -103,7 +103,8 @@ def test_import_reject_on_conflict(memnet_temp, schema_file):
     assert lead.store.get("SYM_Rin") is None
 
 
-def test_import_remint_conflicts(memnet_temp, schema_file):
+def test_leftover_import_remint_conflicts(memnet_temp, schema_file):
+    """leftover id_policy=remint — not a product command."""
     member, lead = _open_pair(schema_file)
     MutateGate(lead).apply(
         [

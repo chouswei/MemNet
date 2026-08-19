@@ -280,7 +280,7 @@ class MemStore:
         return out
 
     def get(self, record_id: str) -> Record | None:
-        """Leftover read_get: unique nickname or hidden handle. Not a product command."""
+        """Leftover engine lookup (nickname or hid). Not a product command."""
         return self.resolve_one(record_id)
 
     def list_records(
@@ -667,7 +667,9 @@ class MemStore:
         for rid in self.write_order:
             rec = self._by_hid.get(rid)
             if rec:
-                rows.append(rec.model_dump())
+                dump = rec.model_dump()
+                dump.pop("hid", None)
+                rows.append(dump)
         return rows
 
     @classmethod

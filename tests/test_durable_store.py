@@ -69,6 +69,7 @@ def test_fake_hydrate_respects_budget():
 
 
 def test_hydrate_into_session_then_pin_map(memnet_temp):
+    """Leftover cue path: PinMapComposer.compose(anchor=nickname) after hydrate."""
     fake = FakeDurableAdapter(seed_company_ego=True)
     owner = get_sync_owner(fake)
     ss = open_session(map_lines=list(_COM_MAP))
@@ -252,7 +253,7 @@ def test_build_hydrate_edges_cypher_filters_hydrated_ids():
         HydrateBudget(max_edges=20, depth=2),
         node_ids=["COM_acme", "TSK_mission_q3"],
     )
-    assert "WHERE src.id IN ['COM_acme', 'TSK_mission_q3']" in cypher
+    assert "WHERE src._memnet_hid IN ['COM_acme', 'TSK_mission_q3']" in cypher
     assert "MATCH (src)-[rel]->(dst)" in cypher
     assert "UNWIND" not in cypher
 
@@ -277,12 +278,15 @@ def test_build_merge_node_and_edge_cypher():
         },
     )
     n_cypher = build_merge_node_cypher(node)
-    assert "MERGE (n:COM {id:" in n_cypher
+    assert "MERGE (n:COM {_memnet_hid:" in n_cypher
+    assert "MERGE (n:COM {id:" not in n_cypher
     assert "n.name = 'Acme'" in n_cypher
     assert "_memnet_tag" in n_cypher
+    assert node.hid in n_cypher
 
     e_cypher = build_merge_edge_cypher(edge)
-    assert "MERGE (a)-[r:ABOUT {id: 'E_about_q3'}]->(b)" in e_cypher
+    assert "_memnet_hid" in e_cypher
+    assert "MERGE (a)-[r:ABOUT {id:" not in e_cypher
     assert "TSK_mission_q3" in e_cypher
     assert "COM_acme" in e_cypher
 

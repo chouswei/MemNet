@@ -73,7 +73,7 @@
 | `DurableSyncOwner` (one process owner; rejects dual bind) | Landed |
 | `FakeDurableAdapter` + hydrate → live session → shaped `pin_map` tests | Landed (always-on CI path) |
 | `AgensGraphAdapter` env config (`MEMNET_AGENSGRAPH_*`) | Landed |
-| `AgensGraphAdapter.hydrate` / `flush` via `psycopg` + openCypher | Landed (client only) |
+| `AgensGraphAdapter.hydrate` / `flush` via `psycopg` + openCypher | Landed (client only; MERGE key is `_memnet_hid`, off the agent wire; no extra live-Agens claim) |
 | Optional extra `memnet-llm[agensgraph]` (`psycopg`, not the DB server) | Landed |
 | serve / MCP bind `get_sync_owner(make_adapter_from_env())` once | Landed |
 | Live integration test | Skip unless `MEMNET_AGENSGRAPH_URL` set |

@@ -247,8 +247,10 @@ class MutateGate:
         assigned = AssignedIdMap()
         del existing
 
-        # Expand MERGE into CREATE when id absent; track upsert patches
+        # Expand MERGE into CREATE when pattern absent; track upsert by hid.
+        # Do not copy hid onto NodeRec.id — ack/emit is labels+props / nickname only.
         merge_upsert_ids: set[str] = set()
+        merge_bound: dict[int, Record] = {}
         for it in doc.items:
             if (
                 isinstance(it, NodeRec)
@@ -265,7 +267,7 @@ class MutateGate:
                     it.op = Op.CREATE
                 else:
                     merge_upsert_ids.add(hits[0].hid)
-                    it.id = hits[0].hid
+                    merge_bound[id(it)] = hits[0]
 
         drops: list[str] = []
         records: list[Record] = []
@@ -307,23 +309,21 @@ class MutateGate:
             if isinstance(it, NodeRec) and it.op == Op.PATCH:
                 rename_to, merge_flag, kept = _split_rename_fields(it.fields)
                 bound = None
-                if not (it.raw.upper().lstrip().startswith("MERGE") and it.id in merge_upsert_ids):
-                    if it.raw.upper().lstrip().startswith("MERGE"):
-                        bound = None
-                        if it.id in merge_upsert_ids:
-                            bound = self.ss.store._by_hid.get(it.id)
-                    else:
-                        hits = self._pattern_hits(it)
-                        if len(hits) > 1:
-                            raise MemNetError(
-                                "cue_conflict",
-                                f"SET |Q|={len(hits)}; SHALL NOT pick one root or absorb",
-                            )
-                        if not hits:
-                            raise MemNetError("not_found", "SET matched no element|use add")
-                        bound = hits[0]
-                elif it.id in merge_upsert_ids:
-                    bound = self.ss.store._by_hid.get(it.id)
+                is_merge = it.raw.upper().lstrip().startswith("MERGE")
+                if is_merge:
+                    bound = merge_bound.get(id(it))
+                    if bound is None and it.id in merge_upsert_ids:
+                        bound = self.ss.store._by_hid.get(it.id)
+                else:
+                    hits = self._pattern_hits(it)
+                    if len(hits) > 1:
+                        raise MemNetError(
+                            "cue_conflict",
+                            f"SET |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+                        )
+                    if not hits:
+                        raise MemNetError("not_found", "SET matched no element|use add")
+                    bound = hits[0]
                 patch_it = NodeRec(
                     op=it.op,
                     kind=it.kind,

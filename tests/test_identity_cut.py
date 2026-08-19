@@ -119,3 +119,61 @@ def test_create_unlabeled_commits(memnet_temp):
     blanks = [r for r in ss.store.list_records() if r.tag == ""]
     assert len(blanks) == 1
     assert blanks[0].id == ""
+
+
+def test_hid_off_cli_pin_map_and_merge_ack(memnet_temp):
+    sid = _open()
+    create = runner.invoke(
+        app,
+        ["add", "--stdin", "--session", sid],
+        input="CREATE (:TSK {id: 'TSK_wire', goal: 'hid-off', status: 'in_progress'})\n",
+    )
+    assert create.exit_code == 0, create.stderr
+    assert "_el" not in create.stdout
+    assert "hid" not in create.stdout.lower()
+
+    merge = runner.invoke(
+        app,
+        ["update", "--stdin", "--session", sid],
+        input="MERGE (n:TSK {id: 'TSK_wire'}) SET n.status = 'settled'\n",
+    )
+    assert merge.exit_code == 0, merge.stderr
+    assert "_el" not in merge.stdout
+    assert "{id: '_el" not in merge.stdout.replace(" ", "")
+
+    pin = runner.invoke(
+        app,
+        ["query", "pin-map", "--kind", "TSK", "--locator", "id=TSK_wire", "--session", sid],
+    )
+    assert pin.exit_code == 0, pin.stderr
+    assert "_el" not in pin.stdout
+    assert "hid" not in pin.stdout.lower()
+
+    from memnet.session import get_session
+
+    ss = get_session(sid)
+    rows = ss.store.to_jsonl_rows()
+    blob = str(rows)
+    assert "hid" not in blob
+    assert "_el" not in blob
+    dump = ss.store.list_records("TSK")[0].model_dump()
+    assert "hid" not in dump
+
+
+def test_leftover_cli_read_get_nickname_only(memnet_temp):
+    sid = _open()
+    add = runner.invoke(
+        app,
+        ["add", "--stdin", "--session", sid],
+        input="CREATE (:TSK {id: 'TSK_nick', goal: 'leftover-get', status: 'in_progress'})\n",
+    )
+    assert add.exit_code == 0, add.stderr
+    from memnet.session import get_session
+
+    hid = get_session(sid).store.match_nickname("TSK_nick")[0].hid
+    by_nick = runner.invoke(app, ["read", "get", "--id", "TSK_nick", "--session", sid])
+    assert by_nick.exit_code == 0, by_nick.stderr
+    assert "TSK_nick" in by_nick.stdout
+    assert hid not in by_nick.stdout
+    by_hid = runner.invoke(app, ["read", "get", "--id", hid, "--session", sid])
+    assert by_hid.exit_code != 0
