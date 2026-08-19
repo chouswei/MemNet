@@ -1,7 +1,9 @@
 /*
   MemNet behaviours - target architecture.
   Session lifecycle; goldfish loop (pin map->mutate->settle);
-  mutate with NEW mint; pin-map ingest roadmap;
+  TARGET mutate is pattern Commit (CREATE () legal; MERGE/SET/DELETE
+  by labels+props); leftover_NEW_mint is leftover 0.9 only;
+  pin-map ingest roadmap;
   SessionHandoffById (pass session id, not graph dump);
   SessionImportReceive (lead imports member working memory; ImportGuard);
   Multitask Mode for relevant tasks only (MN-REQ-12);

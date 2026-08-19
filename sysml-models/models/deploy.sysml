@@ -858,6 +858,9 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
     attribute limitRequired : Boolean = true;
+    attribute cueByLabelsAndProps : Boolean = true;
+    attribute cueByKeyword : Boolean = true;
+    attribute hardLimit : Boolean = true;
   }
 
   part def CmdPinMap {
@@ -881,6 +884,7 @@ package MemNet {
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute createRequiresId : Boolean = false;
+    attribute mergeByLabelsAndProps : Boolean = true;
     attribute noNewVerb : Boolean = true;
     attribute noAssignedIdMapRequired : Boolean = true;
     attribute implemented : Boolean = true;
@@ -1200,6 +1204,9 @@ package MemNet {
     attribute edgeRelations : String = "contains,satisfies";
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute locatorsAreProperties : Boolean = true;
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -1228,6 +1235,9 @@ package MemNet {
     attribute edgeRelations : String = "defines,calls,includes,owns,uses";
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute locatorsAreProperties : Boolean = true;
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -1254,6 +1264,9 @@ package MemNet {
     attribute edgeRelations : String = "owns,on_net,uses";
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute locatorsAreProperties : Boolean = true;
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -1280,6 +1293,9 @@ package MemNet {
     attribute edgeRelations : String = "paired_with,triggers,governs,uses";
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
+    attribute leftoverAllocateIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute locatorsAreProperties : Boolean = true;
     port pinOut : PinMapOutPort;
     port recordsOut : GraphRecordOutPort;
 
@@ -1426,12 +1442,19 @@ package MemNet {
 
   part def IdPolicyReject {
     doc /*
-      id_policy=reject: engine SHALL raise id_conflict and MUST NOT mutate
-      the lead session when any slice id already exists in lead.
+      leftover id_policy=reject (not a TARGET product command): engine
+      SHALL raise conflict and MUST NOT mutate the lead session when a
+      Path-B import pattern already matches in lead (labels+props /
+      type+ends). SHALL NOT teach reject as store-key id conflict.
+      leftoverKeyedOnStoreKey records 0.9 honesty.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
     attribute idPolicy : String = "reject";
+    attribute productCommand : Boolean = false;
+    attribute leftoverIdPolicyIsProductCommand : Boolean = false;
+    attribute matchByLabelsAndProps : Boolean = true;
+    attribute leftoverKeyedOnStoreKey : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
   }
