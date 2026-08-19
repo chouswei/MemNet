@@ -1004,9 +1004,10 @@ package MemNet {
   part def PinMapRoadmap {
     doc /*
       Path-B PinMapIngest nest. Ship order complete for domains: Sysml,
-      Codebase, PcbaAto, SkillsRules (all implemented). Id-mint rule of
-      Commit (deterministic locator ids) — not a second product operator.
-      Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
+      Codebase, PcbaAto, SkillsRules (all implemented). Commit create of
+      elements (locators as properties, not a store key) — not a second
+      product operator. 0.9 leftover may still mint by_id from locator
+      strings. Not N-server federation. Export / round-trip (MN-REQ-11.1–11.5)
       remains separate (#66). As-is module: memnet.pin_map_ingest.
     */
     attribute firstDomain : String = "sysml";
@@ -1119,9 +1120,11 @@ package MemNet {
 
   part def IdPolicyKeep {
     doc /*
-      id_policy=keep: engine SHALL MERGE-by-id upsert into the lead session
-      SSOT (store.upsert). Not a second copy. Not append. Not product name
-      "merge". Distinct from micro merge=true re-id.
+      id_policy=keep: engine SHALL MERGE as a per-write lookup of
+      labels+props / rel type+ends into the lead session SSOT. Not a
+      store key. Not MERGE-by-id as PK. 0.9 leftover may still upsert
+      by_id. Not a second copy. Not append. Not product name "merge".
+      Distinct from micro merge=true re-id.
     */
     attribute gateKind : String = "hard";
     attribute actor : String = "engine";
@@ -1192,8 +1195,10 @@ package MemNet {
       import_slice). Composition of DistinctSessionGate, SliceBudget (on
       export), LawVocabExclude, AclConsultAbsorb, SchemaValidateImport,
       IdPolicyApply (keep|reject|remint), NodesThenEdgesCommit, optional
-      GuardDecisionAtomRecord. Path-B id-mint rule of Commit (keep|reject|
-      remint) — not a second product operator beside Recall/Commit.
+      GuardDecisionAtomRecord. Path-B Commit create of elements
+      (keep|reject|remint) — not a third operator beside Recall/Commit.
+      keep = MERGE per-write lookup (labels+props / type+ends), not a
+      store key; remint is leftover invented by_id.
       Product verb = import. Path A never enters.
       When ImportGuard skipped/disabled, absorb after SessionImportRequest
       + slice alone. Module: memnet.import_absorb.
@@ -1389,9 +1394,10 @@ package MemNet {
       (member slice), absorb.importReqIn (lead request); guard → absorb for
       trimmed slice + decision. Hosts behaviour SessionImportReceive states.
       Disambiguation (once): product verb = import (SessionImport*); micro
-      merge=true ≠ this; keep = MERGE-by-id upsert mechanics inside
-      IdPolicyKeep only. MN-REQ-12.11 is satisfied by CheapLlmImportGuard
-      (not the hook / not this parent alone).
+      merge=true ≠ this; keep = MERGE per-write lookup (labels+props /
+      type+ends) inside IdPolicyKeep; leftover 0.9 may still key by_id.
+      MN-REQ-12.11 is satisfied by CheapLlmImportGuard (not the hook /
+      not this parent alone).
     */
     part guard : ImportGuard;
     part absorb : ImportAbsorb;
@@ -1597,7 +1603,8 @@ package MemNet {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
       two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit id-mint rules) +
+      (M2.5) + PinMapRoadmap (PinMapIngest_* = Commit create of elements,
+      not id-mint) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;

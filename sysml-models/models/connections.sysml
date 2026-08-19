@@ -127,9 +127,11 @@ package MemNetConnections {
     doc /*
       Lead-owned path B request to ImportAbsorb a member WorkingMemorySlice
       into the mission session. idPolicy: keep | reject | remint
-      (keep = MERGE-by-id upsert into lead SSOT — not append / not a second
-      copy). Distinct from micro merge=true (in-session re-id). Product
-      types are SessionImport* only — no SessionMerge*.
+      (keep = MERGE as a per-write lookup of labels+props / rel type+ends
+      into lead SSOT — not append / not a second copy; not MERGE-by-id as
+      a store key). remint is leftover invented by_id mint. Distinct from
+      micro merge=true (in-session re-id). Product types are SessionImport*
+      only — no SessionMerge*.
     */
     attribute leadSessionId : String;
     attribute memberSessionId : String;
@@ -169,9 +171,11 @@ package MemNetConnections {
 
   item def PropertyGraphNode {
     doc /*
-      First-class GQL/property-graph node. Kind → primary Label; id → stable
-      key/property; fields → Property map. Constitutive law (if any) lives on
-      the node as property `law` (and linked port structure), never on an edge.
+      First-class GQL/property-graph node (the graph element is identity).
+      Kind → primary Label; fields → Property map. Optional property id is
+      a nickname only -- not identity and not a store key. Constitutive law
+      (if any) lives on the node as property `law` (and linked port
+      structure), never on an edge.
     */
   }
 
@@ -208,7 +212,8 @@ package MemNetConnections {
 
   item def RelationRelationship {
     doc /*
-      Dual-EDGE grain: relation. Both ends bare node ids.
+      Dual-EDGE grain: relation. Ends are graph elements (label +
+      properties); optional nickname id only if present.
       GQL: ordinary node–node relationship; type = sense (knows, owns, …).
     */
   }
@@ -259,8 +264,9 @@ package MemNetConnections {
 
   item def AssignedIdMap {
     doc /*
-      Engine-allocated ids returned after mint of NEW on create.
-      LLM must copy these thereafter (MN-REQ-10.4).
+      Leftover 0.9 invented mint: optional nicknames after NEW / by_id.
+      TARGET create has no NEW and no required id; the graph element is
+      identity. Copy a nickname only if present (MN-REQ-10.4).
     */
   }
 
@@ -458,7 +464,7 @@ package MemNetConnections {
   }
 
   port def AssignedIdOutPort {
-    doc /* Emit engine-assigned ids after NEW mint. */
+    doc /* Leftover 0.9 invented mint nicknames (NEW / by_id), not TARGET. */
     out item ids : AssignedIdMap;
   }
   port def AssignedIdInPort {
@@ -646,7 +652,7 @@ package MemNetConnections {
   }
 
   connection def AssignedIdFlow {
-    doc /* Engine id allocation results after NEW mint. */
+    doc /* Leftover 0.9 invented mint results (NEW / by_id). TARGET create has no NEW. */
     end port source : AssignedIdOutPort;
     end port sink : AssignedIdInPort;
   }
@@ -736,7 +742,8 @@ package MemNetConnections {
     doc /*
       APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
       RagHostHook Snaps the corpus to locators; existing MutateGate /
-      PinMapIngest commits (Commit id-mint). Skip is valid. MUST NOT call
+      PinMapIngest commits (Commit creates the element; no id-mint law).
+      Skip is valid. MUST NOT call
       this absorb (ImportAbsorb is Path-B slice + id_policy only). MUST
       NOT Snap-on-session. Design only — no rag_query MCP. Product math
       sits above this research: docs/grammar/math-skeleton.md. See

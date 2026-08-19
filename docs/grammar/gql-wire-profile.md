@@ -227,7 +227,7 @@ Option **C** (raw tables as primary) is **out**. Option **D** (`query_gql` escap
 
 Shaped subgraph = ordered openCypher-family lines (or isomorphic structured graph) such as:
 
-```cypher
+```gql
 (:Label {goal:'…'})
 (:Label {goal:'…'})-[:TYPE {note:'…'}]->(:Label {status:'…'})
 (:Label {id:'TSK_optional_nickname', goal:'…'})
