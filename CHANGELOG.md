@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HostSearchBridge (design)** — optional host locators into existing MutateGate, **outside** `MemNetSystem`. No `rag_query` MCP. `RagHostHook.implemented=false`. Docs: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ### Changed
+- **MemNet ↔ Neo4j talk** — expand [`docs/grammar/neo4j-buffer.md`](docs/grammar/neo4j-buffer.md): what talks to what (GQL goldfish vs Bolt cabinet), same seam / different Cypher, steal grain / reject GraphRAG and LLM↔Bolt, honest `liveNeo4jClaimed=false`. Pointers from `SHAPE.md` §5 and the docs index.
 - **Version map locked** — 0.8 = GQL teach + shape for people; **0.9** = Neo4j client extra (live unclaimed); 1.0 = 0.5–0.8 claimed; Later = Peak_L / HostSearch / N-server / export / hosted cabinet / live Neo4j. SSOT: `docs/ROADMAP-0.5.md`.
 - **Host search cousins (design)** — four-job cut vs Microsoft GraphRAG / LightRAG / Letta archival; MemNet stays session goldfish. Grammar: `docs/grammar/memnet-host-search-nest.md`. Research: [#77](https://github.com/chouswei/MemNet/issues/77) note 22. No `rag_query`.
 - **Local degree peaks (design, deferred)** — last-resort Recall seed. Raw degree picks `contains` parents; prefer live `TSK` then typed residual local max. [#77](https://github.com/chouswei/MemNet/issues/77) notes 23–25.

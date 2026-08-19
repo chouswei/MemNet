@@ -106,7 +106,7 @@ Factory / startup semantics:
 | else `MEMNET_NEO4J_URL` set | `Neo4jAdapter` (client; not live-claimed) |
 | else | `FakeDurableAdapter` (dev/test seam — not a production cabinet) |
 
-Second cabinet client (same ABC / owner / budget; **not** a live claim): [`neo4j-buffer.md`](neo4j-buffer.md).
+Second cabinet (same ABC / owner / budget; **not** a live claim). What talks to what, Cypher vs Agens, steal/reject: [`neo4j-buffer.md`](neo4j-buffer.md).
 
 `memnet serve` and `memnet-mcp` bind the owner once at process start using those rules.
 
