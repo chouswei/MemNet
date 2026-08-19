@@ -191,7 +191,7 @@ class MemStore:
         merge: bool = False,
     ) -> list[str]:
         """Leftover nickname SET. Identity stays the hidden handle.
-        merge=true still collapses two elements (leftover; SameThingAbsorb is 0.12).
+        merge=true still collapses by nickname (leftover; not SameThingAbsorb).
         """
         warnings: list[str] = []
         if old_id == new_id:

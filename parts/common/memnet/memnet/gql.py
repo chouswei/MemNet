@@ -54,6 +54,11 @@ _RE_MERGE = re.compile(
     rf"^MERGE\s+\(\s*(?:({_IDENT})\s*)?(?::({_LABEL}))?\s*(\{{.*\}})?\s*\)\s*(.*)$",
     re.IGNORECASE | re.DOTALL,
 )
+# SameThingAbsorb Commit: SET keep += drop  (two MATCH vars, not a map)
+_RE_SAME_THING_SET = re.compile(
+    rf"^SET\s+({_IDENT})\s*\+=\s*({_IDENT})\b\s*(.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
 
 _WS = re.compile(r"\s+")
 
@@ -666,8 +671,15 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         ]
 
     if rest_u.startswith("SET"):
+        absorb = _parse_same_thing_set(s, rest, patterns, var_pat, line_no)
+        if absorb is not None:
+            return [absorb]
         if len(patterns) != 1:
-            raise ParseError("SET after MATCH expects one node pattern", line_no)
+            raise ParseError(
+                "SET after MATCH expects one node pattern "
+                "(SameThingAbsorb: MATCH (a),(b) SET a += b)",
+                line_no,
+            )
         p = patterns[0]
         rid = _nickname_from_props(p.props)
         fields = _parse_set_clause(rest, p.var)
@@ -699,6 +711,55 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         ]
 
     raise ParseError(f"unsupported MATCH continuation: {rest[:60]!r}", line_no)
+
+
+def _parse_same_thing_set(
+    raw: str,
+    rest: str,
+    patterns: list[_NodePattern],
+    var_pat: dict[str, _NodePattern],
+    line_no: int,
+) -> NodeRec | None:
+    """Parse MATCH (a),(b) SET a += b as SameThingAbsorb Commit (not MERGE-by-id)."""
+    m = _RE_SAME_THING_SET.match(rest.strip())
+    if not m:
+        return None
+    keep_v, drop_v, tail = m.group(1), m.group(2), (m.group(3) or "").strip()
+    if tail.startswith("{"):
+        return None
+    keep = var_pat.get(keep_v)
+    drop = var_pat.get(drop_v)
+    if keep is None or drop is None:
+        raise ParseError(
+            "SameThingAbsorb SET a += b needs two MATCH variables",
+            line_no,
+        )
+    if keep_v == drop_v:
+        raise ParseError("SameThingAbsorb needs two distinct MATCH variables", line_no)
+    if len(patterns) != 2:
+        raise ParseError(
+            "SameThingAbsorb MATCH needs exactly two node patterns",
+            line_no,
+        )
+    extra: list[Field] = []
+    if tail.startswith(","):
+        extra = _parse_set_clause("SET " + tail[1:].strip(), keep_v)
+    elif tail:
+        raise ParseError(
+            "SameThingAbsorb SET a += b allows only a trailing comma SET list",
+            line_no,
+        )
+    return NodeRec(
+        op=Op.PATCH,
+        kind=keep.label or "",
+        id=_nickname_from_props(keep.props),
+        fields=extra,
+        raw=raw,
+        match_props=_props_as_str(keep.props),
+        same_thing=True,
+        absorb_kind=drop.label or "",
+        absorb_match_props=_props_as_str(drop.props),
+    )
 
 
 def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
@@ -905,6 +966,19 @@ def emit_item(it: NodeRec | EdgeRec | Section, *, as_mutate: bool = False) -> st
         kind = f":{it.kind}" if it.kind else ""
         body = f"{kind} {_emit_props(props)}".strip() if props else kind
         return f"CREATE ({body})" if body else "CREATE ()"
+    if as_mutate and it.op == Op.PATCH and it.same_thing:
+        keep_p = dict(it.match_props) if it.match_props else {}
+        drop_p = dict(it.absorb_match_props) if it.absorb_match_props else {}
+        keep_l = f":{it.kind} " if it.kind else ""
+        drop_l = f":{it.absorb_kind} " if it.absorb_kind else ""
+        keep_m = _emit_props(keep_p) if keep_p else ""
+        drop_m = _emit_props(drop_p) if drop_p else ""
+        extra = ""
+        if it.fields:
+            extra = ", " + ", ".join(f"a.{f.key} = {_emit_value(f.value)}" for f in it.fields)
+        return (f"MATCH (a {keep_l}{keep_m}), (b {drop_l}{drop_m}) SET a += b{extra}").replace(
+            "  ", " "
+        )
     if as_mutate and it.op == Op.PATCH:
         sets = ", ".join(f"n.{f.key} = {_emit_value(f.value)}" for f in it.fields)
         match_p = dict(it.match_props) if it.match_props else {}

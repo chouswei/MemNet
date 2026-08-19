@@ -17,6 +17,7 @@ from memnet.id_allocator import AssignedIdMap
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
+from memnet.same_thing_absorb import absorb_same_thing
 from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
 
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
@@ -231,7 +232,8 @@ class MutateGate:
                     "use CREATE / MATCH…SET / MERGE / DELETE to mutate",
                 )
             is_merge = isinstance(it, NodeRec) and it.raw.upper().lstrip().startswith("MERGE")
-            if mode == "add" and it.op in (Op.PATCH, Op.DROP) and not is_merge:
+            is_absorb = isinstance(it, NodeRec) and it.same_thing
+            if mode == "add" and it.op in (Op.PATCH, Op.DROP) and not is_merge and not is_absorb:
                 raise MemNetError(
                     "op_mode_mismatch",
                     f"{it.op.name} illegal on add; use update (or MERGE for upsert)",
@@ -275,6 +277,7 @@ class MutateGate:
         deferred_edges: list[EdgeRec] = []
         renames: list[tuple[str, str, bool, Record, set[str]]] = []
         ack_items: list[NodeRec | EdgeRec] = []
+        absorbs: list[tuple[Record, Record, dict[str, str]]] = []
         for it in doc.items:
             if isinstance(it, Section):
                 continue
@@ -306,6 +309,27 @@ class MutateGate:
                             f"{f.key}{f.op} illegal on create; use =",
                             example=f"{f.key}={f.value}",
                         )
+            if isinstance(it, NodeRec) and it.op == Op.PATCH and it.same_thing:
+                keep_rec, drop_rec = self._same_thing_pair(it)
+                rename_to, merge_flag, kept = _split_rename_fields(it.fields)
+                if rename_to is not None or merge_flag:
+                    raise MemNetError(
+                        "invalid_merge",
+                        "SameThingAbsorb is pattern collapse; "
+                        "leftover merge=true / id= is not identity",
+                    )
+                extra: dict[str, str] = {}
+                for f in kept:
+                    if f.op != "=":
+                        raise MemNetError(
+                            "invalid_field",
+                            f"{f.key}{f.op} illegal on SameThingAbsorb; use =",
+                            example=f"{f.key}={f.value}",
+                        )
+                    extra[f.key] = f.value
+                absorbs.append((keep_rec, drop_rec, extra))
+                ack_items.append(it)
+                continue
             if isinstance(it, NodeRec) and it.op == Op.PATCH:
                 rename_to, merge_flag, kept = _split_rename_fields(it.fields)
                 bound = None
@@ -429,6 +453,9 @@ class MutateGate:
         )
         touched = touched_ids_from_records(scope_records)
         touched.update(drops)
+        for keep_rec, drop_rec, _extra in absorbs:
+            touched.add(keep_rec.hid)
+            touched.add(drop_rec.hid)
         for old_id, new_id, _merge, _patch_rec, _explicit in renames:
             o = self.ss.store.resolve_one(old_id)
             n = self.ss.store.resolve_one(new_id)
@@ -487,6 +514,19 @@ class MutateGate:
             return changes
 
         try:
+            absorb_warnings: list[str] = []
+            for keep_rec, drop_rec, extra in absorbs:
+                _remember_replaced(keep_rec)
+                keep_hid, drop_hid = keep_rec.hid, drop_rec.hid
+                for edge in list(self.ss.store.list_records("EDG")):
+                    src = edge.fields.get("src", "")
+                    dist = edge.fields.get("dist", "")
+                    if src in (keep_hid, drop_hid) or dist in (keep_hid, drop_hid):
+                        _remember_replaced(edge)
+                deleted_backup.append(_snapshot(drop_rec))
+                _keep, warns = absorb_same_thing(self.ss.store, keep_rec, drop_rec, extra=extra)
+                absorb_warnings.extend(warns)
+            warnings.extend(absorb_warnings)
             for eid in drops:
                 old = self.ss.store.delete(eid)
                 if old is None:
@@ -651,6 +691,45 @@ class MutateGate:
         if not tag and not props:
             return []
         return store.match_nodes(tag=tag, props=props)
+
+    def _same_thing_pair(self, it: NodeRec) -> tuple[Record, Record]:
+        keep_hits = self._pattern_hits(
+            NodeRec(
+                op=Op.PATCH,
+                kind=it.kind,
+                id="",
+                match_props=dict(it.match_props or {}),
+            )
+        )
+        drop_hits = self._pattern_hits(
+            NodeRec(
+                op=Op.PATCH,
+                kind=it.absorb_kind,
+                id="",
+                match_props=dict(it.absorb_match_props or {}),
+            )
+        )
+        if len(keep_hits) > 1:
+            raise MemNetError(
+                "cue_conflict",
+                f"SameThingAbsorb keep |Q|={len(keep_hits)}; SHALL NOT pick one root",
+            )
+        if len(drop_hits) > 1:
+            raise MemNetError(
+                "cue_conflict",
+                f"SameThingAbsorb drop |Q|={len(drop_hits)}; SHALL NOT pick one root",
+            )
+        if not keep_hits or not drop_hits:
+            raise MemNetError(
+                "not_found",
+                "SameThingAbsorb MATCH missed a pattern (labels+properties)",
+            )
+        if keep_hits[0].hid == drop_hits[0].hid:
+            raise MemNetError(
+                "cue_conflict",
+                "SameThingAbsorb patterns hit the same element; name is a candidate only",
+            )
+        return keep_hits[0], drop_hits[0]
 
     def _resolve_end(
         self,

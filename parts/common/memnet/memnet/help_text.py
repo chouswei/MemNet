@@ -33,7 +33,8 @@ def guide_text(*, loose: bool = False) -> str:
         bullets = [
             "MemNet (Net of Memory): in-memory NODE|EDGE working graph for agents.",
             "Agent dialect: gated openCypher-shaped GQL only (docs/grammar/gql-wire-profile.md).",
-            "Mutate: CREATE / MATCH…SET / MERGE / DELETE; live pin map emits shaped subgraph.",
+            "Mutate: CREATE / MATCH…SET / MERGE / DELETE; "
+            "SameThingAbsorb: MATCH (a),(b) SET a += b after CueConflict.",
             "Create by labels+properties. leftover id:'NEW' mint is leftover, not product.",
             "Live pin map: query pin-map --kind/--locator/--keyword (or skip).",
             "leftover --anchor is a nickname cue, not TARGET law.",

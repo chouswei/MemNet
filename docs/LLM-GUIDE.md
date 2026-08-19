@@ -39,6 +39,8 @@ CREATE (n)-[:helps {note:'labour'}]->(t)
 MATCH (t:TSK {goal:'Clear warehouse'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'
 ```
 
+After **CueConflict** (\(|Q|>1\) on find/`pin_map`), SameThingAbsorb is a **Commit rule** (not a third operator): `MATCH (a:TSK {goal:'alpha'}), (b:TSK {goal:'beta'}) SET a += b`. Two same-name nodes stay two until that Commit. ImportAbsorb does not entity-resolve.
+
 **Shaped `pin_map` out** (properties the node actually has; nickname `id` only if set):
 
 ```cypher
@@ -219,7 +221,7 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 |---------|-----|
 | Whole-session read | Cue then `pin_map` only |
 | `add` when the pattern already matches | `update` / `MATCH…SET` by labels+properties |
-| SET/DELETE when \(|Q|>1\) | CueConflict — do not pick one root; do not absorb |
+| SET/DELETE when \(|Q|>1\) | CueConflict — do not pick one root; do not absorb on Recall. SameThingAbsorb is a later Commit (`SET a += b`) |
 | Settled but `recycle=persistent` | Set `delete_on_settle` on settle |
 | Ignoring stderr `@WRN:` | Read warnings (caps, staleness) |
 | Teaching Layer / `@TAG` pipe / Tier A | **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) |
