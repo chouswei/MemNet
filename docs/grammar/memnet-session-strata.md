@@ -100,7 +100,24 @@ The Snap is of **one model** (a load tree / root package). The sessions are **st
 
 **Wrong reading of “strata”.** Opening a new session for each file on disk and calling that Snap. That is N ingests, not **one model Snap**. Files are how this repo **stores** packages; they are not the Snap cardinality.
 
-**Right reading.** `Snap(model) → (S_{\mathrm{cat}}, S_1, \ldots, S_k)`. One catalogue plus \(k\) interiors, all **about the same model**. Goldfish still **one** \(S\) per generate. Join interiors with catalog look or Absorb a **slice** into the mission — not one `pin_map` across stores, not session merge.
+**Right reading.** `Snap(model) → (S_{\mathrm{cat}}, S_1, \ldots, S_k)`. One catalog plus \(k\) interiors, all **about the same model**. Goldfish still **one** \(S\) per generate. Join interiors with catalog look or Absorb a **slice** into the mission — not one `pin_map` across stores, not session merge.
+
+### What “SysML layer” breaks in as-is Snap
+
+`ingest_sysml` walks braces and emits `:contains` from parent to child (`contains_{parent}_{nid}`). That **is** SysML nesting, flattened into **one** session graph. Goldfish then pays for the nest:
+
+| Issue | What happens in one session | Session stack |
+|-------|-----------------------------|---------------|
+| **PKG degree peak (V9)** | Raw `contains` fan makes `PKG` / root look like \(\mathrm{Peak}_L\). Shell of the model is the parent tree, not `REQ_MN_REQ_00`. | Catalog holds package **roots** as `session=` locators. Interior \(S_{\mathrm{req}}\) has REQ neighbourhood without the deploy nest. Topology cue is not required. |
+| **Abstraction layers smashed** | Requirements, structure, verify, connections share one ego walk. `pin_map` depth 2 mixes layers. | Each SysML package (MBSE layer of **this** model) is an interior. Cue names the layer via catalog, then one Shape. |
+| **`view=` vs SysML `view def`** | Ingest maps `view def` → `PRT`. Agents confuse `pin_map view=shell` with SysML views. | SysML `view`/`viewpoint` pins stay in the package interior. `view=` stays grain **inside one session**. Different words, different sessions if still over \(M\). |
+| **Satisfy across layers** | `satisfies` only resolves if both ends were in the **same** ingest index. Cross-package miss is silent. | Same Snap, two interiors. Catalog names both. Second look or Absorb a slice — honest miss, not a dangling same-store edge. |
+| **`max_nodes` truncates the nest** | Budget cuts mid-brace; children exist without parents (or ingest errors). Raising ingest cap still leaves goldfish \(M\approx 50\). | Split the nest **at package (or kind) boundaries** into interiors. Each Commit cap is that layer. Do not raise goldfish \(M\). |
+| **Layer dialect relapse** | Nesting *feels* like MemNet Layer / Tier A, so agents revive the archived wire. | Nesting is **session ids**, GQL only. No `layer=` property. |
+
+So: **SysML layers are real; encoding them as `:contains` in one Snap session is the bug.** Multiple sessions of **one model Snap** are the encoding.
+
+`Peak_L` (0.15) stays last-resort for leftover `contains` **inside** an interior. It is not the fix for model-wide nesting.
 
 **Two budgets.** Ingest `max_nodes` = Commit into **that interior**. Goldfish \(M\approx 50\) = Shape. A 193-pin requirements package in **one** interior still cannot shell the whole package under \(M\). Then split **that package** again (kind band or child package), still under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes.
 
@@ -148,7 +165,7 @@ q = REQ_MN_REQ_00
 | Cousin | Steal | Reject |
 |--------|-------|--------|
 | `root.sysml` imports | One model, several packages | Treating each file as an independent Snap |
-| Package tree | Interior grain | One session per requirement; Leiden on the model |
+| Package tree | Interior grain | Flattening the nest with `:contains` in one \(S\); one session per requirement; Leiden |
 | 6-step modelling note | Cue TSK → edit SSOT → delta | Chat as SSOT for `qname=` |
 | Product vs application ([`../SHAPE.md`](../SHAPE.md)) | Same Snap-model grain downstream | Import `MemNetRequirements` into a customer load tree |
 
