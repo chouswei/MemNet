@@ -6,7 +6,7 @@
 
 **Package now:** Hatch **0.19.3**. Numbered extras **0.10–0.19** are in this package (unchanged). Git tag `v0.19.3` after this cut. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. Last published PyPI **`memnet-llm==0.19.0`** until 0.19.3 upload. **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-08-20 (package **0.19.3**; default `max_sessions` **256**; MCP `session_close` + list `sessions|n/max`; extras **0.10–0.19** unchanged; last PyPI wheel **0.19.0** until upload; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
+**Last updated:** 2026-08-20 (package **0.19.3**; default `max_sessions` **1024**; MCP `session_close` + list `sessions|n/max`; extras **0.10–0.19** unchanged; last PyPI wheel **0.19.0** until upload; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 

@@ -55,11 +55,11 @@ def test_close_removes_session(memnet_temp, schema_file):
     assert not contains(ss.session_id)
 
 
-def test_default_max_sessions_is_256(memnet_temp, monkeypatch):
+def test_default_max_sessions_is_1024(memnet_temp, monkeypatch):
     monkeypatch.delenv("MEMNET_MAX_SESSIONS", raising=False)
     from memnet.config import Caps
 
-    assert Caps().max_sessions == 256
+    assert Caps().max_sessions == 1024
 
 
 def test_max_sessions_override(memnet_temp, schema_file, monkeypatch):

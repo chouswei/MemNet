@@ -38,7 +38,7 @@ def _env_bool(name: str, default: bool = False) -> bool:
 class Caps:
     """Process resource and query caps.
 
-    Concurrent named sessions default to 256 (``MEMNET_MAX_SESSIONS``).
+    Concurrent named sessions default to 1024 (``MEMNET_MAX_SESSIONS``).
     """
 
     max_rows: int
@@ -70,7 +70,7 @@ class Caps:
         self.max_value_bytes = _env_int("MEMNET_MAX_VALUE_BYTES", 4096)
         self.max_line_bytes = _env_int("MEMNET_MAX_LINE_BYTES", 32768)
         self.max_batch_lines = _env_int("MEMNET_MAX_BATCH_LINES", 1000)
-        self.max_sessions = _env_int("MEMNET_MAX_SESSIONS", 256)
+        self.max_sessions = _env_int("MEMNET_MAX_SESSIONS", 1024)
         self.max_depth = _env_int("MEMNET_MAX_DEPTH", 4)
         self.max_fanout = _env_int("MEMNET_MAX_FANOUT", 256)
         self.lock_timeout_ms = _env_int("MEMNET_LOCK_TIMEOUT_MS", 2000)

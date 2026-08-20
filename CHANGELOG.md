@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Package identity 0.19.3** — Hatch / `project.toml` / `memnet.__version__` patch on **0.19**. Numbered extras **0.10–0.19** are unchanged (no new extra row). **1.0** stays a claim of 0.5–0.8. Last published PyPI wheel remains **`memnet-llm==0.19.0`** until upload. Git tag `v0.19.3` after merge.
-- **Session cap 256** — Default `Caps.max_sessions` is **256** (`MEMNET_MAX_SESSIONS` still overrides). `open_session` / snapshot load still raise `limit_exceeded` with `sessions|{n+1}/{max}`. Named strata; not ANN. Do not claim **1.0**. Do not start #47.
+- **Session cap 1024** — Default `Caps.max_sessions` is **1024** (`MEMNET_MAX_SESSIONS` still overrides). Session nests stay live (catalog + interiors, parallel `TSK_*`, several models/agents, sliding TTL leftovers). `open_session` / snapshot load still raise `limit_exceeded` with `sessions|{n+1}/{max}`. Named strata; not ANN. Do not claim **1.0**. Do not start #47.
 
 ### Added
-- **MCP `session_close`** — wraps CLI `session close` (SessionLifecycle; arg `session`; does not dump \(S\)). `session_list` / CLI `session list` emit `@STAT: sessions|n/max` then the live ids so MCP `_run(["session", "list"])` stays one shape. leftover `add` / `update` / `query_warm` stay leftover façades. SysML: `CapsPolicy.maxSessions=256`; `CmdSessionClose` nested on `McpFacade` / `CliFacade`. Do not claim **1.0**.
+- **MCP `session_close`** — wraps CLI `session close` (SessionLifecycle; arg `session`; does not dump \(S\)). `session_list` / CLI `session list` emit `@STAT: sessions|n/max` then the live ids so MCP `_run(["session", "list"])` stays one shape. leftover `add` / `update` / `query_warm` stay leftover façades. SysML: `CapsPolicy.maxSessions=1024`; `CmdSessionClose` nested on `McpFacade` / `CliFacade`. Do not claim **1.0**.
 
 ## [0.19.2] - 2026-08-20
 

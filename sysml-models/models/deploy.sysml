@@ -109,7 +109,7 @@ package MemNet {
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
     attribute maxRelations : Integer = 200;
-    attribute maxSessions : Integer = 256;
+    attribute maxSessions : Integer = 1024;
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;

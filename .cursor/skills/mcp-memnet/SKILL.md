@@ -61,7 +61,7 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 | Tool | Role |
 |------|------|
 | `session_open` | Map required |
-| `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN) |
+| `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN; default max **1024**) |
 | `session_close` | Close that id (SessionLifecycle; does not dump \(S\)) |
 | `session_save` / `session_load` / `session_current` | Snapshot / resume |
 | `pin_map` | Primary read. Empty q = outline. `view=shell` is grain on a seed, not outline |

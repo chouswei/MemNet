@@ -164,7 +164,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 - One big job → one session id.
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
-- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap 256; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors, so close unused strata rather than filling the serve registry.
+- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors that **stay live**; close unused strata rather than filling the serve registry.
 - Milestones: `session_save` / `session_load` (MCP or CLI).
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).
