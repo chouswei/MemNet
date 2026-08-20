@@ -258,6 +258,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
 - [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — sessions as strata; containment cuts; truncation is not Shape
+- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — case study (requirement / part / package / satisfy / view)
 - `~/.cursor/skills/sysml-memnet-documentation/`
 
 ---

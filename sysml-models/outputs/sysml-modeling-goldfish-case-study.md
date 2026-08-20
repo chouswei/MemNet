@@ -4,7 +4,7 @@
 
 Evidence walk against SysML under `sysml-models/models/`.  
 Skills spirit: `sysml-modeling-session-checklist` -> workflow -> nested structure / view-doc-sync.  
-Companions: [multitask-case-study.md](multitask-case-study.md), [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md).
+Companions: [multitask-case-study.md](multitask-case-study.md), [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md), [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) (model Snap stack / nest cuts).
 
 **Wire:** GQL / shaped `pin_map` only. **Structure SSOT** for the product remains `.sysml` files; MemNet is **design memory** for MBSE agents (ids, tasks, touch edges) - not a second structure store.
 
@@ -94,4 +94,4 @@ flowchart TD
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Cold-start another host mid-modelling |
 | [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | Same goldfish shape in a narrative domain |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | When chat is trusted over the live pin map |
-| [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | When this task fans out over shared TCP |
+| [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) | Model Snap stack; nest cuts; no truncated Shape |
