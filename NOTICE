@@ -1,0 +1,10 @@
+MemNet is licensed under the MIT License. See LICENSE.
+
+This product depends on GraphGlot (PyPI package graphglot),
+https://github.com/averdeny/graphglot
+Copyright the GraphGlot authors.
+GraphGlot is licensed under the Apache License, Version 2.0.
+http://www.apache.org/licenses/LICENSE-2.0
+
+MemNet does not vendor GraphGlot source. This NOTICE is attribution for the
+Apache-2.0 dependency only.

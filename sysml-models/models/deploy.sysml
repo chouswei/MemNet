@@ -11,7 +11,9 @@
     ├── AgentMemory                 // session-scoped working set + GQL wire
     │   └── SessionLifecycle        // usage: sessions.recallCommit
     │       ├── GraphStore
-    │       ├── GqlWire             // 1.x primary codec (openCypher-shaped)
+    │       ├── GqlWire             // GraphGlot parse front + product gate
+    │       │   ├── GraphGlotParseFront  // implemented=true — PyPI graphglot
+    │       │   └── ProductGqlGate       // implemented=true — after parse
     │       ├── RecallCommit        // 0.5 cut: TWO operators only
     │       │   ├── Recall          // TWO-operator child: seed then Shape
     │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; Peak_L last-resort cue
@@ -146,11 +148,58 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
   }
 
+  part def GraphGlotParseFront {
+    doc /*
+      Official-grammar parse front. As-is Python calls PyPI graphglot>=0.14.2
+      (Apache-2.0; NOTICE attribution; MemNet stays MIT; do not vendor source).
+      GraphGlot dialect id neo4j is the registered dialect that parses CREATE ()
+      and CREATE (:TSK {goal:'…'}); ISO fullgql rejects CREATE (INSERT spelling).
+      Package dialect name only — MemNet is not Cypher. No TCK compliance claim.
+      Grammar spelling SSOT: vendored docs/grammar/openCypher.bnf
+      (Apache-2.0; NOTICE-openCypher.md). Not TCK; not a second accept path.
+      Module: memnet.gql_parse_front. Does not invent a store key.
+    */
+    port gqlIn : GqlWireInPort;
+    port astOut : ParsedGqlProgramOutPort;
+    port errOut : ErrorSignalOutPort;
+    attribute implemented : Boolean = true;
+    attribute packageName : String = "graphglot";
+    attribute minVersion : String = "0.14.2";
+    attribute dialectName : String = "neo4j";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_1_CanonicalParserSsot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_5_GraphGlotParseThenProductGate;
+  }
+
+  part def ProductGqlGate {
+    doc /*
+      MemNet product gate AFTER a successful GraphGlot parse. Rejects Layer /
+      Tier A and free WITH / UNWIND / CALL / unbounded MATCH…RETURN even when
+      GraphGlot accepts them. Goldfish bounds stay (pin_map + mutate / bounded
+      find). MUST NOT invent a store key. Module: memnet.gql_parse_front
+      gate_programs + memnet.gql._accept_parse.
+    */
+    port astIn : ParsedGqlProgramInPort;
+    port errOut : ErrorSignalOutPort;
+    attribute implemented : Boolean = true;
+    attribute rejectFreeWith : Boolean = true;
+    attribute rejectUnwind : Boolean = true;
+    attribute rejectCall : Boolean = true;
+    attribute rejectUnboundedReturn : Boolean = true;
+    attribute rejectLayer : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_5_GrammarExpressesNodeAndEdge;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_2_RejectInvalidWire;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_5_GraphGlotParseThenProductGate;
+  }
+
   part def GqlCodec {
     doc /*
-      Primary agent wire SSOT (1.x teach, ADR-001): parse/emit openCypher-shaped
-      GQL under MemNet gates. Grammar spelling/identity SSOT is the vendored
-      official BNF docs/grammar/openCypher.bnf (Apache-2.0;
+      Primary agent wire SSOT (1.x teach, ADR-001): GraphGlot parse front,
+      then ProductGqlGate, then leftover lowering/emit. Grammar
+      spelling/identity SSOT is the vendored official BNF
+      docs/grammar/openCypher.bnf (Apache-2.0;
       docs/grammar/NOTICE-openCypher.md) -- not a MemNet-invented id law.
       MUST NOT generate a parser/visitor from that BNF as a second accept
       path. MUST NOT claim TCK compliance or describe MemNet as Cypher /
@@ -160,16 +209,16 @@ package MemNet {
         - oC9 baseline under cip/0.baseline (adopted/testable CIPs)
         - ISO/IEC 39075 for GQL-native features
       Agent surface remains MemNet-gated (pin_map + mutate subset) — not full
-      language. Mutate accepts GQL patterns; pin_map emit is a shaped subgraph
+      language / WITH / UNWIND / CALL / unbounded MATCH…RETURN. Mutate
+      accepts gated GQL patterns; pin_map emit is a shaped subgraph
       (Write = display). MUST NOT treat raw tabular RETURN as primary goldfish
-      read. Engine accept path = ADR migration M2 (**shipped**).
-      TARGET: GraphElement is identity; CREATE () is legal; properties()
-      MAY be empty. NicknameIdProperty MAY be omitted. leftover_NEW_mint
-      is leftover sugar. HiddenStoreHandle stays in the store, off the
-      wire -- not a property, not a business key. SHALL NOT invent a
-      replacement application store key. 0.9 leftover: MutateGate /
-      GqlCodec still mint and key leftover_by_id.
-      Detail: docs/grammar/gql-wire-profile.md.
+      read. Engine accept path = ADR migration M2 (**shipped**) with GraphGlot
+      wired on parse. TARGET: GraphElement is identity; CREATE () is legal;
+      properties() MAY be empty. NicknameIdProperty MAY be omitted.
+      leftover_NEW_mint is leftover sugar. HiddenStoreHandle stays in the
+      store, off the wire -- not a property, not a business key. SHALL NOT
+      invent a replacement application store key. leftover by_id / id_first /
+      NEW stay leftover honesty. Detail: docs/grammar/gql-wire-profile.md.
     */
     port gqlIn : GqlWireInPort;
     port gqlOut : GqlWireOutPort;
@@ -177,6 +226,12 @@ package MemNet {
     port recordsOut : GraphRecordOutPort;
     port recordsIn : GraphRecordInPort;
     port errOut : ErrorSignalOutPort;
+    part parseFront : GraphGlotParseFront;
+    part productGate : ProductGqlGate;
+    connection parseThenGate : ParsedGqlProgramFlow {
+      end port source ::> parseFront.astOut;
+      end port sink ::> productGate.astIn;
+    }
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_1_ExactlyNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_2_NodesHoldAtomisedFacts;
@@ -195,6 +250,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_1_CanonicalParserSsot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_2_RejectInvalidWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_4_NoAdHocConsumerSplits;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_5_GraphGlotParseThenProductGate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_5_GrammarMustBeLlmLearnable;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_6_PreferTemplateFriendlyPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_7_HumanVerifyViaParser;
@@ -1117,8 +1173,9 @@ package MemNet {
     doc /*
       SharedLlmMemory realisation: session-scoped property-graph working
       memory with GQL wire. Nested SessionLifecycle holds GraphStore,
-      GqlCodec, RecallCommit (Recall / AgentShapedRead / PinMapShapedRead +
-      BoundedMatchFind; Commit / MutateGate + NeighbourhoodReserve).
+      GqlCodec (GraphGlotParseFront + ProductGqlGate), RecallCommit (Recall /
+      AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit /
+      MutateGate + NeighbourhoodReserve).
       Brand = MemNet. TierACodec not nested (retire-from-wheel leftover).
     */
     part sessions : SessionLifecycle;

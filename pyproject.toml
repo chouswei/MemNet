@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.10",
     "rich>=13.9",
     "typer>=0.15",
+    "graphglot>=0.14.2",
 ]
 
 [project.urls]
@@ -73,6 +74,7 @@ only-include = [
     "tests",
     "README.md",
     "LICENSE",
+    "NOTICE",
     "pyproject.toml",
     "project.toml",
     "LAYOUT.md",

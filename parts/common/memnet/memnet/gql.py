@@ -1,8 +1,9 @@
-"""Gated openCypher-shaped GQL wire (MemNet M2 agent surface).
+"""Gated GQL wire (MemNet M2 agent surface).
 
-Parses / emits the mutate + shaped-read subset in
-``docs/grammar/gql-wire-profile.md``. Not full openCypher / every CIP.
-Maps to the same NodeRec / EdgeRec / Op atoms used by MutateGate commit.
+Accept parse is GraphGlot, then the MemNet product gate, then leftover
+lowering to NodeRec / EdgeRec. Emits the mutate + shaped-read subset in
+``docs/grammar/gql-wire-profile.md``. Agent API stays pin_map + mutate /
+bounded find — not free WITH / UNWIND / CALL / unbounded MATCH…RETURN.
 """
 
 from __future__ import annotations
@@ -12,6 +13,12 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from memnet.gql_parse_front import (
+    GraphGlotError,
+    clean_graphglot_message,
+    gate_programs,
+    parse_program,
+)
 from memnet.tier_a import Document, EdgeRec, Field, NodeRec, Op, Section
 
 _IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -19,7 +26,7 @@ _LABEL = r"[A-Za-z_][A-Za-z0-9_]*"
 _RELTYPE = r"[A-Za-z_][A-Za-z0-9_]*"
 
 _STMT_START = re.compile(
-    r"^(CREATE|MATCH|MERGE|DELETE|DETACH)\b",
+    r"^(CREATE|MATCH|MERGE|DELETE|DETACH|WITH|UNWIND|CALL|FOR|INSERT)\b",
     re.IGNORECASE,
 )
 _RE_SECTION = re.compile(r"^##\s+([A-Za-z][A-Za-z0-9_ ]*)\s*$")
@@ -64,9 +71,16 @@ _WS = re.compile(r"\s+")
 
 
 class ParseError(Exception):
-    def __init__(self, message: str, line: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        line: int | None = None,
+        *,
+        code: str = "parse_error",
+    ) -> None:
         super().__init__(message)
         self.line = line
+        self.code = code
 
 
 @dataclass
@@ -582,6 +596,7 @@ def _parse_create(s: str, line_no: int) -> NodeRec | EdgeRec:
     if m:
         _var, label, props_s = m.groups()
         props = parse_props(props_s) if props_s else {}
+        # Label optional (CREATE ()). Nickname id is optional; leftover NEW mint stays leftover.
         rid = _nickname_from_props(props)
         return NodeRec(
             op=Op.CREATE,
@@ -789,9 +804,38 @@ def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | E
     ]
 
 
+def _needs_graphglot(stmt: str) -> bool:
+    s = stmt.strip()
+    if not s or s.startswith("#") or s.startswith("("):
+        return False
+    return _STMT_START.match(s) is not None
+
+
+def _accept_parse(stmt: str, line_no: int) -> None:
+    """GraphGlot parse, then MemNet product gate. Does not lower."""
+    s = stmt.strip()
+    if looks_like_legacy_layer_or_tier_a(s):
+        raise ParseError(
+            "Layer / Tier A agent wire is retired (ADR-001 M2). "
+            "Use gated GQL — see docs/grammar/gql-wire-profile.md",
+            line_no,
+            code="legacy_dialect_retired",
+        )
+    if not _needs_graphglot(s):
+        return
+    try:
+        programs = parse_program(s)
+    except GraphGlotError as exc:
+        raise ParseError(clean_graphglot_message(exc), line_no) from exc
+    gate_msg = gate_programs(programs)
+    if gate_msg:
+        raise ParseError(gate_msg, line_no, code="product_gate")
+
+
 def parse(text: str) -> Document:
     items: list[Section | NodeRec | EdgeRec] = []
     for line_no, stmt in _split_statements(text):
+        _accept_parse(stmt, line_no)
         items.extend(parse_statement(stmt, line_no))
     return Document(items=items)
 

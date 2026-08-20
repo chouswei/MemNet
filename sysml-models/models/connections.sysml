@@ -310,9 +310,16 @@ package MemNetConnections {
 
   item def GqlWireBatch {
     doc /*
-      Primary agent-facing wire (1.x teach): openCypher-shaped GQL mutate
+      Primary agent-facing wire (1.x teach): gated GQL mutate
       patterns (CREATE/MERGE/SET/DELETE under MemNet gates). Same family as
-      AgensGraph. Not an unbounded DBA RETURN table.
+      the durable GQL store. Not an unbounded DBA RETURN table.
+    */
+  }
+
+  item def ParsedGqlProgram {
+    doc /*
+      GraphGlot AST of one program. Not agent teach. Not a store key.
+      Conveyed parse-front → product gate only.
     */
   }
 
@@ -542,8 +549,17 @@ package MemNetConnections {
     out item payload : GqlWireBatch;
   }
   port def GqlWireInPort {
-    doc /* Consume openCypher-shaped GQL agent wire. */
+    doc /* Consume gated GQL agent wire. */
     in item payload : GqlWireBatch;
+  }
+
+  port def ParsedGqlProgramOutPort {
+    doc /* GraphGlot parse result toward the MemNet product gate. */
+    out item ast : ParsedGqlProgram;
+  }
+  port def ParsedGqlProgramInPort {
+    doc /* Consume a GraphGlot parse result at the product gate. */
+    in item ast : ParsedGqlProgram;
   }
 
   port def ShapedSubgraphOutPort {
@@ -793,6 +809,12 @@ package MemNetConnections {
     doc /* Primary agent GQL wire between codec, facades, and mutate. */
     end port source : GqlWireOutPort;
     end port sink : GqlWireInPort;
+  }
+
+  connection def ParsedGqlProgramFlow {
+    doc /* GraphGlot parse front → MemNet product gate (after parse). */
+    end port source : ParsedGqlProgramOutPort;
+    end port sink : ParsedGqlProgramInPort;
   }
 
   connection def ShapedSubgraphFlow {
