@@ -2,24 +2,31 @@
 
 **Audience:** model. Wire SSOT: [memnet-format](memnet-format/SKILL.md) and `docs/grammar/gql-wire-profile.md`. Do **not** treat this file as the session graph.
 
-Product **0.19.1** (Hatch; last PyPI **`memnet-llm==0.19.0`** until upload). Cue then `pin_map`; `find` if ego unknown.
-
-This is the **in-repo** MemNet stack only. The full personal pack graph stays in [cursor-user-skills](https://github.com/chouswei/cursor-user-skills) `SKILL-GRAPH.md`.
+This folder **vendors** the MemNet stack. Hatch **0.19.1** (last PyPI **`memnet-llm==0.19.0`** until upload). Cue then `pin_map`; `find` if ego unknown. **GQL only.**
 
 ## Routing
 
 1. Extract keywords from the request.
-2. Match the table (at most two passes).
-3. Open that folder’s `SKILL.md`.
+2. Match **Core** first, then specialists (at most two passes).
+3. Open that folder’s `SKILL.md`. Lazy-load `references/` only when a step needs them.
 4. Still unclear → repo `AGENTS.md`.
+
+Default **one** skill per turn. Hub [`memnet-use`](memnet-use/SKILL.md) unless a specialist trigger is a better match. Hub descriptions do **not** list MCP tool names, GQL BIND, nested `session=`, or Multitask transport — those live on the matching core skill.
+
+### Core
 
 | Intent | Skill |
 |--------|--------|
-| **How to use MemNet** (goldfish, pin_map, mutate) | `memnet-use` |
+| How to use MemNet (goldfish, chat never SSOT) | `memnet-use` |
+| MCP tools, session, ingest, RSV, export | `mcp-memnet` |
+| GQL wire / shaped `pin_map` | `memnet-format` |
 | Nested sessions / look loop / already-built interior | `memnet-nested-sessions` |
-| MCP tools, ingest, `snap_model`, export | `mcp-memnet` |
-| GQL wire / shaped pin_map | `memnet-format` |
 | Multitask / Task workers / shared session | `memnet-multitask` |
+
+### Specialists
+
+| Intent | Skill |
+|--------|--------|
 | Code MOD/SYM snap | `memnet-codebase-snap` |
 | SysML 6-step mission turn | `sysml-modeling-workflow` |
 | SysML session checklist | `sysml-modeling-session-checklist` |
@@ -27,19 +34,23 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 | SysML snap / read policy | `sysml-memnet-documentation` |
 | SysML × GQL bridge | `sysml-gql` |
 | SysML token laws / Snap stack | `docs/application-notes/system/llm-sysml-v2-modeling.md` |
+
+### Build
+
+| Intent | Skill |
+|--------|--------|
 | Develop MemNet engine / MCP / grammar | `memnet-reference` |
 
-## MemNet stack (edges)
+## Core stack (edges)
 
 ```cypher
-(:SKL {id: 'memnet-use'})-[:DEFAULT_STACK {note: 'hub'}]->(:SKL {id: 'mcp-memnet'})
-(:SKL {id: 'memnet-use'})-[:COMPLEMENTS {note: 'nested'}]->(:SKL {id: 'memnet-nested-sessions'})
-(:SKL {id: 'mcp-memnet'})-[:COMPLEMENTS {note: 'wire'}]->(:SKL {id: 'memnet-format'})
-(:SKL {id: 'memnet-multitask'})-[:COMPLEMENTS {note: 'multitask'}]->(:SKL {id: 'mcp-memnet'})
-(:SKL {id: 'memnet-multitask'})-[:COMPLEMENTS {note: 'multitask'}]->(:SKL {id: 'memnet-format'})
-(:SKL {id: 'sysml-gql'})-[:COMPLEMENTS {note: 'sysml_bridge'}]->(:SKL {id: 'memnet-format'})
-(:SKL {id: 'sysml-modeling-session-checklist'})-[:DEFAULT_STACK {note: 'hub'}]->(:SKL {id: 'sysml-modeling-workflow'})
-(:SKL {id: 'sysml-modeling-workflow'})-[:DEFAULT_STACK {note: 'memnet'}]->(:SKL {id: 'sysml-memnet-documentation'})
+(:SKL {name: 'memnet-use'})-[:DEFAULT_STACK {note: 'tools'}]->(:SKL {name: 'mcp-memnet'})
+(:SKL {name: 'memnet-use'})-[:DEFAULT_STACK {note: 'wire'}]->(:SKL {name: 'memnet-format'})
+(:SKL {name: 'memnet-use'})-[:COMPLEMENTS {note: 'nested'}]->(:SKL {name: 'memnet-nested-sessions'})
+(:SKL {name: 'memnet-multitask'})-[:REQUIRES {note: 'shared'}]->(:SKL {name: 'mcp-memnet'})
+(:SKL {name: 'sysml-modeling-session-checklist'})-[:DEFAULT_STACK]->(:SKL {name: 'sysml-modeling-workflow'})
+(:SKL {name: 'sysml-modeling-workflow'})-[:DEFAULT_STACK]->(:SKL {name: 'sysml-memnet-documentation'})
+(:SKL {name: 'sysml-gql'})-[:COMPLEMENTS]->(:SKL {name: 'memnet-format'})
 ```
 
-Load `memnet-use` when the job is **using** MemNet. Load `memnet-nested-sessions` when a nest is cut across sessions. Load `memnet-reference` only when **building** this product. Load `memnet-multitask` when Multitask Mode or Task sub-agents run. Ops: `docs/operations/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.
+Load `memnet-reference` only when **building** this product. Multitask ops: `docs/operations/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.

@@ -1,4 +1,4 @@
-# SysML + MemNet atomisation patterns (user pack)
+# SysML + MemNet atomisation patterns (this vendor)
 
 Use with [atomisation.md](../../mcp-memnet/references/atomisation.md), [sysml-memnet-snap.md](sysml-memnet-snap.md), and [sysml-memnet-cookbook-bridge.md](sysml-memnet-cookbook-bridge.md).
 

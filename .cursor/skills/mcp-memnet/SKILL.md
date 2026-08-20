@@ -2,11 +2,11 @@
 name: mcp-memnet
 description: >-
   MemNet MCP tools: cue then pin_map, GQL mutate, session, ingest, snap_model,
-  export_pin_map. Triggers: memnet mcp, pin_map, mutate, session_open, find,
-  ingest_sysml, snap_model, export_pin_map, reserve, RSV.
+  export_pin_map, reserve. Triggers: memnet mcp, MCP pin_map, MCP mutate,
+  session_open, find, ingest_sysml, snap_model, export_pin_map, reserve, RSV.
 metadata:
   pattern: tool-wrapper
-  version: "7.1"
+  version: "7.3"
   domain: memnet
   product: memnet-llm==0.19.1
 token_guardrails: |
@@ -17,9 +17,9 @@ token_guardrails: |
 
 # MemNet MCP
 
-**Use** MemNet via MCP. Doctrine: `docs/SHAPE.md`, `docs/LLM-GUIDE.md`. Wire: [memnet-format](../memnet-format/SKILL.md). Nested interiors: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md). Tool SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
+**Use** MemNet via MCP. This checkout vendors the skill. Tool SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`. Wire: [memnet-format](../memnet-format/SKILL.md). Nest: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md). Hub: [memnet-use](../memnet-use/SKILL.md).
 
-Product **0.19.1**. Last PyPI **`memnet-llm==0.19.0`** until 0.19.1 upload. Arg **`session`** (not `session_id`). Novel-writer is out of scope.
+Hatch **0.19.1**. Arg **`session`** (the id), not `session_id` (envelope may still *return* `session_id`). Novel-writer is out of scope.
 
 ## Transport
 
@@ -28,44 +28,58 @@ Product **0.19.1**. Last PyPI **`memnet-llm==0.19.0`** until 0.19.1 upload. Arg 
 | Single agent | In-process `memnet-mcp` (stdio); no serve |
 | Shared / Multitask | TCP `:18765` or streamable-http; load [memnet-multitask](../memnet-multitask/SKILL.md) |
 
-`serve_status` is a TCP probe. Skip it under default in-process.
+`serve_status` is a TCP probe. **Skip** it under default in-process.
 
 ## Agent loop
 
 ```text
-cue / find → pin_map → reason → mutate → pin_map
+session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 ```
 
-1. **Cue** — `kind` / `locators` (`qname=`, `path=`, …) / `keyword` / nickname `cue`. Empty cue = **session outline** (0.11). If ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When \(|Q|>1\), CueConflict — do not pick one root.
-2. **`pin_map`** — one \(S\) per generate. Drop the prior map next turn. leftover `anchor=` / `anchors=` are leftover nicknames, not TARGET law.
-3. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint.
-4. Persist if needed: `session_save` (file) or live cabinet (0.7 Agens / 0.14 Neo4j). Agents MUST NOT talk Bolt.
+1. **Map** — `session_open` needs `map_file` or `map_lines` else `no_map`.
+2. **Cue** — `kind` / `locators` (`qname=`, `path=`, `goal=`, …) / `keyword` / nickname `cue`. Empty cue = **session outline** (0.11). Ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When \(|Q|>1\), CueConflict — do not pick one root.
+3. **`pin_map`** — one \(S\) per generate. MCP `session=` selects the stratum. Drop the prior map next turn. leftover `anchor=` / `anchors=` are leftover nicknames.
+4. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint. Under RSV pass `llm_id`.
+5. Persist if needed: `session_save` (file) or live cabinet (0.7 Agens / 0.14 Neo4j). Agents MUST NOT talk Bolt.
 
 **MCP missing:** skip MemNet; plain Markdown only.
+
+## Maps (this repo)
+
+| Job | `map_file` |
+|-----|------------|
+| SysML ingest / Snap | `parts/common/memnet/memnet/examples/schema.sysml.example.txt` |
+| Coding memory | `…/schema.coding.example.txt` |
+| Path-B codebase ingest | `…/schema.codebase.example.txt` |
+| Tech docs | `…/schema.techdocs.example.txt` |
+| Skills / rules | `…/schema.skills.example.txt` |
+| PCBA ATO | `…/schema.pcba.example.txt` |
+| Game / toy | `…/schema.example.txt` — not SysML |
 
 ## Product tools
 
 | Tool | Role |
 |------|------|
-| `session_open` | Map required (`map_file` / `map_lines`). This repo SysML: `schema.sysml.example.txt` |
+| `session_open` | Map required |
 | `session_list` | Live session ids (catalog strata) |
 | `session_save` / `session_load` / `session_current` | Snapshot / resume |
-| `pin_map` | Primary read. Cue params above. Empty q = outline. `view=shell` is grain on a seed, not outline |
+| `pin_map` | Primary read. Empty q = outline. `view=shell` is grain on a seed, not outline |
 | `find` | Bounded seed (`limit` required). Not RAG |
 | `mutate` | Product Commit |
-| `snap_model` | One load tree → catalog + interiors (`session=` + `qname=`). Look loop: nested-sessions skill |
+| `snap_model` | One load tree → catalog + interiors (`session=` + `qname=`). Look: nested-sessions |
 | `ingest_sysml` / `ingest_codebase` / `ingest_pcba` / `ingest_skills` | Path-B locators into **this** session (1→1). Not Snap. Not export |
-| `export_pin_map` | Write out a cue `pin_map` as GQL. Not ingest. Not Absorb |
+| `export_pin_map` | Write out a cue `pin_map` as GQL. Not ingest. Not Absorb. Not `.sysml` reverse |
 | `import_slice` | Absorb a **slice** (not a whole \(S\)) |
 | `reserve` / `extend` / `release` | RSV; pass `llm_id` on mutate |
 | `read_list` | Enumerate by kind / where |
 | `housekeep_stats` | Caps |
+| `session_acl_enable` / `session_acl_grant` / `session_acl_bind` | CapsPolicy **opt-in** (off by default). Not full `session_token` modes |
 
 ## leftover (do not teach as product)
 
 | Name | Status |
 |------|--------|
-| `add` / `update` | leftover façades; still registered. Prefer **`mutate`** |
+| `add` / `update` | leftover façades; still registered. Prefer **`mutate`**. Path-B `session_open` seed still uses leftover `add` internally |
 | `query_warm` | leftover alias of `pin_map` |
 | `query_walk` | leftover hop debug |
 | `anchor=` / `--anchor` | leftover nickname |
@@ -78,4 +92,5 @@ Args: [references/tool-parameters.md](references/tool-parameters.md). Policy: [r
 
 - `rag_query` / ANN of \(S\) / dump \(S\) / stack \(N\) nested maps in one generate.
 - Invent ids already on the map. Pipe `@TAG` / Layer / TOON as agent I/O.
-- Treat ingest as pin-map export. Restore novel-writer tools.
+- Treat ingest as pin-map export or as `.sysml` reverse.
+- Restore novel-writer tools.

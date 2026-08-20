@@ -10,7 +10,7 @@ MemNet is **agent-maintained index + task graph**, not a substitute for `grep`, 
 
 | Situation | Use MemNet? |
 |-----------|-------------|
-| Multi-file refactor spanning many chat turns | **Yes** — anchor on `TSK` or `MOD` |
+| Multi-file refactor spanning many chat turns | **Yes** — cue `TSK` or `MOD` |
 | “Where is `send_command`?” after you already found it once | **Yes** — `SYM` + pin map |
 | Tracking files/modules touched for current task | **Yes** — `MOD` + edges |
 | User-stated API/style constraints | **Yes** — `USR` + `constrained_by` from `TSK` |
@@ -18,7 +18,7 @@ MemNet is **agent-maintained index + task graph**, not a substitute for `grep`, 
 | One-shot symbol lookup, never referenced again | **No** — grep / Go to definition |
 | Authoritative “what calls X?” | **No** — ripgrep / LSP first; optionally **mutate** an edge after verify |
 
-**Open a coding session** at the start of a non-trivial task. One session per repo/task. Cue by path/name/goal. Use `session_save` / `session_load` for multi-day work.
+**Open a coding session** at the start of a non-trivial task. Map: `schema.coding.example.txt`. One session per repo/task. Cue by path/name/goal. Use `session_save` / `session_load` for multi-day work.
 
 ## Kinds (session)
 

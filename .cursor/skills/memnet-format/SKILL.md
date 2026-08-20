@@ -1,12 +1,12 @@
 ---
 name: memnet-format
 description: >-
-  MemNet GQL wire: shaped pin_map read and openCypher-shaped mutate.
-  Triggers: memnet format, GQL wire, pin_map, mutate, shaped subgraph,
-  BIND vs relation, openCypher mutate.
+  MemNet GQL wire: GraphElement node/edge/property, shaped subgraph emit,
+  BIND vs relation, openCypher-shaped Commit. Triggers: memnet format, GQL
+  wire, GraphElement, shaped subgraph, BIND vs relation, openCypher mutate.
 metadata:
   pattern: tool-wrapper
-  version: "5.1"
+  version: "5.3"
   domain: data-formats,memnet
   product: memnet-llm==0.19.1
 token_guardrails: |
@@ -17,7 +17,7 @@ token_guardrails: |
 
 # MemNet formats
 
-Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Product **0.19.1**.
+Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Hatch **0.19.1**.
 
 **GQL only.** Node / edge / property. Do not teach Layer, Tier A, pipe `@TAG`, or TOON/TRON. leftover `id:'NEW'` / leftover `anchor=` are leftover.
 
@@ -28,7 +28,7 @@ MCP `pin_map` / CLI `query pin-map` emits a bounded neighbourhood. Parse envelop
 | Control | Product use |
 |---------|-------------|
 | `kind` / `locators` / `keyword` / `cue` / `session` | Cue \(q\). Empty \(q\) = 0.11 outline |
-| `depth` / `max_rows` | Hard bound. Raise depth only if the slice is too thin |
+| `depth` / `max_rows` | Hard bound. Raise depth only if the slice is too thin. Over \(M\): cut a nested session — do not clip and call it Shape |
 | `view` | Grain on a **seed** (`shell` / `interior`). Not the outline |
 | leftover `anchor` / `anchors` | leftover nicknames |
 

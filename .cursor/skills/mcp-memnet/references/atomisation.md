@@ -36,7 +36,7 @@ pin_map(kind='TSK', locators=['goal=Expose send_command'], depth=2)
 
 ## MCP write pattern (openCypher-shaped)
 
-Prefer **one `add` call, many atom lines**:
+Prefer **one `mutate` call, many statements**:
 
 ```cypher
 CREATE (:TSK {goal: 'Expose send_command', status: 'in_progress', recycle: 'persistent'})
@@ -48,7 +48,7 @@ MATCH (m:MOD {path: 'parts/common/memnet/memnet/serve.py'}), (s:SYM {name: 'send
 CREATE (m)-[:defines {note: 'handler'}]->(s)
 ```
 
-Prefer **one `mutate` call, many statements**. leftover `+ TSK [NEW]` line dialect is leftover.
+leftover `+ TSK [NEW]` line dialect is leftover.
 
 ## Checklist
 

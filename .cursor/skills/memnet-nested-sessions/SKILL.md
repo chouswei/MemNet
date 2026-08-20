@@ -8,14 +8,14 @@ description: >-
   catalog, session strata, already-built interior, parallel interiors.
 metadata:
   pattern: pipeline
-  version: "1.1"
+  version: "1.3"
   domain: memnet
   product: "0.19.1"
 ---
 
 # Nested sessions
 
-How to **use** a session stack. Pair with [memnet-use](../memnet-use/SKILL.md). Doctrine: `docs/extras/memnet-session-strata.md`. SysML loop: `docs/application-notes/system/llm-sysml-v2-modeling.md`. Evidence: `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` (Turns A–I).
+How to **use** a session stack. Pair with [memnet-use](../memnet-use/SKILL.md). Tools: [mcp-memnet](../mcp-memnet/SKILL.md). Doctrine: `docs/extras/memnet-session-strata.md`. SysML loop: `docs/application-notes/system/llm-sysml-v2-modeling.md`. Evidence: `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` (Turns A–I).
 
 Chat is never SSOT. Goldfish is **one** \(S\) per generate. Do not revive Layer / `layer=`.
 
@@ -26,18 +26,20 @@ Chat is never SSOT. Goldfish is **one** \(S\) per generate. Do not revive Layer 
 | 1 | **Relatives of one cue** — complete Shape of **this** parent, then one brace at `SYM.line`. |
 | 2 | **Sub-unit in a separate session** — over \(M\), or **already built**, is cut away. Parent shell: **name** + `session=`. Do not walk that other \(S\) in this generate. |
 
-Look = `pin_map(session=` that id`)`. Join = Absorb a **slice**, not a second Snap and not a paste of the nested tree.
+Look = `pin_map` with MCP arg **`session=`** that id (catalog pins also carry locator `session=`). Join = `import_slice` of a **neighbourhood**, not a second Snap and not a paste of the nested tree.
 
 ## Look loop (session in session)
 
 ```text
 pin_map(S_cat)     → pick session=
-pin_map(S_i)       → child has session=?  yes → drop map, next generate pin_map(S_child)
+pin_map(session=S_i) → child has session=?  yes → drop map, next generate pin_map(S_child)
                    → … until this brace fits M whole
 edit SSOT of THAT cut → re-Snap THAT interior (reuse session= if qname= already has one)
 ```
 
 Not \(N\) maps stacked in one prompt.
+
+Mint the stack with **`snap_model`** (catalog + interiors) or Path-B **`ingest_*`** into **one** current session (1→1 — that is not catalog Snap).
 
 ## Already built
 
