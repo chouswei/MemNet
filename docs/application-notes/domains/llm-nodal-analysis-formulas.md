@@ -1,18 +1,18 @@
 # Nodal analysis — circuit domain (ports / law / bind)
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 **Teach:** GQL wire profile + shaped `pin_map` + gated mutate.  
 **Documentation only** — does **not** implement a solver.  
 **British English.** ASCII.
 
-Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Formula-on-relationship (`derives` / `feeds`) is **retired** — short pointer in §8, not dual teach.
+Doctrine: [`gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Formula-on-relationship (`derives` / `feeds`) is **retired** — short pointer in §8, not dual teach.
 
 Complements:
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — schematic / s-domain GQL grain
-- [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) — InvAmp GQL wire
-- [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) — math SSOT
+- [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md) — InvAmp GQL wire
+- [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md) — math SSOT
 
 ---
 
@@ -129,7 +129,7 @@ MATCH (r2:CST {id:'CST_R2'}), (gnd:CST {id:'CST_Gnd'})
 CREATE (r2)-[:bind {fromPort:'b', toPort:'a', carries:'I'}]->(gnd)
 ```
 
-Illustrative mid absolutes after a hand solve (equal divider): \(V_\mathrm{mid}=2.5\,\mathrm{V}\), \(I=2.5\,\mathrm{mA}\). Full InvAmp GQL: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+Illustrative mid absolutes after a hand solve (equal divider): \(V_\mathrm{mid}=2.5\,\mathrm{V}\), \(I=2.5\,\mathrm{mA}\). Full InvAmp GQL: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 ---
 
@@ -155,9 +155,9 @@ Layer ASCII and leftover CMP/PIN/NET + `derives` are **not** product accept or t
 
 | Path | Role |
 |------|------|
-| [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** InvAmp GQL teach |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT |
+| [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md) | **Primary** InvAmp GQL teach |
+| [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md) | Math SSOT |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain GQL grain |
-| [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
+| [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | GQL wire SSOT |
 
 **This file is documentation only.** Use it to place Ohm/KCL as node `law` beside port binds — without building a circuit solver into MemNet.

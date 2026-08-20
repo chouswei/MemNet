@@ -8,31 +8,21 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Where to look
 
-| Need | Path | Class |
-|------|------|-------|
-| Docs index (developers vs applications) | `docs/README.md` | — |
-| Doctrine / quick start | `README.md` | — |
-| Product shape (from the problem) | `docs/SHAPE.md` | developers |
-| Version map (SemVer SSOT) | `docs/ROADMAP.md` | developers |
-| System identity / SemVer | `project.toml` | — |
-| Python packaging | `pyproject.toml` | — |
-| Layout adaptation notes | `LAYOUT.md` | — |
-| SysML models | `sysml-models/` | — |
-| Shared-dialect grammar / GQL wire | `docs/grammar/` (`gql-wire-profile.md` = M1 SSOT; `math-skeleton.md` = 0.5 Recall/Commit math) | developers |
-| Stratified pin-map views | Covered in `docs/grammar/gql-wire-profile.md` | developers |
-| Neighbourhood reserve (RSV shipped; grammar still the design note) | `docs/grammar/memnet-neighbourhood-reserve.md` | developers |
-| Security / session ACL / multi-agent (design) | `docs/grammar/memnet-security-multi-agent.md` | developers |
-| Multi-agent / Multitask (as-is 0.8) | `docs/multi-agent-sessions.md` | developers |
-| Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` | applications |
-| MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` | — |
-| SysML modelling (token laws / Snap stack) | `docs/application-notes/llm-sysml-v2-modeling.md`, `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` | applications |
-| Nested sessions / look loop | `.cursor/skills/memnet-nested-sessions/` | applications |
-| Domain worked examples | `docs/application-notes/` (schematic; nodal note *applies* formula grammar to circuits) | applications |
-| Core library | `parts/common/memnet/` | — |
-| Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` | — |
-| Session stub | `AGENT-CONTEXT.md` | — |
-| Novel-writer drop record | `DROP-NOVEL-WRITER.md` | — |
-| Vendor grammar pins | `refs/README.md` | — |
+Catalog and load order: [`docs/README.md`](docs/README.md) (identity / `grammar/` / `cabinet/` / `extras/` / `operations/` / `application-notes/`).
+
+| Need | Path |
+|------|------|
+| Doctrine / quick start | `README.md` |
+| Product shape / version map | `docs/SHAPE.md`, `docs/ROADMAP.md` |
+| GQL wire / 0.5 math | `docs/grammar/` |
+| Durable cabinet | `docs/cabinet/` |
+| Numbered extras / ACL design | `docs/extras/` |
+| Multitask ops | `docs/operations/multi-agent-sessions.md` |
+| Applications | `docs/application-notes/` (`system/`, `domains/`, `examples/`) |
+| SysML models + MN-REQ-12 | `sysml-models/` |
+| Engine / MCP | `parts/common/memnet/`, `parts/memnet-mcp/` |
+| Identity / packaging / layout | `project.toml`, `pyproject.toml`, `LAYOUT.md` |
+| Session stub / novel drop / vendor pins | `AGENT-CONTEXT.md`, `DROP-NOVEL-WRITER.md`, `refs/README.md` |
 
 ## Skill routing
 
@@ -44,8 +34,8 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Nested sessions / look loop / already-built interior | `.cursor/skills/memnet-nested-sessions/` |
 | MCP tools, session, ingest | `.cursor/skills/mcp-memnet/` |
 | GQL / shaped pin_map wire | `.cursor/skills/memnet-format/` |
-| Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
-| Multitask system-dev (`modelbasedPrj-*`) | `.cursor/skills/memnet-multitask/`, `docs/application-notes/llm-system-dev-multitask.md` |
+| Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/operations/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
+| Multitask system-dev (`modelbasedPrj-*`) | `.cursor/skills/memnet-multitask/`, `docs/application-notes/system/llm-system-dev-multitask.md` |
 | SysML design memory with MemNet | `.cursor/skills/sysml-memnet-documentation/`, `.cursor/skills/sysml-memnet-cache/` |
 | Develop MemNet engine / MCP / grammar | `.cursor/skills/memnet-reference/` |
 | MN-REQ-12 SysML + verify (Multitask) | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
@@ -58,7 +48,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 2. **Novel-writer is dropped** — do not restore `parts/novel-writer/` or novel MCP extras; see `DROP-NOVEL-WRITER.md`.
 3. Keep `AGENT-CONTEXT.md` thin; durable state lives in MemNet sessions when used.
 4. British English in new docs written for this repo.
-5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers cue then `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, Snap-on-session, or assume full ACL modes / `session_token` (CapsPolicy when ACL enabled; RSV and Path-B ingest **are** shipped).
+5. **Multitask + MemNet** — when Multitask Mode is on or Task sub-agents run: **MUST** follow `docs/operations/multi-agent-sessions.md`. One shared session id per mission; chat is never SSOT. **MUST** use TCP serve or streamable-http MCP (not default in-process). Parent owns `TSK_*` / `USR_*` settle and ends turn after delegate; workers cue then `pin_map` first and mutate only under assigned scope. **MUST NOT** poll workers, redo worker investigation from chat, Snap-on-session, or assume full ACL modes / `session_token` (CapsPolicy when ACL enabled; RSV and Path-B ingest **are** shipped).
 
 ## Cursor Cloud specific instructions
 

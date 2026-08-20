@@ -28,7 +28,7 @@ token_guardrails: |
 4. [sysml-memnet-patterns.md](references/sysml-memnet-patterns.md)
 5. [relatives-cache-map.md](references/relatives-cache-map.md)
 6. [sysml-memnet-cookbook-bridge.md](references/sysml-memnet-cookbook-bridge.md)
-7. `docs/application-notes/llm-sysml-v2-modeling.md`
+7. `docs/application-notes/system/llm-sysml-v2-modeling.md`
 
 ## Prerequisites
 

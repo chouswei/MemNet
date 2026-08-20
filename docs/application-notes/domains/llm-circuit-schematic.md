@@ -1,18 +1,18 @@
 # LLM circuit schematic and s-domain analysis — circuit domain
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Hold **electrical schematics** and **linear circuit analysis in the s-domain** in MemNet so an agent can warm a small subgraph (one IC, one star, one transfer result) without packing pin lists or textbook prose into a single row.
 
 For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analysis frame**: DC, steady-state sinusoid (phasor), and linear transient results are specialisations or inversions of the same \(V(s)\) / \(H(s)\) model. Prefer one s-domain atom set (`domain:'s'`); recover other views by evaluation or inverse Laplace.
 
-**Primary worked example (GQL wire):** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
-**Math derivation SSOT:** [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
+**Primary worked example (GQL wire):** [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).  
+**Math derivation SSOT:** [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md).
 
 Complements:
 
 - [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) — node method ↔ node `law` / `:bind`
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML locators (logical grain)
+- [`llm-sysml-v2-modeling.md`](../system/llm-sysml-v2-modeling.md) — SysML locators (logical grain)
 
 British English. ASCII.
 
@@ -155,8 +155,8 @@ Vin -- Rin -- (IN-) -- U1 -- (OUT) -- Vout
 (IN+) -------- GND
 ```
 
-**Full GQL mutate + shaped `pin_map`:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
-**Math derivation:** [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
+**Full GQL mutate + shaped `pin_map`:** [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).  
+**Math derivation:** [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md).
 
 Star at the inverting node: `Rin.b` and `Rf.b` both `:bind` to `U1.inm` via `fromPort`/`toPort`.
 
@@ -224,7 +224,7 @@ Same physical device may appear in both: `CST_U1` for analysis; SysML part usage
 
 ## 10. Retired Layer / Tier A
 
-Layer ASCII, CMP/PIN/NET, and leftover paren arrows are **not** product accept or teach. Math SSOT: [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
+Layer ASCII, CMP/PIN/NET, and leftover paren arrows are **not** product accept or teach. Math SSOT: [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md).
 
 ---
 
@@ -232,10 +232,10 @@ Layer ASCII, CMP/PIN/NET, and leftover paren arrows are **not** product accept o
 
 | Path | Role |
 |------|------|
-| [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** GQL InvAmp teach |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT |
+| [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md) | **Primary** GQL InvAmp teach |
+| [`examples/inverting-amplifier-memnet.md`](../examples/inverting-amplifier-memnet.md) | Math SSOT |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Ohm / KCL GQL patterns |
-| [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
-| [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Goldfish loop |
+| [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | GQL wire SSOT |
+| [`../LLM-GUIDE.md`](../../LLM-GUIDE.md) | Goldfish loop |
 
 **This file is one documented application example.** Use it for GQL schematic subgraphs, s-domain golden-rule scoping, and nodal stamps on MemNet.

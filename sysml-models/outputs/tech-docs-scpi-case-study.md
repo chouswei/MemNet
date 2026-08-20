@@ -3,7 +3,7 @@
 **Shelf:** application example (on SharedLlmMemory)
 
 Evidence walk for **instrument-manual working set** against `sysml-models/models/`.  
-Application patterns: `docs/application-notes/llm-tech-docs-decomposition.md`.  
+Application patterns: `docs/application-notes/domains/llm-tech-docs-decomposition.md`.  
 Companion: [system-design-notes.md](system-design-notes.md), [company-memory-case-study.md](company-memory-case-study.md).
 
 **Wire:** GQL / shaped `pin_map` only (ADR-001). Historical Layer / `@TAG` pipe seeds are quarantine — translate to GQL below.
@@ -162,7 +162,7 @@ Tech-docs SCPI is **not** a new part under `MemNetSystem`. It is SharedLlmMemory
 
 | Path | Role |
 |------|------|
-| `docs/application-notes/llm-tech-docs-decomposition.md` | Application doctrine |
+| `docs/application-notes/domains/llm-tech-docs-decomposition.md` | Application doctrine |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | When chat drifts from the manual graph |
 | [`docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) | Relation grain / Write=display |
 

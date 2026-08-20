@@ -1,10 +1,10 @@
 # LLM MUD
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Multiplayer text MUD backed by MemNet — not part of the engine. Sample world: Lewis Carroll's *Alice's Adventures in Wonderland* (1865, public domain).
 
-**Teach:** openCypher-shaped GQL; room exits / containment as `:exit` / `:contains` / `:located` (relation grain). **`pin_map`** from the player's current `ROM`. Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
+**Teach:** openCypher-shaped GQL; room exits / containment as `:exit` / `:contains` / `:located` (relation grain). **`pin_map`** from the player's current `ROM`. Doctrine: [`gql-wire-profile.md`](../../grammar/gql-wire-profile.md).
 
 **MemNet** holds the **shared world graph** on the server (`memnet serve` / HTTP). Cue the current `ROM` then `pin_map`. Shared graph **requires** serve or streamable-http — not default in-process.
 

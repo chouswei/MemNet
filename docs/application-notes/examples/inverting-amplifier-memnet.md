@@ -99,5 +99,5 @@ MemNet does **not** take this limit or evaluate `law` LaTeX. It stores stamps fo
 | Path | Role |
 |------|------|
 | [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) | **GQL wire teach** (same topology) |
-| [`../llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md) | Node method (GQL) |
-| [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Schematic / s-domain (GQL) |
+| [`../llm-nodal-analysis-formulas.md`](../domains/llm-nodal-analysis-formulas.md) | Node method (GQL) |
+| [`../llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md) | Schematic / s-domain (GQL) |

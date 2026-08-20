@@ -4,7 +4,7 @@
 
 Evidence walk against the on-disk SysML under `sysml-models/models/`.  
 Companion architecture summary: [system-design-notes.md](system-design-notes.md).  
-Operational doctrine (developers): `docs/multi-agent-sessions.md`. Application adoption (`modelbasedPrj-*`): `docs/application-notes/llm-system-dev-multitask.md`. Index: `docs/README.md`.
+Operational doctrine (developers): `docs/operations/multi-agent-sessions.md`. Application adoption (`modelbasedPrj-*`): `docs/application-notes/system/llm-system-dev-multitask.md`. Index: `docs/README.md`.
 
 **Wire:** GQL / shaped `pin_map` only (ADR-001). No Layer ASCII.  
 **Related:** [session-import-case-study.md](session-import-case-study.md) (path B import), [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md), [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) (MN-REQ-12.2 transport), [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md), [company-memory-case-study.md](company-memory-case-study.md).

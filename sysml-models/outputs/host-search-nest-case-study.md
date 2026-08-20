@@ -3,7 +3,7 @@
 **Shelf:** application example (on SharedLlmMemory)
 
 Host corpus lookup MAY propose **locators**; MemNet **MutateGate** commits them. Skip is valid. Not a product MCP tool. Extra **0.17**: `RagHostHook.implemented=true` outside `MemNetSystem` (`memnet.rag_host_hook`).  
-Design: [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md). Product math (above #77): [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master` via [#84](https://github.com/chouswei/MemNet/pull/84)).
+Design: [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host-search-nest.md). Product math (above #77): [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master` via [#84](https://github.com/chouswei/MemNet/pull/84)).
 
 ## Binding
 
@@ -65,7 +65,7 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 
 | Path | Role |
 |------|------|
-| [`docs/grammar/memnet-host-search-nest.md`](../../docs/grammar/memnet-host-search-nest.md) | Design SSOT |
+| [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host-search-nest.md) | Design SSOT |
 | [session-import-case-study.md](session-import-case-study.md) | Product ImportGuard (different nest) |
-| [`docs/application-notes/llm-software-development.md`](../../docs/application-notes/llm-software-development.md) | Cursor index vs locators |
-| [`docs/application-notes/llm-daily-news.md`](../../docs/application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
+| [`docs/application-notes/system/llm-software-development.md`](../../docs/application-notes/system/llm-software-development.md) | Cursor index vs locators |
+| [`docs/application-notes/domains/llm-daily-news.md`](../../docs/application-notes/domains/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |

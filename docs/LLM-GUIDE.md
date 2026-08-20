@@ -183,7 +183,7 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 
 ### Multi-agent / Multitask
 
-**MUST** follow `docs/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http.
+**MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http.
 
 ### Not implemented (design only)
 
@@ -191,7 +191,7 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
 - SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / #66) — 0.19 GQL write-out is not identity merge
-- Host search / RAG as a MemNet MCP tool — extra **0.17** hook is **outside** `MemNetSystem` only (`docs/grammar/memnet-host-search-nest.md`); skip valid; no `rag_query`
+- Host search / RAG as a MemNet MCP tool — extra **0.17** hook is **outside** `MemNetSystem` only (`docs/extras/memnet-host-search-nest.md`); skip valid; no `rag_query`
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 
@@ -202,7 +202,7 @@ memnet mutate --stdin --llm-id coder_a …
 memnet release --rid R1 --llm-id coder_a
 ```
 
-Design: `docs/grammar/memnet-neighbourhood-reserve.md`. After ACL when both are enabled.
+Design: `docs/extras/memnet-neighbourhood-reserve.md`. After ACL when both are enabled.
 
 ### Local IPC (MN-REQ-06.2)
 
@@ -268,18 +268,18 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 
 | # | Note | Summary |
 |---|------|---------|
-| 0 | `llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` repos (mission + SysML two-store) |
-| 1 | `llm-software-development.md` | Multi-turn coding in Cursor |
-| 2 | `llm-daily-news.md` | Batch RSS digest |
-| 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
-| 4 | `llm-sysml-v2-modeling.md` | SysML SSOT; relatives + sub-unit sessions |
-| 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
-| 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
+| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` repos (mission + SysML two-store) |
+| 1 | `system/llm-software-development.md` | Multi-turn coding in Cursor |
+| 2 | `domains/llm-daily-news.md` | Batch RSS digest |
+| 3 | `domains/llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
+| 4 | `system/llm-sysml-v2-modeling.md` | SysML SSOT; relatives + sub-unit sessions |
+| 5 | `domains/llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
+| 5b | `domains/llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
 | 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |
-| 6 | `llm-mud.md` | Multiplayer MUD (shared serve) |
-| 7 | `llm-build-on-memnet.md` | Builder guide for custom MCP |
+| 6 | `domains/llm-mud.md` | Multiplayer MUD (shared serve) |
+| 7 | `system/llm-build-on-memnet.md` | Builder guide for custom MCP |
 
-Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](multi-agent-sessions.md).
+Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](operations/multi-agent-sessions.md).
 
 ---
 

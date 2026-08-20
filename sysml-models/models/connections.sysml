@@ -1023,7 +1023,7 @@ package MemNetConnections {
       id_policy only). MUST NOT Snap-on-session. No rag_query MCP.
       RagHostHook.implemented=true outside MemNetSystem. Product math
       sits above this research: docs/grammar/math-skeleton.md. See
-      grammar/memnet-host-search-nest.md.
+      docs/extras/memnet-host-search-nest.md.
     */
   }
 

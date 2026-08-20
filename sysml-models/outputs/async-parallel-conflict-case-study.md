@@ -4,7 +4,7 @@
 
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [multitask-case-study.md](multitask-case-study.md), [session-import-case-study.md](session-import-case-study.md).  
-Doctrine: `docs/multi-agent-sessions.md`.
+Doctrine: `docs/operations/multi-agent-sessions.md`.
 
 **Wire:** openCypher-shaped GQL + shaped `pin_map` only (ADR-001). No Layer / md_triple.
 

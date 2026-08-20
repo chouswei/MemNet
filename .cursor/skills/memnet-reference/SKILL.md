@@ -57,9 +57,11 @@ MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-
 | Product shape | `docs/SHAPE.md` | developers |
 | One-path / version map | `docs/ROADMAP.md` (SSOT; package 0.19 this cut; 1.0 = 0.5–0.8 claimed) | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
-| Multitask product ops | `docs/multi-agent-sessions.md` | developers |
-| Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |
+| Multitask product ops | `docs/operations/multi-agent-sessions.md` | developers |
+| Multitask system-repo pattern | `docs/application-notes/system/llm-system-dev-multitask.md` | applications |
 | Shared-dialect grammar | `docs/grammar/` (`gql-wire-profile.md`) | developers |
+| Durable cabinet | `docs/cabinet/` | developers |
+| Numbered extras | `docs/extras/` | developers |
 | Core library | `parts/common/memnet/` | -- |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` | -- |
 | SysML product models | `sysml-models/` | -- |

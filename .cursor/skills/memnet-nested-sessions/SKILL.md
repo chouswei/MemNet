@@ -15,7 +15,7 @@ metadata:
 
 # Nested sessions
 
-How to **use** a session stack. Pair with [memnet-use](../memnet-use/SKILL.md). Doctrine: `docs/grammar/memnet-session-strata.md`. SysML loop: `docs/application-notes/llm-sysml-v2-modeling.md`. Evidence: `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` (Turns A–I).
+How to **use** a session stack. Pair with [memnet-use](../memnet-use/SKILL.md). Doctrine: `docs/extras/memnet-session-strata.md`. SysML loop: `docs/application-notes/system/llm-sysml-v2-modeling.md`. Evidence: `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` (Turns A–I).
 
 Chat is never SSOT. Goldfish is **one** \(S\) per generate. Do not revive Layer / `layer=`.
 

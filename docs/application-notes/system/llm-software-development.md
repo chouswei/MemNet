@@ -1,14 +1,14 @@
 # LLM software development
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** Multi-turn coding in Cursor — task scope, verified symbol locators, user constraints, and open decisions in MemNet so the agent can **`pin_map`** a small slice each turn without stuffing paths into chat.
 
-**Teach:** openCypher-shaped GQL; chart links as relationship types (`:defines`, `:implements`, …) on bare node ids. Law leaves (when needed) use `:CST` + `ports` + `law` — see [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Electrical ports/bind: [`llm-circuit-schematic.md`](llm-circuit-schematic.md).
+**Teach:** openCypher-shaped GQL; chart links as relationship types (`:defines`, `:implements`, …) on bare node ids. Law leaves (when needed) use `:CST` + `ports` + `law` — see [`gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Electrical ports/bind: [`llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md).
 
 **Primary worked example (retrospective):** shipping **`session_load`** / **`session_save`** on `memnet-mcp` (release v0.2.12, commit `7440aee`).
 
-Complements: [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/) / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) when **SysML is SSOT** — same two token laws (relatives of one cue; nested sub-unit in a **separate session**).
+Complements: [`.cursor/skills/mcp-memnet/`](../../../.cursor/skills/mcp-memnet/) / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) when **SysML is SSOT** — same two token laws (relatives of one cue; nested sub-unit in a **separate session**).
 
 British English. ASCII.
 
@@ -25,7 +25,7 @@ Multi-file coding tasks span many Cursor turns. Chat scrolls away; the agent re-
 | git | Source-of-truth for code history |
 | MemNet | **Cross-turn task state + agent-verified atoms** |
 
-Cursor index (or any host RAG) MAY propose **locators**; MutateGate commits them; chunks do not land in MemNet. Design: [`../grammar/memnet-host-search-nest.md`](../grammar/memnet-host-search-nest.md). **MUST NOT** expect `rag_query` on `memnet-mcp`.
+Cursor index (or any host RAG) MAY propose **locators**; MutateGate commits them; chunks do not land in MemNet. Design: [`memnet-host-search-nest.md`](../../extras/memnet-host-search-nest.md). **MUST NOT** expect `rag_query` on `memnet-mcp`.
 
 MemNet remembers which `TSK` is active, which `MOD` files were touched, which `SYM` locators were confirmed, which `DEC` is still open, and what the user said (`USR`).
 
@@ -139,7 +139,7 @@ update(wire_lines=[
 
 ## 7. Retired dialects (pointer only)
 
-Layer ASCII and `@TAG` pipe are **not** agent teach. Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md) Appendix A.
+Layer ASCII and `@TAG` pipe are **not** agent teach. Playbook: [`../LLM-GUIDE.md`](../../LLM-GUIDE.md) Appendix A.
 
 ---
 
@@ -147,4 +147,4 @@ Layer ASCII and `@TAG` pipe are **not** agent teach. Playbook: [`../LLM-GUIDE.md
 
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — Multitask + shared session
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML SSOT (same two token laws)
-- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT
+- [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) — GQL wire SSOT

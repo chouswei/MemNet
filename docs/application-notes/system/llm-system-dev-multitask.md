@@ -1,19 +1,19 @@
 # System development with Multitask — A MemNet application note
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../../SHAPE.md). Shared contract: [`README.md`](../README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
-**Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
-**Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../README.md).
+**Operational doctrine (developers):** [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md).  
+**Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../../README.md).
 
 **Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
 
-**Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md)).
+**Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)).
 
 This note complements:
 
-- [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.8; RSV + Path-B ingest shipped)
-- [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
+- [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.8; RSV + Path-B ingest shipped)
+- [`sysml-models/outputs/multitask-case-study.md`](../../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML loop (in-process OK); parallel interiors need TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — single-agent coding memory
 
@@ -127,7 +127,7 @@ The MemNet **product** models Multitask in `MemNetRequirements::MN_REQ_12_*` and
 
 | Approach | Use |
 |----------|-----|
-| **Doc pointer** | Link `docs/multi-agent-sessions.md` + this note in `AGENTS.md` / project rules |
+| **Doc pointer** | Link `docs/operations/multi-agent-sessions.md` + this note in `AGENTS.md` / project rules |
 | **Thin local mirror** | e.g. `SYS_REQ_MT_*` leaves in *product* `requirements.sysml` that restate operational SHALLs — **not** a git submodule of MemNet SysML |
 | **Verify (optional)** | Product-specific verify cases that `verify` local reqs and reference MemNet case study — do not duplicate the full MemNet verify package |
 
@@ -201,9 +201,9 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 
 | Topic | Path |
 |-------|------|
-| Enforceable Multitask doctrine | [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) |
-| MemNet product MN-REQ-12 model | [`sysml-models/models/requirements.sysml`](../../sysml-models/models/requirements.sysml) |
-| Verify package | [`sysml-models/models/verify.sysml`](../../sysml-models/models/verify.sysml) (MN-VER-12-G00, S01…S09) |
-| Case study | [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) |
-| ACL / reserve (RSV shipped; full ACL modes design) | [`docs/grammar/memnet-security-multi-agent.md`](../grammar/memnet-security-multi-agent.md), [`memnet-neighbourhood-reserve.md`](../grammar/memnet-neighbourhood-reserve.md) |
+| Enforceable Multitask doctrine | [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md) |
+| MemNet product MN-REQ-12 model | [`sysml-models/models/requirements.sysml`](../../../sysml-models/models/requirements.sysml) |
+| Verify package | [`sysml-models/models/verify.sysml`](../../../sysml-models/models/verify.sysml) (MN-VER-12-G00, S01…S09) |
+| Case study | [`sysml-models/outputs/multitask-case-study.md`](../../../sysml-models/outputs/multitask-case-study.md) |
+| ACL / reserve (RSV shipped; full ACL modes design) | [`docs/extras/memnet-security-multi-agent.md`](../../extras/memnet-security-multi-agent.md), [`memnet-neighbourhood-reserve.md`](../../extras/memnet-neighbourhood-reserve.md) |
 | SysML modeling (single-agent) | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) |

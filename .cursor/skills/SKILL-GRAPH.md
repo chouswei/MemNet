@@ -26,7 +26,7 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 | SysML cache defer | `sysml-memnet-cache` |
 | SysML snap / read policy | `sysml-memnet-documentation` |
 | SysML × GQL bridge | `sysml-gql` |
-| SysML token laws / Snap stack | `docs/application-notes/llm-sysml-v2-modeling.md` |
+| SysML token laws / Snap stack | `docs/application-notes/system/llm-sysml-v2-modeling.md` |
 | Develop MemNet engine / MCP / grammar | `memnet-reference` |
 
 ## MemNet stack (edges)
@@ -42,4 +42,4 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 (:SKL {id: 'sysml-modeling-workflow'})-[:DEFAULT_STACK {note: 'memnet'}]->(:SKL {id: 'sysml-memnet-documentation'})
 ```
 
-Load `memnet-use` when the job is **using** MemNet. Load `memnet-nested-sessions` when a nest is cut across sessions. Load `memnet-reference` only when **building** this product. Load `memnet-multitask` when Multitask Mode or Task sub-agents run. Ops: `docs/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.
+Load `memnet-use` when the job is **using** MemNet. Load `memnet-nested-sessions` when a nest is cut across sessions. Load `memnet-reference` only when **building** this product. Load `memnet-multitask` when Multitask Mode or Task sub-agents run. Ops: `docs/operations/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.

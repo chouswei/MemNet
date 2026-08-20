@@ -17,7 +17,7 @@ Three common substitutes fail the mission:
 | **Dump the whole session \(S\)** | Burns the token budget MN-REQ-00 exists to save. The model still has to pick what matters. |
 | **Search the corpus (RAG / GraphRAG)** | That haystack is **documents**, not **this mission’s working facts**. Retrieval may help the host; it does not replace a session. |
 
-The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**. When structural SSOT is SysML (and the code or docs it specifies), that saving is **relatives of one cue** plus **sub-units in separate sessions** — not a dump of the load tree. Application: [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md).
+The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**. When structural SSOT is SysML (and the code or docs it specifies), that saving is **relatives of one cue** plus **sub-units in separate sessions** — not a dump of the load tree. Application: [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md).
 
 So MemNet must sit **between** LLM call pipelines and data search — not as the notepad, and not as the library.
 
@@ -37,7 +37,7 @@ From that problem, the product **must** be this shape:
    - **Session Shape** — compress \(S\) for the next LLM call (`max_rows` \(M\), hop \(k\)).
    - **Host Snap** — optional corpus → **locators** only. MUST NOT Snap-on-session (no ANN / `rag_query` of \(S\)).
 
-5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** proved live AgensGraph hydrate/flush; the server is not vendored. An optional Neo4j client sits on the **same** seam: LLM ↔ MemNet (GQL), MemNet ↔ Neo4j (Bolt hydrate/flush, one owner). Extra **0.14** claims live Neo4j (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Extra **0.16** allows a second Neo4j **database name** on that process (library namespace, locators only; skip if unset). Fake-alone is not a durable claim. Talk: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md).
+5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** proved live AgensGraph hydrate/flush; the server is not vendored. An optional Neo4j client sits on the **same** seam: LLM ↔ MemNet (GQL), MemNet ↔ Neo4j (Bolt hydrate/flush, one owner). Extra **0.14** claims live Neo4j (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Extra **0.16** allows a second Neo4j **database name** on that process (library namespace, locators only; skip if unset). Fake-alone is not a durable claim. Talk: [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md), [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md).
 
 6. **This repo** — engine + generic `memnet-mcp` only. Novel-writer stays dropped. Transport: in-process first (single agent); **Multitask** uses TCP serve or streamable-http so workers share one \(S\).
 
@@ -84,8 +84,8 @@ The shape **applies** to SysML work; it is not a SysML clone.
 
 | Kind | Path | Role |
 |------|------|------|
-| **Application note** | [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | Use MemNet as session memory while modelling **someone else's** SysML v2 tree (atoms + locators; `.sysml` stays structural SSOT) |
-| **Application note (Multitask)** | [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*`: shared session goldfish vs product `sysml-models/` |
+| **Application note** | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | Use MemNet as session memory while modelling **someone else's** SysML v2 tree (atoms + locators; `.sysml` stays structural SSOT) |
+| **Application note (Multitask)** | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*`: shared session goldfish vs product `sysml-models/` |
 | **Product model** | [`../sysml-models/`](../sysml-models/) | MemNet **itself** (MN-REQ-00…13). Not an application note |
 
 Do **not** import `MemNetRequirements` into a downstream load tree. User pack: `sysml-memnet-documentation` / `sysml-memnet-cache`.

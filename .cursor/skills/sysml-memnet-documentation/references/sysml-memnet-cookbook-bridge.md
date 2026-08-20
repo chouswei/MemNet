@@ -4,7 +4,7 @@ Links user-pack MemNet skills to the upstream SysML v2 modeling cookbook. **Do n
 
 ## Upstream source
 
-**Path (this repo):** [`docs/application-notes/llm-sysml-v2-modeling.md`](../../../../docs/application-notes/llm-sysml-v2-modeling.md)  
+**Path (this repo):** [`docs/application-notes/system/llm-sysml-v2-modeling.md`](../../../../docs/application-notes/system/llm-sysml-v2-modeling.md)  
 **Evidence:** [`sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md)
 
 **Package:** Hatch **0.19.0** (PyPI **`memnet-llm==0.19.0`**). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).

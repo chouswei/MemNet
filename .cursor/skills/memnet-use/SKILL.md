@@ -36,7 +36,7 @@ metadata:
 | Multitask / shared session | [memnet-multitask](../memnet-multitask/SKILL.md) |
 | Code `MOD`/`SYM` | [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md) |
 | Nested sessions / look loop | [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) |
-| SysML relatives + nest cuts | `docs/application-notes/llm-sysml-v2-modeling.md` and `sysml-*` |
+| SysML relatives + nest cuts | `docs/application-notes/system/llm-sysml-v2-modeling.md` and `sysml-*` |
 
 ## MUST NOT
 

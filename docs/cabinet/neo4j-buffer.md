@@ -69,7 +69,7 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 ## Key features on both sides
 
-Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapComposer`, `MutateGate`, `DurableSyncOwner` / `SessionLifecycle` ports, `Neo4jAdapter`. Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Math: [`math-skeleton.md`](math-skeleton.md).
+Mechanisms **as shipped**, not a Neo4j product catalogue. Engine: `PinMapComposer`, `MutateGate`, `DurableSyncOwner` / `SessionLifecycle` ports, `Neo4jAdapter`. Wire: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Math: [`math-skeleton.md`](../grammar/math-skeleton.md).
 
 ### MemNet (near side — working memory)
 
@@ -156,7 +156,7 @@ ACL grain table (CapsPolicy): [`../../sysml-models/outputs/system-design-notes.m
 
 ## RAG relatives (three haystacks)
 
-Retrieve, generate, and remember all “put less text in the prompt”. Only **remember** (session goldfish) is MemNet. Neo4j on this seam is **durable \(S\)**, not a retriever and not a generator. Host RAG (if any) sits **beside** both — locators in, never chunk bodies on `pin_map`. Steal/reject of the actual retrieve functions lives in [`memnet-host-search-nest.md`](memnet-host-search-nest.md) (research [#77](https://github.com/chouswei/MemNet/issues/77)). This section only places relatives **on the MemNet ↔ Neo4j cut**.
+Retrieve, generate, and remember all “put less text in the prompt”. Only **remember** (session goldfish) is MemNet. Neo4j on this seam is **durable \(S\)**, not a retriever and not a generator. Host RAG (if any) sits **beside** both — locators in, never chunk bodies on `pin_map`. Steal/reject of the actual retrieve functions lives in [`memnet-host-search-nest.md`](../extras/memnet-host-search-nest.md) (research [#77](https://github.com/chouswei/MemNet/issues/77)). This section only places relatives **on the MemNet ↔ Neo4j cut**.
 
 ```text
   corpus / library  --(host Snap)--> locators --MutateGate-->  MemNet session S
@@ -264,7 +264,7 @@ pytest -m neo4j_live
 | Path | Role |
 |------|------|
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | First cabinet client; 0.7 live claim |
-| [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire SSOT (not Bolt) |
-| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
+| [`gql-wire-profile.md`](../grammar/gql-wire-profile.md) | Agent wire SSOT (not Bolt) |
+| [`memnet-host-search-nest.md`](../extras/memnet-host-search-nest.md) | Steal/reject of retrieve functions |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
-| [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |
+| [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md) | Session SSOT; handoff by session id |

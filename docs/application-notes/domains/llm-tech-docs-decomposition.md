@@ -1,10 +1,10 @@
 # LLM technical docs decomposition
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** Atomise long instrument manuals (PDFs, SCPI references) into a MemNet graph so an agent can **`pin_map`** one remote-mode subsection and drive the instrument — without storing manual prose in row fields.
 
-**Teach:** openCypher-shaped GQL; procedure links as **`:precedes`** / **`:requires`**. Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
+**Teach:** openCypher-shaped GQL; procedure links as **`:precedes`** / **`:requires`**. Doctrine: [`gql-wire-profile.md`](../../grammar/gql-wire-profile.md).
 
 **Primary worked example:** [R&S RTO User Manual en rev 29](https://scdn.rohde-schwarz.com/ur/pws/dl_downloads/pdm/cl_manuals/user_manual/1332_9725_01/RTO_UserManual_en_29.pdf) — remote mode (SCPI over LAN).
 
@@ -120,9 +120,9 @@ leftover `pin_map(anchor=…)` / leftover `add`/`update` names are leftover, not
 
 ## 7. Related
 
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — design memory (not manual ingest)
-- [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md)
+- [`llm-sysml-v2-modeling.md`](../system/llm-sysml-v2-modeling.md) — design memory (not manual ingest)
+- [`../LLM-GUIDE.md`](../../LLM-GUIDE.md)
+- [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)
 
 ---
 

@@ -4,7 +4,7 @@
 **Primary concurrency fix** for multi-agent same-session confusion **inside an already-authorised session**.  
 **Related:** leftover re-id / merge is engine honesty, not agent teach; optimistic `rev` is secondary only.  
 **Security + session ACL:** [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) — first-class session access (`private` / `shared` / `open`, roles, `session_token`); this reserve design is the coop layer **after** that gate.  
-**Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](gql-wire-profile.md)). Do **not** invent `@RSV:` pipe forms or revive Layer.
+**Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)). Do **not** invent `@RSV:` pipe forms or revive Layer.
 
 ## Problem
 

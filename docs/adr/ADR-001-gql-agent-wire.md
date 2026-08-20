@@ -8,7 +8,7 @@
 
 **Context**
 
-MemNet (Net of Memory) is **mission working memory for LLMs** — not the search corpus, not GraphRAG: multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A MemNet **session** can be SSOT for a mission / that shared memory — LLM handoff = **session id** (+ anchors / write scope); peers re-`pin_map`; chat is never SSOT ([`../multi-agent-sessions.md`](../multi-agent-sessions.md)). A durable online GQL store may sit **behind** sessions; it does not replace MemNet or the session handle for handoff, and is not the default agent teach surface. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / Tier A alias), with ISO GQL / openCypher held to a map and to the durable-store side (AgensGraph buffer sketch).
+MemNet (Net of Memory) is **mission working memory for LLMs** — not the search corpus, not GraphRAG: multi-agent / Multitask sessions, goldfish re-read via shaped `pin_map`, gated mutate. A MemNet **session** can be SSOT for a mission / that shared memory — LLM handoff = **session id** (+ anchors / write scope); peers re-`pin_map`; chat is never SSOT ([`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md)). A durable online GQL store may sit **behind** sessions; it does not replace MemNet or the session handle for handoff, and is not the default agent teach surface. Through 0.4.x the agent teach/wire surface was a bespoke shared dialect (**Layer** / Tier A alias), with ISO GQL / openCypher held to a map and to the durable-store side (AgensGraph buffer sketch).
 
 Three pressures reversed the prior “map only; MUST NOT teach GQL as wire” stance:
 
@@ -66,7 +66,7 @@ User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (done)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs. |
 | **M2 (done)** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
-| **M2.5 (done, 0.7)** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../grammar/agensgraph-buffer.md). Live hydrate/flush proven (external cabinet; not vendored). **MUST NOT** reframe MemNet as a Cypher proxy. |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md). Live hydrate/flush proven (external cabinet; not vendored). **MUST NOT** reframe MemNet as a Cypher proxy. |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite remains **in flight separately** (`chouswei/cursor-user-skills`). |
 
 **Order (historical):** M1 → M2 → **M2.5** → M3. All done. **MUST NOT** treat the adapter as deferred, or hold **1.0** for Later items.
@@ -76,7 +76,7 @@ User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did
 **References**
 
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
-- [`../grammar/agensgraph-buffer.md`](../grammar/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
+- [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
 - [`../ROADMAP.md`](../ROADMAP.md) — one-path plan; phase order M2 → M2.5 → M3
 - [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
 - [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline

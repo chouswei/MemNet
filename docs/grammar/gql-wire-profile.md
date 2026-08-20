@@ -8,7 +8,7 @@
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
 **British English.** ASCII ids.
 
-**Pointer chain:** product shape [`../SHAPE.md`](../SHAPE.md) → ADR-001 → **this file** → AgensGraph / durable store [`agensgraph-buffer.md`](agensgraph-buffer.md) (**M2.5**, live path **0.7**).
+**Pointer chain:** product shape [`../SHAPE.md`](../SHAPE.md) → ADR-001 → **this file** → AgensGraph / durable store [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) (**M2.5**, live path **0.7**).
 
 ---
 
@@ -77,7 +77,7 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 | cue / `find` | Recall seed: label + properties (bounded MATCH) | Primary goldfish entry; not `--anchor` as law |
 | `anchor` | leftover nickname `id` when one exists | leftover alias for product `cue`; omit when no nickname; leftover engine may still accept it |
 | `depth` | Hop budget from the seed | Typical `2` |
-| `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first **on a seed**. Not session outline (0.11). Not a second session ([`memnet-session-strata.md`](memnet-session-strata.md)) |
+| `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first **on a seed**. Not session outline (0.11). Not a second session ([`memnet-session-strata.md`](../extras/memnet-session-strata.md)) |
 | `max_rows` | Hard row / element cap | Engine default (e.g. 50) |
 
 Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents **MUST NOT** be taught unbounded `MATCH … RETURN` as the primary goldfish read.
@@ -266,7 +266,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 |-------|------|-------------------------|
 | **M1 (done)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5 (done, 0.7 / 0.14)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j live claimed 0.14) — [`agensgraph-buffer.md`](agensgraph-buffer.md), [`neo4j-buffer.md`](neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
+| **M2.5 (done, 0.7 / 0.14)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j live claimed 0.14) — [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md), [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 
@@ -285,8 +285,8 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
-| [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
+| [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
+| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
-| [`memnet-session-strata.md`](memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
+| [`memnet-session-strata.md`](../extras/memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |

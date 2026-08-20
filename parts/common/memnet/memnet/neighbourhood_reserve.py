@@ -1,7 +1,7 @@
 """Neighbourhood reserve (RSV) — ego leases with llm_id + TTL (MN-REQ-12.13).
 
 Control-plane leases inside an authorised session. Not durable graph rows.
-Design SSOT: docs/grammar/memnet-neighbourhood-reserve.md.
+Design SSOT: docs/extras/memnet-neighbourhood-reserve.md.
 """
 
 from __future__ import annotations
