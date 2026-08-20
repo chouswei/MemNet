@@ -21,9 +21,19 @@ REFERENCE_FIELDS: dict[str, str] = {
 }
 
 ADD_SAMPLES: dict[str, str] = {
-    "BIZ": "CREATE (:BIZ {name: 'Unfound', type: 'none', location: 'none', profit: '0', cashflow: '0', employees: '0', recycle: 'persistent'})",
-    "NPC": "CREATE (:NPC {name: 'Shen Tiexin', traits: 'female(12)', corruption: '0', craft: 'traditional', funding_gap: '80', status: 'active', recycle: 'persistent'})",
-    "PLR": "CREATE (:PLR {identity: 'Vagrant beggar', wealth: '3', cashflow: '-5', monopoly: '0', reputation: '0', inventory: 'wheat cake'})",
+    "BIZ": (
+        "CREATE (:BIZ {name: 'Unfound', type: 'none', location: 'none', "
+        "profit: '0', cashflow: '0', employees: '0', recycle: 'persistent'})"
+    ),
+    "NPC": (
+        "CREATE (:NPC {name: 'Shen Tiexin', traits: 'female(12)', "
+        "corruption: '0', craft: 'traditional', funding_gap: '80', "
+        "status: 'active', recycle: 'persistent'})"
+    ),
+    "PLR": (
+        "CREATE (:PLR {identity: 'Vagrant beggar', wealth: '3', "
+        "cashflow: '-5', monopoly: '0', reputation: '0', inventory: 'wheat cake'})"
+    ),
     "EDG": (
         "MATCH (a:NPC {name: 'Shen Tiexin'}), (b:PLR {identity: 'Vagrant beggar'})\n"
         "CREATE (a)-[:seeks_help {note: 'unlock', recycle: 'delete_on_expire'}]->(b)"
@@ -50,7 +60,8 @@ def guide_text(*, loose: bool = False) -> str:
             "Transport: MCP in-process first; serve --ipc (MEMNET_IPC_SOCKET); TCP fallback.",
             "leftover @TAG pipe still accepted as import-once; Layer/Tier A retired from accept.",
             "MCP LawSeedHelper: GQL LAW01–LAW05 by default (pipe only to match pipe seed_lines).",
-            "Create by labels+properties; MATCH/SET the same pattern. leftover id nickname is leftover.",
+            "Create by labels+properties; MATCH/SET the same pattern. "
+            "leftover id nickname is leftover.",
             "Forward docs: docs/grammar/gql-wire-profile.md; ADR-001.",
         ]
         return "\n".join(f"- {b}" for b in bullets)
@@ -104,8 +115,10 @@ def agent_guide_text() -> str:
 
 def examples_map_text() -> str:
     lines = [
-        "# Session maps for session_open --map-file (SCHEMA preferred; leftover @TAG pipe accepted).",
-        "# Not agent mutate — GQL seeds live in workflow.*.example.txt; wire SSOT is gql-wire-profile.md.",
+        "# Session maps for session_open --map-file "
+        "(SCHEMA preferred; leftover @TAG pipe accepted).",
+        "# Not agent mutate — GQL seeds in workflow.*.example.txt; "
+        "wire SSOT is gql-wire-profile.md.",
         "# Fixed tags (always present):",
     ]
     for tag, td in FIXED_TAGS.items():
