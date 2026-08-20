@@ -6,7 +6,7 @@ Cursor (stdio) → memnet-mcp
                  └─ TCP → memnet serve (MEMNET_MCP_TRANSPORT=tcp)
 ```
 
-- Product **0.19.2**. Cue then `pin_map`. Write **`mutate`**. leftover `add`/`update` / `query_warm` / `anchor=` named leftover.
+- Product **0.19.3**. Cue then `pin_map`. Write **`mutate`**. leftover `add`/`update` / `query_warm` / `anchor=` named leftover.
 - Multitask **MUST NOT** use in-process MCP for a shared session.
 - Live Agens claimed (0.7); Neo4j live claimed (0.14); RSV + Path-B ingest + `snap_model` + `export_pin_map` shipped.
 - Novel-writer MCP is dropped.
@@ -25,7 +25,7 @@ Do **not** set serve host/port unless `MEMNET_MCP_TRANSPORT=tcp`. This repo vend
 
 ## Tools (product)
 
-`serve_status`, `session_open` / `list` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy `session_acl_*` opt-in.
+`serve_status`, `session_open` / `list` / `close` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy `session_acl_*` opt-in.
 
 leftover: `add`, `update`, `query_warm`, `query_walk`. No `read_get`.
 
@@ -39,7 +39,7 @@ Args: [tool-parameters.md](tool-parameters.md). Wire: [wire-format.md](wire-form
 | `serve_required` | Start `memnet serve` or stay in-process |
 | `session_not_found` | `session_open` / `session_load` |
 | `no_map` | Pass `map_file` / `map_lines` |
-| CueConflict | Do not pick one root; SameThingAbsorb is a later Commit |
+| `limit_exceeded` | `session_list` for `sessions|n/max`; `session_close` unused strata |
 
 ## MUST NOT
 

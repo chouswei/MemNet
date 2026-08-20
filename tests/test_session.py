@@ -8,8 +8,9 @@ import pytest
 from typer.testing import CliRunner
 
 from memnet.cli import app
+from memnet.exceptions import MemNetError
 from memnet.registry import contains
-from memnet.session import get_session, open_session, set_now_override
+from memnet.session import count_sessions, get_session, open_session, set_now_override
 
 runner = CliRunner()
 
@@ -52,3 +53,51 @@ def test_close_removes_session(memnet_temp, schema_file):
     r = runner.invoke(app, ["session", "close", ss.session_id])
     assert r.exit_code == 0
     assert not contains(ss.session_id)
+
+
+def test_default_max_sessions_is_1024(memnet_temp, monkeypatch):
+    monkeypatch.delenv("MEMNET_MAX_SESSIONS", raising=False)
+    from memnet.config import Caps
+
+    assert Caps().max_sessions == 1024
+
+
+def test_max_sessions_override(memnet_temp, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "2")
+    from memnet.config import Caps
+
+    assert Caps().max_sessions == 2
+    open_session(map_file=str(schema_file), caps=Caps())
+    open_session(map_file=str(schema_file), caps=Caps())
+    with pytest.raises(MemNetError) as exc:
+        open_session(map_file=str(schema_file), caps=Caps())
+    assert exc.value.code == "limit_exceeded"
+    assert exc.value.message == "sessions|3/2"
+    assert count_sessions() == 2
+
+
+def test_session_list_emits_counter_header(memnet_temp, schema_file):
+    from memnet.config import Caps
+
+    ss = open_session(map_file=str(schema_file))
+    listed = runner.invoke(app, ["session", "list"])
+    assert listed.exit_code == 0
+    lines = [ln for ln in listed.stdout.splitlines() if ln.strip()]
+    assert lines[0] == f"@STAT: sessions|1/{Caps().max_sessions}"
+    assert ss.session_id in listed.stdout
+
+
+def test_cli_close_decrements_so_open_can_mint(memnet_temp, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "1")
+    from memnet.config import Caps
+
+    first = open_session(map_file=str(schema_file), caps=Caps())
+    with pytest.raises(MemNetError) as exc:
+        open_session(map_file=str(schema_file), caps=Caps())
+    assert exc.value.message == "sessions|2/1"
+    closed = runner.invoke(app, ["session", "close", first.session_id])
+    assert closed.exit_code == 0
+    assert count_sessions() == 0
+    second = open_session(map_file=str(schema_file), caps=Caps())
+    assert second.session_id != first.session_id
+    assert count_sessions() == 1

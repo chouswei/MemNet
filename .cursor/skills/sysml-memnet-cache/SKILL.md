@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   domain: sysml-v2,memnet
   version: "1.5"
-  product: memnet-llm==0.19.2
+  product: memnet-llm==0.19.3
   pairs_with: [sysml-memnet-documentation, mcp-memnet, sysml-modeling-workflow, sysml-modeling-session-checklist, memnet-format, sysml-gql]
 token_guardrails: |
   - .sysml is structure; MemNet is relatives; AGENT-CONTEXT is session stub.

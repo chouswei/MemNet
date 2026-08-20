@@ -109,7 +109,7 @@ package MemNet {
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
     attribute maxRelations : Integer = 200;
-    attribute maxSessions : Integer = 64;
+    attribute maxSessions : Integer = 1024;
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;
@@ -1269,7 +1269,8 @@ package MemNet {
   part def CmdSessionList {
     doc /*
       TARGET: CLI session list / MCP session_list. Lists catalog session=
-      pins (MN-REQ-11.17). Session handle is not a graph store key.
+      pins (MN-REQ-11.17). Emits header sessions|n/max then ids.
+      Session handle is not a graph store key.
       SHALL NOT ANN-rank sessions. Look remains pin_map of a listed id.
     */
     port locatorIn : CatalogSessionLocatorInPort;
@@ -1280,6 +1281,20 @@ package MemNet {
     attribute productCommand : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
+  part def CmdSessionClose {
+    doc /*
+      TARGET: CLI session close / MCP session_close. SessionLifecycle.close
+      of that id. SHALL NOT dump S. Not a third operator (Recall + Commit).
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute dumpsS : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1444,7 +1459,7 @@ package MemNet {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
-      open/current/save/load, session list, find, pin_map, mutate/Commit,
+      open/current/save/load, session list, session close, find, pin_map, mutate/Commit,
       Path-B ingest, pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
@@ -1467,6 +1482,7 @@ package MemNet {
     part sessionSave : CmdSessionSave;
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
+    part sessionClose : CmdSessionClose;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1534,7 +1550,7 @@ package MemNet {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
       (MN-REQ-07.1 / 07.5): session_open / current / save / load,
-      session_list, find, pin_map, mutate/Commit, Path-B ingest,
+      session_list, session_close, find, pin_map, mutate/Commit, Path-B ingest,
       pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
@@ -1555,6 +1571,7 @@ package MemNet {
     part sessionSave : CmdSessionSave;
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
+    part sessionClose : CmdSessionClose;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;

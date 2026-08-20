@@ -91,7 +91,7 @@ CousinPointingContrast                         // APPLICATION contrast — MUST 
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
 - **DurableBuffer:** AgensGraphAdapter **client** + 0.7 live hydrate/flush; Neo4jAdapter **client** (`liveNeo4jClaimed=true`, 0.14); cabinets external / not vendored
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
-- **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). **CatalogSnap** 0.15: `memnet snap model` / MCP `snap_model` + `session_list`. **PinMapExport** 0.19: cue `pin_map` GQL write-out (`memnet export pin-map`). Re-ingest / `.sysml` reverse (#66) not claimed.
+- **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). **CatalogSnap** 0.15: `memnet snap model` / MCP `snap_model` + `session_list` (`sessions|n/max`) + `session_close`. **PinMapExport** 0.19: cue `pin_map` GQL write-out (`memnet export pin-map`). Re-ingest / `.sysml` reverse (#66) not claimed.
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default

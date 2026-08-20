@@ -7,6 +7,8 @@ import json
 
 import pytest
 
+from memnet.config import Caps
+from memnet.session import count_sessions, open_session
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.seed import supplement_seed_lines
 
@@ -176,6 +178,7 @@ def test_mcp_tool_names(monkeypatch):
     assert "query_warm" in tool_names
     assert "snap_model" in tool_names
     assert "session_list" in tool_names
+    assert "session_close" in tool_names
     assert "session_current" in tool_names
     assert "read_get" not in tool_names
     assert "rag_query" not in tool_names
@@ -320,3 +323,30 @@ def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
     assert warm_payload["exit_code"] == 0
     assert "CFG01" in warm_payload["stdout"]
     assert "LAW01" in warm_payload["stdout"]
+
+
+def test_mcp_session_list_header_and_close_decrements(memnet_temp, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "1")
+    from memnet_mcp.server import session_close, session_list, session_open
+
+    assert Caps().max_sessions == 1
+    first = open_session(map_file=str(schema_file), caps=Caps())
+    listed = json.loads(asyncio.run(session_list()))
+    assert listed["exit_code"] == 0
+    assert listed["stdout"].splitlines()[0] == "@STAT: sessions|1/1"
+    assert first.session_id in listed["stdout"]
+
+    closed = json.loads(asyncio.run(session_close(session=first.session_id)))
+    assert closed["exit_code"] == 0
+    assert "closed" in closed["stdout"]
+    assert count_sessions() == 0
+
+    open_raw = asyncio.run(
+        session_open(map_lines=schema_file.read_text(encoding="utf-8").strip().splitlines())
+    )
+    payload = json.loads(open_raw)
+    assert payload["exit_code"] == 0, payload
+    assert payload["session_id"]
+    assert payload["session_id"] != first.session_id
+    assert count_sessions() == 1

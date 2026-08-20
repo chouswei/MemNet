@@ -630,7 +630,8 @@ package MemNetRequirements {
       requirement def MN_REQ_07_1_GenericToolSurface {
         doc /*
           SHALL expose a TARGET generic MCP/CLI tool surface (same two
-          operators: Recall + Commit): session_open / current / save / load
+          operators: Recall + Commit): session_open / current / save / load /
+          list / close
           (session handle is not a graph store key); find (bounded MATCH by
           kind / labels / properties / keyword, hard LIMIT — the cue when
           no nickname exists); pin_map as a shaped neighbourhood walk from

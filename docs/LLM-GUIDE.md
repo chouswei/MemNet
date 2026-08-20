@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.2.** **1.0** = 0.5–0.8 claimed (unclaimed). Last PyPI **`memnet-llm==0.19.0`** until 0.19.2 upload.
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.3.** **1.0** = 0.5–0.8 claimed (unclaimed). Last PyPI **`memnet-llm==0.19.0`** until 0.19.3 upload.
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire.
@@ -66,7 +66,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 | Mode | When | Setup |
 |------|------|-------|
-| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. `pip install 'memnet-llm[mcp]'` (Hatch **0.19.2**; last PyPI **0.19.0** until upload). **No** `memnet serve` |
+| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. `pip install 'memnet-llm[mcp]'` (Hatch **0.19.3**; last PyPI **0.19.0** until upload). **No** `memnet serve` |
 | **CLI + serve** | Scripts, TCP shared process | Terminal 1: `memnet serve`; Terminal 2: CLI with `MEMNET_SESSION` |
 | **MCP streamable-http** | Remote shared graph | `memnet-mcp --transport streamable-http` on `:18766/mcp` |
 
@@ -103,6 +103,8 @@ Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the pr
 | Tool | Role |
 |------|------|
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
+| `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN) |
+| `session_close` | Close that id (does not dump \(S\)) |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = leftover alias) |
 | `mutate` | **Product Commit** — gated GQL CREATE / MERGE / SET / DELETE |
@@ -162,6 +164,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 - One big job → one session id.
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
+- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors that **stay live**; close unused strata rather than filling the serve registry.
 - Milestones: `session_save` / `session_load` (MCP or CLI).
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).

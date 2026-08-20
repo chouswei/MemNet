@@ -1,6 +1,6 @@
 # MemNet MCP — tool parameters
 
-Product **`memnet-llm` 0.19.2**. Hatch **0.19.2**; last published PyPI wheel is **0.19.0** until upload. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
+Product **`memnet-llm` 0.19.3**. Hatch **0.19.3**; last published PyPI wheel is **0.19.0** until upload. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
 
 Optional extra HTTP `memnet-pi` is a human-machine path — not this cloud VM.
 
@@ -21,7 +21,8 @@ Path-B: `ingest_*` into the current session. Catalog Snap: `snap_model`. Join a 
 |------|----------|----------|-------|
 | `serve_status` | — | — | `{running, host, port}` |
 | `session_open` | `map_lines` **or** `map_file` | `ttl`, `seed_lines`, `allow_new_relation` | SysML map: `schema.sysml.example.txt` |
-| `session_list` | — | — | Live ids |
+| `session_list` | — | — | `@STAT: sessions|n/max` then live ids (named strata; not ANN; default max **1024**) |
+| `session_close` | `session` | — | Close that id; does not dump \(S\) |
 | `session_save` | `file` | `session` | Snapshot |
 | `session_load` | `file` | `keep_id`, `ttl` | Resume |
 | `session_current` | — | `session` | |

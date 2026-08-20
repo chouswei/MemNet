@@ -10,7 +10,7 @@ metadata:
   pattern: pipeline
   version: "1.3"
   domain: memnet
-  product: "0.19.2"
+  product: "0.19.3"
 ---
 
 # Nested sessions
@@ -39,7 +39,7 @@ edit SSOT of THAT cut → re-Snap THAT interior (reuse session= if qname= alread
 
 Not \(N\) maps stacked in one prompt.
 
-Mint the stack with **`snap_model`** (catalog + interiors) or Path-B **`ingest_*`** into **one** current session (1→1 — that is not catalog Snap).
+Mint the stack with **`snap_model`** (catalog + interiors) or Path-B **`ingest_*`** into **one** current session (1→1 — that is not catalog Snap). The stack **stays live** (look is one \(S\) per generate). Default cap **1024** (`MEMNET_MAX_SESSIONS`). `session_list` emits `sessions|n/max`; `session_close` that id (does not dump \(S\)) when a stratum is finished so later Snap can mint.
 
 ## Already built
 

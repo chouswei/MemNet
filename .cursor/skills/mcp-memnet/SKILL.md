@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   version: "7.3"
   domain: memnet
-  product: memnet-llm==0.19.2
+  product: memnet-llm==0.19.3
 token_guardrails: |
   - Product read is pin_map from a cue (kind / locators / keyword / session). leftover anchor= is leftover.
   - Product write is mutate (CREATE/MERGE/SET/DELETE). leftover add/update / id:'NEW' are leftover façades.
@@ -19,7 +19,7 @@ token_guardrails: |
 
 **Use** MemNet via MCP. This checkout vendors the skill. Tool SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`. Wire: [memnet-format](../memnet-format/SKILL.md). Nest: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md). Hub: [memnet-use](../memnet-use/SKILL.md).
 
-Hatch **0.19.2**. Arg **`session`** (the id), not `session_id` (envelope may still *return* `session_id`). Novel-writer is out of scope.
+Hatch **0.19.3**. Arg **`session`** (the id), not `session_id` (envelope may still *return* `session_id`). Novel-writer is out of scope.
 
 ## Transport
 
@@ -61,7 +61,8 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 | Tool | Role |
 |------|------|
 | `session_open` | Map required |
-| `session_list` | Live session ids (catalog strata) |
+| `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN; default max **1024**) |
+| `session_close` | Close that id (SessionLifecycle; does not dump \(S\)) |
 | `session_save` / `session_load` / `session_current` | Snapshot / resume |
 | `pin_map` | Primary read. Empty q = outline. `view=shell` is grain on a seed, not outline |
 | `find` | Bounded seed (`limit` required). Not RAG |
