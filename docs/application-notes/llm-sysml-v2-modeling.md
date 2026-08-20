@@ -57,6 +57,8 @@ Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`. Do **not** invent
 
 ## 4. Seed sketch (PDU campaign)
 
+Mission locators only (not the SysML nest). Making a nested part: section 6 worked example.
+
 ```cypher
 (:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', phase:'model', status:'in_progress'})
 (:PKG {id:'PKG_LIB', path:'library/power', kind:'library', status:'active'})
@@ -121,6 +123,52 @@ A parent **shell** is a **grain**: the **complete** list of **direct** children 
 **As-is leftover:** `snap_model` still prefers package / kind-band / two-segment child package; `PinMapComposer` still silently caps the walk. Do not teach those caps as product law. Path-B `ingest_sysml` 1→1 is not this Snap.
 
 **MUST NOT** one session per `requirement def` / nested `part` / port. **MUST NOT** dump the nest into the mission. **MUST NOT** Layer / `layer=`. **MUST NOT** `rag_query` textual SysML. **MUST NOT** Absorb a whole subtree.
+
+### Worked example: making one nested part
+
+The **part is made in `.sysml`**. MemNet records locators and a **complete** Shape of the interior that owns that subtree. This turn adds `SenseAmp` **inside** `PduController` (PDU campaign in section 4).
+
+**Before** (`project/pdu-controller.sysml`):
+
+```sysml
+package PkgPdu {
+  part def PduController {
+    port pwr_in : PowerIn;
+  }
+}
+```
+
+Catalog \(S_{\mathrm{cat}}\) already has a cut `qname:'PkgPdu'` → `session:'mn_pdu'` (interior small enough to fit \(M\)). Mission \(S\) holds `TSK_model_pdu` and `SYM` line 12 on `PduController`.
+
+| Step | Where | What you do |
+|------|--------|-------------|
+| 1 | Mission \(S\) | Cue `TSK_model_pdu` → `pin_map` **that session only**. Copy `SYM.line` / `path`. Drop the map next turn. |
+| 2 | Catalog | `pin_map(session=mn_cat, kind='PKG', locators=[('qname','PkgPdu')])`. Complete catalog row: `session:'mn_pdu'`. If over \(M\), the catalog itself must be cut — do not clip. |
+| 3 | Interior `mn_pdu` | `pin_map(session=mn_pdu, kind='PRT', locators=[('qname','PkgPdu::PduController')])`. Shape is **PduController and its direct children whole**. You see `pwr_in`. You do **not** `pin_map` depth 2 across the whole package. |
+| 4 | `.sysml` SSOT | Narrow Read at `SYM.line`. Write the nested **usage** and the **def** (def may sit beside the parent in the same file): |
+
+```sysml
+package PkgPdu {
+  part def PduController {
+    port pwr_in : PowerIn;
+    part sense : SenseAmp;
+  }
+  part def SenseAmp {
+    port vin : AnalogIn;
+    port vout : AnalogOut;
+  }
+}
+```
+
+| Step | Where | What you do |
+|------|--------|-------------|
+| 5 | Validate | `mcp-sysml-v2 validate` until clean. |
+| 6 | Re-Snap **this subtree** | `memnet snap model --root project` (or the package path). Interior `mn_pdu` now holds `PduController`, usage `sense`, def `SenseAmp`, ports. If that reconstruct **no longer fits \(M\)**, Snap **cuts** `SenseAmp` to a new interior `mn_sense`; the `PduController` shell lists `sense` with `typedBy` + `session:'mn_sense'` — it does **not** copy SenseAmp’s ports into `mn_pdu`. |
+| 7 | Mission Δ | Sparse `mutate` on mission \(S\): refresh `SYM.line`; optional locator that `TSK_model_pdu` `:about` `qname:'PkgPdu::PduController'`. Do **not** CREATE the whole nest into the mission. leftover `id:'NEW'` is leftover. |
+
+**Usage vs def.** `part sense : SenseAmp` is a child of `PduController` (`:contains` + `:typedBy` the def). Goldfish of `PduController` shows the usage **name**. Goldfish of `SenseAmp` (same interior if small; `mn_sense` if cut) shows `vin` / `vout`. Making another nested part later repeats steps 1–7 on **that** parent cut — never dump `PkgPdu` into chat.
+
+**Wrong:** `ingest_sysml` the file into the mission; `pin_map` depth 2 from `PkgPdu` and keep 50 rows; mint `mn_` per port.
 
 ---
 
