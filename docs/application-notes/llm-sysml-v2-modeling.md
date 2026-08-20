@@ -2,7 +2,7 @@
 
 > **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
 
-**Teach:** the `.sysml` load tree is structural **SSOT** (and the SSOT of the codebase it specifies). MemNet is **mission working memory**: a coding or modelling agent `pin_map`s **relatives of one cut**, then narrow-Reads that brace. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md). Case study: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
+**Teach:** `.sysml` is structural **SSOT** (and of the code and docs it specifies). MemNet saves tokens with two moves: **(1)** `pin_map` **relatives of one cue**, then narrow-Read that brace; **(2)** each over-budget **sub-unit lives in a separate session** — the parent presents `session=`, it does not dump the child nest. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md). Case study: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
 
 British English. ASCII.
 
@@ -10,7 +10,16 @@ British English. ASCII.
 
 ## 1. Why MemNet (token law)
 
-Dumping the model into chat is the expensive path. Relatives of the live cue are the cheap one. Counts \(\approx 3.5\) characters/token (this product tree, OMG vehicle, [elan8/sysml-examples](https://github.com/elan8/sysml-examples)):
+Dumping the load tree, a fat `.sysml`, or a whole architecture file into chat is the expensive path. MemNet saves tokens because of **two** facts together (MN-REQ-00):
+
+| # | Law | In the prompt |
+|---|-----|----------------|
+| 1 | **Relatives of one cue** | Complete Shape of **this** parent: direct children, `typedBy`, incident `connect` / `satisfy` ends that live here. Then **one** brace Read at `SYM.line` (model or code). |
+| 2 | **Sub-unit in a separate session** | Nested part / package / requirement group that will not fit \(M\), or that **already has** an interior, is **cut away**. Parent shell keeps the **name** + `session=`. Goldfish does **not** walk that other \(S\). |
+
+Without (1), the agent still pastes `deploy.sysml`. Without (2), relatives of `WebShopSystem` or `package MemNet` still include every nested tree — same dump, smaller font. Modelling, coding, and documentation that use this SysML SSOT share the same two laws: design memory is relatives; implementation is one code or doc window after `SYM.path`.
+
+Counts \(\approx 3.5\) characters/token (this product tree, OMG vehicle, [elan8/sysml-examples](https://github.com/elan8/sysml-examples)):
 
 | Prompt contents | ~tokens |
 |-----------------|--------:|
@@ -32,7 +41,7 @@ Dumping the model into chat is the expensive path. Relatives of the live cue are
 
 **TARGET turn:** catalog **~200** + complete relatives of **one** interior **~400–800** + brace Read **~500** \(\approx\) **1.3–2.5k** on the model side, then one code window at `SYM.line`. That is about **20–100×** less than pasting `deploy.sysml` or the load tree. Goldfish bound: \(\lesssim 4\,\mathrm{k}\) in; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm ([`../grammar/math-skeleton.md`](../grammar/math-skeleton.md)).
 
-The saving holds only if the Shape is **complete and the right relatives**. Truncation spends the budget on the wrong 50 rows.
+The saving holds only if the Shape is **complete and the right relatives**, and the child nest stays in **its** session. Truncation spends the budget on the wrong 50 rows. Copying an already-built sub-unit into the parent spends it twice.
 
 ---
 
@@ -169,7 +178,7 @@ These trees are **teaching-small** (\(\approx 1.4\,\mathrm{k}\) office … \(\ap
 
 | Mistake | Fix |
 |---------|-----|
-| Paste the load tree / `deploy.sysml` so the agent “sees the model” | Catalog + relatives of **one** cut + brace Read (\(\approx 1\)–\(2\,\mathrm{k}\)) |
+| Paste the load tree / `deploy.sysml` so the agent “sees the model” | Relatives of **one** cue + brace Read; child nests stay in **other** sessions (\(\approx 1\)–\(2\,\mathrm{k}\)) |
 | Paste elan8 `WebShopArchitecture.sysml` (~3.2k) to “see checkout” | Relatives of `CheckoutService` (~0.5–1k) then `SYM.line` |
 | Clip `max_rows` / shell 8+12 / ingest mid-brace | Refuse; cut sessions; complete Shape |
 | Kind zoo (`S_part`, `S_req`, `S_port`) | Cuts are **fit** on the nest |

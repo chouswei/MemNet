@@ -17,7 +17,7 @@ Three common substitutes fail the mission:
 | **Dump the whole session \(S\)** | Burns the token budget MN-REQ-00 exists to save. The model still has to pick what matters. |
 | **Search the corpus (RAG / GraphRAG)** | That haystack is **documents**, not **this mission’s working facts**. Retrieval may help the host; it does not replace a session. |
 
-The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**.
+The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**. When structural SSOT is SysML (and the code or docs it specifies), that saving is **relatives of one cue** plus **sub-units in separate sessions** — not a dump of the load tree. Application: [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md).
 
 So MemNet must sit **between** LLM call pipelines and data search — not as the notepad, and not as the library.
 

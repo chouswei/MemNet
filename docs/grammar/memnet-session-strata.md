@@ -12,9 +12,9 @@
 
 The old instinct (one fat \(S\), strata *inside* the dialect) is how Layer happened. The replacement is already in doctrine and under-taught:
 
-**Partition the haystack into more sessions. Goldfish one session at a time. Join with Absorb (slice), not merge, not ANN.**
+**Partition the haystack into more sessions. Goldfish relatives of one cue in one session. Join with Absorb (slice), not merge, not ANN.**
 
-That *is* “sessions as layers”: each stratum has a **session id**, a schema map, a budget \(M\), and a Shape. The catalog of ids is itself a small session (or a Snap of `session=` locators). The lead mission stays Path A until a second haystack or a second writer earns a new id.
+That *is* “sessions as layers”: each stratum has a **session id**, a schema map, a budget \(M\), and a Shape. Token saving on a SysML SSOT is those two moves together: **relatives**, not the load tree; **sub-unit in another session**, not a nested dump. The catalog of ids is itself a small session (or a Snap of `session=` locators). The lead mission stays Path A until a second haystack or a second writer earns a new id.
 
 ---
 

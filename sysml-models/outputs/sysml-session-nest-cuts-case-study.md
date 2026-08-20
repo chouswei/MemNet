@@ -12,7 +12,7 @@ Companion: [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-
 
 ## 1. Purpose
 
-Show that SysML can nest **everything** in everything, so sessions are **budget cuts on the containment tree**, not a kind zoo of layers. Goldfish \(M\) is a **fit test**: an interior reconstruct **fits whole** or Recall refuses. Silent `max_rows` is the same class of lie as silently picking one root.
+Show **why** MemNet saves tokens on a SysML SSOT: **(1)** goldfish **relatives** of one cue; **(2)** each over-\(M\) (or already-built) **sub-unit is a separate session**. SysML can nest **everything** in everything, so sessions are **budget cuts on the containment tree**, not a kind zoo of layers. Goldfish \(M\) is a **fit test**: an interior reconstruct **fits whole** or Recall refuses. Silent `max_rows` is the same class of lie as silently picking one root.
 
 ## 2. Model locus
 
