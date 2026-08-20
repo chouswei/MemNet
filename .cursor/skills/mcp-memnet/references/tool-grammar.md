@@ -1,6 +1,6 @@
 # MCP tools <-> MemNet GQL wire
 
-**Audience:** model. Package SSOT: MemNet `parts/memnet-mcp/software/memnet_mcp/server.py` (0.9 tool set). Wire shapes: [memnet-format](../../memnet-format/SKILL.md); product wire: `docs/grammar/gql-wire-profile.md`. Product **`memnet-llm` 0.9.0**.
+**Audience:** model. Package SSOT: MemNet `parts/memnet-mcp/software/memnet_mcp/server.py` (0.9 tool set). Wire shapes: [memnet-format](../../memnet-format/SKILL.md); product wire: `docs/grammar/gql-wire-profile.md`. Product **`memnet-llm` 0.19.0**.
 
 MCP does **not** replace the grammar. Tools open a session and move **GQL / openCypher-shaped text** (or engine-rendered shaped subgraph) through a JSON envelope.
 

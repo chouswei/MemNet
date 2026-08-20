@@ -1,6 +1,6 @@
 # Between MemNet and Neo4j
 
-**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (untagged): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
+**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (package 0.19.0): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
 **Audience:** product developers.  
 **Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs. Same ABC / owner / budget.  
 **Shape:** cabinet **behind** the session, not instead of it ([`../SHAPE.md`](../SHAPE.md) §5).

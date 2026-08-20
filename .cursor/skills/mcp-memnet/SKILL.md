@@ -9,7 +9,7 @@ metadata:
   pattern: tool-wrapper
   version: "6.0"
   domain: memnet
-  product: memnet-llm==0.9.0
+  product: memnet-llm==0.19.0
 token_guardrails: |
   - Primary read is pin_map (shaped subgraph); parse envelope stdout — not JSON keys as grammar.
   - Mutate with openCypher-shaped wire_lines; mint creates with NEW; copy ids from pin_map.
@@ -20,7 +20,7 @@ token_guardrails: |
 
 **This checkout:** skills live under `.cursor/skills/`. Doctrine SSOT is this repo’s `docs/`. In-process MCP for a **single** agent; TCP `:18765` or streamable-http when **sharing** a graph (Multitask). leftover `add`/`update` / `id:'NEW'` / `--anchor` are leftover-named; product Commit is MCP/CLI **`mutate`**; `liveNeo4jClaimed=true` (extra **0.14**). User-pack Pi `10.0.0.10` is **optional** on a human machine — not this VM.
 
-Product **`memnet-llm` 0.9.0** (CLI `memnet`). Engine + generic MCP only — **novel-writer is out of scope**. PyPI `memnet-llm` is still **0.4.6**; install from this repo for 0.9. **1.0** = claim of 0.5–0.8. Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`.
+Product **`memnet-llm` 0.19.0** (CLI `memnet`). Engine + generic MCP only — **novel-writer is out of scope**. PyPI `memnet-llm` is still **0.4.6**; install from this repo for 0.19. **1.0** = claim of 0.5–0.8. Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`.
 
 MemNet is mission working memory between LLM call pipelines and data search — not RAG. Agents **cue** then read a bounded **shaped subgraph** via **`pin_map`**, and write with **openCypher-shaped** mutate — the **GQL wire**. Detail: [memnet-format](../memnet-format/SKILL.md).
 

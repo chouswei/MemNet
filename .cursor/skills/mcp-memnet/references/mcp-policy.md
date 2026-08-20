@@ -13,7 +13,7 @@ Cursor (stdio) → memnet-mcp
 - Multitask / Task workers **MUST NOT** use in-process MCP for a shared session.
 - Agent wire is **GQL / openCypher-shaped** (shaped pin_map read). Cue then pin_map (`find` if no ego).
 - Primary read is the live **pin map** (`pin_map` tool; `query_warm` is legacy alias).
-- Product **0.9.0**: live AgensGraph cabinet claimed (0.7); Neo4j client extra not live-claimed; RSV + Path-B ingest shipped.
+- Product **0.19.0**: live AgensGraph cabinet claimed (0.7); Neo4j live claimed (0.14); RSV + Path-B ingest shipped.
 
 ## mcp.json (user pack)
 

@@ -9,14 +9,14 @@ metadata:
   pattern: pipeline
   version: "1.0"
   domain: memnet
-  product: "0.9.0"
+  product: "0.19.0"
 ---
 
 # How to use MemNet
 
 Reference skill for **agents using** MemNet — not for building the engine. Doctrine SSOT: `docs/SHAPE.md`, `docs/grammar/gql-wire-profile.md`, `docs/LLM-GUIDE.md`. Open one specialist below; do not paste those files here.
 
-**Product:** Hatch **0.9.0** (PyPI `memnet-llm` still 0.4.6). Chat is never SSOT. Novel-writer is out of scope.
+**Product:** Hatch **0.19.0** (PyPI `memnet-llm` still 0.4.6). Chat is never SSOT. Novel-writer is out of scope.
 
 ## Goldfish loop
 

@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   version: "4.2"
   domain: data-formats,memnet
-  product: memnet-llm==0.9.0
+  product: memnet-llm==0.19.0
 token_guardrails: |
   - General GQL / paths: MemNet `docs/grammar/gql-wire-profile.md`; keep this skill MemNet-specific.
   - Prefer pin_map with a tight anchor + view/max_rows budget; do not dump the whole graph.
@@ -24,7 +24,7 @@ token_guardrails: |
 
 General GQL / path patterns live in the optional user pack (`graph-query-language`, `gql-path-patterns`). This skill keeps **MemNet-specific** conventions only.
 
-Product notes: MemNet `README.md`, `docs/grammar/`, `docs/SHAPE.md`. Package **0.9.0** (PyPI still 0.4.6). Field notes: [references/memnet-wire-format.md](references/memnet-wire-format.md).
+Product notes: MemNet `README.md`, `docs/grammar/`, `docs/SHAPE.md`. Package **0.19.0** (PyPI still 0.4.6). Field notes: [references/memnet-wire-format.md](references/memnet-wire-format.md).
 
 ---
 

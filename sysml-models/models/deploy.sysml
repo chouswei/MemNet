@@ -592,7 +592,7 @@ package MemNet {
       SHALL NOT absorb in Recall. SHALL NOT silent MERGE-by-name.
       defaultGoldfish=false. MUST NOT density-peak cluster assignment,
       Leiden from peaks, or global top-k degree as goldfish.
-      As-is: memnet.peak_l.peak_l (0.18 extra; package stays 0.9.0).
+      As-is: memnet.peak_l.peak_l (0.18 extra; package 0.19.0).
     */
     port cueIn : CueInPort;
     port seedOut : SeedSetOutPort;

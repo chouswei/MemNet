@@ -1,6 +1,6 @@
 # MemNet MCP — tool parameters
 
-MCP server key: typically **`memnet`** in Cursor MCP config (user pack primary id **`memnet-pi`**). Tools return **JSON text** (parse as object) unless noted. Product: **`memnet-llm` 0.9.0**. PyPI wheel is still **0.4.6** — engine version = remote serve / repo install. User-pack store: TCP **`10.0.0.10:18765`**; Cursor entry: HTTP **`http://10.0.0.10:18766/mcp`**.
+MCP server key: typically **`memnet`** in Cursor MCP config (user pack primary id **`memnet-pi`**). Tools return **JSON text** (parse as object) unless noted. Product: **`memnet-llm` 0.19.0**. PyPI wheel is still **0.4.6** — engine version = remote serve / repo install. User-pack store: TCP **`10.0.0.10:18765`**; Cursor entry: HTTP **`http://10.0.0.10:18766/mcp`**.
 
 ## Invoke order (typical session)
 

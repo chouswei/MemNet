@@ -12,7 +12,7 @@ metadata:
   pattern: pipeline
   version: "2.0"
   domain: memnet
-  product: memnet-llm==0.9.0
+  product: memnet-llm==0.19.0
 ---
 
 # MemNet + Multitask Mode
@@ -21,7 +21,7 @@ In-repo skill for **applying** MemNet under Cursor **Multitask Mode** or **Task*
 
 **Product ops SSOT (MemNet repo, developers):** `docs/multi-agent-sessions.md`.
 **System-repo adoption (applications):** MemNet `docs/application-notes/llm-system-dev-multitask.md`.
-**Product shape / 0.8 teach:** MemNet `docs/SHAPE.md`. **Version map:** MemNet `docs/ROADMAP-0.5.md` (package **0.9.0**; **1.0** = 0.5–0.8 claimed).
+**Product shape / 0.8 teach:** MemNet `docs/SHAPE.md`. **Version map:** MemNet `docs/ROADMAP.md` (package **0.19.0**; **1.0** = 0.5–0.8 claimed).
 **Docs index:** MemNet `docs/README.md`. Chat is **never** mission SSOT.
 
 ## When to load

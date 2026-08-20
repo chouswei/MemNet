@@ -1,6 +1,6 @@
 # Host search (design)
 
-**Status:** extra **0.17** hook shipped (untagged; package stays 0.9.0) — `RagHostHook.implemented=true` **outside** `MemNetSystem`. Skip is valid. No `rag_query` MCP; no embeddings in the engine.  
+**Status:** extra **0.17** hook shipped (in package 0.19.0) — `RagHostHook.implemented=true` **outside** `MemNetSystem`. Skip is valid. No `rag_query` MCP; no embeddings in the engine.  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
 **Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
 **Retrieve algorithms (what the functions do):** [`rag-relative-algorithms.md`](rag-relative-algorithms.md).  

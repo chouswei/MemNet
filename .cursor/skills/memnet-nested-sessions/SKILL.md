@@ -10,7 +10,7 @@ metadata:
   pattern: pipeline
   version: "1.0"
   domain: memnet
-  product: "0.9.0"
+  product: "0.19.0"
 ---
 
 # Nested sessions
