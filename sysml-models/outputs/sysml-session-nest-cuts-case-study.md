@@ -144,6 +144,14 @@ Source: [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Relea
 
 **As-is ingest.** `part` usages project; `interface` usages, `subsets`/`redefines`, `connect`/`flow`, attributes `T1`/`T2` do **not**. `.sysml` remains SSOT for those. Annex A `SimpleVehicleModel.sysml` in the same folder is the fat nest; this usages file is the **clear** configuration example.
 
+### Turn G — elan8 webshop / drone (software SSOT)
+
+Source: [elan8/sysml-examples](https://github.com/elan8/sysml-examples). One Snap per example folder. Catalog interiors = imported packages (Structure, Behavior, Requirements, Ports, Views) plus the root aggregator.
+
+**Webshop.** Cue `CheckoutService` in the architecture interior. Relatives = ports + incident `connect` (orders DB, payments, inventory, events). `satisfy checkoutLatency by webshopSystem.checkoutService` and `allocate … to commerceCluster` are cross-cut — second look / Absorb slice. Dumping `WebShopArchitecture.sysml` (\(\approx 3.2\,\mathrm{k}\) tokens) spends the goldfish bound before code.
+
+**Drone.** `satisfy FailsafeReq by droneInstance.flightControl.flightController` is a nested path (Vehicle C3). Shell of `droneInstance`, then re-anchor `flightControl`. Four `propulsionUnit*` stay in the `Propulsion` interior if they fit \(M\).
+
 ## 5. Contrast (MUST NOT)
 
 | Not this | Why |
@@ -185,4 +193,5 @@ Source: [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Relea
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat must not replace the live interior map |
 | `docs/application-notes/llm-sysml-v2-modeling.md` | Application loop + nest snippets |
 | [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) | OMG example: usages, subsets, nested-port `interface` |
+| [elan8/sysml-examples](https://github.com/elan8/sysml-examples) | Teaching trees; webshop software SSOT; nested `satisfy by` |
 | `docs/grammar/memnet-session-strata.md` | Sessions as strata (not Layer) |

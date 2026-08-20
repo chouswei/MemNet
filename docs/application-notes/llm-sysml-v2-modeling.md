@@ -10,7 +10,7 @@ British English. ASCII.
 
 ## 1. Why MemNet (token law)
 
-Dumping the model into chat is the expensive path. Relatives of the live cue are the cheap one. Counts \(\approx 3.5\) characters/token (this product tree and the OMG vehicle examples):
+Dumping the model into chat is the expensive path. Relatives of the live cue are the cheap one. Counts \(\approx 3.5\) characters/token (this product tree, OMG vehicle, [elan8/sysml-examples](https://github.com/elan8/sysml-examples)):
 
 | Prompt contents | ~tokens |
 |-----------------|--------:|
@@ -18,10 +18,16 @@ Dumping the model into chat is the expensive path. Relatives of the live cue are
 | `deploy.sysml` alone | **38k** |
 | OMG Annex A `SimpleVehicleModel.sysml` | **21k** |
 | leftover `pin_map` \(M=50\) with `doc` blobs on every node | **~25k** (alarm) |
+| elan8 `drone/` tree (~24 kiB SysML) | **~7k** |
+| elan8 `webshop/` tree (~17 kiB SysML) | **~5k** |
+| `WebShopArchitecture.sysml` alone | **~3.2k** (already most of goldfish \(4\,\mathrm{k}\)) |
 | leftover clipped depth-2 \(M=50\), short locators | **1.5–4k** (same cost, **wrong** rows) |
+| elan8 `timer/` tree | **~2.9k** |
+| elan8 `office/office.sysml` | **~1.4k** |
 | Catalog look (a few `session=` + `qname=` rows) | **~0.2k** |
 | Complete shell of **one part** (direct children) | **0.2–0.8k** |
-| Narrow Read of that part’s brace (e.g. `MutateGate`, 34 lines) | **~0.5k** |
+| Relatives of `CheckoutService` + brace Read | **~0.5–1k** then code at `SYM.line` |
+| Narrow Read of `MutateGate` brace (34 lines) | **~0.5k** |
 | OMG `VehicleUsages.sysml` **whole file** | **0.7k** (too small to be a budget example) |
 
 **TARGET turn:** catalog **~200** + complete relatives of **one** interior **~400–800** + brace Read **~500** \(\approx\) **1.3–2.5k** on the model side, then one code window at `SYM.line`. That is about **20–100×** less than pasting `deploy.sysml` or the load tree. Goldfish bound: \(\lesssim 4\,\mathrm{k}\) in; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm ([`../grammar/math-skeleton.md`](../grammar/math-skeleton.md)).
@@ -143,6 +149,18 @@ Mission seed (not the nest):
 
 The whole usages file is \(\approx 0.7\,\mathrm{k}\) tokens (cheap to dump, **misleading**). Annex A in the same folder is \(\approx 21\,\mathrm{k}\); `deploy.sysml` is \(\approx 38\,\mathrm{k}\).
 
+### Official: elan8 teaching load trees (software SSOT)
+
+[elan8/sysml-examples](https://github.com/elan8/sysml-examples) — office → timer → intersection → drone → **webshop**. Each example is **one model**: root package imports Structure / Behavior / Requirements / Ports / Views. That **is** the first Snap cut (not one session per file). `Views.sysml` is SysML `view`/`viewpoint`, not `pin_map view=`.
+
+**Webshop** is the coding-agent case: `HttpService`, `KafkaTopic`, `SqlDatabase`, `KubernetesCluster`; `allocate webshopSystem.checkoutService to commerceCluster`. The architecture file alone is \(\approx 3.2\,\mathrm{k}\) tokens — dump it and the goldfish budget is gone before code. Relatives of `CheckoutService`: its ports and the **incident** `connect` rows (orders DB, payments, inventory, order-events). Then one code window. Do not `pin_map` all of `WebShopSystem` (fourteen children plus every `connect`) unless that reconstruct still fits \(M\) whole.
+
+Root `satisfy checkoutLatency by webshopSystem.checkoutService` is a **cross-cut** (requirements interior → architecture interior): second look or Absorb a slice — same as Turn D.
+
+**Drone / timer** use nested satisfy paths (`satisfy FailsafeReq by droneInstance.flightControl.flightController`, `satisfy TimerRangeReq by timerInstance.pcb.mcu`). Same as Vehicle `vehicle_C3` nested port: shell of the instance, then re-anchor `flightControl` / `pcb`. `Propulsion` with four named `propulsionUnit*` is four usage pins in **one** interior if they fit \(M\), not four sessions.
+
+These trees are **teaching-small** (\(\approx 1.4\,\mathrm{k}\) office … \(\approx 7\,\mathrm{k}\) drone). They prove the **folder = package cut** and the software `allocate`. They do not replace `deploy.sysml` as the fat budget example.
+
 ---
 
 ## 6. Pitfalls
@@ -150,6 +168,7 @@ The whole usages file is \(\approx 0.7\,\mathrm{k}\) tokens (cheap to dump, **mi
 | Mistake | Fix |
 |---------|-----|
 | Paste the load tree / `deploy.sysml` so the agent “sees the model” | Catalog + relatives of **one** cut + brace Read (\(\approx 1\)–\(2\,\mathrm{k}\)) |
+| Paste elan8 `WebShopArchitecture.sysml` (~3.2k) to “see checkout” | Relatives of `CheckoutService` (~0.5–1k) then `SYM.line` |
 | Clip `max_rows` / shell 8+12 / ingest mid-brace | Refuse; cut sessions; complete Shape |
 | Kind zoo (`S_part`, `S_req`, `S_port`) | Cuts are **fit** on the nest |
 | One `ingest_sysml` per file as Snap | One model Snap → session stack |
@@ -167,6 +186,7 @@ The whole usages file is \(\approx 0.7\,\mathrm{k}\) tokens (cheap to dump, **mi
 ## 7. Related
 
 - [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — nest-cut case study (Turns A–F)
+- [elan8/sysml-examples](https://github.com/elan8/sysml-examples) — teaching load trees (webshop = software SSOT)
 - [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — sessions as strata
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — shared TCP/HTTP
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
