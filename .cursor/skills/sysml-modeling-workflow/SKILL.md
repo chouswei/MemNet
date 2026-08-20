@@ -42,7 +42,7 @@ Every substantive turn on the project model tree **MUST** follow this order. Def
 
 **Warm miss** -> initial snap per [sysml-memnet-documentation](../sysml-memnet-documentation/SKILL.md), then step 3.
 
-Model Snap / catalog / **look loop** (session in session) / parallel interiors when the parent shell is already in `.sysml`: [`docs/application-notes/llm-sysml-v2-modeling.md`](../../../docs/application-notes/llm-sysml-v2-modeling.md). That is **not** a ninth step in this table. This table is the **mission** `TSK` loop; interiors are a second `pin_map` on `session=`.
+Model Snap / catalog / **look loop**: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) and [`docs/application-notes/llm-sysml-v2-modeling.md`](../../../docs/application-notes/llm-sysml-v2-modeling.md). That is **not** a ninth step in this table. This table is the **mission** `TSK` loop; interiors are a second `pin_map` on `session=`.
 
 **Skip step 6** only: comment/whitespace-only edit; MemNet down; user question with no edit.
 
