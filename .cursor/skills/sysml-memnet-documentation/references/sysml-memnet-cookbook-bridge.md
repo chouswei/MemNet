@@ -7,7 +7,7 @@ Links in-repo MemNet skills to the upstream SysML v2 modeling cookbook. **Do not
 **Path (this repo):** [`docs/application-notes/system/llm-sysml-v2-modeling.md`](../../../../docs/application-notes/system/llm-sysml-v2-modeling.md)  
 **Evidence:** [`sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md)
 
-**Package:** Hatch **0.19.1** (last PyPI **`memnet-llm==0.19.0`** until upload). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
+**Package:** Hatch **0.19.2** (last PyPI **`memnet-llm==0.19.0`** until upload). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
 
 The cookbook is the **agent loop** (two token laws, Snap stack, look loop). In-repo skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not leftover alias tags. Agent I/O is **GQL**; leftover pipe `@TAG` names in the map are leftover nicknames for kinds.
 

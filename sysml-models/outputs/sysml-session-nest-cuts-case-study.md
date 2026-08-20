@@ -192,7 +192,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 
 | Claim | Status |
 |-------|--------|
-| `snap_model` catalog + package interiors | shipped 0.15 (package 0.19.1); `tests/test_catalog_snap.py` |
+| `snap_model` catalog + package interiors | shipped 0.15 (package 0.19.2); `tests/test_catalog_snap.py` |
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
 | Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |

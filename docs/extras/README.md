@@ -1,6 +1,6 @@
 # Extras (shipped cuts + design notes)
 
-Numbered extras **0.10–0.19** live in package **0.19.1**. These notes are the extra-facing SSOT; they are **not** a second agent wire.
+Numbered extras **0.10–0.19** live in package **0.19.2**. These notes are the extra-facing SSOT; they are **not** a second agent wire.
 
 | Doc | Role |
 |-----|------|

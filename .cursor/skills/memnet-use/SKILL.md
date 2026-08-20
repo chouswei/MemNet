@@ -8,14 +8,14 @@ metadata:
   pattern: pipeline
   version: "1.3"
   domain: memnet
-  product: "0.19.1"
+  product: "0.19.2"
 ---
 
 # How to use MemNet
 
 **Using** MemNet — not building the engine. This checkout **vendors** the stack under `.cursor/skills/`. Doctrine: `docs/SHAPE.md`, `docs/grammar/gql-wire-profile.md`, `docs/LLM-GUIDE.md`. Open **one** specialist; do not paste those files here.
 
-Hatch **0.19.1**. Chat is never SSOT. Novel-writer is out of scope. **GQL only.**
+Hatch **0.19.2**. Chat is never SSOT. Novel-writer is out of scope. **GQL only.**
 
 ## Goldfish loop
 

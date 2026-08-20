@@ -1,6 +1,6 @@
 # MemNet MCP — tool parameters
 
-Product **`memnet-llm` 0.19.1**. Hatch **0.19.1**; last published PyPI wheel is **0.19.0** until upload. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
+Product **`memnet-llm` 0.19.2**. Hatch **0.19.2**; last published PyPI wheel is **0.19.0** until upload. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
 
 Optional extra HTTP `memnet-pi` is a human-machine path — not this cloud VM.
 
