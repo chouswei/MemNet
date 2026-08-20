@@ -24,7 +24,7 @@ British English. ASCII.
 | `USR` | Modeller preferences |
 | Transient | `DEC` / `ISSUE` / short-lived `TSK` (`delete_on_settle`) |
 
-A piece of background is pulled into context only when a relationship from the live focus reaches it. Cross-file: `:declaredIn` to `PKG`; `pin_map` + traversal — no "remember the other file."
+A piece of background is pulled into context only from the **chosen** session’s complete Shape. Cross-cut: catalog look or Absorb a **slice** — no "remember the other file" and no depth-2 walk of a fat `:contains` tree.
 
 ---
 
@@ -33,7 +33,7 @@ A piece of background is pulled into context only when a relationship from the l
 Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent; Multitask uses TCP/HTTP.
 
 1. **`serve_status`** (if TCP/shared; skip under in-process default) — if down, edit `.sysml` only and note stale graph.
-2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map(kind='TSK', locators=[…], depth=2)`**. Never rely on prior chat or full-file reads. leftover `anchor=` is leftover.
+2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map` that one session**. Mission `TSK` ego is not a dump of the SysML nest — model interiors are separate sessions (section 6). Never rely on prior chat or full-file reads. leftover `anchor=` is leftover.
 3. **Locate then edit** — from `SYM` → narrow Read/grep → edit `.sysml`.
 4. **Validate** — `mcp-sysml-v2 validate` until clean.
 5. **Doc sync (conditional)** — `sysml-view-doc-sync` if `outputs/` changed.
@@ -92,15 +92,35 @@ Same device may appear in both — keep ids stable; relate across grains with ba
 
 `ingest_sysml` remains 1 path → **current** session (Path-B as-is). **Model Snap (0.15)** is **one model** (root package / load tree) → a **stack** of sessions (catalog + interiors): `memnet snap model --root …`. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
 
-Goldfish \(M\approx 50\); ingest `max_nodes` is Commit into **one interior**, not a Shape of the whole model. `.sysml` stays SSOT.
+`.sysml` stays structural SSOT. MemNet holds **cut locators** and a complete Shape of **one** interior — not a second copy of every brace.
+
+### Nest is unbounded
+
+SysML can nest **everything** in everything: `package`, `part` / `part def`, `requirement`, `port`, `action`, `view`, `connection`, leftover leaves. That is **one containment tree** of mixed kinds. Sessions cut **that** tree so each interior **fits** goldfish \(M\approx 50\). Construct name is not a layer taxonomy.
+
+A convenient **first** cut is the load-tree packages (`root.sysml` imports). It is **not** the law. Kind-band (REQ vs PRT) is the same special case: the nest does not stay in bands. `requirement def` inside `requirement def` and `part` inside `part` are the same `:contains` problem.
+
+When a subtree is still over ~2\(M\) after that first cut, **cut again at that root** (composition part, nested requirement group, child package). Recurse. Nested **usage** (`part mutate : MutateGate`) is a locator (`typedBy` + `qname=` / `session=` of the **def** interior) — do not copy MutateGate’s nest into Commit’s map.
 
 | Session in the Snap | Holds |
 |---------------------|--------|
-| Catalog \(S_{\mathrm{cat}}\) | `session=` + `qname=` of packages in **this** model |
-| Interiors \(S_1\ldots S_k\) | Pins for one **package** (kind band if still over ~2\(M\)) |
+| Catalog \(S_{\mathrm{cat}}\) | `session=` + `qname=` of **cuts** in **this** model (package roots first; part-roots when the deploy nest still will not fit) |
+| Interiors \(S_1\ldots S_k\) | The projected pins of **one** subtree that **fits \(M\) whole** |
 | Lead mission (not in the Snap) | `TSK` / `USR`; locators into the catalog |
 
-Worked grain for **this** product model: interiors follow `root.sysml` imports (`MemNetRequirements`, `MemNetVerification`, …), not “a session because a file exists.” Cue `qname=` then `pin_map` **one** interior. Cross-package `satisfy`: second look or Absorb a **slice**. Re-Snap that package after a validated edit. **MUST NOT** one session per requirement. **MUST NOT** Layer. **MUST NOT** `rag_query` textual SysML.
+Worked **first** grain for **this** product model: interiors follow `root.sysml` imports (`MemNetRequirements`, `MemNetVerification`, `MemNet`, …), not “a session because a file exists.” `package MemNet` in `deploy.sysml` is still a fat part nest — that interior **must** recurse (composition roots such as `AgentMemory`, not one session per nested usage). Cue `qname=` then `pin_map` **one** interior. Cross-cut `satisfy`: second look or Absorb a **slice**. Re-Snap **that subtree** after a validated edit.
+
+### Truncation is not Shape
+
+Goldfish \(M\) is a **fit test**, not a slicer. A `pin_map` that walks `:contains` and keeps `max_rows` (as-is `context_pack`), a shell cap of 8 NODE / 12 EDGE, or ingest `max_nodes` mid-brace, still **looks** complete. Children, `satisfy`, and nested usages past the cut vanish with no CueConflict. That is the same class of lie as silently picking one root.
+
+**TARGET Shape:** the chosen interior’s reconstruct either **fits \(M\) whole**, or Recall **refuses** (cardinality / over-budget — sibling of CueConflict). Do not emit a clipped neighbourhood. Do not raise \(M\). Do not use `Peak_L` as default (parents of `:contains` look like peaks).
+
+A parent **shell** is a **grain**: the **complete** list of **direct** children of this cut (names + `session=` when a child lives in another interior). If that child list does not fit \(M\), cut again. Shell is **not** a truncated depth-2 walk of a fat \(S\). Hard `LIMIT` on seed `MATCH_L` stays: that lists \(Q\) and CueConflict when \(|hits|>L\).
+
+**As-is leftover:** `snap_model` still prefers package / kind-band / two-segment child package; `PinMapComposer` still silently caps the walk. Do not teach those caps as product law. Path-B `ingest_sysml` 1→1 is not this Snap.
+
+**MUST NOT** one session per `requirement def` / nested `part` / port. **MUST NOT** dump the nest into the mission. **MUST NOT** Layer / `layer=`. **MUST NOT** `rag_query` textual SysML. **MUST NOT** Absorb a whole subtree.
 
 ---
 
@@ -119,6 +139,11 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 | Stale `SYM.line` after edit | Re-grep + `update` |
 | Merging electrical `PIN` teach into SysML | Use GQL circuit note for circuits |
 | One `ingest_sysml` per file as if each were a Snap | **One** model Snap → session stack; files are SSOT storage |
+| One `MemNet` (or other fat package) session for all nested parts | Recurse containment cuts until each interior **fits \(M\)** |
+| Kind zoo of layer sessions (`S_part`, `S_req`, `S_port`) | Cuts are budget on the nest, not construct names |
+| Silent `max_rows` / shell drop / ingest mid-brace | Refuse; partition; complete Shape of the chosen \(S\) |
+| `pin_map` depth 2 on a parent part | Shell of **direct** children, then one child interior |
+| `Peak_L` as default goldfish on a `:contains` tree | Cue `qname=`; Peak is last-resort residual only |
 
 ---
 
@@ -127,7 +152,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — Snap one SysML model into many sessions
+- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — sessions as strata; containment cuts; truncation is not Shape
 - `~/.cursor/skills/sysml-memnet-documentation/`
 
 ---

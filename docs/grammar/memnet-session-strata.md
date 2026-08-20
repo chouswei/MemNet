@@ -112,18 +112,18 @@ The Snap is of **one model** (a load tree / root package). The sessions are **st
 | **Abstraction layers smashed** | Requirements, structure, verify, connections share one ego walk. `pin_map` depth 2 mixes layers. | Each SysML package (MBSE layer of **this** model) is an interior. Cue names the layer via catalog, then one Shape. |
 | **`view=` vs SysML `view def`** | Ingest maps `view def` → `PRT`. Agents confuse `pin_map view=shell` with SysML views. | SysML `view`/`viewpoint` pins stay in the package interior. `view=` stays grain **inside one session**. Different words, different sessions if still over \(M\). |
 | **Satisfy across layers** | `satisfies` only resolves if both ends were in the **same** ingest index. Cross-package miss is silent. | Same Snap, two interiors. Catalog names both. Second look or Absorb a slice — honest miss, not a dangling same-store edge. |
-| **`max_nodes` truncates the nest** | Budget cuts mid-brace; children exist without parents (or ingest errors). Raising ingest cap still leaves goldfish \(M\approx 50\). | Split the nest **at package (or kind) boundaries** into interiors. Each Commit cap is that layer. Do not raise goldfish \(M\). |
+| **Truncation as Shape** | `max_rows` / shell 8+12 / ingest mid-brace **look** complete; children and `satisfy` vanish. Same class of lie as silentPickOneRoot. Raising \(M\) only hides it. | \(M\) is a **fit test**. Interior reconstruct **fits whole** or Recall refuses. Split the nest (recurse); do not clip. |
 | **Layer dialect relapse** | Nesting *feels* like MemNet Layer / Tier A, so agents revive the archived wire. | Nesting is **session ids**, GQL only. No `layer=` property. |
 
-So: **SysML layers are real; encoding them as `:contains` in one Snap session is the bug.** Multiple sessions of **one model Snap** are the encoding.
+So: **SysML can nest everything.** Encoding that tree as `:contains` in one session (then clipping `pin_map`) is the bug. Multiple sessions of **one model Snap** are the encoding — **budget cuts on the containment tree**, not a kind zoo of layer sessions.
 
 `Peak_L` (0.18 extra) stays last-resort for leftover `contains` **inside** an interior. It is not the fix for model-wide nesting. It is not default goldfish.
 
-**Two budgets.** Ingest `max_nodes` = Commit into **that interior**. Goldfish \(M\approx 50\) = Shape. A 193-pin requirements package in **one** interior still cannot shell the whole package under \(M\). Then split **that package** again (kind band or child package), still under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes.
+**Two budgets.** Ingest `max_nodes` = Commit into **that interior** (error if the subtree still will not fit — do not Commit a partial brace). Goldfish \(M\approx 50\) = Shape of that interior **whole**. If it will not fit, cut again under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes. Do not teach silent `max_rows` as Shape.
 
 ### Interior grain (of the model)
 
-Prefer **SysML package** (the `package` / `private import` tree), not “whatever `.sysml` files exist.” Optional **kind band** (REQ vs PRT vs verification) when a package still exceeds ~2\(M\) pins.
+Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) §6.
 
 Worked example — **this product model** (`ProjectMemNet` / `root.sysml` imports):
 
@@ -131,14 +131,14 @@ Worked example — **this product model** (`ProjectMemNet` / `root.sysml` import
 |--------------------------|------------------|
 | \(S_{\mathrm{req}}\) | `MemNetRequirements` |
 | \(S_{\mathrm{ver}}\) | `MemNetVerification` |
-| \(S_{\mathrm{dep}}\) | `MemNet` (deploy nest) |
+| \(S_{\mathrm{dep}}\) | `MemNet` first; **recurse** when the part nest still will not fit \(M\) |
 | \(S_{\mathrm{beh}}\) | `MemNetBehaviour` |
 | \(S_{\mathrm{con}}\) | `MemNetConnections` |
 | \(S_{\mathrm{cat}}\) | Root: `session=` + `qname=` of those packages (not the atoms) |
 
 Mission \(S\) is **not** an interior of the model Snap. It holds `TSK_model_*` and locators into the catalog. The model Snap’s output is the **stack** \((S_{\mathrm{cat}}, S_{\mathrm{req}}, \ldots)\).
 
-**MUST NOT** one session per `requirement def`. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Layer dialect.
+**MUST NOT** one session per `requirement def` or nested usage. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Layer dialect. **MUST NOT** emit a truncated Shape of a fat nest.
 
 ### Snap loop (one model)
 
@@ -165,7 +165,7 @@ q = REQ_MN_REQ_00
 | Cousin | Steal | Reject |
 |--------|-------|--------|
 | `root.sysml` imports | One model, several packages | Treating each file as an independent Snap |
-| Package tree | Interior grain | Flattening the nest with `:contains` in one \(S\); one session per requirement; Leiden |
+| Package / part / requirement tree | Interior grain = **fit** | Flattening the nest with `:contains` in one \(S\); clipping `max_rows`; one session per leaf; Leiden |
 | 6-step modelling note | Cue TSK → edit SSOT → delta | Chat as SSOT for `qname=` |
 | Product vs application ([`../SHAPE.md`](../SHAPE.md)) | Same Snap-model grain downstream | Import `MemNetRequirements` into a customer load tree |
 
