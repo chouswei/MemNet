@@ -79,6 +79,17 @@ Goldfish: **one** \(S\) per generate. Cross-cut `satisfy` / `allocate`: second l
 
 **Already built.** If the nested type already presents in another minted session, do **not** Snap it again. Shell = usage **name** + `:typedBy` + that `session=`. Configuration **delta** (`subsets`, extra nested `lugbolt`) stays on the usage pin.
 
+**Look loop (session in session).** Catalog → interior → child interior is the **same** goldfish, repeated. Each generate holds **one** `pin_map`. If the Shape shows a child `session=` you need, **drop** the parent map and `pin_map` that child on the **next** generate. Recurse until the cue’s brace. Not \(N\) maps stacked in one prompt (V5).
+
+```text
+pin_map(S_cat)     → pick session=
+pin_map(S_i)       → child has session=?  yes → drop map, pin_map(S_child)
+                   → … until this brace fits M whole
+edit .sysml of THAT cut → re-Snap THAT interior
+```
+
+**Parallel sub-units.** When the **parent shell is already clear in `.sysml`** (children named, ports typed, `session=` assigned), sibling interiors are **disjoint**. Parent mints one `TSK_*` per sub-unit, passes that interior session id, **ends the turn**. Workers goldfish **only** their interior (TCP or streamable-http; [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)). If the parent nest is still being invented, stay **serial**: write the shell first. Cross-cut `satisfy` / `allocate` waits until both interiors exist (second look / slice). MUST NOT two workers on the same interior, the same brace, or overlapping `MOD_*` without RSV.
+
 **As-is leftover:** `snap_model` still package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` misses `interface` usages, `subsets`/`redefines`, `connect`/`flow`, multiplicity, attributes; Snap may re-project the same `qname=`. Do not teach those caps as law. `.sysml` stays SSOT.
 
 ---
@@ -90,7 +101,7 @@ MCP arg is **`session`**. In-process for a single agent; Multitask uses TCP/HTTP
 1. **`serve_status`** if TCP; if down, edit `.sysml` only.
 2. **Mission** — cue `TSK_model_<short>` → `pin_map` **that** session. Copy `SYM.path` / `line`. leftover `anchor=` is leftover.
 3. **Catalog** — `pin_map` \(S_{\mathrm{cat}}\) on the parent `qname=` / `requirementId=`. Row carries `session=` of the cut.
-4. **Relatives** — `pin_map` **that one interior**. Shape = parent + **direct** children **whole**. Re-anchor to a child cut; do not depth-2 the package.
+4. **Relatives** — `pin_map` **that one interior**. Shape = parent + **direct** children **whole**. If a child `session=` is the cue, **re-anchor** next generate (look loop). Do not depth-2 the package and do not stack maps.
 5. **Edit SSOT** — narrow Read at `SYM.line`; write the nest in `.sysml`. Optional: one code or doc window at the same locator.
 6. **Validate** — `mcp-sysml-v2 validate`.
 7. **Re-Snap this subtree.** If it no longer fits \(M\), cut the child. If that `qname=` already has `session=`, **reuse** it. Parent keeps name + `typedBy`/`session=`, not the child’s interior.
@@ -154,12 +165,15 @@ part def SenseAmp { port vin : AnalogIn; port vout : AnalogOut; }
 | Layer / `query_warm` / `rag_query` `.sysml` | GQL + `pin_map` |
 | leftover `id:'NEW'` / `anchor=` as law | Pattern `mutate`; cue `pin_map` |
 | Stuff every interior into `messages` | Drop prior maps |
+| \(N\) nested `pin_map`s in one generate | Look loop: one \(S\) per generate |
+| Parallel workers before the parent names children | Serial until the shell is in `.sysml` |
+| Two workers on the same interior / brace | One `TSK_*` per disjoint `session=` |
 
 ---
 
 ## 7. Related
 
-- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — Turns A–H
+- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — Turns A–I
 - [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md)
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — shared TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — coding when SysML is SSOT

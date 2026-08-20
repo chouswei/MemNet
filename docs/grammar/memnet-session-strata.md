@@ -52,12 +52,13 @@ V5 still holds: \(N\) interior maps on overlapping egos waste LAW. Across strata
 ```text
 q  →  catalog Shape (session= ids, M≈50)
        empty → skip
-       hit   → pin_map(session=S*, anchor=…)     # one interior
+       hit   → pin_map(session=S*)              # one interior this generate
+                child session= needed → drop map; next generate pin_map(S_child)
                 mutate Δ on S* only
                 Path B: Absorb slice → lead
 ```
 
-Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
+Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Recurse **across generates** (session in session), not \(N\) maps in one prompt. Sibling interiors whose parent shell is already in `.sysml` MAY be built as **parallel** `TSK_*` on disjoint `session=` ids ([`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md)). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
 
 **Path A first.** One shared mission id is the cheap stratum. Path B and \(S_{\mathrm{lib}}\) are the expensive ones. Workers **MUST NOT** open a library session unless the parent assigned it.
 

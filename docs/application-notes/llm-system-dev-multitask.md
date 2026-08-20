@@ -117,6 +117,8 @@ When work touches both **`sysml-models/`** and implementation files:
 
 **MUST NOT** run two workers on the **same** anchor slice without serialisation or an **RSV** lease (last-write-wins if you skip both).
 
+When the **SysML parent shell is already clear** (children named, `session=` assigned), sibling **interiors** are disjoint: one `TSK_*` per interior session, workers `pin_map` only that \(S_i\). If the parent nest is still being invented, stay serial — write the shell first. Detail: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) (look loop + parallel sub-units).
+
 ---
 
 ## 6. Adopting MN-REQ-12 in a system repo

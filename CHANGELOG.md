@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Session-in-session loop + parallel interiors** — Goldfish recurses **across generates** (one \(S\) per `pin_map`; child `session=` → drop map, re-anchor). Sibling sub-units MAY be parallel `TSK_*` once the parent shell is already in `.sysml` (disjoint interiors; TCP/HTTP). Case study Turn I. Package SemVer remains **0.9.0**. Do not claim **1.0**.
 - **Refactor SysML modelling note + nest-cut case study** — Note owns the **loop** (two token laws, stores, Snap stack, one turn, relatives table). Case study owns **evidence** (Turns A–H: product tree, VehicleUsages, elan8, already-built reuse). Cut duplicated Vehicle/elan8/PDU prose. Package SemVer remains **0.9.0**. Do not claim **1.0**.
 - **Two token laws (SysML SSOT)** — (1) goldfish **relatives** of one cue; (2) each over-\(M\) / already-built **sub-unit in a separate session**. Modelling, coding, and docs that use that SSOT share the same pair. [`docs/application-notes/llm-sysml-v2-modeling.md`](docs/application-notes/llm-sysml-v2-modeling.md) §1. Package SemVer remains **0.9.0**. Do not claim **1.0**.
 - **Already-built interiors** — Nested usage whose type already has a Snap session is **presented**, not copied: parent shell = name + `typedBy` + existing `session=`; look = `pin_map` that \(S\); join = Absorb slice. No second Snap of the same `qname=`. Case study Turn H. Package SemVer remains **0.9.0**. Do not claim **1.0**.

@@ -15,7 +15,7 @@ Walk against `sysml-models/models/`, a PDU sketch, OMG VehicleUsages, and [elan8
 Show the two token laws on a SysML SSOT:
 
 1. Goldfish **relatives of one cue** (complete Shape, then one brace at `SYM.line`).
-2. Each over-\(M\) or **already-built** sub-unit lives in a **separate session** (parent presents `session=`; goldfish does not walk it).
+2. Each over-\(M\) or **already-built** sub-unit lives in a **separate session** (parent presents `session=`; goldfish does not walk it). Look is a **session-in-session loop** (one \(S\) per generate). Sibling interiors may be **parallel tasks** once the parent shell is already in `.sysml`.
 
 SysML can nest everything, so sessions are **budget cuts on the containment tree**, not a kind zoo. \(M\) is a **fit test**: reconstruct **fits whole** or Recall refuses. Silent `max_rows` is the same class of lie as silently picking one root.
 
@@ -71,6 +71,7 @@ Mission `mn_mission` / `TSK_model_pdu`. Catalog `mn_cat` (handed `session=` loca
 | F | Already-built Wheel; `subsets` delta; nested-port `interface` |
 | G | Coding SSOT: relatives of `CheckoutService` |
 | H | Law 2 reuse: nested type already presents in another session |
+| I | Look loop; parallel `TSK_*` on disjoint interiors when the shell is already clear |
 
 ### A — requirement in requirement
 
@@ -157,6 +158,14 @@ These trees are teaching-small (\(\approx 1.4\,\mathrm{k}\) office … \(\approx
 
 Turn B **mints** when over \(M\) and no row exists. Turn H **reuses**. Re-Snap of the same `qname=` refreshes that interior; it does not mint a twin.
 
+### I — look loop and parallel sub-units
+
+**Look loop.** `vehicle_C3` → `rearAxleAssembly` `session=` → `rearAxle` → port `drive` is three generates, not one depth-3 dump: catalog (or skip) → C3 shell → axle interior. Drop the prior map each time.
+
+**Parallel.** `WebShopSystem` shell already in `.sysml` lists `checkoutService` and `inventoryService` with `session=`. Parent mints `TSK_checkout` and `TSK_inventory`, passes each interior id, ends the turn. Workers goldfish **only** their \(S_i\) (TCP/HTTP). Parent next turn `pin_map`s the catalog; does not walk either nest. `satisfy checkoutLatency by webshopSystem.checkoutService` waits until that interior exists (D).
+
+If the parent is still inventing those usages, **do not** spawn: write the shell first (serial). Same-interior or same-brace workers need RSV or serialisation — MN-REQ-12.5.
+
 ## 4. MUST NOT
 
 | Not this | Why |
@@ -173,6 +182,9 @@ Turn B **mints** when over \(M\) and no row exists. Turn H **reuses**. Re-Snap o
 | Explode `lugbolt[4..5]` / paste C1 into C2 | One pin; delta + locator |
 | Depth-2 from C3 to `rearAxle.drive` | Shell, then re-anchor |
 | Second Snap of a `qname=` that already has `session=` | Present the existing interior |
+| \(N\) nested maps in one generate | Look loop; one \(S\) per generate |
+| Parallel workers before the parent shell is in `.sysml` | Serial until children are named |
+| Two workers on the same interior | Disjoint `session=` / RSV |
 
 ## 5. Honesty
 
@@ -181,6 +193,7 @@ Turn B **mints** when over \(M\) and no row exists. Turn H **reuses**. Re-Snap o
 | `snap_model` catalog + package interiors | shipped 0.15 (untagged; package 0.9.0); `tests/test_catalog_snap.py` |
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
+| Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |
 | Ingest `max_nodes=200` on `deploy.sysml` | can hit `ingest_budget` before a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still `[:max_rows]` |
 | VehicleUsages `interface` / `subsets` / `redefines` / `flow` | not in `_DEF_HEAD`; `.sysml` SSOT |
@@ -196,4 +209,5 @@ Turn B **mints** when over \(M\) and no row exists. Turn H **reuses**. Re-Snap o
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat is not the live map |
 | [session-outline-case-study.md](session-outline-case-study.md) | Empty q = census of **one** \(S\) |
 | `docs/application-notes/llm-sysml-v2-modeling.md` | Agent loop |
+| `docs/application-notes/llm-system-dev-multitask.md` | Parallel `TSK_*` (Turn I) |
 | `docs/grammar/memnet-session-strata.md` | Sessions as strata |
