@@ -8,7 +8,7 @@
 
 **Primary worked example (retrospective):** shipping **`session_load`** / **`session_save`** on `memnet-mcp` (release v0.2.12, commit `7440aee`).
 
-Complements: user-pack `mcp-memnet` / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) when **SysML is SSOT** — same two token laws (relatives of one cue; nested sub-unit in a **separate session**).
+Complements: [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/) / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) when **SysML is SSOT** — same two token laws (relatives of one cue; nested sub-unit in a **separate session**).
 
 British English. ASCII.
 

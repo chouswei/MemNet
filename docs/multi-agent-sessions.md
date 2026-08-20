@@ -142,5 +142,5 @@ Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models
 - `sysml-models/outputs/multitask-case-study.md` — worked scenario + verify table
 - `docs/application-notes/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` system repos
 - `.cursor/skills/memnet-reference/SKILL.md` — product development skill
-- `~/.cursor/skills/memnet-multitask/` — application Multitask skill (user pack)
+- `.cursor/skills/memnet-multitask/` — application Multitask skill (vendored in this repo)
 - `AGENTS.md` — hub policy

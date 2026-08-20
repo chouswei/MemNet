@@ -5,10 +5,9 @@ description: >-
   shared-dialect grammar, SysML models, packaging, CI, and contributor layout.
   Triggers: MemNet development, memnet engine, MutateGate, PinMapComposer,
   memnet-mcp server, parts/common/memnet, grammar fixtures, MN-REQ, product
-  SysML, memnet contributor, build memnet. For SysML agent I/O in this checkout,
-  load `.cursor/skills/sysml-*` (cloud VMs have no user pack). For MCP / Multitask
-  application on a human machine, load user-pack mcp-memnet, memnet-format, or
-  memnet-multitask.
+  SysML, memnet contributor, build memnet. For SysML and MCP I/O in this
+  checkout, load `.cursor/skills/sysml-*`, `mcp-memnet`, `memnet-format`,
+  or `memnet-multitask`.
 metadata:
   pattern: pipeline
   version: "2.0"
@@ -27,7 +26,7 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives i
 1. Confirm the task is **product development** in this MemNet repo (not user-pack application).
 2. Read `AGENTS.md` and `project.toml` for version, layout, and policy.
 3. Route to the canonical path below (engine, MCP, grammar, SysML) — do not duplicate doctrine.
-4. For SysML agent I/O in this repo, open the **in-repo** skills under `.cursor/skills/` first (table below). On a human machine the user pack (`~/.cursor/skills`) is the live home of those skills; cloud VMs have no user pack and **MUST** use the vendored copies.
+4. For SysML agent I/O in this repo, open the **in-repo** skills under `.cursor/skills/` first (table below). On a human machine the Apache user pack may still live in `~/.cursor/skills`; **this checkout** vendors `mcp-memnet`, `memnet-format`, `memnet-multitask`, and `memnet-codebase-snap` so cloud VMs can load them.
 
 ## Mission (product)
 
@@ -45,9 +44,9 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives i
 | Snap, read policy, pattern SSOT | `.cursor/skills/sysml-memnet-documentation/` |
 | Thin SysML × GQL bridge | `.cursor/skills/sysml-gql/` |
 
-On a human machine the same names live in **`~/.cursor/skills/`** (live home of the Apache user pack). Cloud VMs **MUST** use the vendored copies above. Do not teach those playbooks here.
+On a human machine the same names may also live in **`~/.cursor/skills/`**. In this checkout they are **vendored** under `.cursor/skills/`. Do not teach those playbooks inside this skill.
 
-MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-multitask`) remain user-pack only — not vendored in this repo.
+MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-multitask`) are in `.cursor/skills/` — see [`.cursor/skills/README.md`](../README.md).
 
 ## Canonical paths (this repo)
 
@@ -109,7 +108,7 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
   0.19 export is a separate cue `pin_map` GQL write-out (`memnet export pin-map`).
   MUST NOT treat export as Absorb, a chat dump, or `.sysml` reverse this cut.
 - Invent N-server federation for Path-B ingest.
-- Vendor the whole user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. The five SysML modeling trees above are the allowed copies so cloud VMs can load them.
+- Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-reference`, `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, and the five SysML modelling trees.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
 
 ## Related
@@ -122,7 +121,9 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 | `.cursor/skills/sysml-memnet-cache/` | In-repo SysML cache defer (cloud VM copy) |
 | `.cursor/skills/sysml-memnet-documentation/` | In-repo snap / read policy (cloud VM copy) |
 | `.cursor/skills/sysml-gql/` | In-repo SysML GQL bridge (cloud VM copy) |
-| `~/.cursor/skills/mcp-memnet/` | Using MemNet via MCP (user pack; not in this checkout) |
-| `~/.cursor/skills/memnet-multitask/` | Multitask application doctrine (user pack; not in this checkout) |
+| `.cursor/skills/mcp-memnet/` | Using MemNet via MCP |
+| `.cursor/skills/memnet-format/` | GQL / shaped pin_map |
+| `.cursor/skills/memnet-multitask/` | Multitask application doctrine |
+| `.cursor/skills/README.md` | What is vendored vs the full user pack |
 | `docs/README.md` | Developers vs applications doc index |
 | `AGENTS.md` | Hub / policy |

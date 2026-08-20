@@ -37,17 +37,16 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Skill routing
 
-**Repo skills** (`.cursor/skills/`) = **MemNet product development** only.  
-**User pack** (`~/.cursor/skills/`) = **applying** MemNet in agents, Multitask, and system repos. Routing graph: `~/.cursor/skills/SKILL-GRAPH.md`.
+**Repo skills** (`.cursor/skills/`) — product development **and** the MemNet application skills vendored for this checkout (cloud VMs have no user pack). Full personal pack remains [cursor-user-skills](https://github.com/chouswei/cursor-user-skills). Routing: [`.cursor/skills/SKILL-GRAPH.md`](.cursor/skills/SKILL-GRAPH.md).
 
 | Intent | Path |
 |--------|------|
 | Develop MemNet engine / MCP / grammar / product SysML | `.cursor/skills/memnet-reference/` |
-| Use MemNet via MCP (pin map, sessions, mutate) | `~/.cursor/skills/mcp-memnet/` |
-| Shared dialect wire shapes | `~/.cursor/skills/memnet-format/` |
-| Multitask Mode + MemNet (application) | `~/.cursor/skills/memnet-multitask/`, `docs/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
-| Multitask system-dev (`modelbasedPrj-*`) | `~/.cursor/skills/memnet-multitask/`, `docs/application-notes/llm-system-dev-multitask.md` |
-| SysML design memory with MemNet | `~/.cursor/skills/sysml-memnet-documentation/`, `~/.cursor/skills/sysml-memnet-cache/` |
+| Use MemNet via MCP (pin map, sessions, mutate) | `.cursor/skills/mcp-memnet/` |
+| Shared dialect wire shapes | `.cursor/skills/memnet-format/` |
+| Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
+| Multitask system-dev (`modelbasedPrj-*`) | `.cursor/skills/memnet-multitask/`, `docs/application-notes/llm-system-dev-multitask.md` |
+| SysML design memory with MemNet | `.cursor/skills/sysml-memnet-documentation/`, `.cursor/skills/sysml-memnet-cache/` |
 | MN-REQ-12 SysML + verify (Multitask) | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
 | Doctrine / grammar / models | `README.md`, `docs/SHAPE.md`, `docs/ROADMAP.md`, `docs/grammar/`, `sysml-models/` |
 | Generic MCP implementation | `parts/memnet-mcp/` |

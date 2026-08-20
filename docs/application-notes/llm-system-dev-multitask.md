@@ -4,7 +4,7 @@
 
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
 **Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
-**Application skill:** `~/.cursor/skills/memnet-multitask/`. Index: [`docs/README.md`](../README.md).
+**Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../README.md).
 
 **Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
 
