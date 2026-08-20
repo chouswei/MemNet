@@ -1,19 +1,27 @@
 # In-repo Cursor skills (MemNet checkout)
 
-**Not** the whole user pack. Vendored here so cloud VMs and this repo can load MemNet **application** skills without `~/.cursor/skills`.
+Two jobs. **Use MemNet** (agent reference). **Build MemNet** (this product’s engine). Doctrine SSOT is `docs/` — skills route; they do not invent claims.
 
-**Upstream pack:** [chouswei/cursor-user-skills](https://github.com/chouswei/cursor-user-skills) (optional on a human machine).  
-**Doctrine SSOT:** this repo’s `docs/` (`SHAPE.md`, `grammar/gql-wire-profile.md`, `LLM-GUIDE.md`). Skills route; they do not invent product claims.
+**Upstream pack (optional):** [chouswei/cursor-user-skills](https://github.com/chouswei/cursor-user-skills). This folder is **not** the whole pack.
+
+## Use MemNet (reference)
+
+Hub: [`memnet-use/`](memnet-use/SKILL.md). Then one specialist:
 
 | Skill | Role |
 |-------|------|
-| `memnet-reference/` | **Build** this product (engine / MCP / grammar) |
-| `mcp-memnet/` | Use generic `memnet-mcp` tools |
+| `mcp-memnet/` | MCP tools, session, `pin_map`, ingest |
 | `memnet-format/` | GQL / shaped `pin_map` wire |
 | `memnet-multitask/` | Multitask + shared TCP/HTTP |
 | `memnet-codebase-snap/` | Code `MOD`/`SYM` snap |
 | `sysml-*` | SysML modelling with MemNet |
 
-**MUST NOT** vendor hardware / PCBA / mermaid / generator / DigiKey skills into this folder.
+## Build MemNet (this repo)
+
+| Skill | Role |
+|-------|------|
+| `memnet-reference/` | Engine / MCP / grammar / CI / layout |
+
+**MUST NOT** vendor hardware / PCBA / mermaid / generator / DigiKey skills here.
 
 Routing: [`SKILL-GRAPH.md`](SKILL-GRAPH.md). Hub: repo `AGENTS.md`.

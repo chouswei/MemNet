@@ -23,7 +23,7 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives i
 
 ## When loaded
 
-1. Confirm the task is **product development** in this MemNet repo (not user-pack application).
+1. Confirm the task is **product development** in this MemNet repo. If the task is **using** MemNet (pin_map, goldfish, MCP tools), stop and load [memnet-use](../memnet-use/SKILL.md) instead.
 2. Read `AGENTS.md` and `project.toml` for version, layout, and policy.
 3. Route to the canonical path below (engine, MCP, grammar, SysML) — do not duplicate doctrine.
 4. For SysML agent I/O in this repo, open the **in-repo** skills under `.cursor/skills/` first (table below). On a human machine the Apache user pack may still live in `~/.cursor/skills`; **this checkout** vendors `mcp-memnet`, `memnet-format`, `memnet-multitask`, and `memnet-codebase-snap` so cloud VMs can load them.
@@ -108,7 +108,7 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
   0.19 export is a separate cue `pin_map` GQL write-out (`memnet export pin-map`).
   MUST NOT treat export as Absorb, a chat dump, or `.sysml` reverse this cut.
 - Invent N-server federation for Path-B ingest.
-- Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-reference`, `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, and the five SysML modelling trees.
+- Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-use` (how to use), `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, `memnet-reference` (how to **build**), and the five SysML modelling trees.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
 
 ## Related
@@ -121,9 +121,10 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 | `.cursor/skills/sysml-memnet-cache/` | In-repo SysML cache defer (cloud VM copy) |
 | `.cursor/skills/sysml-memnet-documentation/` | In-repo snap / read policy (cloud VM copy) |
 | `.cursor/skills/sysml-gql/` | In-repo SysML GQL bridge (cloud VM copy) |
+| `.cursor/skills/memnet-use/` | How to **use** MemNet (agent reference hub) |
 | `.cursor/skills/mcp-memnet/` | Using MemNet via MCP |
 | `.cursor/skills/memnet-format/` | GQL / shaped pin_map |
 | `.cursor/skills/memnet-multitask/` | Multitask application doctrine |
-| `.cursor/skills/README.md` | What is vendored vs the full user pack |
+| `.cursor/skills/README.md` | Use vs build; what is vendored |
 | `docs/README.md` | Developers vs applications doc index |
 | `AGENTS.md` | Hub / policy |

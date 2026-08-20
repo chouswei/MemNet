@@ -15,8 +15,8 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 
 | Intent | Skill |
 |--------|--------|
-| Develop MemNet engine / MCP / grammar | `memnet-reference` |
-| MCP tools, session, pin_map, ingest | `mcp-memnet` |
+| **How to use MemNet** (goldfish, pin_map, mutate) | `memnet-use` |
+| MCP tools, session, ingest | `mcp-memnet` |
 | GQL wire / shaped pin_map | `memnet-format` |
 | Multitask / Task workers / shared session | `memnet-multitask` |
 | Code MOD/SYM snap | `memnet-codebase-snap` |
@@ -26,10 +26,12 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 | SysML snap / read policy | `sysml-memnet-documentation` |
 | SysML × GQL bridge | `sysml-gql` |
 | SysML token laws / Snap stack | `docs/application-notes/llm-sysml-v2-modeling.md` |
+| Develop MemNet engine / MCP / grammar | `memnet-reference` |
 
 ## MemNet stack (edges)
 
 ```cypher
+(:SKL {id: 'memnet-use'})-[:DEFAULT_STACK {note: 'hub'}]->(:SKL {id: 'mcp-memnet'})
 (:SKL {id: 'mcp-memnet'})-[:COMPLEMENTS {note: 'wire'}]->(:SKL {id: 'memnet-format'})
 (:SKL {id: 'memnet-multitask'})-[:COMPLEMENTS {note: 'multitask'}]->(:SKL {id: 'mcp-memnet'})
 (:SKL {id: 'memnet-multitask'})-[:COMPLEMENTS {note: 'multitask'}]->(:SKL {id: 'memnet-format'})
@@ -38,4 +40,4 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 (:SKL {id: 'sysml-modeling-workflow'})-[:DEFAULT_STACK {note: 'memnet'}]->(:SKL {id: 'sysml-memnet-documentation'})
 ```
 
-Load `memnet-multitask` when Multitask Mode or Task sub-agents run. Ops: `docs/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.
+Load `memnet-use` when the job is **using** MemNet. Load `memnet-reference` only when **building** this product. Load `memnet-multitask` when Multitask Mode or Task sub-agents run. Ops: `docs/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.
