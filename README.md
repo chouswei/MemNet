@@ -6,17 +6,18 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.19.0**. **PyPI is still `memnet-llm==0.4.6`** — `pip install memnet-llm` does **not** yet fetch 0.19. Prefer a git checkout / editable install until 0.19 is published.
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.19.0**. PyPI **`memnet-llm==0.19.0`** is published (`pip install memnet-llm` resolves 0.19.0). **1.0** stays unclaimed.
 
 ## Install + quick CLI
 
 ```bash
-# Until 0.19 is on PyPI, install from this repo (editable) rather than claiming pip 0.19:
-pip install -e ".[mcp]"
-# PyPI lag: `pip install memnet-llm` currently resolves 0.4.6, not 0.19.0.
-# optional durable clients (drivers only — not AgensGraph/Neo4j servers):
-# pip install -e ".[agensgraph]"
-# pip install -e ".[neo4j]"
+pip install memnet-llm
+# or: pip install memnet-llm==0.19.0
+# optional extras (drivers only — not AgensGraph/Neo4j servers):
+# pip install 'memnet-llm[mcp]'
+# pip install 'memnet-llm[agensgraph]'
+# pip install 'memnet-llm[neo4j]'
+# contributors: pip install -e ".[dev,mcp]"
 ```
 
 CLI needs a serve process. Prefer local IPC; TCP is the fallback.
