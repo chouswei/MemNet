@@ -7,7 +7,7 @@ metadata:
   pattern: pipeline
   domain: sysml-v2
   version: "1.3"
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
   pairs_with: [sysml-memnet-documentation, sysml-memnet-cache, sysml-modeling-workflow, mcp-memnet]
 token_guardrails: |
   - Thin: do not paste the load tree. MemNet first. leftover anchor= named leftover.

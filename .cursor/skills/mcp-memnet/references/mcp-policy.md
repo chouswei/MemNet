@@ -6,7 +6,7 @@ Cursor (stdio) → memnet-mcp
                  └─ TCP → memnet serve (MEMNET_MCP_TRANSPORT=tcp)
 ```
 
-- Product **0.19.0**. Cue then `pin_map`. Write **`mutate`**. leftover `add`/`update` / `query_warm` / `anchor=` named leftover.
+- Product **0.19.1**. Cue then `pin_map`. Write **`mutate`**. leftover `add`/`update` / `query_warm` / `anchor=` named leftover.
 - Multitask **MUST NOT** use in-process MCP for a shared session.
 - Live Agens claimed (0.7); Neo4j live claimed (0.14); RSV + Path-B ingest + `snap_model` + `export_pin_map` shipped.
 - Novel-writer MCP is dropped.
