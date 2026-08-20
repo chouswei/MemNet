@@ -7,6 +7,8 @@ import json
 
 import pytest
 
+from memnet.config import Caps
+from memnet.session import count_sessions, open_session
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.seed import supplement_seed_lines
 
@@ -326,12 +328,10 @@ def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
 def test_mcp_session_list_header_and_close_decrements(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
     monkeypatch.setenv("MEMNET_MAX_SESSIONS", "1")
-    from memnet.config import Caps
-    from memnet.session import count_sessions, open_session as open_ss
     from memnet_mcp.server import session_close, session_list, session_open
 
     assert Caps().max_sessions == 1
-    first = open_ss(map_file=str(schema_file), caps=Caps())
+    first = open_session(map_file=str(schema_file), caps=Caps())
     listed = json.loads(asyncio.run(session_list()))
     assert listed["exit_code"] == 0
     assert listed["stdout"].splitlines()[0] == "@STAT: sessions|1/1"

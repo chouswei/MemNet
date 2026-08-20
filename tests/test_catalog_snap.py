@@ -9,7 +9,7 @@ from typer.testing import CliRunner
 
 from memnet.catalog_snap import snap_model
 from memnet.cli import app
-from memnet.config import examples_dir
+from memnet.config import Caps, examples_dir
 from memnet.exceptions import MemNetError
 from memnet.import_absorb import (
     WorkingMemorySlice,
@@ -17,7 +17,7 @@ from memnet.import_absorb import (
     export_working_memory_slice,
 )
 from memnet.pin_map_composer import PinMapComposer
-from memnet.session import get_session, list_sessions, open_session
+from memnet.session import close_session, get_session, list_sessions, open_session
 
 runner = CliRunner()
 _MAP = examples_dir() / "schema.sysml.example.txt"
@@ -168,10 +168,8 @@ def test_join_is_slice_absorb_not_whole_s(memnet_temp, model_dir: Path):
 
 def test_close_frees_slots_for_snap_model(memnet_temp, model_dir: Path, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_MAX_SESSIONS", "3")
-    from memnet.config import Caps
-    from memnet.session import close_session, open_session as open_ss
 
-    filler = open_ss(map_file=str(schema_file), caps=Caps())
+    filler = open_session(map_file=str(schema_file), caps=Caps())
     with pytest.raises(MemNetError) as ei:
         snap_model(model_dir, map_file=_MAP, caps=Caps())
     assert ei.value.code == "limit_exceeded"

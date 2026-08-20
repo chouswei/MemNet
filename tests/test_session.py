@@ -8,8 +8,9 @@ import pytest
 from typer.testing import CliRunner
 
 from memnet.cli import app
+from memnet.exceptions import MemNetError
 from memnet.registry import contains
-from memnet.session import get_session, open_session, set_now_override
+from memnet.session import count_sessions, get_session, open_session, set_now_override
 
 runner = CliRunner()
 
@@ -64,14 +65,12 @@ def test_default_max_sessions_is_256(memnet_temp, monkeypatch):
 def test_max_sessions_override(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_MAX_SESSIONS", "2")
     from memnet.config import Caps
-    from memnet.exceptions import MemNetError
-    from memnet.session import count_sessions, open_session as open_ss
 
     assert Caps().max_sessions == 2
-    open_ss(map_file=str(schema_file), caps=Caps())
-    open_ss(map_file=str(schema_file), caps=Caps())
+    open_session(map_file=str(schema_file), caps=Caps())
+    open_session(map_file=str(schema_file), caps=Caps())
     with pytest.raises(MemNetError) as exc:
-        open_ss(map_file=str(schema_file), caps=Caps())
+        open_session(map_file=str(schema_file), caps=Caps())
     assert exc.value.code == "limit_exceeded"
     assert exc.value.message == "sessions|3/2"
     assert count_sessions() == 2
@@ -91,16 +90,14 @@ def test_session_list_emits_counter_header(memnet_temp, schema_file):
 def test_cli_close_decrements_so_open_can_mint(memnet_temp, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_MAX_SESSIONS", "1")
     from memnet.config import Caps
-    from memnet.exceptions import MemNetError
-    from memnet.session import count_sessions, open_session as open_ss
 
-    first = open_ss(map_file=str(schema_file), caps=Caps())
+    first = open_session(map_file=str(schema_file), caps=Caps())
     with pytest.raises(MemNetError) as exc:
-        open_ss(map_file=str(schema_file), caps=Caps())
+        open_session(map_file=str(schema_file), caps=Caps())
     assert exc.value.message == "sessions|2/1"
     closed = runner.invoke(app, ["session", "close", first.session_id])
     assert closed.exit_code == 0
     assert count_sessions() == 0
-    second = open_ss(map_file=str(schema_file), caps=Caps())
+    second = open_session(map_file=str(schema_file), caps=Caps())
     assert second.session_id != first.session_id
     assert count_sessions() == 1
