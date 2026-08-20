@@ -1,301 +1,175 @@
 # LLM SysML v2 modeling
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md). Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
 
-**Single-file application example.** Drive a long-form SysML v2 textual modeling session where session memory lives in MemNet, following `sysml-memnet-documentation` (user pack) and its 6-step snap loop.
-
-**Teach:** openCypher-shaped GQL + shaped `pin_map` + gated mutate.
-
-MemNet holds the symbol index (`MOD`/`SYM`), design atoms (`PRT`/`CON`/`REQ`/`CLM`), locators, rationale and backlog; authoritative structure and satisfy links live in split `models/*.sysml` files.
+**Teach:** the `.sysml` load tree is structural **SSOT** (and the SSOT of the codebase it specifies). MemNet is **mission working memory**: a coding or modelling agent `pin_map`s **relatives of one cut**, then narrow-Reads that brace. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md). Case study: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
 
 British English. ASCII.
 
 ---
 
-## 1. What lives in the graph
+## 1. Why MemNet (token law)
+
+Dumping the model into chat is the expensive path. Relatives of the live cue are the cheap one. Counts \(\approx 3.5\) characters/token (this product tree and the OMG vehicle examples):
+
+| Prompt contents | ~tokens |
+|-----------------|--------:|
+| Whole `sysml-models/models/` load tree | **113k** |
+| `deploy.sysml` alone | **38k** |
+| OMG Annex A `SimpleVehicleModel.sysml` | **21k** |
+| leftover `pin_map` \(M=50\) with `doc` blobs on every node | **~25k** (alarm) |
+| leftover clipped depth-2 \(M=50\), short locators | **1.5–4k** (same cost, **wrong** rows) |
+| Catalog look (a few `session=` + `qname=` rows) | **~0.2k** |
+| Complete shell of **one part** (direct children) | **0.2–0.8k** |
+| Narrow Read of that part’s brace (e.g. `MutateGate`, 34 lines) | **~0.5k** |
+| OMG `VehicleUsages.sysml` **whole file** | **0.7k** (too small to be a budget example) |
+
+**TARGET turn:** catalog **~200** + complete relatives of **one** interior **~400–800** + brace Read **~500** \(\approx\) **1.3–2.5k** on the model side, then one code window at `SYM.line`. That is about **20–100×** less than pasting `deploy.sysml` or the load tree. Goldfish bound: \(\lesssim 4\,\mathrm{k}\) in; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm ([`../grammar/math-skeleton.md`](../grammar/math-skeleton.md)).
+
+The saving holds only if the Shape is **complete and the right relatives**. Truncation spends the budget on the wrong 50 rows.
+
+---
+
+## 2. Two stores
+
+| Store | SSOT for | In the prompt |
+|-------|----------|----------------|
+| `models/*.sysml` | Nest, `satisfy`, ports, code mapping | **One brace** at `SYM.line` |
+| MemNet sessions | Relatives, locators, `TSK`/`USR` | **One** `pin_map` (drop the last map next turn) |
+| Source tree | Implementation | One code window after `SYM.path` |
+
+MemNet is not a second copy of every brace. Chat is never SSOT.
 
 | Kind | Role |
 |------|------|
-| `TSK` | Modeling campaign or step |
-| `PKG` | Logical source files / packages |
-| `PRT` / `POR` / `CON` / `BEH` / `ITM` / `REQ` | Model element atoms |
-| `MOD` / `SYM` | File modules and editable symbols (path + line hints) |
+| `TSK` / `USR` | Campaign and constraints (mission session) |
+| `PKG` / `PRT` / `POR` / `CON` / `BEH` / `ITM` / `REQ` | Projected model atoms (interiors) |
+| `MOD` / `SYM` | File + line locators into `.sysml` and code |
 | `ART` / `SEC` / `CLM` | Outputs / claims |
-| `USR` | Modeller preferences |
-| Transient | `DEC` / `ISSUE` / short-lived `TSK` (`delete_on_settle`) |
+| Transient | `DEC` / `ISSUE` / short `TSK` (`delete_on_settle`) |
 
-A piece of background is pulled into context only from the **chosen** session’s complete Shape. Cross-cut: catalog look or Absorb a **slice** — no "remember the other file" and no depth-2 walk of a fat `:contains` tree.
-
----
-
-## 2. The 6-step pipeline
-
-Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent; Multitask uses TCP/HTTP.
-
-1. **`serve_status`** (if TCP/shared; skip under in-process default) — if down, edit `.sysml` only and note stale graph.
-2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map` that one session**. Mission `TSK` ego is not a dump of the SysML nest — model interiors are separate sessions (section 6). Never rely on prior chat or full-file reads. leftover `anchor=` is leftover.
-3. **Locate then edit** — from `SYM` → narrow Read/grep → edit `.sysml`.
-4. **Validate** — `mcp-sysml-v2 validate` until clean.
-5. **Doc sync (conditional)** — `sysml-view-doc-sync` if `outputs/` changed.
-6. **Delta write + locator refresh** — gated GQL `mutate` affected atoms; refresh `SYM.line`; settle transients. leftover `add`/`update` named leftover.
-
-After heavy settlement, optional `housekeep prune recyclable --apply`. Reference material is never settled away.
+Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`, `:contains` (membership), `:satisfies`. Electrical `:CST` / `:bind` / `law` is [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — do not put Ohm on SysML locator rows. leftover `id:'NEW'` is leftover; product is GraphElement `CREATE`.
 
 ---
 
-## 3. Schema (GQL labels / relationships)
+## 3. Session stack (one model Snap)
 
-Illustrative primary labels: `:ART`, `:SEC`, `:PKG`, `:PRT`, `:POR`, `:CON`, `:REQ`, `:MOD`, `:SYM`, `:TSK`, `:USR`, `:DEC`, `:CLM`.
+`ingest_sysml` is Path-B **1 path → current session** (as-is). **Model Snap** is one load tree → catalog + interiors: `memnet snap model --root …` / MCP `snap_model`.
 
-```cypher
-(:X {id:'SRC_ID'})-[:relation {id:'E99', note:'optional'}]->(:Y {id:'DST_ID'})
-```
+SysML can nest **everything** in everything. Sessions cut that **containment tree** so each interior **fits** goldfish \(M\approx 50\) **whole**. Construct name is not a layer taxonomy. Package imports (`root.sysml`) are a convenient **first** cut, not the law. Recurse at a part / requirement group / nested package when that subtree still will not fit. Defs vs usages (OMG vehicle) are two interiors of **the same** Snap — `import ::*` is not a dump of the def nest into every usage.
 
-Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`. Do **not** invent ports on locator rows to force `:bind` unless the atom is a true electrical law leaf.
+| Session | Holds |
+|---------|--------|
+| Catalog \(S_{\mathrm{cat}}\) | `session=` + `qname=` of cuts |
+| Interiors \(S_i\) | Relatives of **one** subtree that fits \(M\) whole |
+| Mission \(S\) | `TSK` / `USR` / `SYM` locators — **not** the nest |
 
----
+This product: first interiors follow `MemNetRequirements`, `MemNetVerification`, `MemNet`, … `package MemNet` in `deploy.sysml` still needs **part-root** cuts (`AgentMemory`, …). Goldfish: **one** \(S\) per generate. Cross-cut `satisfy`: second look or Absorb a **slice**.
 
-## 4. Seed sketch (PDU campaign)
+**Shape law.** \(M\) is a **fit test**, not a slicer. TARGET: reconstruct **fits whole** or Recall **refuses** (sibling of CueConflict). Parent **shell** = complete **direct** children (names + `session=` if a child was cut away). Shell is not a clipped depth-2 walk. `MATCH_L` hard LIMIT stays (lists \(Q\); CueConflict when \(|hits|>L\)).
 
-Mission locators only (not the SysML nest). Making nests (part, requirement, package, port, …): section 6 worked examples.
-
-```cypher
-(:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', phase:'model', status:'in_progress'})
-(:PKG {id:'PKG_LIB', path:'library/power', kind:'library', status:'active'})
-(:MOD {id:'MOD_pdu', path:'project/pdu-controller.sysml', summary:'PDU controller part', status:'active'})
-(:SYM {id:'SYM_PDUController', name:'PDUController', kind:'partDef', path:'project/pdu-controller.sysml', line:12, status:'active'})
-(:SYM {id:'SYM_PDUController'})-[:inFile {id:'E04'}]->(:MOD {id:'MOD_pdu'})
-(:SYM {id:'SYM_PDUController'})-[:declaredIn {id:'E05'}]->(:PKG {id:'PKG_LIB'})
-```
-
-Delta after a validated edit:
-
-```cypher
-CREATE (d:DEC {id:'DEC01', task:'TSK_model_pdu', question:'Command channel', options:'UART / GPIO', recycle:'delete_on_settle'})
-CREATE (c:CON {id:'CON_Cmd', name:'cmd_uart', status:'active'})
-CREATE (s:SYM {id:'SYM_Cmd', name:'cmd_uart', kind:'portUsage', path:'project/pdu-controller.sysml', line:58, of:'CON_Cmd', status:'active'})
-MATCH (c:CON {id:'CON_Cmd'}), (iface {id:'LibraryCmdIface'}) CREATE (c)-[:typedBy]->(iface)
-```
+**As-is leftover:** `snap_model` package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` misses `interface` usages, `subsets`/`redefines`, `connect`/`flow`, multiplicity, attributes. Do not teach those caps as law. Do not invent `:contains` walks to fake missing edges — `.sysml` stays SSOT.
 
 ---
 
-## 5. Electrical vs SysML grains
+## 4. One turn (coding or modelling)
 
-| Grain | Shape | Doc |
-|-------|-------|-----|
-| SysML / locator | `PRT`/`POR`/`PKG` + bare-id relationships | this note |
-| Electrical (GQL) | `:CST` + `ports` + `law` + `:bind` | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) |
+MCP arg is **`session`**. In-process only for a single agent; Multitask uses TCP/HTTP ([`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)).
 
-Same device may appear in both — keep ids stable; relate across grains with bare-id relationships. Do not put Ohm/KCL on SysML locator rows.
+1. **`serve_status`** if TCP; if down, edit `.sysml` only (stale graph).
+2. **Mission** — cue `TSK_model_<short>` → `pin_map` **that** session. Copy `SYM.path` / `line`. leftover `anchor=` is leftover.
+3. **Catalog** — `pin_map` \(S_{\mathrm{cat}}\) on the parent `qname=` / `requirementId=`. Complete row: `session=` of the cut.
+4. **Relatives** — `pin_map` **that one interior** on the parent cue. Shape = parent + **direct** children **whole**. Re-anchor to a child cut; do not depth-2 the package.
+5. **Edit SSOT** — narrow Read at `SYM.line`; write the nest in `.sysml`. Optional: one code window at the same locator.
+6. **Validate** — `mcp-sysml-v2 validate`.
+7. **Re-Snap this subtree** — `memnet snap model --root …`. If it no longer fits \(M\), Snap **cuts** the child; parent shell keeps the **name** + `typedBy`/`session=`, not the child’s interior.
+8. **Mission Δ** — sparse `mutate`: refresh `SYM.line`; optional `:about`. Do not CREATE the nest into the mission. Drop the prior `pin_map` before the next generate.
+
+Conditional: `sysml-view-doc-sync` if `outputs/` changed. Settle transients; `housekeep prune recyclable --apply` after heavy settlement.
 
 ---
 
-## 6. Snap **one** SysML model into multiple sessions
+## 5. Relatives (every nest is the same loop)
 
-`ingest_sysml` remains 1 path → **current** session (Path-B as-is). **Model Snap (0.15)** is **one model** (root package / load tree) → a **stack** of sessions (catalog + interiors): `memnet snap model --root …`. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md).
+The **element is made in `.sysml`**. MemNet shows **relatives** of the parent cut. New interior only when that subtree no longer fits \(M\). Never one session per leaf.
 
-`.sysml` stays structural SSOT. MemNet holds **cut locators** and a complete Shape of **one** interior — not a second copy of every brace.
+| Nest | Parent cue | Relatives in the Shape | Cut away when |
+|------|------------|------------------------|----------------|
+| `part` / `part def` | parent `qname=` | usage names; def via `typedBy` | child subtree over \(M\) |
+| `requirement def` | parent `requirementId=` | direct child ids | child **group** over \(M\) |
+| `package` | parent `qname=` | child package + `session=` | nested package over \(M\) (not per file) |
+| `port` / `connection` / `action` / `item` | owning part | those **direct** children | owning part over \(M\) (not `S_port`) |
+| `satisfy` / `allocate` | source interior | — | never; second look or Absorb slice |
+| `view def` | owning package/part | view name | that def’s subtree over \(M\); not `pin_map view=` |
+| `subsets` / `redefines` | specialised usage | **delta** + locator to ancestor | never paste the ancestor nest |
+| `interface` / `connect` / `flow` | owning part | interface name | nested port ends: second look or slice |
+| multiplicity `[n]` / `[n..m]` | the **one** usage | property | never explode n pins |
 
-### Nest is unbounded
+### Worked: nested part (PDU)
 
-SysML can nest **everything** in everything: `package`, `part` / `part def`, `requirement`, `port`, `action`, `view`, `connection`, leftover leaves. That is **one containment tree** of mixed kinds. Sessions cut **that** tree so each interior **fits** goldfish \(M\approx 50\). Construct name is not a layer taxonomy.
-
-A convenient **first** cut is the load-tree packages (`root.sysml` imports). It is **not** the law. Kind-band (REQ vs PRT) is the same special case: the nest does not stay in bands. `requirement def` inside `requirement def` and `part` inside `part` are the same `:contains` problem.
-
-When a subtree is still over ~2\(M\) after that first cut, **cut again at that root** (composition part, nested requirement group, child package). Recurse. Nested **usage** (`part mutate : MutateGate`) is a locator (`typedBy` + `qname=` / `session=` of the **def** interior) — do not copy MutateGate’s nest into Commit’s map.
-
-| Session in the Snap | Holds |
-|---------------------|--------|
-| Catalog \(S_{\mathrm{cat}}\) | `session=` + `qname=` of **cuts** in **this** model (package roots first; part-roots when the deploy nest still will not fit) |
-| Interiors \(S_1\ldots S_k\) | The projected pins of **one** subtree that **fits \(M\) whole** |
-| Lead mission (not in the Snap) | `TSK` / `USR`; locators into the catalog |
-
-Worked **first** grain for **this** product model: interiors follow `root.sysml` imports (`MemNetRequirements`, `MemNetVerification`, `MemNet`, …), not “a session because a file exists.” `package MemNet` in `deploy.sysml` is still a fat part nest — that interior **must** recurse (composition roots such as `AgentMemory`, not one session per nested usage). Cue `qname=` then `pin_map` **one** interior. Cross-cut `satisfy`: second look or Absorb a **slice**. Re-Snap **that subtree** after a validated edit.
-
-### Truncation is not Shape
-
-Goldfish \(M\) is a **fit test**, not a slicer. A `pin_map` that walks `:contains` and keeps `max_rows` (as-is `context_pack`), a shell cap of 8 NODE / 12 EDGE, or ingest `max_nodes` mid-brace, still **looks** complete. Children, `satisfy`, and nested usages past the cut vanish with no CueConflict. That is the same class of lie as silently picking one root.
-
-**TARGET Shape:** the chosen interior’s reconstruct either **fits \(M\) whole**, or Recall **refuses** (cardinality / over-budget — sibling of CueConflict). Do not emit a clipped neighbourhood. Do not raise \(M\). Do not use `Peak_L` as default (parents of `:contains` look like peaks).
-
-A parent **shell** is a **grain**: the **complete** list of **direct** children of this cut (names + `session=` when a child lives in another interior). If that child list does not fit \(M\), cut again. Shell is **not** a truncated depth-2 walk of a fat \(S\). Hard `LIMIT` on seed `MATCH_L` stays: that lists \(Q\) and CueConflict when \(|hits|>L\).
-
-**As-is leftover:** `snap_model` still prefers package / kind-band / two-segment child package; `PinMapComposer` still silently caps the walk. Do not teach those caps as product law. Path-B `ingest_sysml` 1→1 is not this Snap.
-
-**MUST NOT** one session per `requirement def` / nested `part` / port. **MUST NOT** dump the nest into the mission. **MUST NOT** Layer / `layer=`. **MUST NOT** `rag_query` textual SysML. **MUST NOT** Absorb a whole subtree.
-
-### Worked examples: making nests
-
-The **element is made in `.sysml`**. MemNet records locators and a **complete** Shape of the interior that owns that subtree. The loop is the same for every nest kind (section 2). Construct name does not pick a session type.
-
-| Step | Where | What you do |
-|------|--------|-------------|
-| 1 | Mission \(S\) | Cue `TSK_model_*` → `pin_map` **that session only**. Copy `SYM.line` / `path`. Drop the map next turn. |
-| 2 | Catalog | `pin_map` \(S_{\mathrm{cat}}\) on the parent `qname=`. Complete row: `session:` of that cut. If the catalog itself is over \(M\), cut it — do not clip. |
-| 3 | One interior | `pin_map` that `session=` on the **parent** `qname=`. Shape is the parent and its **direct** children **whole**. Not depth 2 across the package. |
-| 4 | `.sysml` SSOT | Narrow Read at `SYM.line`. Write the nested construct (and a sibling `def` when the nest is a typed usage). |
-| 5 | Validate | `mcp-sysml-v2 validate` until clean. |
-| 6 | Re-Snap **this subtree** | `memnet snap model --root …`. If the interior **no longer fits \(M\)**, Snap **cuts** the new child to its own `session=`; the parent shell lists the child **name** + `session=` / `typedBy` — it does **not** copy the child’s interior. |
-| 7 | Mission Δ | Sparse `mutate`: refresh `SYM.line`; optional `:about` the parent `qname=`. Do **not** CREATE the nest into the mission. leftover `id:'NEW'` is leftover. |
-
-**Wrong (every nest):** `ingest_sysml` into the mission; clip `max_rows`; mint `mn_` per leaf.
-
-#### Part in part
-
-PDU campaign (section 4). Before: `PduController` has only `pwr_in`. Add nested **usage** `sense` and sibling **def** `SenseAmp`:
-
-```sysml
-package PkgPdu {
-  part def PduController {
-    port pwr_in : PowerIn;
-    part sense : SenseAmp;
-  }
-  part def SenseAmp {
-    port vin : AnalogIn;
-    port vout : AnalogOut;
-  }
-}
-```
-
-Catalog: `PkgPdu` → `mn_pdu`. Interior cue: `qname:'PkgPdu::PduController'`. After Snap, `sense` is `:contains` + `:typedBy` `SenseAmp`. If `mn_pdu` no longer fits \(M\), cut `SenseAmp` to `mn_sense`; the `PduController` shell keeps the usage **name**, not `vin`/`vout`.
-
-#### Requirement in requirement
-
-Same loop. Parent cut is the group, not each leaf (MN-REQ-11.17). Product tree already does this: `MN_REQ_00` contains `MN_REQ_01`, which contains `MN_REQ_01_1`.
-
-```sysml
-requirement def MN_REQ_01_SessionLifecycle {
-  attribute requirementId : String = "MN-REQ-01";
-  requirement def MN_REQ_01_1_NamedSessions {
-    attribute requirementId : String = "MN-REQ-01.1";
-  }
-}
-```
-
-Interior cue: `requirementId='MN-REQ-01'`. Shape lists **direct** children (`MN-REQ-01.1`, …) whole. Adding `MN-REQ-01.9` is an edit under that brace, then re-Snap **that group**. If `MN-REQ-01`’s children no longer fit \(M\), cut a **child group** (e.g. a nested `requirement def` that still has children) — not one session per `MN-REQ-01.1`.
-
-#### Package in package
-
-```sysml
-package PkgLib {
-  package PkgPower {
-    part def PowerRail { }
-  }
-}
-```
-
-First Snap cut is often the **import** root (`PkgLib`), not the file. Nested `PkgPower` stays in that interior while it fits; when it does not, catalog grows a row `qname:'PkgLib::PkgPower'` → `mn_power`. Parent shell lists `PkgPower` + `session=`. Do **not** mint a session because a `.sysml` file exists.
-
-#### Port, connection, action, item (inside a part)
-
-These are still **children of the part cut**, not their own session kinds.
+Mission holds locators only (`TSK_model_pdu`, `SYM` on `PduController`). Interior `mn_pdu` cues `qname:'PkgPdu::PduController'`. Relatives: `pwr_in`. Write:
 
 ```sysml
 part def PduController {
   port pwr_in : PowerIn;
-  item fuel : Charge;
-  action boot { }
-  connection pwrLink : PowerFlow {
-    end port source ::> pwr_in;
-    end port sink ::> sense.vin;
-  }
+  part sense : SenseAmp;
+}
+part def SenseAmp {
+  port vin : AnalogIn;
+  port vout : AnalogOut;
 }
 ```
 
-Cue the **part** `qname=`. Shape lists those direct children whole. A typed `port pwr_in : PowerIn` is `:hasPort` + `:typedBy`; do not copy `PowerIn`’s nest into `PduController` if `PowerIn` was cut away. `connection` / `action` / `item` stay in the part interior until **that part’s** reconstruct exceeds \(M\) — then cut the **part** (or a nested part usage), not a `S_port` / `S_action`.
+After Snap, `sense` is `:contains` + `:typedBy`. If `mn_pdu` no longer fits \(M\), cut `SenseAmp` to `mn_sense`; the `PduController` shell keeps the usage **name**, not `vin`/`vout`.
 
-#### Satisfy / allocate across cuts
+Mission seed (not the nest):
 
-```sysml
-part def PduController {
-  satisfy PkgReq::ReqAlpha;
-}
+```cypher
+(:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', phase:'model', status:'in_progress'})
+(:MOD {id:'MOD_pdu', path:'project/pdu-controller.sysml'})
+(:SYM {id:'SYM_PDUController', name:'PDUController', kind:'partDef', path:'project/pdu-controller.sysml', line:12})
+(:SYM {id:'SYM_PDUController'})-[:inFile]->(:MOD {id:'MOD_pdu'})
 ```
 
-`satisfies` is an **edge**. If `ReqAlpha` lives in another interior, the part interior **must not** grow a dangling same-store node. Second `pin_map` on the requirements cut, or Absorb a **slice** of `ReqAlpha` into the mission — not merge sessions, not one `pin_map` across stores.
+### Official: Vehicle definitions vs usages
 
-#### View / viewpoint
+[VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) + [VehicleDefinitions.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleDefinitions.sysml). One Snap, two interiors. `part narrowRimWheel: Wheel { part lugbolt: Lugbolt[4..5]; }` — `typedBy` Wheel (`hub` stays in the def interior) plus nested `lugbolt`; **`[4..5]` is one pin**.
 
-SysML `view def` / `viewpoint def` ingest as `PRT` (as-is). They stay in the **package** (or part) interior that owns the brace. `pin_map view=shell` is **grain inside one session**, not a SysML view and not a second session. If a `view def` body is over \(M\), cut **that def’s subtree** like any other root.
+`vehicle_C1` relatives are **only** `frontAxleAssembly` and `rearAxleAssembly`. Lugbolts are depth 3. Re-anchor; do not clip depth 2.
 
-| Nest | Parent cue | Child in parent shell | New interior only when |
-|------|------------|------------------------|-------------------------|
-| `part` / `part def` | parent `PRT` `qname=` | usage name; def `typedBy` | child subtree over \(M\) |
-| `requirement def` | parent `REQ` `requirementId=` | child `requirementId=` | child **group** over \(M\) |
-| `package` | parent `PKG` `qname=` | child package `qname=` | nested package over \(M\) |
-| `port` / `connection` / `action` / `item` | owning `PRT` | child name | owning part over \(M\) (not per port) |
-| `satisfy` / `allocate` | source interior | — | never; second look or Absorb slice |
-| `view def` | owning `PKG`/`PRT` | view name | that def’s subtree over \(M\) |
-| `subsets` / `redefines` | specialised usage | delta + locator to ancestor | never copy the ancestor nest |
-| `interface` / `connect` / `flow` | owning part | interface name | nested port ends: second look or Absorb slice |
-| multiplicity `[n]` / `[n..m]` | the **one** usage pin | property | never explode n sessions |
+`vehicle_C2 subsets vehicle_C1` — Shape is **redefines + new `interface` connect** and a locator to C1, not a paste of C1.
 
-#### Official example: Vehicle definitions vs usages
+`vehicle_C3` connects to nested `rearAxleAssembly.rearAxle.drive`. C3 relatives: `transmission`, redefined axle assembly, `driveShaft`. Port `drive` is on `rearAxle` — second look or Absorb slice.
 
-OMG SysML v2 Release [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) + [VehicleDefinitions.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleDefinitions.sysml). **One model Snap**, two package interiors (`VehicleDefinitions` library of **defs**; `VehicleUsages` **configurations**). `public import VehicleDefinitions::*` is not a second Snap and not a dump of Wheel/Axle into every usage.
-
-**Typed usage, do not copy the def nest.** `part narrowRimWheel: Wheel { part lugbolt: Lugbolt[4..5]; }` is `:typedBy` `Wheel` (ports `hub` stay in the def interior unless this usage **redefines** them) plus a nested usage `lugbolt`. Multiplicity `[4..5]` / `frontWheel[2]` is a **property on one pin**, not four sessions or two exploded nodes.
-
-**Containment of `vehicle_C1` (direct children only in the parent Shape):**
-
-```text
-vehicle_C1
-├── frontAxleAssembly          ← shell of C1
-│   ├── frontWheel[2] subsets narrowRimWheel
-│   │     └── lugbolt[4] redefines tighteningTorque
-│   └── frontAxle
-└── rearAxleAssembly           ← shell of C1
-```
-
-Cue `vehicle_C1` → Shape lists **frontAxleAssembly** and **rearAxleAssembly** whole (names). Re-anchor to `frontAxleAssembly` for wheels. Lugbolts are depth 3 from C1 — a depth-2 walk **misses** them or, if unbounded, dumps the tree. Do not clip; cut assemblies if C1’s direct children still over \(M\) (this file is small and likely fits one interior).
-
-**`subsets` / `redefines` are configuration delta, not a second contains copy.** `part vehicle_C2 subsets vehicle_C1` plus `part redefines frontAxleAssembly` with `leftFrontWheel subsets frontWheel = frontWheel#(1)`. Goldfish of C2 is the **redefine + new `interface` rows** and a locator to C1 — not C1’s whole nest pasted into C2.
-
-**`interface` to nested ports** (C2 / C3). C3’s own comment is a deeply nested port: `rearAxleAssembly.rearAxle.drive`. Parent Shape of C3 lists `transmission`, redefined `rearAxleAssembly`, and `driveShaft`. The port `drive` lives on `rearAxle`. Second look (or Absorb a slice) if that axle was cut away. Same as `satisfy` across cuts — no dangling same-store node.
-
-**As-is ingest leftover.** `_DEF_HEAD` projects `part` / `port` / `interface def`, not `interface` usages, `subsets`/`redefines` edges, `connect`/`flow`, multiplicity, or attributes (`T1`, `tighteningTorque`). Those stay in `.sysml` until Snap grows them as locators. Do not invent a flattened `:contains` walk to “make up” the missing edges.
-
-The fat cousin in the same folder is Annex A `SimpleVehicleModel.sysml` (actions, states, requirements, allocations). Same cut law; this usages file is the **clear** nest, not the token bomb.
+The whole usages file is \(\approx 0.7\,\mathrm{k}\) tokens (cheap to dump, **misleading**). Annex A in the same folder is \(\approx 21\,\mathrm{k}\); `deploy.sysml` is \(\approx 38\,\mathrm{k}\).
 
 ---
 
-## 7. Multitask
-
-Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) and [`../multi-agent-sessions.md`](../multi-agent-sessions.md). Chat is never SSOT. Handoff = **session id**; prefer **import** for path-B member slices.
-
----
-
-## 8. Pitfalls
+## 6. Pitfalls
 
 | Mistake | Fix |
 |---------|-----|
-| Layer / `@TAG` / `query_warm` as primary | GQL + `pin_map` |
-| Prose blobs in `CLM` / `USR` | Distilled codes / short values |
-| Stale `SYM.line` after edit | Re-grep + `update` |
-| Merging electrical `PIN` teach into SysML | Use GQL circuit note for circuits |
-| One `ingest_sysml` per file as if each were a Snap | **One** model Snap → session stack; files are SSOT storage |
-| One `MemNet` (or other fat package) session for all nested parts | Recurse containment cuts until each interior **fits \(M\)** |
-| Kind zoo of layer sessions (`S_part`, `S_req`, `S_port`) | Cuts are budget on the nest, not construct names |
-| Silent `max_rows` / shell drop / ingest mid-brace | Refuse; partition; complete Shape of the chosen \(S\) |
-| `pin_map` depth 2 on a parent nest | Shell of **direct** children, then one child interior |
-| Explode `lugbolt[4..5]` / `frontWheel[2]` into many nodes | One usage pin; multiplicity is a property |
-| Dump `vehicle_C1` into `vehicle_C2` because it `subsets` | C2 Shape = redefines + new interfaces; locator to C1 |
-| Walk `rearAxleAssembly.rearAxle.drive` from `vehicle_C3` | Cue C3 shell, then re-anchor the axle cut |
-| `Peak_L` as default goldfish on a `:contains` tree | Cue `qname=`; Peak is last-resort residual only |
+| Paste the load tree / `deploy.sysml` so the agent “sees the model” | Catalog + relatives of **one** cut + brace Read (\(\approx 1\)–\(2\,\mathrm{k}\)) |
+| Clip `max_rows` / shell 8+12 / ingest mid-brace | Refuse; cut sessions; complete Shape |
+| Kind zoo (`S_part`, `S_req`, `S_port`) | Cuts are **fit** on the nest |
+| One `ingest_sysml` per file as Snap | One model Snap → session stack |
+| One session per leaf / exploded `[4..5]` | One usage pin; recurse only over \(\sim 2M\) |
+| Paste `vehicle_C1` into C2 because it `subsets` | Delta + locator |
+| Depth-2 from C3 to `rearAxle.drive` | C3 shell, then re-anchor |
+| `Peak_L` as default goldfish | Cue `qname=`; Peak last-resort (`contains` parents look like peaks) |
+| Layer / `query_warm` / `rag_query` `.sysml` | GQL + `pin_map` |
+| Electrical `PIN` teach on SysML rows | Circuit note for `:CST` / `:bind` |
+| leftover `id:'NEW'` / `anchor=` as law | Pattern `mutate`; cue `pin_map` |
+| Stuff every interior into `messages` | Drop prior maps (`stuffed_maps`) |
 
 ---
 
-## 9. Related
+## 7. Related
 
+- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — nest-cut case study (Turns A–F)
+- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — sessions as strata
+- [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — shared TCP/HTTP
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — electrical GQL
-- [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md) — sessions as strata; containment cuts; truncation is not Shape
-- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — case study (requirement / part / package / satisfy / view)
 - `~/.cursor/skills/sysml-memnet-documentation/`
-
----
-
-## 10. Retired dialects (pointer only)
-
-Older `@PKG` / `@EDG` pipe or Layer ASCII seeds are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/). Prefer slim GQL seeds and the live `.sysml` tree.
+- Archive (not teach): [`../grammar/archive/`](../grammar/archive/)
