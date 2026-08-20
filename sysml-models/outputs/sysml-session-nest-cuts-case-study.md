@@ -32,6 +32,8 @@ flowchart TD
   R --> D[mission Δ SYM.line only]
 ```
 
+Look loop (not drawn): if the Shape shows a child `session=` you need, drop the map and `pin_map` that child on the **next** generate. Parallel `TSK_*` only after the parent shell is already in `.sysml` (Turn I).
+
 ## 2. This product's stack
 
 ```text

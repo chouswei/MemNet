@@ -144,7 +144,7 @@ part def SenseAmp { port vin : AnalogIn; port vout : AnalogOut; }
 (:SYM {id:'SYM_PDUController', name:'PDUController', kind:'partDef', path:'project/pdu-controller.sysml', line:12})
 ```
 
-**Official examples** (detail in the case study, not here): Wheel already built in VehicleDefinitions (Turn F); `CheckoutService` relatives vs dump `WebShopArchitecture.sysml` (Turn G); `part mutate : MutateGate` reuses `mn_mutate` (Turn H).
+**Official examples** (detail in the case study, not here): Wheel already built (Turn F); `CheckoutService` relatives (Turn G); `MutateGate` reuse (Turn H); look loop and parallel `TSK_*` when the shell is already clear (Turn I).
 
 ---
 

@@ -174,7 +174,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 | Engine | CLI | MCP | Locators (examples) |
 |--------|-----|-----|---------------------|
 | Sysml | `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=`, `requirementId=` |
-| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (containment cuts that **fit \(M\)**; reuse `session=` if that `qname=` is already built; look = complete `pin_map`) |
+| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (cuts that **fit \(M\)**; reuse already-built `session=`; look loop = one `pin_map` per generate). Application: `llm-sysml-v2-modeling.md` |
 | Codebase | `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
 | PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |

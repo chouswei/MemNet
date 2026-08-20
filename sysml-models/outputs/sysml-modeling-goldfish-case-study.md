@@ -94,4 +94,4 @@ flowchart TD
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Cold-start another host mid-modelling |
 | [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | Same goldfish shape in a narrative domain |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | When chat is trusted over the live pin map |
-| [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) | Model Snap stack; nest cuts; no truncated Shape |
+| [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) | Model Snap stack; look loop; parallel interiors |

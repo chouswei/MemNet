@@ -14,7 +14,7 @@ This note complements:
 
 - [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.8; RSV + Path-B ingest shipped)
 - [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — single-agent SysML memory (no Multitask transport)
+- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML loop (in-process OK); parallel interiors need TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — single-agent coding memory
 
 **Doctrine pointer:** adopt **MN-REQ-12** via a short local requirement mirror or doc link — do **not** import `MemNetRequirements` from the MemNet product repo into the system project's SysML load tree.

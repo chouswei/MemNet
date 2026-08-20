@@ -50,7 +50,7 @@ Full rules: [sysml-memnet-read-policy.md](references/sysml-memnet-read-policy.md
 5. [references/relatives-cache-map.md](references/relatives-cache-map.md) -- **which specialist skill writes which kinds**
 6. [references/sysml-memnet-cookbook-bridge.md](references/sysml-memnet-cookbook-bridge.md) -- upstream cookbook pointer, unified-kind policy
 7. [sysml-gql](../sysml-gql/SKILL.md) -- thin turn loop + construct abbrev
-8. Upstream cookbook -- MemNet `docs/application-notes/llm-sysml-v2-modeling.md` (worked turns)
+8. Upstream cookbook -- `docs/application-notes/llm-sysml-v2-modeling.md` (loop); nest-cuts case study (Turns A–I)
 
 Pair with [sysml-modeling-workflow](../sysml-modeling-workflow/SKILL.md) and [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md).
 
