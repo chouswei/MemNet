@@ -1,6 +1,6 @@
-# Shared-dialect session map for session_open --map-file (SCHEMA lines).
-# Prefer SCHEMA … ; fields=… — not @TAG pipe. Built-in LAW / EDG are merged automatically.
-# Agent mutate / pin map: NODE|EDGE shared dialect (see workflow.*.example.txt, docs/grammar/).
+# Session map for session_open --map-file (SCHEMA lines).
+# Coding kinds for workflow.coding.example.txt. Prefer SCHEMA; leftover @TAG pipe still loads.
+# Built-in LAW / EDG are merged automatically — do not redefine them here.
 SCHEMA CFG ; fields=id repo anchor version notes
 SCHEMA MOD ; fields=id path summary status recycle
 SCHEMA SYM ; fields=id name kind path line signature status recycle

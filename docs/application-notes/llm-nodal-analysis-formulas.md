@@ -12,7 +12,7 @@ Complements:
 
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — schematic / s-domain GQL grain
 - [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) — InvAmp GQL wire
-- [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) — math SSOT (+ retired Layer encoding)
+- [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) — math SSOT
 - Historical Layer goldens — `docs/grammar/archive/examples-layer/` only
 
 ---
@@ -157,7 +157,7 @@ Layer ASCII and Tier A CMP/PIN/NET + `derives` are **not** product accept or tea
 | Path | Role |
 |------|------|
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** InvAmp GQL teach |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT + retired Layer encoding |
+| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain GQL grain |
 | [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
 

@@ -1,5 +1,6 @@
-# GQL coding seed for schema.coding.example.txt (agent dialect: gated openCypher-shaped; not a goldfish pipe dump).
-# Domain LAWs are project-local (not MCP engine LAW01–LAW05). Stable ids for docs/tests.
+# GQL coding seed for schema.coding.example.txt (gated openCypher-shaped).
+# Leftover nicknames kept for tests (CFG01, MOD_cli, E_cfg_root). Product 0.9.0 locators.
+# Domain LAWs are project-local (not MCP engine LAW01–LAW05).
 
 ## Laws
 CREATE (:LAW {id: 'LAW-CODE01', name: 'SYM', cycle: 'on_add', mechanism: 'verify_first', constraint: 'grep_or_lsp_before_first_sym_row'})
@@ -9,22 +10,22 @@ CREATE (:LAW {id: 'LAW-CODE04', name: 'TSK', cycle: 'on_turn', mechanism: 'one_a
 CREATE (:LAW {id: 'LAW-MEMNET01', name: '*', cycle: 'on_turn', mechanism: 'cli_before_mcp', constraint: 'wrap_existing_cli_not_reimplement'})
 
 ## Nodes
-CREATE (:CFG {id: 'CFG01', repo: 'MemNet', anchor: 'MOD_repo_root', version: '0.2.12', notes: 'coding_session_v0_2_12'})
+CREATE (:CFG {id: 'CFG01', repo: 'MemNet', anchor: 'MOD_repo_root', version: '0.9.0', notes: 'coding_session_v0_9_0'})
 CREATE (:MOD {id: 'MOD_repo_root', path: '.', summary: 'MemNet repo root', status: 'active', recycle: 'persistent'})
 CREATE (:MOD {id: 'MOD_cli', path: 'parts/common/memnet/memnet/cli.py', summary: 'Typer CLI session commands', status: 'active', recycle: 'persistent'})
 CREATE (:MOD {id: 'MOD_mcp_server', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', summary: 'FastMCP tool wrappers', status: 'active', recycle: 'persistent'})
 CREATE (:MOD {id: 'MOD_mcp_client', path: 'parts/memnet-mcp/software/memnet_mcp/client.py', summary: 'CLI subprocess bridge', status: 'active', recycle: 'persistent'})
 CREATE (:MOD {id: 'MOD_test_snapshot', path: 'tests/test_snapshot.py', summary: 'CLI snapshot tests', status: 'active', recycle: 'persistent'})
 CREATE (:MOD {id: 'MOD_test_mcp', path: 'tests/test_mcp.py', summary: 'MCP integration tests', status: 'active', recycle: 'persistent'})
-CREATE (:SYM {id: 'SYM_cli_session_save', name: 'session_save', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '339', signature: 'def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
-CREATE (:SYM {id: 'SYM_cli_session_load', name: 'session_load', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '351', signature: 'def session_load(file, ttl, keep_id)', status: 'active', recycle: 'persistent'})
-CREATE (:SYM {id: 'SYM_mcp_session_load', name: 'session_load', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '100', signature: 'async def session_load(file, keep_id=True)', status: 'active', recycle: 'persistent'})
-CREATE (:SYM {id: 'SYM_mcp_session_save', name: 'session_save', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '120', signature: 'async def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
-CREATE (:SYM {id: 'SYM_run_memnet', name: 'run_memnet', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/client.py', line: '128', signature: 'def run_memnet(argv, stdin, session)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_cli_session_save', name: 'session_save', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '375', signature: 'def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_cli_session_load', name: 'session_load', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '387', signature: 'def session_load(file, ttl=None, keep_id=False)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_mcp_session_load', name: 'session_load', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '158', signature: 'async def session_load(file, keep_id=True, ttl=None)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_mcp_session_save', name: 'session_save', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/server.py', line: '180', signature: 'async def session_save(file, session=None)', status: 'active', recycle: 'persistent'})
+CREATE (:SYM {id: 'SYM_run_memnet', name: 'run_memnet', kind: 'fn', path: 'parts/memnet-mcp/software/memnet_mcp/client.py', line: '118', signature: 'def run_memnet(argv, stdin=None, session=None)', status: 'active', recycle: 'persistent'})
 CREATE (:TSK {id: 'TSK_mcp_session_load', goal: 'Expose session_load on memnet-mcp', anchor: 'MOD_cli', status: 'done', recycle: 'delete_on_settle'})
 CREATE (:TSK {id: 'TSK_mcp_session_save', goal: 'Add session_save MCP and tests', anchor: 'MOD_mcp_server', status: 'done', recycle: 'delete_on_settle'})
-CREATE (:USR {id: 'USR_keep_id', topic: 'api', content: 'keep_id default true on session_load', status: 'active', recycle: 'persistent'})
-CREATE (:DEC {id: 'DEC_mcp_keep_id', task: 'TSK_mcp_session_load', question: 'keep_id default on session_load', options: 'true / false', chosen: 'true', recycle: 'delete_on_settle'})
+CREATE (:USR {id: 'USR_keep_id', topic: 'api', content: 'MCP session_load keep_id default true; CLI session load --keep-id defaults false', status: 'active', recycle: 'persistent'})
+CREATE (:DEC {id: 'DEC_mcp_keep_id', task: 'TSK_mcp_session_load', question: 'keep_id default on session_load', options: 'MCP true / CLI false', chosen: 'MCP true', recycle: 'delete_on_settle'})
 
 ## Edges
 MATCH (a {id: 'CFG01'}), (b {id: 'MOD_repo_root'})

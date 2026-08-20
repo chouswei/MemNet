@@ -1,20 +1,21 @@
-# Default @EDG relation vocabulary loaded on every session_open (_seed_relations).
-# Add further verbs with add/update --allow-new-relation; prefer this seed for common work.
-#
-# Legacy demo (workflow.example.txt)
+# Default relationship types loaded on every session_open (_seed_relations).
+# Add further verbs with leftover add/update --allow-new-relation, or mutate CREATE of a new type when allowed.
+# Agent wire is GQL relationship types — not Layer ASCII, not @EDG pipe teach.
+
+# Demo world (workflow.example.txt)
 seeks_help
 binds
 produces
 links
-#
-# Layer 1.x dual EDGE (teach bind; chart labels = relation sense)
+
+# Bind / chart (GQL :bind plus other rel types)
 bind
 pipe
 knows
 reports_to
 member_of
-#
-# Doctrine / coding (memnet-format + workflow.coding.example.txt)
+
+# Coding / doctrine (workflow.coding.example.txt)
 owns
 contains
 defines

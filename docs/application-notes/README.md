@@ -26,7 +26,7 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 | Note | Role | Default map |
 |------|------|-------------|
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** (canonical `CST_*` ground ids) | `SCHEMA CST` + `TSK` in `map_lines` (no bundled circuit map) |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT + retired Layer encoding | — (not wire teach) |
+| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT (not wire teach) | — |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
 | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML v2 session goldfish | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |

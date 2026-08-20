@@ -1,4 +1,4 @@
-# Shared-dialect session map for Path-B codebase pin-map ingest (MN-REQ-11.6–11.8).
+# Session map for Path-B codebase pin-map ingest (MN-REQ-11.6–11.8).
 # session_open --map-file schema.codebase.example.txt
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
 SCHEMA MOD ; fields=id name path recycle
