@@ -1,19 +1,19 @@
 # LLM Build on MemNet — A MemNet Application Note
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
-**Primary worked example:** the **`mcp-memnet` skill pack** vendored at [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/), paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
+**Primary worked example:** the **`mcp-memnet` skill pack** vendored at [`.cursor/skills/mcp-memnet/`](../../../.cursor/skills/mcp-memnet/), paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
 
-**Dialect teach for agents:** GQL + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).
+**Dialect teach for agents:** GQL + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md).
 
 Unlike the other application notes (which document wire-format **schemas**), this note documents **code structure and routing artefacts** — there is no new tag map.
 
 This note complements:
 
 - [`llm-software-development.md`](llm-software-development.md) — using MemNet from a coding agent (consumer side)
-- [`llm-mud.md`](llm-mud.md) — domain consumer pattern on a shared world graph
+- [`llm-mud.md`](../domains/llm-mud.md) — domain consumer pattern on a shared world graph
 
 ---
 
@@ -404,9 +404,9 @@ If step 3 fails: `description` triggers are too narrow or YAML frontmatter has a
 | Note | Relationship |
 |------|--------------|
 | [`llm-software-development.md`](llm-software-development.md) | Consumer side — uses `memnet-mcp` for coding sessions |
-| [`llm-mud.md`](llm-mud.md) | Consumer side — shared-world graph pattern |
-| [`llm-tech-docs-decomposition.md`](llm-tech-docs-decomposition.md) | Future application MCP (`rto-mcp`?) could expose `CMD` lookup as typed tools |
-| [`llm-daily-news.md`](llm-daily-news.md) | Python bridge (not MCP) — alternative integration style |
+| [`llm-mud.md`](../domains/llm-mud.md) | Consumer side — shared-world graph pattern |
+| [`llm-tech-docs-decomposition.md`](../domains/llm-tech-docs-decomposition.md) | Future application MCP (`rto-mcp`?) could expose `CMD` lookup as typed tools |
+| [`llm-daily-news.md`](../domains/llm-daily-news.md) | Python bridge (not MCP) — alternative integration style |
 
 ---
 
@@ -439,7 +439,7 @@ Expected:
 
 ## Related material
 
-- [`parts/memnet-mcp/software/memnet_mcp/`](../parts/memnet-mcp/software/memnet_mcp/) — graph MCP source
-- [`tests/test_mcp.py`](../tests/test_mcp.py) — envelope and supplementation tests
+- [`parts/memnet-mcp/software/memnet_mcp/`](../../../parts/memnet-mcp/software/memnet_mcp/) — graph MCP source
+- [`tests/test_mcp.py`](../../../tests/test_mcp.py) — envelope and supplementation tests
 - `~/.cursor/skills/mcp-memnet/SKILL.md` (user pack) — worked skill
 - `~/.cursor/skills/mcp-memnet/references/*.md` — split references

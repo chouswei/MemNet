@@ -8,7 +8,7 @@ Agent I/O is the **GQL wire** (shaped pin_map + openCypher-shaped mutate) only. 
 
 Pair with [atomisation.md](atomisation.md) and [wire-format.md](wire-format.md).
 
-**Full instrument-manual / SCPI pattern:** see MemNet repo `docs/application-notes/llm-tech-docs-decomposition.md` — `CMD` rows, procedure layers, RTO remote-mode worked example.
+**Full instrument-manual / SCPI pattern:** see MemNet repo `docs/application-notes/domains/llm-tech-docs-decomposition.md` — `CMD` rows, procedure layers, RTO remote-mode worked example.
 
 ## When to use
 
@@ -200,6 +200,6 @@ Mini example (GQL wire):
 + E_cap_1 [CLM_capture_seq] --(precedes)--> [CMD_run] ; note=step2 ; recycle=persistent
 ```
 
-Full walkthrough: MemNet `docs/application-notes/llm-tech-docs-decomposition.md`. Regenerate: `python scripts/extract_rto_scpi.py`.
+Full walkthrough: MemNet `docs/application-notes/domains/llm-tech-docs-decomposition.md`. Regenerate: `python scripts/extract_rto_scpi.py`.
 
 Cross-ref: [atomisation.md](atomisation.md) · [user-input-memory.md](user-input-memory.md) · [coding-memory.md](coding-memory.md)

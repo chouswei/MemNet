@@ -33,7 +33,7 @@ This **MemNet product** checkout uses **`sysml-models/`**. Downstream packs may 
 
 **Warm miss** → [sysml-memnet-snap.md](../sysml-memnet-documentation/references/sysml-memnet-snap.md), then step 3.
 
-**Look loop** (catalog / interiors) is **not** a seventh table step: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) and `docs/application-notes/llm-sysml-v2-modeling.md`.
+**Look loop** (catalog / interiors) is **not** a seventh table step: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) and `docs/application-notes/system/llm-sysml-v2-modeling.md`.
 
 Skip step 6: comment-only; MemNet down; question with no edit.
 
@@ -62,4 +62,4 @@ Hardware generators, Mermaid, `mcp-sysml-v2`, and pack-only `sysml-*` skills are
 ## See also
 
 - [AGENTS.md](../../../AGENTS.md)
-- `docs/application-notes/llm-sysml-v2-modeling.md`
+- `docs/application-notes/system/llm-sysml-v2-modeling.md`

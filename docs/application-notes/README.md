@@ -1,6 +1,6 @@
 # Application notes
 
-Domain patterns for **using** MemNet (not engine internals). Index: [`../README.md`](../README.md).
+How to **use** MemNet (not engine internals). Folders: **system** (repos / SysML / builder), **domains** (worked domains), **examples** (InvAmp). Index: [`../README.md`](../README.md).
 
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
 **Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.0**; **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). PyPI **`memnet-llm==0.19.0`**.  
@@ -27,12 +27,12 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 |------|------|-------------|
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** (canonical `CST_*` ground ids) | `SCHEMA CST` + `TSK` in `map_lines` (no bundled circuit map) |
 | [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT (not wire teach) | — |
-| [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
-| [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
-| [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML SSOT; relatives of one cue; sub-unit in a **separate session** | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
-| [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` | sysml + coding (+ ingest maps as needed) |
-| [`llm-software-development.md`](llm-software-development.md) | Multi-turn coding memory | `schema.coding.example.txt`; locators via `ingest_codebase` |
-| [`llm-tech-docs-decomposition.md`](llm-tech-docs-decomposition.md) | Manual / SCPI atomisation | `schema.techdocs.example.txt` |
-| [`llm-daily-news.md`](llm-daily-news.md) | RSS digest pipeline | project `memnet_schema.txt` (must list `KYWD` / `ENT` / …) |
-| [`llm-mud.md`](llm-mud.md) | Multiplayer MUD | project world map (`ROM` / `CHR` / `OBJ` / …); shared serve |
-| [`llm-build-on-memnet.md`](llm-build-on-memnet.md) | Custom MCP + skill pack | — (builder; in-process first) |
+| [`llm-circuit-schematic.md`](domains/llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
+| [`llm-nodal-analysis-formulas.md`](domains/llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
+| [`llm-sysml-v2-modeling.md`](system/llm-sysml-v2-modeling.md) | SysML SSOT; relatives of one cue; sub-unit in a **separate session** | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
+| [`llm-system-dev-multitask.md`](system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` | sysml + coding (+ ingest maps as needed) |
+| [`llm-software-development.md`](system/llm-software-development.md) | Multi-turn coding memory | `schema.coding.example.txt`; locators via `ingest_codebase` |
+| [`llm-tech-docs-decomposition.md`](domains/llm-tech-docs-decomposition.md) | Manual / SCPI atomisation | `schema.techdocs.example.txt` |
+| [`llm-daily-news.md`](domains/llm-daily-news.md) | RSS digest pipeline | project `memnet_schema.txt` (must list `KYWD` / `ENT` / …) |
+| [`llm-mud.md`](domains/llm-mud.md) | Multiplayer MUD | project world map (`ROM` / `CHR` / `OBJ` / …); shared serve |
+| [`llm-build-on-memnet.md`](system/llm-build-on-memnet.md) | Custom MCP + skill pack | — (builder; in-process first) |

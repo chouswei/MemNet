@@ -2,7 +2,7 @@
 
 **Status:** design for next minor / follow-ons; **partial MVP in 0.3.6** (localhost bind default, remote opt-in, frame cap — not session token/ACL).  
 **Builds on:** [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) (coop leases).  
-**Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](gql-wire-profile.md)). No `@TAG|pipe` teach; no Layer. ASCII property values.  
+**Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)). No `@TAG|pipe` teach; no Layer. ASCII property values.  
 **Product context:** ~0.3.6; primary read `pin_map`; transport **in-process first**, TCP `memnet serve` (default `127.0.0.1:18765`) as fallback.
 
 ## How the pieces fit
@@ -451,7 +451,7 @@ Do not ship pin-map `SES`/`ACL`/`RSV` display without enforcing the gates.
 | Path | Role |
 |------|------|
 | [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) | SSOT for lease semantics (inside ACL) |
-| [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire; leftover `id` is a nickname |
+| [`gql-wire-profile.md`](../grammar/gql-wire-profile.md) | Agent wire; leftover `id` is a nickname |
 | `README.md` | Doctrine / transport |
 | `.cursor/skills/memnet-reference/SKILL.md` | Product development skill (repo) |
 | [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/) | MCP application skill |

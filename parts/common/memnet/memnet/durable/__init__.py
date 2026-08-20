@@ -4,7 +4,7 @@ MemNet sessions remain the agent SSOT handle. This package sits *behind*
 sessions (hydrate / flush, one sync owner). Agents keep talking GQL pin_map /
 mutate to MemNet — not to AgensGraph / Neo4j / FakeDurableAdapter directly.
 
-See docs/grammar/agensgraph-buffer.md, docs/grammar/neo4j-buffer.md, and
+See docs/cabinet/agensgraph-buffer.md, docs/cabinet/neo4j-buffer.md, and
 SysML DurableBuffer / AgensGraphAdapter / Neo4jAdapter.
 """
 

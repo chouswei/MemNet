@@ -19,8 +19,8 @@ metadata:
 
 In-repo skill for **applying** MemNet under Cursor **Multitask Mode** or **Task** sub-agents. Pair with [mcp-memnet](../mcp-memnet/SKILL.md) (tools) and [memnet-format](../memnet-format/SKILL.md) (GQL wire / shaped pin_map).
 
-**Product ops SSOT (MemNet repo, developers):** `docs/multi-agent-sessions.md`.
-**System-repo adoption (applications):** MemNet `docs/application-notes/llm-system-dev-multitask.md`.
+**Product ops SSOT (MemNet repo, developers):** `docs/operations/multi-agent-sessions.md`.
+**System-repo adoption (applications):** MemNet `docs/application-notes/system/llm-system-dev-multitask.md`.
 **Product shape / 0.8 teach:** MemNet `docs/SHAPE.md`. **Version map:** MemNet `docs/ROADMAP.md` (package **0.19.0**; **1.0** = 0.5–0.8 claimed).
 **Docs index:** MemNet `docs/README.md`. Chat is **never** mission SSOT.
 
@@ -28,9 +28,9 @@ In-repo skill for **applying** MemNet under Cursor **Multitask Mode** or **Task*
 
 | Signal | Action |
 |--------|--------|
-| Multitask Mode on | Follow this skill + MemNet `docs/multi-agent-sessions.md` |
+| Multitask Mode on | Follow this skill + MemNet `docs/operations/multi-agent-sessions.md` |
 | Spawning Task / background workers | Parent checklist below; pass session id in every worker prompt |
-| `modelbasedPrj-*` system repo + Multitask | Also read MemNet `docs/application-notes/llm-system-dev-multitask.md` |
+| `modelbasedPrj-*` system repo + Multitask | Also read MemNet `docs/application-notes/system/llm-system-dev-multitask.md` |
 | Single-agent goldfish loop | [mcp-memnet](../mcp-memnet/SKILL.md) only -- default in-process MCP is fine |
 
 ## Transport (shared store)
@@ -88,7 +88,7 @@ When working **in** the MemNet engine repository:
 | Verify package | `sysml-models/models/verify.sysml` -- **MN-VER-12-G00** + **S01...S09** |
 | Worked scenario | `sysml-models/outputs/multitask-case-study.md` |
 
-In downstream **`modelbasedPrj-*`** repos: adopt via doc pointer or thin local mirror -- **do not** import `MemNetRequirements` into the product load tree unless the project owns a merged model. Detail: MemNet `docs/application-notes/llm-system-dev-multitask.md` section 6.
+In downstream **`modelbasedPrj-*`** repos: adopt via doc pointer or thin local mirror -- **do not** import `MemNetRequirements` into the product load tree unless the project owns a merged model. Detail: MemNet `docs/application-notes/system/llm-system-dev-multitask.md` section 6.
 
 ## System-dev two-store pattern (`modelbasedPrj-*`)
 
@@ -98,7 +98,7 @@ In downstream **`modelbasedPrj-*`** repos: adopt via doc pointer or thin local m
 | **Product `sysml-models/`** (git) | Structural model: requirements, deploy, behaviour |
 | **Source tree** | Code and artefacts on disk |
 
-Recommended order when both SysML and code change: **SysML worker first** (disjoint `MOD_*` under `sysml-models/`), then **code worker** (`parts/`, tests). Full pattern: MemNet `docs/application-notes/llm-system-dev-multitask.md`.
+Recommended order when both SysML and code change: **SysML worker first** (disjoint `MOD_*` under `sysml-models/`), then **code worker** (`parts/`, tests). Full pattern: MemNet `docs/application-notes/system/llm-system-dev-multitask.md`.
 
 Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NEW). Catalog Snap: **`snap_model`**. Export: **`export_pin_map`**. Ingest is **not** export.
 
@@ -114,7 +114,7 @@ Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NE
 | HostSearch locators | Extra **0.17** (`RagHostHook`; no `rag_query`) |
 | Peak_L | Extra **0.18** (last-resort; not default goldfish) |
 | Pin-map export / catalog Snap | Extra **0.19** / **0.15** |
-| Session ACL modes / `session_token` | **Design** — `docs/grammar/memnet-security-multi-agent.md` |
+| Session ACL modes / `session_token` | **Design** — `docs/extras/memnet-security-multi-agent.md` |
 | N-server | **Research** #47 |
 | Write without RSV | Last-write-wins |
 

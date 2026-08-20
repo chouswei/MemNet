@@ -183,6 +183,6 @@ Older Layer-shaped seeds for the same circuit are **not** product teach. **Produ
 | Path | Role |
 |------|------|
 | [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation (math) |
-| [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (body M3) |
+| [`../llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md) | Circuit doctrine (body M3) |
 | [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | M1 wire SSOT |
 | [`../../../sysml-models/README.md`](../../../sysml-models/README.md) | Nested SysML outline |

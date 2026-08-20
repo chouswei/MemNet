@@ -4,7 +4,7 @@
 **Audience:** product developers. British English.  
 **Homograph.** *Layer* in this repo means the **retired dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
-**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Cabinet: [`neo4j-buffer.md`](neo4j-buffer.md). Multitask: [`../multi-agent-sessions.md`](../multi-agent-sessions.md).
+**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Cabinet: [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md). Multitask: [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md).
 
 ---
 
@@ -58,7 +58,7 @@ q  →  catalog Shape (session= ids, M≈50)
                 Path B: Absorb slice → lead
 ```
 
-Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Recurse **across generates** (session in session), not \(N\) maps in one prompt. Sibling interiors whose parent shell is already in `.sysml` MAY be built as **parallel** `TSK_*` on disjoint `session=` ids ([`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md)). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
+Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Recurse **across generates** (session in session), not \(N\) maps in one prompt. Sibling interiors whose parent shell is already in `.sysml` MAY be built as **parallel** `TSK_*` on disjoint `session=` ids ([`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/system/llm-sysml-v2-modeling.md)). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
 
 **Path A first.** One shared mission id is the cheap stratum. Path B and \(S_{\mathrm{lib}}\) are the expensive ones. Workers **MUST NOT** open a library session unless the parent assigned it.
 
@@ -124,7 +124,7 @@ So: **SysML can nest everything.** Encoding that tree as `:contains` in one sess
 
 ### Interior grain (of the model)
 
-Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md).
+Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/system/llm-sysml-v2-modeling.md).
 
 Worked example — **this product model** (`ProjectMemNet` / `root.sysml` imports):
 
@@ -184,9 +184,9 @@ Fits **0.15 Catalog Snap** (in package 0.19.0). **SysML model Snap** = one model
 
 | Path | Role |
 |------|------|
-| [`gql-wire-profile.md`](gql-wire-profile.md) | `view=` grain **inside** one \(S\) |
+| [`gql-wire-profile.md`](../grammar/gql-wire-profile.md) | `view=` grain **inside** one \(S\) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | No Layer |
-| [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Path A / Path B |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | Cabinet vs optional library namespace; more sessions when over \(M\) |
-| [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) | Loop: relatives + sub-unit sessions |
+| [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md) | Path A / Path B |
+| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Cabinet vs optional library namespace; more sessions when over \(M\) |
+| [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/system/llm-sysml-v2-modeling.md) | Loop: relatives + sub-unit sessions |
 | [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I |

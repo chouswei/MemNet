@@ -3,8 +3,8 @@
 **Shelf:** application example (on SharedLlmMemory) — Catalog Snap is MN-REQ-11.17 / extra **0.15**.
 
 Walk against `sysml-models/models/`, a PDU sketch, OMG VehicleUsages, and [elan8/sysml-examples](https://github.com/elan8/sysml-examples).  
-**Loop:** [`docs/application-notes/llm-sysml-v2-modeling.md`](../../docs/application-notes/llm-sysml-v2-modeling.md).  
-**Doctrine:** [`docs/grammar/memnet-session-strata.md`](../../docs/grammar/memnet-session-strata.md).  
+**Loop:** [`docs/application-notes/system/llm-sysml-v2-modeling.md`](../../docs/application-notes/system/llm-sysml-v2-modeling.md).  
+**Doctrine:** [`docs/extras/memnet-session-strata.md`](../../docs/extras/memnet-session-strata.md).  
 **Mission `TSK` loop:** [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md).
 
 **Wire:** GQL / shaped `pin_map` only (ADR-001). No Layer / `layer=`.  
@@ -210,6 +210,6 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 | [session-import-case-study.md](session-import-case-study.md) | Absorb **slice** (Turn D) |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat is not the live map |
 | [session-outline-case-study.md](session-outline-case-study.md) | Empty q = census of **one** \(S\) |
-| `docs/application-notes/llm-sysml-v2-modeling.md` | Agent loop |
-| `docs/application-notes/llm-system-dev-multitask.md` | Parallel `TSK_*` (Turn I) |
-| `docs/grammar/memnet-session-strata.md` | Sessions as strata |
+| `docs/application-notes/system/llm-sysml-v2-modeling.md` | Agent loop |
+| `docs/application-notes/system/llm-system-dev-multitask.md` | Parallel `TSK_*` (Turn I) |
+| `docs/extras/memnet-session-strata.md` | Sessions as strata |

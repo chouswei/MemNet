@@ -1,21 +1,21 @@
 # Multitask operating model (as-is 0.8)
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
-**Product shape:** [`SHAPE.md`](SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
-**Application adoption** (`modelbasedPrj-*`): [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md). Shared contract: [`application-notes/README.md`](application-notes/README.md). Index: [`README.md`](README.md).
+**Product shape:** [`SHAPE.md`](../SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
+**Application adoption** (`modelbasedPrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
 sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /
 `WorkerWriteScope` hard reject / optional bind) is **shipped when session ACL
 is enabled** via `memnet.acl`; ACL remains off by default. Privilege grain
 (TRAVERSE≈`pin_map`, WRITE≈mutate, label/id GRANT≈scope) is named once in
-[`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md)
+[`sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md)
 — steal grain, not Neo4j/AgensGraph as product; GQL only. Full ACL modes,
 neighbourhood reserve is shipped; Path-B ingest domains are shipped —
-see `docs/grammar/memnet-security-multi-agent.md` and
-`docs/grammar/memnet-neighbourhood-reserve.md`. Full ACL modes remain deferred.
+see `docs/extras/memnet-security-multi-agent.md` and
+`docs/extras/memnet-neighbourhood-reserve.md`. Full ACL modes remain deferred.
 
-**SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S14** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md).
+**SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S14** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md).
 
 ## Principle
 
@@ -122,25 +122,25 @@ Shipped vs to-be. Full ACL modes stay design-only:
 | Capability | Requirement / verify | Status |
 |------------|---------------------|--------|
 | CapsPolicy ACL (`who` / `pin_map`-vs-mutate / `WorkerWriteScope` hard reject / optional bind) | MN-REQ-12.7; MN-VER-12-S09; `memnet.acl` | **Shipped when session ACL is enabled** |
-| Full session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/grammar/memnet-security-multi-agent.md` | **To-be** |
-| Neighbourhood reserve (`RSV` rows, `llm_id` + TTL) | MN-REQ-12.13; design `docs/grammar/memnet-neighbourhood-reserve.md` | **Shipped** — `reserve` / `extend` / `release`; pin-map `## Reserves` |
+| Full session ACL (`private` / `shared` / `open`), roles, `session_token` | MN-REQ-12.7; design `docs/extras/memnet-security-multi-agent.md` | **To-be** |
+| Neighbourhood reserve (`RSV` rows, `llm_id` + TTL) | MN-REQ-12.13; design `docs/extras/memnet-neighbourhood-reserve.md` | **Shipped** — `reserve` / `extend` / `release`; pin-map `## Reserves` |
 | Path-B `PinMapIngest_Sysml` | MN-REQ-11.16; MN-REQ-12.7; MN-VER-12-S09; `memnet.pin_map_ingest` | **Shipped** — CLI `ingest sysml` / MCP `ingest_sysml` |
 | Path-B `PinMapIngest_Codebase` | MN-REQ-11.6–11.8, 11.16; #64 | **Shipped** — CLI `ingest codebase` / MCP `ingest_codebase` |
 | Path-B `PinMapIngest_PcbaAto` | MN-REQ-11.9, 11.14–11.15, 11.16; #64 | **Shipped** — CLI `ingest pcba` / MCP `ingest_pcba` |
 | Path-B `PinMapIngest_SkillsRules` | MN-REQ-11.10–11.12, 11.16; #64 | **Shipped** — CLI `ingest skills` / MCP `ingest_skills` |
 | Pin-map export | MN-REQ-11.1–11.4; #66 | **Shipped (0.19)** — CLI `export pin-map` / MCP `export_pin_map` (cue GQL; empty q = outline). Re-ingest later. |
 
-Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../sysml-models/outputs/system-design-notes.md).
+Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../../sysml-models/outputs/system-design-notes.md).
 
 ## Related
 
-- [`docs/README.md`](README.md) — docs index (developers vs applications)
-- `docs/grammar/memnet-security-multi-agent.md` — target ACL model
-- `docs/grammar/memnet-neighbourhood-reserve.md` — target reserve model
+- [`docs/README.md`](../README.md) — docs index (developers vs applications)
+- `docs/extras/memnet-security-multi-agent.md` — target ACL model
+- `docs/extras/memnet-neighbourhood-reserve.md` — target reserve model
 - `sysml-models/models/requirements.sysml` — **MN-REQ-12** group + leaves 12.1–12.8
 - `sysml-models/models/verify.sysml` — **MN-VER-12-G00** (group) + **S01…S14**
 - `sysml-models/outputs/multitask-case-study.md` — worked scenario + verify table
-- `docs/application-notes/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` system repos
+- `docs/application-notes/system/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` system repos
 - `.cursor/skills/memnet-reference/SKILL.md` — product development skill
 - `.cursor/skills/memnet-multitask/` — application Multitask skill (vendored in this repo)
 - `AGENTS.md` — hub policy

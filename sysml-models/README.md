@@ -14,7 +14,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
-**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 live cabinet proven) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/grammar/memnet-session-strata.md`](../docs/grammar/memnet-session-strata.md).
+**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 live cabinet proven) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/extras/memnet-session-strata.md`](../docs/extras/memnet-session-strata.md).
 
 ## Packages
 

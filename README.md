@@ -79,7 +79,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 - Hosted AgensGraph as a product service (operator runs the server; this repo does not vendor it)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / [#66](https://github.com/chouswei/MemNet/issues/66)) — 0.19 writes cue `pin_map` GQL out; identity merge on the way back is later
-- Host search / RAG as a MemNet tool — application nest only ([`docs/grammar/memnet-host-search-nest.md`](docs/grammar/memnet-host-search-nest.md))
+- Host search / RAG as a MemNet tool — application nest only ([`docs/extras/memnet-host-search-nest.md`](docs/extras/memnet-host-search-nest.md))
 
 ## Links
 
@@ -90,7 +90,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 | [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) | GQL wire SSOT |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Version map SSOT |
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
-| [`docs/multi-agent-sessions.md`](docs/multi-agent-sessions.md) | Multitask ops |
+| [`docs/operations/multi-agent-sessions.md`](docs/operations/multi-agent-sessions.md) | Multitask ops |
 | [`docs/README.md`](docs/README.md) | Full docs index |
 
 Layout: [`LAYOUT.md`](LAYOUT.md) · [`AGENTS.md`](AGENTS.md). Novel-writer is out: [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md).

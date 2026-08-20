@@ -2,9 +2,9 @@
 
 **Status:** extra **0.17** hook shipped (in package 0.19.0) — `RagHostHook.implemented=true` **outside** `MemNetSystem`. Skip is valid. No `rag_query` MCP; no embeddings in the engine.  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
-**Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
+**Math SSOT (above this nest):** [`math-skeleton.md`](../grammar/math-skeleton.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
-**Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
+**Dialect:** GQL ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)). British English.
 
 ### After 0.17 (hook shipped)
 
@@ -47,7 +47,7 @@ live TSK --(one Shape pin_map)--> goldfish
 goldfish sparse Δ --Commit--> session
 ```
 
-Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = one slice (not \(N\) full maps); **out** = sparse \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–28.
+Skip the host hop when grep, ingest, or existing pins suffice. **Snap** is host compression of the **library**. **Shape** is Recall \(\tilde{X}\) of the **session**. Goldfish **in** = one slice (not \(N\) full maps); **out** = sparse \(\Delta\) via Commit (not Path-B Absorb). Do not Snap-on-session (no ANN of \(S\)). Detail: [`math-skeleton.md`](../grammar/math-skeleton.md) and [#77](https://github.com/chouswei/MemNet/issues/77) notes 26–28.
 
 ## Role (pinned)
 
@@ -136,7 +136,7 @@ Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. G
 
 ## Math (product SSOT above this nest)
 
-Product equations and the two-operator cut live in [`math-skeleton.md`](math-skeleton.md) — **above** this research note and [#77](https://github.com/chouswei/MemNet/issues/77). Do not thicken this file with a paper pile. Citations stay on #77. **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
+Product equations and the two-operator cut live in [`math-skeleton.md`](../grammar/math-skeleton.md) — **above** this research note and [#77](https://github.com/chouswei/MemNet/issues/77). Do not thicken this file with a paper pile. Citations stay on #77. **MUST NOT** train IB, run Steiner, or ANN-index the session because a paper did.
 
 | Principle | In MemNet (pointer) |
 |-----------|---------------------|
@@ -190,8 +190,8 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 | Path | Role |
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
-| [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
-| [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
-| [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
+| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
+| [`math-skeleton.md`](../grammar/math-skeleton.md) | Product math (above #77) |
+| [`gql-wire-profile.md`](../grammar/gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
+| [`../application-notes/llm-daily-news.md`](../application-notes/domains/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |

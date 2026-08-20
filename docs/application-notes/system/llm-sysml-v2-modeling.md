@@ -1,8 +1,8 @@
 # LLM SysML v2 modeling
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../SHAPE.md). Shared contract: [`README.md`](README.md). Do **not** teach Layer / Tier A. Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../../SHAPE.md). Shared contract: [`README.md`](../README.md). Do **not** teach Layer / Tier A. Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
 
-**Teach:** `.sysml` is structural **SSOT** (and of the code and docs it specifies). MemNet is mission working memory. Token saving is two laws together: **relatives of one cue**, and each over-budget **sub-unit in a separate session**. Doctrine: [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md). Evidence: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
+**Teach:** `.sysml` is structural **SSOT** (and of the code and docs it specifies). MemNet is mission working memory. Token saving is two laws together: **relatives of one cue**, and each over-budget **sub-unit in a separate session**. Doctrine: [`memnet-session-strata.md`](../../extras/memnet-session-strata.md). Evidence: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
 
 British English. ASCII.
 
@@ -33,7 +33,7 @@ Counts \(\approx 3.5\) characters/token:
 | Relatives of one part + brace Read | **~0.5–1k** then code at `SYM.line` |
 | OMG `VehicleUsages.sysml` **whole file** | **0.7k** (cheap to dump, **misleading**) |
 
-**TARGET turn:** catalog **~200** + complete relatives of **one** interior **~400–800** + brace **~500** \(\approx\) **1.3–2.5k**, then one code window. About **20–100×** less than pasting `deploy.sysml`. Goldfish: \(\lesssim 4\,\mathrm{k}\) in; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm ([`../grammar/math-skeleton.md`](../grammar/math-skeleton.md)).
+**TARGET turn:** catalog **~200** + complete relatives of **one** interior **~400–800** + brace **~500** \(\approx\) **1.3–2.5k**, then one code window. About **20–100×** less than pasting `deploy.sysml`. Goldfish: \(\lesssim 4\,\mathrm{k}\) in; \(\gtrsim 8\,\mathrm{k}\) from one `pin_map` is alarm ([`../grammar/math-skeleton.md`](../../grammar/math-skeleton.md)).
 
 The Shape must be **complete and the right relatives**, and the child nest must stay in **its** session. Truncation spends the budget on the wrong 50 rows. Copying an already-built sub-unit spends it twice.
 
@@ -57,7 +57,7 @@ MemNet is not a second copy of every brace. Chat is never SSOT.
 | `ART` / `SEC` / `CLM` | Outputs / claims |
 | Transient | `DEC` / `ISSUE` / short `TSK` (`delete_on_settle`) |
 
-Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`, `:contains`, `:satisfies`. Electrical `:CST` / `:bind` / `law` is [`llm-circuit-schematic.md`](llm-circuit-schematic.md). leftover `id:'NEW'` is leftover; product is GraphElement `CREATE`.
+Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`, `:contains`, `:satisfies`. Electrical `:CST` / `:bind` / `law` is [`llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md). leftover `id:'NEW'` is leftover; product is GraphElement `CREATE`.
 
 ---
 
@@ -173,10 +173,10 @@ part def SenseAmp { port vin : AnalogIn; port vout : AnalogOut; }
 
 ## 7. Related
 
-- [`.cursor/skills/memnet-nested-sessions/`](../../.cursor/skills/memnet-nested-sessions/) — look loop / already-built `session=`
-- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — Turns A–I
-- [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md)
+- [`.cursor/skills/memnet-nested-sessions/`](../../../.cursor/skills/memnet-nested-sessions/) — look loop / already-built `session=`
+- [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — Turns A–I
+- [`memnet-session-strata.md`](../../extras/memnet-session-strata.md)
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — shared TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — coding when SysML is SSOT
-- [`llm-circuit-schematic.md`](llm-circuit-schematic.md)
-- [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
+- [`llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md)
+- [`../LLM-GUIDE.md`](../../LLM-GUIDE.md)

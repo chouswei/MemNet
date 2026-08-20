@@ -1,10 +1,10 @@
 # LLM daily news digest
 
-> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
+> **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Do **not** teach Layer / Tier A.
 
 **Application example (documentation only).** Multi-stage RSS digest pipeline with session-scoped working memory — not part of the MemNet engine. The graph is built during one run, queried for analysis, and drives final prose; readers see Markdown/HTML, not raw wires.
 
-**Teach:** openCypher-shaped GQL; keyword / story links as relationship types (`:supports`, `:covers`, `:relates`). **`pin_map`** (not `query warm`). Doctrine: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
+**Teach:** openCypher-shaped GQL; keyword / story links as relationship types (`:supports`, `:covers`, `:relates`). **`pin_map`** (not `query warm`). Doctrine: [`gql-wire-profile.md`](../../grammar/gql-wire-profile.md).
 
 **Project sketch:** `daily-news` — RSS digest with fact-checking; bridge `memnet_bridge.py`; schema `memnet_schema.txt`; orchestrator `generate.py`.
 
@@ -117,8 +117,8 @@ Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-proc
 
 ## 7. Related
 
-- [`../LLM-GUIDE.md`](../LLM-GUIDE.md) — goldfish loop
-- [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT
+- [`../LLM-GUIDE.md`](../../LLM-GUIDE.md) — goldfish loop
+- [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) — GQL wire SSOT
 
 ---
 

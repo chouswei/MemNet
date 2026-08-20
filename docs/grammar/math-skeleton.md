@@ -3,7 +3,7 @@
 **Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Extra **0.17** = Host Snap locators (`RagHostHook` outside `MemNetSystem`). Extra **0.18** = Peak_L last-resort cue. Later = N-server / hosted cabinet.
 **Audience:** product developers. **British English.**  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).  
-**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](memnet-session-strata.md).
+**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](../extras/memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](../extras/memnet-session-strata.md).
 
 Do **not** train an IB, run a Steiner solver, or ANN-index the session because a paper named a cousin.
 
@@ -62,7 +62,7 @@ MN-REQ-00: few **LLM tokens** to fetch and to maintain. Rows, frames, and tokens
 | Serve **frame** | 4 MiB | Transport — **not** a token budget |
 | Cabinet Bolt | **0** LLM tokens | hydrate / flush |
 
-Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memnet-session-strata.md`](memnet-session-strata.md)). The 0.10 leftover is the **caller**: drop old `pin_map` rows from `messages[]`; stuffing JSON saves zero.
+Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memnet-session-strata.md`](../extras/memnet-session-strata.md)). The 0.10 leftover is the **caller**: drop old `pin_map` rows from `messages[]`; stuffing JSON saves zero.
 
 ---
 
@@ -80,7 +80,7 @@ Do **not** raise \(M\) because \(S\) grew. Partition into more sessions ([`memne
 
 Empty seed \(\Rightarrow\) **skip** (do not invent a node). Empty \(q\) \(\Rightarrow\) **session outline**, not \(\mathrm{Peak}_L\). \(Q\) elements **are** the walk roots. Prefer MATCH_L on live `TSK` kind before topology. \(\mathrm{Peak}_L\) is not default goldfish.
 
-**Peak (0.18 extra, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. Topology cue on codebook miss: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](memnet-session-strata.md)). **MUST NOT** be default goldfish.
+**Peak (0.18 extra, last resort, inside one \(S\)).** Raw degree is a footgun on ingest trees: `contains` parents (`PKG` / `MOD`) look like peaks. Topology cue on codebook miss: \(\rho^\*(v)=\) incident edges **except** hierarchical `contains` (hide recycled); then \(\mathrm{Peak}_L\). **MUST NOT** assign every node to a peak. **MUST NOT** use \(\mathrm{Peak}_L\) instead of splitting sessions when the nest is model-wide ([`memnet-session-strata.md`](../extras/memnet-session-strata.md)). **MUST NOT** be default goldfish.
 
 **Reconstruct** \(\tilde{X}\): \(k\)-hop from seed set \(Q\) (\(|Q|\le L\)), diameter \(\le k\), \(|\tilde{X}| \le M\) — **one** \(M\), not \(M\times|Q|\). Hide recycled. Emit the **same** shaped GQL family as mutate — not tabular `RETURN`.
 
@@ -175,8 +175,8 @@ Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 | Path | Role |
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Shaped GQL wire; `pin_map` vs find honesty |
-| [`memnet-session-strata.md`](memnet-session-strata.md) | Many sessions; model Snap; not Layer |
-| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Application nest **below** this math |
+| [`memnet-session-strata.md`](../extras/memnet-session-strata.md) | Many sessions; model Snap; not Layer |
+| [`memnet-host-search-nest.md`](../extras/memnet-host-search-nest.md) | Application nest **below** this math |
 | [`../../sysml-models/models/deploy.sysml`](../../sysml-models/models/deploy.sysml) | `RecallCommit` nest |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research notes (not product SSOT) |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded MATCH find (shipped seed-only) |

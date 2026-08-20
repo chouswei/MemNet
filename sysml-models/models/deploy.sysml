@@ -63,7 +63,7 @@
   APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
   locators into existing MutateGate / ingest. No ImportGuard leaf copy.
   Extra 0.17: RagHostHook.implemented=true outside MemNetSystem; skip
-  is valid. Grammar: docs/grammar/memnet-host-search-nest.md
+  is valid. Grammar: docs/extras/memnet-host-search-nest.md
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   seven cousin pointing/identity designs (sysml-models/models/cousins.sysml).
   MUST NOT thicken Recall/Commit; operatorCount stays 2.
@@ -854,7 +854,7 @@ package MemNet {
       Pin map may surface RSV present lines. Mutate on reserved ids
       requires matching llm_id. Expired leases auto-release. Module:
       memnet.neighbourhood_reserve. Design:
-      docs/grammar/memnet-neighbourhood-reserve.md.
+      docs/extras/memnet-neighbourhood-reserve.md.
       As-is: implemented (MN-REQ-12.13).
     */
     attribute implemented : Boolean = true;
@@ -2663,7 +2663,7 @@ package MemNet {
   // APPLICATION NEST — HostSearchBridge (MUST NOT instantiate under
   // MemNetSystem). Optional locators into existing MutateGate / ingest.
   // Extra 0.17: RagHostHook.implemented=true; skip is valid.
-  // Grammar: docs/grammar/memnet-host-search-nest.md
+  // Grammar: docs/extras/memnet-host-search-nest.md
   // =====================================================================
 
   part def RagHostHook {
