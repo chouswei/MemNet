@@ -4,9 +4,9 @@
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). British English.
 
-**Package now:** Hatch **0.19.1**. Numbered extras **0.10–0.19** are in this package (unchanged). Git tag `v0.19.1` after this cut. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. Last published PyPI **`memnet-llm==0.19.0`** until 0.19.1 upload. **1.0** is still unclaimed (0.5–0.8).
+**Package now:** Hatch **0.19.2**. Numbered extras **0.10–0.19** are in this package (unchanged). Git tag `v0.19.2` after this cut. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. Last published PyPI **`memnet-llm==0.19.0`** until 0.19.2 upload. **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-08-20 (package **0.19.1**; extras **0.10–0.19** unchanged; last PyPI wheel **0.19.0** until upload; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
+**Last updated:** 2026-08-20 (package **0.19.2**; extras **0.10–0.19** unchanged; last PyPI wheel **0.19.0** until upload; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -59,8 +59,8 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
 | **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md). Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
-| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.1**; extras first shipped as 0.19.0) |
-| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — package **0.19.1** / last PyPI **0.19.0** does not claim 1.0 |
+| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.2**; extras first shipped as 0.19.0) |
+| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — package **0.19.2** / last PyPI **0.19.0** does not claim 1.0 |
 | **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
 
 **1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras. Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.

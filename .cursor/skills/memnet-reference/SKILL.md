@@ -10,7 +10,7 @@ metadata:
   pattern: pipeline
   version: "2.3"
   domain: memnet
-  product: "0.19.1"
+  product: "0.19.2"
 ---
 
 # MemNet product development reference
@@ -19,7 +19,7 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT is `doc
 
 This checkout **vendors** agent skills under `.cursor/skills/` (core: `memnet-use` + MCP/format/nested/multitask). Load those when **using** MemNet; load **this** skill only when changing the engine, generic MCP, grammar, product SysML, or packaging.
 
-**Product:** Hatch **0.19.1** (CLI `memnet`). Last PyPI **`memnet-llm==0.19.0`** until upload. Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
+**Product:** Hatch **0.19.2** (CLI `memnet`). Last PyPI **`memnet-llm==0.19.0`** until upload. Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
 
 ## When loaded
 

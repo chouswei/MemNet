@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-08-20
+
 ### Changed
-- **Skills vendor (core)** — This checkout is the MemNet skill vendor. Core: `memnet-use`, `mcp-memnet`, `memnet-format`, `memnet-nested-sessions`, `memnet-multitask`. Build: `memnet-reference`. Specialists: codebase snap + `sysml-*`. Index [`.cursor/skills/README.md`](.cursor/skills/README.md). Hub descriptions no longer steal specialist triggers. Maps, CapsPolicy `session_acl_*`, look-loop `session=`, and leftover `add` as TARGET are honest against `memnet_mcp/server.py`. Do not claim **1.0**.
+- **Package identity 0.19.2** — Hatch / `project.toml` / `memnet.__version__` patch on **0.19**. Numbered extras **0.10–0.19** are unchanged (no new extra row). **1.0** stays a claim of 0.5–0.8. Last published PyPI wheel remains **`memnet-llm==0.19.0`** until `scripts/publish.sh --upload` (this environment has no Twine token unless set as `TWINE_PASSWORD`). Git tag `v0.19.2` after merge.
+- **Skills vendor (core)** — This checkout is the MemNet skill vendor. Core: `memnet-use`, `mcp-memnet`, `memnet-format`, `memnet-nested-sessions`, `memnet-multitask`. Build: `memnet-reference`. Specialists: codebase snap + `sysml-*`. Index [`.cursor/skills/README.md`](.cursor/skills/README.md). Hub descriptions no longer steal specialist triggers. Maps, CapsPolicy `session_acl_*`, look-loop `session=`, and leftover `add` as TARGET are honest against `memnet_mcp/server.py`. Do not claim **1.0**. [#142](https://github.com/chouswei/MemNet/pull/142).
 
 ## [0.19.1] - 2026-08-20
 
