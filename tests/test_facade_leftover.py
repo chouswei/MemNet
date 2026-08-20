@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 
+import click
 import pytest
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from memnet.cli import app
@@ -16,6 +19,28 @@ from memnet.session import open_session
 
 runner = CliRunner()
 _CODING_MAP = examples_dir() / "schema.coding.example.txt"
+_ANSI = re.compile(r"\x1b\[[0-9;]*[mK]")
+
+
+def _plain_help(stdout: str) -> str:
+    """Rich/ANSI boxed help may wrap ``--cue`` as ``cue``; strip paint first."""
+    return _ANSI.sub("", stdout)
+
+
+def _cli_option_flags(*path: str) -> set[str]:
+    """Click option strings (``--cue``, ``--id-policy``) independent of Rich wrap."""
+    cmd = get_command(app)
+    ctx = click.Context(cmd)
+    for name in path:
+        nxt = cmd.get_command(ctx, name)
+        assert nxt is not None, f"missing CLI command {' '.join(path)}"
+        cmd = nxt
+        ctx = click.Context(cmd, parent=ctx)
+    flags: set[str] = set()
+    for param in cmd.get_params(ctx):
+        flags.update(param.opts)
+        flags.update(param.secondary_opts)
+    return flags
 
 
 def _open() -> str:
@@ -81,9 +106,13 @@ def test_pin_map_cue_is_product_nickname(memnet_temp):
     leftover = runner.invoke(app, ["query", "pin-map", "--anchor", "TSK_cue", "--session", sid])
     assert leftover.exit_code == 0, leftover.stderr
     assert "TSK_cue" in leftover.stdout
+    flags = _cli_option_flags("query", "pin-map")
+    assert "--cue" in flags
+    assert "--anchor" in flags
     help_r = runner.invoke(app, ["query", "pin-map", "--help"])
-    assert "leftover" in help_r.stdout.lower()
-    assert "--cue" in help_r.stdout
+    plain = _plain_help(help_r.stdout)
+    assert "leftover" in plain.lower()
+    assert "cue" in plain.lower()
 
 
 def test_leftover_query_walk_help_named_leftover():
@@ -97,10 +126,12 @@ def test_leftover_query_walk_help_named_leftover():
 
 
 def test_leftover_import_slice_id_policy_help():
+    flags = _cli_option_flags("import-slice")
+    assert "--id-policy" in flags
     help_r = runner.invoke(app, ["import-slice", "--help"])
     assert help_r.exit_code == 0
-    assert "leftover" in help_r.stdout.lower()
-    assert "id-policy" in help_r.stdout or "--id-policy" in help_r.stdout
+    plain = _plain_help(help_r.stdout)
+    assert "leftover" in plain.lower()
 
 
 def test_mcp_mutate_and_cue_schema(monkeypatch):
