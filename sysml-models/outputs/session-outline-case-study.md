@@ -68,4 +68,4 @@ Agent cues `TSK` / `status=open` (a seen pattern) and `pin_map`s. If two exempla
 
 ## 5. Honesty
 
-Python engine emits empty-q outline (0.11; package 0.19.0). SysML nest remains `SessionOutline.implemented=false` until a nest sync. leftover skip is leftover only.
+Python engine emits empty-q outline (0.11; package 0.19.1). SysML nest remains `SessionOutline.implemented=false` until a nest sync. leftover skip is leftover only.

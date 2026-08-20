@@ -2,7 +2,7 @@
 
 **Status:** design thesis — **not** a measured claim, **not** a SemVer gate, **not** an amendment of [`../SHAPE.md`](../SHAPE.md).  
 **Audience:** product developers. British English.  
-**Product:** MemNet 0.19.0 (Hatch); PyPI **`memnet-llm==0.19.0`**; live Neo4j claimed as extra **0.14**.
+**Product:** MemNet 0.19.1 (Hatch); last published PyPI is **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**; live Neo4j claimed as extra **0.14**.
 
 This note states a **thesis**, then argues it from in-repo doctrine and from public harness / memory papers and codebases. It does not invent SWE-Bench numbers, train an information bottleneck, or ship HostSearch.
 

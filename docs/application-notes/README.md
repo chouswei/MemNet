@@ -3,7 +3,7 @@
 Domain patterns for **using** MemNet (not engine internals). Index: [`../README.md`](../README.md).
 
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
-**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.0**; **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). PyPI **`memnet-llm==0.19.0`**.  
+**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.1**; **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). Last published PyPI is **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**.  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 

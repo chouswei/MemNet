@@ -7,7 +7,7 @@ metadata:
   pattern: pipeline
   domain: sysml,memnet
   version: "1.11"
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
   pairs_with: [sysml-memnet-cache, sysml-modeling-workflow, mcp-memnet, memnet-format, sysml-gql, memnet-nested-sessions]
 token_guardrails: |
   - 6-step snap in sysml-memnet-snap.md. Read policy: topology from pin_map.
@@ -32,7 +32,7 @@ token_guardrails: |
 
 ## Prerequisites
 
-1. Install **0.19**: `pip install 'memnet-llm[mcp]'` (or `pip install memnet-llm==0.19.0`). Optional `[neo4j]` (live claimed 0.14; drivers only). Contributors: `pip install -e ".[mcp]"`.
+1. Install **0.19.1**: `pip install 'memnet-llm[mcp]'` (or `pip install memnet-llm==0.19.1` after PyPI upload). Optional `[neo4j]` (live claimed 0.14; drivers only). Contributors: `pip install -e ".[mcp]"`.
 2. MemNet tools in the catalog. If absent: edit `.sysml` only.
 3. SysML map: `parts/common/memnet/memnet/examples/schema.sysml.example.txt`.
 

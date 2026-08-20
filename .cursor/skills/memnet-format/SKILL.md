@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   version: "5.1"
   domain: data-formats,memnet
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
 token_guardrails: |
   - Wire SSOT: docs/grammar/gql-wire-profile.md. This skill is MemNet-specific only.
   - pin_map from a cue; leftover anchor= is leftover. Do not dump S.
@@ -17,7 +17,7 @@ token_guardrails: |
 
 # MemNet formats
 
-Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Product **0.19.0**.
+Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Product **0.19.1**.
 
 **GQL only.** Node / edge / property. Do not teach Layer, Tier A, pipe `@TAG`, or TOON/TRON. leftover `id:'NEW'` / leftover `anchor=` are leftover.
 

@@ -1,6 +1,6 @@
 # Recall / Commit — orthodox review and plan
 
-**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Extra **0.17** HostSearch locators. Extra **0.18** Peak_L last-resort shipped this cut (package 0.19.0). Remaining Later is N-server / hosted cabinet — not 1.0.
+**Status:** plan (docs). **0.5 leftover (find + multi-ego + paradox pytest) shipped.** Extra **0.17** HostSearch locators. Extra **0.18** Peak_L last-resort shipped this cut (package 0.19.1). Remaining Later is N-server / hosted cabinet — not 1.0.
 **Audience:** product developers. British English.  
 **Math SSOT:** [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md).  
 **Playbook:** [`docs/LLM-GUIDE.md`](../../docs/LLM-GUIDE.md).  
@@ -72,7 +72,7 @@ M2 `pin_map` / mutate / fan-out / `view=shell` / recycle / Path-B ingest and Abs
 |-------|------|--------------------|--------------|
 | — | [#73](https://github.com/chouswei/MemNet/issues/73) `BoundedMatchFind` | Codebook find when no ego; hard LIMIT \(L\); seed nodes not RETURN | **Shipped** `implemented=true` |
 | — | Multi-ego union-under-**one** \(M\) | Fan / one rate; V2 | **Shipped** in 0.5 |
-| — | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | **Shipped** extra 0.18 (package 0.19.0): codebook miss only; never default; no cluster assignment; V9 pytest |
+| — | Optional `Peak_L` on \(\rho^*\) | Last-resort topology cue only | **Shipped** extra 0.18 (package 0.19.1): codebook miss only; never default; no cluster assignment; V9 pytest |
 
 ### Must not erect (abandons orthodox)
 

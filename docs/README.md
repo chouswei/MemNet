@@ -14,7 +14,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; numbered extras 0.10–0.19 packaged as Hatch **0.19.0** |
+| [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; numbered extras 0.10–0.19 packaged as Hatch **0.19.1** |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Historical pointer (old SemVer filename) |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); Absorb join; one \(S\) per generate |

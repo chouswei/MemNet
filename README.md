@@ -6,13 +6,13 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.19.0**. PyPI **`memnet-llm==0.19.0`** is published (`pip install memnet-llm` resolves 0.19.0). **1.0** stays unclaimed.
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Repo product **0.19.1**. Last published PyPI is **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**. **1.0** stays unclaimed.
 
 ## Install + quick CLI
 
 ```bash
 pip install memnet-llm
-# or: pip install memnet-llm==0.19.0
+# after 0.19.1 is on PyPI: pip install memnet-llm==0.19.1
 # optional extras (drivers only — not AgensGraph/Neo4j servers):
 # pip install 'memnet-llm[mcp]'
 # pip install 'memnet-llm[agensgraph]'

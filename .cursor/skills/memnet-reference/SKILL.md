@@ -12,14 +12,14 @@ metadata:
   pattern: pipeline
   version: "2.1"
   domain: memnet
-  product: "0.19.0"
+  product: "0.19.1"
 ---
 
 # MemNet product development reference
 
 Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives in docs below -- do not duplicate or invent features here.
 
-**Product version:** `project.toml` / Hatch **0.19.0** (CLI command remains `memnet`). PyPI **`memnet-llm==0.19.0`.** Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`. **0.19** = extras 0.10–0.19 packaged. **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
+**Product version:** `project.toml` / Hatch **0.19.1** (CLI command remains `memnet`). Last published PyPI is **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**. Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`. **0.19** = extras 0.10–0.19 packaged. **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
 
 ## When loaded
 
@@ -55,7 +55,7 @@ MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-
 | Docs index | `docs/README.md` | -- |
 | Doctrine / quick start | `README.md` | -- |
 | Product shape | `docs/SHAPE.md` | developers |
-| One-path / version map | `docs/ROADMAP.md` (SSOT; package 0.19 this cut; 1.0 = 0.5–0.8 claimed) | developers |
+| One-path / version map | `docs/ROADMAP.md` (SSOT; package 0.19.1 this cut; 1.0 = 0.5–0.8 claimed) | developers |
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |

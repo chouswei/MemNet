@@ -8,7 +8,7 @@ metadata:
   pattern: pipeline
   domain: sysml-v2
   version: "1.6"
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
   pairs_with: [sysml-memnet-cache, sysml-memnet-documentation, sysml-gql, sysml-modeling-session-checklist, mcp-memnet, memnet-nested-sessions]
 token_guardrails: |
   - Follow the turn table. .sysml is structural SSOT; MemNet is relatives.

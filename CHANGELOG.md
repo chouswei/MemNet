@@ -8,9 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **PyPI honesty** — Package and PyPI are **`memnet-llm==0.19.0`** (wheel + sdist, 2026-08-20). Install `pip install memnet-llm` (or `==0.19.0`). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). Drop leftover “PyPI is still 0.4.6” / “prefer git until 0.19 is published” as current law. Historical changelog rows for 0.8/0.9 keep the dated lag. **1.0** stays unclaimed. Do not twine upload from this cut.
+- None.
+
+## [0.19.1] - 2026-08-20
+
+### Changed
+- **Package identity 0.19.1** — Hatch / `project.toml` / `memnet.__version__` patch on **0.19**. Numbered extras **0.10–0.19** are unchanged (no new extra row). Git tag `v0.19.1` and PyPI **`memnet-llm==0.19.1`** are coordinator after merge (`scripts/publish.sh --upload`). Last published PyPI wheel remains **0.19.0** until that upload. **1.0** stays a claim of 0.5–0.8 (this cut is not 1.0). Do not twine from this PR.
 - **Skills: GraphElement cue, not leftover `id`** — In-repo skills cue `pin_map` with `kind` + locators on `goal` / `name` / `qname` / `path` / `requirementId`. MATCH/SET the same. leftover `locators=['id=…']`, `MATCH ({id})`, `id:'NEW'`, and `+ TSK [NEW]` named leftover. Do not claim **1.0**.
-- **Skills refactor (0.19 teach)** — Product loop is cue `pin_map` + **`mutate`**. leftover `add`/`update` / `id:'NEW'` / `anchor=` / `query_warm` named leftover. MCP map includes `snap_model`, `session_list`, `export_pin_map`; no `read_get`. SysML skills default to this repo’s `sysml-models/`; drop pack-only skill paths. Multitask shipped table matches extras 0.15–0.19. Codebase snap is generic (no firmware example as law). Index: [`.cursor/skills/README.md`](.cursor/skills/README.md). Do not claim **1.0**.
+- **Example docs vs leftover dialect** — Bundled `parts/common/memnet/memnet/examples/` README and headers teach SCHEMA maps + GQL seeds (not Layer / Tier A / `+/~/-`). Coding seed locators match 0.9/0.19 (`cli.py`, MCP `session_load`/`save`). `memnet examples add` samples are GQL `CREATE`. Do not claim **1.0**.
+- **Skills refactor (0.19 teach)** — Product loop is cue `pin_map` + **`mutate`**. leftover `add`/`update` / `id:'NEW'` / `anchor=` / `query_warm` named leftover. MCP map includes `snap_model`, `session_list`, `export_pin_map`; no `read_get`. SysML skills default to this repo’s `sysml-models/`. Index: [`.cursor/skills/README.md`](.cursor/skills/README.md). Do not claim **1.0**.
 
 ## [0.19.0] - 2026-08-20
 
@@ -657,7 +663,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/chouswei/MemNet/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/chouswei/MemNet/compare/v0.9.0...v0.19.0
 [0.9.0]: https://github.com/chouswei/MemNet/compare/v0.8.0...v0.9.0
 [0.4.1]: https://github.com/chouswei/MemNet/compare/v0.4.0...v0.4.1

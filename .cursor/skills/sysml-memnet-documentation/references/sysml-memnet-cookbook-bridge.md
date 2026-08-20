@@ -7,7 +7,7 @@ Links user-pack MemNet skills to the upstream SysML v2 modeling cookbook. **Do n
 **Path (this repo):** [`docs/application-notes/llm-sysml-v2-modeling.md`](../../../../docs/application-notes/llm-sysml-v2-modeling.md)  
 **Evidence:** [`sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md)
 
-**Package:** Hatch **0.19.0** (PyPI **`memnet-llm==0.19.0`**). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
+**Package:** Hatch **0.19.1** (last published PyPI **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
 
 The cookbook is the **agent loop** (two token laws, Snap stack, look loop). User-pack skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not legacy alias tags.
 

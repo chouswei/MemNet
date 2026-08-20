@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   version: "7.1"
   domain: memnet
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
 token_guardrails: |
   - Product read is pin_map from a cue (kind / locators / keyword / session). leftover anchor= is leftover.
   - Product write is mutate (CREATE/MERGE/SET/DELETE). leftover add/update / id:'NEW' are leftover façades.
@@ -19,7 +19,7 @@ token_guardrails: |
 
 **Use** MemNet via MCP. Doctrine: `docs/SHAPE.md`, `docs/LLM-GUIDE.md`. Wire: [memnet-format](../memnet-format/SKILL.md). Nested interiors: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md). Tool SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
 
-Product **0.19.0**. PyPI **`memnet-llm==0.19.0`**. Arg **`session`** (not `session_id`). Novel-writer is out of scope.
+Product **0.19.1**. Last published PyPI is **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**. Arg **`session`** (not `session_id`). Novel-writer is out of scope.
 
 ## Transport
 

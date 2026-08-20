@@ -9,14 +9,14 @@ metadata:
   pattern: pipeline
   version: "1.1"
   domain: memnet
-  product: "0.19.0"
+  product: "0.19.1"
 ---
 
 # How to use MemNet
 
 **Using** MemNet — not building the engine. Doctrine: `docs/SHAPE.md`, `docs/grammar/gql-wire-profile.md`, `docs/LLM-GUIDE.md`. Open one specialist; do not paste those files here.
 
-**Product:** Hatch **0.19.0** (PyPI **`memnet-llm==0.19.0`**). Chat is never SSOT. Novel-writer is out of scope.
+**Product:** Hatch **0.19.1** (last published PyPI **`memnet-llm==0.19.0`** until coordinator uploads **0.19.1**). Chat is never SSOT. Novel-writer is out of scope.
 
 ## Goldfish loop
 

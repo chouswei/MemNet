@@ -8,7 +8,7 @@ metadata:
   pattern: pipeline
   version: "0.6"
   domain: memnet,codebase
-  product: memnet-llm==0.19.0
+  product: memnet-llm==0.19.1
 token_guardrails: |
   - Verify on disk (Grep/Read) before mutate; never invent paths or call edges.
   - Prefer ingest_codebase for locator pins; mutate only confirmed facts.
