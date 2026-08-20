@@ -165,7 +165,7 @@ q = REQ_MN_REQ_00
 | Cousin | Steal | Reject |
 |--------|-------|--------|
 | `root.sysml` imports | One model, several packages | Treating each file as an independent Snap |
-| Package / part / requirement tree | Interior grain = **fit** | Flattening the nest with `:contains` in one \(S\); clipping `max_rows`; one session per leaf; Leiden |
+| Package / part / requirement / **usage** tree | Interior grain = **fit**; defs vs usages = two interiors of **one** Snap | Flattening `:contains`; clipping `max_rows`; exploding multiplicity; pasting `subsets` ancestor; one session per leaf; Leiden |
 | 6-step modelling note | Cue TSK → edit SSOT → delta; **any** nest kind | Chat as SSOT for `qname=`; one loop per construct name |
 | Product vs application ([`../SHAPE.md`](../SHAPE.md)) | Same Snap-model grain downstream | Import `MemNetRequirements` into a customer load tree |
 

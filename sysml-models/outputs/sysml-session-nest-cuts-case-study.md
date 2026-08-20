@@ -130,6 +130,20 @@ SET s.line = 18
 CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 ```
 
+### Turn F — official VehicleUsages (OMG example)
+
+Source: [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) with [VehicleDefinitions.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleDefinitions.sysml).
+
+**One Snap.** Catalog rows: `VehicleDefinitions` (def library) and `VehicleUsages` (configurations). Import `::*` is not a second Snap. `Wheel.hub` stays in the def interior; `narrowRimWheel: Wheel` is `:typedBy` plus nested `lugbolt[4..5]` — **one** pin, multiplicity a property.
+
+**`vehicle_C1` shell** = `frontAxleAssembly` | `rearAxleAssembly` only. Lugbolts are depth 3. Depth-2 flatten either **misses** them or dumps the tree; clipping `max_rows` is the lie. Re-anchor to the assembly, then the wheel.
+
+**`vehicle_C2 subsets vehicle_C1`.** Shape is **delta**: `redefines frontAxleAssembly`, `leftFrontWheel subsets frontWheel`, `interface leftFrontMount: Mounting connect …`. Locator to C1. Not a paste of C1’s nest.
+
+**`vehicle_C3`.** File comment: connection to a **deeply nested port** `rearAxleAssembly.rearAxle.drive`. C3 shell = `transmission` | redefined `rearAxleAssembly` | `driveShaft`. Port `drive` is on `rearAxle`. Second look / Absorb slice if the axle was cut — same as Turn D `satisfy`.
+
+**As-is ingest.** `part` usages project; `interface` usages, `subsets`/`redefines`, `connect`/`flow`, attributes `T1`/`T2` do **not**. `.sysml` remains SSOT for those. Annex A `SimpleVehicleModel.sysml` in the same folder is the fat nest; this usages file is the **clear** configuration example.
+
 ## 5. Contrast (MUST NOT)
 
 | Not this | Why |
@@ -145,6 +159,9 @@ CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 | Layer / `layer=` / dump \(S\) | ADR-001; MN-REQ-01.8 |
 | ANN of catalog session ids | Snap-on-sessions |
 | leftover `id:'NEW'` as law | GraphElement create; leftover 0.9 |
+| Explode `lugbolt[4..5]` | One usage pin; multiplicity property |
+| Paste `vehicle_C1` into `vehicle_C2` | `subsets`/`redefines` = delta + locator |
+| Depth-2 from `vehicle_C3` to `rearAxle.drive` | C3 shell, then re-anchor the axle |
 
 ## 6. Honesty
 
@@ -154,6 +171,7 @@ CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 | Recurse part-root / requirement-group when still over \(M\) | TARGET teach; engine leftover still two-segment child package after a successful project |
 | Ingest `max_nodes=200` on `deploy.sysml` | fat nest can hit `ingest_budget` **before** a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still slices `[:max_rows]` |
+| VehicleUsages `interface` / `subsets` / `redefines` / `flow` | not in as-is `_DEF_HEAD`; `.sysml` SSOT |
 | `liveNeo4jClaimed` | extra **0.14**; not this Snap cut’s fence |
 | Operator count | stays 2 (Snap is Commit of locators; Absorb stays Path-B) |
 
@@ -166,4 +184,5 @@ CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 | [session-import-case-study.md](session-import-case-study.md) | Absorb **slice** across cuts (Turn D) |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat must not replace the live interior map |
 | `docs/application-notes/llm-sysml-v2-modeling.md` | Application loop + nest snippets |
+| [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) | OMG example: usages, subsets, nested-port `interface` |
 | `docs/grammar/memnet-session-strata.md` | Sessions as strata (not Layer) |

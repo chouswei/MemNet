@@ -226,6 +226,36 @@ SysML `view def` / `viewpoint def` ingest as `PRT` (as-is). They stay in the **p
 | `port` / `connection` / `action` / `item` | owning `PRT` | child name | owning part over \(M\) (not per port) |
 | `satisfy` / `allocate` | source interior | — | never; second look or Absorb slice |
 | `view def` | owning `PKG`/`PRT` | view name | that def’s subtree over \(M\) |
+| `subsets` / `redefines` | specialised usage | delta + locator to ancestor | never copy the ancestor nest |
+| `interface` / `connect` / `flow` | owning part | interface name | nested port ends: second look or Absorb slice |
+| multiplicity `[n]` / `[n..m]` | the **one** usage pin | property | never explode n sessions |
+
+#### Official example: Vehicle definitions vs usages
+
+OMG SysML v2 Release [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) + [VehicleDefinitions.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleDefinitions.sysml). **One model Snap**, two package interiors (`VehicleDefinitions` library of **defs**; `VehicleUsages` **configurations**). `public import VehicleDefinitions::*` is not a second Snap and not a dump of Wheel/Axle into every usage.
+
+**Typed usage, do not copy the def nest.** `part narrowRimWheel: Wheel { part lugbolt: Lugbolt[4..5]; }` is `:typedBy` `Wheel` (ports `hub` stay in the def interior unless this usage **redefines** them) plus a nested usage `lugbolt`. Multiplicity `[4..5]` / `frontWheel[2]` is a **property on one pin**, not four sessions or two exploded nodes.
+
+**Containment of `vehicle_C1` (direct children only in the parent Shape):**
+
+```text
+vehicle_C1
+├── frontAxleAssembly          ← shell of C1
+│   ├── frontWheel[2] subsets narrowRimWheel
+│   │     └── lugbolt[4] redefines tighteningTorque
+│   └── frontAxle
+└── rearAxleAssembly           ← shell of C1
+```
+
+Cue `vehicle_C1` → Shape lists **frontAxleAssembly** and **rearAxleAssembly** whole (names). Re-anchor to `frontAxleAssembly` for wheels. Lugbolts are depth 3 from C1 — a depth-2 walk **misses** them or, if unbounded, dumps the tree. Do not clip; cut assemblies if C1’s direct children still over \(M\) (this file is small and likely fits one interior).
+
+**`subsets` / `redefines` are configuration delta, not a second contains copy.** `part vehicle_C2 subsets vehicle_C1` plus `part redefines frontAxleAssembly` with `leftFrontWheel subsets frontWheel = frontWheel#(1)`. Goldfish of C2 is the **redefine + new `interface` rows** and a locator to C1 — not C1’s whole nest pasted into C2.
+
+**`interface` to nested ports** (C2 / C3). C3’s own comment is a deeply nested port: `rearAxleAssembly.rearAxle.drive`. Parent Shape of C3 lists `transmission`, redefined `rearAxleAssembly`, and `driveShaft`. The port `drive` lives on `rearAxle`. Second look (or Absorb a slice) if that axle was cut away. Same as `satisfy` across cuts — no dangling same-store node.
+
+**As-is ingest leftover.** `_DEF_HEAD` projects `part` / `port` / `interface def`, not `interface` usages, `subsets`/`redefines` edges, `connect`/`flow`, multiplicity, or attributes (`T1`, `tighteningTorque`). Those stay in `.sysml` until Snap grows them as locators. Do not invent a flattened `:contains` walk to “make up” the missing edges.
+
+The fat cousin in the same folder is Annex A `SimpleVehicleModel.sysml` (actions, states, requirements, allocations). Same cut law; this usages file is the **clear** nest, not the token bomb.
 
 ---
 
@@ -248,6 +278,9 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 | Kind zoo of layer sessions (`S_part`, `S_req`, `S_port`) | Cuts are budget on the nest, not construct names |
 | Silent `max_rows` / shell drop / ingest mid-brace | Refuse; partition; complete Shape of the chosen \(S\) |
 | `pin_map` depth 2 on a parent nest | Shell of **direct** children, then one child interior |
+| Explode `lugbolt[4..5]` / `frontWheel[2]` into many nodes | One usage pin; multiplicity is a property |
+| Dump `vehicle_C1` into `vehicle_C2` because it `subsets` | C2 Shape = redefines + new interfaces; locator to C1 |
+| Walk `rearAxleAssembly.rearAxle.drive` from `vehicle_C3` | Cue C3 shell, then re-anchor the axle cut |
 | `Peak_L` as default goldfish on a `:contains` tree | Cue `qname=`; Peak is last-resort residual only |
 
 ---
