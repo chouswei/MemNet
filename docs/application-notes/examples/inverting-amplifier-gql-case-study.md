@@ -138,7 +138,7 @@ Agent goldfish read is **not** a raw binding table such as:
 MATCH (n)-[r]->(m) RETURN n, r, m
 ```
 
-Instead, `pin_map(anchor='CST_U1', depth=2, view='shell')` wraps GQL internally and returns a **bounded shaped subgraph** — openCypher-family graph lines the agent can copy when mutating:
+Instead, `pin_map(kind='CST', locators=['id=CST_U1'], depth=2, view='shell')` wraps GQL internally and returns a **bounded shaped subgraph** — openCypher-family graph lines the agent can copy when mutating. leftover `pin_map(anchor='CST_U1')` is leftover. `view=shell` here is grain **on that seed**, not session outline (empty q is outline regardless of view):
 
 ```cypher
 // shaped emit (illustrative — same family as mutate, ego-bounded)

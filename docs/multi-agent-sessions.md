@@ -59,7 +59,7 @@ use `require_bind=true` and enforce the bind.
 
 - Open or load **one** mission `session` id before delegating; pass that id in every worker prompt.
 - Mint and own `TSK_*` / `USR_*` lifecycle: create, `status=active`, `status=settled`, optional `led_to_success` edges.
-- Give workers **self-contained** prompts: session id, cue/anchor ids, write scope (subgraph or relation types), return shape, map kinds they may mint.
+- Give workers **self-contained** prompts: session id, cue ids (leftover `anchor=` named leftover), write scope (subgraph or relation types), return shape, map kinds they may mint.
 - **End the turn** after spawning background workers — Multitask gate; do not poll or await worker completion in the same turn.
 - On the **next** coordinator turn: cue then **`pin_map(q)` first** (or skip); **drop** the previous map from the pack; act from the refreshed slice — do not redo worker investigation from chat.
 - Prefer **one** worker per coherent workstream; parallel workers only for **disjoint** anchors, **RSV** leases, or **separate** session ids.

@@ -75,7 +75,7 @@ Agents **MUST** read via the MemNet **`pin_map`-class** tool (MCP `pin_map` / CL
 | Input | Meaning | Default / notes |
 |-------|---------|-----------------|
 | cue / `find` | Recall seed: label + properties (bounded MATCH) | Primary goldfish entry; not `--anchor` as law |
-| `anchor` | Optional nickname `id` when one exists | Omit when no nickname; 0.9 leftover still requires it in Python |
+| `anchor` | leftover nickname `id` when one exists | leftover alias for product `cue`; omit when no nickname; leftover engine may still accept it |
 | `depth` | Hop budget from the seed | Typical `2` |
 | `view` | Grain budget **inside one session** | Omit → shell-safe default; teach `shell` / `interior` first **on a seed**. Not session outline (0.11). Not a second session ([`memnet-session-strata.md`](memnet-session-strata.md)) |
 | `max_rows` | Hard row / element cap | Engine default (e.g. 50) |
@@ -86,11 +86,11 @@ Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents
 
 **Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), neighbourhood-bounded and view-filtered. Emit **MAY** omit `{id:'…'}`.
 
-**Honesty:** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `Recall` / `AgentShapedRead` (parent `RecallCommit`). Same Recall operator; seed rule is cue/pattern first, optional nickname for a later walk. Find emits **hit nodes only** (`query find` / MCP `find`); then `pin_map` walks. Do **not** teach MATCH…RETURN as goldfish. Product math: [`math-skeleton.md`](math-skeleton.md). **0.9 leftover:** `PinMapComposer` still `require_anchor` / `by_id` — leftoverIssue, not TARGET.
+**Honesty:** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `Recall` / `AgentShapedRead` (parent `RecallCommit`). Same Recall operator; seed rule is cue/pattern first, optional leftover nickname for a later walk. Find emits **hit nodes only** (`query find` / MCP `find`); then `pin_map` walks. Do **not** teach MATCH…RETURN as goldfish. Product math: [`math-skeleton.md`](math-skeleton.md). leftover `PinMapComposer.require_anchor` / `by_id` — leftoverIssue, not TARGET.
 
 ### 1.2 Mutate — openCypher-shaped writes (gated)
 
-Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `add`/`update` envelope in M2):
+Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate` envelope; leftover `add`/`update` named leftover):
 
 | Intent | Allowed shape (sketch) | Notes |
 |--------|------------------------|-------|
@@ -205,7 +205,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 **MUST NOT**
 
 - Require property `id` on every node or relationship; invent a replacement application store key; teach HiddenStoreHandle on the wire or as a property/business key; put `id` first as a required SCHEMA field.
-- Treat `--anchor TSK1` as law for goldfish (cue/pattern first).
+- Treat leftover `--anchor TSK1` as law for goldfish (cue/pattern first; leftover `--anchor` named leftover).
 - Unbounded `MATCH` as primary agent read.
 - Primary tabular `RETURN` / binding-table goldfish.
 - Layer / Tier A / MemNet Layer as agent wire, peer teach, or product accept path.

@@ -282,7 +282,7 @@ Default: `MEMNET_SERVE_HOST=127.0.0.1`, port `18765`. Local IPC (MN-REQ-06.2): `
 
 ```text
 0. session_open / join (token + llm_id + role=writer|owner)
-1. pin_map(anchor=…)           # SES / ACL / RSV + nodes
+1. pin_map(q)                  # SES / ACL / RSV + nodes; leftover pin_map(anchor=…) named leftover
 2. reserve(..., llm_id=me, ttl_s=…)
 3. update / add (same llm_id)
 4. extend(...) if needed

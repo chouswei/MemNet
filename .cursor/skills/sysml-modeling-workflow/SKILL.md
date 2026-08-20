@@ -34,7 +34,7 @@ Every substantive turn on the project model tree **MUST** follow this order. Def
 | Step | Action | MemNet |
 |------|--------|--------|
 | **1** | `serve_status`. If `running: false` -> edit `.sysml` only; skip 2 and 6; note stale graph. | -- |
-| **2** | Pin map: `pin_map(anchor=TSK_model_<short>, depth=2, max_rows=50)` | **READ** |
+| **2** | Pin map: `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], depth=2, max_rows=50)` (leftover `anchor=` named leftover) | **READ** |
 | **3** | Locate symbol -> edit `models/*.sysml` ([read policy](../sysml-memnet-documentation/references/sysml-memnet-read-policy.md): pin map first; Read +/-15 lines at SYM.line only) | -- |
 | **4** | `mcp-sysml-v2 validate` until pass | -- |
 | **5** | `sysml-view-doc-sync` **iff** outputs exist and structure changed. Interconnection figures: **[sysml-interconnection-mermaid](../sysml-interconnection-mermaid/SKILL.md)** before fenced Mermaid. | -- |

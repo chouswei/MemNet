@@ -21,5 +21,8 @@ def test_prune_stale_dry_run(memnet_temp, schema_file, workflow_file):
     dry = runner.invoke(app, ["housekeep", "prune", "stale", "--session", sid])
     assert dry.exit_code == 0
     assert "would-delete" in dry.stderr
-    still = runner.invoke(app, ["read", "get", "--id", "T01", "--session", sid])
+    still = runner.invoke(
+        app, ["read", "list", "--tag", "TSK", "--where", "id=T01", "--session", sid]
+    )
     assert still.exit_code == 0
+    assert "T01" in still.stdout

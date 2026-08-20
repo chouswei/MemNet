@@ -88,7 +88,7 @@ def _open_coding(memnet_temp) -> str:
     return r.stdout.strip().split("|")[0].replace("@SESSION: ", "")
 
 
-def test_empty_cue_with_view_shell_is_outline_not_skip(memnet_temp):
+def test_empty_cue_is_outline_regardless_of_view(memnet_temp):
     sid = _open_coding(memnet_temp)
     add = runner.invoke(
         app,
@@ -101,17 +101,27 @@ def test_empty_cue_with_view_shell_is_outline_not_skip(memnet_temp):
         ),
     )
     assert add.exit_code == 0, add.stderr
-    outlined = runner.invoke(
+    plain = runner.invoke(app, ["query", "pin-map", "--session", sid])
+    assert plain.exit_code == 0, plain.stderr
+    assert "## outline" in plain.stdout
+    with_shell = runner.invoke(
         app,
         ["query", "pin-map", "--view", "shell", "--session", sid],
     )
-    assert outlined.exit_code == 0, outlined.stderr
-    assert "## outline" in outlined.stdout
-    assert "no_anchor" not in outlined.stderr
-    assert "TSK_live" in outlined.stdout
-    assert "MOD_x" in outlined.stdout
-    assert "-[:" not in outlined.stdout
-    assert "owns" not in outlined.stdout
+    assert with_shell.exit_code == 0, with_shell.stderr
+    assert "## outline" in with_shell.stdout
+    assert "no_anchor" not in with_shell.stderr
+    assert "TSK_live" in with_shell.stdout
+    assert "MOD_x" in with_shell.stdout
+    assert "-[:" not in with_shell.stdout
+    assert "owns" not in with_shell.stdout
+    # view=shell is not the outline operator; empty q is.
+    help_r = runner.invoke(app, ["query", "pin-map", "--help"])
+    assert (
+        "grain on a seed" in help_r.stdout
+        or "not the outline" in help_r.stdout.lower()
+        or "not session outline" in help_r.stdout
+    )
 
 
 def test_view_shell_is_grain_on_a_seed_not_session_outline(memnet_temp):

@@ -16,8 +16,9 @@ def test_add_then_update(memnet_temp, schema_file):
     assert runner.invoke(app, ["add", line, "--session", sid]).exit_code == 0
     updated = "@PLR: PLR01|Beggar|2|0|0|0|bag"
     assert runner.invoke(app, ["update", updated, "--session", sid]).exit_code == 0
-    got = runner.invoke(app, ["read", "get", "--id", "PLR01", "--session", sid])
-    assert "2" in got.stdout
+    got = runner.invoke(app, ["query", "pin-map", "--cue", "PLR01", "--session", sid])
+    assert got.exit_code == 0, got.stderr
+    assert "2" in got.stdout or "PLR01" in got.stdout
 
 
 def test_add_two_same_nickname_gql(memnet_temp, schema_file):

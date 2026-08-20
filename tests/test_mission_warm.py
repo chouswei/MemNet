@@ -31,7 +31,9 @@ def test_mission_warm_hides_settled(memnet_temp, schema_file, workflow_file):
     assert "LAW01" in warm.stdout or "(:LAW" in warm.stdout
     assert "CREATE (:" not in warm.stdout
 
-    still = runner.invoke(app, ["read", "get", "--id", "T01", "--session", sid])
+    still = runner.invoke(
+        app, ["read", "list", "--tag", "TSK", "--where", "id=T01", "--session", sid]
+    )
     assert still.exit_code == 0
     assert "settled" in still.stdout
 

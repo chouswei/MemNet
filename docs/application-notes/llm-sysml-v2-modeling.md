@@ -33,11 +33,11 @@ A piece of background is pulled into context only when a relationship from the l
 Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent; Multitask uses TCP/HTTP.
 
 1. **`serve_status`** (if TCP/shared; skip under in-process default) — if down, edit `.sysml` only and note stale graph.
-2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map(anchor=…, depth=2)`**. Never rely on prior chat or full-file reads.
+2. **Cue** the live `TSK_model_<short>` (or `find`); then **`pin_map(kind='TSK', locators=[…], depth=2)`**. Never rely on prior chat or full-file reads. leftover `anchor=` is leftover.
 3. **Locate then edit** — from `SYM` → narrow Read/grep → edit `.sysml`.
 4. **Validate** — `mcp-sysml-v2 validate` until clean.
 5. **Doc sync (conditional)** — `sysml-view-doc-sync` if `outputs/` changed.
-6. **Delta write + locator refresh** — gated GQL `add`/`update` affected atoms; refresh `SYM.line`; settle transients.
+6. **Delta write + locator refresh** — gated GQL `mutate` affected atoms; refresh `SYM.line`; settle transients. leftover `add`/`update` named leftover.
 
 After heavy settlement, optional `housekeep prune recyclable --apply`. Reference material is never settled away.
 

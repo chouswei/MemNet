@@ -29,8 +29,8 @@ flowchart TB
     Tick[MUD tick loop]
     GW[Gateway]
     Serve --- Graph
-    Tick -->|"pin_map / add / update"| Serve
-    GW -->|"pin_map / add / update"| Serve
+    Tick -->|"pin_map / mutate"| Serve
+    GW -->|"pin_map / mutate"| Serve
   end
   subgraph client_host [Player device]
     PA[Player agent + LLM]
@@ -137,7 +137,7 @@ Cue then `pin_map` (MCP arg **`session`**). Shared world = TCP / HTTP, not in-pr
 |---------|-----|
 | Layer / `@TAG` pipe teach | GQL only |
 | Prose in graph rows | Client generates from keys |
-| Warm without room/player anchor | `pin_map(anchor=ROM…)` |
+| leftover `query warm` / leftover `anchor=` as law | `pin_map` from a cue (`kind` / locators / `cue`) |
 | Exit without a relationship | Validate `:exit` first |
 
 ---

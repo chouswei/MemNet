@@ -88,8 +88,9 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 3. **Act / reason** using only the **live** pin-map slice + the current user request. Do not keep turn-\(n-1\) maps in the pack.
 4. **Commit sparse Δ** — CREATE / SET on changed elements only. Do not echo the fetched map. leftover `id_exists` / NEW mint is leftover.
 
-   MCP: `add(wire_lines=[…])` / `update(wire_lines=[…])`  
-   CLI: `memnet add --stdin` / `memnet update --stdin`
+   MCP: `mutate(wire_lines=[…])`  
+   CLI: `memnet mutate --stdin`  
+   leftover `add` / `update` names remain leftover façades (do not mint NEW; not TARGET).
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
@@ -103,21 +104,24 @@ Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the pr
 |------|------|
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_save` / `session_load` | Snapshot durability |
-| `pin_map` | **Live pin map** — primary read (`query_warm` = legacy alias) |
-| `add` / `update` | Mutate — openCypher-shaped GQL (gated) |
-| `read_list` | Enumerate (optional). Product read is find then `pin_map` |
-| leftover `read_get` | **Not** an MCP product tool. CLI `read get` is leftover, unique nickname only |
+| `pin_map` | **Live pin map** — primary read (`query_warm` = leftover alias) |
+| `mutate` | **Product Commit** — gated GQL CREATE / MERGE / SET / DELETE |
+| leftover `add` / `update` | leftover façades (GQL; no NEW mint). Prefer `mutate` |
+| `read_list` | leftover enumeration. Product read is find then `pin_map` |
+| leftover `read_get` | **Not** an MCP or product CLI tool |
 | `housekeep_stats` | Caps and row counts |
 | `serve_status` | TCP serve probe (optional in-process) |
+| leftover `query_walk` | leftover hop debug, not goldfish |
 
 Always pass the same `session` id across tools in one job.
 
-### Add vs update
+### leftover `add` vs `update` vs product `mutate`
 
-| Intent | MCP | CLI | Wrong-way signal |
-|--------|-----|-----|------------------|
-| **New** row | `add` | `add` | `id_exists` → use `update` |
-| **Change** row | `update` | `update` | `not_found` → fix id or `add` |
+| Intent | Product | leftover façade | Wrong-way signal |
+|--------|---------|-----------------|------------------|
+| **Commit Δ** | `mutate` | leftover `add`/`update` split | leftover NEW mint; pipe as agent wire |
+| **New element** | `CREATE` via `mutate` | leftover `add` | `id_exists` on leftover add |
+| **Change** | `MATCH…SET` via `mutate` | leftover `update` | `not_found` on leftover update |
 
 Copy ids from pin map output — never retype from memory. There is no upsert.
 
@@ -126,7 +130,7 @@ Copy ids from pin map output — never retype from memory. There is no upsert.
 - IDs are **global within a session** and unique per kind.
 - **Reuse** the same id for the same thing forever.
 - **Never mint a duplicate** for something already in the graph.
-- Unsure? cue/`find` then `pin_map`. leftover CLI `read get` is not the product read.
+- Unsure? cue/`find` then `pin_map`. leftover `read_get` / CLI `read get` are unshipped from the product surface.
 
 ### `recycle` field
 
@@ -145,14 +149,14 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 ### Reading strategy
 
-- **Normal turn:** one `pin_map(kind='TSK', locators=[…], depth=2, max_rows=50)` (or skip). Optional `view=shell` on a **seeded** topic hub only when blocked, then interior on the task. leftover `--anchor` is a nickname cue, not law.
+- **Normal turn:** one `pin_map(kind='TSK', locators=[…], depth=2, max_rows=50)` (or skip). Optional `view=shell` on a **seeded** topic hub only when blocked, then interior on the task. leftover `--anchor` / `anchor=` is a leftover nickname alias, not law.
 - Pin map includes engine LAW rows (prepended) — that is why \(N\) maps waste tokens.
-- Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless anchor touches endpoints per LAW01).
-- `read_list(active_only=True)` or `read_list(tag=TSK, where=[...])` to find the ego, then one `pin_map`.
-- New facts: sparse GQL `add`/`update`. Do not echo the fetched slice. Do not call that absorb.
+- Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless leftover nickname cue touches endpoints per LAW01).
+- leftover `read_list(active_only=True)` may enumerate; product is `find` then one `pin_map`.
+- New facts: sparse GQL `mutate`. Do not echo the fetched slice. Do not call that absorb.
 - Switch task: settle the old `TSK`, then `pin_map` the next ego — do not RAG/embed the session.
-- `query_walk` — hop debug only, not the primary read.
-- `query context` — audit only; do not use every turn.
+- leftover `query_walk` — hop debug only, not goldfish.
+- leftover `query context` — audit only; empty cue allowed (not `require_anchor` as product law). Do not use every turn.
 
 ### Session lifecycle
 
@@ -160,7 +164,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
 - Milestones: `session_save` / `session_load` (MCP or CLI).
 - Default TTL 60 minutes; override with `ttl` on open/load.
-- After `session_load`, existing ids need `update` not `add`.
+- After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).
 - Agent handoff: deliver **session id** (+ anchors / write scope); peers **re-pin_map**. Prefer **import** when absorbing a member working-memory slice.
 
 ### Path B ingest
@@ -192,9 +196,9 @@ Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`
 ### Neighbourhood reserve (MN-REQ-12.13)
 
 ```bash
-memnet reserve --anchor PLR01 --llm-id coder_a --depth 2 --ttl 120
-memnet query pin-map --anchor PLR01   # may show ## Reserves / RSV […]
-memnet update --stdin --llm-id coder_a …
+memnet reserve --anchor PLR01 --llm-id coder_a --depth 2 --ttl 120   # leftover --anchor nickname
+memnet query pin-map --cue PLR01   # may show ## Reserves / RSV […]
+memnet mutate --stdin --llm-id coder_a …
 memnet release --rid R1 --llm-id coder_a
 ```
 
@@ -209,7 +213,7 @@ export MEMNET_IPC_SOCKET=/tmp/memnet.sock   # same path for server + clients
 memnet serve --ipc                          # or: memnet serve --ipc-path "$MEMNET_IPC_SOCKET"
 # other terminal (MEMNET_IPC_SOCKET set):
 memnet session open --map-file schema.example.txt
-memnet query pin-map --anchor …
+memnet query pin-map --cue …
 ```
 
 TCP `memnet serve` (`127.0.0.1:18765`) remains the Multitask / LAN fallback (MN-REQ-06.3).
@@ -221,7 +225,7 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 | Mistake | Fix |
 |---------|-----|
 | Whole-session read | Cue then `pin_map` only |
-| `add` when the pattern already matches | `update` / `MATCH…SET` by labels+properties |
+| leftover `add` when the pattern already matches | leftover `update` / product `MATCH…SET` by labels+properties |
 | SET/DELETE when \(|Q|>1\) | CueConflict — do not pick one root; do not absorb on Recall. SameThingAbsorb is a later Commit (`SET a += b`) |
 | Settled but `recycle=persistent` | Set `delete_on_settle` on settle |
 | Ignoring stderr `@WRN:` | Read warnings (caps, staleness) |
@@ -235,7 +239,7 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 
 ```text
 # 1. Commit (first time) — GQL clauses in wire_lines
-add(wire_lines=[
+mutate(wire_lines=[
   "CREATE (t:TSK {goal:'Negotiate with the guild', status:'in_progress', recycle:'persistent'})",
   "MATCH (b {name:'Guild'}), (t:TSK {goal:'Negotiate with the guild'}) CREATE (b)-[:seeks_help {note:'terms', recycle:'persistent'}]->(t)",
 ])
@@ -245,7 +249,7 @@ find(kind='TSK', limit=8)
 pin_map(kind='TSK', locators=['goal=Negotiate with the guild'], depth=2, max_rows=30)
 
 # 3. Later — settle
-update(wire_lines=[
+mutate(wire_lines=[
   "MATCH (t:TSK {goal:'Negotiate with the guild'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'",
 ])
 
@@ -254,7 +258,7 @@ pin_map()
 pin_map(kind='TSK')
 ```
 
-leftover 0.9 `id:'NEW'` / `pin_map(anchor=…)` / copy-id is leftover engine, not this loop.
+leftover 0.9 `id:'NEW'` / leftover `add`/`update` / `pin_map(anchor=…)` / copy-id is leftover engine, not this loop.
 
 ### Application notes
 
@@ -291,7 +295,8 @@ Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@W
 ### CLI quick reference
 
 - `memnet serve` — TCP daemon (`127.0.0.1:18765`); required for CLI unless `MEMNET_TEST_INLINE=1`
-- `memnet query pin-map --kind TSK` — live pin map from a cue (`query warm` = deprecated alias). leftover `--anchor` = nickname cue.
+- `memnet query pin-map --kind TSK` — live pin map from a cue (`query warm` = leftover alias). leftover `--anchor` = leftover nickname alias.
+- `memnet mutate --stdin` — product GQL Commit. leftover `add`/`update` named leftover.
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
 - `memnet guide --loose` — short cheat sheet
 
@@ -312,4 +317,4 @@ Never guess field order. Prefer copying property shapes from shaped `pin_map` / 
 
 ---
 
-Stay disciplined with **atomisation**, ids, `add` vs `update`, settlement `recycle`, and **cue then one live pin_map** (drop prior maps). Everything else follows.
+Stay disciplined with **atomisation**, settlement `recycle`, and **cue then one live pin_map** (drop prior maps). Product write is **GQL Commit** (`mutate`). leftover `add`/`update` named leftover. Everything else follows.

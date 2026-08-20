@@ -29,7 +29,8 @@ def test_s08_pipe_escape(memnet_temp, schema_file):
     line = "@PLR: PLR01|note\\|extra|1|0|0|0|bag"
     w = runner.invoke(app, ["add", line, "--session", sid])
     assert w.exit_code == 0
-    g = runner.invoke(app, ["read", "get", "--id", "PLR01", "--session", sid])
+    g = runner.invoke(app, ["query", "pin-map", "--cue", "PLR01", "--session", sid])
+    assert g.exit_code == 0, g.stderr
     assert "note|extra" in g.stdout or "note\\|extra" in g.stdout
 
 
