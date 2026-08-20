@@ -8,7 +8,7 @@ metadata:
   pattern: pipeline
   domain: sysml,memnet
   version: "1.3"
-  product: memnet-llm==0.19.2
+  product: memnet-llm==0.19.3
   pairs_with: [mcp-memnet, memnet-format, sysml-memnet-cache, sysml-memnet-documentation, sysml-modeling-workflow, memnet-nested-sessions]
 token_guardrails: |
   - GQL only. No Layer / pipe @TAG. leftover NEW / leftover anchor= named leftover.

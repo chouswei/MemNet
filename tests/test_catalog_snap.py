@@ -166,6 +166,22 @@ def test_join_is_slice_absorb_not_whole_s(memnet_temp, model_dir: Path):
     assert "MN-REQ-DEMO.B" not in ids
 
 
+def test_close_frees_slots_for_snap_model(memnet_temp, model_dir: Path, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "3")
+    from memnet.config import Caps
+    from memnet.session import close_session, open_session as open_ss
+
+    filler = open_ss(map_file=str(schema_file), caps=Caps())
+    with pytest.raises(MemNetError) as ei:
+        snap_model(model_dir, map_file=_MAP, caps=Caps())
+    assert ei.value.code == "limit_exceeded"
+    assert ei.value.message == "sessions|4/3"
+    close_session(filler.session_id, Caps())
+    result = snap_model(model_dir, map_file=_MAP, caps=Caps())
+    assert result.catalog_session_id
+    assert len(result.session_ids) == 3
+
+
 def test_cli_snap_model_and_session_list(memnet_temp, model_dir: Path):
     del memnet_temp
     snapped = runner.invoke(
@@ -177,6 +193,7 @@ def test_cli_snap_model_and_session_list(memnet_temp, model_dir: Path):
     assert "_el" not in snapped.stdout
     listed = runner.invoke(app, ["session", "list"])
     assert listed.exit_code == 0
+    assert listed.stdout.splitlines()[0].startswith("@STAT: sessions|")
     assert listed.stdout.count("@SESSION:") >= 3
     cat = None
     for line in snapped.stdout.splitlines():

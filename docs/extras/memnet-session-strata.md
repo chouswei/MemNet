@@ -1,6 +1,6 @@
 # Sessions as strata (not Layer)
 
-**Status:** 0.15 engine in package 0.19.2 — **not** a SemVer gate for **1.0**, **not** Layer / Tier A.  
+**Status:** 0.15 engine in package 0.19.3 — **not** a SemVer gate for **1.0**, **not** Layer / Tier A.  
 **Audience:** product developers. British English.  
 **Homograph.** *Layer* in this repo means the **retired dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
@@ -174,7 +174,7 @@ q = REQ_MN_REQ_00
 
 ## SemVer
 
-Fits **0.15 Catalog Snap** (in package 0.19.2). **SysML model Snap** = one model → session stack. **0.13** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
+Fits **0.15 Catalog Snap** (in package 0.19.3). **SysML model Snap** = one model → session stack. **0.13** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
 
 **MUST NOT** ship: Layer accept; `SessionMerge*`; ANN of the catalog; a `layer=` property as wire; HostSearch nested under `MemNetSystem`.
 

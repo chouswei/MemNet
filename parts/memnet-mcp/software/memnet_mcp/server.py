@@ -113,8 +113,14 @@ async def session_open(
 
 @mcp.tool()
 async def session_list() -> str:
-    """List live session ids in this process (named strata; not ANN rank)."""
+    """List live session ids (named strata; not ANN) with ``sessions|n/max``."""
     return await _run(["session", "list"])
+
+
+@mcp.tool()
+async def session_close(session: str) -> str:
+    """Close that session id (SessionLifecycle; does not dump S)."""
+    return await _run(["session", "close", session])
 
 
 @mcp.tool()

@@ -57,6 +57,7 @@ from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
     close_session,
+    count_sessions,
     get_session,
     list_sessions,
     open_session,
@@ -366,8 +367,11 @@ def session_current(
 
 @session_app.command("list")
 def session_list() -> None:
-    purge_expired(_caps())
-    for sid, exp, left, modified in list_sessions(_caps()):
+    """List live session ids (named strata; not ANN) with ``sessions|n/max``."""
+    caps = _caps()
+    n = count_sessions()
+    emit_stdout(f"@STAT: sessions|{n}/{caps.max_sessions}")
+    for sid, exp, left, modified in list_sessions(caps):
         emit_session(sid, exp, str(left), modified)
 
 

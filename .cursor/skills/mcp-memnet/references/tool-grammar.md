@@ -1,13 +1,14 @@
 # MCP tools ↔ MemNet GQL wire
 
-SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`. Product **0.19.2**. Wire: [memnet-format](../../memnet-format/SKILL.md); `docs/grammar/gql-wire-profile.md`.
+SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`. Product **0.19.3**. Wire: [memnet-format](../../memnet-format/SKILL.md); `docs/grammar/gql-wire-profile.md`.
 
 Envelope JSON is transport. **`stdout` / `wire_lines`** carry GQL. `serve_status` is the only non-envelope JSON.
 
 | Tool | Purpose | Wire |
 |------|---------|------|
 | `session_open` | Map + optional seed | `SCHEMA …`; optional CREATE seed |
-| `session_list` | Live ids | text |
+| `session_list` | Live ids + `sessions|n/max` | text |
+| `session_close` | Close that id | `@SESSION: …|closed` |
 | `pin_map` | Primary read | shaped subgraph (empty q = outline) |
 | `find` | Seed | bounded MATCH |
 | `mutate` | Product Commit | CREATE / MERGE / SET / DELETE |
