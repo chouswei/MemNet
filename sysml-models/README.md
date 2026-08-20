@@ -40,6 +40,8 @@ MemNetSystem                                 // SharedLlmMemory product
 │   │   │       └── SessionLifecycle         // session id = SSOT handle
 │   │   │           ├── GraphStore
 │   │   │           ├── GqlCodec             // GraphGlot parse front + product gate
+│   │   │           │   ├── GraphGlotParseFront  // implemented=true — PyPI graphglot
+│   │   │           │   └── ProductGqlGate       // after parse; not a store
 │   │   │           ├── RecallCommit         // 0.5: TWO operators only
 │   │   │           │   ├── Recall           // seed + k-hop; empty q ⇒ outline
 │   │   │           │   │   ├── SessionOutline   // 0.11 TARGET census of S
