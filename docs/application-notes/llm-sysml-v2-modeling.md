@@ -57,7 +57,7 @@ Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`. Do **not** invent
 
 ## 4. Seed sketch (PDU campaign)
 
-Mission locators only (not the SysML nest). Making a nested part: section 6 worked example.
+Mission locators only (not the SysML nest). Making nests (part, requirement, package, port, …): section 6 worked examples.
 
 ```cypher
 (:TSK {id:'TSK_model_pdu', goal:'Model 6U CubeSat PDU', phase:'model', status:'in_progress'})
@@ -124,28 +124,25 @@ A parent **shell** is a **grain**: the **complete** list of **direct** children 
 
 **MUST NOT** one session per `requirement def` / nested `part` / port. **MUST NOT** dump the nest into the mission. **MUST NOT** Layer / `layer=`. **MUST NOT** `rag_query` textual SysML. **MUST NOT** Absorb a whole subtree.
 
-### Worked example: making one nested part
+### Worked examples: making nests
 
-The **part is made in `.sysml`**. MemNet records locators and a **complete** Shape of the interior that owns that subtree. This turn adds `SenseAmp` **inside** `PduController` (PDU campaign in section 4).
-
-**Before** (`project/pdu-controller.sysml`):
-
-```sysml
-package PkgPdu {
-  part def PduController {
-    port pwr_in : PowerIn;
-  }
-}
-```
-
-Catalog \(S_{\mathrm{cat}}\) already has a cut `qname:'PkgPdu'` → `session:'mn_pdu'` (interior small enough to fit \(M\)). Mission \(S\) holds `TSK_model_pdu` and `SYM` line 12 on `PduController`.
+The **element is made in `.sysml`**. MemNet records locators and a **complete** Shape of the interior that owns that subtree. The loop is the same for every nest kind (section 2). Construct name does not pick a session type.
 
 | Step | Where | What you do |
 |------|--------|-------------|
-| 1 | Mission \(S\) | Cue `TSK_model_pdu` → `pin_map` **that session only**. Copy `SYM.line` / `path`. Drop the map next turn. |
-| 2 | Catalog | `pin_map(session=mn_cat, kind='PKG', locators=[('qname','PkgPdu')])`. Complete catalog row: `session:'mn_pdu'`. If over \(M\), the catalog itself must be cut — do not clip. |
-| 3 | Interior `mn_pdu` | `pin_map(session=mn_pdu, kind='PRT', locators=[('qname','PkgPdu::PduController')])`. Shape is **PduController and its direct children whole**. You see `pwr_in`. You do **not** `pin_map` depth 2 across the whole package. |
-| 4 | `.sysml` SSOT | Narrow Read at `SYM.line`. Write the nested **usage** and the **def** (def may sit beside the parent in the same file): |
+| 1 | Mission \(S\) | Cue `TSK_model_*` → `pin_map` **that session only**. Copy `SYM.line` / `path`. Drop the map next turn. |
+| 2 | Catalog | `pin_map` \(S_{\mathrm{cat}}\) on the parent `qname=`. Complete row: `session:` of that cut. If the catalog itself is over \(M\), cut it — do not clip. |
+| 3 | One interior | `pin_map` that `session=` on the **parent** `qname=`. Shape is the parent and its **direct** children **whole**. Not depth 2 across the package. |
+| 4 | `.sysml` SSOT | Narrow Read at `SYM.line`. Write the nested construct (and a sibling `def` when the nest is a typed usage). |
+| 5 | Validate | `mcp-sysml-v2 validate` until clean. |
+| 6 | Re-Snap **this subtree** | `memnet snap model --root …`. If the interior **no longer fits \(M\)**, Snap **cuts** the new child to its own `session=`; the parent shell lists the child **name** + `session=` / `typedBy` — it does **not** copy the child’s interior. |
+| 7 | Mission Δ | Sparse `mutate`: refresh `SYM.line`; optional `:about` the parent `qname=`. Do **not** CREATE the nest into the mission. leftover `id:'NEW'` is leftover. |
+
+**Wrong (every nest):** `ingest_sysml` into the mission; clip `max_rows`; mint `mn_` per leaf.
+
+#### Part in part
+
+PDU campaign (section 4). Before: `PduController` has only `pwr_in`. Add nested **usage** `sense` and sibling **def** `SenseAmp`:
 
 ```sysml
 package PkgPdu {
@@ -160,15 +157,75 @@ package PkgPdu {
 }
 ```
 
-| Step | Where | What you do |
-|------|--------|-------------|
-| 5 | Validate | `mcp-sysml-v2 validate` until clean. |
-| 6 | Re-Snap **this subtree** | `memnet snap model --root project` (or the package path). Interior `mn_pdu` now holds `PduController`, usage `sense`, def `SenseAmp`, ports. If that reconstruct **no longer fits \(M\)**, Snap **cuts** `SenseAmp` to a new interior `mn_sense`; the `PduController` shell lists `sense` with `typedBy` + `session:'mn_sense'` — it does **not** copy SenseAmp’s ports into `mn_pdu`. |
-| 7 | Mission Δ | Sparse `mutate` on mission \(S\): refresh `SYM.line`; optional locator that `TSK_model_pdu` `:about` `qname:'PkgPdu::PduController'`. Do **not** CREATE the whole nest into the mission. leftover `id:'NEW'` is leftover. |
+Catalog: `PkgPdu` → `mn_pdu`. Interior cue: `qname:'PkgPdu::PduController'`. After Snap, `sense` is `:contains` + `:typedBy` `SenseAmp`. If `mn_pdu` no longer fits \(M\), cut `SenseAmp` to `mn_sense`; the `PduController` shell keeps the usage **name**, not `vin`/`vout`.
 
-**Usage vs def.** `part sense : SenseAmp` is a child of `PduController` (`:contains` + `:typedBy` the def). Goldfish of `PduController` shows the usage **name**. Goldfish of `SenseAmp` (same interior if small; `mn_sense` if cut) shows `vin` / `vout`. Making another nested part later repeats steps 1–7 on **that** parent cut — never dump `PkgPdu` into chat.
+#### Requirement in requirement
 
-**Wrong:** `ingest_sysml` the file into the mission; `pin_map` depth 2 from `PkgPdu` and keep 50 rows; mint `mn_` per port.
+Same loop. Parent cut is the group, not each leaf (MN-REQ-11.17). Product tree already does this: `MN_REQ_00` contains `MN_REQ_01`, which contains `MN_REQ_01_1`.
+
+```sysml
+requirement def MN_REQ_01_SessionLifecycle {
+  attribute requirementId : String = "MN-REQ-01";
+  requirement def MN_REQ_01_1_NamedSessions {
+    attribute requirementId : String = "MN-REQ-01.1";
+  }
+}
+```
+
+Interior cue: `requirementId='MN-REQ-01'`. Shape lists **direct** children (`MN-REQ-01.1`, …) whole. Adding `MN-REQ-01.9` is an edit under that brace, then re-Snap **that group**. If `MN-REQ-01`’s children no longer fit \(M\), cut a **child group** (e.g. a nested `requirement def` that still has children) — not one session per `MN-REQ-01.1`.
+
+#### Package in package
+
+```sysml
+package PkgLib {
+  package PkgPower {
+    part def PowerRail { }
+  }
+}
+```
+
+First Snap cut is often the **import** root (`PkgLib`), not the file. Nested `PkgPower` stays in that interior while it fits; when it does not, catalog grows a row `qname:'PkgLib::PkgPower'` → `mn_power`. Parent shell lists `PkgPower` + `session=`. Do **not** mint a session because a `.sysml` file exists.
+
+#### Port, connection, action, item (inside a part)
+
+These are still **children of the part cut**, not their own session kinds.
+
+```sysml
+part def PduController {
+  port pwr_in : PowerIn;
+  item fuel : Charge;
+  action boot { }
+  connection pwrLink : PowerFlow {
+    end port source ::> pwr_in;
+    end port sink ::> sense.vin;
+  }
+}
+```
+
+Cue the **part** `qname=`. Shape lists those direct children whole. A typed `port pwr_in : PowerIn` is `:hasPort` + `:typedBy`; do not copy `PowerIn`’s nest into `PduController` if `PowerIn` was cut away. `connection` / `action` / `item` stay in the part interior until **that part’s** reconstruct exceeds \(M\) — then cut the **part** (or a nested part usage), not a `S_port` / `S_action`.
+
+#### Satisfy / allocate across cuts
+
+```sysml
+part def PduController {
+  satisfy PkgReq::ReqAlpha;
+}
+```
+
+`satisfies` is an **edge**. If `ReqAlpha` lives in another interior, the part interior **must not** grow a dangling same-store node. Second `pin_map` on the requirements cut, or Absorb a **slice** of `ReqAlpha` into the mission — not merge sessions, not one `pin_map` across stores.
+
+#### View / viewpoint
+
+SysML `view def` / `viewpoint def` ingest as `PRT` (as-is). They stay in the **package** (or part) interior that owns the brace. `pin_map view=shell` is **grain inside one session**, not a SysML view and not a second session. If a `view def` body is over \(M\), cut **that def’s subtree** like any other root.
+
+| Nest | Parent cue | Child in parent shell | New interior only when |
+|------|------------|------------------------|-------------------------|
+| `part` / `part def` | parent `PRT` `qname=` | usage name; def `typedBy` | child subtree over \(M\) |
+| `requirement def` | parent `REQ` `requirementId=` | child `requirementId=` | child **group** over \(M\) |
+| `package` | parent `PKG` `qname=` | child package `qname=` | nested package over \(M\) |
+| `port` / `connection` / `action` / `item` | owning `PRT` | child name | owning part over \(M\) (not per port) |
+| `satisfy` / `allocate` | source interior | — | never; second look or Absorb slice |
+| `view def` | owning `PKG`/`PRT` | view name | that def’s subtree over \(M\) |
 
 ---
 
@@ -190,7 +247,7 @@ Shared TCP/HTTP session + parent/worker doctrine: [`llm-system-dev-multitask.md`
 | One `MemNet` (or other fat package) session for all nested parts | Recurse containment cuts until each interior **fits \(M\)** |
 | Kind zoo of layer sessions (`S_part`, `S_req`, `S_port`) | Cuts are budget on the nest, not construct names |
 | Silent `max_rows` / shell drop / ingest mid-brace | Refuse; partition; complete Shape of the chosen \(S\) |
-| `pin_map` depth 2 on a parent part | Shell of **direct** children, then one child interior |
+| `pin_map` depth 2 on a parent nest | Shell of **direct** children, then one child interior |
 | `Peak_L` as default goldfish on a `:contains` tree | Cue `qname=`; Peak is last-resort residual only |
 
 ---
