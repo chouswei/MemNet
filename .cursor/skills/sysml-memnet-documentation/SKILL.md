@@ -42,8 +42,8 @@ token_guardrails: |
 - Decisions / locators / outputs atoms (`ART` / `SEC` / `CLM`)
 - Skip: one-shot question; comment-only; MCP missing
 
-## Anchors
+## Cues
 
-`TSK_model_<short>`, `SYM_<name>`, `PRT_` / `POR_` / `REQ_` / `BEH_`, `DEC_*`, `CONV_*`.
+Campaign `goal=TSK_model_<short>`. Structure by `name` / `qname` / `path` / `requirementId`. leftover nickname `id` is leftover.
 
 satisfy / allocate = relationships only.

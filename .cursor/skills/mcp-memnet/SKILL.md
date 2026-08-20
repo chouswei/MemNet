@@ -6,7 +6,7 @@ description: >-
   ingest_sysml, snap_model, export_pin_map, reserve, RSV.
 metadata:
   pattern: tool-wrapper
-  version: "7.0"
+  version: "7.1"
   domain: memnet
   product: memnet-llm==0.19.0
 token_guardrails: |
@@ -38,7 +38,7 @@ cue / find → pin_map → reason → mutate → pin_map
 
 1. **Cue** — `kind` / `locators` (`qname=`, `path=`, …) / `keyword` / nickname `cue`. Empty cue = **session outline** (0.11). If ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When \(|Q|>1\), CueConflict — do not pick one root.
 2. **`pin_map`** — one \(S\) per generate. Drop the prior map next turn. leftover `anchor=` / `anchors=` are leftover nicknames, not TARGET law.
-3. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint. Copy nicknames from the map if present.
+3. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint.
 4. Persist if needed: `session_save` (file) or live cabinet (0.7 Agens / 0.14 Neo4j). Agents MUST NOT talk Bolt.
 
 **MCP missing:** skip MemNet; plain Markdown only.

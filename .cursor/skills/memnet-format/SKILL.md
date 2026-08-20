@@ -6,7 +6,7 @@ description: >-
   BIND vs relation, openCypher mutate.
 metadata:
   pattern: tool-wrapper
-  version: "5.0"
+  version: "5.1"
   domain: data-formats,memnet
   product: memnet-llm==0.19.0
 token_guardrails: |

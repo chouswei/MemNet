@@ -28,13 +28,13 @@ Mutate after each step (or batch s1-s2, then s3, then s4-s6). Pin map is the sha
 CREATE (t:TSK {goal: $goal, phase: 'turn', status: 'in_progress', recycle: 'delete_on_settle'})
 CREATE (c1:CLM {type: 'decision', code: 's1:up', recycle: 'delete_on_settle'})
 CREATE (c2:CLM {type: 'decision', code: 's2:hit', recycle: 'delete_on_settle'})
-CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
+CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {goal: $campaign})
 ```
 
-Copy assigned ids from the pin map / mutate response. Settle with:
+Settle with:
 
 ```cypher
-MATCH (t:TSK {id: $tid}) SET t.status = 'settled'
+MATCH (t:TSK {goal: $goal}) SET t.status = 'settled'
 ```
 
 ### Step `code` vocabulary
@@ -54,7 +54,7 @@ MATCH (t:TSK {id: $tid}) SET t.status = 'settled'
 
 **Step 6 skip** (comment-only): `s6:skip` + settle turn.
 
-**Resume next turn:** pin map on `TSK_model_<short>` -- latest in-progress turn or last step atoms; **do not** re-derive from chat.
+**Resume next turn:** pin map `kind='TSK', locators=['goal=TSK_model_<short>']` -- latest in-progress turn or last step atoms; **do not** re-derive from chat.
 
 ### Six-step template
 
@@ -66,7 +66,7 @@ CREATE (c3:CLM {type: 'decision', code: 's3:SYM_<symbol>', recycle: 'delete_on_s
 CREATE (c4:CLM {type: 'decision', code: 's4:pass', recycle: 'delete_on_settle'})
 CREATE (c5:CLM {type: 'decision', code: 's5:sync:done', recycle: 'delete_on_settle'})
 CREATE (c6:CLM {type: 'decision', code: 's6:24rows', recycle: 'delete_on_settle'})
-CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
+CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {goal: $campaign})
 ```
 
 ### Router / skill pick
@@ -75,7 +75,7 @@ CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $m
 CREATE (t:TSK {goal: $intent, phase: 'route', status: 'in_progress', recycle: 'delete_on_settle'})
 CREATE (c1:CLM {type: 'decision', code: 'pick:sysml-modeling-workflow', recycle: 'delete_on_settle'})
 CREATE (c2:CLM {type: 'decision', code: 'pick:sysml-memnet-documentation', recycle: 'delete_on_settle'})
-CREATE (t)-[:LED_TO_SUCCESS {note: 'pass', recycle: 'persistent'}]->(:SKL {id: 'sysml-modeling-workflow'})
+CREATE (t)-[:LED_TO_SUCCESS {note: 'pass', recycle: 'persistent'}]->(:SKL {name: 'sysml-modeling-workflow'})
 ```
 
 Phase-4 learning: `led_to_success` edges are **`persistent`**; route task is **`delete_on_settle`**.

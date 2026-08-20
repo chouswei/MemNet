@@ -25,7 +25,7 @@ This **MemNet product** checkout uses **`sysml-models/`**. Downstream packs may 
 | Step | Action | MemNet |
 |------|--------|--------|
 | **1** | In-process: skip serve probe. TCP: `serve_status`; if down → `.sysml` only | — |
-| **2** | `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], …)` leftover `anchor=` named leftover | READ |
+| **2** | `pin_map(kind='TSK', locators=['goal=TSK_model_<short>'], …)` leftover `anchor=` / `id=` named leftover | READ |
 | **3** | Narrow `Read` at `SYM.line`; edit `sysml-models/models/*.sysml` | — |
 | **4** | Validate the textual model (project SysML MCP / CLI if present) | — |
 | **5** | Sync `sysml-models/outputs/` iff structure changed | — |

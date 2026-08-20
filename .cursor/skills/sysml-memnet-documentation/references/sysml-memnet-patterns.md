@@ -2,7 +2,7 @@
 
 Use with [atomisation.md](../../mcp-memnet/references/atomisation.md), [sysml-memnet-snap.md](sysml-memnet-snap.md), and [sysml-memnet-cookbook-bridge.md](sysml-memnet-cookbook-bridge.md).
 
-**Core discipline:** one row = one fact/link/status. Short fields. Explicit edges. Stable ids from the pin map. **MUST NOT** create nodes labelled PARTD, PORTD, BEHD, or TASK (old aliases -- re-snap to unified kinds on warm miss).
+**Core discipline:** one row = one fact/link/status. Short fields. Explicit edges. Cue by labels+properties. **MUST NOT** create nodes labelled PARTD, PORTD, BEHD, or TASK (old aliases -- re-snap to unified kinds on warm miss).
 
 Agent I/O: MemNet **GQL / openCypher-shaped** wire only ([memnet-format](../../memnet-format/SKILL.md)). Do not teach pipe `@TAG:|` rows. pin_map returns a shaped subgraph.
 
@@ -16,21 +16,23 @@ ART, SEC, CLM, ENT, PKG, PRT, POR, CON, BEH, ITM, REQ, MOD, SYM, CONV, DEC, ISSU
 | POR.dir | `in` / `out` / `inout` for port usages |
 | POR.typeRef | typed port/protocol name (for `typedBy` edge) |
 | CON.ends | endA / endB usage path |
-| BEH.owner | owning PRT usage id or package qname |
-| DEC.task | parent TSK id; short options; chosen when decided |
+| BEH.owner | owning PRT `name` or package `qname` |
+| DEC.task | parent TSK `goal`; short options; chosen when decided |
 | ISSUE.code | <=15 words backlog item |
 
-## Stable id rules
+## Cue properties (not a store key)
 
-| Kind | Id pattern | Example |
-|------|------------|---------|
-| TSK | `TSK_model_<short>` / `TSK_diagram_<figureId>` | `TSK_model_vfdl2` |
-| PKG | `PKG_<packageSuffix>` | `PKG_FoamLiteVer2Deploy` |
-| MOD | `MOD_<file_slug>` | `MOD_deploy_vfdl2` |
-| PRT / POR / CON / BEH / ITM | `PRT_<name>` etc. | `PRT_edgePc` |
-| REQ | `REQ_<requirementId>` | `REQ_VFDL2-MQTT-RELAY` |
-| SYM | `SYM_<name>` | `SYM_edgePc` |
-| CONV / DEC / ISSUE | `CONV_<topic>` / `DEC_<nn>` / `ISS_<nn>` | `DEC_01` |
+House tokens such as `TSK_model_<short>` are **`goal`** (or `name` / `qname` / `path` / `requirementId`). leftover nickname `id` is leftover.
+
+| Kind | Cue on | Example |
+|------|--------|---------|
+| TSK | `goal` | `TSK_model_vfdl2` |
+| PKG | `qname` | `FoamLiteVer2Deploy` |
+| MOD | `path` | `models/deploy-vfdl2.sysml` |
+| PRT / POR / CON / BEH / ITM | `name` | `edgePc` |
+| REQ | `requirementId` | `VFDL2-MQTT-RELAY` |
+| SYM | `name` + `path` | `edgePc` |
+| CONV / DEC / ISSUE | `topic` / `code` | question or backlog code |
 
 ## kind enums (closed lists)
 
@@ -52,10 +54,10 @@ ART, SEC, CLM, ENT, PKG, PRT, POR, CON, BEH, ITM, REQ, MOD, SYM, CONV, DEC, ISSU
 `ITM` is a **NODE only**: an item definition or flow item. It is never an edge. Use `declaredIn` to link an ITM to its package and optionally `flowOf` to link a flow item to its item definition. Ports and connections remain `POR` and `CON`; do not model them as ITM edges.
 
 ```cypher
-CREATE (i:ITM {id: 'ITM_LaserFrame', name: 'LaserFrame', kind: 'itemDef', recycle: 'persistent'})
-CREATE (f:ITM {id: 'ITM_LaserFrameFlow', name: 'LaserFrameFlow', kind: 'flowItem', recycle: 'persistent'})
-CREATE (i)-[:DECLAREDIN {id: 'E01', recycle: 'persistent'}]->(:PKG {id: 'PKG_LaserComm'})
-CREATE (f)-[:FLOWOF {id: 'E02', recycle: 'persistent'}]->(i)
+CREATE (i:ITM {name: 'LaserFrame', kind: 'itemDef', recycle: 'persistent'})
+CREATE (f:ITM {name: 'LaserFrameFlow', kind: 'flowItem', recycle: 'persistent'})
+CREATE (i)-[:declaredIn]->(:PKG {qname: 'LaserComm'})
+CREATE (f)-[:flowOf]->(i)
 ```
 
 ## Recycle
@@ -106,17 +108,17 @@ CREATE (p)-[:HASPORT {recycle: 'persistent'}]->(por)
 CREATE (p)-[:SATISFIES {recycle: 'persistent'}]->(r)
 ```
 
-Copy assigned ids from the pin_map / mutate response. Port-port links use BIND; node-node use typed rels ([memnet-format](../../memnet-format/SKILL.md)).
+Cue the next turn by labels+properties. Port-port links use BIND; node-node use typed rels ([memnet-format](../../memnet-format/SKILL.md)).
 
-## Anchor strategy
+## Cue strategy
 
-- Campaign -> `TSK_model_<short>`
-- Mermaid figure -> `TSK_diagram_<figureId>`
-- Part/port under edit -> `PRT_<name>` / `POR_<name>` / `SYM_<name>`
-- Requirement audit -> `REQ_<requirementId>`
-- Pending choice -> `DEC_<nn>`
-- Convention -> `CONV_<topic>`
-- Outputs section -> SEC id
+- Campaign -> `goal=TSK_model_<short>`
+- Mermaid figure -> `goal=TSK_diagram_<figureId>`
+- Part/port under edit -> `name` on `:PRT` / `:POR` / `:SYM`
+- Requirement audit -> `requirementId`
+- Pending choice -> `:DEC` by `question`
+- Convention -> `:CONV` by `topic`
+- Outputs section -> `:SEC` by heading / `code`
 
 Pin-map depth 2 default; increase only when needed.
 

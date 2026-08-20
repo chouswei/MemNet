@@ -26,12 +26,11 @@ Pair with [atomisation.md](atomisation.md) and [wire-format.md](wire-format.md).
 Map lines declare kind schemas (field names). Prefer shared-dialect style keys:
 
 ```text
-ART: id|title|source|kind|status|recycle
-SEC: id|art|heading|order|status|recycle
-CLM: id|sec|type|code|status|recycle
-ENT: id|name|kind|code|recycle
-TSK: id|goal|deadline|status|recycle
-EDG: id|from|rel|to|note|recycle
+SCHEMA ART ; fields=title source kind status recycle
+SCHEMA SEC ; fields=heading order status recycle
+SCHEMA CLM ; fields=type code status recycle
+SCHEMA ENT ; fields=name kind code recycle
+SCHEMA TSK ; fields=goal deadline status recycle
 ```
 
 | Kind | Role |
@@ -53,7 +52,7 @@ EDG: id|from|rel|to|note|recycle
      split into CLM rows (one idea each)
      add ENT for named entities
      add edges: ART→SEC, SEC→CLM, CLM→ENT
-4. Each turn: pin_map(anchor=SEC_xx or TSK_xx)  # pin map
+4. Each turn: pin_map(kind='SEC', locators=['heading=…'])  # or TSK by goal
 5. Generate summary / synthesis from pin-map slice only
 6. settle TSK when article pass is done
 ```
@@ -62,40 +61,30 @@ EDG: id|from|rel|to|note|recycle
 
 **Bad** (whole article in one row — destroys token efficiency):
 
-```text
-## Nodes
-+ ART [NEW] ; title=MemNet paper ; source=memnet.md ; kind=spec ; recycle=persistent
-+ NOTE [NEW] ; code=MemNet is a goldfish brain graph. You query warm. Atomisation matters… ; recycle=persistent
+```cypher
+CREATE (:ART {title: 'MemNet paper', source: 'memnet.md', kind: 'spec'})
+CREATE (:CLM {type: 'blob', code: 'MemNet is a goldfish brain graph. You query warm. Atomisation matters…'})
 ```
 
-**Good** (hierarchy + atoms, openCypher-shaped mutate):
+**Good** (hierarchy + atoms):
 
-```text
-## Nodes
-+ ART [A01] ; title=MemNet agent memory ; source=README.md ; kind=doc ; recycle=persistent
-+ TSK [TSK_read] ; goal=Break down README ; deadline=1 ; status=in_progress ; recycle=persistent
-+ SEC [S01] ; art=A01 ; heading=Goldfish loop ; order=1 ; recycle=persistent
-+ SEC [S02] ; art=A01 ; heading=Wire format ; order=2 ; recycle=persistent
-+ CLM [C01] ; sec=S01 ; type=fact ; code=external graph not chat ; recycle=persistent
-+ CLM [C02] ; sec=S01 ; type=method ; code=pin map anchored read ; recycle=persistent
-+ CLM [C03] ; sec=S02 ; type=fact ; code=GQL wire not pipe ; recycle=persistent
-+ CLM [C04] ; sec=S02 ; type=fact ; code=atomisation required ; recycle=persistent
-+ ENT [E01] ; name=pin_map ; kind=concept ; code=primary_read ; recycle=persistent
-+ ENT [E02] ; name=EDG ; kind=concept ; code=graph_edge ; recycle=persistent
-
-## Edges
-+ E01 [TSK_read] --(owns)--> [A01] ; note=scope ; recycle=persistent
-+ E02 [A01] --(contains)--> [S01] ; note=struct ; recycle=persistent
-+ E03 [A01] --(contains)--> [S02] ; note=struct ; recycle=persistent
-+ E04 [S01] --(contains)--> [C01] ; note=claim ; recycle=persistent
-+ E05 [S01] --(contains)--> [C02] ; note=claim ; recycle=persistent
-+ E06 [S02] --(contains)--> [C03] ; note=claim ; recycle=persistent
-+ E07 [S02] --(contains)--> [C04] ; note=claim ; recycle=persistent
-+ E08 [C02] --(mentions)--> [E01] ; note=term ; recycle=persistent
-+ E09 [C04] --(mentions)--> [E02] ; note=term ; recycle=persistent
+```cypher
+CREATE (:ART {title: 'MemNet agent memory', source: 'README.md', kind: 'doc'})
+CREATE (:TSK {goal: 'Break down README', status: 'in_progress'})
+CREATE (:SEC {heading: 'Goldfish loop', order: 1})
+CREATE (:SEC {heading: 'Wire format', order: 2})
+CREATE (:CLM {type: 'fact', code: 'external graph not chat'})
+CREATE (:CLM {type: 'method', code: 'pin map from a cue'})
+CREATE (:ENT {name: 'pin_map', kind: 'concept', code: 'primary_read'})
+MATCH (a:ART {title: 'MemNet agent memory'}), (s:SEC {heading: 'Goldfish loop'})
+CREATE (a)-[:contains {note: 'struct'}]->(s)
+MATCH (s:SEC {heading: 'Goldfish loop'}), (c:CLM {code: 'pin map from a cue'})
+CREATE (s)-[:contains {note: 'claim'}]->(c)
+MATCH (c:CLM {code: 'pin map from a cue'}), (e:ENT {name: 'pin_map'})
+CREATE (c)-[:mentions {note: 'term'}]->(e)
 ```
 
-Prefer `[NEW]` when ids are unknown; copy assigned ids from the pin map thereafter.
+Cue the next turn by labels+properties. leftover `[NEW]` mint is leftover.
 
 ## MCP: open + ingest one section
 

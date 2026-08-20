@@ -14,7 +14,7 @@ MemNet is **not** a chat log. Store **distilled atoms**, not messages.
 | Preference that affects many turns | **Yes** | `topic=style ; content=concise technical blog` |
 | Pipeline input | **Yes** — `USR` + edge to `TSK` | |
 
-**Rule:** If forgetting it in 5 turns would cause wrong behaviour → **`add` `USR`** after the user message.
+**Rule:** If forgetting it in 5 turns would cause wrong behaviour → **`mutate` `USR`** after the user message.
 
 ## Fields
 
@@ -27,44 +27,42 @@ MemNet is **not** a chat log. Store **distilled atoms**, not messages.
 
 ## MCP examples
 
-**Teach GQL** (pipe `+ TAG` samples below are legacy import only — do not emit as agent I/O):
+**Teach GQL:**
 
 ### Capture user constraint at start of task
 
-```text
-## Nodes
-+ TSK [NEW] ; goal=Implement MCP docs ; status=in_progress ; recycle=persistent
-+ USR [NEW] ; topic=files ; content=only src/memnet_mcp and docs ; status=active ; recycle=persistent
-+ USR [NEW] ; topic=style ; content=British English in replies ; status=active ; recycle=persistent
-
-## Edges
-+ E01 [NEW] --(constrained_by)--> [USR_scope] ; note=user stated ; recycle=persistent
-+ E02 [NEW] --(constrained_by)--> [USR_lang] ; note=user stated ; recycle=persistent
+```cypher
+CREATE (:TSK {goal: 'Implement MCP docs', status: 'in_progress'})
+CREATE (:USR {topic: 'files', content: 'only src/memnet_mcp and docs', status: 'active'})
+CREATE (:USR {topic: 'style', content: 'British English in replies', status: 'active'})
+MATCH (t:TSK {goal: 'Implement MCP docs'}), (u:USR {topic: 'files'})
+CREATE (t)-[:constrained_by {note: 'user stated'}]->(u)
+MATCH (t:TSK {goal: 'Implement MCP docs'}), (u:USR {topic: 'style'})
+CREATE (t)-[:constrained_by {note: 'user stated'}]->(u)
 ```
 
 ### Next turn — recall before acting
 
 ```text
-pin_map(anchor="TSK_current", depth=2)
+pin_map(kind='TSK', locators=['goal=Implement MCP docs'], depth=2)
 ```
 
 Pin map includes `USR` rows linked to the task.
 
 ### User changes mind
 
-```text
-## Nodes
-~ [USR_scope] ; content=memnet repo only, no user-pack edits ; status=active ; recycle=persistent
+```cypher
+MATCH (u:USR {topic: 'files'}) SET u.content = 'memnet repo only, no user-pack edits'
 ```
 
-Same id — **update**, not add.
+MATCH the same labels+properties — leftover nickname `id` is leftover.
 
-## Anchors
+## Cues
 
-| Anchor | Recalls |
-|--------|---------|
-| `TSK_*` | Task + linked `USR` constraints |
-| `USR_*` | Single preference + edges to tasks |
+| Cue | Recalls |
+|-----|---------|
+| `kind=TSK` + `goal=` | Task + linked `USR` constraints |
+| `kind=USR` + `topic=` | Single preference + edges to tasks |
 
 ## vs chat history
 

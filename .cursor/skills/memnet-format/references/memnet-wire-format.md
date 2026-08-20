@@ -8,13 +8,13 @@ Do **not** emit `@TAG: field|field|…` pipe rows as agent format.
 
 ```cypher
 CREATE (c:CLM {type: 'decision', code: 'bitrate cap 2000 bps', recycle: 'persistent'})
-MATCH (t {id: $tid}) SET t.status = 'in_progress', t.recycle = 'persistent'
-CREATE (a)-[:HELPS {note: 'labour', recycle: 'persistent'}]->(b)
-MATCH ()-[e {id: $eid}]->() SET e.recycle = 'delete_on_settle'
-MATCH ()-[e {id: $eid}]->() DELETE e
+MATCH (t:TSK {goal: $goal}) SET t.status = 'in_progress', t.recycle = 'persistent'
+CREATE (a)-[:helps {note: 'labour', recycle: 'persistent'}]->(b)
+MATCH (a)-[e:helps]->(b) SET e.recycle = 'delete_on_settle'
+MATCH (a)-[e:helps]->(b) DELETE e
 ```
 
-Patch nodes by id only — do not invent a second id for the same ground atom. Re-id: `MATCH (n {id: $old}) SET n.id = $new` (optional merge when `$new` exists; nodes only).
+Patch by labels+properties. leftover `MATCH ({id})` / leftover NEW mint are leftover.
 
 ## Pin_map (shaped subgraph)
 
@@ -23,7 +23,7 @@ Primary read returns a bounded neighbourhood. Cue with `kind` / `locators` / `ke
 Session schema (`session_open` map — not graph rows):
 
 ```text
-SCHEMA MOD ; fields=id path summary status recycle
+SCHEMA TSK ; fields=goal status recycle
 ```
 
 ## Properties (atoms-only)
@@ -57,7 +57,7 @@ SCHEMA MOD ; fields=id path summary status recycle
 | Principle | Why |
 |-----------|-----|
 | Atomisation | pin_map returns only connected atoms |
-| Short props | ids, codes, paths, numbers — no prose |
+| Short props | codes, paths, numbers — no prose |
 | Explicit relationships | Filterable; BIND vs typed relation |
 | Recycle / settle | Finished work drops out of pin maps |
 | Batch mutate | One `mutate` with many statements |
