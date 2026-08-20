@@ -199,9 +199,9 @@ The 2026 GraphRAG market is **three other jobs**. MemNet is none of them. A Neo4
 
 ```bash
 # Client driver only (does not install a Neo4j server):
-# Until 0.9 is on PyPI, install from this repo (editable). PyPI lag: memnet-llm==0.4.6.
-pip install -e ".[neo4j]"
-# or: pip install 'memnet-llm[neo4j]'   # currently resolves 0.4.6 on PyPI — not this client
+pip install 'memnet-llm[neo4j]'
+# or pin: pip install 'memnet-llm[neo4j]==0.19.0'
+# contributors: pip install -e ".[neo4j]"
 
 export MEMNET_NEO4J_URL='bolt://127.0.0.1:7687'   # or neo4j://…
 export MEMNET_NEO4J_USER='neo4j'                 # optional if in URL

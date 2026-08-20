@@ -1,6 +1,6 @@
 # MemNet MCP — tool parameters
 
-Product **`memnet-llm` 0.19.0**. PyPI wheel is still **0.4.6**. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
+Product **`memnet-llm` 0.19.0**. PyPI wheel is **0.19.0**. Tools return JSON text. Arg **`session`** (not `session_id`). SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
 
 User-pack Pi (`10.0.0.10`) is optional on a human machine — not this cloud VM.
 

@@ -19,7 +19,7 @@ token_guardrails: |
 
 **Use** MemNet via MCP. Doctrine: `docs/SHAPE.md`, `docs/LLM-GUIDE.md`. Wire: [memnet-format](../memnet-format/SKILL.md). Nested interiors: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md). Tool SSOT: `parts/memnet-mcp/software/memnet_mcp/server.py`.
 
-Product **0.19.0**. PyPI `memnet-llm` is still **0.4.6**. Arg **`session`** (not `session_id`). Novel-writer is out of scope.
+Product **0.19.0**. PyPI **`memnet-llm==0.19.0`**. Arg **`session`** (not `session_id`). Novel-writer is out of scope.
 
 ## Transport
 

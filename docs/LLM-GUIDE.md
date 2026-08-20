@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.0.** **1.0** = 0.5–0.8 claimed. PyPI `memnet-llm` is still **0.4.6**.
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.0.** **1.0** = 0.5–0.8 claimed (unclaimed). PyPI **`memnet-llm==0.19.0`**.
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
@@ -66,7 +66,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 | Mode | When | Setup |
 |------|------|-------|
-| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. **PyPI is still 0.4.6** — install from this repo for 0.19. **No** `memnet serve` |
+| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. `pip install 'memnet-llm[mcp]'` (PyPI **0.19.0**). **No** `memnet serve` |
 | **CLI + serve** | Scripts, TCP shared process | Terminal 1: `memnet serve`; Terminal 2: CLI with `MEMNET_SESSION` |
 | **MCP streamable-http** | Remote shared graph | `memnet-mcp --transport streamable-http` on `:18766/mcp` |
 
