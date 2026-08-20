@@ -19,7 +19,7 @@
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
 | **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
 | **No store key** | GraphElement is the identity. `CREATE ()` is legal; properties MAY be empty. MATCH/MERGE = labels + properties; edge = type + ends. **MUST NOT** invent an application store key. Optional `id` = nickname only. Hidden store handle stays in the store, off the wire — not a property, not a business key. Official BNF has no store-key production. |
-| **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Historical grammar sources live under [`archive/`](archive/) only — not product doctrine. |
+| **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Those sources are **dropped** from `docs/` — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (optional nickname, depth, view budget) that wraps GQL internally and emits a shaped subgraph. Goldfish seeds from cue/pattern (`find`) first. |
 | **MemNet buffer** | Sessions, budgets, Multitask graph owner stay MemNet. Thin Cypher-relay-only is out. |
@@ -258,7 +258,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 ---
 
-## 6. Boundary vs M2 / M2.5 / M3 / archive
+## 6. Boundary vs M2 / M2.5 / M3
 
 **Order (done):** M1 → M2 → **M2.5** → M3. Next SemVer is **1.0 = claim** of 0.5–0.8, not a new M-phase.
 
@@ -269,9 +269,8 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | **M2.5 (done, 0.7 / 0.14)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j live claimed 0.14) — [`agensgraph-buffer.md`](agensgraph-buffer.md), [`neo4j-buffer.md`](neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
-| **Archive** | Historical Layer + unused `MemNet.g4` stub under [`archive/`](archive/) | Not an accept path; not CI teach |
 
-**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules may remain on disk for archive/tests but are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** client + 0.7 live hydrate/flush are shipped; Fake + URL skip remain the CI seam.
+**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Leftover Layer/Tier A modules remain in `memnet.layer` / `memnet.tier_a` and are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** client + 0.7 live hydrate/flush are shipped; Fake + URL skip remain the CI seam.
 
 ---
 
@@ -285,11 +284,9 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | Decision + supersession (no Layer) |
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
-| [`gql-model-exam.md`](gql-model-exam.md) | GQL-wire paradox (historical filename; nest SSOT is SysML README) |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
-| [`archive/README.md`](archive/README.md) | Quarantined historical Layer sources |
 | [`memnet-session-strata.md`](memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |

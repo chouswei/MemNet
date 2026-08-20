@@ -101,4 +101,3 @@ MemNet does **not** take this limit or evaluate `law` LaTeX. It stores stamps fo
 | [`inverting-amplifier-gql-case-study.md`](inverting-amplifier-gql-case-study.md) | **GQL wire teach** (same topology) |
 | [`../llm-nodal-analysis-formulas.md`](../llm-nodal-analysis-formulas.md) | Node method (GQL) |
 | [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Schematic / s-domain (GQL) |
-| [`../../grammar/archive/`](../../grammar/archive/) | Quarantined Layer / Tier A sources |

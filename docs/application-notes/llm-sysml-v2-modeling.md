@@ -180,4 +180,3 @@ part def SenseAmp { port vin : AnalogIn; port vout : AnalogOut; }
 - [`llm-software-development.md`](llm-software-development.md) — coding when SysML is SSOT
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md)
 - [`../LLM-GUIDE.md`](../LLM-GUIDE.md)
-- Archive (not teach): [`../grammar/archive/`](../grammar/archive/)

@@ -1,7 +1,0 @@
-# expect: parse-ok
-# Generic same-node derives (domain-agnostic formula EDGE; design memnet-field-formulas.md).
-## Nodes
-HH [HH01] ; rent=1000 ; expenses=400 ; cashflow=600 ; recycle=persistent
-
-## Edges
-E12 [HH01] --(derives)--> [HH01] ; tgt_field=cashflow ; src_fields=rent,expenses ; expr=rent-expenses ; recycle=persistent

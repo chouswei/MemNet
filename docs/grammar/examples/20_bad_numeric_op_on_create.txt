@@ -1,3 +1,0 @@
-# expect: lint-reject
-# Bad: += / -= are update-only; create uses plain =.
-+ RES [NEW] ; Vout=0 ; Vin=1 ; Rf=100000 ; Rin=10000 ; gain+=1 ; recycle=persistent

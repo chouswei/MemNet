@@ -164,7 +164,6 @@ flowchart LR
 | Path | Role |
 |------|------|
 | `docs/application-notes/examples/inverting-amplifier-gql-case-study.md` | Application wire sketch |
-| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | When seeding uses `id: 'NEW'` |
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | Same goldfish shape on product SysML |
 | [`docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) | Bind / law / pin_map SSOT |
 

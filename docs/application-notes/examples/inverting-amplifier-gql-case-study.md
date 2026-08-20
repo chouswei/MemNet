@@ -5,7 +5,6 @@ Work the known inverting op-amp topology through the **post ADR-001** model: ope
 **Brand:** MemNet (Net of Memory). **Teach sketch** for shipped GQL wire + shaped `pin_map` ([`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)). Not a SPICE solver.  
 **Derivation SSOT (math):** [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) §§1–2.  
 **Decision:** [`../../adr/ADR-001-gql-agent-wire.md`](../../adr/ADR-001-gql-agent-wire.md).  
-**Paradox (GQL wire):** [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) (historical filename).  
 British English. ASCII ids.
 
 ---
@@ -175,7 +174,7 @@ Maps to SysML: `GqlCodec`, `PinMapShapedRead`, `GraphStore`, items in `MemNetCon
 
 ## 5. Historical seed aside (not teach)
 
-Older ASCII Layer-shaped seeds for the same circuit live under derivation notes and [`../../grammar/archive/examples-layer/`](../../grammar/archive/examples-layer/) — **quarantine only**. **Product teach:** GQL patterns + shaped `pin_map` above.
+Older Layer-shaped seeds for the same circuit are **not** product teach. **Product teach:** GQL patterns + shaped `pin_map` above.
 
 ---
 
@@ -186,5 +185,4 @@ Older ASCII Layer-shaped seeds for the same circuit live under derivation notes 
 | [`inverting-amplifier-memnet.md`](inverting-amplifier-memnet.md) | Full derivation (math) |
 | [`../llm-circuit-schematic.md`](../llm-circuit-schematic.md) | Circuit doctrine (body M3) |
 | [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md) | M1 wire SSOT |
-| [`../../grammar/gql-model-exam.md`](../../grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`../../../sysml-models/README.md`](../../../sysml-models/README.md) | Nested SysML outline |

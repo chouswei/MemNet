@@ -4,7 +4,7 @@ Software-only **target** system model for the MemNet core engine and generic Mem
 
 **Layout:** `sysml-models/` per [SYSTEM-REPO-LAYOUT.md](../../SYSTEM-REPO-LAYOUT.md) and repo [LAYOUT.md](../LAYOUT.md).
 
-Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/grammar/`. Today's `parts/common/memnet` and `parts/memnet-mcp` inform feasibility; see [outputs/system-design-notes.md](outputs/system-design-notes.md) for **target vs as-is**. Paradox (GQL wire): [`docs/grammar/gql-model-exam.md`](../docs/grammar/gql-model-exam.md) (historical filename).
+Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/grammar/gql-wire-profile.md`. Today's `parts/common/memnet` and `parts/memnet-mcp` inform feasibility; see [outputs/system-design-notes.md](outputs/system-design-notes.md) for **target vs as-is**.
 
 ## Product framing (2026-08-13)
 
@@ -26,7 +26,6 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01 |
-| `outputs/recall-commit-orthodox-plan.md` | — | Orthodox review; all tests are paradox |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Nesting outline (target)
@@ -128,7 +127,6 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
 | Empty-cue session outline | [outputs/session-outline-case-study.md](outputs/session-outline-case-study.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
-| `NEW` mint batch (leftover; not product Commit) | [outputs/new-mint-batch-case-study.md](outputs/new-mint-batch-case-study.md) |
 
 ### Application examples (on SharedLlmMemory)
 
@@ -137,7 +135,6 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
 | Evidence Centre (ai-investor librarian / MissionDock) | [outputs/evidence-centre-case-study.md](outputs/evidence-centre-case-study.md) |
 | Host search nest (RAG / index outside MemNetSystem) | [outputs/host-search-nest-case-study.md](outputs/host-search-nest-case-study.md) |
-| Prose RPG beat (novel-cut patterns → GQL) | [outputs/prose-rpg-session-case-study.md](outputs/prose-rpg-session-case-study.md) |
 | Inverting amp bind vs relation (ego `CST_U1`) | [outputs/inverting-amp-bind-relation-case-study.md](outputs/inverting-amp-bind-relation-case-study.md) |
 | Tech docs / SCPI atomisation | [outputs/tech-docs-scpi-case-study.md](outputs/tech-docs-scpi-case-study.md) |
 | SysML modelling goldfish (MBSE meta) | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |

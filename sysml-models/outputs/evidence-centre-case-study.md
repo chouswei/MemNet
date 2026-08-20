@@ -181,7 +181,6 @@ MemNetSystem (product)
 | [company-memory-case-study.md](company-memory-case-study.md) | Role D `COM_*` analyse loop |
 | [session-import-case-study.md](session-import-case-study.md) | ImportGuard soft/hard split (canon) |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat never library SSOT |
-| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Cataloguer may mint with `NEW` |
 
 ## 8. Validation note
 

@@ -15,28 +15,19 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
 | [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; numbered extras 0.10–0.19 packaged as Hatch **0.19.0** |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Historical pointer (old SemVer filename) |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
+| [`grammar/README.md`](grammar/README.md) | Grammar folder — GQL teach only |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); Absorb join; one \(S\) per generate |
-| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox review; all tests are paradox |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** — GQL wire + shaped-read contract |
 | [`grammar/openCypher.bnf`](grammar/openCypher.bnf) | Official grammar BNF (spelling/identity SSOT; Apache-2.0) |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask operating model (as-is 0.8; RSV + Path-B ingest shipped; full ACL modes to-be) |
-| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable adapter: 0.7 live hydrate/flush proven; Fake + URL skip |
-| [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | MemNet ↔ Neo4j; RAG relatives on Snap / Shape / cabinet; live claimed (0.14); two namespaces (0.16) |
-| [`grammar/memnet-field-formulas.md`](grammar/memnet-field-formulas.md) | Formula-as-EDGE design (historical; prefer law-on-node in GQL profile) |
+| [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | MemNet ↔ Neo4j; live claimed (0.14); two namespaces (0.16) |
 | [`grammar/memnet-neighbourhood-reserve.md`](grammar/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (shipped RSV; grammar still the design note) |
 | [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host locators into MutateGate (0.17 `RagHostHook`; Snap vs Shape; skip valid) |
-| [`grammar/rag-relative-algorithms.md`](grammar/rag-relative-algorithms.md) | RAG-relative retrieve algorithms (research; GraphRAG / Graphiti / LightRAG / HippoRAG / …) |
-| [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) | Design proposal: two ports; catalog Snap; join by Absorb (not shipped HostSearch) |
-| [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Design thesis: harness memory plane; GitHub review + objections |
 | [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog Snap |
 | [`grammar/memnet-security-multi-agent.md`](grammar/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
-| [`grammar/memnet-grammar-design.md`](grammar/memnet-grammar-design.md) | As-is line-codec harness notes (not GQL teach) |
-| [`grammar/archive/`](grammar/archive/) | Quarantined historical Layer / Tier A sources |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL-wire case study |
-| [`grammar/examples/`](grammar/examples/) | As-is golden fixtures (harness; Layer examples archived) |
 
 **Multitask (developer):** [`multi-agent-sessions.md`](multi-agent-sessions.md). Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 

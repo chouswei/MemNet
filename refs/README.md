@@ -59,14 +59,11 @@ git describe --tags --always
 
 ## MemNet grammar design (in-repo)
 
-Normative design for the LLM-facing dialect (Write = display, NODE|EDGE, pin-map warm):
+Normative agent wire:
 
-- [`docs/grammar/memnet-grammar-design.md`](../docs/grammar/memnet-grammar-design.md)
-- Starter ANTLR stub (unused; quarantine): [`docs/grammar/archive/antlr/MemNet.g4`](../docs/grammar/archive/antlr/MemNet.g4)
 - Product wire: [`docs/grammar/gql-wire-profile.md`](../docs/grammar/gql-wire-profile.md)
-- Fixtures: [`docs/grammar/examples/`](../docs/grammar/examples/)
 
-Vendor trees below remain lineage / tooling references only.
+Vendor trees below remain lineage / tooling references only. Do **not** treat novel-cut or ANTLR as MemNet agent teach.
 
 ## Policy
 

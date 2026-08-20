@@ -1,3 +1,0 @@
-# expect: parse-reject
-# Bad: brace-group nesting depth 3 (grammar caps at depth 2).
-CST [CST_Deep] ; meta={outer={mid={inner=1}}}

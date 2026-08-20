@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Stale LLM-noise docs** — Dropped Layer/Tier A archive, line-codec goldens under `docs/grammar/examples/`, historical pointers (`ROADMAP-0.5.md`, `gql-model-exam.md`), leftover design theses (harness / RAG relatives / Neo4j rethink / field-formulas / grammar-design / ANTLR notes), leftover `NEW` mint and novel-cut RPG case studies, and ignored archive pytest. Agent teach is GQL only (`docs/grammar/gql-wire-profile.md`). Engine leftover codecs stay in `memnet.tier_a` / `memnet.layer` (rejected on mutate). Do not restore those files as doctrine.
+
 ### Changed
 - **PyPI honesty** — Package and PyPI are **`memnet-llm==0.19.0`** (wheel + sdist, 2026-08-20). Install `pip install memnet-llm` (or `==0.19.0`). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). Drop leftover “PyPI is still 0.4.6” / “prefer git until 0.19 is published” as current law. Historical changelog rows for 0.8/0.9 keep the dated lag. **1.0** stays unclaimed. Do not twine upload from this cut.
 - **Skills: GraphElement cue, not leftover `id`** — In-repo skills cue `pin_map` with `kind` + locators on `goal` / `name` / `qname` / `path` / `requirementId`. MATCH/SET the same. leftover `locators=['id=…']`, `MATCH ({id})`, `id:'NEW'`, and `+ TSK [NEW]` named leftover. Do not claim **1.0**.

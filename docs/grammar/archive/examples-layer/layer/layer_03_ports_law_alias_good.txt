@@ -1,4 +1,0 @@
-# expect: parse-ok
-# ports= name: {direc=…}; @alias in bag; keep @ inside law=$…$.
-CST [CST_R] ; R=50 ; ports=a: {direc=inout, V=@va, I=@ia},b: {direc=inout, V=@vb, I=@ib} ; law=$@va-@vb=@ia*R$,$@ia=-@ib$
-CST [CST_Pin] ; R=1000 ; ports=pin1: {direc=inout, V=0, I=0} ; law=$pin1.V = pin1.I * R$

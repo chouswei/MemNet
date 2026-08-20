@@ -14,7 +14,7 @@ chat ≠ SSOT · session = handle · GQL gated · write = display · MemNet = bu
 
 ## Case studies — two shelves
 
-Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Application examples** = patterns on SharedLlmMemory (not extra product cores). See each file's `**Shelf:**` line.
+Keep product-canon and GQL application studies. Do not restore leftover `NEW` mint or novel-cut RPG walks.
 
 ### Product canon
 
@@ -27,7 +27,6 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [session-import-case-study.md](session-import-case-study.md) | Lead **imports** member WM; optional ImportGuard nest (hook + cheap LLM #63); happy path A = re-pin | S10…S12, S14; SessionImportReceive |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5 |
 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
-| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Leftover 0.9 `id: 'NEW'` mint; TARGET is GraphElement create | leftover_NEW_mint / MutateWithNew; wire §2.2 |
 | [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 
 ### Application examples (on SharedLlmMemory)
@@ -37,7 +36,6 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [company-memory-case-study.md](company-memory-case-study.md) | Company analytical SSOT (`COM_*`) | Investor Role D; dual SSOT; analyse loop |
 | [evidence-centre-case-study.md](evidence-centre-case-study.md) | ai-investor EvidenceCentre librarian / MissionDock on SharedLlmMemory | Library / Wanted / Requisition / DelayQueue; soft librarian vs MutateGate |
 | [host-search-nest-case-study.md](host-search-nest-case-study.md) | Host locators into MutateGate **outside** MemNetSystem | `RagHostHook` 0.17; skip valid |
-| [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | One RPG beat: pin_map → option → validate → mutate → re-pin_map | Novel-cut goldfish / beat pipeline (GQL only) |
 | [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) | Dual-EDGE `:bind`+ports vs bare relation; law on node; ego `CST_U1` | `BindRelationship` / `LawOnNode` / `PinMapShapedRead` |
 | [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) | Atomise SCPI manual; pin_map one subsection | Doc working set; GQL `:precedes` |
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | Meta: MemNet as MBSE agent design memory (`TSK_model_memnet`) | `GoldfishLoop`; serve_down skip |

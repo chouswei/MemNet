@@ -13,7 +13,6 @@ Complements:
 
 - [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) — node method ↔ node `law` / `:bind`
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML locators (logical grain)
-- Historical Layer goldens — `docs/grammar/archive/examples-layer/` only
 
 British English. ASCII.
 
@@ -219,13 +218,13 @@ Same physical device may appear in both: `CST_U1` for analysis; SysML part usage
 | Net arrow as current or “feedback direction” | Bind = continuity; NFB = topology / fact |
 | Golden rules as prose on the package | `law` on op-amp CST; finite \(a(s)\) then limit |
 | Expecting MemNet to SPICE-solve | Graph holds atoms; solver/agent writes absolutes |
-| Dual-teaching Layer / Tier A | GQL only; archive pointer below |
+| Dual-teaching Layer / Tier A | GQL only |
 
 ---
 
-## 10. Retired Layer / Tier A (archive only)
+## 10. Retired Layer / Tier A
 
-Layer ASCII, CMP/PIN/NET, and Tier A paren arrows are **not** product accept or teach. Quarantine: [`../grammar/archive/`](../grammar/archive/). Math SSOT: [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
+Layer ASCII, CMP/PIN/NET, and leftover paren arrows are **not** product accept or teach. Math SSOT: [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
 
 ---
 

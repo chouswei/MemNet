@@ -128,4 +128,4 @@ leftover `pin_map(anchor=…)` / leftover `add`/`update` names are leftover, not
 
 ## 8. Retired dialects (pointer only)
 
-Historical `@CMD` pipe or Layer ASCII extracts are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/). Prefer GQL + `pin_map`.
+Historical `@CMD` pipe or Layer ASCII extracts are **not** agent teach. Prefer GQL + `pin_map`.

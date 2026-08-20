@@ -1,4 +1,0 @@
-# expect: parse-reject
-# Bad: [NEW] on update/settle — patch requires known ids from warm.
-~ [NEW] ; status=settled ; recycle=delete_on_settle
-~ NEW ; recycle=delete_on_settle

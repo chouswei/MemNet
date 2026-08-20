@@ -3,12 +3,11 @@
 Target architecture notes from nested `deploy.sysml` / `behaviour.sysml` / `connections.sysml` after **ADR-001**.
 Novel-writer is out of scope.
 
-**Paradox (GQL wire):** [`../../docs/grammar/gql-model-exam.md`](../../docs/grammar/gql-model-exam.md) (historical filename).  
-**Case-study shelves:** [outputs/README.md](README.md) — **product canon** (mechanism) vs **application examples** (patterns on SharedLlmMemory). Do not flatten application studies as peer product cores.
+**Wire:** openCypher-shaped GQL + shaped `pin_map` (ADR-001). Do not teach Layer.
 
-**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [NEW mint](new-mint-batch-case-study.md) · [session outline](session-outline-case-study.md).
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md).
 
-**Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [prose-rpg](prose-rpg-session-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md).
+**Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [SysML nest cuts](sysml-session-nest-cuts-case-study.md).
 
 ## Product framing (2026-08-13)
 
@@ -38,7 +37,6 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs seven cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. |
-| Prose RPG beat session | SharedLlmMemory + goldfish → [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
 | SysML modelling goldfish (MBSE meta) | TSK_model_memnet loop → [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |
@@ -53,7 +51,6 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Lead imports member WM (path B) | [session-import-case-study.md](session-import-case-study.md) |
 | Snapshot passport | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
 | Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
-| `NEW` mint batch | [new-mint-batch-case-study.md](new-mint-batch-case-study.md) |
 | Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 
 ## Nesting outline

@@ -1,3 +1,0 @@
-# expect: lint-reject
-# Bad: embedded relation as comma id-list (R1: expand to EDGE lines).
-+ TSK [T42] ; supports=N03,N04 ; goal=Seed inverting amp nodal example ; recycle=persistent

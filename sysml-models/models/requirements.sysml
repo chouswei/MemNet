@@ -57,8 +57,8 @@
   Current realisation notes (not eternal identity):
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
     redefined as bounded shaped pin_map subgraph wrapping GQL.
-    Layer / Tier A = archived historical only (not product accept; M2
-    retired MutateGate accept; MemNetLayer.g4 under docs/grammar/archive/).
+    Layer / Tier A = leftover engine only (not product accept; M2
+    retired MutateGate accept; leftover codecs memnet.tier_a / memnet.layer).
     Legacy @TAG pipe may still appear in old session files (import once).
     Store is in-memory Node|Edge property-graph records; process binding
     prefers in-process, then local IPC, TCP as fallback; fixed engine laws

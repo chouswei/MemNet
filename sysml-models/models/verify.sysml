@@ -1101,7 +1101,7 @@ package MemNetVerification {
       PinMapShapedRead true / BoundedMatchFind true (#73 seed-only find);
       Layer leftover retire-from-wheel (leftoverLayer.deleteThisPr == false;
       MUST NOT nest under MemNetSystem).
-      All examination/test is paradox (docs): outputs/recall-commit-orthodox-plan.md.
+      All examination/test is paradox (pytest, MN-VER). Math: docs/grammar/math-skeleton.md.
     */
     attribute verificationId : String = "MN-VER-13-S01";
 

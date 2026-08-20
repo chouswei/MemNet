@@ -7,7 +7,7 @@ Domain patterns for **using** MemNet (not engine internals). Index: [`../README.
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 
-Note **bodies teach GQL**. Historical Layer / Tier A ASCII lives under [`../grammar/archive/`](../grammar/archive/) only — not agent wire.
+Note **bodies teach GQL**. Do **not** load Layer / Tier A / leftover line-codec as agent wire.
 
 ## Shared contract (every note)
 

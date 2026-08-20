@@ -1,9 +1,8 @@
 """Tier A MemNet agent-surface parser / emit / lint (R1 atoms-only).
 
 **Retired from product accept (ADR-001 M2).** MutateGate rejects Tier A /
-Layer batches with ``legacy_dialect_retired``. Kept for archive tests and
-historical fixtures under ``docs/grammar/archive/``. Agent wire = GQL
-(``memnet.gql_codec.GqlCodec``).
+Layer batches with ``legacy_dialect_retired``. Kept as leftover engine
+honesty. Agent wire = GQL (``memnet.gql_codec.GqlCodec``).
 """
 
 from __future__ import annotations
@@ -590,7 +589,7 @@ def _lint_value(value: str, raw: str, *, field_key: str | None = None) -> list[L
                 f"value looks like prose ({len(words)} words); atomise",
             )
         )
-    # Formula EDGE src_fields is a comma-separated name list (memnet-field-formulas.md).
+    # Formula EDGE src_fields is a comma-separated name list (leftover line-codec).
     if (
         field_key != "src_fields"
         and "," in value
