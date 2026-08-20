@@ -18,7 +18,7 @@ MemNet is **agent-maintained index + task graph**, not a substitute for `grep`, 
 | One-shot symbol lookup, never referenced again | **No** — grep / Go to definition |
 | Authoritative “what calls X?” | **No** — ripgrep / LSP first; optionally **mutate** an edge after verify |
 
-**Open a coding session** at the start of a non-trivial task. One session per repo/task; reuse ids. Use `session_save` / `session_load` for multi-day work.
+**Open a coding session** at the start of a non-trivial task. One session per repo/task. Cue by path/name/goal. Use `session_save` / `session_load` for multi-day work.
 
 ## Kinds (session)
 
@@ -30,28 +30,27 @@ MemNet is **agent-maintained index + task graph**, not a substitute for `grep`, 
 | `TSK` | Active coding mission | `goal`, `status`, `recycle` |
 | `USR` | User constraints | `topic`, `content`, `status`, `recycle` |
 | `DEC` | Open fork | `task`, `question`, `options`, `chosen`, `recycle` |
-| Edge | Relations | `--(rel)-->` + optional `note`, `recycle` |
+| Edge | Relations | typed rel + optional `note`, `recycle` |
 
 Edge rels: `imports`, `calls`, `tests`, `implements`, `owns`, `constrained_by`, `related`, `defines`.
 
-## ID conventions
+## Cue properties (not a store key)
 
-| Entity | ID pattern | Example |
-|--------|------------|---------|
-| Module | `MOD_` + slug from path | `MOD_mcp_server` |
-| Symbol | `SYM_` + layer prefix | `SYM_cli_session_load` |
-| Task | `TSK_` + short name | `TSK_mcp_session_load` |
-| User constraint | `USR_` + topic slug | `USR_keep_id` |
-| Decision | `DEC_` + slug | `DEC_mcp_keep_id` |
-| Edge | `E` + slug or number | `E_mcp_impl_load` |
+| Kind | Cue on | Example |
+|------|--------|---------|
+| Module | `path` | `parts/common/memnet/memnet/cli.py` |
+| Symbol | `name` + `path` | `session_load` |
+| Task | `goal` | `Expose session_load on memnet-mcp` |
+| User constraint | `topic` | `api` |
+| Decision | `question` | `keep_id default` |
 
-Copy ids from the pin map — never retype from memory.
+leftover nickname `id` / `MOD_*` mint is leftover.
 
 ## Goldfish loop (coding)
 
-1. `pin_map` on the current `TSK` (or `MOD` / `SYM` if the task is unset).
+1. `pin_map` on the current `TSK` (`kind` + `goal`) or `MOD` / `SYM` (`path` / `name`).
 2. **grep/LSP** if you need fresh truth on disk.
-3. **`add`** / **`update`** shared-dialect lines when path/line/signature or task status changes.
+3. **`mutate`** when path/line/signature or task status changes. leftover `add`/`update` named leftover.
 4. **`session_save`** after substantive turns.
 5. Settle task (`status=done`, `recycle=delete_on_settle`) when finished.
 
@@ -59,53 +58,49 @@ Copy ids from the pin map — never retype from memory.
 
 ### Start task + record a function
 
-```text
-## Nodes
-+ TSK [NEW] ; goal=Expose session_load on memnet-mcp ; status=in_progress ; recycle=persistent
-+ MOD [NEW] ; path=src/memnet/cli.py ; summary=Typer CLI session commands ; status=active ; recycle=persistent
-+ SYM [NEW] ; name=session_load ; kind=fn ; path=src/memnet/cli.py ; line=351 ; sig=def session_load(...) ; status=active ; recycle=persistent
-+ USR [NEW] ; topic=api ; content=keep_id default true on session_load ; status=active ; recycle=persistent
-+ DEC [NEW] ; question=keep_id default ; options=true / false ; recycle=persistent
-
-## Edges
-+ E01 [NEW] --(owns)--> [MOD_cli] ; note=task scope ; recycle=persistent
-+ E02 [NEW] --(defines)--> [SYM_cli_session_load] ; note=handler ; recycle=persistent
-+ E03 [NEW] --(constrained_by)--> [USR_keep_id] ; note=user stated ; recycle=persistent
+```cypher
+CREATE (:TSK {goal: 'Expose session_load on memnet-mcp', status: 'in_progress'})
+CREATE (:MOD {path: 'parts/common/memnet/memnet/cli.py', summary: 'Typer CLI session commands', status: 'active'})
+CREATE (:SYM {name: 'session_load', kind: 'fn', path: 'parts/common/memnet/memnet/cli.py', line: '387'})
+CREATE (:USR {topic: 'api', content: 'MCP session_load keep_id default true', status: 'active'})
+CREATE (:DEC {question: 'keep_id default', options: 'MCP true / CLI false'})
+MATCH (t:TSK {goal: 'Expose session_load on memnet-mcp'}), (m:MOD {path: 'parts/common/memnet/memnet/cli.py'})
+CREATE (t)-[:owns {note: 'task scope'}]->(m)
+MATCH (m:MOD {path: 'parts/common/memnet/memnet/cli.py'}), (s:SYM {name: 'session_load'})
+CREATE (m)-[:defines {note: 'handler'}]->(s)
+MATCH (t:TSK {goal: 'Expose session_load on memnet-mcp'}), (u:USR {topic: 'api'})
+CREATE (t)-[:constrained_by {note: 'user stated'}]->(u)
 ```
-
-Copy assigned ids from the mutate / pin-map response (replace `NEW` placeholders above with real ids on follow-up).
 
 ### Settle decision + task
 
-```text
-## Nodes
-~ [DEC_mcp_keep_id] ; chosen=true ; recycle=delete_on_settle
-~ [TSK_mcp_session_load] ; status=done ; recycle=delete_on_settle
+```cypher
+MATCH (d:DEC {question: 'keep_id default'}) SET d.chosen = 'MCP true', d.recycle = 'delete_on_settle'
+MATCH (t:TSK {goal: 'Expose session_load on memnet-mcp'}) SET t.status = 'done', t.recycle = 'delete_on_settle'
 ```
 
 ### Next turn — where is that function?
 
 ```text
-pin_map(anchor="TSK_mcp_session_load", depth=2)
+pin_map(kind='TSK', locators=['goal=Expose session_load on memnet-mcp'], depth=2)
 ```
 
 Returns LAW + connected task/module/symbol/user/decision/edge atoms — small slice, not the whole repo.
 
 ### File moved after refactor
 
-```text
-## Nodes
-~ [SYM_cli_session_load] ; path=src/memnet/cli.py ; line=352 ; recycle=persistent
+```cypher
+MATCH (s:SYM {name: 'session_load', path: 'parts/common/memnet/memnet/cli.py'})
+SET s.line = '390'
 ```
 
-## Anchors to prefer
+## Cues to prefer
 
-| Anchor | Pin-map slice |
-|--------|---------------|
-| `TSK_*` | Task + owned modules/symbols/decisions/constraints |
-| `MOD_*` | File + symbols defined there + callers |
-| `SYM_*` | Symbol + module + call graph neighbours |
-| `MOD_repo_root` | CFG anchor — repo context |
+| Cue | Pin-map slice |
+|-----|---------------|
+| `kind=TSK` + `goal=` | Task + owned modules/symbols/decisions/constraints |
+| `kind=MOD` + `path=` | File + symbols defined there + callers |
+| `kind=SYM` + `name=` | Symbol + module + call graph neighbours |
 
 ## Limits
 

@@ -67,7 +67,7 @@ Set `MEMNET_MCP_TRANSPORT=tcp` on the shared HTTP MCP (or use TCP CLI). Probe wi
 ### MUST
 
 - Use the parent's **session id**; **`pin_map` first** every turn (or `find` then pin_map).
-- Copy assigned ids from pin map -- **MUST NOT** invent ids the parent already minted.
+- Cue locators from the pin map -- **MUST NOT** invent a store key. leftover nickname `id` is leftover.
 - Mutate only under the **assigned subgraph** (anchors + relations in the prompt).
 - Pass the assigned **`llm_id`** on mutate when RSV is held.
 - Return a concise result; durable facts live in MemNet rows.

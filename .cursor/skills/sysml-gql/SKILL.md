@@ -7,7 +7,7 @@ description: >-
 metadata:
   pattern: pipeline
   domain: sysml,memnet
-  version: "1.2"
+  version: "1.3"
   product: memnet-llm==0.19.0
   pairs_with: [mcp-memnet, memnet-format, sysml-memnet-cache, sysml-memnet-documentation, sysml-modeling-workflow, memnet-nested-sessions]
 token_guardrails: |
@@ -24,7 +24,7 @@ token_guardrails: |
 | Step | Action |
 |------|--------|
 | 1 | Cue `TSK_model_<short>` (`find` if unknown). Warm miss → mint via `mutate` |
-| 2 | `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], depth=2, max_rows=50)` |
+| 2 | `pin_map(kind='TSK', locators=['goal=TSK_model_<short>'], depth=2, max_rows=50)` |
 | 3 | `Read` at `SYM.line`; edit `sysml-models/models/*.sysml` (or the live root) |
 | 4 | Validate until pass |
 | 5 | `mutate` deltas + refresh `SYM.line` |
@@ -47,12 +47,12 @@ Closed enums: [sysml-memnet-patterns.md](../sysml-memnet-documentation/reference
 | file / line | `:MOD` / `:SYM` | `:inFile` |
 
 ```cypher
-MATCH (t:TSK {id: $tid})
+MATCH (t:TSK {goal: $goal})
 CREATE (p:PRT {name: 'Pdu', kind: 'partUsage'})-[:hasPort]->(por:POR {name: 'pwr_in', kind: 'portUsage', dir: 'in'})
-CREATE (p)-[:satisfies]->(:REQ {id: $req})
+CREATE (p)-[:satisfies]->(:REQ {requirementId: $req})
 ```
 
-Copy nicknames from the map. leftover `id:'NEW'` is leftover.
+Cue and MATCH by labels+properties (`goal`, `name`, `qname`, `path`, `requirementId`). leftover nickname `id` / `locators=['id=…']` are leftover.
 
 ## Related
 

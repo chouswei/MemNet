@@ -29,7 +29,7 @@ Copy the live root from repo `AGENTS.md`. **This MemNet repo:** `sysml-models/`.
 |------|--------|--------|
 | **0** | MemNet MCP in catalog? If no -> edit `.sysml` only; skip 1-2 and 6. Plain Markdown (no TOON/TRON). | -- |
 | **1** | `serve_status` only if TCP / unsure. If `running: false` -> edit `.sysml` only; skip 2 and 6. Under in-process default, skip this probe. | -- |
-| **2** | `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], depth=2, max_rows=50)`. leftover `anchor=` named leftover. | **READ** |
+| **2** | `pin_map(kind='TSK', locators=['goal=TSK_model_<short>'], depth=2, max_rows=50)`. leftover `anchor=` / `id=` named leftover. | **READ** |
 | **3** | Locate symbol (§Locate). Edit `models/*.sysml`. | -- |
 | **4** | Validate the textual model (SysML MCP/CLI if the project has one). | -- |
 | **5** | Sync `outputs/` **iff** structure changed. | -- |
@@ -59,22 +59,19 @@ After each step when MemNet is up, **`mutate`** one `:CLM` with `type='pipe'` an
 
 ## Identity and locators
 
-### Stable keys
+### Cue properties (not a store key)
 
-| Label | Pattern |
-|-------|---------|
-| `:TSK` | `TSK_model_<short>` |
-| `:PRT` | `PRT_<name>` |
-| `:POR` | `POR_<name>` |
-| `:CON` | `CON_<linkName>` |
-| `:BEH` | `BEH_<name>` |
-| `:ITM` | `ITM_<name>` |
-| `:REQ` | `REQ_<requirementId>` |
-| `:MOD` | `MOD_<file_slug>` |
-| `:SYM` | `SYM_<name>` |
-| `:CONV` | `CONV_<topic>` |
-| `:DEC` | `DEC_<nn>` |
-| `:ISSUE` | `ISS_<nn>` |
+House tokens such as `TSK_model_<short>` live in **`goal`** (or `name` / `qname` / `path` / `requirementId`). GraphElement is identity. leftover nickname `id` is leftover.
+
+| Label | Cue on | Example |
+|-------|--------|---------|
+| `:TSK` | `goal` | `goal=TSK_model_vfdl2` |
+| `:PRT` / `:POR` / `:CON` / `:BEH` / `:ITM` | `name` | `name=edgePc` |
+| `:REQ` | `requirementId` | `requirementId=VFDL2-MQTT-RELAY` |
+| `:MOD` | `path` | `path=models/deploy-vfdl2.sysml` |
+| `:SYM` | `name` + `path` | `name=edgePc` |
+| `:PKG` | `qname` | `qname=…FoamLiteVer2Deploy` |
+| `:CONV` / `:DEC` / `:ISSUE` | `topic` / `code` | `DEC` by question; `ISSUE` by `code` |
 
 ### Ephemeral locator
 
@@ -88,11 +85,11 @@ Use the **full canonical map** in [sysml-memnet-patterns.md](sysml-memnet-patter
 ### Example edges
 
 ```cypher
-CREATE (:PRT {id: 'PRT_edgePc'})-[:DECLAREDIN {recycle: 'persistent'}]->(:PKG {id: 'PKG_FoamLiteVer2Deploy'})
-CREATE (:SYM {id: 'SYM_edgePc'})-[:INFILE {note: 'loc', recycle: 'persistent'}]->(:MOD {id: 'MOD_deploy_vfdl2'})
-CREATE (:PRT {id: 'PRT_edgePc'})-[:HASPORT {recycle: 'persistent'}]->(:POR {id: 'POR_ethernet'})
-CREATE (:POR {id: 'POR_ethernet'})-[:TYPEDBY {recycle: 'persistent'}]->(:POR {id: 'POR_EthernetPort'})
-CREATE (:PRT {id: 'PRT_edgePc'})-[:SATISFIES {recycle: 'persistent'}]->(:REQ {id: 'REQ_VFDL2-MQTT-RELAY'})
+CREATE (:PRT {name: 'edgePc'})-[:declaredIn]->(:PKG {qname: 'FoamLiteVer2Deploy'})
+CREATE (:SYM {name: 'edgePc'})-[:inFile {note: 'loc'}]->(:MOD {path: 'models/deploy-vfdl2.sysml'})
+CREATE (:PRT {name: 'edgePc'})-[:hasPort]->(:POR {name: 'ethernet'})
+CREATE (:POR {name: 'ethernet'})-[:typedBy]->(:POR {name: 'EthernetPort'})
+CREATE (:PRT {name: 'edgePc'})-[:satisfies]->(:REQ {requirementId: 'VFDL2-MQTT-RELAY'})
 ```
 
 ## Locate before edit (step 3)
@@ -153,7 +150,7 @@ Do **not** store full `.sysml` text or paragraph prose on any graph row.
 
 4. Per file: one `:MOD` + N `:SYM` (with line) + semantic `:PRT` / `:POR` / `:CON` / `:REQ` / `:BEH` / `:ITM` + rels
 5. One `mutate` batch 30-80 statements
-6. `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], depth=2)` to confirm
+6. `pin_map(kind='TSK', locators=['goal=TSK_model_<short>'], depth=2)` to confirm
 7. Write thin `AGENT-CONTEXT.md` if missing
 
 ## Session `.snap` file
@@ -190,4 +187,4 @@ Query `TSK_model_<short>` -- do not duplicate topology/backlog here.
 
 ## Incremental re-snap (after edits)
 
-Same pattern as [memnet-codebase-snap](../../memnet-codebase-snap/SKILL.md): `mutate` affected `:SYM` rows; never duplicate ids.
+Same pattern as [memnet-codebase-snap](../../memnet-codebase-snap/SKILL.md): `mutate` affected `:SYM` rows; MATCH by `name`+`path`, do not mint leftover `id`.

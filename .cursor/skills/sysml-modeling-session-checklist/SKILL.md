@@ -27,7 +27,7 @@ Use when about to **edit `.sysml`**. Hub turn: [sysml-modeling-workflow](../sysm
 
 ## Pipeline
 
-0. **MemNet** — in-process: skip `serve_status`. Cue `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], …)`. leftover `anchor=` named leftover. Warm miss → [initial snap](../sysml-memnet-documentation/references/sysml-memnet-snap.md#initial-snap-warm-miss-only).
+0. **MemNet** — in-process: skip `serve_status`. Cue `pin_map(kind='TSK', locators=['goal=TSK_model_<short>'], …)`. leftover `anchor=` / `id=` named leftover. Warm miss → [initial snap](../sysml-memnet-documentation/references/sysml-memnet-snap.md#initial-snap-warm-miss-only).
 1. **Root** — `sysml-models/config.yaml` and files to touch. [read policy](../sysml-memnet-documentation/references/sysml-memnet-read-policy.md).
 2. **Ambiguous scope** — confirm with the user; do not invent architecture only in Markdown.
 3. **Sequence** — [sysml-modeling-workflow](../sysml-modeling-workflow/SKILL.md). Nest cuts: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md).

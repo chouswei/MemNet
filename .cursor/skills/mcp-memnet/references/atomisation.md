@@ -8,9 +8,9 @@ MemNet is an **in-memory knowledge graph**: **nodes** + **relationships**. Agent
 
 1. **One idea per row** -- one function, one constraint, one fact, one task phase
 2. **Relations are edges** -- `calls`, `owns`, `constrained_by`, `defines`, ...
-3. **Short fields only** -- ids, paths, line numbers, codes; **no prose blobs**
+3. **Short fields only** -- paths, line numbers, codes; **no prose blobs**
 4. **Split compound state** -- if a field needs "and also ...", add another row + edge
-5. **Stable ids** -- reuse forever; `update` when the atom changes
+5. **Cue by labels+properties** -- MATCH the same pattern; leftover nickname `id` is leftover
 
 Bad: one `MOD` whose summary is a paragraph of architecture.
 Good: `MOD` + several `SYM` + edges linking task -> modules -> symbols.
@@ -18,9 +18,9 @@ Good: `MOD` + several `SYM` + edges linking task -> modules -> symbols.
 ## Why it matters
 
 ```text
-pin_map(kind='TSK', locators=['id=TSK_x'], depth=2)
+pin_map(kind='TSK', locators=['goal=Expose send_command'], depth=2)
   -> LAW rows
-  -> anchor node
+  -> seed node
   -> edge-linked neighbours up to depth
   -> NOT unrelated atoms elsewhere
 ```
@@ -38,24 +38,23 @@ pin_map(kind='TSK', locators=['id=TSK_x'], depth=2)
 
 Prefer **one `add` call, many atom lines**:
 
-```text
-## Nodes
-+ TSK [NEW] ; goal=Expose send_command ; status=in_progress ; recycle=persistent
-+ MOD [NEW] ; path=src/memnet/serve.py ; summary=TCP serve ; status=active ; recycle=persistent
-+ SYM [NEW] ; name=send_command ; kind=fn ; path=src/memnet/serve.py ; line=96 ; recycle=persistent
-
-## Edges
-+ E01 [NEW] --(owns)--> [MOD_serve] ; note=scope ; recycle=persistent
-+ E02 [NEW] --(defines)--> [SYM_send_command] ; note=handler ; recycle=persistent
+```cypher
+CREATE (:TSK {goal: 'Expose send_command', status: 'in_progress', recycle: 'persistent'})
+CREATE (:MOD {path: 'parts/common/memnet/memnet/serve.py', summary: 'TCP serve', status: 'active'})
+CREATE (:SYM {name: 'send_command', kind: 'fn', path: 'parts/common/memnet/memnet/serve.py', line: '96'})
+MATCH (t:TSK {goal: 'Expose send_command'}), (m:MOD {path: 'parts/common/memnet/memnet/serve.py'})
+CREATE (t)-[:owns {note: 'scope'}]->(m)
+MATCH (m:MOD {path: 'parts/common/memnet/memnet/serve.py'}), (s:SYM {name: 'send_command'})
+CREATE (m)-[:defines {note: 'handler'}]->(s)
 ```
 
-Copy assigned ids from the mutate / pin-map response.
+Prefer **one `mutate` call, many statements**. leftover `+ TSK [NEW]` line dialect is leftover.
 
 ## Checklist
 
 - [ ] One fact per row?
 - [ ] Relations are separate edges?
 - [ ] Fields short (no sentences)?
-- [ ] Ids from pin map or `NEW` mint (then copy)?
+- [ ] Cue by labels+properties (not leftover `id`)?
 
 Cross-ref: [wire-format.md](wire-format.md) · [coding-memory.md](coding-memory.md) · [memnet-format](../../memnet-format/SKILL.md)
