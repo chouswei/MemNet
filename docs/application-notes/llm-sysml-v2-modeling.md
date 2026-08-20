@@ -173,6 +173,7 @@ part def SenseAmp { port vin : AnalogIn; port vout : AnalogOut; }
 
 ## 7. Related
 
+- [`.cursor/skills/memnet-nested-sessions/`](../../.cursor/skills/memnet-nested-sessions/) — look loop / already-built `session=`
 - [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) — Turns A–I
 - [`../grammar/memnet-session-strata.md`](../grammar/memnet-session-strata.md)
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — shared TCP/HTTP

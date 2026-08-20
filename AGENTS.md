@@ -27,7 +27,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Multitask for system repos (`modelbasedPrj-*`) | `docs/application-notes/llm-system-dev-multitask.md` | applications |
 | MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` | — |
 | SysML modelling (token laws / Snap stack) | `docs/application-notes/llm-sysml-v2-modeling.md`, `sysml-models/outputs/sysml-session-nest-cuts-case-study.md` | applications |
-| Agent playbook (0.8) | `docs/LLM-GUIDE.md` | developers |
+| Nested sessions / look loop | `.cursor/skills/memnet-nested-sessions/` | applications |
 | Domain worked examples | `docs/application-notes/` (schematic; nodal note *applies* formula grammar to circuits) | applications |
 | Core library | `parts/common/memnet/` | — |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` | — |
@@ -42,6 +42,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 | Intent | Path |
 |--------|------|
 | **Use MemNet** (goldfish, pin_map, mutate) | `.cursor/skills/memnet-use/` |
+| Nested sessions / look loop / already-built interior | `.cursor/skills/memnet-nested-sessions/` |
 | MCP tools, session, ingest | `.cursor/skills/mcp-memnet/` |
 | GQL / shaped pin_map wire | `.cursor/skills/memnet-format/` |
 | Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |

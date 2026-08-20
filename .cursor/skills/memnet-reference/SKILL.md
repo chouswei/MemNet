@@ -108,7 +108,7 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
   0.19 export is a separate cue `pin_map` GQL write-out (`memnet export pin-map`).
   MUST NOT treat export as Absorb, a chat dump, or `.sysml` reverse this cut.
 - Invent N-server federation for Path-B ingest.
-- Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-use` (how to use), `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, `memnet-reference` (how to **build**), and the five SysML modelling trees.
+- Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-use`, `memnet-nested-sessions`, `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, `memnet-reference` (how to **build**), and the five SysML modelling trees.
 - Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
 
 ## Related

@@ -4,7 +4,7 @@ description: >-
   How to use MemNet as mission working memory: cue then pin_map, sparse
   mutate, drop prior maps. Triggers: use memnet, how to use memnet, memnet
   goldfish, pin_map, session graph, memnet MCP, GQL wire, shaped pin map,
-  memnet-format, mcp-memnet, memnet-multitask.
+  memnet-format, mcp-memnet, memnet-multitask, nested session, look loop.
 metadata:
   pattern: pipeline
   version: "1.0"
@@ -35,7 +35,8 @@ Reference skill for **agents using** MemNet — not for building the engine. Doc
 | GQL / shaped `pin_map` wire | [memnet-format](../memnet-format/SKILL.md) |
 | Multitask / shared session | [memnet-multitask](../memnet-multitask/SKILL.md) |
 | Code `MOD`/`SYM` snap | [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md) |
-| SysML SSOT (relatives + sub-unit sessions) | `docs/application-notes/llm-sysml-v2-modeling.md` and `sysml-*` skills |
+| Nested sessions / look loop / sub-unit `session=` | [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) |
+| SysML SSOT (relatives + session cuts) | `docs/application-notes/llm-sysml-v2-modeling.md` and `sysml-*` skills |
 
 ## MUST NOT
 

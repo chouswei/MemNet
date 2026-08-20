@@ -12,6 +12,7 @@ Hub: [`memnet-use/`](memnet-use/SKILL.md). Then one specialist:
 |-------|------|
 | `mcp-memnet/` | MCP tools, session, `pin_map`, ingest |
 | `memnet-format/` | GQL / shaped `pin_map` wire |
+| `memnet-nested-sessions/` | Nested sessions, look loop, already-built `session=` |
 | `memnet-multitask/` | Multitask + shared TCP/HTTP |
 | `memnet-codebase-snap/` | Code `MOD`/`SYM` snap |
 | `sysml-*` | SysML modelling with MemNet |
