@@ -1,8 +1,8 @@
 # MemNet roadmap
 
-**Status:** SemVer SSOT (claimed vs planned vs Later). Historical filename [`ROADMAP-0.5.md`](ROADMAP-0.5.md) is a pointer here so old links do not 404.
+**Status:** SemVer SSOT (claimed vs planned vs Later).
 
-**Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). Placement (design): [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md). British English.
+**Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). British English.
 
 **Package now:** Hatch **0.19.0**. Numbered extras **0.10–0.19** are in this package. Git tag `v0.19.0` by coordinator. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. PyPI **`memnet-llm==0.19.0`** is published. **1.0** is still unclaimed (0.5–0.8).
 
@@ -187,7 +187,7 @@ Local single-agent may still use in-process stdio when no shared graph is needed
 |------|----------|
 | Teach **GQL (openCypher-shaped)** as the **only** agent wire ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md); family authority = openCypher CIP / oC9) | Teach Layer / Tier A as wire, peer, or accept path |
 | Redefine **Write = display** as **bounded shaped GQL subgraph** via `pin_map`-class tool | Ship unbounded tabular `MATCH`/`RETURN` as primary goldfish read |
-| Point historical Layer sources only at [`grammar/archive/`](grammar/archive/) | Invent a third peer dialect |
+| Do **not** restore Layer / Tier A sources into `docs/` | Invent a third peer dialect |
 
 Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) (supersession: no Layer).
 
@@ -216,7 +216,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 | Host search MAY propose **locators** into MutateGate / ingest; skip is valid | Store embeddings or chunk bodies as the memory surface |
 | [#73](https://github.com/chouswei/MemNet/issues/73) `find` is **graph** lookup (seed nodes only; then `pin_map` from labels+props), not corpus RAG. Do **not** teach copy-id then `--anchor`. When \(|Q|>1\), CueConflict on emit (0.10) | Run HippoRAG PPR / Graphiti RRF / OpenIE / ANN **inside** the engine |
 
-Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77). Relatives: [`grammar/rag-relative-algorithms.md`](grammar/rag-relative-algorithms.md).
+Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ---
 
@@ -225,21 +225,16 @@ Design: [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.m
 | Path | Role |
 |------|------|
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (identity SSOT) |
-| [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md) | Memory plane of a harness (design thesis; not a SemVer gate) |
 | [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog |
-| [`grammar/memnet-neo4j-rag-rethink.md`](grammar/memnet-neo4j-rag-rethink.md) | Two ports; catalog Snap; Absorb = Path-B (not 1.0) |
 | [`../README.md`](../README.md) | Doctrine / how to run |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
 | [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
 | [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math |
-| [`../sysml-models/outputs/recall-commit-orthodox-plan.md`](../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; Peak_L 0.18 last-resort |
-| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (design; not engine) |
-| [`grammar/gql-model-exam.md`](grammar/gql-model-exam.md) | GQL-wire paradox (historical filename) |
+| [`grammar/memnet-host-search-nest.md`](grammar/memnet-host-search-nest.md) | Host search nest (0.17; skip valid) |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |
 | [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |
 | [`multi-agent-sessions.md`](multi-agent-sessions.md) | Multitask transport MUST |
 | [`../.cursor/mcp.json.example`](../.cursor/mcp.json.example) | `memnet-pi` primary |
-| [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Historical filename (pointer only) |

@@ -10,4 +10,4 @@ Shared MemNet core library (Python package `memnet`): GraphStore, TierACodec, Mu
 | Module map | [`parts/README.md`](../../README.md) |
 | Examples | `parts/common/memnet/memnet/examples/` (see `examples/README.md`) |
 
-See root `README.md` and `docs/grammar/memnet-grammar-design.md`.
+See root `README.md` and [`docs/grammar/gql-wire-profile.md`](../../../docs/grammar/gql-wire-profile.md).

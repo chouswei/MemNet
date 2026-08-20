@@ -1,3 +1,0 @@
-# expect: parse-reject
-# Bad: += / -= RHS must be a number (R1).
-~ [T42] ; phase+=one

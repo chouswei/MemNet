@@ -144,4 +144,4 @@ Cue then `pin_map` (MCP arg **`session`**). Shared world = TCP / HTTP, not in-pr
 
 ## 8. Retired dialects (pointer only)
 
-Older Wonderland seeds used `@ROM: id|…` or Layer ASCII. **Do not** dual-teach. Archive: [`../grammar/archive/`](../grammar/archive/).
+Older Wonderland seeds used `@ROM: id|…` or Layer ASCII. **Do not** dual-teach.

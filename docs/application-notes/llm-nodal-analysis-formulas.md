@@ -13,7 +13,6 @@ Complements:
 - [`llm-circuit-schematic.md`](llm-circuit-schematic.md) — schematic / s-domain GQL grain
 - [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) — InvAmp GQL wire
 - [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) — math SSOT
-- Historical Layer goldens — `docs/grammar/archive/examples-layer/` only
 
 ---
 
@@ -146,9 +145,9 @@ Illustrative mid absolutes after a hand solve (equal divider): \(V_\mathrm{mid}=
 
 ---
 
-## 9. Retired Layer / Tier A (archive only)
+## 9. Retired Layer / Tier A
 
-Layer ASCII and Tier A CMP/PIN/NET + `derives` are **not** product accept or teach. Quarantine: [`../grammar/archive/`](../grammar/archive/). Design leftover notes may remain under `docs/grammar/` as as-is harness docs — wire teach = GQL profile only.
+Layer ASCII and leftover CMP/PIN/NET + `derives` are **not** product accept or teach. Wire teach = GQL profile only.
 
 ---
 

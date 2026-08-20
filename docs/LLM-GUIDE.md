@@ -3,7 +3,7 @@
 **Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.0.** **1.0** = 0.5–0.8 claimed (unclaimed). PyPI **`memnet-llm==0.19.0`**.
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
-**M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
+**M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire.
 
 **You are a goldfish.** Your working memory is unreliable. MemNet is the mission session graph — durable state lives there, not in chat, and not in a RAG index. Host search MAY propose locators; you commit them with mutate or ingest. In-session recall is **serial**: codebook-token cue (kind / properties / keyword / `find`), then ShapeWalk `pin_map`. Do not expect `rag_query`, embeddings, or GraphRAG on `memnet-mcp`.
 
@@ -179,7 +179,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 | PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Ingest is not export. 0.19 pin-map export writes a cue `pin_map` (or empty-q outline) as shaped GQL (`memnet export pin-map` / MCP `export_pin_map`). Re-ingest / `.sysml` reverse (MN-REQ-11.5 SHOULD) remains later (#66). See `docs/grammar/memnet-grammar-design.md` §4.2.1 B.
+Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Ingest is not export. 0.19 pin-map export writes a cue `pin_map` (or empty-q outline) as shaped GQL (`memnet export pin-map` / MCP `export_pin_map`). Re-ingest / `.sysml` reverse (MN-REQ-11.5 SHOULD) remains later (#66).
 
 ### Multi-agent / Multitask
 
@@ -287,7 +287,6 @@ Operational Multitask MUST/MUSTNOT (developers): [`multi-agent-sessions.md`](mul
 
 **Layer / Tier A ASCII and `@TAG` pipe are retired from product accept and teach** (ADR-001 supersession; M2). Do **not** use them for new agent work.
 
-- Historical grammar / fixtures: [`grammar/archive/`](grammar/archive/)
 - Wire teach: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)
 
 Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@WRN:` stderr lines (caps, staleness, TTL) still apply; read them.

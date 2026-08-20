@@ -3,7 +3,6 @@
 **Status:** extra **0.17** hook shipped (in package 0.19.0) — `RagHostHook.implemented=true` **outside** `MemNetSystem`. Skip is valid. No `rag_query` MCP; no embeddings in the engine.  
 **Research:** [#77](https://github.com/chouswei/MemNet/issues/77) (below the product math). Notes 22–28 landed on `master` via [#84](https://github.com/chouswei/MemNet/pull/84).  
 **Math SSOT (above this nest):** [`math-skeleton.md`](math-skeleton.md).  
-**Retrieve algorithms (what the functions do):** [`rag-relative-algorithms.md`](rag-relative-algorithms.md).  
 **Walk:** [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md).  
 **Dialect:** GQL ([`gql-wire-profile.md`](gql-wire-profile.md)). British English.
 
@@ -133,7 +132,7 @@ Read the retrieve functions. Steal the *shape*; reject the *haystack*.
 | Graphiti `add_episode` / `bfs_origin_node_uuids` | Incremental episode ingest; optional multi-origin BFS; hybrid search then `node_distance` rerank; `update_communities` / episode-mentions rerank. | Incremental write (sparse Δ). Multi-origin as seed set. Distance **is** `pin_map`. | Hybrid/RRF first; community update; mention-frequency as goldfish. |
 | LightRAG dual-level keywords | LLM extracts high-level (themes) + low-level (entities); vector match; 1-hop gather; hybrid/mix generate. | Two **grains**: shell survey then TSK interior. Empty keywords → skip. | Keyword embeddings; hybrid/mix **in** engine; chunks as `pin_map`. |
 
-Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **centre id** is the closest *handle* to leftover `pin_map(anchor)` / product cue; their **`node_distance` is 1-hop adjacency**, not MemNet depth-2 reconstruct; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG. Microsoft GraphRAG **local** search is the closest *corpus* cousin to ego walk — still generate-on-retrieve, still the library haystack. Algorithms: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
+Closest working-memory cousin in Awesome-GraphMemory is HiAgent, not HippoRAG. Graphiti’s **centre id** is the closest *handle* to leftover `pin_map(anchor)` / product cue; their **`node_distance` is 1-hop adjacency**, not MemNet depth-2 reconstruct; their **RRF of BM25+cosine+BFS** is the closest *temptation* to fuse with host RAG. Microsoft GraphRAG **local** search is the closest *corpus* cousin to ego walk — still generate-on-retrieve, still the library haystack.
 
 ## Math (product SSOT above this nest)
 
@@ -192,11 +191,7 @@ Fail-open: missing adapter / timeout / parse → skip; **MUST NOT** fail `pin_ma
 |------|------|
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research (steal/reject vs Neo4j / RAGFlow / graph-memory code) |
 | [`neo4j-buffer.md`](neo4j-buffer.md) | Places those relatives on Snap / Shape / Neo4j cabinet (not a second steal/reject SSOT) |
-| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | Retrieve pipelines from source |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Two ports; catalog Snap; join by Absorb (proposal) |
-| [`memnet-harness-thesis.md`](memnet-harness-thesis.md) | MemNet as harness memory plane (design thesis) |
 | [`math-skeleton.md`](math-skeleton.md) | Product math (above #77) |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Goldfish = `pin_map` / Recall |
 | [`../application-notes/llm-daily-news.md`](../application-notes/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |
 | [`../../sysml-models/outputs/host-search-nest-case-study.md`](../../sysml-models/outputs/host-search-nest-case-study.md) | Evidence walk |
-| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox; all tests are paradox |

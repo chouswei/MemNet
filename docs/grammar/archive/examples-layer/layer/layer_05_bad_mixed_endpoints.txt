@@ -1,5 +1,0 @@
-# expect: lint-reject
-# Bad: mixed endpoint grains — [Node.port] ↔ bare [Node].
-CST [CST_Q1] ; ports=C: {direc=out}
-CST [CST_Rc] ; name=resistor
-E_mix [CST_Q1.C] --bind--> [CST_Rc]

@@ -1,5 +1,0 @@
-# expect: parse-reject
-# Bad: second dialect in the same prompt (write ≠ display).
-## Nodes
-@CLM: C10|TSK_inv|fact|KCL at VMINUS|active|persistent
-+ TSK [T42] ; goal=Seed inverting amp nodal example ; recycle=persistent

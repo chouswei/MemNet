@@ -1,7 +1,0 @@
-# expect: parse-ok
-# Session schema (session_open --map-file): shared-dialect SCHEMA lines.
-# Not graph NODE/EDGE — registry of kind → ordered field names (MN-REQ-02.7).
-# fields= is a space-separated R1 atom (id must be first).
-SCHEMA CFG ; fields=id repo anchor version notes
-SCHEMA MOD ; fields=id path summary status recycle
-SCHEMA TSK ; fields=id goal anchor status recycle

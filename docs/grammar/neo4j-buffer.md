@@ -38,7 +38,7 @@ Recall/Commit is unchanged. The cabinet does not replace \(\mathrm{Recall}(q)\) 
 
 ## How RAG sits between `memnet-llm` and the Neo4j cabinet
 
-There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both (`RagHostHook.implemented=true`, extra **0.17**; skip valid). Algorithms of the relatives: [`rag-relative-algorithms.md`](rag-relative-algorithms.md).
+There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine package (goldfish). `memnet-llm[neo4j]` is only the **Bolt client** (`Neo4jAdapter`) — not a second product, not “Neo4j as MemNet”, not GraphRAG. Optional host RAG (library Snap) sits **beside** both (`RagHostHook.implemented=true`, extra **0.17**; skip valid).
 
 ```text
   library / PDFs / web
@@ -63,9 +63,7 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 **If someone wires RAG “through Neo4j” (the footgun).** LLM → Cypher/GraphQL/`generate` on the same store that holds flushed pins, or a vector index **on** that cabinet used as goldfish. That collapses three jobs: library Snap, session Shape, durable hydrate. Symptoms: `rag_query` on MCP, `pin_map.generate`, chunk bodies on `note=`, Graphiti-style RRF against the cabinet, ANN of \(S\).
 
-**Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice.
-
-**Rethink (design, not shipped):** as-is “RAG never touches Neo4j” pushes operators to LLM↔Bolt. Proposed **two ports, one server**, plus **catalog `session=` + Path-B Absorb** (Absorb is not RAG). [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md).
+**Legal composition (when a host later ships Snap).** (1) Host RAG over the **library** → locators. (2) Commit locators into `memnet-llm`. (3) Goldfish `pin_map`. (4) Optional flush/hydrate of \(S\) to Neo4j so the **same pins** outlive the process — still not a retrieve ranker. Skip (1) when grep / ingest / existing pins suffice. Extra **0.16** already ships two named databases (cabinet vs optional library locators).
 
 ---
 
@@ -268,7 +266,5 @@ pytest -m neo4j_live
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | First cabinet client; 0.7 live claim |
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Agent wire SSOT (not Bolt) |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Steal/reject of retrieve functions |
-| [`rag-relative-algorithms.md`](rag-relative-algorithms.md) | What those retrieve functions actually compute |
 | [`../SHAPE.md`](../SHAPE.md) | Cabinet behind, not instead |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Design proposal: two ports; catalog Snap; join by Path-B Absorb |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Session SSOT; handoff by session id |

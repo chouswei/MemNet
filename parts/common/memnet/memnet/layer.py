@@ -3,8 +3,7 @@
 Additive to 0.3.x ``tier_a``: same NODE|EDGE store; Layer wire forms and fields
 coexist via optional ``src_port`` / ``dist_port`` / ``wire`` on EDG and opaque
 ``ports`` / ``law`` strings on NODE. Does **not** require antlr4 at runtime
-(hand-rolled mirror of ``MemNetLayer.g4`` + soft rules from
-``docs/grammar/tools/layer_soft_validate.py``).
+(hand-rolled leftover of retired Layer; **rejected** on product mutate).
 
 Mission freeze: law on NODE; port↔port = bind; node↔node = relation; reject mixed.
 """

@@ -1,3 +1,0 @@
-# expect: lint-reject
-# Bad: bag on dialect denylist key law= (soft MUSTNOT — parses as recordBag).
-CST [CST_Bad] ; ports=x: {direc=in} ; law={eq=$V=IR$}

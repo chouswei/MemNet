@@ -124,4 +124,4 @@ Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-proc
 
 ## 8. Retired dialects (pointer only)
 
-Historical `@CFG` / `@EDG` pipe or Layer ASCII seeds may still exist in project repos. **Do not** dual-teach. Archive: [`../grammar/archive/`](../grammar/archive/).
+Historical `@CFG` / `@EDG` pipe or Layer ASCII seeds may still exist in project repos. **Do not** dual-teach.

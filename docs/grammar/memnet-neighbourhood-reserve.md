@@ -2,7 +2,7 @@
 
 **Status:** implemented (MN-REQ-12.13 / `memnet.neighbourhood_reserve`).  
 **Primary concurrency fix** for multi-agent same-session confusion **inside an already-authorised session**.  
-**Related:** re-id §4.2.0 in `memnet-grammar-design.md`; optimistic `rev` is secondary only.  
+**Related:** leftover re-id / merge is engine honesty, not agent teach; optimistic `rev` is secondary only.  
 **Security + session ACL:** [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) — first-class session access (`private` / `shared` / `open`, roles, `session_token`); this reserve design is the coop layer **after** that gate.  
 **Dialect:** agent-facing I/O is **GQL only** ([`gql-wire-profile.md`](gql-wire-profile.md)). Do **not** invent `@RSV:` pipe forms or revive Layer.
 

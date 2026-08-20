@@ -3,7 +3,7 @@
 **Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Extra **0.17** = Host Snap locators (`RagHostHook` outside `MemNetSystem`). Extra **0.18** = Peak_L last-resort cue. Later = N-server / hosted cabinet.
 **Audience:** product developers. **British English.**  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).  
-**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](memnet-session-strata.md). Thesis: [`memnet-harness-thesis.md`](memnet-harness-thesis.md).
+**Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](memnet-session-strata.md).
 
 Do **not** train an IB, run a Steiner solver, or ANN-index the session because a paper named a cousin.
 
@@ -132,13 +132,13 @@ Over \(M\) after narrowing ego and `view=shell`: **mint** \(S_{i+1}\), do not ra
 
 **Pin the topics, then fetch slices.** Empty topic cue \(\Rightarrow\) skip / grep / host Snap. Default **one** call on the live `TSK`.
 
-Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay **rejected** on accept (archive only).
+Hierarchical reconstruct \(\neq\) Layer dialect. Layer / Tier A stay **rejected** on accept.
 
 ---
 
 ## Named maths (names only)
 
-Orthodox = these as a **base to build from**. **All** examination and test is paradox — [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md).
+Orthodox = these as a **base to build from**. **All** examination and test is paradox (pytest, MN-VER).
 
 | Name | In MemNet |
 |------|-----------|
@@ -176,10 +176,7 @@ Do **not** treat Hilbert IR / QQL / ZX-on-Cypher as GQL semantics.
 |------|------|
 | [`gql-wire-profile.md`](gql-wire-profile.md) | Shaped GQL wire; `pin_map` vs find honesty |
 | [`memnet-session-strata.md`](memnet-session-strata.md) | Many sessions; model Snap; not Layer |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | Snap / Shape / Absorb / hydrate verbs |
-| [`memnet-harness-thesis.md`](memnet-harness-thesis.md) | Memory plane; token law; co-responds |
 | [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Application nest **below** this math |
 | [`../../sysml-models/models/deploy.sysml`](../../sysml-models/models/deploy.sysml) | `RecallCommit` nest |
-| [`../../sysml-models/outputs/recall-commit-orthodox-plan.md`](../../sysml-models/outputs/recall-commit-orthodox-plan.md) | Orthodox build-from; all tests are paradox |
 | [#77](https://github.com/chouswei/MemNet/issues/77) | Research notes (not product SSOT) |
 | [#73](https://github.com/chouswei/MemNet/issues/73) | Bounded MATCH find (shipped seed-only) |

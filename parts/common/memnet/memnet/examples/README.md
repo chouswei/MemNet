@@ -47,6 +47,4 @@ Regenerate; do not hand-edit bodies. leftover `add` still imports `@TAG` pipe. P
 
 ## Not this folder
 
-As-is line-codec **harness** fixtures (parse/emit only; rejected on product mutate): [`docs/grammar/examples/`](../../../../../docs/grammar/examples/).
-Historical Layer ASCII: [`docs/grammar/archive/`](../../../../../docs/grammar/archive/).
 Worked GQL circuit: [`docs/application-notes/examples/inverting-amplifier-gql-case-study.md`](../../../../../docs/application-notes/examples/inverting-amplifier-gql-case-study.md).

@@ -139,7 +139,7 @@ update(wire_lines=[
 
 ## 7. Retired dialects (pointer only)
 
-Layer ASCII and `@TAG` pipe are **not** agent teach. Archive: [`../grammar/archive/`](../grammar/archive/). Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md) Appendix A.
+Layer ASCII and `@TAG` pipe are **not** agent teach. Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md) Appendix A.
 
 ---
 

@@ -1,5 +1,0 @@
-# expect: parse-ok
-# Goldfish mutate after PCBA warm: [NEW] only for new MemNet annotation.
-# Schematic pins (ATO_R1, …) are copied from warm — never re-created with [NEW].
-# Edge to ATO_R1 uses assigned CLM id on a later turn (copy from create response).
-+ CLM [NEW] ; type=decision ; code=R1 limit rail sense ; recycle=delete_on_settle

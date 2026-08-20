@@ -59,9 +59,7 @@ MCP tools (`mcp-memnet`), wire shapes (`memnet-format`), and Multitask (`memnet-
 | Agent playbook (product) | `docs/LLM-GUIDE.md` | developers |
 | Multitask product ops | `docs/multi-agent-sessions.md` | developers |
 | Multitask system-repo pattern | `docs/application-notes/llm-system-dev-multitask.md` | applications |
-| Shared-dialect grammar | `docs/grammar/` | developers |
-| Grammar golden fixtures | `docs/grammar/examples/` | developers |
-| Grammar tools | `docs/grammar/tools/` | developers |
+| Shared-dialect grammar | `docs/grammar/` (`gql-wire-profile.md`) | developers |
 | Core library | `parts/common/memnet/` | -- |
 | Generic MCP | `parts/memnet-mcp/software/memnet_mcp/` | -- |
 | SysML product models | `sysml-models/` | -- |
@@ -77,7 +75,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 
 | Component | Path | Notes |
 |-----------|------|-------|
-| As-is line codec | `parts/common/memnet/memnet/tier_a.py` | Retired from product accept (M2); archive/tests only |
+| As-is line codec | `parts/common/memnet/memnet/tier_a.py` | Retired from product accept (M2); leftover engine only |
 | GqlCodec | `parts/common/memnet/memnet/gql_codec.py` | Primary agent wire (M2) |
 | MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path) |
 | PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL |
@@ -88,7 +86,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | Pin-map export | `parts/common/memnet/memnet/pin_map_export.py` | Cue `pin_map` GQL write-out (0.19 / #66); not Absorb |
 | Path-B session import | `parts/common/memnet/memnet/import_absorb.py` | `import_slice` + optional ImportGuard host hook |
 
-Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/grammar/memnet-grammar-design.md`.
+Formal wire: `docs/grammar/gql-wire-profile.md`.
 
 ## Development checks
 
@@ -99,7 +97,7 @@ pytest
 ruff check parts/common/memnet parts/memnet-mcp/software tests
 ```
 
-Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysML verify trail for Multitask: MN-REQ-12 in `sysml-models/models/requirements.sysml`, MN-VER-12 in `sysml-models/models/verify.sysml`.
+Grammar: `docs/grammar/gql-wire-profile.md`. SysML verify trail for Multitask: MN-REQ-12 in `sysml-models/models/requirements.sysml`, MN-VER-12 in `sysml-models/models/verify.sysml`.
 
 ## MUSTNOT (contributors)
 
@@ -111,7 +109,7 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
   MUST NOT treat export as Absorb, a chat dump, or `.sysml` reverse this cut.
 - Invent N-server federation for Path-B ingest.
 - Vendor the **whole** user pack, or hardware/PCBA/mermaid/generator skills, into `.cursor/skills/`. Allowed: `memnet-use`, `memnet-nested-sessions`, `mcp-memnet`, `memnet-format`, `memnet-multitask`, `memnet-codebase-snap`, `memnet-reference` (how to **build**), and the five SysML modelling trees.
-- Revive Layer / Tier A as agent teach or accept path; archived sources stay under `docs/grammar/archive/`.
+- Revive Layer / Tier A as agent teach or accept path; do not restore dropped Layer docs into `docs/`.
 
 ## Related
 

@@ -1,6 +1,0 @@
-# expect: lint-reject
-# Bad: inventing random create ids instead of [NEW].
-# LLM does not know ground ids; engine allocates on create.
-+ CLM [C_rand_99] ; type=fact ; code=guessed id ; recycle=persistent
-+ TSK [T_maybe] ; goal=Seed inverting amp nodal example ; phase=1 ; status=open ; recycle=persistent
-+ NEW [C_rand_99] --(about)--> [TSK_inv]

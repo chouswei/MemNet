@@ -104,7 +104,6 @@ CREATE (t)-[:TOUCHES]->(d)
 | Study | Role |
 |-------|------|
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | Correct loop when serve up/down |
-| [new-mint-batch-case-study.md](new-mint-batch-case-study.md) | Copy ids from response, not chat |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Cold-start without chat dump |
 | [session-import-case-study.md](session-import-case-study.md) | Path B import — still not chat |
 

@@ -164,7 +164,6 @@ Tech-docs SCPI is **not** a new part under `MemNetSystem`. It is SharedLlmMemory
 |------|------|
 | `docs/application-notes/llm-tech-docs-decomposition.md` | Application doctrine |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | When chat drifts from the manual graph |
-| [prose-rpg-session-case-study.md](prose-rpg-session-case-study.md) | Same goldfish beat shape, other domain |
 | [`docs/grammar/gql-wire-profile.md`](../../docs/grammar/gql-wire-profile.md) | Relation grain / Write=display |
 
 ## 8. Validation note

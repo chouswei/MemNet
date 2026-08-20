@@ -2,9 +2,9 @@
 
 **Status:** 0.15 engine in package 0.19.0 — **not** a SemVer gate for **1.0**, **not** Layer / Tier A.  
 **Audience:** product developers. British English.  
-**Homograph.** *Layer* in this repo means the **archived dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
+**Homograph.** *Layer* in this repo means the **retired dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
-**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Join: [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md). Multitask: [`../multi-agent-sessions.md`](../multi-agent-sessions.md). Thesis: [`memnet-harness-thesis.md`](memnet-harness-thesis.md).
+**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](gql-wire-profile.md). Cabinet: [`neo4j-buffer.md`](neo4j-buffer.md). Multitask: [`../multi-agent-sessions.md`](../multi-agent-sessions.md).
 
 ---
 
@@ -187,6 +187,6 @@ Fits **0.15 Catalog Snap** (in package 0.19.0). **SysML model Snap** = one model
 | [`gql-wire-profile.md`](gql-wire-profile.md) | `view=` grain **inside** one \(S\) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | No Layer |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Path A / Path B |
-| [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | \(S_{\mathrm{lib}}\) vs Neo4j library namespace; more sessions when over \(M\) |
+| [`neo4j-buffer.md`](neo4j-buffer.md) | Cabinet vs optional library namespace; more sessions when over \(M\) |
 | [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) | Loop: relatives + sub-unit sessions |
 | [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I |
