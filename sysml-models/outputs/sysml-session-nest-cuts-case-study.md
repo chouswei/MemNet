@@ -3,7 +3,7 @@
 **Shelf:** application example (on SharedLlmMemory) — Catalog Snap mechanism is MN-REQ-11.17 / extra **0.15**.
 
 Evidence walk against `sysml-models/models/` plus a fake PDU campaign.  
-Application teach: `docs/application-notes/llm-sysml-v2-modeling.md` §6.  
+Application teach: `docs/application-notes/llm-sysml-v2-modeling.md`.  
 Doctrine: `docs/grammar/memnet-session-strata.md`.  
 Companion: [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) (mission `TSK` loop; this study owns the **model Snap stack**).
 
@@ -43,7 +43,7 @@ ProjectMemNet                    // one model Snap
 
 **Package interiors only** isolate `MemNetRequirements` from `MemNet`, but `deploy.sysml` is still one fat part nest (hundreds of defs under `package MemNet`). Kind-band does nothing (almost all `PRT`).
 
-**Fit:** cut the tree until each interior (and each parent shell of **direct** children) **fits \(M\) whole**. Cue one `session=`. Join with Absorb of a **slice**, not session merge.
+**Fit:** cut the tree until each interior (and each parent shell of **direct** children) **fits \(M\) whole**. Cue one `session=`. Join with Absorb of a **slice**, not session merge. If a nested type **already has** an interior, the parent **presents** that `session=` — it does not Snap a second copy.
 
 ```mermaid
 flowchart TD
@@ -98,7 +98,7 @@ part def SenseAmp {
 }
 ```
 
-Re-Snap this subtree. Usage `sense` is `:contains` + `:typedBy`. If `mn_pdu` no longer fits \(M\), cut `SenseAmp` to `mn_sense`; parent shell keeps the usage **name**, not `vin`/`vout`. Ports, `connection`, `action`, `item` stay on the **part** cut — not `S_port`.
+Re-Snap this subtree. Usage `sense` is `:contains` + `:typedBy`. If `SenseAmp` already presents in `mn_sense`, reuse that id. Else if `mn_pdu` no longer fits \(M\), cut `SenseAmp` to `mn_sense`. Parent shell keeps the usage **name**, not `vin`/`vout`. Ports, `connection`, `action`, `item` stay on the **part** cut — not `S_port`.
 
 ### Turn C — package in package
 
@@ -134,7 +134,7 @@ CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 
 Source: [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) with [VehicleDefinitions.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleDefinitions.sysml).
 
-**One Snap.** Catalog rows: `VehicleDefinitions` (def library) and `VehicleUsages` (configurations). Import `::*` is not a second Snap. `Wheel.hub` stays in the def interior; `narrowRimWheel: Wheel` is `:typedBy` plus nested `lugbolt[4..5]` — **one** pin, multiplicity a property.
+**One Snap.** Catalog rows: `VehicleDefinitions` (def library) and `VehicleUsages` (configurations). Import `::*` is not a second Snap. The **Wheel** session is **already built** in the def interior. `narrowRimWheel: Wheel` **presents** that `session=` (`:typedBy`); `hub` is not copied. Nested `lugbolt[4..5]` is the usage delta — **one** pin, multiplicity a property.
 
 **`vehicle_C1` shell** = `frontAxleAssembly` | `rearAxleAssembly` only. Lugbolts are depth 3. Depth-2 flatten either **misses** them or dumps the tree; clipping `max_rows` is the lie. Re-anchor to the assembly, then the wheel.
 
@@ -148,9 +148,15 @@ Source: [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Relea
 
 Source: [elan8/sysml-examples](https://github.com/elan8/sysml-examples). One Snap per example folder. Catalog interiors = imported packages (Structure, Behavior, Requirements, Ports, Views) plus the root aggregator.
 
-**Webshop.** Cue `CheckoutService` in the architecture interior. Relatives = ports + incident `connect` (orders DB, payments, inventory, events). `satisfy checkoutLatency by webshopSystem.checkoutService` and `allocate … to commerceCluster` are cross-cut — second look / Absorb slice. Dumping `WebShopArchitecture.sysml` (\(\approx 3.2\,\mathrm{k}\) tokens) spends the goldfish bound before code.
+**Webshop.** Cue `CheckoutService` in the architecture interior. Relatives = ports + incident `connect` (orders DB, payments, inventory, events). If that service already has its own interior, `WebShopSystem` only **presents** `session=` — no second Snap of the service nest. `satisfy checkoutLatency by webshopSystem.checkoutService` and `allocate … to commerceCluster` are cross-cut — second look / Absorb slice. Dumping `WebShopArchitecture.sysml` (\(\approx 3.2\,\mathrm{k}\) tokens) spends the goldfish bound before code.
 
 **Drone.** `satisfy FailsafeReq by droneInstance.flightControl.flightController` is a nested path (Vehicle C3). Shell of `droneInstance`, then re-anchor `flightControl`. Four `propulsionUnit*` stay in the `Propulsion` interior if they fit \(M\).
+
+### Turn H — nested part already presents in a built session
+
+`part def Commit { part mutate : MutateGate; }` after MutateGate already has `mn_mutate`. **Do not** Snap MutateGate again into Commit’s interior. Catalog already lists `qname=` → `session=`. Commit’s shell row is the usage **name** + `:typedBy` + that `session=`. Goldfish of `mn_commit` lists `mutate`; it does not emit MutateGate’s ports. To see the sub-part: `pin_map(session=mn_mutate)`. To join a port or `satisfy` end: Absorb a **slice**, same as Turn D.
+
+First-time cut (Turn B when over \(M\)) **mints** the child session. Turn H **reuses** it. Re-Snap of the **same** `qname=` refreshes that interior; it does not mint a twin. As-is leftover: `snap_model` may re-project; TARGET is reuse by `qname=`.
 
 ## 5. Contrast (MUST NOT)
 
@@ -170,6 +176,7 @@ Source: [elan8/sysml-examples](https://github.com/elan8/sysml-examples). One Sna
 | Explode `lugbolt[4..5]` | One usage pin; multiplicity property |
 | Paste `vehicle_C1` into `vehicle_C2` | `subsets`/`redefines` = delta + locator |
 | Depth-2 from `vehicle_C3` to `rearAxle.drive` | C3 shell, then re-anchor the axle |
+| Second Snap of a `qname=` that already has `session=` | Present the existing interior; look = `pin_map` that \(S\) |
 
 ## 6. Honesty
 
@@ -177,6 +184,7 @@ Source: [elan8/sysml-examples](https://github.com/elan8/sysml-examples). One Sna
 |-------|--------|
 | `snap_model` catalog + package interiors | shipped 0.15 (untagged; package 0.9.0); pytest `tests/test_catalog_snap.py` |
 | Recurse part-root / requirement-group when still over \(M\) | TARGET teach; engine leftover still two-segment child package after a successful project |
+| Reuse catalog `session=` when a nested type is already built | TARGET teach; as-is Snap may re-project the same `qname=` |
 | Ingest `max_nodes=200` on `deploy.sysml` | fat nest can hit `ingest_budget` **before** a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still slices `[:max_rows]` |
 | VehicleUsages `interface` / `subsets` / `redefines` / `flow` | not in as-is `_DEF_HEAD`; `.sysml` SSOT |
@@ -191,7 +199,7 @@ Source: [elan8/sysml-examples](https://github.com/elan8/sysml-examples). One Sna
 | [session-outline-case-study.md](session-outline-case-study.md) | Empty q = census of **one** \(S\), not a nest dump |
 | [session-import-case-study.md](session-import-case-study.md) | Absorb **slice** across cuts (Turn D) |
 | [goldfish-chat-desync-case-study.md](goldfish-chat-desync-case-study.md) | Chat must not replace the live interior map |
-| `docs/application-notes/llm-sysml-v2-modeling.md` | Application loop + nest snippets |
+| `docs/application-notes/llm-sysml-v2-modeling.md` | Application loop + already-built interiors |
 | [VehicleUsages.sysml](https://github.com/Systems-Modeling/SysML-v2-Release/blob/master/sysml/src/examples/Vehicle%20Example/VehicleUsages.sysml) | OMG example: usages, subsets, nested-port `interface` |
 | [elan8/sysml-examples](https://github.com/elan8/sysml-examples) | Teaching trees; webshop software SSOT; nested `satisfy by` |
 | `docs/grammar/memnet-session-strata.md` | Sessions as strata (not Layer) |

@@ -123,7 +123,7 @@ So: **SysML can nest everything.** Encoding that tree as `:contains` in one sess
 
 ### Interior grain (of the model)
 
-Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) §6.
+Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md).
 
 Worked example — **this product model** (`ProjectMemNet` / `root.sysml` imports):
 
@@ -138,7 +138,7 @@ Worked example — **this product model** (`ProjectMemNet` / `root.sysml` import
 
 Mission \(S\) is **not** an interior of the model Snap. It holds `TSK_model_*` and locators into the catalog. The model Snap’s output is the **stack** \((S_{\mathrm{cat}}, S_{\mathrm{req}}, \ldots)\).
 
-**MUST NOT** one session per `requirement def` or nested usage. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Layer dialect. **MUST NOT** emit a truncated Shape of a fat nest.
+**MUST NOT** one session per `requirement def` or nested usage. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Snap a second interior for a `qname=` that already has a catalog `session=` — the parent **presents** that id (`typedBy` + `session=`); look = `pin_map` that \(S\); join = Absorb slice. **MUST NOT** Layer dialect. **MUST NOT** emit a truncated Shape of a fat nest.
 
 ### Snap loop (one model)
 
