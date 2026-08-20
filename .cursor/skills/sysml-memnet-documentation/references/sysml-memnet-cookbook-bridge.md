@@ -1,6 +1,6 @@
-# SysML MemNet — cookbook bridge (user pack)
+# SysML MemNet — cookbook bridge (this vendor)
 
-Links user-pack MemNet skills to the upstream SysML v2 modeling cookbook. **Do not copy the full cookbook here** — use this bridge for policy and pointers.
+Links in-repo MemNet skills to the upstream SysML v2 modeling cookbook. **Do not copy the full cookbook here** — use this bridge for policy and pointers.
 
 ## Upstream source
 
@@ -9,7 +9,7 @@ Links user-pack MemNet skills to the upstream SysML v2 modeling cookbook. **Do n
 
 **Package:** Hatch **0.19.1** (last PyPI **`memnet-llm==0.19.0`** until upload). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
 
-The cookbook is the **agent loop** (two token laws, Snap stack, look loop). User-pack skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not legacy alias tags.
+The cookbook is the **agent loop** (two token laws, Snap stack, look loop). In-repo skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not leftover alias tags. Agent I/O is **GQL**; leftover pipe `@TAG` names in the map are leftover nicknames for kinds.
 
 ## Unified-tag policy (fixed)
 
@@ -29,9 +29,9 @@ The cookbook is the **agent loop** (two token laws, Snap stack, look loop). User
 5. **This file** — upstream pointer + legacy ban
 6. Cookbook (upstream) — loop + look loop when snap.md is the mission `TSK` only
 
-## What stays in user pack vs cookbook
+## What stays in this vendor vs cookbook
 
-| Topic | User pack | Cookbook |
+| Topic | This vendor | Cookbook |
 |-------|-----------|----------|
 | Turn sequence, warm miss, line drift | snap.md | — |
 | Read budget, anti-patterns (no deploy re-read) | read-policy.md | — |
@@ -43,9 +43,9 @@ The cookbook is the **agent loop** (two token laws, Snap stack, look loop). User
 
 ## Reconciliation checklist
 
-When cookbook and user pack disagree:
+When cookbook and this vendor disagree:
 
-1. **Tag names** — user pack wins (`@POR` not `@PORT`; no `@PARTD`)
+1. **Kind names** — vendor patterns win (`POR` not `PORT`; no `PARTD`)
 2. **Field order** — canonical map in patterns.md wins
 3. **Batch EDG rules** — patterns construct table wins
 4. **Worked examples** — cookbook for narrative; rewrite examples to unified tags when copying into MemNet

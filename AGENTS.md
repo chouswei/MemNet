@@ -4,7 +4,7 @@ LLM hub for this system repo. Prefer in-repo skills and docs over ad-hoc inventi
 
 ## Mission
 
-**MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL **node**/vertex, **edge**/relationship, **property**) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; `query_warm` / `query warm` are legacy tool aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. Repo product **0.19.1** (Hatch SSOT); last published PyPI **`memnet-llm==0.19.0`** until 0.19.1 is uploaded. **1.0** = 0.5–0.8 claimed (unclaimed). See `README.md`, [`docs/SHAPE.md`](docs/SHAPE.md), and `docs/grammar/`.
+**MemNet** (Net of Memory) is **mission working memory** — a session graph (GQL **node**/vertex, **edge**/relationship, **property**) **between** LLM call pipelines and data search, not the corpus and not GraphRAG. Agents read a bounded **live pin map** each turn and write in the same **GQL (openCypher-shaped)** family — redefined **Write = display** via shaped subgraph emit ([`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md)). In-session recall is **serial**: kind/keyword cue, then `pin_map` neighbourhood. Primary read: MCP `pin_map` / CLI `query pin-map`; leftover `query_warm` / `query warm` are leftover aliases. Aims (MN-REQ-00): save wall-clock time and tokens while keeping factual accuracy. Aids **system**, **programme**, **software**, **firmware**, **hardware**, and **documentation**. Transport: **in-process first** (single-agent; TCP fallback). **Multitask** requires TCP serve or streamable-http MCP — see Multitask policy below. This repo is **engine + generic memnet-mcp** only — novel-writer dropped. Repo product **0.19.1** (Hatch SSOT); last published PyPI **`memnet-llm==0.19.0`** until 0.19.1 is uploaded. **1.0** = 0.5–0.8 claimed (unclaimed). See `README.md`, [`docs/SHAPE.md`](docs/SHAPE.md), and `docs/grammar/`.
 
 ## Where to look
 
@@ -26,21 +26,19 @@ Catalog and load order: [`docs/README.md`](docs/README.md) (identity / `grammar/
 
 ## Skill routing
 
-**Repo skills** (`.cursor/skills/`): **use MemNet** (`memnet-use` + specialists) and **build MemNet** (`memnet-reference`). Cloud VMs have no user pack. Full personal pack remains [cursor-user-skills](https://github.com/chouswei/cursor-user-skills). Routing: [`.cursor/skills/SKILL-GRAPH.md`](.cursor/skills/SKILL-GRAPH.md).
+**Repo skills** (`.cursor/skills/`): this checkout **vendors** the MemNet stack. **Core:** `memnet-use` + `mcp-memnet` + `memnet-format` + `memnet-nested-sessions` + `memnet-multitask`. **Build:** `memnet-reference`. SysML / codebase are specialists. Routing: [`.cursor/skills/SKILL-GRAPH.md`](.cursor/skills/SKILL-GRAPH.md). Optional human-machine pack: [cursor-user-skills](https://github.com/chouswei/cursor-user-skills) — this folder wins here.
 
 | Intent | Path |
 |--------|------|
-| **Use MemNet** (goldfish, pin_map, mutate) | `.cursor/skills/memnet-use/` |
-| Nested sessions / look loop / already-built interior | `.cursor/skills/memnet-nested-sessions/` |
+| **Use MemNet** (goldfish) | `.cursor/skills/memnet-use/` |
 | MCP tools, session, ingest | `.cursor/skills/mcp-memnet/` |
 | GQL / shaped pin_map wire | `.cursor/skills/memnet-format/` |
+| Nested sessions / look loop | `.cursor/skills/memnet-nested-sessions/` |
 | Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/operations/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
-| Multitask system-dev (`modelbasedPrj-*`) | `.cursor/skills/memnet-multitask/`, `docs/application-notes/system/llm-system-dev-multitask.md` |
-| SysML design memory with MemNet | `.cursor/skills/sysml-memnet-documentation/`, `.cursor/skills/sysml-memnet-cache/` |
+| Code MOD/SYM | `.cursor/skills/memnet-codebase-snap/` |
+| SysML design memory | `.cursor/skills/sysml-modeling-workflow/` (checklist / cache / documentation / gql) |
 | Develop MemNet engine / MCP / grammar | `.cursor/skills/memnet-reference/` |
-| MN-REQ-12 SysML + verify (Multitask) | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
-| Doctrine / grammar / models | `README.md`, `docs/SHAPE.md`, `docs/ROADMAP.md`, `docs/grammar/`, `sysml-models/` |
-| Generic MCP implementation | `parts/memnet-mcp/` |
+| MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
 
 ## Policy
 

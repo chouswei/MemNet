@@ -1,4 +1,4 @@
-# SysML MemNet snap -- canonical procedure (user pack)
+# SysML MemNet snap -- canonical procedure (this vendor)
 
 **Wire:** agent mutate/read uses MemNet **GQL / shaped pin_map** ([memnet-format](../../memnet-format/SKILL.md)). Emit openCypher-shaped statements on the wire -- not pipe `@TAG` rows. Thin bridge: [sysml-gql](../../sysml-gql/SKILL.md).
 

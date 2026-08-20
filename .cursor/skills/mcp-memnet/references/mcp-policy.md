@@ -21,11 +21,11 @@ Cursor (stdio) → memnet-mcp
 }
 ```
 
-Do **not** set serve host/port unless `MEMNET_MCP_TRANSPORT=tcp`. Optional user-pack HTTP `memnet-pi` is a human-machine path — not this cloud VM.
+Do **not** set serve host/port unless `MEMNET_MCP_TRANSPORT=tcp`. This repo vendors the skill; optional extra HTTP `memnet-pi` is a human-machine path — not this cloud VM.
 
 ## Tools (product)
 
-`serve_status`, `session_open` / `list` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy ACL opt-in.
+`serve_status`, `session_open` / `list` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy `session_acl_*` opt-in.
 
 leftover: `add`, `update`, `query_warm`, `query_walk`. No `read_get`.
 

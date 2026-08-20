@@ -20,7 +20,7 @@ Use when about to **edit `.sysml`**. Hub turn: [sysml-modeling-workflow](../sysm
 ## After the checklist, state
 
 - **project** — `sysml-models/` (this repo) or the live `AGENTS.md` root
-- **anchor** — `TSK_model_<short>`
+- **campaign** — `TSK_model_<short>` (cue `goal=`; leftover `anchor=` is leftover)
 - **warm** — `warm_hit` | `warm_miss`
 - **read plan** — symbols from the map only
 - **next** — target `models/*.sysml`

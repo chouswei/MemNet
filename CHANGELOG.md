@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- None.
+- **Skills vendor (core)** — This checkout is the MemNet skill vendor. Core: `memnet-use`, `mcp-memnet`, `memnet-format`, `memnet-nested-sessions`, `memnet-multitask`. Build: `memnet-reference`. Specialists: codebase snap + `sysml-*`. Index [`.cursor/skills/README.md`](.cursor/skills/README.md). Hub descriptions no longer steal specialist triggers. Maps, CapsPolicy `session_acl_*`, look-loop `session=`, and leftover `add` as TARGET are honest against `memnet_mcp/server.py`. Do not claim **1.0**.
 
 ## [0.19.1] - 2026-08-20
 

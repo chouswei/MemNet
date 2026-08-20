@@ -122,7 +122,7 @@ add(wire_lines=[
 Next turn — summarise **only** section 3:
 
 ```text
-pin_map(anchor="S03", depth=2)
+pin_map(kind='SEC', locators=['name=S03'], depth=2)
 ```
 
 Returns LAW pins + `S03` + linked `CLM` / `ENT` (bare present) — not sections 1–2.

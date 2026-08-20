@@ -6,7 +6,7 @@ description: >-
   MOD SYM snap.
 metadata:
   pattern: pipeline
-  version: "0.6"
+  version: "0.7"
   domain: memnet,codebase
   product: memnet-llm==0.19.1
 token_guardrails: |
@@ -25,7 +25,7 @@ Pair with [memnet-format](../memnet-format/SKILL.md) and [mcp-memnet](../mcp-mem
 
 1. Hub: repo `AGENTS.md`.
 2. Single agent: in-process MCP. Shared graph: TCP / HTTP ([memnet-multitask](../memnet-multitask/SKILL.md)).
-3. `session_open` with a coding map (bundled `schema.example.txt` or project map).
+3. `session_open` with `parts/common/memnet/memnet/examples/schema.codebase.example.txt` (ingest) or `schema.coding.example.txt` (coding memory). Do not use the game `schema.example.txt`.
 4. First pass: **`ingest_codebase`** on the tree, then `pin_map` — still **verify on disk** before trusting call/use edges.
 5. Copy ids from the map. leftover NEW is leftover.
 
