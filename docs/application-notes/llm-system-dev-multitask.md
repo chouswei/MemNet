@@ -145,7 +145,7 @@ Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
 | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-SysML load trees: use **model Snap**, not one `ingest_sysml` per file and not a truncated `pin_map` of a fat `:contains` nest. Application: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) §6.
+SysML load trees: use **model Snap**, not one `ingest_sysml` per file and not a truncated `pin_map` of a fat `:contains` nest. Application: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md).
 
 Client leftover `NEW` mint is leftover, not product. Prefer ingest for bounded pin maps; `seed_lines` / leftover `add` remain leftover for one-off locators. Product write is `mutate`. Ingest is not export. 0.19 cue `pin_map` GQL write-out is `memnet export pin-map`; re-ingest later (#66).
 

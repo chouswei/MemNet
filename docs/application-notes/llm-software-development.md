@@ -146,5 +146,5 @@ Layer ASCII and `@TAG` pipe are **not** agent teach. Archive: [`../grammar/archi
 ## Related
 
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — Multitask + shared session
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML design memory
+- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML SSOT (same two token laws)
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT

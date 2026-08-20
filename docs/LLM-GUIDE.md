@@ -272,7 +272,7 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 | 1 | `llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `llm-daily-news.md` | Batch RSS digest |
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
-| 4 | `llm-sysml-v2-modeling.md` | SysML v2 modeling |
+| 4 | `llm-sysml-v2-modeling.md` | SysML SSOT; relatives + sub-unit sessions |
 | 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
 | 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
 | 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |
