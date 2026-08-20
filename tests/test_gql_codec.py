@@ -7,7 +7,7 @@ import pytest
 
 from memnet.gql import ParseError, emit_item, parse, soft_validate
 from memnet.gql_codec import GqlCodec
-from memnet.gql_parse_front import GRAPHGLOT_DIALECT_NAME, parse_program
+from memnet.gql_parse_front import GRAPHGLOT_DIALECT_NAME, parse_program, quote_reserved_idents
 from memnet.tier_a import EdgeRec, NodeRec, Op
 
 
@@ -140,6 +140,19 @@ def test_reject_call_after_graphglot_parse():
     with pytest.raises(ParseError, match="CALL") as ei:
         parse("CALL db.labels()")
     assert ei.value.code == "product_gate"
+
+
+def test_parse_keyword_label_and_rel_and_prop():
+    """GraphGlot reserved words as MemNet names: quote for parse, lower unquoted."""
+    dec = parse("CREATE (:DEC {id: 'DEC_x', question: 'q'})")
+    assert dec.items[0].kind == "DEC"
+    sys_n = parse("CREATE (:SYS {id: 'SYS01', round: '1', time: 'Autumn', deficit: '0'})")
+    assert {f.key: f.value for f in sys_n.items[0].fields}["round"] == "1"
+    nxt = parse("MATCH (a {id: 'A'}), (b {id: 'B'})\nCREATE (a)-[:next {id: 'E1'}]->(b)")
+    assert nxt.items[0].rel == "next"
+    quoted = quote_reserved_idents("CREATE (:DEC {round: '1'})")
+    assert "`DEC`" in quoted
+    assert "`round`" in quoted
 
 
 def test_reject_bad_create():
