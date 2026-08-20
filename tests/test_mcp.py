@@ -171,6 +171,7 @@ def test_mcp_tool_names(monkeypatch):
     names = asyncio.run(mcp.list_tools())
     tool_names = {t.name for t in names}
     assert "pin_map" in tool_names
+    assert "mutate" in tool_names
     assert "export_pin_map" in tool_names
     assert "query_warm" in tool_names
     assert "snap_model" in tool_names
@@ -180,9 +181,21 @@ def test_mcp_tool_names(monkeypatch):
     assert "rag_query" not in tool_names
     pin_tool = next(t for t in names if t.name == "pin_map")
     props = (pin_tool.inputSchema or {}).get("properties") or {}
+    assert "cue" in props
     assert "view" in props
     assert "depth" in props
     assert "max_rows" in props
+    add_tool = next(t for t in names if t.name == "add")
+    add_doc = add_tool.description or ""
+    assert "leftover" in add_doc.lower()
+    assert "optional NEW" not in add_doc
+    assert "optional new" not in add_doc.lower()
+    mutate_tool = next(t for t in names if t.name == "mutate")
+    mutate_doc = mutate_tool.description or ""
+    assert "GQL" in mutate_doc or "CREATE" in mutate_doc
+    walk_tool = next(t for t in names if t.name == "query_walk")
+    walk_doc = walk_tool.description or ""
+    assert "leftover" in walk_doc.lower()
 
 
 def test_supplement_seed_lines():

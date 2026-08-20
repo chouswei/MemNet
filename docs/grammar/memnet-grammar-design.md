@@ -1,7 +1,8 @@
 # MemNet grammar design
 
 > **Not agent teach.** Agent wire SSOT: [`gql-wire-profile.md`](gql-wire-profile.md) (**GQL only**).  
-> This file documents the **as-is** line-codec / harness (`tier_a` package names). Default mutate **rejects** Layer/Tier A (**M2 done**). Do **not** teach Tier A / Layer as wire.
+> This file documents the **as-is** line-codec / harness (`tier_a` package names). Default mutate **rejects** Layer/Tier A (**M2 done**). Do **not** teach Tier A / Layer as wire.  
+> leftover **`NEW` mint** in this file is leftover line-codec honesty, not product Commit. Product write is GQL `CREATE` without NEW.
 
 **Status:** as-is harness / historical design (not GQL teach SSOT)  
 **Audience:** codec owners (archive/tests; product accept is GQL)  
@@ -462,7 +463,7 @@ Coherence / gaps / next steps: **`docs/grammar/memnet-grammar-antlr.md`**.
 
 ```text
 Phase 0  Document Write=display shared dialect as sole agent dialect.
-Phase 1  Accept shared dialect on add/update; emit shared dialect on pin map (Write=display).
+Phase 1  leftover add/update accept; product mutate GQL Commit; emit shared dialect on pin map (Write=display).
 Phase 2  Skills / LLM-GUIDE teach shared dialect only (not pipe).
 Phase 3  Parser SSOT mandatory for all consumers; delete private splits.
 Phase 4  Legacy pipe session files: import once → convert → gone (keep importer).

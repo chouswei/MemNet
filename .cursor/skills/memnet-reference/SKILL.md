@@ -20,7 +20,7 @@ metadata:
 
 Repo skill for **building** MemNet in **this** repository. Doctrine SSOT lives in docs below -- do not duplicate or invent features here.
 
-**Product version:** `project.toml` / Hatch **0.9.0** (CLI command remains `memnet`). **PyPI `memnet-llm` is 0.9.0.** Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`. **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
+**Product version:** `project.toml` / Hatch **0.9.0** (CLI command remains `memnet`). **PyPI `memnet-llm` is 0.4.6.** Version map SSOT: `docs/ROADMAP.md`. Product shape: `docs/SHAPE.md`. **0.9** = Neo4j cabinet-client extra; extra **0.14** claims `liveNeo4jClaimed=true`. **0.8** = GQL teach + shape for people. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
 
 ## When loaded
 
@@ -82,7 +82,7 @@ Part-based folders only -- do not recreate top-level `src/` or `applications/`.
 | GqlCodec | `parts/common/memnet/memnet/gql_codec.py` | Primary agent wire (M2) |
 | MutateGate | `parts/common/memnet/memnet/mutate_gate.py` | Mutate parse → mint → commit (GQL path) |
 | PinMapComposer | `parts/common/memnet/memnet/pin_map_composer.py` | Live pin map emit → shaped GQL |
-| IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | `NEW` minting |
+| IdAllocator | `parts/common/memnet/memnet/id_allocator.py` | leftover `NEW` mint (not product Commit) |
 | CLI + serve | `parts/common/memnet/memnet/cli/` | `memnet serve` TCP `:18765`; `--ipc` / `MEMNET_IPC_SOCKET` (MN-REQ-06.2) |
 | MCP server | `parts/memnet-mcp/software/memnet_mcp/server.py` | Tool SSOT |
 | Path-B ingest (all domains) | `parts/common/memnet/memnet/pin_map_ingest.py` | `PinMapIngest_Sysml` / `_Codebase` / `_PcbaAto` / `_SkillsRules` |

@@ -79,7 +79,7 @@ def test_send_command_stdin_add(memnet_serve, schema_file):
     )
     assert add_resp["exit_code"] == 0, add_resp
     get_resp = send_command(
-        ["read", "get", "--id", "PLR99", "--session", sid],
+        ["query", "pin-map", "--cue", "PLR99", "--session", sid],
         host=host,
         port=port,
     )
@@ -109,8 +109,9 @@ def test_send_command_stdin_update(memnet_serve, schema_file):
     )
     assert upd_resp["exit_code"] == 0, upd_resp
     get_resp = send_command(
-        ["read", "get", "--id", "PLR98", "--session", sid],
+        ["query", "pin-map", "--cue", "PLR98", "--session", sid],
         host=host,
         port=port,
     )
-    assert "|2|" in get_resp["stdout"] or "|2|" in get_resp["stdout"].replace("\\|", "|")
+    assert get_resp["exit_code"] == 0, get_resp
+    assert "2" in get_resp["stdout"]

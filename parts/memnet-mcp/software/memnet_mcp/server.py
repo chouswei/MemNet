@@ -66,9 +66,10 @@ async def session_open(
 ) -> str:
     """Open a new MemNet session with a tag map (map_lines preferred over map_file).
 
-    Optional seed_lines are added via add --stdin immediately after open (e.g. CFG/domain
-    rows). Core LAW01–LAW05 are auto-included when missing (GQL by default; pipe only
-    when seed_lines are legacy @TAG) so every warm/pin map carries engine invariants.
+    Optional seed_lines are committed immediately after open (leftover ``add``
+    path for Path-B / pipe seeds). Core LAW01–LAW05 are auto-included when missing
+    (GQL by default; pipe only when seed_lines are leftover @TAG) so every
+    pin_map carries engine invariants.
 
     Set allow_new_relation=True when seed_lines include EDG relations beyond
     relations.seed.txt (session_open default vocabulary); otherwise the seed batch will
@@ -163,7 +164,8 @@ async def session_load(
 
     Works in-process (default) or via TCP ``memnet serve`` when configured.
     Returns session id in stdout/stderr. Does not require an existing session.
-    Use before pin_map / add / update when resuming mid-task.
+    Use before pin_map / mutate when resuming mid-task.
+    leftover ``add`` / ``update`` names remain leftover façades.
     """
     argv = ["session", "load", "--file", file]
     if keep_id:
@@ -184,6 +186,7 @@ async def session_save(
 
 
 async def _pin_map(
+    cue: str | None = None,
     anchor: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
@@ -204,13 +207,15 @@ async def _pin_map(
         str(max_rows),
     ]
     ids: list[str] = []
+    if cue and cue not in ids:
+        ids.append(cue)
     for aid in list(anchors or []):
         if aid and aid not in ids:
             ids.append(aid)
     if anchor and anchor not in ids:
         ids.append(anchor)
     for aid in ids:
-        argv.extend(["--anchor", aid])
+        argv.extend(["--cue", aid])
     if kind:
         argv.extend(["--kind", kind])
     for loc in locators or []:
@@ -226,53 +231,67 @@ async def _pin_map(
 
 @mcp.tool()
 async def pin_map(
-    anchor: str | None = None,
+    cue: str | None = None,
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
     caller: str | None = None,
+    anchor: str | None = None,
     anchors: list[str] | None = None,
-    kind: str | None = None,
-    locators: list[str] | None = None,
-    keyword: str | None = None,
 ) -> str:
-    """Live pin map: bounded bare-present NODE|EDGE slice (shared dialect).
+    """Live pin map: bounded shaped GQL neighbourhood.
 
     Goldfish caller (0.13): each turn call this with a cue ``q`` (or empty-q
     outline of S). Drop prior pin_map rows from the prompt before the next
     generate. Sparse Δ on mutate. Env blobs stay in the outer harness.
-    ``view=shell`` is grain on a seed — not session outline (0.11).
+
+    Product cue: ``kind`` / ``locators`` / ``keyword`` / ``cue`` (nickname) /
+    ``session``. leftover ``anchor`` / ``anchors`` are leftover nickname aliases,
+    not TARGET law. Empty cue is session outline (0.11: kinds + LIMIT exemplars
+    of S) regardless of ``view``. ``view=shell`` is grain on a seed — not the
+    outline. When the cue yields |Q|>1 the emit carries CueConflict.
 
     Optional ``view``: ``shell`` | ``interior`` (teach); ``flowchart`` | ``parts`` |
     ``statechart`` accepted with soft shell caps (grain filters deferred).
-    Omit ``view`` for default depth/max_rows behaviour.
-
     Optional ``caller``: CapsPolicy ACL who-check when session ACL is enabled.
-
-    Cue with ``kind`` / ``locators`` / ``keyword`` (product). leftover ``anchor`` /
-    ``anchors`` are nickname cues, not TARGET law. Empty cue is session outline
-    (0.11: kinds + LIMIT exemplars of S). ``view=shell`` without a seed is still
-    that census, not a 1-hop of the session. When the cue yields |Q|>1 the emit
-    carries CueConflict (no silent root pick).
     """
     return await _pin_map(
-        anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
+        cue,
+        anchor,
+        depth,
+        max_rows,
+        session,
+        view,
+        caller,
+        anchors,
+        kind,
+        locators,
+        keyword,
     )
 
 
 @mcp.tool()
 async def query_warm(
-    anchor: str | None = None,
+    cue: str | None = None,
+    kind: str | None = None,
+    locators: list[str] | None = None,
+    keyword: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     view: str | None = None,
     session: str | None = None,
     caller: str | None = None,
+    anchor: str | None = None,
     anchors: list[str] | None = None,
 ) -> str:
-    """Deprecated alias for ``pin_map`` — same params and behaviour."""
-    return await _pin_map(anchor, depth, max_rows, session, view, caller, anchors, None, None, None)
+    """leftover alias for ``pin_map`` — same params. Do not teach as primary."""
+    return await _pin_map(
+        cue, anchor, depth, max_rows, session, view, caller, anchors, kind, locators, keyword
+    )
 
 
 @mcp.tool()
@@ -301,27 +320,94 @@ async def find(
 
 @mcp.tool()
 async def query_walk(
-    anchor: str,
+    cue: str | None = None,
+    anchor: str | None = None,
     depth: int = 2,
     max_rows: int = 50,
     session: str | None = None,
 ) -> str:
-    """Hop debug (not the primary pin map): ``@WALK: src -[relation]-> dst``.
+    """leftover hop debug (not goldfish): ``@WALK: src -[relation]-> dst``.
 
-    For agent reason each turn prefer ``pin_map`` (live pin map). For enumeration
-    by tag, prefer ``read_list``.
+    Product read is cue then ``pin_map``. leftover ``anchor`` is a leftover
+    nickname alias. Prefer ``find`` then ``pin_map``. Not ``require_anchor``.
     """
+    nick = cue or anchor or ""
     argv = [
         "query",
         "walk",
         "--anchor",
-        anchor,
+        nick,
         "--depth",
         str(depth),
         "--max-rows",
         str(max_rows),
     ]
     return await _run(argv, session=session)
+
+
+async def _commit(
+    mode: str,
+    wire_lines: list[str],
+    *,
+    allow_new_relation: bool = False,
+    agent: str | None = None,
+    session: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
+    llm_id: str | None = None,
+) -> str:
+    argv = [mode, "--stdin"]
+    if allow_new_relation:
+        argv.append("--allow-new-relation")
+    if agent:
+        argv.extend(["--agent", agent])
+    if caller:
+        argv.extend(["--caller", caller])
+    if mission_id:
+        argv.extend(["--mission-id", mission_id])
+    if lease:
+        argv.extend(["--lease", lease])
+    if write_scope:
+        argv.extend(["--write-scope", write_scope])
+    if llm_id:
+        argv.extend(["--llm-id", llm_id])
+    stdin = "\n".join(wire_lines)
+    return await _run(argv, stdin=stdin, session=session)
+
+
+@mcp.tool()
+async def mutate(
+    wire_lines: list[str],
+    allow_new_relation: bool = False,
+    agent: str | None = None,
+    session: str | None = None,
+    caller: str | None = None,
+    mission_id: str | None = None,
+    lease: str | None = None,
+    write_scope: str | None = None,
+    llm_id: str | None = None,
+) -> str:
+    """Product GQL Commit: CREATE / MERGE / SET / DELETE (gated).
+
+    Writes accept GQL only. Does not mint leftover NEW. leftover ``add`` /
+    ``update`` names remain as leftover façades. When session ACL is enabled:
+    pass ``caller``; optional ``mission_id``+``lease``; optional ``write_scope``.
+    Pass ``llm_id`` when mutating under RSV.
+    """
+    return await _commit(
+        "mutate",
+        wire_lines,
+        allow_new_relation=allow_new_relation,
+        agent=agent,
+        session=session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
+        llm_id=llm_id,
+    )
 
 
 @mcp.tool()
@@ -336,29 +422,24 @@ async def add(
     write_scope: str | None = None,
     llm_id: str | None = None,
 ) -> str:
-    """Create rows via shared-dialect mutate lines (leading ``+``, optional NEW).
+    """leftover create-only façade (not product Commit). Prefer ``mutate``.
 
-    Prefer shared dialect in wire_lines (Write=display). Fails if id already exists.
-    When session ACL is enabled: pass ``caller`` (who); optional ``mission_id``+``lease``
-    (bind); optional ``write_scope`` override. Pass ``llm_id`` when mutating under RSV.
+    GQL only on the product path; leftover ``add`` may still import @TAG pipe
+    for Path-B seeds. Does not mint NEW. Fails if the leftover create-only
+    mode rejects SET/DELETE. Prefer ``mutate`` for mixed CREATE/SET batches.
     """
-    argv = ["add", "--stdin"]
-    if allow_new_relation:
-        argv.append("--allow-new-relation")
-    if agent:
-        argv.extend(["--agent", agent])
-    if caller:
-        argv.extend(["--caller", caller])
-    if mission_id:
-        argv.extend(["--mission-id", mission_id])
-    if lease:
-        argv.extend(["--lease", lease])
-    if write_scope:
-        argv.extend(["--write-scope", write_scope])
-    if llm_id:
-        argv.extend(["--llm-id", llm_id])
-    stdin = "\n".join(wire_lines)
-    return await _run(argv, stdin=stdin, session=session)
+    return await _commit(
+        "add",
+        wire_lines,
+        allow_new_relation=allow_new_relation,
+        agent=agent,
+        session=session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
+        llm_id=llm_id,
+    )
 
 
 @mcp.tool()
@@ -373,29 +454,23 @@ async def update(
     write_scope: str | None = None,
     llm_id: str | None = None,
 ) -> str:
-    """Patch or drop rows via shared-dialect mutate lines (``~`` / ``-`` on known ids).
+    """leftover patch-only façade (not product Commit). Prefer ``mutate``.
 
-    Prefer shared dialect in wire_lines. Fails if id is missing.
-    When session ACL is enabled: pass ``caller`` / optional bind / write_scope.
-    Pass ``llm_id`` when mutating under RSV.
+    GQL MATCH…SET / DELETE. Does not mint NEW. Prefer ``mutate`` for mixed
+    CREATE/SET batches.
     """
-    argv = ["update", "--stdin"]
-    if allow_new_relation:
-        argv.append("--allow-new-relation")
-    if agent:
-        argv.extend(["--agent", agent])
-    if caller:
-        argv.extend(["--caller", caller])
-    if mission_id:
-        argv.extend(["--mission-id", mission_id])
-    if lease:
-        argv.extend(["--lease", lease])
-    if write_scope:
-        argv.extend(["--write-scope", write_scope])
-    if llm_id:
-        argv.extend(["--llm-id", llm_id])
-    stdin = "\n".join(wire_lines)
-    return await _run(argv, stdin=stdin, session=session)
+    return await _commit(
+        "update",
+        wire_lines,
+        allow_new_relation=allow_new_relation,
+        agent=agent,
+        session=session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
+        llm_id=llm_id,
+    )
 
 
 @mcp.tool()
@@ -418,8 +493,9 @@ async def import_slice(
 
     Prefer path A (shared session re-pin_map) when Multitask already shares one
     session. Product absorb is pattern MERGE (labels+properties / type+ends).
-    leftover ``id_policy`` keep|reject|remint is not a product command
-    (keep = pattern match, not MERGE-by-id).
+    leftover ``id_policy`` keep|reject|remint is leftover, not a product command
+    (keep = leftover MERGE-as-lookup / pattern match, not a PK policy teach).
+    leftover ``anchors`` are leftover nickname cues for the export slice.
     """
     argv = [
         "import-slice",
@@ -559,6 +635,7 @@ async def release(
 
 @mcp.tool()
 async def export_pin_map(
+    cue: str | None = None,
     kind: str | None = None,
     locators: list[str] | None = None,
     keyword: str | None = None,
@@ -575,8 +652,9 @@ async def export_pin_map(
 
     MN-REQ-11.1–11.5 / #66. Ingest is not export. Empty cue is 0.11 outline
     (not a dump of S). Hard bounds stay. CueConflict if |Q|>1. Distinct from
-    ``session_save``. Not Absorb. leftover ``anchor`` / ``anchors`` are nickname
-    cues, not TARGET law. Optional ``out`` writes the GQL body to a path.
+    ``session_save``. Not Absorb. Product cue: ``kind`` / ``locators`` /
+    ``keyword`` / ``cue``. leftover ``anchor`` / ``anchors`` are leftover
+    nickname aliases. Optional ``out`` writes the GQL body to a path.
     """
     argv = [
         "export",
@@ -599,13 +677,15 @@ async def export_pin_map(
     if caller:
         argv.extend(["--caller", caller])
     ids: list[str] = []
+    if cue and cue not in ids:
+        ids.append(cue)
     for aid in list(anchors or []):
         if aid and aid not in ids:
             ids.append(aid)
     if anchor and anchor not in ids:
         ids.append(anchor)
     for aid in ids:
-        argv.extend(["--anchor", aid])
+        argv.extend(["--cue", aid])
     return await _run(argv, session=session)
 
 

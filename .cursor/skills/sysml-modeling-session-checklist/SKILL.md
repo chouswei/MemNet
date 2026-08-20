@@ -41,7 +41,7 @@ After the checklist, state briefly:
 
 ## Pipeline
 
-0. **MemNet (steps 1–2)** — `serve_status`. If running: `pin_map(anchor=TSK_model_<short>, depth=2, max_rows=50)`. Session from `MEMNET_SESSION` or read **only** the header line of `AGENT-CONTEXT.md` (session id + anchor). On **warm_miss** → [initial snap](../sysml-memnet-documentation/references/sysml-memnet-snap.md#initial-snap-warm-miss-only). If serve down → note stale graph; skip warm.
+0. **MemNet (steps 1–2)** — `serve_status`. If running: `pin_map(kind='TSK', locators=['id=TSK_model_<short>'], depth=2, max_rows=50)`. leftover `anchor=` named leftover. Session from `MEMNET_SESSION` or read **only** the header line of `AGENT-CONTEXT.md` (session id + leftover nickname). On **warm_miss** → [initial snap](../sysml-memnet-documentation/references/sysml-memnet-snap.md#initial-snap-warm-miss-only). If serve down → note stale graph; skip warm.
 
 1. **Project context** — Confirm model root (`sysml-v2-models/projects/<name>/` **or** repo `AGENTS.md` path such as `sysml-models/`), `config.yaml`, files to touch. **Read policy:** [sysml-memnet-read-policy.md](../sysml-memnet-documentation/references/sysml-memnet-read-policy.md) — no full deploy/AGENT-CONTEXT when warm hit. Submodules: edit in canonical repo if applicable (open repo root `AGENTS.md`).
 

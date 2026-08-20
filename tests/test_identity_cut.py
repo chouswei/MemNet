@@ -159,20 +159,9 @@ def test_hid_off_cli_pin_map_and_merge_ack(memnet_temp):
     assert "hid" not in dump
 
 
-def test_leftover_cli_read_get_nickname_only(memnet_temp):
-    sid = _open()
-    add = runner.invoke(
-        app,
-        ["add", "--stdin", "--session", sid],
-        input="CREATE (:TSK {id: 'TSK_nick', goal: 'leftover-get', status: 'in_progress'})\n",
-    )
-    assert add.exit_code == 0, add.stderr
-    from memnet.session import get_session
-
-    hid = get_session(sid).store.match_nickname("TSK_nick")[0].hid
-    by_nick = runner.invoke(app, ["read", "get", "--id", "TSK_nick", "--session", sid])
-    assert by_nick.exit_code == 0, by_nick.stderr
-    assert "TSK_nick" in by_nick.stdout
-    assert hid not in by_nick.stdout
-    by_hid = runner.invoke(app, ["read", "get", "--id", hid, "--session", sid])
-    assert by_hid.exit_code != 0
+def test_leftover_cli_read_get_unshipped_from_product_cli():
+    """leftover read get is not a product CLI command (leftoverReadGetNested=false)."""
+    got = runner.invoke(app, ["read", "get", "--id", "TSK_nick"])
+    assert got.exit_code != 0
+    blob = (got.stdout + got.stderr).lower()
+    assert "no such command" in blob or "usage:" in blob

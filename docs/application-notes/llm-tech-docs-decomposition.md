@@ -45,7 +45,7 @@ flowchart TB
 2. One SCPI command per `CMD` node.
 3. Awkward characters in SCPI → tool stdin / quoted STRING properties — not bare pipe wire.
 4. Handshake order before setup; setup/trigger before acquire before measure.
-5. **`pin_map(anchor=…)`** every turn — never dump the whole corpus.
+5. **`pin_map` from a cue** every turn — never dump the whole corpus. leftover `anchor=` is leftover.
 
 ---
 
@@ -97,10 +97,12 @@ CREATE (a:ART {id:'ART_rto_um', title:'R&S RTO User Manual', source:'1332_9725_0
 Cue then `pin_map`. MCP arg is **`session`**. In-process only for a **single** agent.
 
 ```text
-pin_map(anchor="TSK_rto_capture_ch1", depth=3, session=sid)
-add(wire_lines=["CREATE (c:CLM {id:'CLM_ch1_1v_div', sec:'S_chan_remote', type:'constraint', code:'ch1_scale_1v_div', status:'active'})"])
-update(wire_lines=["MATCH (t:TSK {id:'TSK_rto_capture_ch1'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'"])
+pin_map(kind='TSK', locators=['id=TSK_rto_capture_ch1'], depth=3, session=sid)
+mutate(wire_lines=["CREATE (c:CLM {id:'CLM_ch1_1v_div', sec:'S_chan_remote', type:'constraint', code:'ch1_scale_1v_div', status:'active'})"])
+mutate(wire_lines=["MATCH (t:TSK {id:'TSK_rto_capture_ch1'}) SET t.status = 'settled', t.recycle = 'delete_on_settle'"])
 ```
+
+leftover `pin_map(anchor=…)` / leftover `add`/`update` names are leftover, not this sketch.
 
 ---
 

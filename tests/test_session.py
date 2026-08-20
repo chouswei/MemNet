@@ -30,9 +30,9 @@ def test_open_write_resume_cross_process(memnet_temp, schema_file, workflow_file
     r3 = runner.invoke(app, ["session", "resume", sid])
     assert r3.exit_code == 0
 
-    r4 = runner.invoke(app, ["read", "get", "--id", "PLR01", "--session", sid])
-    assert r4.exit_code == 0
-    assert "@PLR:" in r4.stdout
+    r4 = runner.invoke(app, ["query", "pin-map", "--cue", "PLR01", "--session", sid])
+    assert r4.exit_code == 0, r4.stderr
+    assert "PLR01" in r4.stdout
 
 
 def test_session_expired(memnet_temp, schema_file):

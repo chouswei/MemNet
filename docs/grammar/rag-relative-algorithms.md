@@ -159,7 +159,7 @@ Also: **DRIFT** (global primer then local follow-ups) and **basic** top-\(k\) ve
      `MATCH (center:Entity {uuid})-[:RELATES_TO]-(n:Entity {uuid})` → adjacent score `1`, others `inf`, centre `0.1` if present; emit `1/score`. Edges: RRF first, then rerank **source** nodes by that adjacency.
 6. Truncate to `limit`. Caller typically **generates** from facts + episode text (outside this function).
 
-**MemNet:** steal serialise “lexical cue then expand from hits” and centre bias **as** `pin_map(anchor)` (true \(k\)-hop under budget). Reject parallel RRF as goldfish; reject Neo4j as the agent memory; do not copy 1-hop `RELATES_TO` as Recall (MemNet depth default is 2, undirected, `max_rows`).
+**MemNet:** steal serialise “lexical cue then expand from hits” and centre bias **as** `pin_map` from a cue (true \(k\)-hop under budget). leftover `pin_map(anchor)` is leftover. Reject parallel RRF as goldfish; reject Neo4j as the agent memory; do not copy 1-hop `RELATES_TO` as Recall (MemNet depth default is 2, undirected, `max_rows`).
 
 ---
 

@@ -21,7 +21,7 @@ This note complements:
 
 `memnet serve` is a TCP daemon. Raw consumers must:
 
-- Spell out CLI argv (`memnet add --stdin`, `memnet query pin-map --kind TSK …`)
+- Spell out CLI argv (`memnet mutate --stdin`, `memnet query pin-map --kind TSK …`). leftover `memnet add` is leftover.
 - Parse shaped GQL / `pin_map` lines and warnings off stdout/stderr
 - Track session ids manually
 - Re-discover atomisation discipline, LAW invariants, and the goldfish loop every chat
@@ -92,11 +92,13 @@ async def _run(argv, *, stdin=None, session=None) -> str:
     return resp.to_json()
 
 @mcp.tool()
-async def pin_map(kind: str | None = None, keyword: str | None = None,
+async def pin_map(cue: str | None = None, kind: str | None = None, keyword: str | None = None,
                   depth: int = 2, max_rows: int = 50,
                   session: str | None = None) -> str:
-    """Read the live pin-map slice from a cue (primary teach). leftover --anchor is leftover."""
+    """Read the live pin-map slice from a cue (primary teach). leftover anchor is leftover."""
     argv = ["query", "pin-map", "--depth", str(depth), "--max-rows", str(max_rows)]
+    if cue:
+        argv.extend(["--cue", cue])
     if kind:
         argv.extend(["--kind", kind])
     if keyword:
@@ -359,7 +361,7 @@ def test_pin_map_tool_envelope(memnet_temp, schema_file, monkeypatch):
 
     open_raw = asyncio.run(session_open(map_lines=schema_lines))
     sid = json.loads(open_raw)["session_id"]
-    warm_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
+    warm_raw = asyncio.run(pin_map(cue="PLR55", depth=1, session=sid))
     payload = json.loads(warm_raw)
     assert payload["exit_code"] == 0
     assert payload["errors"] == []

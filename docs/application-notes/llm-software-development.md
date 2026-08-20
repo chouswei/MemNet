@@ -35,7 +35,7 @@ flowchart LR
     WARM[pin_map TSK]
     VERIFY[grep or LSP]
     EDIT[edit source files]
-    DELTA[add/update MOD SYM EDGE]
+    DELTA[mutate MOD SYM EDGE]
   end
   subgraph memnet_graph [MemNet graph]
     TSK[TSK mission]
@@ -76,7 +76,7 @@ Cue then `pin_map(q)`. Empty cue is session outline (0.11 census of S). leftover
 2. **Verify** — grep or LSP on disk; never trust stale `SYM.line` without re-check when editing.
 3. **Edit** — change source files; code lives in git, not the graph.
 4. **Capture** — user constraints → `USR`; open forks → `DEC`.
-5. **Persist** — gated GQL `add` / `update` for MOD / SYM / USR / DEC / relationships; refresh line hints.
+5. **Persist** — gated GQL `mutate` for MOD / SYM / USR / DEC / relationships; refresh line hints. leftover `add`/`update` named leftover.
 6. **Loop** — settle `TSK` when done; next mission anchors on a new `TSK`.
 
 ---

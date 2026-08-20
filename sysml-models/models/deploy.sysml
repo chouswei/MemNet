@@ -345,7 +345,8 @@ package MemNet {
     doc /*
       leftover 0.10 empty Q skip ShapeWalk. Honesty under Recall /
       RelativeSeed. TARGET empty q is SessionOutline. MUST NOT be a
-      product command. Python engine NOT rewritten in this cut.
+      product command. Python engine now outlines empty q (0.11 census);
+      this leftover skip is leftover only. Do not flip SessionOutline.implemented.
     */
     attribute leftoverAsIsEngine : Boolean = true;
     attribute leftoverIssue : String = "empty-cue-skip";

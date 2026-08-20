@@ -116,7 +116,7 @@ LLM↔Neo4j/AgensGraph teach, or MemNet-as-Cypher-proxy.
 | Neo4j / AgensGraph-class | MemNet CapsPolicy ACL |
 |--------------------------|------------------------|
 | TRAVERSE / MATCH | `pin_map` (read walk / shaped ego) |
-| WRITE (CREATE / SET / DELETE) | `mutate` (`add` / `update`) |
+| WRITE (CREATE / SET / DELETE) | `mutate` (leftover `add` / `update` named leftover) |
 | label / id GRANT | `WorkerWriteScope` hard reject (cumulative OR) |
 | role / user | `caller` (who) |
 | — (not a Neo4j concept) | optional `SessionBind` = `missionId` + `lease` |
@@ -191,8 +191,8 @@ reserve and Path-B ingest are **shipped**.
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
-- RecallCommit — modelled two-operator cut (MN-REQ-13.1); empty q is **session outline** (MN-REQ-04.9; `implemented=false`); leftover empty-seed skip is leftover; SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; `implemented=false`); CueConflict is an emit mark on find/pin_map when `|Q|>1` (`implemented=false`; not a product command); engine cut not claimed; **1.0** = claim of 0.5–0.8
-- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append). Distinct from SameThingAbsorb (in-session collapse; SHALL NOT entity-resolve).
+- RecallCommit — modelled two-operator cut (MN-REQ-13.1); empty q is **session outline** (MN-REQ-04.9; SysML `SessionOutline.implemented=false` leftover pin; engine 0.11 outlines empty q); leftover empty-seed skip is leftover; SameThingAbsorb modelled as a distinct Commit rule (MN-REQ-13.2; SysML `implemented=false` leftover pin while engine 0.12 ships); CueConflict is an emit mark on find/pin_map when `|Q|>1` (`implemented=true`; not a product command); extras **0.10–0.19** are on master (untagged; package stays 0.9.0); engine cut not claimed as **1.0**; **1.0** = claim of 0.5–0.8
+- ImportAbsorb — engine-hard nest (DistinctSession / LawVocab / Acl / Schema / leftover IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit); **landed** (`import_slice`; `implemented=true`; TARGET keep = labels+props MERGE; leftover_MERGE_by_id leftover, not append). leftover `id_policy` is leftover, not a PK teach. Distinct from SameThingAbsorb (in-session collapse; SHALL NOT entity-resolve).
 - CapsPolicy ACL (who / pin_map-vs-mutate / WorkerWriteScope hard reject / bind) — **shipped when session ACL is enabled**; `engineAclShipped=true`
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
@@ -200,4 +200,4 @@ reserve and Path-B ingest are **shipped**.
 - PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** — application / contrast nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); `models/cousins.sysml`)
-- BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish when anchored
+- BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish **from a cue** (empty q = outline, not “when leftover-anchored”)

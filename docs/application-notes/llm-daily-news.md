@@ -97,7 +97,7 @@ Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-proc
 
 1. Ensure session (TTL / day).
 2. Skeleton `DAY` / `SEC` / empty `ENT` shells.
-3. Stage-1 LLM → gated GQL `add` KYWD + rels; upsert pattern: `update` then `add` if missing.
+3. Stage-1 LLM → gated GQL `mutate` KYWD + rels; leftover `add`/`update` named leftover.
 4. Finalize continues / fact-check nodes.
 5. Analyst **cue** (keyword / cluster id, or `find`) then `pin_map` → `SYN`.
 6. Editorial stages read `pin_map` slices — never the whole session.
@@ -109,7 +109,7 @@ Cue then `pin_map`. Skip if the seed is empty. MCP arg is **`session`**. In-proc
 | Mistake | Fix |
 |---------|-----|
 | Layer / `@TAG` as agent teach | GQL above |
-| `query warm` without anchor | `pin_map(anchor=…)` |
+| leftover `query warm` / leftover `anchor=` as law | `pin_map` from a cue |
 | Prose in KYWD / ENT properties | Tokens / codes only |
 | Treating MemNet as the published briefing | Graph is working memory |
 

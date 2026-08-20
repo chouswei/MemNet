@@ -36,9 +36,11 @@ def guide_text(*, loose: bool = False) -> str:
             "Mutate: CREATE / MATCH…SET / MERGE / DELETE; "
             "SameThingAbsorb: MATCH (a),(b) SET a += b after CueConflict.",
             "Create by labels+properties. leftover id:'NEW' mint is leftover, not product.",
-            "Live pin map: query pin-map --kind/--locator/--keyword (empty cue = outline).",
-            "leftover --anchor is a nickname cue, not TARGET law.",
+            "Live pin map: query pin-map --kind/--locator/--keyword/--cue (empty cue = outline).",
+            "leftover --anchor is a leftover nickname alias, not TARGET law.",
             "Goldfish caller: one pin_map(q) per generate; drop prior maps.",
+            "Product Commit: memnet mutate --stdin (GQL CREATE/MERGE/SET/DELETE; no NEW mint).",
+            "leftover add/update names remain leftover façades (do not teach as TARGET).",
             "Pin-map ingest: locators (path=, qname=, refdes=, skill_id=); no client NEW.",
             "Pin-map export: memnet export pin-map (cue GQL write-out; empty cue = outline).",
             "Catalog Snap: memnet snap model --root … ; look = pin_map; join = import-slice.",
@@ -54,9 +56,10 @@ def guide_text(*, loose: bool = False) -> str:
 Doctrine:
   Agent wire = gated openCypher-shaped GQL only (gql-wire-profile.md)
   Live pin map = bounded shaped subgraph (query pin-map; query warm is legacy)
-  leftover id:'NEW' mint is leftover; pin-map ingest uses locators, not client NEW
+  leftover id:'NEW' mint is leftover; product mutate does not mint NEW
   Pin-map export: memnet export pin-map (shaped GQL of cue pin_map; empty cue = outline)
   Catalog Snap: snap model → catalog + interiors; look = pin_map; join = import-slice
+  leftover import-slice --id-policy is leftover MERGE-as-lookup, not a PK teach
   Goldfish caller: pin_map(q) or empty-q outline; drop prior maps; sparse Δ; env blobs in harness
   Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
@@ -64,8 +67,8 @@ Quick start (CLI sessions still need serve today):
   memnet serve                    # TCP :18765
   # or: export MEMNET_IPC_SOCKET=/tmp/memnet.sock && memnet serve --ipc
   memnet session open --map-file schema.example.txt
-  memnet add --file workflow.example.txt   # GQL preferred; @TAG pipe import-once
-  memnet query pin-map --kind TSK          # shaped GQL subgraph (cue; leftover --anchor = nickname)
+  memnet mutate --file workflow.example.txt   # GQL Commit; leftover add is leftover
+  memnet query pin-map --kind TSK          # cue; leftover --anchor = leftover nickname
   memnet export pin-map --kind TSK --out slice.gql   # write-out; ingest is not export
   memnet snap model --root sysml-models/models       # catalog + interiors; look = pin_map
 
@@ -90,8 +93,8 @@ def agent_guide_text() -> str:
         "Forward dialect: docs/grammar/gql-wire-profile.md — GQL only; "
         "leftover NEW named leftover.\n"
         "Operational loop: LLM-GUIDE.md "
-        "(M3 body rewrite pending; prefer grammar when they conflict).\n"
-        "Turn habit: cue then pin-map (drop prior maps); leftover --anchor is not law.\n"
+        "(session + find/pin_map-from-cue + GQL Commit via mutate).\n"
+        "Turn habit: cue then pin-map (drop prior maps); leftover --anchor is leftover.\n"
         "See also: memnet guide, memnet guide --loose, README.md."
     )
 

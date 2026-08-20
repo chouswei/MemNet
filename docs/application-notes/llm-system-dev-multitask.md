@@ -144,14 +144,14 @@ Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
 | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-Client `NEW` is illegal for source pins. Prefer ingest for bounded pin maps; `seed_lines` / `add` remain valid for one-off locators. Ingest is not export. 0.19 cue `pin_map` GQL write-out is `memnet export pin-map`; re-ingest later (#66).
+Client leftover `NEW` mint is leftover, not product. Prefer ingest for bounded pin maps; `seed_lines` / leftover `add` remain leftover for one-off locators. Product write is `mutate`. Ingest is not export. 0.19 cue `pin_map` GQL write-out is `memnet export pin-map`; re-ingest later (#66).
 
 | Method | When |
 |--------|------|
 | Path-B `ingest …` | Primary: selective artefact → pins |
 | `session_open` **`seed_lines`** | Mission start bootstrap without artefact path |
-| **`add`** with deterministic ids | Incremental locators after grep/LSP confirm |
-| **LLM `NEW`** | Goldfish-authored `CLM_*`, `DEC_*`, mission annotations only — not for re-creating source pins |
+| **leftover `add`** | leftover façade for incremental locators after grep/LSP confirm; prefer `mutate` |
+| leftover `id:'NEW'` mint | leftover engine; product is GraphElement `CREATE` without NEW |
 
 Re-`pin_map` after ingest/seed; workers copy ids from the slice.
 
@@ -163,7 +163,7 @@ Re-`pin_map` after ingest/seed; workers copy ids from the slice.
 |--------|-------|-------------|
 | `TSK_*`, `USR_*` | **Parent** | Mission task, user constraints |
 | `MOD_*`, `SYM_*`, `REQ_*`, `PRT_*` | Worker under scope | Files, symbols, product requirements, parts |
-| `CLM_*`, `DEC_*` | Worker (**NEW** OK) | Findings, open decisions |
+| `CLM_*`, `DEC_*` | Worker (GraphElement `CREATE`; leftover NEW named leftover) | Findings, open decisions |
 
 Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), domain relations from product grammar.
 

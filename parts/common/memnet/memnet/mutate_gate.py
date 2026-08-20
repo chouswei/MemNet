@@ -130,6 +130,11 @@ class MutateGate:
         dialect = classify_batch(lines)
         if dialect == "empty":
             return MutateResult(dialect="empty")
+        if dialect == "pipe" and mode == "mutate":
+            raise MemNetError(
+                "leftover_pipe",
+                "product mutate is GQL Commit only; leftover add/update may import @TAG pipe",
+            )
         if dialect == "pipe":
             return self._apply_pipe(
                 lines,
@@ -233,6 +238,8 @@ class MutateGate:
                 )
             is_merge = isinstance(it, NodeRec) and it.raw.upper().lstrip().startswith("MERGE")
             is_absorb = isinstance(it, NodeRec) and it.same_thing
+            if mode == "mutate":
+                continue
             if mode == "add" and it.op in (Op.PATCH, Op.DROP) and not is_merge and not is_absorb:
                 raise MemNetError(
                     "op_mode_mismatch",
@@ -540,11 +547,15 @@ class MutateGate:
                     _remember_replaced(old)
                 if rec.hid in merge_upsert_ids and old is not None:
                     apply = self.ss.store.replace_row
+                elif mode == "mutate":
+                    apply = self.ss.store.add_row if old is None else self.ss.store.replace_row
                 elif mode == "add" or (mode == "update" and old is None and rec.tag):
                     apply = self.ss.store.add_row if mode == "add" else self.ss.store.replace_row
                 else:
                     apply = self.ss.store.replace_row if mode == "update" else self.ss.store.add_row
-                if (mode == "update" or rec.hid in merge_upsert_ids) and old is not None:
+                if (
+                    mode in ("update", "mutate") or rec.hid in merge_upsert_ids
+                ) and old is not None:
                     merged = dict(old.fields)
                     merged.update({k: v for k, v in rec.fields.items() if v != "" or k == "id"})
                     rec = Record(

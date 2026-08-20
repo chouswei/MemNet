@@ -84,8 +84,8 @@ app = typer.Typer(
 )
 session_app = typer.Typer(help="Session lifecycle")
 tagmap_app = typer.Typer(help="Tag map schema")
-read_app = typer.Typer(help="Read memStore rows")
-query_app = typer.Typer(help="Graph queries")
+read_app = typer.Typer(help="leftover row enumeration (product read is find then pin_map)")
+query_app = typer.Typer(help="Product: pin-map / find. leftover debug: neighbors|path|context|walk")
 housekeep_app = typer.Typer(help="Inspect and prune stale graph")
 relations_app = typer.Typer(help="EDG relation vocabulary")
 examples_app = typer.Typer(help="Bundled examples")
@@ -614,10 +614,14 @@ def export_pin_map_cmd(
         list[str] | None,
         typer.Option("--locator", help="KEY=VAL field cue; repeatable"),
     ] = None,
+    cue: Annotated[
+        list[str] | None,
+        typer.Option("--cue", help="Product nickname cue; CueConflict if |Q|>1"),
+    ] = None,
     keyword: Annotated[str | None, typer.Option("--keyword")] = None,
     anchor: Annotated[
         list[str] | None,
-        typer.Option("--anchor", help="leftover nickname cue, not TARGET law"),
+        typer.Option("--anchor", help="leftover alias for --cue (nickname, not store key)"),
     ] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
@@ -642,7 +646,7 @@ def export_pin_map_cmd(
 
     MN-REQ-11.1–11.5 / #66. Ingest is not export. Empty cue is 0.11 outline
     (not a dump of S). Hard bounds stay. CueConflict if |Q|>1. Distinct from
-    session save/load. Not Absorb. leftover --anchor is a nickname cue.
+    session save/load. Not Absorb.     leftover --anchor is a leftover nickname alias.
     """
     from memnet.pin_map_export import export_pin_map
 
@@ -652,6 +656,10 @@ def export_pin_map_cmd(
     except MemNetError as exc:
         _handle_error(exc)
         return
+    nicks: list[str] = []
+    for src in (cue or []) + (anchor or []):
+        if src and src not in nicks:
+            nicks.append(src)
     ss, lock = _load_session(session)
     with lock:
         try:
@@ -660,7 +668,7 @@ def export_pin_map_cmd(
                 kind=kind,
                 locators=locators,
                 keyword=keyword,
-                leftover_nicks=anchor,
+                leftover_nicks=nicks,
                 depth=depth,
                 max_rows=max_rows,
                 view=view,
@@ -903,6 +911,57 @@ def _ingest_cmd(
         )
 
 
+@app.command("mutate")
+def mutate_cmd(
+    line: Annotated[str | None, typer.Argument()] = None,
+    file: Annotated[Path | None, typer.Option("--file")] = None,
+    stdin: Annotated[bool, typer.Option("--stdin")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    allow_new_relation: Annotated[bool, typer.Option("--allow-new-relation")] = False,
+    agent: Annotated[str | None, typer.Option("--agent")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    mission_id: Annotated[
+        str | None,
+        typer.Option("--mission-id", help="Optional SessionBind mission id"),
+    ] = None,
+    lease: Annotated[
+        str | None,
+        typer.Option("--lease", help="Optional SessionBind lease"),
+    ] = None,
+    write_scope: Annotated[
+        str | None,
+        typer.Option(
+            "--write-scope",
+            help="WorkerWriteScope: anchors=a,b;ids=x;labels=TSK;relations=about",
+        ),
+    ] = None,
+    llm_id: Annotated[
+        str | None,
+        typer.Option("--llm-id", help="Neighbourhood reserve holder (MN-REQ-12.13)"),
+    ] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Product GQL Commit (CREATE / MERGE / SET / DELETE). Does not mint NEW."""
+    _ingest_cmd(
+        "mutate",
+        line,
+        file,
+        stdin,
+        dry_run,
+        allow_new_relation,
+        agent,
+        session,
+        caller=caller,
+        mission_id=mission_id,
+        lease=lease,
+        write_scope=write_scope,
+        llm_id=llm_id,
+    )
+
+
 @app.command("add")
 def add_cmd(
     line: Annotated[str | None, typer.Argument()] = None,
@@ -936,7 +995,7 @@ def add_cmd(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Create new rows only (fails if id already exists)."""
+    """leftover create-only façade (not product Commit). Prefer mutate. Does not mint NEW."""
     _ingest_cmd(
         "add",
         line,
@@ -987,7 +1046,7 @@ def update_cmd(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Replace existing rows only (fails if id not found)."""
+    """leftover patch-only façade (not product Commit). Prefer mutate. Does not mint NEW."""
     _ingest_cmd(
         "update",
         line,
@@ -1018,14 +1077,17 @@ def import_slice_cmd(
         list[str],
         typer.Option(
             "--anchor",
-            help="Anchor id for bounded slice export; repeat for multiple",
+            help="leftover nickname cue for bounded slice export; repeat for multiple",
         ),
     ],
     id_policy: Annotated[
         str,
         typer.Option(
             "--id-policy",
-            help="Owner-gated id conflict policy: keep (MERGE upsert), reject, remint",
+            help=(
+                "leftover keep|reject|remint (not a product PK policy). "
+                "Default keep = leftover MERGE-as-lookup, not MERGE-by-id as law"
+            ),
         ),
     ] = "keep",
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
@@ -1070,6 +1132,7 @@ def import_slice_cmd(
 
     Prefer path A (shared session re-pin_map) when Multitask already shares
     one session. Chat / whole-store dumps are refused (MN-REQ-12.9 / 12.10).
+    leftover ``--id-policy`` is not a product command (keep = pattern MERGE).
 
     Optional CheapLlmImportGuard (#63) installs when
     MEMNET_IMPORT_GUARD_API_KEY is set; ``--no-guard`` still skips.
@@ -1146,6 +1209,7 @@ def read_list(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """leftover list rows (product read is find then pin_map)."""
     try:
         filters = parse_wheres(where or [])
     except MemNetError as exc:
@@ -1154,33 +1218,6 @@ def read_list(
     with lock:
         for rec in ss.store.list_records(tag, active_only=active_only, where=filters or None):
             emit_stdout(emit_record(rec, ss.tag_map))
-
-
-@read_app.command("get")
-def read_get(
-    record_id: Annotated[str | None, typer.Option("--id")] = None,
-    tag: Annotated[str | None, typer.Option("--tag")] = None,
-    session: Annotated[str | None, typer.Option("--session")] = None,
-) -> None:
-    """Leftover read_get (not a product command). Unique nickname only."""
-    if not record_id:
-        raise MemNetError("no_id", "provide --id")
-    ss, lock = _load_session(session)
-    with lock:
-        hits = ss.store.match_nickname(record_id)
-        if len(hits) > 1:
-            _handle_error(
-                MemNetError(
-                    "cue_conflict",
-                    f"read get |Q|={len(hits)}; unique nickname only",
-                )
-            )
-        rec = hits[0] if len(hits) == 1 else None
-        if not rec:
-            _handle_error(MemNetError("not_found", f"id {record_id}"))
-        if tag and rec.tag != tag.upper():
-            _handle_error(MemNetError("not_found", f"id {record_id} tag {tag}"))
-        emit_stdout(emit_record(rec, ss.tag_map))
 
 
 def _query_context(
@@ -1259,6 +1296,7 @@ def query_neighbors(
     depth: Annotated[int, typer.Option("--depth")] = 1,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """leftover hop debug (not goldfish). Prefer cue then pin-map."""
     ss, lock = _load_session(session)
     caps = _caps()
     depth = min(depth, caps.max_depth)
@@ -1278,6 +1316,7 @@ def query_path(
     target_id: str,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """leftover shortest-path debug (not goldfish). Prefer cue then pin-map."""
     ss, lock = _load_session(session)
     with lock:
         for rec in ss.store.find_path(source_id, target_id):
@@ -1286,12 +1325,16 @@ def query_path(
 
 @query_app.command("context")
 def query_context(
-    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    anchor: Annotated[
+        str | None,
+        typer.Option("--anchor", help="leftover nickname cue (not product require_anchor)"),
+    ] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     active_only: Annotated[bool, typer.Option("--active-only")] = False,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """leftover tabular audit pack (not goldfish). Empty cue is allowed; not require_anchor."""
     ss, lock = _load_session(session)
     with lock:
         _query_context(
@@ -1306,7 +1349,8 @@ def query_context(
 
 def _run_pin_map(
     *,
-    anchor: str | list[str] | None,
+    cue: str | list[str] | None = None,
+    anchor: str | list[str] | None = None,
     depth: int,
     max_rows: int,
     session: str | None,
@@ -1316,14 +1360,26 @@ def _run_pin_map(
     locator: list[str] | None = None,
     keyword: str | None = None,
 ) -> None:
+    ids: list[str] = []
+    for src in (cue, anchor):
+        if isinstance(src, list):
+            for a in src:
+                if a and a not in ids:
+                    ids.append(a)
+        elif src:
+            if src not in ids:
+                ids.append(src)
     anchors: list[str] | None
     primary: str | None
-    if isinstance(anchor, list):
-        anchors = [a for a in anchor if a]
+    if len(ids) > 1:
+        anchors = ids
         primary = None
+    elif len(ids) == 1:
+        anchors = None
+        primary = ids[0]
     else:
         anchors = None
-        primary = anchor
+        primary = None
     locators: list[tuple[str, str]] = []
     try:
         locators = parse_find_locators(locator)
@@ -1358,7 +1414,14 @@ def _run_pin_map(
 
 @query_app.command("pin-map")
 def query_pin_map(
-    anchor: Annotated[list[str] | None, typer.Option("--anchor")] = None,
+    cue: Annotated[
+        list[str] | None,
+        typer.Option("--cue", help="Product nickname cue; CueConflict if |Q|>1"),
+    ] = None,
+    anchor: Annotated[
+        list[str] | None,
+        typer.Option("--anchor", help="leftover alias for --cue (nickname, not store key)"),
+    ] = None,
     kind: Annotated[str | None, typer.Option("--kind")] = None,
     locator: Annotated[
         list[str] | None,
@@ -1380,14 +1443,16 @@ def query_pin_map(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Live pin map from a cue (kind / locators / keyword).
+    """Live pin map from a cue (kind / locators / keyword / --cue).
 
     Goldfish caller (0.13): each turn pin_map(q) or outline-on-empty; drop prior
     map rows from the prompt; sparse Δ; env blobs stay in the harness. leftover
-    --anchor is a nickname cue, not TARGET law. Empty cue is session outline
-    (0.11 Recall census of S). view=shell is grain on a seed, not session outline.
+    --anchor is a leftover nickname alias, not TARGET law. Empty cue is session
+    outline (0.11 Recall census of S) regardless of --view. view=shell is grain
+    on a seed, not the outline.
     """
     _run_pin_map(
+        cue=cue,
         anchor=anchor,
         kind=kind,
         locator=locator,
@@ -1402,7 +1467,14 @@ def query_pin_map(
 
 @query_app.command("warm")
 def query_warm(
-    anchor: Annotated[list[str] | None, typer.Option("--anchor")] = None,
+    cue: Annotated[
+        list[str] | None,
+        typer.Option("--cue", help="Product nickname cue; CueConflict if |Q|>1"),
+    ] = None,
+    anchor: Annotated[
+        list[str] | None,
+        typer.Option("--anchor", help="leftover alias for --cue"),
+    ] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     view: Annotated[
@@ -1418,8 +1490,9 @@ def query_warm(
     ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Live pin map — deprecated alias for pin-map."""
+    """leftover alias for pin-map (do not teach as primary)."""
     _run_pin_map(
+        cue=cue,
         anchor=anchor,
         depth=depth,
         max_rows=max_rows,
@@ -1482,14 +1555,17 @@ def query_find(
 
 @query_app.command("walk")
 def query_walk(
-    anchor: Annotated[str | None, typer.Option("--anchor")] = None,
+    anchor: Annotated[
+        str | None,
+        typer.Option("--anchor", help="leftover nickname (not product goldfish)"),
+    ] = None,
     depth: Annotated[int, typer.Option("--depth")] = DEFAULT_QUERY_DEPTH,
     max_rows: Annotated[int, typer.Option("--max-rows")] = DEFAULT_QUERY_MAX_ROWS,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Anchored subgraph as hop lines: ``@WALK: src -[relation]-> dst``.
+    """leftover hop debug: ``@WALK: src -[relation]-> dst`` (not goldfish).
 
-    For listing all rows of a tag (enumeration), use ``read list --tag T`` instead.
+    Product read is cue then pin-map. leftover ``read list --tag T`` enumerates.
     """
     ss, lock = _load_session(session)
     with lock:
