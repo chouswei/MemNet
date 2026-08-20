@@ -2,7 +2,7 @@
 
 **Audience:** model. Wire SSOT: [memnet-format](memnet-format/SKILL.md) and `docs/grammar/gql-wire-profile.md`. Do **not** treat this file as the session graph.
 
-Product **0.19.0** (PyPI **`memnet-llm==0.19.0`**). Cue then `pin_map`; `find` if ego unknown.
+Product **0.19.1** (Hatch; last PyPI **`memnet-llm==0.19.0`** until upload). Cue then `pin_map`; `find` if ego unknown.
 
 This is the **in-repo** MemNet stack only. The full personal pack graph stays in [cursor-user-skills](https://github.com/chouswei/cursor-user-skills) `SKILL-GRAPH.md`.
 
