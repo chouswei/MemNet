@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.9.0.** **1.0** = 0.5–0.8 claimed. PyPI `memnet-llm` is still **0.4.6**.
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.0.** **1.0** = 0.5–0.8 claimed. PyPI `memnet-llm` is still **0.4.6**.
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire. Historical sources: [`grammar/archive/`](grammar/archive/).
@@ -66,7 +66,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 | Mode | When | Setup |
 |------|------|-------|
-| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. **PyPI is still 0.4.6** — install from this repo for 0.9. **No** `memnet serve` |
+| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. **PyPI is still 0.4.6** — install from this repo for 0.19. **No** `memnet serve` |
 | **CLI + serve** | Scripts, TCP shared process | Terminal 1: `memnet serve`; Terminal 2: CLI with `MEMNET_SESSION` |
 | **MCP streamable-http** | Remote shared graph | `memnet-mcp --transport streamable-http` on `:18766/mcp` |
 
@@ -174,7 +174,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 | Engine | CLI | MCP | Locators (examples) |
 |--------|-----|-----|---------------------|
 | Sysml | `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=`, `requirementId=` |
-| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (containment cuts that **fit \(M\)**; look = complete `pin_map`) |
+| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (cuts that **fit \(M\)**; reuse already-built `session=`; look loop = one `pin_map` per generate). Application: `llm-sysml-v2-modeling.md` |
 | Codebase | `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
 | PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
@@ -272,7 +272,7 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 | 1 | `llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `llm-daily-news.md` | Batch RSS digest |
 | 3 | `llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
-| 4 | `llm-sysml-v2-modeling.md` | SysML v2 modeling |
+| 4 | `llm-sysml-v2-modeling.md` | SysML SSOT; relatives + sub-unit sessions |
 | 5 | `llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
 | 5b | `llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
 | 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |

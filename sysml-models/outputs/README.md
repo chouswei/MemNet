@@ -41,4 +41,4 @@ Keep **all** studies. **Product canon** = MemNet mechanism / principles. **Appli
 | [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) | Dual-EDGE `:bind`+ports vs bare relation; law on node; ego `CST_U1` | `BindRelationship` / `LawOnNode` / `PinMapShapedRead` |
 | [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) | Atomise SCPI manual; pin_map one subsection | Doc working set; GQL `:precedes` |
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | Meta: MemNet as MBSE agent design memory (`TSK_model_memnet`) | `GoldfishLoop`; serve_down skip |
-| [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) | SysML unbounded nest → session cuts; complete Shape (no truncated `pin_map`) | MN-REQ-11.17; `CatalogSnap`; fit test \(M\) |
+| [sysml-session-nest-cuts-case-study.md](sysml-session-nest-cuts-case-study.md) | Nest cuts; look loop; parallel interiors (Turns A–I) | MN-REQ-11.17; `CatalogSnap`; fit test \(M\) |

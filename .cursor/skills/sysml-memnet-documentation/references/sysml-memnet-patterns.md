@@ -79,7 +79,7 @@ CREATE (f)-[:FLOWOF {id: 'E02', recycle: 'persistent'}]->(i)
 | open fork | DEC | TSK owns -> DEC |
 | backlog | ISSUE or CLM assumption | TSK/SEC contains |
 
-**Batch rule:** every new PRT / POR / CON MUST include `declaredIn` + `inFile` in the same `add`/`update`. Cross-package types MUST include `typedBy`.
+**Batch rule:** every new PRT / POR / CON MUST include `declaredIn` + `inFile` in the same `mutate`. Cross-package types MUST include `typedBy`.
 
 ## Edge relations (closed list)
 
@@ -92,18 +92,18 @@ Diagram placement (`TSK_diagram_*`): `figure_includes`, `figure_uses`, `anchor_o
 ## Example (GQL / openCypher-shaped)
 
 ```cypher
-CREATE (t:TSK {id: 'NEW', goal: 'Model 6U CubeSat PDU', phase: 'model', status: 'in_progress', recycle: 'persistent'})
-CREATE (pkg:PKG {id: 'NEW', qname: 'project/pdu-controller', kind: 'deploy', status: 'active', recycle: 'persistent'})
-CREATE (m:MOD {id: 'NEW', path: 'models/deploy-pdu.sysml', role: 'deploy', status: 'active', recycle: 'persistent'})
-CREATE (p:PRT {id: 'NEW', name: 'PDUController', kind: 'partUsage', role: 'power', status: 'active', recycle: 'persistent'})
-CREATE (por:POR {id: 'NEW', name: 'pwr_in_28v', kind: 'portUsage', dir: 'in', typeRef: 'Power28V', status: 'active', recycle: 'persistent'})
-CREATE (r:REQ {id: 'NEW', requirementId: 'REQ-01', text: 'Total output 15 W avg 20 W peak', status: 'active', recycle: 'persistent'})
-CREATE (s:SYM {id: 'NEW', name: 'PDUController', kind: 'partUsage', path: 'models/deploy-pdu.sysml', line: 42, recycle: 'persistent'})
-CREATE (t)-[:OWNS {id: 'NEW', note: 'scope', recycle: 'persistent'}]->(m)
-CREATE (p)-[:DECLAREDIN {id: 'NEW', recycle: 'persistent'}]->(pkg)
-CREATE (p)-[:INFILE {id: 'NEW', note: 'loc', recycle: 'persistent'}]->(m)
-CREATE (p)-[:HASPORT {id: 'NEW', recycle: 'persistent'}]->(por)
-CREATE (p)-[:SATISFIES {id: 'NEW', recycle: 'persistent'}]->(r)
+CREATE (t:TSK {goal: 'Model 6U CubeSat PDU', phase: 'model', status: 'in_progress', recycle: 'persistent'})
+CREATE (pkg:PKG {qname: 'project/pdu-controller', kind: 'deploy', status: 'active', recycle: 'persistent'})
+CREATE (m:MOD {path: 'models/deploy-pdu.sysml', role: 'deploy', status: 'active', recycle: 'persistent'})
+CREATE (p:PRT {name: 'PDUController', kind: 'partUsage', role: 'power', status: 'active', recycle: 'persistent'})
+CREATE (por:POR {name: 'pwr_in_28v', kind: 'portUsage', dir: 'in', typeRef: 'Power28V', status: 'active', recycle: 'persistent'})
+CREATE (r:REQ {requirementId: 'REQ-01', text: 'Total output 15 W avg 20 W peak', status: 'active', recycle: 'persistent'})
+CREATE (s:SYM {name: 'PDUController', kind: 'partUsage', path: 'models/deploy-pdu.sysml', line: 42, recycle: 'persistent'})
+CREATE (t)-[:OWNS {note: 'scope', recycle: 'persistent'}]->(m)
+CREATE (p)-[:DECLAREDIN {recycle: 'persistent'}]->(pkg)
+CREATE (p)-[:INFILE {note: 'loc', recycle: 'persistent'}]->(m)
+CREATE (p)-[:HASPORT {recycle: 'persistent'}]->(por)
+CREATE (p)-[:SATISFIES {recycle: 'persistent'}]->(r)
 ```
 
 Copy assigned ids from the pin_map / mutate response. Port-port links use BIND; node-node use typed rels ([memnet-format](../../memnet-format/SKILL.md)).

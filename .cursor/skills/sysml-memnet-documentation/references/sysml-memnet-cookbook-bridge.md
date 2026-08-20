@@ -4,11 +4,12 @@ Links user-pack MemNet skills to the upstream SysML v2 modeling cookbook. **Do n
 
 ## Upstream source
 
-**Path:** `C:/Projects/MemNet/application-notes/llm-sysml-v2-modeling.md`
+**Path (this repo):** [`docs/application-notes/llm-sysml-v2-modeling.md`](../../../../docs/application-notes/llm-sysml-v2-modeling.md)  
+**Evidence:** [`sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md)
 
-**Package:** `memnet-llm` **0.9.0** (editable install from `C:/Projects/MemNet`; PyPI still 0.4.6)
+**Package:** Hatch **0.19.0** (PyPI `memnet-llm` still 0.4.6). Do not use the old root path `application-notes/` (part-based layout: `docs/application-notes/`).
 
-The cookbook defines worked multi-turn examples, relation vocabulary, and batch sizing. User-pack skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not legacy alias tags from older cookbook drafts.
+The cookbook is the **agent loop** (two token laws, Snap stack, look loop). User-pack skills **MUST** follow the canonical tag map in [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — not legacy alias tags.
 
 ## Unified-tag policy (fixed)
 
@@ -26,7 +27,7 @@ The cookbook defines worked multi-turn examples, relation vocabulary, and batch 
 3. [sysml-memnet-pipeline.md](sysml-memnet-pipeline.md) — pipeline wire (`@CLM` type=`pipe`)
 4. [sysml-memnet-patterns.md](sysml-memnet-patterns.md) — canonical map, construct table, EDG list
 5. **This file** — upstream pointer + legacy ban
-6. Cookbook (upstream) — worked turns when pattern/snap insufficient
+6. Cookbook (upstream) — loop + look loop when snap.md is the mission `TSK` only
 
 ## What stays in user pack vs cookbook
 
@@ -37,8 +38,8 @@ The cookbook defines worked multi-turn examples, relation vocabulary, and batch 
 | Pipeline step wire (`@CLM` type=`pipe`) | pipeline.md | — |
 | 19-tag map, id rules, kind enums | patterns.md | aligned |
 | Per-file grep, delta matrix | snap.md | examples |
-| Multi-turn dialogue examples | — | full turns |
-| MemNet CLI / MCP tool params | mcp-memnet skill | §Tools |
+| Multi-turn evidence | — | nest-cuts case study (Turns A–I) |
+| MemNet CLI / MCP tool params | mcp-memnet skill | `docs/LLM-GUIDE.md` |
 
 ## Reconciliation checklist
 
@@ -51,7 +52,7 @@ When cookbook and user pack disagree:
 
 ## Session persistence
 
-Cookbook §Snapshot → [sysml-memnet-snap.md](sysml-memnet-snap.md) §Session `.snap` file. Never paste snap file contents into chat.
+Session `.snap` file: [sysml-memnet-snap.md](sysml-memnet-snap.md). Never paste snap file contents into chat. Model Snap (`snap_model`) is a different operator — see the cookbook.
 
 ## Related skills
 

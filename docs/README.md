@@ -14,7 +14,7 @@ MemNet engine / generic MCP / GQL wire / operating the product as an agent.
 |-----|------|
 | [`LLM-GUIDE.md`](LLM-GUIDE.md) | Agent playbook (GQL teach) |
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; numbered extras 0.10–0.19 on master (untagged) |
+| [`ROADMAP.md`](ROADMAP.md) | **Version map SSOT** — one picture; 1.0 = claim; numbered extras 0.10–0.19 packaged as Hatch **0.19.0** |
 | [`ROADMAP-0.5.md`](ROADMAP-0.5.md) | Historical pointer (old SemVer filename) |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** (supersession) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | **0.5 math SSOT** — Recall(\(q\)) / Commit(\(\Delta\)); Absorb join; one \(S\) per generate |
@@ -52,8 +52,8 @@ Downstream system development and domain patterns — MemNet as working memory.
 |-----|------|
 | [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` |
 | [`application-notes/llm-software-development.md`](application-notes/llm-software-development.md) | Multi-turn coding |
-| [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML v2 modeling (nest → session cuts; no truncated Shape) |
-| [`../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | SysML nest-cut case study |
+| [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md) | SysML SSOT; relatives + sub-unit sessions |
+| [`../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I (look loop, parallel interiors) |
 | [`application-notes/llm-build-on-memnet.md`](application-notes/llm-build-on-memnet.md) | Custom MCP + skill pack |
 | [`application-notes/llm-tech-docs-decomposition.md`](application-notes/llm-tech-docs-decomposition.md) | Manual / SCPI decomposition |
 | [`application-notes/llm-circuit-schematic.md`](application-notes/llm-circuit-schematic.md) | Circuit schematic (GQL; see case study) |
@@ -63,4 +63,4 @@ Downstream system development and domain patterns — MemNet as working memory.
 | [`application-notes/`](application-notes/) | Application-notes index |
 | [`application-notes/examples/`](application-notes/examples/) | Worked examples (GQL case study + math SSOT) |
 
-**Multitask (application):** user-pack `~/.cursor/skills/memnet-multitask/`; [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); ops MUST from [`multi-agent-sessions.md`](multi-agent-sessions.md).
+**Multitask (application):** [`.cursor/skills/memnet-multitask/`](../.cursor/skills/memnet-multitask/); [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); ops MUST from [`multi-agent-sessions.md`](multi-agent-sessions.md).

@@ -1,6 +1,6 @@
 # Between MemNet and Neo4j
 
-**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (untagged): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
+**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (package 0.19.0): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
 **Audience:** product developers.  
 **Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs. Same ABC / owner / budget.  
 **Shape:** cabinet **behind** the session, not instead of it ([`../SHAPE.md`](../SHAPE.md) §5).
@@ -57,7 +57,7 @@ There is **no RAG hop** on the MemNet ↔ Neo4j seam. `memnet-llm` is the engine
 
 | Hop | Package / process | What actually runs | RAG? |
 |-----|-------------------|--------------------|------|
-| Agent read/write | `memnet-llm` / `memnet-mcp` | GQL `pin_map` / `find` / `add` / `update` | **No** — Shape of \(S\) |
+| Agent read/write | `memnet-llm` / `memnet-mcp` | GQL `pin_map` / `find` / `mutate` | **No** — Shape of \(S\) |
 | Optional corpus | Host (grep, docs MCP, RAGFlow, GraphRAG, …) | Ranked retrieve, then **locators** into MutateGate | **Yes** — Snap of the **library**; never of \(S\) |
 | Survive process death | `memnet-llm[neo4j]` → external Neo4j | Ego `MERGE` / `MATCH [*0..k]` under `HydrateBudget` | **No** — cabinet, not retrieve-then-generate |
 
@@ -148,7 +148,7 @@ Neo4j is a **property-graph server**. MemNet is **mission working memory**. Stea
 | Neo4j-class move | MemNet |
 |------------------|--------|
 | TRAVERSE / MATCH | `pin_map` (shaped ego walk) |
-| WRITE (CREATE / SET / DELETE) | `mutate` (`add` / `update`) via MutateGate |
+| WRITE (CREATE / SET / DELETE) | `mutate` via MutateGate (leftover `add`/`update` façades) |
 | Label / id GRANT | `WorkerWriteScope` (when session ACL is enabled) |
 | Bolt / Browser / `@neo4j/graphql` as the LLM tool | **Reject** as goldfish. Wire is GQL `pin_map` / mutate only (ADR-001) |
 

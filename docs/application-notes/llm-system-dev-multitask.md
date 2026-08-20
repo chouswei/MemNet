@@ -4,7 +4,7 @@
 
 **Class:** applications — downstream `modelbasedPrj-*` system repos.  
 **Operational doctrine (developers):** [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md).  
-**Application skill:** `~/.cursor/skills/memnet-multitask/`. Index: [`docs/README.md`](../README.md).
+**Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../README.md).
 
 **Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
 
@@ -14,7 +14,7 @@ This note complements:
 
 - [`docs/multi-agent-sessions.md`](../multi-agent-sessions.md) — enforceable Multitask doctrine (as-is 0.8; RSV + Path-B ingest shipped)
 - [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — single-agent SysML memory (no Multitask transport)
+- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML loop (in-process OK); parallel interiors need TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — single-agent coding memory
 
 **Doctrine pointer:** adopt **MN-REQ-12** via a short local requirement mirror or doc link — do **not** import `MemNetRequirements` from the MemNet product repo into the system project's SysML load tree.
@@ -117,6 +117,8 @@ When work touches both **`sysml-models/`** and implementation files:
 
 **MUST NOT** run two workers on the **same** anchor slice without serialisation or an **RSV** lease (last-write-wins if you skip both).
 
+When the **SysML parent shell is already clear** (children named, `session=` assigned), sibling **interiors** are disjoint: one `TSK_*` per interior session, workers `pin_map` only that \(S_i\). If the parent nest is still being invented, stay serial — write the shell first. Detail: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) (look loop + parallel sub-units).
+
 ---
 
 ## 6. Adopting MN-REQ-12 in a system repo
@@ -145,7 +147,7 @@ Path-B **`PinMapIngest_*`** domains are **shipped** (MN-REQ-11; #31 / #64):
 | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |
 
-SysML load trees: use **model Snap**, not one `ingest_sysml` per file and not a truncated `pin_map` of a fat `:contains` nest. Application: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) §6.
+SysML load trees: use **model Snap**, not one `ingest_sysml` per file and not a truncated `pin_map` of a fat `:contains` nest. Application: [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md).
 
 Client leftover `NEW` mint is leftover, not product. Prefer ingest for bounded pin maps; `seed_lines` / leftover `add` remain leftover for one-off locators. Product write is `mutate`. Ingest is not export. 0.19 cue `pin_map` GQL write-out is `memnet export pin-map`; re-ingest later (#66).
 

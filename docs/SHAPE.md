@@ -17,7 +17,7 @@ Three common substitutes fail the mission:
 | **Dump the whole session \(S\)** | Burns the token budget MN-REQ-00 exists to save. The model still has to pick what matters. |
 | **Search the corpus (RAG / GraphRAG)** | That haystack is **documents**, not **this mission’s working facts**. Retrieval may help the host; it does not replace a session. |
 
-The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**.
+The job is **system, programme, software, firmware, hardware, and documentation** work: live `TSK` / `USR` / `MOD`, a few technical documents as **atoms and locators** (not PDF bytes), handoff between agents. Aims: save **wall-clock** and **tokens**, keep **factual accuracy**. When structural SSOT is SysML (and the code or docs it specifies), that saving is **relatives of one cue** plus **sub-units in separate sessions** — not a dump of the load tree. Application: [`application-notes/llm-sysml-v2-modeling.md`](application-notes/llm-sysml-v2-modeling.md).
 
 So MemNet must sit **between** LLM call pipelines and data search — not as the notepad, and not as the library.
 
@@ -74,7 +74,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 
 **0.8.0** is this shape **taught for people** in-repo: this file, GQL-only playbook, application-note contract, Multitask honesty (RSV + Path-B ingest shipped; full ACL modes still to-be).
 
-**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map: [`ROADMAP.md`](ROADMAP.md). **Honest install:** current package is **0.9.0** (Neo4j client extra; live claimed as extra **0.14**). PyPI `memnet-llm` is still **0.4.6**; do not claim `pip install memnet-llm` yields 0.9 until that release is published. Use this repo until then.
+**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map: [`ROADMAP.md`](ROADMAP.md). **Honest install:** current package is **0.19.0** (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**). PyPI `memnet-llm` is still **0.4.6**; do not claim `pip install memnet-llm` yields 0.19 until that release is published. Use this repo until then.
 
 ---
 

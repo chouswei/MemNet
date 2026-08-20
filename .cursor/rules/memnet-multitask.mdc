@@ -2,14 +2,14 @@
 name: memnet-multitask
 description: >-
   Cursor Multitask Mode or Task sub-agents with MemNet — thin project reminder.
-  Application skill: ~/.cursor/skills/memnet-multitask/. Product ops doc:
+  Application skill: .cursor/skills/memnet-multitask/. Product ops doc:
   docs/multi-agent-sessions.md.
 alwaysApply: false
 ---
 
 # MemNet + Multitask Mode
 
-Load user-pack skill **`memnet-multitask`** (`~/.cursor/skills/memnet-multitask/SKILL.md`). Product ops SSOT: `docs/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/llm-system-dev-multitask.md`. Chat is never mission SSOT. Product shape: `docs/SHAPE.md`.
+Load user-pack skill **`memnet-multitask`** (this checkout: `.cursor/skills/memnet-multitask/SKILL.md`). Product ops SSOT: `docs/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/llm-system-dev-multitask.md`. Chat is never mission SSOT. Product shape: `docs/SHAPE.md`.
 
 ## MUST
 

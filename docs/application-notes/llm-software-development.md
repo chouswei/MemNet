@@ -8,7 +8,7 @@
 
 **Primary worked example (retrospective):** shipping **`session_load`** / **`session_save`** on `memnet-mcp` (release v0.2.12, commit `7440aee`).
 
-Complements: user-pack `mcp-memnet` / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) for design memory.
+Complements: [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/) / `coding-memory.md`; [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) when **SysML is SSOT** — same two token laws (relatives of one cue; nested sub-unit in a **separate session**).
 
 British English. ASCII.
 
@@ -146,5 +146,5 @@ Layer ASCII and `@TAG` pipe are **not** agent teach. Archive: [`../grammar/archi
 ## Related
 
 - [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) — Multitask + shared session
-- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML design memory
+- [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML SSOT (same two token laws)
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — GQL wire SSOT

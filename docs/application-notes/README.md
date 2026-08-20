@@ -3,7 +3,7 @@
 Domain patterns for **using** MemNet (not engine internals). Index: [`../README.md`](../README.md).
 
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
-**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.9.0**; **1.0** = 0.5–0.8 claimed (no extra engine). PyPI `memnet-llm` is still **0.4.6**.  
+**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.0**; **1.0** = 0.5–0.8 claimed (no extra engine). PyPI `memnet-llm` is still **0.4.6**.  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 
@@ -29,7 +29,7 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 | [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT (not wire teach) | — |
 | [`llm-circuit-schematic.md`](llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
-| [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML v2 nest → session cuts; complete Shape (no truncated `pin_map`) | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
+| [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) | SysML SSOT; relatives of one cue; sub-unit in a **separate session** | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
 | [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` | sysml + coding (+ ingest maps as needed) |
 | [`llm-software-development.md`](llm-software-development.md) | Multi-turn coding memory | `schema.coding.example.txt`; locators via `ingest_codebase` |
 | [`llm-tech-docs-decomposition.md`](llm-tech-docs-decomposition.md) | Manual / SCPI atomisation | `schema.techdocs.example.txt` |

@@ -1,6 +1,6 @@
 # Sessions as strata (not Layer)
 
-**Status:** 0.15 engine untagged (package stays 0.9.0) — **not** a SemVer gate, **not** Layer / Tier A.  
+**Status:** 0.15 engine in package 0.19.0 — **not** a SemVer gate for **1.0**, **not** Layer / Tier A.  
 **Audience:** product developers. British English.  
 **Homograph.** *Layer* in this repo means the **archived dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
@@ -12,9 +12,9 @@
 
 The old instinct (one fat \(S\), strata *inside* the dialect) is how Layer happened. The replacement is already in doctrine and under-taught:
 
-**Partition the haystack into more sessions. Goldfish one session at a time. Join with Absorb (slice), not merge, not ANN.**
+**Partition the haystack into more sessions. Goldfish relatives of one cue in one session. Join with Absorb (slice), not merge, not ANN.**
 
-That *is* “sessions as layers”: each stratum has a **session id**, a schema map, a budget \(M\), and a Shape. The catalog of ids is itself a small session (or a Snap of `session=` locators). The lead mission stays Path A until a second haystack or a second writer earns a new id.
+That *is* “sessions as layers”: each stratum has a **session id**, a schema map, a budget \(M\), and a Shape. Token saving on a SysML SSOT is those two moves together: **relatives**, not the load tree; **sub-unit in another session**, not a nested dump. The catalog of ids is itself a small session (or a Snap of `session=` locators). The lead mission stays Path A until a second haystack or a second writer earns a new id.
 
 ---
 
@@ -52,12 +52,13 @@ V5 still holds: \(N\) interior maps on overlapping egos waste LAW. Across strata
 ```text
 q  →  catalog Shape (session= ids, M≈50)
        empty → skip
-       hit   → pin_map(session=S*, anchor=…)     # one interior
+       hit   → pin_map(session=S*)              # one interior this generate
+                child session= needed → drop map; next generate pin_map(S_child)
                 mutate Δ on S* only
                 Path B: Absorb slice → lead
 ```
 
-Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
+Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Recurse **across generates** (session in session), not \(N\) maps in one prompt. Sibling interiors whose parent shell is already in `.sysml` MAY be built as **parallel** `TSK_*` on disjoint `session=` ids ([`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md)). The catalog is a codebook of **session ids**, not passages. Ranking catalogs with cosine is Snap-on-sessions (forbidden). `find` on the catalog is seed-only, then Shape.
 
 **Path A first.** One shared mission id is the cheap stratum. Path B and \(S_{\mathrm{lib}}\) are the expensive ones. Workers **MUST NOT** open a library session unless the parent assigned it.
 
@@ -123,7 +124,7 @@ So: **SysML can nest everything.** Encoding that tree as `:contains` in one sess
 
 ### Interior grain (of the model)
 
-Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) §6.
+Cut wherever a subtree exceeds ~2\(M\). A convenient **first** cut is the SysML **package** / `private import` tree, not “whatever `.sysml` files exist.” Recurse into nested `part` / `requirement` / other roots when that package still will not fit. Kind-band (REQ vs PRT) is optional only when kinds actually partition the haystack — the nest does not stay in bands. Application teach: [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md).
 
 Worked example — **this product model** (`ProjectMemNet` / `root.sysml` imports):
 
@@ -138,7 +139,7 @@ Worked example — **this product model** (`ProjectMemNet` / `root.sysml` import
 
 Mission \(S\) is **not** an interior of the model Snap. It holds `TSK_model_*` and locators into the catalog. The model Snap’s output is the **stack** \((S_{\mathrm{cat}}, S_{\mathrm{req}}, \ldots)\).
 
-**MUST NOT** one session per `requirement def` or nested usage. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Layer dialect. **MUST NOT** emit a truncated Shape of a fat nest.
+**MUST NOT** one session per `requirement def` or nested usage. **MUST NOT** dump the whole model into the mission or into a single library session. **MUST NOT** Snap a second interior for a `qname=` that already has a catalog `session=` — the parent **presents** that id (`typedBy` + `session=`); look = `pin_map` that \(S\); join = Absorb slice. **MUST NOT** Layer dialect. **MUST NOT** emit a truncated Shape of a fat nest.
 
 ### Snap loop (one model)
 
@@ -165,7 +166,7 @@ q = REQ_MN_REQ_00
 | Cousin | Steal | Reject |
 |--------|-------|--------|
 | `root.sysml` imports | One model, several packages | Treating each file as an independent Snap |
-| Package / part / requirement tree | Interior grain = **fit** | Flattening the nest with `:contains` in one \(S\); clipping `max_rows`; one session per leaf; Leiden |
+| Package / part / requirement / **usage** tree | Interior grain = **fit**; defs vs usages = two interiors of **one** Snap | Flattening `:contains`; clipping `max_rows`; exploding multiplicity; pasting `subsets` ancestor; one session per leaf; Leiden |
 | 6-step modelling note | Cue TSK → edit SSOT → delta; **any** nest kind | Chat as SSOT for `qname=`; one loop per construct name |
 | Product vs application ([`../SHAPE.md`](../SHAPE.md)) | Same Snap-model grain downstream | Import `MemNetRequirements` into a customer load tree |
 
@@ -173,7 +174,7 @@ q = REQ_MN_REQ_00
 
 ## SemVer
 
-Fits **0.15 Catalog Snap** (untagged; package stays 0.9.0). **SysML model Snap** = one model → session stack. **0.13** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
+Fits **0.15 Catalog Snap** (in package 0.19.0). **SysML model Snap** = one model → session stack. **0.13** owns the caller that does not keep the stack in one prompt. **1.0 MUST NOT** wait.
 
 **MUST NOT** ship: Layer accept; `SessionMerge*`; ANN of the catalog; a `layer=` property as wire; HostSearch nested under `MemNetSystem`.
 
@@ -187,5 +188,5 @@ Fits **0.15 Catalog Snap** (untagged; package stays 0.9.0). **SysML model Snap**
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | No Layer |
 | [`../multi-agent-sessions.md`](../multi-agent-sessions.md) | Path A / Path B |
 | [`memnet-neo4j-rag-rethink.md`](memnet-neo4j-rag-rethink.md) | \(S_{\mathrm{lib}}\) vs Neo4j library namespace; more sessions when over \(M\) |
-| [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) | Application: Snap **one** SysML model into many sessions |
-| [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Case study: nest cuts; complete Shape |
+| [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/llm-sysml-v2-modeling.md) | Loop: relatives + sub-unit sessions |
+| [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I |

@@ -4,7 +4,7 @@
 
 **Application example (documentation only).** This note is for **builders, not consumers**: how to put a new **MCP server** and a matching **Cursor skill pack** on top of MemNet so other agents can pick up your domain through one-shot tool calls and skill auto-routing — rather than learning the wire format from scratch every turn.
 
-**Primary worked example:** the **`mcp-memnet` skill pack** that ships in the user pack at `~/.cursor/skills/mcp-memnet/`, paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
+**Primary worked example:** the **`mcp-memnet` skill pack** vendored at [`.cursor/skills/mcp-memnet/`](../../.cursor/skills/mcp-memnet/), paired with the **`memnet-mcp`** server in this repo (`parts/memnet-mcp/software/memnet_mcp/`). Domain-specific MCPs (if any) should live in **separate packages** so `memnet-mcp` stays a thin graph wrapper.
 
 **Dialect teach for agents:** GQL + shaped `pin_map` — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
@@ -171,7 +171,7 @@ memnet-mcp = "memnet_mcp.server:main"
 mcp = ["mcp>=1.2,<2"]
 ```
 
-Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. **PyPI is still 0.4.6** — for product 0.9 install from this repo (`pip install -e ".[mcp]"`).
+Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. **PyPI is still 0.4.6** — for product 0.19 install from this repo (`pip install -e ".[mcp]"`).
 
 ---
 

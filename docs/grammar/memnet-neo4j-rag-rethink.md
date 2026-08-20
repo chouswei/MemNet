@@ -1,6 +1,6 @@
 # Rethink: RAG, `memnet-llm`, and the Neo4j cabinet
 
-**Status:** option **B namespaces** shipped as extra **0.16** (untagged; package stays 0.9.0). Host Snap (`RagHostHook.implemented=true`) extra **0.17**. Does **not** amend [`../SHAPE.md`](../SHAPE.md) beyond the 0.16 locator port.  
+**Status:** option **B namespaces** shipped as extra **0.16** (in package 0.19.0). Host Snap (`RagHostHook.implemented=true`) extra **0.17**. Does **not** amend [`../SHAPE.md`](../SHAPE.md) beyond the 0.16 locator port.  
 **Decision:** **B** (two Neo4j ports) **+ D** (catalog `session=` ids; join by **Absorb**). **Reject C.** Keep **A** as as-is teach until B is accepted.  
 **Audience:** product developers. British English.
 

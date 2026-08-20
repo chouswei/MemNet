@@ -18,8 +18,8 @@ Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn) and [sysml-
 | Where is `linkFoo` / a named part? | `pin_map` → `@SYM_<name>` → `path` + `line` | `Grep` exact symbol in `models/` |
 | What does requirement `REQ-*` satisfy? | `pin_map` → `@REQ_*` + `satisfies` EDGs | Read `root*.sysml` satisfy block (window) |
 | What changed last session? | `pin_map(TSK_model_*)` + `<model-root>/.memnet/*.snap` load if session expired | Git diff (user asked or commit prep only) |
-| Exact `connection` / `bind` / import syntax to patch? | Read **±15 lines** at `@SYM.line` | Wider window or `mcp-sysml-v2 getDefinition` |
-| Load order / package imports broken? | `config.yaml` + `mcp-sysml-v2 validate` errors | Read `root*.sysml` imports only |
+| Exact `connection` / `bind` / import syntax to patch? | Read **±15 lines** at `SYM.line` | Wider window only if the window misses |
+| Load order / package imports broken? | `config.yaml` + validator errors | Read `root*.sysml` imports only |
 | Human narrative for one report section? | Hub `index.md` + **one** `llm_toc[].file` | Other sections |
 
 **MemNet is authoritative for structure between turns.** `.sysml` is authoritative for **syntax and satisfy links** at edit time. If MemNet MCP is missing: topology from `.sysml` / plain notes only (no TOON/TRON).
@@ -70,7 +70,7 @@ Need new part between existing parts?
   warm @PRT_* for neighbours → grep only the insertion region
 
 Still ambiguous after warm + one grep?
-  mcp-sysmledgraph impact OR mcp-sysml-v2 getSymbols (not full file read)
+  Grep scoped to the `:MOD` path (not full file read)
 ```
 
 ---
@@ -99,11 +99,13 @@ When the user continues a design thread:
 
 ## `pin_map` prompts (copy patterns)
 
-Use **anchor + entity**, not open-ended chat (`query_warm` is a legacy alias for the same tool):
+Use a **cue** (`kind` / `locators` / `keyword`), not leftover `anchor=` as law (`query_warm` is leftover alias):
 
-| Task | Warm query focus |
-|------|------------------|
-| Project resume | `TSK_model_<short>` (NCU-LEO: `TSK_model_leo_cubesat`) |
+| Task | Cue |
+|------|-----|
+| Project resume | `kind='TSK'`, locators `id=TSK_model_<short>` |
+| Named subsystem | `PRT_*` / `CON_*` |
+| Requirements | `REQ_*` |
 | Named subsystem | rows for the relevant `PRT_*` / `CON_*` |
 | Requirements touched | `REQ_*` + `satisfies` edges |
 | Report section | `ART_<project>-design` + `@SEC` for section id |
@@ -127,9 +129,9 @@ Increase `max_rows` (50→80) only when warm returns &lt;3 relevant rows **and**
 
 ## After edit (mandatory — prevents next-turn re-read)
 
-1. `mcp-sysml-v2 validate`
-2. MemNet delta: new/changed `@PRT`/`@POR`/`@CON`/`@REQ` + `@SYM` + `@EDG`
-3. Re-grep touched `@MOD` → `update` all `@SYM.line` in that file
+1. Validate the textual model
+2. MemNet delta: new/changed PRT/POR/CON/REQ + SYM + rels
+3. Re-grep touched MOD → `mutate` SET all `SYM.line` in that file
 4. If ≥3 structural changes or end of session: `session_save` → `<model-root>/.memnet/<short>.snap` or wire push
 
 **Stale graph is the main cause of repeated SysML reads.** Step 6 is not optional for structural edits.

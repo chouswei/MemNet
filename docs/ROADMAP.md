@@ -4,9 +4,9 @@
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). Placement (design): [`grammar/memnet-harness-thesis.md`](grammar/memnet-harness-thesis.md). British English.
 
-**Package now:** Hatch **0.9.0**. Numbered extras **0.10–0.19** are on master (untagged). GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **PyPI `memnet-llm` is still 0.4.6.**
+**Package now:** Hatch **0.19.0**. Numbered extras **0.10–0.19** are in this package. Git tag `v0.19.0` by coordinator. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **PyPI `memnet-llm` is still 0.4.6.** **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-08-20 (extras **0.10–0.19** on master untagged; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; package stays 0.9.0).
+**Last updated:** 2026-08-20 (package **0.19.0**; extras **0.10–0.19** in that identity; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
 
@@ -58,8 +58,8 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 | **0.6.0** | Honesty: V5 LAW×N pytest; snapshot as offered durable; version-map docs | **Shipped** (`v0.6.0`) |
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
-| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip claimed later as extra **0.14** (package stays 0.9.0). Cabinet extra, **not** a 1.0 gate | **Shipped** (package 0.9.0; tag by coordinator) |
-| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **On master** (untagged; package stays 0.9.0) |
+| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
+| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.0**; git tag by coordinator) |
 | **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — PyPI still 0.4.6 |
 | **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
 
@@ -73,7 +73,7 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 
 ## Code vs TARGET (0.9 leftover)
 
-The nest on master (#108–#118) models GraphElement identity, CueConflict on emit, empty-cue **session outline** (MN-REQ-04.9 / `#118`), and SameThingAbsorb (SysML `implemented=false`; 0.12 engine already on master: agent-gated Commit `MATCH (a),(b) SET a += b` after CueConflict). The **0.11** engine cut emits the outline census (untagged; package stays 0.9.0). leftover empty-seed skip is leftover only. Outline SHALL NOT absorb. Do **not** claim **1.0**. Do not revert the 0.11 nest or the 0.12 Commit rule. Live Neo4j is extra **0.14** (claimed on master); not this leftover-store gap.
+The nest on master (#108–#118) models GraphElement identity, CueConflict on emit, empty-cue **session outline** (MN-REQ-04.9 / `#118`), and SameThingAbsorb (SysML `implemented=false`; 0.12 engine already on master: agent-gated Commit `MATCH (a),(b) SET a += b` after CueConflict). The **0.11** engine cut emits the outline census (in package 0.19.0). leftover empty-seed skip is leftover only. Outline SHALL NOT absorb. Do **not** claim **1.0**. Do not revert the 0.11 nest or the 0.12 Commit rule. Live Neo4j is extra **0.14** (claimed on master); not this leftover-store gap.
 
 The **0.9 engine** still runs leftover invented store. Numbered extras start at **0.10** because this gap is not named in 0.5–0.9:
 
@@ -95,20 +95,20 @@ Do **not** treat leftover 0.9 identity as a live-Neo4j claim. Do **not** claim *
 
 ## Numbered extras (0.10–0.19)
 
-One concern per minor. Dependency order. **On master, untagged** (package stays 0.9.0). Skip a row only if the coordinator writes the skip in CHANGELOG; do not fuse two rows into one tag.
+One concern per minor. Dependency order. **In package 0.19.0** (git tag by coordinator). Skip a row only if the coordinator writes the skip in CHANGELOG; do not fuse two rows into one tag.
 
 | Version | Owns | Depends on | MUST NOT |
 |---------|------|------------|----------|
-| **0.10.0** | **Identity + leftover façade.** **Done / on master** (untagged; package stays 0.9.0). Engine: GraphElement identity; hidden handle off the wire; `CREATE ()` legal; MERGE/SET/DELETE by labels+properties; SCHEMA not `id_first`; emit does not require `{id}`. Façade: `pin_map` from cue (no `require_anchor` as product); find emit **CueConflict** when \(|Q|>1\) (do not pick one root; do not absorb); leftover `read_get` / NEW / AssignedIdMap / `import_slice id_policy` / ingest `allocate_from_locator` are not product commands. Tests that lock leftover as success are rewritten. Application-note + LLM-GUIDE example rewrite (TARGET loop; leftover named leftover). SysML README nest sync. | Nest on master (#108–#114); 0.9 package | Invent a new store key; claim live Neo4j; merge GraphGlot into the identity cut (historical fence); third operator; silent MERGE-by-name; Layer |
-| **0.11.0** | **Session outline.** **Done / on master** (untagged; package stays 0.9.0). Empty cue is Recall of \(S\): kinds + hard-LIMIT exemplars (Neo4j Browser / `db.labels` + `LIMIT k` pattern). Model first if not yet in SysML, then code. Still one Recall. Name conflict among exemplars is CueConflict. | 0.10 (need pattern cue, not `--anchor`) | Dump \(S\); `getAllPages`; RAG search; third operator; `view=shell` as the outline (that is grain on a seed) |
-| **0.12.0** | **SameThingAbsorb implemented.** **Done / on master** (untagged; package stays 0.9.0). Agent-gated Commit after CueConflict. Pattern collapse (labels+props), not MERGE-by-id. Distinct from ImportAbsorb. SysML nest flag still `implemented=false` (Sysmler). | 0.10 CueConflict | Silent LLM merge in Recall; name-as-identity; third operator |
-| **0.13.0** | **Goldfish caller contract** (old 0.10). **Done / on master** (untagged; package stays 0.9.0). Playbook + pytest: stuffed history of maps is a fail; drop prior map rows; sparse Δ. | 0.10 teach | Patch OpenHands/SWE-agent; `rag_query`; raise \(M\); bump SemVer; claim **1.0** |
-| **0.14.0** | **Live Neo4j claimed** (old 0.11). **Done / on master** (untagged; package stays 0.9.0). Operator proof rpi5-syson @ d23cc71: `live_round_trip` yes; hid flush; leftover-nickname hydrate after hid miss. `liveNeo4jClaimed=true`. Skip unless `MEMNET_NEO4J_URL`. Hid stays off the wire. | 0.10 identity (else live claim cements leftover_MERGE_by_id) | Vendor Neo4j server; LLM↔Bolt; second database name (0.16); claim hydrate-by-hid proven on live |
-| **0.15.0** | **Catalog Snap** + session strata + model Snap (old 0.12). **Done / on master** (untagged; package stays 0.9.0; #124 @ 7767ed84). [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md). Catalog cut's own fence: that extra does not own `liveNeo4jClaimed`. | ImportAbsorb pattern match (0.10); ingest locators as props | ANN rank sessions; Absorb whole \(S\); Layer; one session per REQ |
-| **0.16.0** | **Two Neo4j namespaces** (old 0.13). **Done / on master** (untagged; package stays 0.9.0; #127 @ c32d4c52). Same process; cabinet vs library. Library port emits **locators only**, never `generate`. Skip library unless `MEMNET_NEO4J_LIBRARY_DATABASE`. `liveNeo4jClaimed` stays **true**. | 0.14 live claim | Fuse RRF/PPR into `pin_map`; `rag_query`; Snap-on-session; vendor Neo4j; LLM↔Bolt |
-| **0.17.0** | **HostSearch locators** (old 0.14). **Done / on master** (untagged; package stays 0.9.0; #129 @ 00e74dfb). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
-| **0.18.0** | **Peak_L** last-resort (old 0.15). **Done / on master** (untagged; package stays 0.9.0; #128 @ dc464cd4). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
-| **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). **Done / on master** (untagged; package stays 0.9.0; #123 @ 2c460e7d). Ingest ≠ export. | Shaped emit | Export as Absorb |
+| **0.10.0** | **Identity + leftover façade.** **Done / in package 0.19.0**. Engine: GraphElement identity; hidden handle off the wire; `CREATE ()` legal; MERGE/SET/DELETE by labels+properties; SCHEMA not `id_first`; emit does not require `{id}`. Façade: `pin_map` from cue (no `require_anchor` as product); find emit **CueConflict** when \(|Q|>1\) (do not pick one root; do not absorb); leftover `read_get` / NEW / AssignedIdMap / `import_slice id_policy` / ingest `allocate_from_locator` are not product commands. Tests that lock leftover as success are rewritten. Application-note + LLM-GUIDE example rewrite (TARGET loop; leftover named leftover). SysML README nest sync. | Nest on master (#108–#114); 0.9 package | Invent a new store key; claim live Neo4j; merge GraphGlot into the identity cut (historical fence); third operator; silent MERGE-by-name; Layer |
+| **0.11.0** | **Session outline.** **Done / in package 0.19.0**. Empty cue is Recall of \(S\): kinds + hard-LIMIT exemplars (Neo4j Browser / `db.labels` + `LIMIT k` pattern). Model first if not yet in SysML, then code. Still one Recall. Name conflict among exemplars is CueConflict. | 0.10 (need pattern cue, not `--anchor`) | Dump \(S\); `getAllPages`; RAG search; third operator; `view=shell` as the outline (that is grain on a seed) |
+| **0.12.0** | **SameThingAbsorb implemented.** **Done / in package 0.19.0**. Agent-gated Commit after CueConflict. Pattern collapse (labels+props), not MERGE-by-id. Distinct from ImportAbsorb. SysML nest flag still `implemented=false` (Sysmler). | 0.10 CueConflict | Silent LLM merge in Recall; name-as-identity; third operator |
+| **0.13.0** | **Goldfish caller contract** (old 0.10). **Done / in package 0.19.0**. Playbook + pytest: stuffed history of maps is a fail; drop prior map rows; sparse Δ. | 0.10 teach | Patch OpenHands/SWE-agent; `rag_query`; raise \(M\); claim **1.0** |
+| **0.14.0** | **Live Neo4j claimed** (old 0.11). **Done / in package 0.19.0**. Operator proof rpi5-syson @ d23cc71: `live_round_trip` yes; hid flush; leftover-nickname hydrate after hid miss. `liveNeo4jClaimed=true`. Skip unless `MEMNET_NEO4J_URL`. Hid stays off the wire. | 0.10 identity (else live claim cements leftover_MERGE_by_id) | Vendor Neo4j server; LLM↔Bolt; second database name (0.16); claim hydrate-by-hid proven on live |
+| **0.15.0** | **Catalog Snap** + session strata + model Snap (old 0.12). **Done / in package 0.19.0** (#124 @ 7767ed84). [`grammar/memnet-session-strata.md`](grammar/memnet-session-strata.md). Catalog cut's own fence: that extra does not own `liveNeo4jClaimed`. | ImportAbsorb pattern match (0.10); ingest locators as props | ANN rank sessions; Absorb whole \(S\); Layer; one session per REQ |
+| **0.16.0** | **Two Neo4j namespaces** (old 0.13). **Done / in package 0.19.0** (#127 @ c32d4c52). Same process; cabinet vs library. Library port emits **locators only**, never `generate`. Skip library unless `MEMNET_NEO4J_LIBRARY_DATABASE`. `liveNeo4jClaimed` stays **true**. | 0.14 live claim | Fuse RRF/PPR into `pin_map`; `rag_query`; Snap-on-session; vendor Neo4j; LLM↔Bolt |
+| **0.17.0** | **HostSearch locators** (old 0.14). **Done / in package 0.19.0** (#129 @ 00e74dfb). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
+| **0.18.0** | **Peak_L** last-resort (old 0.15). **Done / in package 0.19.0** (#128 @ dc464cd4). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
+| **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). **Done / in package 0.19.0** (#123 @ 2c460e7d). Ingest ≠ export. | Shaped emit | Export as Absorb |
 
 **After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). N-server session pipe stays research (no cut; [#47](https://github.com/chouswei/MemNet/issues/47)).
 
@@ -120,7 +120,7 @@ One concern per minor. Dependency order. **On master, untagged** (package stays 
 
 **0.8 MUST NOT:** Peak_L / HostSearch / N-server / export / `rag_query`; second **live** cabinet claim; vendor AgensGraph/Neo4j servers; restore Layer teach or novel-writer.
 
-**0.9 MUST NOT:** vendor a Neo4j server; hold **1.0** for live Neo4j, HostSearch, N-server, Peak_L, catalog Snap, OpenHands adoption, or GraphGlot. Extra **0.14** claims `liveNeo4jClaimed` without bumping package SemVer.
+**0.9 MUST NOT:** vendor a Neo4j server; hold **1.0** for live Neo4j, HostSearch, N-server, Peak_L, catalog Snap, OpenHands adoption, or GraphGlot. Extra **0.14** claimed `liveNeo4jClaimed` while the package was still 0.9.0; coordinated bump is **0.19.0**.
 
 **0.10 MUST NOT:** wait on live Neo4j, HostSearch, Peak_L, catalog Snap, or GraphGlot.
 
@@ -159,10 +159,10 @@ Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** 
 |-------|------|----------|
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
-| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. **0.10** TARGET teach rewrite (on master, untagged): cue/`pin_map` + pattern Commit; leftover `--anchor` / `id:'NEW'` named leftover. |
+| **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. **0.10** TARGET teach rewrite (in package 0.19.0): cue/`pin_map` + pattern Commit; leftover `--anchor` / `id:'NEW'` named leftover. |
 | **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7 Agens; extra **0.14** Neo4j live claimed) |
 
-Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Numbered extras **0.10–0.19** above (on master, untagged).
+Durable: [`grammar/agensgraph-buffer.md`](grammar/agensgraph-buffer.md), [`grammar/neo4j-buffer.md`](grammar/neo4j-buffer.md). Numbered extras **0.10–0.19** above (in package **0.19.0**).
 
 ### Already shipped (from 0.4.x — do not list as deferred)
 
