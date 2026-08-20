@@ -7,9 +7,9 @@ Do **not** emit `@TAG: field|field|…` pipe rows as agent format.
 ## Mutate sketch
 
 ```cypher
-CREATE (c:CLM {id: 'NEW', type: 'decision', code: 'bitrate cap 2000 bps', recycle: 'persistent'})
+CREATE (c:CLM {type: 'decision', code: 'bitrate cap 2000 bps', recycle: 'persistent'})
 MATCH (t {id: $tid}) SET t.status = 'in_progress', t.recycle = 'persistent'
-CREATE (a)-[:HELPS {id: 'NEW', note: 'labour', recycle: 'persistent'}]->(b)
+CREATE (a)-[:HELPS {note: 'labour', recycle: 'persistent'}]->(b)
 MATCH ()-[e {id: $eid}]->() SET e.recycle = 'delete_on_settle'
 MATCH ()-[e {id: $eid}]->() DELETE e
 ```
@@ -18,7 +18,7 @@ Patch nodes by id only — do not invent a second id for the same ground atom. R
 
 ## Pin_map (shaped subgraph)
 
-Primary read returns a bounded neighbourhood (laws + nodes + relationships). Copy shapes into the next mutate; prefer `$param` binds for known ids. Optional `view=shell|interior`. Multi-ego: `anchors` (one budget). No ego: `find` (`limit` required) then pin_map a copied id — `find` is not goldfish read.
+Primary read returns a bounded neighbourhood. Cue with `kind` / `locators` / `keyword`. leftover `anchor`/`anchors` are leftover nicknames. Empty cue = outline. `find` then `pin_map` from labels+props — `find` is not goldfish read.
 
 Session schema (`session_open` map — not graph rows):
 
@@ -60,7 +60,7 @@ SCHEMA MOD ; fields=id path summary status recycle
 | Short props | ids, codes, paths, numbers — no prose |
 | Explicit relationships | Filterable; BIND vs typed relation |
 | Recycle / settle | Finished work drops out of pin maps |
-| Batch mutate | One `add`/`update` with many statements |
+| Batch mutate | One `mutate` with many statements |
 | View budget | `view=shell` / `max_rows` keep slices small |
 
 Cross-ref: MemNet `README.md` · `docs/grammar/` · [mcp-memnet](../../mcp-memnet/SKILL.md)

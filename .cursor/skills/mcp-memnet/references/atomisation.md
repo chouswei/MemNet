@@ -18,7 +18,7 @@ Good: `MOD` + several `SYM` + edges linking task -> modules -> symbols.
 ## Why it matters
 
 ```text
-pin_map(anchor=TSK_x, depth=2)
+pin_map(kind='TSK', locators=['id=TSK_x'], depth=2)
   -> LAW rows
   -> anchor node
   -> edge-linked neighbours up to depth

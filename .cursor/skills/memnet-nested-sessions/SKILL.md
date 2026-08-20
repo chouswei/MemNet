@@ -8,7 +8,7 @@ description: >-
   catalog, session strata, already-built interior, parallel interiors.
 metadata:
   pattern: pipeline
-  version: "1.0"
+  version: "1.1"
   domain: memnet
   product: "0.19.0"
 ---

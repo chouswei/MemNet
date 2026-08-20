@@ -76,6 +76,6 @@ Same id — **update**, not add.
 
 ## Pair with goldfish loop
 
-Each turn: **pin map** first (includes user constraints) → act → **`add`/`update`** if the user said something new that must persist.
+Each turn: **pin_map** first → act → **`mutate`** if the user said something that must persist.
 
 Cross-ref: [atomisation.md](atomisation.md) · [coding-memory.md](coding-memory.md) · [mcp-policy.md](mcp-policy.md)

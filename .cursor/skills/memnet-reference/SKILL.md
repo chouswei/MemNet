@@ -10,7 +10,7 @@ description: >-
   or `memnet-multitask`.
 metadata:
   pattern: pipeline
-  version: "2.0"
+  version: "2.1"
   domain: memnet
   product: "0.19.0"
 ---
@@ -92,9 +92,11 @@ Formal wire: `docs/grammar/gql-wire-profile.md`. As-is harness notes: `docs/gram
 
 ## Development checks
 
-```powershell
-pip install -e ".[dev]"
-pytest tests/
+```bash
+source .venv/bin/activate
+pip install -e ".[dev,mcp]"
+pytest
+ruff check parts/common/memnet parts/memnet-mcp/software tests
 ```
 
 Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysML verify trail for Multitask: MN-REQ-12 in `sysml-models/models/requirements.sysml`, MN-VER-12 in `sysml-models/models/verify.sysml`.
@@ -121,7 +123,8 @@ Grammar fixtures: `docs/grammar/tools/tier_a.py`, `docs/grammar/examples/`. SysM
 | `.cursor/skills/sysml-memnet-cache/` | In-repo SysML cache defer (cloud VM copy) |
 | `.cursor/skills/sysml-memnet-documentation/` | In-repo snap / read policy (cloud VM copy) |
 | `.cursor/skills/sysml-gql/` | In-repo SysML GQL bridge (cloud VM copy) |
-| `.cursor/skills/memnet-use/` | How to **use** MemNet (agent reference hub) |
+| `.cursor/skills/memnet-use/` | How to **use** MemNet (hub) |
+| `.cursor/skills/memnet-nested-sessions/` | Nested sessions / look loop |
 | `.cursor/skills/mcp-memnet/` | Using MemNet via MCP |
 | `.cursor/skills/memnet-format/` | GQL / shaped pin_map |
 | `.cursor/skills/memnet-multitask/` | Multitask application doctrine |

@@ -17,7 +17,7 @@ This is the **in-repo** MemNet stack only. The full personal pack graph stays in
 |--------|--------|
 | **How to use MemNet** (goldfish, pin_map, mutate) | `memnet-use` |
 | Nested sessions / look loop / already-built interior | `memnet-nested-sessions` |
-| MCP tools, session, ingest | `mcp-memnet` |
+| MCP tools, ingest, `snap_model`, export | `mcp-memnet` |
 | GQL wire / shaped pin_map | `memnet-format` |
 | Multitask / Task workers / shared session | `memnet-multitask` |
 | Code MOD/SYM snap | `memnet-codebase-snap` |

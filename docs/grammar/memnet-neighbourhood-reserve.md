@@ -76,7 +76,7 @@ pin_map(session, anchor, depth, ...)   # primary read; includes ## Reserves when
 
 CLI mirror: `memnet reserve --anchor ATO_R1 --depth 2 --llm-id coder_a --ttl 120`.
 
-Mutate (`add` / `update`) must pass the same `llm_id` as the holder when touching reserved ids.
+Mutate (`mutate`; leftover `add` / `update` façades) must pass the same `llm_id` as the holder when touching reserved ids.
 
 ### Errors (agent-facing text — not new `@TAG` pipe)
 

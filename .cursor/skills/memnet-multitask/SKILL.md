@@ -10,7 +10,7 @@ description: >-
   TSK_* settle, TCP serve, streamable-http MCP, GQL wire, shaped pin_map.
 metadata:
   pattern: pipeline
-  version: "2.0"
+  version: "2.1"
   domain: memnet
   product: memnet-llm==0.19.0
 ---
@@ -50,10 +50,10 @@ Set `MEMNET_MCP_TRANSPORT=tcp` on the shared HTTP MCP (or use TCP CLI). Probe wi
 - `session_open` / `session_load` **one** mission `session` id; pass it in every worker prompt.
 - Mint and own **`TSK_*`** / **`USR_*`**: `status=active` -> `status=settled`; optional `led_to_success` edges. Prefer **one live `TSK`** (0.5 V5).
 - Self-contained worker prompts: session id, anchor ids, write scope (subgraph or relation types), return shape, **`llm_id`**.
-- **`reserve`** overlapping neighbourhoods before parallel mutate (shipped RSV); pass matching `llm_id` on worker `add`/`update`.
+- **`reserve`** overlapping neighbourhoods before parallel mutate (shipped RSV); pass matching `llm_id` on worker **`mutate`**.
 - **End the turn** after background spawn -- no poll, no await.
 - Next coordinator turn: **`pin_map` first** (cue / `find` if ego lost); act from refreshed slice -- do not redo worker investigation from chat.
-- Prefer **one worker** per coherent workstream; parallel only with **disjoint** anchors (or RSV) or **separate** session ids.
+- Prefer **one worker** per coherent workstream; parallel only when the **parent shell is already clear** and interiors are **disjoint** (or RSV) — [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md).
 
 ### MUST NOT
 
@@ -100,20 +100,23 @@ In downstream **`modelbasedPrj-*`** repos: adopt via doc pointer or thin local m
 
 Recommended order when both SysML and code change: **SysML worker first** (disjoint `MOD_*` under `sysml-models/`), then **code worker** (`parts/`, tests). Full pattern: MemNet `docs/application-notes/llm-system-dev-multitask.md`.
 
-Path-B external pins: **`ingest_sysml` / `ingest_codebase` / `ingest_pcba` / `ingest_skills`** (shipped) with deterministic locator ids -- **no** client NEW. Fallback: `session_open` `seed_lines` or explicit-id `add`. Ingest is **not** pin-map export.
+Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NEW). Catalog Snap: **`snap_model`**. Export: **`export_pin_map`**. Ingest is **not** export.
 
-## Shipped vs still design (0.9)
+## Shipped vs still design (package 0.19.0)
 
 | Capability | Status |
 |------------|--------|
-| Neighbourhood RSV (`reserve` / `extend` / `release`, `llm_id` + TTL) | **Shipped** -- MutateGate enforces holder |
-| Path-B ingest (SysML, codebase, PCBA, skills) | **Shipped** -- locator ids |
-| CapsPolicy ACL (grant / bind / enable) | **Shipped opt-in** -- off until `session_acl_enable` |
-| Live AgensGraph cabinet | **Claimed 0.7** when URL set -- not a hosted service |
-| Neo4j durable client (`memnet-llm[neo4j]`) | Extra **0.14** `liveNeo4jClaimed=true` (this repo) |
-| Session ACL modes (`private` / `shared` / `open`), roles, `session_token` | **Design** -- MemNet `docs/grammar/memnet-security-multi-agent.md` |
-| HostSearch / `rag_query` / Peak_L / N-server / pin-map export | **Later** -- not 0.9 / 1.0 gates |
-| Engine write-scope without RSV | Still last-write-wins if nobody reserved |
+| Neighbourhood RSV | **Shipped** |
+| Path-B ingest | **Shipped** |
+| CapsPolicy ACL | **Shipped opt-in** (`session_acl_enable`) |
+| Live AgensGraph | **Claimed 0.7** when URL set |
+| Neo4j live | **Claimed 0.14** |
+| HostSearch locators | Extra **0.17** (`RagHostHook`; no `rag_query`) |
+| Peak_L | Extra **0.18** (last-resort; not default goldfish) |
+| Pin-map export / catalog Snap | Extra **0.19** / **0.15** |
+| Session ACL modes / `session_token` | **Design** — `docs/grammar/memnet-security-multi-agent.md` |
+| N-server | **Research** #47 |
+| Write without RSV | Last-write-wins |
 
 ## Anti-patterns
 
@@ -123,7 +126,7 @@ Path-B external pins: **`ingest_sysml` / `ingest_codebase` / `ingest_pcba` / `in
 | In-process MCP under Multitask | Each process gets its own graph |
 | Parent polls or re-runs worker work | Token waste; violates turn boundary |
 | Worker mints duplicate `TSK_*` | Parent owns task lifecycle |
-| Teaching full ACL modes / HostSearch as available | Full ACL modes still design; HostSearch is extra **0.17** locators only |
+| Teaching full ACL modes / `rag_query` as available | Full ACL modes still design; HostSearch is locators only (**0.17**) |
 | Skipping RSV on overlapping parallel mutate | Last-write-wins |
 
 ## Related (user pack)
@@ -132,4 +135,5 @@ Path-B external pins: **`ingest_sysml` / `ingest_codebase` / `ingest_pcba` / `in
 |-------|------|
 | [mcp-memnet](../mcp-memnet/SKILL.md) | MCP tools, transport, session lifecycle |
 | [memnet-format](../memnet-format/SKILL.md) | MemNet GQL wire / shaped pin_map |
-| [sysml-memnet-documentation](../sysml-memnet-documentation/SKILL.md) | SysML design memory (single-agent; pair when SysML + Multitask) |
+| [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) | Look loop / nested `session=` |
+| [sysml-memnet-documentation](../sysml-memnet-documentation/SKILL.md) | SysML relatives (pair when SysML + Multitask) |

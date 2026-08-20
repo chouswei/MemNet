@@ -1,6 +1,6 @@
 # MemNet for article breakdown
 
-Use MemNet to **atomise a long article** (paper, report, blog, spec, **instrument manual**) into a knowledge graph — one **claim/fact per row**, sections as nodes, **pin map** (`query_warm`) to load only the slice you need for summarising, comparing, or writing derived content.
+Use MemNet to **atomise a long article** into a knowledge graph — one claim per node, **`pin_map`** to load only the slice you need.
 
 **Do not** store the full article text in the graph. Store **structure + atomic claims** (codes/keys). Prose summaries are generated in the agent turn from pin-map atoms.
 
@@ -80,7 +80,7 @@ EDG: id|from|rel|to|note|recycle
 + CLM [C02] ; sec=S01 ; type=method ; code=pin map anchored read ; recycle=persistent
 + CLM [C03] ; sec=S02 ; type=fact ; code=GQL wire not pipe ; recycle=persistent
 + CLM [C04] ; sec=S02 ; type=fact ; code=atomisation required ; recycle=persistent
-+ ENT [E01] ; name=query_warm ; kind=concept ; code=pin_map_alias ; recycle=persistent
++ ENT [E01] ; name=pin_map ; kind=concept ; code=primary_read ; recycle=persistent
 + ENT [E02] ; name=EDG ; kind=concept ; code=graph_edge ; recycle=persistent
 
 ## Edges

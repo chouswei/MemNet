@@ -10,7 +10,7 @@ Hub: [`memnet-use/`](memnet-use/SKILL.md). Then one specialist:
 
 | Skill | Role |
 |-------|------|
-| `mcp-memnet/` | MCP tools, session, `pin_map`, ingest |
+| `mcp-memnet/` | MCP: `pin_map`, `mutate`, ingest, `snap_model`, export |
 | `memnet-format/` | GQL / shaped `pin_map` wire |
 | `memnet-nested-sessions/` | Nested sessions, look loop, already-built `session=` |
 | `memnet-multitask/` | Multitask + shared TCP/HTTP |

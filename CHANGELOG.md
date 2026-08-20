@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Skills refactor (0.19 teach)** — Product loop is cue `pin_map` + **`mutate`**. leftover `add`/`update` / `id:'NEW'` / `anchor=` / `query_warm` named leftover. MCP map includes `snap_model`, `session_list`, `export_pin_map`; no `read_get`. SysML skills default to this repo’s `sysml-models/`; drop pack-only skill paths. Multitask shipped table matches extras 0.15–0.19. Codebase snap is generic (no firmware example as law). Index: [`.cursor/skills/README.md`](.cursor/skills/README.md). Do not claim **1.0**.
+
 ## [0.19.0] - 2026-08-20
 
 ### Changed

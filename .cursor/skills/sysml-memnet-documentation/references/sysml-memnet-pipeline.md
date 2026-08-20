@@ -2,7 +2,7 @@
 
 **Audience:** LLM agents. Structured state **between pipeline steps** uses MemNet **GQL / openCypher-shaped** wire when MemNet MCP is up -- not TOON/TRON in chat. Wire: [memnet-format](../../memnet-format/SKILL.md), [mcp-memnet](../../mcp-memnet/SKILL.md). Thin SysML bridge: [sysml-gql](../../sysml-gql/SKILL.md).
 
-Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn), [memnet-report-pipeline.md](../../system-design-report-generator/references/memnet-report-pipeline.md).
+Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn).
 
 ---
 
@@ -10,7 +10,7 @@ Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn), [memnet-re
 
 | Situation | Format | Where it lives |
 |-----------|--------|----------------|
-| **SysML modeling turn** (steps 1-6) | openCypher-shaped mutate; step `code` = `sN:payload` | `add` / `update` each step |
+| **SysML modeling turn** (steps 1-6) | openCypher-shaped mutate; step `code` = `sN:payload` | `mutate` each step |
 | **Report generate/maintain** (G/M steps) | Same + ART/SEC when prose settles | Server graph |
 | **Skill routing** (`order[]`, picks) | Task + claim atoms + `led_to_success` edges | Server graph |
 | **Serve down** | Plain Markdown tables or short prose | Ephemeral -- not durable |
@@ -25,10 +25,10 @@ Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn), [memnet-re
 Mutate after each step (or batch s1-s2, then s3, then s4-s6). Pin map is the shaped present; mutate keeps ops.
 
 ```cypher
-CREATE (t:TSK {id: 'NEW', goal: $goal, phase: 'turn', status: 'in_progress', recycle: 'delete_on_settle'})
-CREATE (c1:CLM {id: 'NEW', type: 'decision', code: 's1:up', recycle: 'delete_on_settle'})
-CREATE (c2:CLM {id: 'NEW', type: 'decision', code: 's2:hit', recycle: 'delete_on_settle'})
-CREATE (t)-[:CHILDOF {id: 'NEW', note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
+CREATE (t:TSK {goal: $goal, phase: 'turn', status: 'in_progress', recycle: 'delete_on_settle'})
+CREATE (c1:CLM {type: 'decision', code: 's1:up', recycle: 'delete_on_settle'})
+CREATE (c2:CLM {type: 'decision', code: 's2:hit', recycle: 'delete_on_settle'})
+CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
 ```
 
 Copy assigned ids from the pin map / mutate response. Settle with:
@@ -59,23 +59,23 @@ MATCH (t:TSK {id: $tid}) SET t.status = 'settled'
 ### Six-step template
 
 ```cypher
-CREATE (t:TSK {id: 'NEW', goal: $goal, phase: 'turn', status: 'in_progress', recycle: 'delete_on_settle'})
-CREATE (c1:CLM {id: 'NEW', type: 'decision', code: 's1:up', recycle: 'delete_on_settle'})
-CREATE (c2:CLM {id: 'NEW', type: 'decision', code: 's2:hit', recycle: 'delete_on_settle'})
-CREATE (c3:CLM {id: 'NEW', type: 'decision', code: 's3:SYM_<symbol>', recycle: 'delete_on_settle'})
-CREATE (c4:CLM {id: 'NEW', type: 'decision', code: 's4:pass', recycle: 'delete_on_settle'})
-CREATE (c5:CLM {id: 'NEW', type: 'decision', code: 's5:sync:done', recycle: 'delete_on_settle'})
-CREATE (c6:CLM {id: 'NEW', type: 'decision', code: 's6:24rows', recycle: 'delete_on_settle'})
-CREATE (t)-[:CHILDOF {id: 'NEW', note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
+CREATE (t:TSK {goal: $goal, phase: 'turn', status: 'in_progress', recycle: 'delete_on_settle'})
+CREATE (c1:CLM {type: 'decision', code: 's1:up', recycle: 'delete_on_settle'})
+CREATE (c2:CLM {type: 'decision', code: 's2:hit', recycle: 'delete_on_settle'})
+CREATE (c3:CLM {type: 'decision', code: 's3:SYM_<symbol>', recycle: 'delete_on_settle'})
+CREATE (c4:CLM {type: 'decision', code: 's4:pass', recycle: 'delete_on_settle'})
+CREATE (c5:CLM {type: 'decision', code: 's5:sync:done', recycle: 'delete_on_settle'})
+CREATE (c6:CLM {type: 'decision', code: 's6:24rows', recycle: 'delete_on_settle'})
+CREATE (t)-[:CHILDOF {note: 'turn', recycle: 'delete_on_settle'}]->(:TSK {id: $modelTid})
 ```
 
 ### Router / skill pick
 
 ```cypher
-CREATE (t:TSK {id: 'NEW', goal: $intent, phase: 'route', status: 'in_progress', recycle: 'delete_on_settle'})
-CREATE (c1:CLM {id: 'NEW', type: 'decision', code: 'pick:sysml-modeling-workflow', recycle: 'delete_on_settle'})
-CREATE (c2:CLM {id: 'NEW', type: 'decision', code: 'pick:sysml-memnet-documentation', recycle: 'delete_on_settle'})
-CREATE (t)-[:LED_TO_SUCCESS {id: 'NEW', note: 'pass', recycle: 'persistent'}]->(:SKL {id: 'sysml-modeling-workflow'})
+CREATE (t:TSK {goal: $intent, phase: 'route', status: 'in_progress', recycle: 'delete_on_settle'})
+CREATE (c1:CLM {type: 'decision', code: 'pick:sysml-modeling-workflow', recycle: 'delete_on_settle'})
+CREATE (c2:CLM {type: 'decision', code: 'pick:sysml-memnet-documentation', recycle: 'delete_on_settle'})
+CREATE (t)-[:LED_TO_SUCCESS {note: 'pass', recycle: 'persistent'}]->(:SKL {id: 'sysml-modeling-workflow'})
 ```
 
 Phase-4 learning: `led_to_success` edges are **`persistent`**; route task is **`delete_on_settle`**.
@@ -92,10 +92,10 @@ Parent: `TSK_model_<short>` or `TSK_report_<short>` (`phase=report`, `delete_on_
 | Maintain | M1-M5 | `M1:warm` … `M5:clm_delta` |
 
 ```cypher
-CREATE (t:TSK {id: 'NEW', goal: 'Sync relay section', phase: 'report', status: 'in_progress', recycle: 'delete_on_settle'})
-CREATE (c1:CLM {id: 'NEW', type: 'decision', code: 'M1:warm', recycle: 'delete_on_settle'})
-CREATE (c2:CLM {id: 'NEW', type: 'decision', code: 'M2:sec_S05-relay', recycle: 'delete_on_settle'})
-CREATE (c3:CLM {id: 'NEW', type: 'decision', code: 'M5:8clm', recycle: 'delete_on_settle'})
+CREATE (t:TSK {goal: 'Sync relay section', phase: 'report', status: 'in_progress', recycle: 'delete_on_settle'})
+CREATE (c1:CLM {type: 'decision', code: 'M1:warm', recycle: 'delete_on_settle'})
+CREATE (c2:CLM {type: 'decision', code: 'M2:sec_S05-relay', recycle: 'delete_on_settle'})
+CREATE (c3:CLM {type: 'decision', code: 'M5:8clm', recycle: 'delete_on_settle'})
 ```
 
 Link report atoms with edges (`mentions` -> CON/PRT) in the same batch as model delta.

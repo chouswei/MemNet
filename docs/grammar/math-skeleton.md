@@ -34,7 +34,7 @@ Goldfish APIs are **two**: \(\mathrm{Recall}(q)\) and \(\mathrm{Commit}(\Delta)\
 | Verb | Domain | Maps | Goldfish? |
 |------|--------|------|-----------|
 | **Recall** | One \(S\) | \(q \mapsto \tilde{X}\) (`pin_map`; `find` is seed-only then Shape) | **Yes** (read) |
-| **Commit** | One \(S\) | \(\Delta \mapsto S'\) (`add` / `update` / ingest into current session) | **Yes** (write) |
+| **Commit** | One \(S\) | \(\Delta \mapsto S'\) (`mutate` / ingest into current session; leftover `add`/`update` named leftover) | **Yes** (write) |
 | **Absorb** | Member **slice** \(\to\) lead | Path-B `import_slice` + `id_policy` keep / reject / remint | **Join**, not goldfish writeback |
 | **Host Snap** | Corpus / library | Retrieve \(\to\) locators; Commit locators into some \(S\) | **Outside** engine |
 | **hydrate / flush** | Cabinet \(\leftrightarrow\) one named \(S\) | Persist / restore | **Zero** LLM tokens; not Recall |

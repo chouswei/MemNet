@@ -232,8 +232,8 @@ Once steps 1–5 in §1.6 pass, lease-centric rules apply (unchanged intent from
 | `pin_map` / `read_*` | Allowed; reserved ids read-only for non-holders |
 | `reserve` | Non-empty `llm_id`; reject foreign overlap (`reserve_conflict`) |
 | `extend` / `release` | Caller `llm_id` == holder; **no force in MVP** |
-| `add` / `update` on free ids | Allowed when no foreign lease covers the id |
-| `add` / `update` on reserved ids | Holder + unexpired lease; else `reserved` |
+| `mutate` on free ids | Allowed when no foreign lease covers the id |
+| `mutate` on reserved ids | Holder + unexpired lease; else `reserved` |
 | Re-id / merge | Same mutate gate; merge needs both ends free or same holder |
 
 `reader` stops at pin_map/read — never reaches reserve success.
