@@ -1,5 +1,5 @@
-# Shared-dialect session map for session_open --map-file (SCHEMA lines).
-# Pair with workflow.rto-remote.example.txt (machine SCPI seed; legacy @TAG pipe still accepted on mutate).
+# Session map for session_open --map-file (SCHEMA lines).
+# Pair with workflow.rto-remote.example.txt (machine SCPI seed; leftover @TAG pipe import-once).
 SCHEMA CFG ; fields=id corpus anchor version notes
 SCHEMA ART ; fields=id title source kind status recycle
 SCHEMA SEC ; fields=id art heading numbering parent order status recycle

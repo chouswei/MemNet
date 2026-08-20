@@ -28,9 +28,10 @@ memnet serve --ipc
 
 # Terminal 2 (same MEMNET_IPC_SOCKET)
 memnet session open --map-file parts/common/memnet/memnet/examples/schema.example.txt
+# demo-world map for tests; warehouse GQL below is illustrative (not that world's field list)
 # stderr prints MEMNET_SESSION=mn_… — pass it as --session (serve proxies argv, not your shell env)
 
-memnet add --session mn_… --stdin <<'EOF'
+memnet mutate --session mn_… --stdin <<'EOF'
 CREATE (t:TSK {goal:'Clear warehouse', status:'in_progress'})
 CREATE (n:NPC {role:'helper', status:'active'})
 MATCH (n:NPC {role:'helper'}), (t:TSK {goal:'Clear warehouse'})

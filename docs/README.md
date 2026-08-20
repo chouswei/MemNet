@@ -60,6 +60,6 @@ Downstream system development and domain patterns — MemNet as working memory.
 | [`application-notes/llm-daily-news.md`](application-notes/llm-daily-news.md) | Batch RSS digest |
 | [`application-notes/llm-mud.md`](application-notes/llm-mud.md) | Multiplayer MUD |
 | [`application-notes/`](application-notes/) | Application-notes index |
-| [`application-notes/examples/`](application-notes/examples/) | Worked examples (GQL case study + historical seeds) |
+| [`application-notes/examples/`](application-notes/examples/) | Worked examples (GQL case study + math SSOT) |
 
 **Multitask (application):** user-pack `~/.cursor/skills/memnet-multitask/`; [`application-notes/llm-system-dev-multitask.md`](application-notes/llm-system-dev-multitask.md); ops MUST from [`multi-agent-sessions.md`](multi-agent-sessions.md).

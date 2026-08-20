@@ -1,4 +1,4 @@
-# Shared-dialect session map for Path-B skills/rules ingest (MN-REQ-11.10–11.12).
+# Session map for Path-B skills/rules ingest (MN-REQ-11.10–11.12).
 # session_open --map-file schema.skills.example.txt
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
 SCHEMA SKL ; fields=id name skill_id phrase path recycle

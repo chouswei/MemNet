@@ -1,6 +1,6 @@
-# GQL seed for schema.example.txt (agent dialect: gated openCypher-shaped).
-# Stable ids kept for CLI/MCP integration tests (PLR01, N01, T01, LAW01…).
-# Live pin map emits shaped present lines; mutate uses CREATE / MATCH…SET / DELETE.
+# GQL seed for schema.example.txt (gated openCypher-shaped).
+# Stable leftover nicknames (PLR01, N01, T01, LAW01…) kept for CLI/MCP tests.
+# Product create is labels+properties; MATCH/SET by the same. Live pin_map emits shaped present.
 
 ## Laws
 CREATE (:LAW {id: 'LAW01', name: 'EDG', cycle: 'on_context', mechanism: 'hide', constraint: 'settled_edg_unless_anchor'})

@@ -7,7 +7,7 @@
 For **linear LTI** networks, the Laplace (**s**) domain is the **unifying analysis frame**: DC, steady-state sinusoid (phasor), and linear transient results are specialisations or inversions of the same \(V(s)\) / \(H(s)\) model. Prefer one s-domain atom set (`domain:'s'`); recover other views by evaluation or inverse Laplace.
 
 **Primary worked example (GQL wire):** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
-**Math derivation SSOT:** [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) (Layer encoding in that file is **retired** for wire teach).
+**Math derivation SSOT:** [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
 
 Complements:
 
@@ -225,7 +225,7 @@ Same physical device may appear in both: `CST_U1` for analysis; SysML part usage
 
 ## 10. Retired Layer / Tier A (archive only)
 
-Layer ASCII, CMP/PIN/NET, and Tier A paren arrows are **not** product accept or teach. Quarantine: [`../grammar/archive/`](../grammar/archive/). Math + retired Layer seed: [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
+Layer ASCII, CMP/PIN/NET, and Tier A paren arrows are **not** product accept or teach. Quarantine: [`../grammar/archive/`](../grammar/archive/). Math SSOT: [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md).
 
 ---
 
@@ -234,7 +234,7 @@ Layer ASCII, CMP/PIN/NET, and Tier A paren arrows are **not** product accept or 
 | Path | Role |
 |------|------|
 | [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | **Primary** GQL InvAmp teach |
-| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT + retired Layer encoding |
+| [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | Math SSOT |
 | [`llm-nodal-analysis-formulas.md`](llm-nodal-analysis-formulas.md) | Ohm / KCL GQL patterns |
 | [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) | GQL wire SSOT |
 | [`../LLM-GUIDE.md`](../LLM-GUIDE.md) | Goldfish loop |

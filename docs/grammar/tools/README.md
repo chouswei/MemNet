@@ -1,6 +1,6 @@
 # Shared-dialect grammar tools (as-is harness)
 
-Package / file names keep `tier_a` for **as-is engine harness** continuity until **M2**.  
+Package / file names keep `tier_a` for **as-is engine harness** continuity (M2 shipped; this path is rejected on product mutate).  
 **Agent teach = GQL only:** [`../gql-wire-profile.md`](../gql-wire-profile.md). Do **not** teach Tier A / Layer as wire.
 
 | Path | Role |

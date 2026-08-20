@@ -1,6 +1,7 @@
-# Shared-dialect session map for session_open --map-file (SCHEMA lines).
-# Used by CLI quick start, tests (schema_file fixture), and memnet examples map.
+# Session map for session_open --map-file (SCHEMA lines).
+# Demo world for CLI tests + memnet examples map — not the README warehouse sketch.
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
+# leftover @TAG pipe maps still load; agent mutate is GQL.
 SCHEMA CFG ; fields=id world economy identity core_ability crisis
 SCHEMA SYS ; fields=id round time deficit revenue chaos exchange_rate
 SCHEMA PLR ; fields=id identity wealth cashflow monopoly reputation inventory
