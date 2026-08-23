@@ -152,7 +152,7 @@ One concern per **`b`** (usage-method revision). Dependency order. **In package 
 
 **After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). N-server session pipe stays research (no cut; [#47](https://github.com/chouswei/MemNet/issues/47)).
 
-**Not a `memnet-llm` `b`:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS; **pure efficiency / speed on the current goldfish loop** (that is **`0.19.c`**). Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
+**Not a `memnet-llm` `b`:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS; **pure efficiency / speed on the current goldfish loop** (that is **`0.19.c`**). Gap plan (unshipped): [`extras/memnet-efficiency-gap.md`](extras/memnet-efficiency-gap.md). Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
 
 **0.10 MUST NOT** wait on 0.14. **0.11 MUST NOT** wait on HostSearch. **0.14 MUST NOT** happen before 0.10. Parallel only when the Depends-on cell is already shipped.
 
