@@ -2,10 +2,13 @@
 
 All notable changes to MemNet will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This project uses Semantic Versioning as **interpreted for MemNet**: package `a.b.c` means claim / usage-method revision / same-method cut. Law and SSOT: [`docs/ROADMAP.md`](docs/ROADMAP.md). That is not a silent switch to npm-strict major=breaking for 0.x extras.
 
 ## [Unreleased]
+
+### Changed
+- **`a.b.c` law** — ROADMAP locks how `memnet-llm` reads SemVer (`a` = claim/generation, `b` = usage-method revision, `c` = same-method cut). Package **0.19.3** unchanged; extras **0.10–0.19** unchanged; no 0.20 extra; efficiency stays a `c` unless usage changes. **1.0** stays unclaimed.
 
 ## [0.19.3] - 2026-08-20
 

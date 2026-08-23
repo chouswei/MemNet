@@ -1,15 +1,55 @@
 # MemNet roadmap
 
-**Status:** SemVer SSOT (claimed vs planned vs Later).
+**Status:** SemVer SSOT (claimed vs planned vs Later). Package `memnet-llm` uses locked **`a.b.c`** below.
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). British English.
 
-**Package now:** Hatch **0.19.3**. Numbered extras **0.10–0.19** are in this package (unchanged). Git tag `v0.19.3` after this cut. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. Last published PyPI **`memnet-llm==0.19.0`** until 0.19.3 upload. **1.0** is still unclaimed (0.5–0.8).
+**Package now:** Hatch **0.19.3**. Numbered extras **0.10–0.19** are in this package (unchanged). PyPI **`memnet-llm==0.19.3`** is published. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-08-20 (package **0.19.3**; default `max_sessions` **1024**; MCP `session_close` + list `sessions|n/max`; extras **0.10–0.19** unchanged; last PyPI wheel **0.19.0** until upload; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**).
+**Last updated:** 2026-08-23 (`a.b.c` law locked; package **0.19.3** unchanged; extras **0.10–0.19** unchanged; PyPI **0.19.3**; default `max_sessions` **1024**; MCP `session_close` + list `sessions|n/max`; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**; do not invent a **0.20** extra).
 
-Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md).
+Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md). CHANGELOG still follows Keep a Changelog. This file is how MemNet **interprets** SemVer — not a silent switch to npm-strict major=breaking for 0.x extras.
 
+---
+
+## `a.b.c` (law)
+
+Package **`memnet-llm`** uses **`a.b.c`**. Coordinator lock 2026-08-23. This is law, not a suggestion.
+
+### `a` — claim / generation
+
+- **`0`** = **1.0** is unclaimed.
+- **`1`** = coordinator claim of **0.5 + 0.6 + 0.7 + 0.8** (goldfish, honesty, live Agens, GQL teach). Not GraphRAG. Not a new engine. Not cabinet-only.
+- **`a` moves only if the product contract breaks:** two operators (Recall = `pin_map` / Commit = `mutate`), GraphElement identity, GQL-only wire.
+- Do **not** bump `a` for extras, efficiency, N-server, or a new cabinet adapter.
+
+### `b` — revision (usage method)
+
+Feature changes that change **how an agent uses MemNet**. `b` moves **only** when the usage method changes: a new required loop step, a new tool they must learn as product, a cue / outline / identity law change, a new goldfish verb.
+
+Historical **0.10–0.19** extras were this (identity, outline, SameThingAbsorb, caller, live Neo4j, catalog Snap, two namespaces, HostSearch, Peak_L, pin-map export).
+
+**N-server ([#47](https://github.com/chouswei/MemNet/issues/47)) is not a `b`.** It stays Later research, unnumbered.
+
+One concern per `b`. Do **not** fuse two usage-method changes into one `b`. Skip a `b` only if the coordinator writes the skip in CHANGELOG.
+
+**`0.20` exists only if a later cut changes usage method.** Do **not** add a 0.20 extra row for efficiency.
+
+### `c` — cut on this revision
+
+Same usage method. Honesty, leftover naming, docs / skills, wheel / tag, caps, façade, **faster same goldfish loop** (`cue → pin_map → mutate` with no new agent step).
+
+**0.19.1–0.19.3** were this (`session_close` + `sessions|n/max` + cap 1024 shipped as `c` because the loop stayed the same).
+
+Pure efficiency / speed on the current loop is **`0.19.c`**, not `0.20`.
+
+### Consequences
+
+- Package stays **0.19.3** until a later cut. Extras **0.10–0.19** stay the owns table below. **1.0** stays unclaimed.
+- **1.0 does not wait** on 0.19.c, efficiency, HostSearch, Peak_L, catalog Snap, N-server, or GraphGlot.
+- A new cabinet adapter does **not** move `a`. Hosted Agens as a product service, first-class `PORT`, and full ACL modes / `session_token` stay Later / unnumbered until a cut exists.
+
+---
 
 ## One picture
 
@@ -59,13 +99,13 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 | **0.7.0** | Live AgensGraph hydrate/flush; `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` | **Shipped** (`v0.7.0`) |
 | **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
 | **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md). Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
-| **0.10–0.19** | Numbered extras (table below). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.3**; extras first shipped as 0.19.0) |
-| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine | **Claim when coordinator tags** — package **0.19.3** / last PyPI **0.19.0** does not claim 1.0 |
-| **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns | **Out** of 1.0 |
+| **0.10–0.19** | Numbered extras (table below). Each row is one `b` (usage-method revision). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.3**; extras first shipped as 0.19.0) |
+| **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine. This is `a=1` | **Claim when coordinator tags** — package / PyPI **0.19.3** does not claim 1.0 |
+| **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns (`b` after the claim) | **Out** of 1.0 |
 
-**1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras. Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
+**1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras (`b` on `a=0`). Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
 
-**1.0 MUST NOT** wait on 0.10+ — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not OpenHands/SWE-agent adoption, not GraphGlot, not N-server.
+**1.0 MUST NOT** wait on 0.10+ — not HostSearch, not live Neo4j, not Peak_L, not catalog Snap, not a second Neo4j database name, not OpenHands/SWE-agent adoption, not GraphGlot, not N-server, not 0.19.c, not efficiency on the current loop.
 
 **GraphGlot** ([#109](https://github.com/chouswei/MemNet/issues/109) @ 73a63c9b) is **shipped** as parse-front only. ProductGqlGate still runs after parse. Layer stays retired. HOLD is lifted (0.10 already shipped).
 
@@ -95,7 +135,7 @@ Do **not** treat leftover 0.9 identity as a live-Neo4j claim. Do **not** claim *
 
 ## Numbered extras (0.10–0.19)
 
-One concern per minor. Dependency order. **In package 0.19.0** (git tag by coordinator). Skip a row only if the coordinator writes the skip in CHANGELOG; do not fuse two rows into one tag.
+One concern per **`b`** (usage-method revision). Dependency order. **In package 0.19.0** (git tag by coordinator). Skip a `b` only if the coordinator writes the skip in CHANGELOG; do not fuse two usage-method changes into one `b`. Cuts on the same method are **`c`** (0.19.1–0.19.3). There is **no** 0.20 extra row.
 
 | Version | Owns | Depends on | MUST NOT |
 |---------|------|------------|----------|
@@ -112,7 +152,7 @@ One concern per minor. Dependency order. **In package 0.19.0** (git tag by coord
 
 **After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). N-server session pipe stays research (no cut; [#47](https://github.com/chouswei/MemNet/issues/47)).
 
-**Not a `memnet-llm` minor:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS. Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
+**Not a `memnet-llm` `b`:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS; **pure efficiency / speed on the current goldfish loop** (that is **`0.19.c`**). Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
 
 **0.10 MUST NOT** wait on 0.14. **0.11 MUST NOT** wait on HostSearch. **0.14 MUST NOT** happen before 0.10. Parallel only when the Depends-on cell is already shipped.
 
@@ -136,7 +176,7 @@ Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** 
 | First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
 | Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled |
 | GraphGlot parse-front (#109 @ 73a63c9b) | **Shipped** as parse-front only on master. ProductGqlGate still runs after parse. Not a store. Layer stays retired. |
-| N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47)) | **Research** — no cut exists; **MUST NOT** treat the issue as a SemVer owns. Shared \(S\) across serve processes without Snap-on-session stays a research question. Not in 0.8; **1.0 MUST NOT** wait on it. |
+| N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47)) | **Research** — no cut exists; **not a `b`**; **MUST NOT** treat the issue as a SemVer owns. Shared \(S\) across serve processes without Snap-on-session stays a research question. Not in 0.8; **1.0 MUST NOT** wait on it. |
 
 ### Not this repo’s SemVer (harness leftovers)
 
