@@ -74,7 +74,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 
 **0.8.0** is this shape **taught for people** in-repo: this file, GQL-only playbook, application-note contract, Multitask honesty (RSV + Path-B ingest shipped; full ACL modes still to-be).
 
-**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map: [`ROADMAP.md`](ROADMAP.md). **Honest install:** current package is **0.19.3** (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**). Last published PyPI is **`memnet-llm==0.19.0`** until 0.19.3 is uploaded (`pip install memnet-llm` still resolves 0.19.0). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). **1.0** stays unclaimed.
+**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map and **`a.b.c` law:** [`ROADMAP.md`](ROADMAP.md). **Honest install:** current package is **0.19.3** (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**). PyPI **`memnet-llm==0.19.3`** is published. Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). **1.0** stays unclaimed.
 
 ---
 
