@@ -10,6 +10,7 @@ from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import Record, TagMap, new_hid
+from memnet.observable_rank import node_rank_key, ranked
 from memnet.output import emit_wrn
 
 _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
@@ -276,8 +277,7 @@ class MemStore:
                 continue
             if all(str(rec.fields.get(k, "")) == val for k, val in want.items()):
                 out.append(rec)
-        out.sort(key=lambda r: r.hid)
-        return out
+        return ranked(out, resolve=self.resolve_one)
 
     def get(self, record_id: str) -> Record | None:
         """Leftover engine lookup (nickname or hid). Not a product command."""
@@ -299,8 +299,7 @@ class MemStore:
             rows = [r for r in rows if not r.is_recyclable()]
         if where:
             rows = [r for r in rows if record_matches(r, where)]
-        rows.sort(key=lambda r: r.hid)
-        return rows
+        return ranked(rows, resolve=self.resolve_one)
 
     def _index_tag(self, rec: Record) -> None:
         self._by_tag.setdefault(rec.tag, set()).add(rec.hid)
@@ -339,10 +338,8 @@ class MemStore:
     def _edge_records(self, edge_ids: set[str] | None) -> list[Record]:
         if not edge_ids:
             return []
-        return sorted(
-            (self._by_hid[eid] for eid in edge_ids if eid in self._by_hid),
-            key=lambda r: r.hid,
-        )
+        rows = [self._by_hid[eid] for eid in edge_ids if eid in self._by_hid]
+        return ranked(rows, resolve=self.resolve_one)
 
     def _edges_from(self, node_id: str) -> list[Record]:
         rec = self.resolve_one(node_id)
@@ -377,15 +374,15 @@ class MemStore:
             current, d = queue.popleft()
             if d >= depth:
                 continue
-            out_edges = self._edges_from(current)
+            out_edges = ranked(self._edges_from(current), resolve=self.resolve_one)
             if len(out_edges) > self.caps.max_fanout:
                 if fanout_warnings is not None:
                     fanout_warnings.append(
                         f"fanout_clamped|{current}|{len(out_edges)}/{self.caps.max_fanout}"
                     )
                 out_edges = out_edges[: self.caps.max_fanout]
-            in_edges = self._edges_to(current)
-            for edge in out_edges + in_edges:
+            in_edges = ranked(self._edges_to(current), resolve=self.resolve_one)
+            for edge in ranked(out_edges + in_edges, resolve=self.resolve_one):
                 if edge.hid in edge_seen:
                     continue
                 edge_seen.add(edge.hid)
@@ -398,9 +395,14 @@ class MemStore:
                     visited.add(endpoint)
                     node_results.append(self._by_hid[endpoint])
                     queue.append((endpoint, d + 1))
-        if node_id in self._by_hid and self._by_hid[node_id] not in node_results:
-            node_results.insert(0, self._by_hid[node_id])
-        return node_results + edge_results
+        if node_id in self._by_hid:
+            seed = self._by_hid[node_id]
+            others = ranked(
+                [r for r in node_results if r.hid != node_id],
+                resolve=self.resolve_one,
+            )
+            node_results = [seed] + others
+        return node_results + ranked(edge_results, resolve=self.resolve_one)
 
     def context_walk_hops(
         self,
@@ -424,11 +426,11 @@ class MemStore:
             current, d = queue.popleft()
             if d >= depth:
                 continue
-            out_edges = self._edges_from(current)
+            out_edges = ranked(self._edges_from(current), resolve=self.resolve_one)
             if len(out_edges) > self.caps.max_fanout:
                 out_edges = out_edges[: self.caps.max_fanout]
-            in_edges = self._edges_to(current)
-            for edge in out_edges + in_edges:
+            in_edges = ranked(self._edges_to(current), resolve=self.resolve_one)
+            for edge in ranked(out_edges + in_edges, resolve=self.resolve_one):
                 if active_only and edge.is_recyclable():
                     continue
                 if edge.hid in seen_edges:
@@ -454,7 +456,17 @@ class MemStore:
                         continue
                     visited.add(endpoint)
                     queue.append((endpoint, d + 1))
-        return sorted(hops, key=lambda t: (t[0], t[1], t[2]))
+        def _hop_key(t: tuple[str, str, str]) -> tuple:
+            src, rel, dst = t
+            src_rec = self._by_hid.get(src)
+            dst_rec = self._by_hid.get(dst)
+            return (
+                node_rank_key(src_rec) if src_rec is not None else ("", ()),
+                rel,
+                node_rank_key(dst_rec) if dst_rec is not None else ("", ()),
+            )
+
+        return sorted(hops, key=_hop_key)
 
     def find_path(self, source_id: str, target_id: str) -> list[Record]:
         src_rec = self.resolve_one(source_id)
@@ -587,13 +599,13 @@ class MemStore:
                 link_depth=link_depth,
                 active_only=active_only,
             )
-            return sorted(
+            return ranked(
                 (self._by_hid[i] for i in linked if i in self._by_hid),
-                key=lambda r: r.hid,
+                resolve=self.resolve_one,
             )
-        return sorted(
+        return ranked(
             (self._by_hid[i] for i in self._by_tag.get("LAW", set()) if i in self._by_hid),
-            key=lambda r: r.hid,
+            resolve=self.resolve_one,
         )
 
     def context_pack(
@@ -620,6 +632,13 @@ class MemStore:
             fallback = self.default_anchor()
             if fallback:
                 ids = [fallback]
+        ids = [
+            r.hid
+            for r in ranked(
+                (self._by_hid[i] for i in ids if i in self._by_hid),
+                resolve=self.resolve_one,
+            )
+        ]
         payload: list[Record] = []
         context_node_ids: set[str] = set()
         seen: set[str] = set()
@@ -641,9 +660,16 @@ class MemStore:
                 payload.append(rec)
                 if rec.kind == "node":
                     context_node_ids.add(rec.hid)
+        seed_set = set(ids)
         nodes = [r for r in payload if r.kind == "node"]
         edges = [r for r in payload if r.kind == "edge"]
-        combined = nodes + edges
+        seed_nodes = [r for r in nodes if r.hid in seed_set]
+        seed_nodes = ranked(seed_nodes, resolve=self.resolve_one)
+        other_nodes = ranked(
+            [r for r in nodes if r.hid not in seed_set],
+            resolve=self.resolve_one,
+        )
+        combined = seed_nodes + other_nodes + ranked(edges, resolve=self.resolve_one)
         if len(combined) > max_rows:
             combined = combined[:max_rows]
         if not active_only and stale_warnings is not None:

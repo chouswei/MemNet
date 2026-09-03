@@ -23,6 +23,12 @@ from memnet.config import (
 from memnet.exceptions import MemNetError
 from memnet.gql import emit_node_shaped
 from memnet.models import Record
+from memnet.observable_rank import (
+    node_rank_key,
+    ranked,
+    record_rank_key,
+    resolve_from_rows,
+)
 
 # Soft shell caps (docs/grammar — view budget).
 SHELL_MAX_NODES = 8
@@ -81,17 +87,24 @@ def apply_shell_soft_cap(
             nodes.append(rec)
 
     if anchor:
-        nodes = sorted(nodes, key=lambda r: (0 if r.hid == anchor or r.id == anchor else 1, r.hid))
+        nodes = sorted(
+            nodes,
+            key=lambda r: (
+                0 if r.hid == anchor or r.id == anchor else 1,
+                node_rank_key(r),
+            ),
+        )
     else:
-        nodes = sorted(nodes, key=lambda r: r.hid)
+        nodes = ranked(nodes)
     nodes = nodes[:max_nodes]
     kept = {r.hid for r in nodes}
+    resolve = resolve_from_rows(laws + nodes + edges)
 
-    def _edge_rank(e: Record) -> tuple[int, str]:
+    def _edge_rank(e: Record) -> tuple:
         src = e.fields.get("src", "")
         dist = e.fields.get("dist", "")
         both = int(src in kept) + int(dist in kept)
-        return (-both, e.hid)
+        return (-both, record_rank_key(e, resolve))
 
     filtered: list[Record] = []
     for e in sorted(edges, key=_edge_rank):
@@ -218,8 +231,9 @@ class PinMapComposer:
                 # MATCH_L listed Q; cardinality is the true hit count
                 pass
             if found.conflict:
-                text = emit_cue_conflict(found.seeds, cardinality=found.total, store=self.ss.store)
-                return found.seeds, text
+                seeds = ranked(found.seeds, resolve=self.ss.store.resolve_one)
+                text = emit_cue_conflict(seeds, cardinality=found.total, store=self.ss.store)
+                return seeds, text
             if not Q:
                 # Last-resort Peak_L: non-empty codebook miss, not empty-q outline.
                 from memnet.peak_l import peak_l
@@ -230,11 +244,13 @@ class PinMapComposer:
                     active_only=active_only,
                 )
                 if npeak > 1:
+                    peaks = ranked(peaks, resolve=self.ss.store.resolve_one)
                     text = emit_cue_conflict(peaks, cardinality=npeak, store=self.ss.store)
                     return peaks, text
                 if not peaks:
                     return [], ""
                 Q = list(peaks)
+            Q = ranked(Q, resolve=self.ss.store.resolve_one)
             seed_ids = [r.hid for r in Q]
         elif leftover_nicks:
             seen_h: set[str] = set()
@@ -251,6 +267,7 @@ class PinMapComposer:
                     Q.append(one)
             if not Q:
                 return [], ""
+            Q = ranked(Q, resolve=self.ss.store.resolve_one)
             seed_ids = [r.hid for r in Q]
         else:
             # Empty q: Recall census of S (0.11 outline). Ask the session, not a
@@ -297,8 +314,12 @@ class PinMapComposer:
                 edges.append(rec)
             else:
                 nodes.append(rec)
-        lines: list[str] = []
         store = self.ss.store
+        resolve = store.resolve_one
+        laws = ranked(laws, resolve=resolve)
+        nodes = ranked(nodes, resolve=resolve)
+        edges = ranked(edges, resolve=resolve)
+        lines: list[str] = []
         for r in laws:
             lines.append(record_to_gql_line(r, store=store))
         for r in nodes:
@@ -340,7 +361,7 @@ def compose_session_outline(
     for kind in kinds:
         if len(exemplars) >= total_cap:
             break
-        bucket = sorted(by_kind[kind], key=lambda r: (r.id, r.hid))
+        bucket = ranked(by_kind[kind], resolve=getattr(store, "resolve_one", None))
         room = min(per_kind, total_cap - len(exemplars))
         taken = bucket[:room]
         exemplars.extend(taken)
@@ -383,8 +404,10 @@ class FindResult:
 
 def emit_cue_conflict(seeds: list[Record], *, cardinality: int, store=None) -> str:
     """Shaped emit mark: Q listed, |Q| visible. Not a product command."""
+    resolve = store.resolve_one if store is not None and hasattr(store, "resolve_one") else None
+    ordered = ranked(seeds, resolve=resolve)
     lines = [f"## CueConflict |Q|={cardinality}"]
-    for rec in seeds:
+    for rec in ordered:
         lines.append(record_to_gql_line(rec, store=store))
     return "\n".join(lines) + ("\n" if lines else "")
 
@@ -419,7 +442,7 @@ def bounded_match_find(
         return any(needle in str(v).lower() for v in rec.fields.values())
 
     hits = [r for r in rows if _loc_ok(r) and _kw_ok(r)]
-    hits.sort(key=lambda r: r.hid)
+    hits = ranked(hits, resolve=getattr(store, "resolve_one", None))
     return FindResult(seeds=hits[:limit], total=len(hits))
 
 

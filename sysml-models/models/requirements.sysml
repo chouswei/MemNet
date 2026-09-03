@@ -18,6 +18,8 @@
                        LIMIT exemplars); leftover empty-seed skip not TARGET
     MN-REQ-04.10       Peak_L last-resort residual cue on codebook miss;
                        never default goldfish
+    MN-REQ-04.11       pin_map order is a function of Shape observables,
+                       not hid / nickname id / CREATE order (gauge)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -519,6 +521,29 @@ package MemNetRequirements {
           stays off the wire. operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.10";
+      }
+
+      requirement def MN_REQ_04_11_PinMapOrderFromObservables {
+        doc /*
+          Gauge honesty (0.19.c; not a usage-method b, not 0.20, not 1.0).
+          The emitted order of a live pin_map SHALL be a function of the
+          Recall Shape's observables: kind (primary label) plus the
+          remaining property payload. HiddenStoreHandle (Record.hid /
+          _elN / elementId-style) SHALL NOT be a ranking key, SHALL NOT
+          appear on the wire, and SHALL NOT decide BFS expansion, edge
+          emit, MATCH_L seed order, outline exemplars, Peak_L tie-break,
+          max_rows admission, fan-out clamp, or view=shell truncation.
+          Optional NicknameIdProperty id SHALL NOT be a ranking key
+          either — ranking by nickname is the same class of leak as
+          ranking by hid. Name / slug / locators are cue tokens, not
+          identity. CREATE order and physical write_order SHALL NOT
+          decide pin_map sequence. Still ONE Recall operator
+          (MN-REQ-13.1): Recall = pin_map, Commit = mutate. SHALL NOT
+          add rag_query, leftover add as product, Layer dialect, a third
+          operator, or raise M. Cue by codebook tokens (kind + locator
+          slug), never leftover id as the rank key.
+        */
+        attribute requirementId : String = "MN-REQ-04.11";
       }
     }
 
@@ -1508,6 +1533,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
   requirement peakLLastResortReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
+  requirement pinMapOrderFromObservablesReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -1727,6 +1754,7 @@ package MemNetRequirements {
     end #derive ::> cueMultiRootHonestReq;
     end #derive ::> sessionOutlineEmptyCueReq;
     end #derive ::> peakLLastResortReq;
+    end #derive ::> pinMapOrderFromObservablesReq;
   }
 
   #derivation connection deriveHardCapsLeaves {

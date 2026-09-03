@@ -19,6 +19,7 @@
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
 | **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
 | **No store key** | GraphElement is the identity. `CREATE ()` is legal; properties MAY be empty. MATCH/MERGE = labels + properties; edge = type + ends. **MUST NOT** invent an application store key. Optional `id` = nickname only. Hidden store handle stays in the store, off the wire — not a property, not a business key. Official BNF has no store-key production. |
+| **pin_map order** | Emitted `pin_map` sequence is a function of Shape observables (kind + remaining payload; edges: type + endpoint observables). Hid / `_elN` and nickname `id` are **not** ranking keys. CREATE order is not a ranking key. Hid stays off the emit. |
 | **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Those sources are **dropped** from `docs/` — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (optional nickname, depth, view budget) that wraps GQL internally and emits a shaped subgraph. Goldfish seeds from cue/pattern (`find`) first. |
