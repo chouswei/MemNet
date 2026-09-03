@@ -25,11 +25,7 @@ ResolveFn = Callable[[str], Record | None]
 def observable_payload(rec: Record) -> tuple[tuple[str, str], ...]:
     """Sorted (key, value) pairs that may appear on the shaped wire."""
     return tuple(
-        sorted(
-            (str(k), str(v))
-            for k, v in rec.fields.items()
-            if k not in RANK_EXCLUDE_KEYS
-        )
+        sorted((str(k), str(v)) for k, v in rec.fields.items() if k not in RANK_EXCLUDE_KEYS)
     )
 
 

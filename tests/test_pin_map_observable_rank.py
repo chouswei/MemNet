@@ -45,12 +45,9 @@ def _graph_stmts(nicks: dict[str, str]) -> list[str]:
         f"CREATE (:USR {{id: '{note}', slug: 'delta', topic: 'note', status: 'open'}})",
     ]
     edges = [
-        "MATCH (x {slug: 'bravo'}), (h {slug: 'alpha'})\n"
-        "CREATE (x)-[:member_of]->(h)",
-        "MATCH (x {slug: 'charlie'}), (h {slug: 'alpha'})\n"
-        "CREATE (x)-[:member_of]->(h)",
-        "MATCH (h {slug: 'alpha'}), (n {slug: 'delta'})\n"
-        "CREATE (h)-[:next]->(n)",
+        "MATCH (x {slug: 'bravo'}), (h {slug: 'alpha'})\nCREATE (x)-[:member_of]->(h)",
+        "MATCH (x {slug: 'charlie'}), (h {slug: 'alpha'})\nCREATE (x)-[:member_of]->(h)",
+        "MATCH (h {slug: 'alpha'}), (n {slug: 'delta'})\nCREATE (h)-[:next]->(n)",
     ]
     return nodes, edges
 
@@ -126,5 +123,7 @@ def test_find_seed_order_follows_observables_not_hid(memnet_temp):
         limit=10,
     )
     slugs = [r.fields.get("slug") for r in found.seeds]
-    assert slugs == sorted(slugs)
+    expected = [r.fields.get("slug") for r in ranked(found.seeds)]
+    assert slugs == expected
+    assert slugs == ["bravo", "charlie", "alpha"]
     assert "id" not in str(node_rank_key(found.seeds[0]))

@@ -456,6 +456,7 @@ class MemStore:
                         continue
                     visited.add(endpoint)
                     queue.append((endpoint, d + 1))
+
         def _hop_key(t: tuple[str, str, str]) -> tuple:
             src, rel, dst = t
             src_rec = self._by_hid.get(src)
