@@ -83,7 +83,7 @@ def test_second_client_pin_map_via_socket(ipc_serve, schema_file):
         path=sock,
     )
     assert pin_resp["exit_code"] == 0, pin_resp
-    assert "PLR50" in pin_resp["stdout"]
+    assert "identity: 'IpcShare'" in pin_resp["stdout"]
 
 
 def test_ipc_probe_false_when_down(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

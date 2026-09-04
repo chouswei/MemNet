@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.3.** **1.0** = 0.5–0.8 claimed (unclaimed). PyPI **`memnet-llm==0.19.3`**. SemVer `a.b.c`: [`ROADMAP.md`](ROADMAP.md).
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.4.** **1.0** = 0.5–0.8 claimed (unclaimed). Last PyPI **`memnet-llm==0.19.3`**. SemVer `a.b.c`: [`ROADMAP.md`](ROADMAP.md).
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire.
@@ -41,7 +41,7 @@ MATCH (t:TSK {goal:'Clear warehouse'}) SET t.status = 'settled', t.recycle = 'de
 
 After **CueConflict** (\(|Q|>1\) on find/`pin_map`), SameThingAbsorb is a **Commit rule** (not a third operator): `MATCH (a:TSK {goal:'alpha'}), (b:TSK {goal:'beta'}) SET a += b`. Two same-name nodes stay two until that Commit. ImportAbsorb does not entity-resolve.
 
-**Shaped `pin_map` out** (properties the node actually has; nickname `id` only if set):
+**Shaped `pin_map` out** (observable properties; nickname `id` stays off this emit):
 
 ```cypher
 (:TSK {goal:'Clear warehouse', status:'in_progress'})
@@ -52,8 +52,8 @@ After **CueConflict** (\(|Q|>1\) on find/`pin_map`), SameThingAbsorb is a **Comm
 Circuit / law-leaf sketch:
 
 ```cypher
-(:CST {id:'CST_R', R:50, ports:{a:{direc:'inout', V:'@va', I:'@ia'}, b:{direc:'inout', V:'@vb', I:'@ib'}}, law:'$@va-@vb=@ia*R$,$@ia=-@ib$'})
-(:CST {id:'CST_Src'})-[:bind {id:'E_1', fromPort:'p', toPort:'a', carries:'I'}]->(:CST {id:'CST_R'})
+(:CST {R:50, ports:{a:{direc:'inout', V:'@va', I:'@ia'}, b:{direc:'inout', V:'@vb', I:'@ib'}}, law:'$@va-@vb=@ia*R$,$@ia=-@ib$'})
+(:CST {name:'Src'})-[:bind {fromPort:'p', toPort:'a', carries:'I'}]->(:CST {R:50})
 ```
 
 - **Create:** `CREATE (:Kind {props})` — GraphElement identity; no required `id`. leftover `id:'NEW'` mint is leftover, not product.
@@ -66,7 +66,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 | Mode | When | Setup |
 |------|------|-------|
-| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. `pip install 'memnet-llm[mcp]'` (Hatch **0.19.3**; PyPI **0.19.3**). **No** `memnet serve` |
+| **MCP in-process** | Cursor / local agents (**primary**) | Register `memnet-mcp` in `.cursor/mcp.json`; extra `[mcp]`. `pip install 'memnet-llm[mcp]'` (Hatch **0.19.4**; last PyPI **0.19.3**). **No** `memnet serve` |
 | **CLI + serve** | Scripts, TCP shared process | Terminal 1: `memnet serve`; Terminal 2: CLI with `MEMNET_SESSION` |
 | **MCP streamable-http** | Remote shared graph | `memnet-mcp --transport streamable-http` on `:18766/mcp` |
 
@@ -125,7 +125,7 @@ Always pass the same `session` id across tools in one job.
 | **New element** | `CREATE` via `mutate` | leftover `add` | `id_exists` on leftover add |
 | **Change** | `MATCH…SET` via `mutate` | leftover `update` | `not_found` on leftover update |
 
-Copy ids from pin map output — never retype from memory. There is no upsert.
+Copy locators from `pin_map` (labels + observable properties) — never treat nickname `id` as identity. There is no upsert.
 
 ### IDs
 

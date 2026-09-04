@@ -19,7 +19,7 @@
 | **One dialect** | Agent teach and wire = **GQL (openCypher-shaped)** only. |
 | **Three GQL elements** | ISO/IEC 39075 names: **node** (synonym **vertex**), **edge** (synonym **relationship**), **property**. Labels name kinds; they are not a fourth element. Ports, law, `id`, locators are **property** values — not a fourth graph-element kind. |
 | **No store key** | GraphElement is the identity. `CREATE ()` is legal; properties MAY be empty. MATCH/MERGE = labels + properties; edge = type + ends. **MUST NOT** invent an application store key. Optional `id` = nickname only. Hidden store handle stays in the store, off the wire — not a property, not a business key. Official BNF has no store-key production. |
-| **pin_map order** | Emitted `pin_map` sequence is a function of Shape observables (kind + remaining payload; edges: type + endpoint observables). Hid / `_elN` and nickname `id` are **not** ranking keys. CREATE order is not a ranking key. Hid stays off the emit. |
+| **pin_map order** | Emitted `pin_map` sequence is a function of Shape observables (kind + remaining payload; edges: type + endpoint observables). Hid / `_elN` and nickname `id` are **not** ranking keys. CREATE order is not a ranking key. Hid stays off the emit. Nickname property `id` **MUST NOT** appear on `pin_map` emit (nodes or edges). Cue / find / `match_nickname` MAY still look up a nickname. |
 | **No Layer** | Do **not** teach, accept, or dual-path MemNet Layer / Tier A as agent wire. Those sources are **dropped** from `docs/` — not product doctrine. |
 | **Write = display (redefined)** | Primary agent read = **bounded shaped subgraph** in the same openCypher-family graph shapes used for mutate — not raw tabular `RETURN`. |
 | **Shaped-read option** | **B with A’s emit shape:** keep a `pin_map`-class tool (optional nickname, depth, view budget) that wraps GQL internally and emits a shaped subgraph. Goldfish seeds from cue/pattern (`find`) first. |
@@ -85,7 +85,7 @@ Runtime **MAY** compile the envelope to internal `MATCH` / path patterns. Agents
 
 **Caller (0.13).** Each generate packs **at most one** live `pin_map` (or empty-q outline). Drop prior map rows from the chat list. Sparse Commit Δ. Env blobs (test logs, screenshots) stay in the outer harness. `view=shell` is grain on a seed — **not** session outline (0.11). Empty cue is outline of \(S\) (kinds + LIMIT exemplars). leftover `--anchor` is not law. Pytest fail code: `stuffed_maps`. Sibling user-pack may absorb caller text; this repo owns the fail.
 
-**Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), neighbourhood-bounded and view-filtered. Emit **MAY** omit `{id:'…'}`.
+**Emit:** shaped subgraph (§5) — openCypher-family **node / edge / property** patterns (or equivalent structured graph), neighbourhood-bounded and view-filtered. Emit **MUST NOT** include nickname property `{id:'…'}` (hid already stays off). Cue by nickname remains a leftover/product cue, not identity.
 
 **Honesty:** SysML nests `BoundedMatchFind` beside `PinMapShapedRead` under `Recall` / `AgentShapedRead` (parent `RecallCommit`). Same Recall operator; seed rule is cue/pattern first, optional leftover nickname for a later walk. Find emits **hit nodes only** (`query find` / MCP `find`); then `pin_map` walks. Do **not** teach MATCH…RETURN as goldfish. Product math: [`math-skeleton.md`](math-skeleton.md). leftover `PinMapComposer.require_anchor` / `by_id` — leftoverIssue, not TARGET.
 
@@ -176,7 +176,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 | Grain | Rel type | Endpoints | Encoding (**locked for M1 → M2**) |
 |-------|----------|-----------|-----------------------------------|
 | **Bind** (ideal pipe / copper / continuity) | `:bind` | Port↔port | Rel properties **`fromPort`** / **`toPort`** (port names on the incident nodes). Optional `carries`. Nodes hold `ports` bags. |
-| **Relation** (chart / semantic) | Other types (`:about`, `:helps`, `:derives_result`, …) | Bare node↔node | **No** `fromPort`/`toPort`. Ends are nodes (optional nickname `id` if present). |
+| **Relation** (chart / semantic) | Other types (`:about`, `:helps`, `:derives_result`, …) | Bare node↔node | **No** `fromPort`/`toPort`. Ends are nodes (labels + observable properties). Nickname `id` stays off `pin_map` emit. |
 
 **MUST:**
 
@@ -199,7 +199,7 @@ GQL has one relationship primitive. MemNet preserves **two endpoint grains** via
 
 - Teach **GQL only** as the agent wire: **node** (vertex), **edge** (relationship), **property**. GraphElement is the identity; grammar has no store key. `CREATE ()` is legal.
 - Seed goldfish from cue/pattern (`find`); use **`pin_map`-class** walks (depth / view / max_rows). Nickname `anchor` is optional.
-- Emit **shaped subgraph** for primary agent read (same family as mutate). Emit **MAY** omit `{id:'…'}`.
+- Emit **shaped subgraph** for primary agent read (same family as mutate). `pin_map` **MUST NOT** emit nickname `{id:'…'}`.
 - Treat MATCH/MERGE as labels + properties (edge = type + ends), not a PK. Optional `id` = nickname. leftover_NEW_mint is leftover sugar.
 - Encode bind as `:bind` + `fromPort`/`toPort`; law on node.
 
@@ -239,16 +239,15 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 ```gql
 (:Label {goal:'…'})
 (:Label {goal:'…'})-[:TYPE {note:'…'}]->(:Label {status:'…'})
-(:Label {id:'TSK_optional_nickname', goal:'…'})
 ```
 
 **Rules:**
 
 - Include the seed neighbourhood and in-budget neighbours only (depth / view / max_rows).
-- **MAY** omit `{id:'…'}`. Prefer copyable property maps (law, ports, params, optional nickname) agents need for the next mutate.
+- **MUST NOT** emit nickname `{id:'…'}` on nodes or edges. Match the next mutate by labels + observable properties. Cue / find MAY still accept a nickname the agent already holds.
 - Hide recyclable / out-of-budget neighbours (MN-REQ-04).
 - Engine-law / control preamble rows **MAY** prepend when authorised — still not a binding table.
-- **0.9 leftover emit** still prints `id` because the store keys `by_id` — leftoverIssue, not TARGET.
+- Ranking already excludes nickname `id` from the rank key. This cut also drops it from the composed text.
 
 ### 5.3 Write = display (redefined)
 

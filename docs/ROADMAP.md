@@ -4,9 +4,9 @@
 
 **Audience:** product developers. Dialect teach = **GQL** ([`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md)). Product shape: [`SHAPE.md`](SHAPE.md). British English.
 
-**Package now:** Hatch **0.19.3**. Numbered extras **0.10–0.19** are in this package (unchanged). PyPI **`memnet-llm==0.19.3`** is published. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **1.0** is still unclaimed (0.5–0.8).
+**Package now:** Hatch **0.19.4**. Numbered extras **0.10–0.19** are in this package (unchanged). PyPI **`memnet-llm==0.19.3`** is the last published wheel until 0.19.4 upload. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-08-23 (`a.b.c` law locked; package **0.19.3** unchanged; extras **0.10–0.19** unchanged; PyPI **0.19.3**; default `max_sessions` **1024**; MCP `session_close` + list `sessions|n/max`; extras first packaged as **0.19.0**; GraphGlot parse front #109 @ 73a63c9b; extra **0.19** pin-map export #123 @ 2c460e7d; extra **0.18** Peak_L #128 @ dc464cd4; extra **0.17** HostSearch #129 @ 00e74dfb; extra **0.16** two namespaces #127 @ c32d4c52; extra **0.15** catalog Snap #124 @ 7767ed84; extra **0.14** live Neo4j claimed; do not claim **1.0**; do not invent a **0.20** extra).
+**Last updated:** 2026-09-04 (`a.b.c` law locked; package **0.19.4** honesty `c` — nickname `id` off `pin_map` emit; extras **0.10–0.19** unchanged; last PyPI **0.19.3** until upload; ranking honesty [#147](https://github.com/chouswei/MemNet/pull/147); do not claim **1.0**; do not invent a **0.20** extra).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md). CHANGELOG still follows Keep a Changelog. This file is how MemNet **interprets** SemVer — not a silent switch to npm-strict major=breaking for 0.x extras.
 
@@ -39,13 +39,13 @@ One concern per `b`. Do **not** fuse two usage-method changes into one `b`. Skip
 
 Same usage method. Honesty, leftover naming, docs / skills, wheel / tag, caps, façade, **faster same goldfish loop** (`cue → pin_map → mutate` with no new agent step).
 
-**0.19.1–0.19.3** were this (`session_close` + `sessions|n/max` + cap 1024 shipped as `c` because the loop stayed the same).
+**0.19.1–0.19.4** were this (`session_close` + `sessions|n/max` + cap 1024 + ranking + nickname-off-`pin_map` shipped as `c` because the loop stayed the same).
 
 Pure efficiency / speed on the current loop is **`0.19.c`**, not `0.20`.
 
 ### Consequences
 
-- Package stays **0.19.3** until a later cut. Extras **0.10–0.19** stay the owns table below. **1.0** stays unclaimed.
+- Package stays **0.19.4** until a later cut. Extras **0.10–0.19** stay the owns table below. **1.0** stays unclaimed.
 - **1.0 does not wait** on 0.19.c, efficiency, HostSearch, Peak_L, catalog Snap, N-server, or GraphGlot.
 - A new cabinet adapter does **not** move `a`. Hosted Agens as a product service, first-class `PORT`, and full ACL modes / `session_token` stay Later / unnumbered until a cut exists.
 
@@ -135,7 +135,7 @@ Do **not** treat leftover 0.9 identity as a live-Neo4j claim. Do **not** claim *
 
 ## Numbered extras (0.10–0.19)
 
-One concern per **`b`** (usage-method revision). Dependency order. **In package 0.19.0** (git tag by coordinator). Skip a `b` only if the coordinator writes the skip in CHANGELOG; do not fuse two usage-method changes into one `b`. Cuts on the same method are **`c`** (0.19.1–0.19.3). There is **no** 0.20 extra row.
+One concern per **`b`** (usage-method revision). Dependency order. **In package 0.19.0** (git tag by coordinator). Skip a `b` only if the coordinator writes the skip in CHANGELOG; do not fuse two usage-method changes into one `b`. Cuts on the same method are **`c`** (0.19.1–0.19.4). There is **no** 0.20 extra row.
 
 | Version | Owns | Depends on | MUST NOT |
 |---------|------|------------|----------|

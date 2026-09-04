@@ -106,6 +106,25 @@ def test_isomorphic_create_shuffle_same_pin_map_sequence(memnet_temp):
         assert seq == first
     label_sets = [frozenset(seq) for seq in sequences]
     assert len(set(label_sets)) == 1
+    assert len(set(raw_texts)) == 1
+    wire = raw_texts[0]
+    assert not re.search(r"(?:\{|,)\s*id\s*:", wire)
+    assert "TSK_hub_a" not in wire
+    assert "TSK_H" not in wire
+
+
+def test_pin_map_omits_nickname_id_property(memnet_temp):
+    ss = _build_session(
+        memnet_temp,
+        {"hub": "NICK_HUB", "a": "NICK_A", "b": "NICK_B", "note": "NICK_NOTE"},
+        node_order=(0, 1, 2, 3),
+        edge_order=(0, 1, 2),
+    )
+    text, _canon = _pin_map(ss)
+    assert "NICK_HUB" not in text
+    assert not re.search(r"(?:\{|,)\s*id\s*:", text)
+    assert "slug: 'alpha'" in text
+    assert ss.store.match_nickname("NICK_HUB")
 
 
 def test_find_seed_order_follows_observables_not_hid(memnet_temp):

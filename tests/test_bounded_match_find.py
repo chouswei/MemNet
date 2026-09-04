@@ -101,11 +101,11 @@ def test_find_locator_and_keyword(memnet_temp):
         ],
     )
     assert loc.exit_code == 0, loc.stderr
-    assert "MOD_z" in loc.stdout
+    assert "path: 'z.py'" in loc.stdout
     kw = runner.invoke(
         app,
         ["query", "find", "--keyword", "gamma", "--limit", "3", "--session", sid],
     )
     assert kw.exit_code == 0, kw.stderr
-    assert "TSK_c" in kw.stdout
-    assert "TSK_a" not in kw.stdout
+    assert "goal: 'gamma'" in kw.stdout
+    assert "goal: 'alpha'" not in kw.stdout

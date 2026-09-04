@@ -41,7 +41,8 @@ def test_run_memnet_add_and_warm(memnet_temp, schema_file):
         session=sid,
     )
     assert warm_resp.exit_code == 0
-    assert "PLR77" in warm_resp.stdout
+    assert "(:PLR" in warm_resp.stdout
+    assert "identity:" in warm_resp.stdout
 
 
 def test_serve_required_without_inline(monkeypatch):
@@ -147,7 +148,8 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     warm_raw = asyncio.run(pin_map(anchor="PLR55", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
     assert warm_payload["exit_code"] == 0
-    assert "PLR55" in warm_payload["stdout"]
+    assert "(:PLR" in warm_payload["stdout"]
+    assert "identity:" in warm_payload["stdout"]
     assert warm_payload["errors"] == []
 
     alias_raw = asyncio.run(query_warm(anchor="PLR55", depth=1, session=sid))
@@ -157,7 +159,7 @@ def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
     shell_raw = asyncio.run(pin_map(anchor="PLR55", depth=2, view="shell", session=sid))
     shell_payload = json.loads(shell_raw)
     assert shell_payload["exit_code"] == 0
-    assert "PLR55" in shell_payload["stdout"]
+    assert "(:PLR" in shell_payload["stdout"]
 
     bad_raw = asyncio.run(pin_map(anchor="PLR55", view="persons", session=sid))
     bad_payload = json.loads(bad_raw)
@@ -321,8 +323,8 @@ def test_session_open_seed_lines(memnet_temp, schema_file, monkeypatch):
     warm_raw = asyncio.run(pin_map(anchor="CFG01", depth=1, session=sid))
     warm_payload = json.loads(warm_raw)
     assert warm_payload["exit_code"] == 0
-    assert "CFG01" in warm_payload["stdout"]
-    assert "LAW01" in warm_payload["stdout"]
+    assert "daily_news" in warm_payload["stdout"] or "(:CFG" in warm_payload["stdout"]
+    assert "atomise" in warm_payload["stdout"] or "(:LAW" in warm_payload["stdout"]
 
 
 def test_mcp_session_list_header_and_close_decrements(memnet_temp, schema_file, monkeypatch):

@@ -111,8 +111,8 @@ def test_empty_cue_is_outline_regardless_of_view(memnet_temp):
     assert with_shell.exit_code == 0, with_shell.stderr
     assert "## outline" in with_shell.stdout
     assert "no_anchor" not in with_shell.stderr
-    assert "TSK_live" in with_shell.stdout
-    assert "MOD_x" in with_shell.stdout
+    assert "goal: 'work'" in with_shell.stdout
+    assert "path: 'src/x.py'" in with_shell.stdout
     assert "-[:" not in with_shell.stdout
     assert "owns" not in with_shell.stdout
     # view=shell is not the outline operator; empty q is.
@@ -140,9 +140,9 @@ def test_view_shell_is_grain_on_a_seed_not_session_outline(memnet_temp):
         anchor=None, view="shell", kind=None, locators=None, keyword=None
     )
     assert "## outline" in census_text
-    assert "TSK_live" in census_text
-    assert "MOD_unlinked" in census_text
-    assert "USR_one" in census_text
+    assert "goal: 'work'" in census_text
+    assert "path: 'src/y.py'" in census_text
+    assert "topic: 'size'" in census_text
     assert "-[:" not in census_text
     assert all(r.tag != "EDG" for r in census)
 
@@ -152,8 +152,8 @@ def test_view_shell_is_grain_on_a_seed_not_session_outline(memnet_temp):
         kind="TSK",
         locators=[("goal", "work")],
     )
-    assert "TSK_live" in text
-    assert "MOD_unlinked" not in text
-    assert "USR_one" not in text
+    assert "goal: 'work'" in text
+    assert "path: 'src/y.py'" not in text
+    assert "topic: 'size'" not in text
     kinds = {r.tag for r in rows if r.tag not in {"LAW", "EDG"}}
     assert kinds <= {"TSK"}

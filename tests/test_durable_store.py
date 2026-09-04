@@ -87,7 +87,7 @@ def test_hydrate_into_session_then_pin_map(memnet_temp):
     assert "COM_acme" in ids
     assert "TSK_mission_q3" in ids
     assert "CREATE" not in text  # shaped present form, not mutate
-    assert "COM_acme" in text
+    assert "name: 'Acme'" in text
     assert "ABOUT" in text
 
 

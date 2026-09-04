@@ -88,7 +88,7 @@ def test_pin_map_composer_unit(memnet_temp, schema_file):
     )
     text = PinMapComposer(ss).compose(anchor="PLR01", depth=1)[1]
     assert "(:PLR" in text
-    assert "PLR01" in text
+    assert "identity: 'Hero'" in text
     assert "CREATE" not in text
 
 

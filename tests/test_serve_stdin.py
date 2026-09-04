@@ -84,7 +84,7 @@ def test_send_command_stdin_add(memnet_serve, schema_file):
         port=port,
     )
     assert get_resp["exit_code"] == 0
-    assert "PLR99" in get_resp["stdout"]
+    assert "identity: 'Test'" in get_resp["stdout"]
 
 
 def test_send_command_stdin_update(memnet_serve, schema_file):

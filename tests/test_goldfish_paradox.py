@@ -42,15 +42,15 @@ def test_v1_isolated_tsk_hides_unlinked_mod(memnet_temp):
     )
     first = _pin(sid, "TSK_x")
     assert first.exit_code == 0, first.stderr
-    assert "TSK_x" in first.stdout
-    assert "MOD_y" not in first.stdout
+    assert "goal: 'solo'" in first.stdout
+    assert "src/y.py" not in first.stdout
     _add(
         sid,
         "MATCH (t {id: 'TSK_x'}), (m {id: 'MOD_y'})\nCREATE (t)-[:owns {id: 'NEW'}]->(m)\n",
     )
     second = _pin(sid, "TSK_x")
     assert second.exit_code == 0, second.stderr
-    assert "MOD_y" in second.stdout
+    assert "src/y.py" in second.stdout
 
 
 def test_v3_empty_read_list_then_empty_cue_outlines_s(memnet_temp):
@@ -84,7 +84,7 @@ def test_v4_sparse_owns_edge(memnet_temp):
     after = _pin(sid, "TSK_a")
     assert after.exit_code == 0, after.stderr
     assert "owns" in after.stdout
-    assert "MOD_a" in after.stdout
+    assert "src/a.py" in after.stdout
 
 
 def test_v6_two_same_nickname_stay_two(memnet_temp):
@@ -132,10 +132,11 @@ def test_v2_union_under_one_m(memnet_temp):
     law_lines = [ln for ln in payload if ln.startswith("(:LAW")]
     body = [ln for ln in payload if not ln.startswith("(:LAW")]
     assert law_lines, both.stdout
-    assert both.stdout.count("(:LAW {id: 'LAW01'") == 1
+    assert both.stdout.count("(:LAW") == 1
+    assert "name: 'EDG'" in both.stdout
     assert payload[: len(law_lines)] == law_lines
     assert len(body) <= 5
-    mods = {ln for ln in body if "MOD_" in ln}
+    mods = {ln for ln in body if "path:" in ln}
     assert len(mods) < 6, "both stars must not fully expand under one M"
 
 
@@ -159,13 +160,13 @@ def test_v5_n_pin_maps_repeat_law(memnet_temp):
     for i, aid in enumerate(anchors):
         r = _pin(sid, aid)
         assert r.exit_code == 0, r.stderr
-        n = r.stdout.count("(:LAW {id: 'LAW01'")
+        n = r.stdout.count("(:LAW")
         assert n == 1, r.stdout
         law_hits += n
         if i == 0:
             first_out = r.stdout
     assert law_hits == 5
-    assert "TSK_v5" in first_out
+    assert "goal: 'one-task'" in first_out
 
 
 def test_v9_raw_degree_contains_parent_is_not_peak(memnet_temp):
@@ -199,7 +200,7 @@ def test_v9_raw_degree_contains_parent_is_not_peak(memnet_temp):
     )
     assert miss.exit_code == 0, miss.stderr
     assert "## outline" not in miss.stdout
-    assert "TSK_live" in miss.stdout
+    assert "goal: 'work'" in miss.stdout
     assert "owns" in miss.stdout
     assert "contains" not in miss.stdout
     assert "CueConflict" not in miss.stdout

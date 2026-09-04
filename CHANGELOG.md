@@ -7,8 +7,11 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.4] - 2026-09-04
+
 ### Changed
-- **`a.b.c` law** — ROADMAP locks how `memnet-llm` reads SemVer (`a` = claim/generation, `b` = usage-method revision, `c` = same-method cut). Package **0.19.3** unchanged; extras **0.10–0.19** unchanged; no 0.20 extra; efficiency stays a `c` unless usage changes. **1.0** stays unclaimed.
+- **Honesty `c` — nickname `id` off `pin_map` emit** — Shaped `pin_map` (outline, CueConflict, find hits, export) **MUST NOT** print nickname property `id` on nodes or edges. Same effect as `DROP_KEYS={id,hid}` on the wire text. Hid already stays off. Ranking still excludes nickname from the rank key ([#147](https://github.com/chouswei/MemNet/pull/147)). Cue / find / `match_nickname` MAY still look up a nickname the agent cues by — that is not identity and not emit. STM Prediction 3 generation half: RAW pin_map with nickname on wire failed under hid/CREATE-order/nickname permutation; canonical strip of `id`/`hid` passed. Package **0.19.4** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Caps stay hard. Do not dump \(S\). Do not invent `rag_query`. **1.0** stays unclaimed. Git tag `v0.19.4` after merge.
+- **Package identity 0.19.4** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Last published PyPI wheel remains **`memnet-llm==0.19.3`** until upload.
 
 ## [0.19.3] - 2026-08-20
 

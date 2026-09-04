@@ -51,10 +51,10 @@ def test_cli_session_save_load(memnet_temp, schema_file, workflow_file, tmp_path
     assert new_sid.startswith("mn_")
     warm = runner.invoke(app, ["query", "warm", "--anchor", "PLR01", "--session", new_sid])
     assert warm.exit_code == 0
-    assert "PLR01" in warm.stdout
+    assert "identity:" in warm.stdout
     assert "@PLR:" not in warm.stdout
     assert "(:PLR" in warm.stdout
-    assert "id: 'PLR01'" in warm.stdout
+    assert "id: 'PLR01'" not in warm.stdout
 
 
 def test_snapshot_text_matches_file(memnet_temp, schema_file):
