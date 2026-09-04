@@ -101,7 +101,7 @@ def test_compose_view_shell_caps_fanout(memnet_temp):
     edges_shell = [r for r in rows_shell if r.tag == "EDG"]
     assert len(nodes_shell) <= SHELL_MAX_NODES
     assert len(edges_shell) <= SHELL_MAX_EDGES
-    assert "CST_Hub" in text_shell
+    assert "name: 'hub'" in text_shell
     assert "(:CST" in text_shell
     assert nodes_shell[0].id == "CST_Hub" or any(r.id == "CST_Hub" for r in nodes_shell)
 
