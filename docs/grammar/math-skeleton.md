@@ -98,7 +98,7 @@ Same symptom (haystack too large). Different owners. [#77](https://github.com/ch
 
 | Name | Haystack | Mechanism | Owner |
 |------|----------|-----------|--------|
-| **Shape** | One session \(S\) | \(\mathrm{Recall}(q)\to\tilde{X}\) (\(k\), \(M\), fan-out clamp, hide recycled) | `PinMapShapedRead` |
+| **Shape** | One session \(S\) | \(\mathrm{Recall}(q)\to\tilde{X}\) (\(k\), \(M\), fan-out clamp, hide recycled). Order of \(\tilde{X}\) is a function of observables (kind + payload), not hid / nickname `id` / CREATE order. | `PinMapShapedRead` |
 | **Host Snap** | Corpus / library | Retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | `RagHostHook` **outside** `MemNetSystem` (0.17; skip valid) |
 | **Model Snap** (design, 0.12) | One SysML (or design) **model** | \( \mathrm{Snap}(\mathrm{model})\to(S_{\mathrm{cat}},S_1,\ldots,S_k) \) | Session stack; **not** one session per file |
 

@@ -12,6 +12,7 @@ top-k degree.
 from __future__ import annotations
 
 from memnet.models import Record
+from memnet.observable_rank import node_rank_key
 
 CONTAINS_REL = "contains"
 _SKIP_TAGS = frozenset({"LAW", "EDG"})
@@ -111,7 +112,7 @@ def peak_l(
         if any(rho.get(n, 0) > val for n in nbrs):
             continue
         peaks.append(rec)
-    peaks.sort(key=lambda r: (-rho[r.hid], r.id, r.hid))
+    peaks.sort(key=lambda r: (-rho[r.hid], node_rank_key(r)))
     return peaks[:limit], len(peaks)
 
 

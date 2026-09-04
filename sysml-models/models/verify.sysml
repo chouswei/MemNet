@@ -13,6 +13,7 @@
   RelativeSeed codebook tokens then ShapeWalk (MN-VER-04-S02).
   Empty-q session outline is Recall census of S (MN-VER-04-S03).
   Peak_L last-resort residual cue (MN-VER-04-S04); never default goldfish.
+  pin_map order from Shape observables, not hid (MN-VER-04-S05).
   GraphGlot parse front + product gate (MN-VER-09-S01).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
@@ -742,6 +743,48 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_04_S05_PinMapOrderFromObservables {
+    doc /*
+      MN-REQ-04.11 — pin_map sequence is a function of Shape observables
+      (kind + payload). HiddenStoreHandle is not a ranking key and stays
+      off the wire. Nickname id is not a ranking key. CREATE order is not
+      a ranking key. Still two operators; do not raise M; no rag_query.
+      Pytest: isomorphic sessions (shuffled CREATE / shuffled nicknames)
+      cue by kind + locator slug; canonicalised pin_map sequences match.
+    */
+    attribute verificationId : String = "MN-VER-04-S05";
+
+    subject system : MemNetSystem;
+
+    objective pinMapOrderFromObservables {
+      verify pinMapOrderFromObservablesReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.store
+          .hiddenHandleIsRankingKey == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .nicknameIdIsRankingKey == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .createOrderIsRankingKey == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .hiddenHandleOnWire == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.rankingIndependentOfHid == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.rankingIndependentOfNicknameId == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.rankingIndependentOfCreateOrder == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.hiddenHandleIsRankingKey == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.pinMap.nicknameIdIsRankingKey == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.shapedRead.walk.rankingIndependentOfHid == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .operatorCount == 2
+      }
+    }
+  }
+
   verification def MN_VER_02_S01_IdNotRequiredOnWire {
     doc /*
       MN-REQ-02.8 — GraphElement is identity. CREATE () is legal;
@@ -1305,6 +1348,8 @@ package MemNetVerification {
     : MN_VER_04_S03_SessionOutlineEmptyCue;
   verification peakLLastResortVerify
     : MN_VER_04_S04_PeakLLastResort;
+  verification pinMapOrderFromObservablesVerify
+    : MN_VER_04_S05_PinMapOrderFromObservables;
   verification idNotRequiredOnWireVerify
     : MN_VER_02_S01_IdNotRequiredOnWire;
   verification cousinPointingContrastVerify

@@ -198,3 +198,4 @@ reserve and Path-B ingest are **shipped**.
 - TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** — application / contrast nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish **from a cue** (empty q = outline, not “when leftover-anchored”)
+- pin_map ranking — **MN-REQ-04.11**: emit order is kind + observable payload; hid / nickname `id` / CREATE order are not ranking keys (0.19.c honesty; hid still off the wire)

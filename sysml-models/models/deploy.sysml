@@ -469,13 +469,17 @@ package MemNet {
     attribute hiddenHandleIsProperty : Boolean = false;
     attribute hiddenHandleOnWire : Boolean = false;
     attribute hiddenHandleIsBusinessKey : Boolean = false;
+    attribute hiddenHandleIsRankingKey : Boolean = false;
     attribute nicknameIdOptional : Boolean = true;
+    attribute nicknameIdIsRankingKey : Boolean = false;
+    attribute createOrderIsRankingKey : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_1_ExactlyNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_2_NodesHoldAtomisedFacts;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_3_EdgesAreFirstClass;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_4_QueryOverNodeEdgeGraph;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
@@ -704,6 +708,11 @@ package MemNet {
     attribute requireStoreKeyAnchor : Boolean = false;
     attribute leftoverRequireAnchor : Boolean = false;
     attribute leftoverIssue : String = "require_anchor";
+    attribute rankingIndependentOfHid : Boolean = true;
+    attribute rankingIndependentOfNicknameId : Boolean = true;
+    attribute rankingIndependentOfCreateOrder : Boolean = true;
+    attribute hiddenHandleIsRankingKey : Boolean = false;
+    attribute nicknameIdIsRankingKey : Boolean = false;
     part cueConflict : CueConflict;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
@@ -711,6 +720,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_1_AnchoredPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_3_PinMapDepthAndRowCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
   }
 
@@ -730,6 +740,10 @@ package MemNet {
       leftover require_anchor. view=shell remains grain on a seeded walk.
       Codebook miss MAY use RelativeSeed.Peak_L last-resort (0.18);
       this part SHALL NOT re-own Peak_L. defaultGoldfish=false.
+      Ranking key = kind + observable payload (MN-REQ-04.11). Hid and
+      nickname id are not ranking keys. CREATE order is not a ranking key.
+      Hid stays off the emit. As-is: memnet.observable_rank +
+      PinMapComposer / MemStore neighbors / context_pack / BoundedMatchFind.
     */
     port seedIn : SeedSetInPort;
     port pinMapOut : LivePinMapOutPort;
@@ -749,6 +763,11 @@ package MemNet {
     attribute viewShellIsOutline : Boolean = false;
     attribute defaultGoldfish : Boolean = false;
     attribute codebookMissOnly : Boolean = true;
+    attribute rankingIndependentOfHid : Boolean = true;
+    attribute rankingIndependentOfNicknameId : Boolean = true;
+    attribute rankingIndependentOfCreateOrder : Boolean = true;
+    attribute hiddenHandleIsRankingKey : Boolean = false;
+    attribute nicknameIdIsRankingKey : Boolean = false;
     part leftover_require_anchor : leftover_require_anchor;
     part walk : ShapeWalk;
     part outline : SessionOutline;
@@ -765,6 +784,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
@@ -806,6 +826,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_9_PinMapEmitSameAsMutate;
   }
 
