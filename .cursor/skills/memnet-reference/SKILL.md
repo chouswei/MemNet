@@ -19,7 +19,7 @@ Repo skill for **building** MemNet in **this** repository. Doctrine SSOT is `doc
 
 This checkout **vendors** agent skills under `.cursor/skills/` (core: `memnet-use` + MCP/format/nested/multitask). Load those when **using** MemNet; load **this** skill only when changing the engine, generic MCP, grammar, product SysML, or packaging.
 
-**Product:** Hatch **0.19.4** (CLI `memnet`). PyPI **`memnet-llm==0.19.3`** until 0.19.4 upload. Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
+**Product:** Hatch and PyPI are both **0.19.4** (CLI `memnet`; `memnet-llm==0.19.4`). Version map: `docs/ROADMAP.md`. Shape: `docs/SHAPE.md`. **1.0** = 0.5–0.8 claimed (do not tag from this skill).
 
 **`a.b.c` (ROADMAP law).** `a` = claim / generation (`0` = 1.0 unclaimed; `1` = claim of 0.5–0.8). `a` moves only if the contract breaks (Recall=`pin_map` / Commit=`mutate`, GraphElement identity, GQL-only wire). `b` = usage-method revision (new required loop step, new product tool, cue/outline/identity law, new goldfish verb). Historical extras **0.10–0.19** were `b`. N-server (#47) is not a `b`. `c` = same-method cut (honesty, leftover naming, docs/skills, wheel/tag, caps, façade, faster same `cue → pin_map → mutate`). Efficiency on the current loop is **`0.19.c`**, not `0.20`. Do not invent a 0.20 extra. Do not claim 1.0.
 
