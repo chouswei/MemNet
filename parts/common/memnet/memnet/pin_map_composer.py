@@ -1,6 +1,8 @@
 """PinMapComposer / PinMapShapedRead — live pin map as shaped GQL subgraph.
 
 Emits openCypher-family node and relationship lines (gql-wire-profile §5).
+Nickname property ``id`` stays off this emit (same effect as DROP_KEYS={id,hid}
+on the wire text). Cue / find / match_nickname may still look up a nickname.
 Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
 ``parts`` / ``statechart`` accepted with soft shell caps.
 
@@ -137,9 +139,6 @@ def record_to_gql_line(rec: Record, *, store=None) -> str:
         from memnet.gql import _emit_props
 
         rel_props: dict[str, str] = {}
-        nick = rec.id
-        if nick:
-            rel_props["id"] = nick
         for store_key, wire_key in (
             ("fromPort", "fromPort"),
             ("toPort", "toPort"),
@@ -152,7 +151,12 @@ def record_to_gql_line(rec: Record, *, store=None) -> str:
         rel_s = f":{rel} {_emit_props(rel_props)}" if rel_props else f":{rel}"
         return f"{src_line}-[{rel_s}]->{dst_line}"
     fields = {k: v for k, v in rec.fields.items() if k != "id"}
-    return emit_node_shaped(rec.tag if rec.tag != "NODE" else rec.tag, rec.id, fields)
+    return emit_node_shaped(
+        rec.tag if rec.tag != "NODE" else rec.tag,
+        rec.id,
+        fields,
+        include_nickname=False,
+    )
 
 
 def _endpoint_shaped(store, token: str) -> str:
@@ -160,11 +164,10 @@ def _endpoint_shaped(store, token: str) -> str:
     if store is not None and hasattr(store, "resolve_one"):
         rec = store.resolve_one(token)
     if rec is None:
-        nick = "" if str(token).startswith("_el") else token
-        return emit_node_shaped("NODE", nick or "", {})
+        return emit_node_shaped("NODE", "", {}, include_nickname=False)
     fields = {k: v for k, v in rec.fields.items() if k != "id"}
     kind = rec.tag if rec.tag and rec.tag != "EDG" else "NODE"
-    return emit_node_shaped(kind, rec.id, fields)
+    return emit_node_shaped(kind, rec.id, fields, include_nickname=False)
 
 
 class PinMapComposer:

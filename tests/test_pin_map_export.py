@@ -47,7 +47,7 @@ def test_export_cue_is_shaped_pin_map_not_dump(memnet_temp):
     out = r.stdout
     assert out.startswith("@EXPORT: pin-map|cue=kind:TSK")
     assert "(:TSK" in out
-    assert "TSK_live" in out
+    assert "goal: 'export-cut'" in out
     assert "CREATE" not in out
     assert "MERGE" not in out
     assert "_el" not in out

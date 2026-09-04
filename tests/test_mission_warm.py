@@ -28,7 +28,7 @@ def test_mission_warm_hides_settled(memnet_temp, schema_file, workflow_file):
     )
     assert warm.exit_code == 0
     assert "T01" not in warm.stdout or "delete_on_settle" not in warm.stdout
-    assert "LAW01" in warm.stdout or "(:LAW" in warm.stdout
+    assert "(:LAW" in warm.stdout
     assert "CREATE (:" not in warm.stdout
 
     still = runner.invoke(

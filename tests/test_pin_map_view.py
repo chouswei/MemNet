@@ -122,7 +122,7 @@ def test_compose_omit_view_unchanged(memnet_temp, schema_file):
     a = PinMapComposer(ss).compose(anchor="PLR01", depth=1)[1]
     b = PinMapComposer(ss).compose(anchor="PLR01", depth=1, view=None)[1]
     assert a == b
-    assert "PLR01" in a
+    assert "identity: 'Hero'" in a
     assert "(:PLR" in a
 
 

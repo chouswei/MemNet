@@ -102,10 +102,10 @@ def test_pin_map_cue_is_product_nickname(memnet_temp):
     )
     pin = runner.invoke(app, ["query", "pin-map", "--cue", "TSK_cue", "--session", sid])
     assert pin.exit_code == 0, pin.stderr
-    assert "TSK_cue" in pin.stdout
+    assert "goal: 'cued'" in pin.stdout
     leftover = runner.invoke(app, ["query", "pin-map", "--anchor", "TSK_cue", "--session", sid])
     assert leftover.exit_code == 0, leftover.stderr
-    assert "TSK_cue" in leftover.stdout
+    assert leftover.stdout == pin.stdout
     flags = _cli_option_flags("query", "pin-map")
     assert "--cue" in flags
     assert "--anchor" in flags
@@ -169,5 +169,6 @@ def test_mcp_product_pin_map_cue(memnet_temp, monkeypatch):
     pin = asyncio.run(pin_map(cue="TSK_mcp", session=sid))
     payload = json.loads(pin)
     assert payload["exit_code"] == 0, payload
-    assert "TSK_mcp" in payload["stdout"]
+    assert "goal: 'mcp-cue'" in payload["stdout"]
+    assert "TSK_mcp" not in payload["stdout"]
     assert "_el" not in payload["stdout"]

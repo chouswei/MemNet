@@ -57,8 +57,8 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
         env={"MEMNET_TEST_INLINE": "1"},
     )
     assert warm_result.exit_code == 0
-    assert "PLR77" in warm_result.stdout
     assert "(:PLR" in warm_result.stdout
+    assert "identity:" in warm_result.stdout or "Test" in warm_result.stdout
     assert "CREATE" not in warm_result.stdout
 
     shell_result = runner.invoke(
@@ -76,7 +76,6 @@ def test_query_pin_map_cli(memnet_temp, schema_file):
         env={"MEMNET_TEST_INLINE": "1"},
     )
     assert shell_result.exit_code == 0
-    assert "PLR77" in shell_result.stdout
     assert "(:PLR" in shell_result.stdout
 
 

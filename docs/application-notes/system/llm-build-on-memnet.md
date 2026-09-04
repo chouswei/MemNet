@@ -126,7 +126,7 @@ Every tool returns the same shape (`MemNetResponse.to_json()`):
 ```json
 {
   "exit_code": 0,
-  "stdout": "(:TSK {id: 'T42', goal: '…', status: 'in_progress'})\n(:NPC {id: 'N03'})-[:helps {id: 'E77'}]->(:TSK {id: 'T42'})\n",
+  "stdout": "(:TSK {goal: '…', status: 'in_progress'})\n(:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: '…'})\n",
   "stderr": "",
   "session_id": "mn_abcd",
   "errors": []

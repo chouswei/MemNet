@@ -106,7 +106,7 @@ def test_pin_map_composer_who(memnet_temp, schema_file):
     MutateGate(ss).apply([_PLR], mode="add", caller="writer")
     ss.grant_caller("reader", can_pin_map=True, can_mutate=False)
     text = PinMapComposer(ss).compose(anchor="PLR01", caller="reader")[1]
-    assert "PLR01" in text
+    assert "identity: 'Hero'" in text
 
     ss.grant_caller("muted", can_pin_map=False, can_mutate=False)
     with pytest.raises(MemNetError) as ei:
@@ -257,7 +257,7 @@ def test_cli_acl_grant_and_deny(memnet_temp, schema_file):
         ["query", "pin-map", "--anchor", "PLR01", "--session", sid, "--caller", "owner"],
     )
     assert pin.exit_code == 0, pin.stderr
-    assert "PLR01" in pin.stdout
+    assert "identity: 'Hero'" in pin.stdout
 
 
 def test_acl_off_by_default_keeps_legacy_green(memnet_temp, schema_file):
@@ -266,7 +266,7 @@ def test_acl_off_by_default_keeps_legacy_green(memnet_temp, schema_file):
     result = MutateGate(ss).apply([_PLR], mode="add")
     assert result.records
     text = PinMapComposer(ss).compose(anchor="PLR01")[1]
-    assert "PLR01" in text
+    assert "identity: 'Hero'" in text
 
 
 def test_check_write_scope_unit():

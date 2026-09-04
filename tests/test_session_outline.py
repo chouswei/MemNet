@@ -45,11 +45,9 @@ def test_empty_cue_outline_is_census_of_s(memnet_temp):
     assert "TSK" in out
     assert "MOD" in out
     assert "SYM" in out
-    assert "TSK_model_memnet" in out
+    assert "goal: 'model'" in out
     assert "status: 'open'" in out
-    assert "MOD_deploy" in out
     assert "path: 'models/deploy.sysml'" in out
-    assert "SYM_Recall" in out
     assert "name: 'Recall'" in out
     assert "-[:" not in out
     assert "owns" not in out
@@ -78,8 +76,8 @@ def test_empty_cue_with_view_shell_is_still_outline_not_shell_hop(memnet_temp):
     )
     assert r.exit_code == 0, r.stderr
     assert "## outline" in r.stdout
-    assert "TSK_live" in r.stdout
-    assert "MOD_x" in r.stdout
+    assert "goal: 'work'" in r.stdout
+    assert "path: 'src/x.py'" in r.stdout
     assert "-[:" not in r.stdout
     assert "owns" not in r.stdout
     assert "_el" not in r.stdout
@@ -112,7 +110,8 @@ def test_outline_cue_conflict_if_exemplar_name_collides(memnet_temp):
     assert r.exit_code == 0, r.stderr
     assert "## outline" in r.stdout
     assert "CueConflict" in r.stdout
-    assert r.stdout.count("trump") >= 2
+    assert r.stdout.count("goal: 'same-name'") >= 2
+    assert "trump" not in r.stdout
     assert "-[:" not in r.stdout
     assert "_el" not in r.stdout
     from memnet.session import get_session

@@ -81,7 +81,7 @@ def test_v9_contains_parent_is_not_rho_star_peak(memnet_temp):
     )
     assert miss.exit_code == 0, miss.stderr
     assert "## outline" not in miss.stdout
-    assert "TSK_live" in miss.stdout
+    assert "goal: 'work'" in miss.stdout
     assert "owns" in miss.stdout
     assert "contains" not in miss.stdout
     assert "CueConflict" not in miss.stdout
@@ -108,9 +108,9 @@ def test_peak_not_used_when_codebook_hits(memnet_temp):
         ],
     )
     assert hit.exit_code == 0, hit.stderr
-    assert "PKG_root" in hit.stdout
+    assert "name: 'root'" in hit.stdout
     assert "contains" in hit.stdout
-    assert "TSK_live" not in hit.stdout
+    assert "goal: 'work'" not in hit.stdout
     assert "## CueConflict" not in hit.stdout
 
 
@@ -166,8 +166,8 @@ def test_two_peaks_cue_conflict(memnet_temp):
     assert miss.exit_code == 0, miss.stderr
     assert "CueConflict" in miss.stdout
     assert "|Q|=2" in miss.stdout
-    assert "TSK_a" in miss.stdout
-    assert "TSK_b" in miss.stdout
+    assert "goal: 'star-a'" in miss.stdout
+    assert "goal: 'star-b'" in miss.stdout
     assert "-[:" not in miss.stdout
     assert "_el" not in miss.stdout
 

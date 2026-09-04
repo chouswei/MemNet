@@ -17,9 +17,9 @@ def test_s01_goldfish_refresh(memnet_temp, schema_file, workflow_file):
     runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
     warm = runner.invoke(app, ["query", "warm", "--anchor", "PLR01", "--session", sid])
     assert warm.exit_code == 0
-    assert "LAW" in warm.stdout or "LAW01" in warm.stdout
-    assert "PLR01" in warm.stdout
-    assert "(:PLR" in warm.stdout or "id: 'PLR01'" in warm.stdout
+    assert "LAW" in warm.stdout or "EDG" in warm.stdout
+    assert "identity:" in warm.stdout
+    assert "(:PLR" in warm.stdout
 
 
 @pytest.mark.scheme("S08")

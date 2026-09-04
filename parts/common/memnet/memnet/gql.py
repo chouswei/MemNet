@@ -905,9 +905,16 @@ def _emit_props(props: dict[str, str], *, omit_empty: bool = True) -> str:
     return "{" + ", ".join(parts) + "}"
 
 
-def emit_node_shaped(kind: str, rid: str, fields: dict[str, str]) -> str:
+def emit_node_shaped(
+    kind: str,
+    rid: str,
+    fields: dict[str, str],
+    *,
+    include_nickname: bool = True,
+) -> str:
+    """Shaped present-form node. ``include_nickname=False`` for pin_map emit."""
     props: dict[str, str] = {}
-    if rid:
+    if include_nickname and rid:
         props["id"] = rid
     for k, v in fields.items():
         if k == "id":
@@ -935,9 +942,10 @@ def emit_edge_shaped(
     dst_id: str,
     edge_id: str,
     fields: dict[str, str],
+    include_nickname: bool = True,
 ) -> str:
     rel_props: dict[str, str] = {}
-    if edge_id:
+    if include_nickname and edge_id:
         rel_props["id"] = edge_id
     # Prefer GQL fromPort/toPort names on the wire
     for store_key, wire_key in (
@@ -975,8 +983,8 @@ def emit_edge_shaped(
             rel_props.setdefault("note", v)
             continue
         rel_props[k] = v
-    src_bit = emit_node_shaped(src_kind, src_id, {})
-    dst_bit = emit_node_shaped(dst_kind, dst_id, {})
+    src_bit = emit_node_shaped(src_kind, src_id, {}, include_nickname=include_nickname)
+    dst_bit = emit_node_shaped(dst_kind, dst_id, {}, include_nickname=include_nickname)
     rel_s = f":{rel} {_emit_props(rel_props)}" if rel_props else f":{rel}"
     return f"{src_bit}-[{rel_s}]->{dst_bit}"
 
