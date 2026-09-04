@@ -21,7 +21,7 @@ Do **not** teach Layer / Tier A. **1.0** = claim of 0.5–0.8 (unclaimed).
 | Doc | Role |
 |-----|------|
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.3** |
+| [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.4** |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** |
 
 ## Wire — `grammar/`
