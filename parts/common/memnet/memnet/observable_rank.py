@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from memnet.models import Record, SHAPE_DROP_KEYS
+from memnet.models import SHAPE_DROP_KEYS, Record
 
 # Nickname ``id`` and internal endpoint tokens stay off the rank key.
 # ``src`` / ``dist`` on EDG are hid (or leftover nick) handles, not payload.

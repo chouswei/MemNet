@@ -143,8 +143,7 @@ def reserve(
         lease = next(iter(conflict.values()))
         raise MemNetError(
             "reserve_conflict",
-            f"neighbourhood already held by llm_id={lease.llm_id} "
-            f"anchor={lease.anchor}",
+            f"neighbourhood already held by llm_id={lease.llm_id} anchor={lease.anchor}",
         )
 
     # Same llm_id: union existing leases that overlap / deepen, refresh TTL.
@@ -267,8 +266,7 @@ def check_mutate_ids(
         if not holder:
             raise MemNetError(
                 "no_llm_id",
-                f"llm_id required to mutate reserved neighbourhood "
-                f"anchor={lease.anchor}",
+                f"llm_id required to mutate reserved neighbourhood anchor={lease.anchor}",
             )
         if holder != lease.llm_id:
             raise MemNetError(

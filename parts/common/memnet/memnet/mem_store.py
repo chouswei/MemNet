@@ -9,7 +9,7 @@ from collections import deque
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
-from memnet.models import Record, SHAPE_DROP_KEYS, TagMap, new_hid
+from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
 from memnet.observable_rank import node_rank_key, ranked
 from memnet.output import emit_wrn
 
