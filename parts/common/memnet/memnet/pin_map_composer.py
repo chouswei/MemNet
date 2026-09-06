@@ -1,8 +1,10 @@
 """PinMapComposer / PinMapShapedRead — live pin map as shaped GQL subgraph.
 
 Emits openCypher-family node and relationship lines (gql-wire-profile §5).
-Nickname property ``id`` stays off this emit (same effect as DROP_KEYS={id,hid}
-on the wire text). Cue / find / match_nickname may still look up a nickname.
+Nickname property ``id`` stays off this emit (``include_nickname=False``).
+Store-identity keys (``hid`` / ``_memnet_hid`` / ``elementId``) are dropped by
+``gql.SHAPE_DROP_KEYS`` on every GQL emit. Cue / find / match_nickname may
+still look up a nickname.
 Optional ``view=`` grain: ``shell`` / ``interior`` taught; ``flowchart`` /
 ``parts`` / ``statechart`` accepted with soft shell caps.
 

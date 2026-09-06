@@ -85,10 +85,13 @@ def test_reserve_blocks_foreign_mutate(memnet_temp, schema_file):
     with pytest.raises(MemNetError) as ei:
         MutateGate(ss).apply([_PATCH], mode="update", llm_id="coder_b")
     assert ei.value.code == "reserved"
+    assert "_el" not in ei.value.message
+    assert "_memnet_hid" not in ei.value.message
 
     with pytest.raises(MemNetError) as ei2:
         MutateGate(ss).apply([_PATCH], mode="update")
     assert ei2.value.code == "no_llm_id"
+    assert "_el" not in ei2.value.message
 
     MutateGate(ss).apply([_PATCH], mode="update", llm_id="coder_a")
     assert ss.store.get("PLR01").fields["wealth"] == "9"
@@ -119,6 +122,8 @@ def test_reserve_conflict_on_overlap(memnet_temp, schema_file):
             now=t0,
         )
     assert ei.value.code == "reserve_conflict"
+    assert "_el" not in ei.value.message
+    assert "PLR01" in ei.value.message
 
 
 def test_extend_and_release(memnet_temp, schema_file):

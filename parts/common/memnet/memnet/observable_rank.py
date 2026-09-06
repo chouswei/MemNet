@@ -13,11 +13,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from memnet.models import Record
+from memnet.models import Record, SHAPE_DROP_KEYS
 
 # Nickname ``id`` and internal endpoint tokens stay off the rank key.
 # ``src`` / ``dist`` on EDG are hid (or leftover nick) handles, not payload.
-RANK_EXCLUDE_KEYS = frozenset({"id", "src", "dist", "hid", "_memnet_hid"})
+RANK_EXCLUDE_KEYS = frozenset({"id", "src", "dist"}) | SHAPE_DROP_KEYS
 
 ResolveFn = Callable[[str], Record | None]
 

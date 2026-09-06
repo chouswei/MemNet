@@ -968,7 +968,7 @@ class MutateGate:
                     and (old is None or old.fields.get("status") != "settled")
                 ):
                     warnings.append(
-                        f"mission_settled|{rec.id or rec.hid}|next read use query pin-map from cue"
+                        f"mission_settled|{rec.id or rec.tag}|next read use query pin-map from cue"
                     )
             self.ss.mark_written()
         except MemNetError:

@@ -9,7 +9,7 @@ from collections import deque
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
-from memnet.models import Record, TagMap, new_hid
+from memnet.models import Record, SHAPE_DROP_KEYS, TagMap, new_hid
 from memnet.observable_rank import node_rank_key, ranked
 from memnet.output import emit_wrn
 
@@ -696,6 +696,10 @@ class MemStore:
             if rec:
                 dump = rec.model_dump()
                 dump.pop("hid", None)
+                fields = dump.get("fields")
+                if isinstance(fields, dict):
+                    for key in SHAPE_DROP_KEYS:
+                        fields.pop(key, None)
                 rows.append(dump)
         return rows
 

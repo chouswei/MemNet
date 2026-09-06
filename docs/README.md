@@ -21,7 +21,7 @@ Do **not** teach Layer / Tier A. **1.0** = claim of 0.5–0.8 (unclaimed).
 | Doc | Role |
 |-----|------|
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.4** |
+| [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.5** |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** |
 
 ## Wire — `grammar/`
@@ -61,6 +61,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 | Doc | Role |
 |-----|------|
 | [`operations/multi-agent-sessions.md`](operations/multi-agent-sessions.md) | Multitask operating model (as-is 0.8; RSV + Path-B ingest shipped; full ACL modes to-be) |
+| [`operations/honesty-c-wire-audit.md`](operations/honesty-c-wire-audit.md) | 0.19.5 hid / nickname emit audit |
 
 Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 

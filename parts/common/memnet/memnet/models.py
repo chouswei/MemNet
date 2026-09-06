@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field
 # Hidden store handle (elementId-style). Off the agent wire. Not a nickname.
 _HID_SEQ = itertools.count(1)
 
+# Keys that MUST NOT appear on product GQL / jsonl emit. Cabinet MERGE may
+# keep ``_memnet_hid`` in-process. Nickname ``id`` is dropped on pin_map only.
+SHAPE_DROP_KEYS = frozenset({"hid", "_memnet_hid", "elementId"})
+
 
 def new_hid() -> str:
     return f"_el{next(_HID_SEQ)}"

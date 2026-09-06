@@ -245,6 +245,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 
 - Include the seed neighbourhood and in-budget neighbours only (depth / view / max_rows).
 - **MUST NOT** emit nickname `{id:'…'}` on nodes or edges. Match the next mutate by labels + observable properties. Cue / find MAY still accept a nickname the agent already holds.
+- **MUST NOT** emit store-identity keys `hid` / `_memnet_hid` / `elementId` (`SHAPE_DROP_KEYS`). Cabinet MERGE may keep `_memnet_hid` off this wire.
 - Hide recyclable / out-of-budget neighbours (MN-REQ-04).
 - Engine-law / control preamble rows **MAY** prepend when authorised — still not a binding table.
 - Ranking already excludes nickname `id` from the rank key. This cut also drops it from the composed text.
