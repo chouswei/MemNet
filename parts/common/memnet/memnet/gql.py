@@ -19,6 +19,7 @@ from memnet.gql_parse_front import (
     gate_programs,
     parse_program,
 )
+from memnet.models import SHAPE_DROP_KEYS
 from memnet.tier_a import Document, EdgeRec, Field, NodeRec, Op, Section
 
 _IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -899,6 +900,8 @@ def _emit_py(obj: Any) -> str:
 def _emit_props(props: dict[str, str], *, omit_empty: bool = True) -> str:
     parts: list[str] = []
     for k, v in props.items():
+        if k in SHAPE_DROP_KEYS:
+            continue
         if omit_empty and v == "":
             continue
         parts.append(f"{k}: {_emit_value(v)}")
@@ -917,7 +920,7 @@ def emit_node_shaped(
     if include_nickname and rid:
         props["id"] = rid
     for k, v in fields.items():
-        if k == "id":
+        if k == "id" or k in SHAPE_DROP_KEYS:
             continue
         if k == "recycle" and v == "persistent":
             continue
@@ -958,7 +961,7 @@ def emit_edge_shaped(
         if store_key in fields and fields[store_key]:
             rel_props[wire_key] = fields[store_key]
     for k, v in fields.items():
-        if k in (
+        if k in SHAPE_DROP_KEYS or k in (
             "id",
             "src",
             "dist",

@@ -24,6 +24,7 @@ from memnet.gql import (
     round_trip_ok,
     soft_validate,
 )
+from memnet.models import SHAPE_DROP_KEYS
 
 __all__ = [
     "GqlCodec",
@@ -39,6 +40,7 @@ __all__ = [
     "emit_edge_shaped",
     "emit_item",
     "emit_node_shaped",
+    "SHAPE_DROP_KEYS",
     "looks_like_gql",
     "looks_like_legacy_layer_or_tier_a",
     "parse",

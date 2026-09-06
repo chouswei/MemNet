@@ -7,6 +7,12 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.5] - 2026-09-06
+
+### Changed
+- **Honesty `c` — store-identity keys off shaped emit** — Audit after [#148](https://github.com/chouswei/MemNet/pull/148): nickname `id` was already off `pin_map`, but `DROP_KEYS` was not a real strip. `hid` / `_memnet_hid` / `elementId` on `Record.fields` could still appear on GQL emit. SSOT is `SHAPE_DROP_KEYS` in `memnet.models`, applied in `_emit_props` (mutate ack and shaped present) and jsonl. Nickname `id` stays off **shaped read** only. RSV product errors no longer print hid. Ranking excludes `elementId` as well as hid / nickname. Package **0.19.5** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Last published PyPI wheel remains **`memnet-llm==0.19.4`** until upload. Do not dump \(S\). Do not invent `rag_query`. **1.0** stays unclaimed. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.5** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch **0.19.5**; PyPI last **0.19.4** until upload.
+
 ## [0.19.4] - 2026-09-04
 
 ### Changed
@@ -684,7 +690,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.4...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.5...HEAD
+[0.19.5]: https://github.com/chouswei/MemNet/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/chouswei/MemNet/compare/v0.19.3...v0.19.4
 [0.19.0]: https://github.com/chouswei/MemNet/compare/v0.9.0...v0.19.0
 [0.9.0]: https://github.com/chouswei/MemNet/compare/v0.8.0...v0.9.0

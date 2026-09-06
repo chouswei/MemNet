@@ -6,13 +6,13 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch and PyPI are both **0.19.4** (`memnet-llm==0.19.4`; [#148](https://github.com/chouswei/MemNet/pull/148) nickname-off-`pin_map` honesty `c`). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.5**; last published PyPI wheel is **`memnet-llm==0.19.4`** until upload ([#148](https://github.com/chouswei/MemNet/pull/148) nickname-off-`pin_map`; 0.19.5 `SHAPE_DROP_KEYS`). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Install + quick CLI
 
 ```bash
 pip install memnet-llm
-# or pin: pip install memnet-llm==0.19.4
+# or pin published: pip install memnet-llm==0.19.4
 # optional extras (drivers only — not AgensGraph/Neo4j servers):
 # pip install 'memnet-llm[mcp]'
 # pip install 'memnet-llm[agensgraph]'
