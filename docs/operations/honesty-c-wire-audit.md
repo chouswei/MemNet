@@ -1,6 +1,6 @@
 # Honesty `c` wire audit (0.19.5)
 
-**Date:** 2026-09-06. **Package:** Hatch **0.19.5** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.4`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-06. **Package:** Hatch **0.19.5** (same-method cut on **0.19**). Published PyPI wheel is **`memnet-llm==0.19.5`**. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
 This note records the hot-path audit after [#148](https://github.com/chouswei/MemNet/pull/148) (nickname off `pin_map`) and [#147](https://github.com/chouswei/MemNet/pull/147) (observable rank). Chat is not SSOT.
 
