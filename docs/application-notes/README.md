@@ -3,7 +3,7 @@
 How to **use** MemNet (not engine internals). Folders: **system** (repos / SysML / builder), **domains** (worked domains), **examples** (InvAmp). Index: [`../README.md`](../README.md).
 
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
-**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.3**; **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). Hatch **0.19.3**; last PyPI **`memnet-llm==0.19.0`** until upload.  
+**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.5.** Hatch **0.19.5**; published PyPI is **`memnet-llm==0.19.5`**. **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md). Honesty `c` (`SHAPE_DROP_KEYS`): [`../operations/honesty-c-wire-audit.md`](../operations/honesty-c-wire-audit.md). Changelog: [`../../CHANGELOG.md`](../../CHANGELOG.md) **0.19.5**.  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 
@@ -16,8 +16,9 @@ MemNet is **mission working memory** — named session \(S\), bounded Recall Sha
 | MUST | MUST NOT |
 |------|----------|
 | `session_open` with `SCHEMA` covering every kind you mutate (`map_file` / `map_lines`) | Game `schema.example.txt` unless that *is* the domain |
-| Cue then `pin_map(q)`; skip if a *cued* seed is empty; CueConflict when \(|Q|>1\); **drop** prior maps from the prompt; empty \(q\) = outline (not `view=shell`) | Dump \(S\); stuff every map into `messages`; leftover `query_warm` as primary; ANN / `rag_query` of \(S\); Neo4j/Bolt as goldfish; leftover `--anchor` as law |
-| Pattern Commit via `mutate` (`CREATE` / `MATCH…SET`); locators as properties | leftover `id:'NEW'` mint; leftover `add`/`update` as TARGET; leftover copy-id `--anchor` as law; silent MERGE-by-name |
+| Cue then `pin_map(q)` by labels + observable properties / keyword; skip if a *cued* seed is empty; CueConflict when \(|Q|>1\); **drop** prior maps from the prompt; empty \(q\) = outline (not `view=shell`) | Dump \(S\); stuff every map into `messages`; leftover `query_warm` as primary; ANN / `rag_query` of \(S\); Neo4j/Bolt as goldfish; leftover `--anchor` / leftover copy-id as law |
+| Pattern Commit via `mutate` (`CREATE` / `MATCH…SET`); locators as properties; identity is the graph element, not a store key | leftover `id:'NEW'` mint; leftover `add`/`update` as TARGET; leftover copy-id `--anchor` as law; silent MERGE-by-name; treat nickname `id` / `hid` as identity |
+| Shaped `pin_map` emit: labels + observable properties only (`SHAPE_DROP_KEYS` drops `hid` / `_memnet_hid` / `elementId`; nickname `id` stays off the wire) | Copy hid / `_memnet_hid` / `elementId` / nickname `id` from emit as identity; leftover `--anchor` as goldfish |
 | MCP tool arg **`session`** | Tool arg `session_id` (JSON envelope may still *return* `session_id`) |
 | In-process MCP for a single agent | In-process MCP under Multitask (use TCP / streamable-http) |
 
@@ -25,7 +26,7 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 
 | Note | Role | Default map |
 |------|------|-------------|
-| [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** (canonical `CST_*` ground ids) | `SCHEMA CST` + `TSK` in `map_lines` (no bundled circuit map) |
+| [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md) | InvAmp through **GQL-wire** (canonical `CST_*` ground locators as properties) | `SCHEMA CST` + `TSK` in `map_lines` (no bundled circuit map) |
 | [`examples/inverting-amplifier-memnet.md`](examples/inverting-amplifier-memnet.md) | InvAmp **math** SSOT (not wire teach) | — |
 | [`llm-circuit-schematic.md`](domains/llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
 | [`llm-nodal-analysis-formulas.md`](domains/llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
