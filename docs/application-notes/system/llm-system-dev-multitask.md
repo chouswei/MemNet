@@ -77,7 +77,7 @@ Probe with `serve_status` before delegating if transport is uncertain.
 - Mint and own **`TSK_*`** / **`USR_*`**: `status=active` → `status=settled`; optional `led_to_success` edges.
 - Assign **write scope** (anchor ids + allowed relation types) in self-contained worker prompts.
 - **End the turn** after background spawn — no poll, no await (MN-REQ-12.6).
-- Next coordinator turn: **`pin_map` first**; act from refreshed slice — do not redo worker investigation from chat.
+- Next coordinator turn: **`pin_map` first**; act from a refreshed slice that still holds load-bearing kinds — filter-out or raise `max_rows` rather than hard-truncate; never claim a complete extract under a truncating window. Do not redo worker investigation from chat.
 - Prefer **one worker** per coherent workstream; parallel only with **disjoint** anchors or **separate** sessions (MN-REQ-12.5).
 
 ### MUST NOT
@@ -92,7 +92,7 @@ Probe with `serve_status` before delegating if transport is uncertain.
 ### MUST
 
 - Use the parent's **session id**; **`pin_map` first** every turn.
-- Copy assigned ids from pin map — **MUST NOT** invent ids the parent already minted.
+- Copy assigned ids from a **filter-out / high enough** pin-map slice — **MUST NOT** invent ids the parent already minted, and **MUST NOT** treat a truncating window as a complete extract (FND / checklist / fundamentals must not silently drop).
 - Mutate only under the **assigned subgraph** (anchors + relations in the prompt).
 - Return a concise result; durable facts live in MemNet rows.
 
@@ -101,6 +101,7 @@ Probe with `serve_status` before delegating if transport is uncertain.
 - Open a different session unless explicitly assigned.
 - Settle parent-owned `TSK_*` / `USR_*` unless delegated.
 - Use in-process MCP when the parent uses shared TCP/HTTP.
+- Hard-truncate a worker `pin_map` / Shape to fit \(M\); claim completeness under that window; soften engine caps. Tighten cue/filter/scope instead.
 
 ---
 
@@ -185,6 +186,7 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | Assuming full ACL modes / `session_token` | False isolation | CapsPolicy when enabled; RSV + Path-B ingest **are** shipped; full modes still to-be |
 | SysML vs MemNet drift | Model and pins disagree | SysML in git wins for structure; MemNet holds locators + mission state |
 | Worker settles parent `TSK_*` | Lifecycle violation | Parent-only settle unless delegated |
+| Truncating `pin_map` as the copied slice | FND / checklist / fundamentals missing; false-complete extract | Filter-out (drop news / tighten cue) or raise `max_rows`; engine \(M\) stays a hard reject |
 
 ---
 

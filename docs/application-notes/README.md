@@ -21,6 +21,7 @@ MemNet is **mission working memory** — named session \(S\), bounded Recall Sha
 | Shaped `pin_map` emit: labels + observable properties only (`SHAPE_DROP_KEYS` drops `hid` / `_memnet_hid` / `elementId`; nickname `id` stays off the wire) | Copy hid / `_memnet_hid` / `elementId` / nickname `id` from emit as identity; leftover `--anchor` as goldfish |
 | MCP tool arg **`session`** | Tool arg `session_id` (JSON envelope may still *return* `session_id`) |
 | In-process MCP for a single agent | In-process MCP under Multitask (use TCP / streamable-http) |
+| Filter-out (drop news / tighten cue / narrower scope) or **uncapped / high enough `max_rows`** so load-bearing kinds (`FND`, checklist, fundamentals) stay in \(\tilde{X}\). Engine \(M\) caps stay **hard rejects** — change cue/filter/scope, do not soften \(M\). Never claim a complete extract under a truncating window | Hard-truncate a `pin_map` / Shape so FND / checklist / fundamentals silently drop; claim completeness under a truncating window; clip load-bearing kinds to fit \(M\) |
 
 Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet/memnet/examples/schema.*.example.txt`.
 
