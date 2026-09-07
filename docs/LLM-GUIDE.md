@@ -74,7 +74,7 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 ### Goldfish loop (every turn)
 
-Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map(q)` (or skip). **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
+Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map(q)` (or skip). **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Prefer **filter-out** (drop news / tighten cue) or uncapped / high enough `max_rows` over hard truncate that drops `FND` / checklist / fundamentals. Engine \(M\) caps stay hard rejects — change cue/filter/scope. When ShapeWalk **does** hit a hard cap (`max_rows` / hop / budget) and the offer is clipped, the emit **MUST** carry an explicit truncation signal — same honesty family as **CueConflict** (visible on the wire, not silent). Treat that as an **incomplete Shape**; never claim a complete extract. Wire-flag honesty `c` MAY land in a sibling PR; the MUST holds even if the emit token follows. Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
 
 1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(q\) (no cue) ⇒ **session outline** (0.11: kinds + LIMIT exemplars of \(S\)); then pick one seen cue. Empty \(Q\) on a *kind* cue ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
 2. **ShapeWalk one slice** from \(Q\) (one \(M\), not \(M\times|Q|\)):
@@ -83,6 +83,8 @@ Interact only with **relevant slices** of the session — never dump the graph. 
    CLI: `memnet query pin-map --kind … --locator … --keyword …`
 
    leftover engine may still take `--anchor` as a **nickname** cue — not TARGET law.
+
+   If the walk hits \(M\) / hop / budget and clips: the emit MUST show the truncation mark (CueConflict family). That slice is incomplete — tighten cue or raise `max_rows`; do not reason as if \(\tilde{X}\) were whole \(S\).
 
    Blocked on a topic hub: at most one extra `pin_map(..., view=shell)` **on that seed**, then interior on the live `TSK`. `view=shell` is grain on a seed — **not** session outline (0.11). Do **not** issue \(N\) full maps (duplicate LAW / overlap). Do not fuse ranks.
 3. **Act / reason** using only the **live** pin-map slice + the current user request. Do not keep turn-\(n-1\) maps in the pack.
@@ -151,7 +153,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 ### Reading strategy
 
-- **Normal turn:** one `pin_map(kind='TSK', locators=[…], depth=2, max_rows=50)` (or skip). Optional `view=shell` on a **seeded** topic hub only when blocked, then interior on the task. leftover `--anchor` / `anchor=` is a leftover nickname alias, not law.
+- **Normal turn:** one `pin_map(kind='TSK', locators=[…], depth=2, max_rows=50)` (or skip). If that window would clip load-bearing kinds, **tighten the cue** or raise `max_rows` — prefer filter-out over truncate. If the engine still clips, the emit MUST carry a **truncation signal** (CueConflict honesty family, on the wire — not stderr-only). Treat as incomplete Shape. Optional `view=shell` on a **seeded** topic hub only when blocked, then interior on the task. leftover `--anchor` / `anchor=` is a leftover nickname alias, not law.
 - Pin map includes engine LAW rows (prepended) — that is why \(N\) maps waste tokens.
 - Excludes rows with `recycle=delete_on_settle` or `delete_on_expire` (unless leftover nickname cue touches endpoints per LAW01).
 - leftover `read_list(active_only=True)` may enumerate; product is `find` then one `pin_map`.
@@ -237,6 +239,8 @@ See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.
 | Chat / graph dump as handoff | Session id + cue / re-`pin_map` (import for path B) |
 | leftover `id:'NEW'` / copy-id `--anchor` as law | Pattern Commit; cue `pin_map` (those are leftover 0.9) |
 | Stuffing every `pin_map` into `messages` | Drop prior map rows; env blobs stay in the harness (`stuffed_maps`) |
+| Hard-truncate `pin_map` / Shape (drop FND / checklist / fundamentals) | Filter-out or raise `max_rows`; never claim a complete extract. Do not soften engine \(M\) |
+| Silent clip (no truncation mark on emit) | Same honesty family as CueConflict: clipped Shape MUST be marked on the wire. Incomplete until cue/filter/scope changes. Flag token MAY follow in a sibling honesty `c` PR |
 
 ### Minimal complete turn (MCP)
 
