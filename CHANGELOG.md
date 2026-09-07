@@ -10,8 +10,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [0.19.6] - 2026-09-07
 
 ### Changed
-- **Honesty `c` — Truncation on clipped `pin_map`** — When a hard cap clips ShapeWalk (`max_rows` \(M\), hop \(k\) vs `max_depth`, fan-out, or `view=shell` grain), the shaped emit **MUST** carry `## Truncation truncated=true M=… omitted=… reason=…` (CueConflict / Reserves family). Caps stay hard; SHALL NOT silent-clip. When the offer fits, the mark is absent. `SHAPE_DROP_KEYS` / hid honesty unchanged. Export header MAY add `truncated=1`. Package **0.19.6** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Hatch **0.19.6**; published PyPI remains **`memnet-llm==0.19.5`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
-- **Package identity 0.19.6** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**.
+- **Honesty `c` — Truncation on clipped `pin_map`** — When a hard cap clips ShapeWalk (`max_rows` \(M\), hop \(k\) vs `max_depth`, fan-out, or `view=shell` grain), the shaped emit **MUST** carry `## Truncation truncated=true M=… omitted=… reason=…` (CueConflict / Reserves family). Caps stay hard; SHALL NOT silent-clip. When the offer fits, the mark is absent. `SHAPE_DROP_KEYS` / hid honesty unchanged. Export header MAY add `truncated=1`. Package **0.19.6** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Hatch **0.19.6**; published as **`memnet-llm==0.19.6`**. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.6** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch and PyPI are both **0.19.6**.
 
 ## [0.19.5] - 2026-09-06
 

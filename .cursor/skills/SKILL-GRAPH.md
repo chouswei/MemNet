@@ -2,7 +2,7 @@
 
 **Audience:** model. Wire SSOT: [memnet-format](memnet-format/SKILL.md) and `docs/grammar/gql-wire-profile.md`. Do **not** treat this file as the session graph.
 
-This folder **vendors** the MemNet stack. Hatch **0.19.6**; published PyPI remains **`memnet-llm==0.19.5`** until upload. Cue then `pin_map`; `find` if ego unknown. **GQL only.** Package SemVer `a.b.c` (claim / usage-method revision / same-method cut): `docs/ROADMAP.md`. Do not invent 0.20.
+This folder **vendors** the MemNet stack. Hatch **0.19.6**; published PyPI is **`memnet-llm==0.19.6`**. Cue then `pin_map`; `find` if ego unknown. **GQL only.** Package SemVer `a.b.c` (claim / usage-method revision / same-method cut): `docs/ROADMAP.md`. Do not invent 0.20.
 
 ## Routing
 
