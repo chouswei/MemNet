@@ -8,7 +8,7 @@ metadata:
   pattern: tool-wrapper
   version: "5.3"
   domain: data-formats,memnet
-  product: memnet-llm==0.19.5
+  product: memnet-llm==0.19.6
 token_guardrails: |
   - Wire SSOT: docs/grammar/gql-wire-profile.md. This skill is MemNet-specific only.
   - pin_map from a cue; leftover anchor= is leftover. Do not dump S.
@@ -17,7 +17,7 @@ token_guardrails: |
 
 # MemNet formats
 
-Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Hatch **0.19.5**.
+Pair with [mcp-memnet](../mcp-memnet/SKILL.md). Formal SSOT: `docs/grammar/gql-wire-profile.md`. Hatch **0.19.6**.
 
 **GQL only.** Node / edge / property. Do not teach Layer, Tier A, pipe `@TAG`, or TOON/TRON. leftover `id:'NEW'` / leftover `anchor=` are leftover.
 
@@ -28,7 +28,7 @@ MCP `pin_map` / CLI `query pin-map` emits a bounded neighbourhood. Parse envelop
 | Control | Product use |
 |---------|-------------|
 | `kind` / `locators` / `keyword` / `cue` / `session` | Cue \(q\). Empty \(q\) = 0.11 outline |
-| `depth` / `max_rows` | Hard bound. Raise depth only if the slice is too thin. Over \(M\): cut a nested session — do not clip and call it Shape |
+| `depth` / `max_rows` | Hard bound. Raise depth only if the slice is too thin. Over \(M\): cut a nested session — do not clip and call it Shape. When \(M\) (or hop / shell grain) clips, the emit carries `## Truncation` (CueConflict-family honesty). |
 | `view` | Grain on a **seed** (`shell` / `interior`). Not the outline |
 | leftover `anchor` / `anchors` | leftover nicknames |
 

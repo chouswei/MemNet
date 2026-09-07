@@ -29,7 +29,7 @@ CREATE (m:MOD {path: 'parts/memnet-mcp/software/memnet_mcp/server.py'})-[:define
 ## Pin map economics
 
 - Cue narrowly (`TSK_*`, `qname=`, one interior `session=`)
-- Cap `max_rows`. Do not clip and call it Shape — cut a nested session instead
+- Cap `max_rows`. Do not clip and call it Shape — cut a nested session instead. Clipped emit carries `## Truncation`.
 - `view=shell` is grain on a seed, not 0.11 outline
 - Prefer `housekeep_stats` + settle over stuffing old maps
 

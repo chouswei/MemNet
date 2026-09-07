@@ -122,6 +122,32 @@ def apply_shell_soft_cap(
     return laws + nodes + filtered
 
 
+def _payload_count(rows: list[Record]) -> int:
+    return sum(1 for r in rows if r.tag != "LAW")
+
+
+def emit_truncation(
+    notes: list[dict],
+    *,
+    max_rows: int,
+) -> str:
+    """Shaped emit mark when a hard cap clipped the neighbourhood. Not a command."""
+    if not notes:
+        return ""
+    reasons: list[str] = []
+    omitted = 0
+    for note in notes:
+        reason = str(note.get("reason") or "max_rows")
+        if reason not in reasons:
+            reasons.append(reason)
+        offered = note.get("offered")
+        kept = note.get("kept")
+        if reason in {"max_rows", "shell", "fanout"} and offered is not None and kept is not None:
+            omitted = max(omitted, int(offered) - int(kept))
+    reason_s = ",".join(reasons) if reasons else "max_rows"
+    return f"## Truncation truncated=true M={max_rows} omitted={omitted} reason={reason_s}\n"
+
+
 def _endpoint_label(store, node_id: str) -> str:
     rec = store.get(node_id) if store is not None else None
     if rec is not None and rec.tag and rec.tag != "EDG":
@@ -284,6 +310,7 @@ class PinMapComposer:
                 max_rows=max_rows,
             )
         stale_warnings: list = []
+        clip_notes: list[dict] = []
         eff_depth, eff_max_rows, soft_cap = resolve_view_budget(
             view, depth=depth, max_rows=max_rows
         )
@@ -293,9 +320,15 @@ class PinMapComposer:
             max_rows=eff_max_rows,
             active_only=active_only,
             stale_warnings=stale_warnings,
+            clip_notes=clip_notes,
         )
         if soft_cap:
+            before = rows
             rows = apply_shell_soft_cap(rows, anchor=seed_ids[0])
+            offered_n = _payload_count(before)
+            kept_n = _payload_count(rows)
+            if offered_n > kept_n:
+                clip_notes.append({"reason": "shell", "offered": offered_n, "kept": kept_n})
         text = self.emit_gql(rows)
         from memnet.neighbourhood_reserve import emit_reserves_section, intersecting_leases
         from memnet.session import utc_now
@@ -303,8 +336,10 @@ class PinMapComposer:
         view_ids = {r.hid for r in rows}
         leases = intersecting_leases(self.ss.reserves, view_ids, now=utc_now())
         reserve_text = emit_reserves_section(leases, now=utc_now())
-        if reserve_text:
-            text = reserve_text + ("\n" if text else "") + text
+        trunc_text = emit_truncation(clip_notes, max_rows=eff_max_rows)
+        prefix = trunc_text + reserve_text
+        if prefix:
+            text = prefix + text
         return rows, text
 
     def emit_gql(self, rows: list[Record]) -> str:
@@ -361,6 +396,7 @@ def compose_session_outline(
     kind_names = [k if k else "(unlabeled)" for k in kinds]
     kinds_s = ",".join(kind_names)
     lines = [f"## outline LIMIT={per_kind} kinds={kinds_s}"]
+    census_offer = sum(min(per_kind, len(by_kind[k])) for k in kinds)
     exemplars: list[Record] = []
     nick_counts: dict[str, int] = {}
     for kind in kinds:
@@ -375,6 +411,14 @@ def compose_session_outline(
             if nick:
                 nick_counts[nick] = nick_counts.get(nick, 0) + 1
             lines.append(record_to_gql_line(rec, store=store))
+    if census_offer > len(exemplars):
+        lines.insert(
+            1,
+            emit_truncation(
+                [{"reason": "max_rows", "offered": census_offer, "kept": len(exemplars)}],
+                max_rows=total_cap,
+            ).rstrip(),
+        )
     colliding_nicks = {n for n, c in nick_counts.items() if c > 1}
     text = "\n".join(lines) + "\n"
     if colliding_nicks:

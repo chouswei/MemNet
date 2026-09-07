@@ -95,6 +95,7 @@ def export_pin_map(
     )
     body = text or ""
     conflict = "## CueConflict" in body
+    truncated = "## Truncation" in body
     written: str | None = None
     if out_path is not None:
         path = Path(out_path)
@@ -106,6 +107,8 @@ def export_pin_map(
     bits = [f"pin-map|cue={cue}|rows={len(rows)}"]
     if conflict:
         bits.append("conflict=1")
+    if truncated:
+        bits.append("truncated=1")
     if written:
         bits.append(f"path={written}")
     header = "@EXPORT: " + "|".join(bits)
