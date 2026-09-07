@@ -1,6 +1,6 @@
 # Honesty `c` wire audit (0.19.6)
 
-**Date:** 2026-09-07. **Package:** Hatch **0.19.6** (same-method cut on **0.19**). Published PyPI wheel remains **`memnet-llm==0.19.5`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-07. **Package:** Hatch **0.19.6** (same-method cut on **0.19**). Published PyPI wheel is **`memnet-llm==0.19.6`**. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
 This note records Truncation honesty after silent `max_rows` clip, plus the 0.19.5 hid / nickname audit. Chat is not SSOT.
 
