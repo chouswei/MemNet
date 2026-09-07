@@ -1453,7 +1453,8 @@ def query_pin_map(
     map rows from the prompt; sparse Δ; env blobs stay in the harness. leftover
     --anchor is a leftover nickname alias, not TARGET law. Empty cue is session
     outline (0.11 Recall census of S) regardless of --view. view=shell is grain
-    on a seed, not the outline.
+    on a seed, not the outline. CueConflict when |Q|>1. Truncation when a
+    hard cap clips the neighbourhood (caps stay hard).
     """
     _run_pin_map(
         cue=cue,

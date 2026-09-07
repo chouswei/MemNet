@@ -260,6 +260,8 @@ async def pin_map(
     not TARGET law. Empty cue is session outline (0.11: kinds + LIMIT exemplars
     of S) regardless of ``view``. ``view=shell`` is grain on a seed — not the
     outline. When the cue yields |Q|>1 the emit carries CueConflict.
+    When a hard cap clips the neighbourhood the emit carries Truncation
+    (``## Truncation truncated=true``); caps stay hard.
 
     Optional ``view``: ``shell`` | ``interior`` (teach); ``flowchart`` | ``parts`` |
     ``statechart`` accepted with soft shell caps (grain filters deferred).

@@ -742,7 +742,9 @@ package MemNet {
       this part SHALL NOT re-own Peak_L. defaultGoldfish=false.
       Ranking key = kind + observable payload (MN-REQ-04.11). Hid and
       nickname id are not ranking keys. CREATE order is not a ranking key.
-      Hid stays off the emit. As-is: memnet.observable_rank +
+      Hid stays off the emit. When a hard cap clips the neighbourhood
+      the shaped emit SHALL carry Truncation (visible; not a command);
+      caps stay hard. As-is: memnet.observable_rank +
       PinMapComposer / MemStore neighbors / context_pack / BoundedMatchFind.
     */
     port seedIn : SeedSetInPort;

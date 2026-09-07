@@ -1,6 +1,6 @@
 # MemNet — Agent Playbook (for LLMs)
 
-**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.5.** Hatch **0.19.5**; published PyPI is **`memnet-llm==0.19.5`**. **1.0** = 0.5–0.8 claimed (unclaimed). SemVer `a.b.c`: [`ROADMAP.md`](ROADMAP.md).
+**Class:** developers — MemNet engine / MCP / GQL wire / agent operating doctrine. Index: [`docs/README.md`](README.md). Product shape: [`SHAPE.md`](SHAPE.md). **Product 0.19.6.** Hatch **0.19.6**; published PyPI remains **`memnet-llm==0.19.5`** until upload. **1.0** = 0.5–0.8 claimed (unclaimed). SemVer `a.b.c`: [`ROADMAP.md`](ROADMAP.md).
 
 **Dialect teach = GQL only** — [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md). ADR: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md).  
 **M2 shipped:** engine/MCP accept openCypher-shaped GQL and emit shaped `pin_map`. Do **not** teach Layer / Tier A / `@TAG` pipe as agent wire.

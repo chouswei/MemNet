@@ -7,6 +7,12 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.6] - 2026-09-07
+
+### Changed
+- **Honesty `c` — Truncation on clipped `pin_map`** — When a hard cap clips ShapeWalk (`max_rows` \(M\), hop \(k\) vs `max_depth`, fan-out, or `view=shell` grain), the shaped emit **MUST** carry `## Truncation truncated=true M=… omitted=… reason=…` (CueConflict / Reserves family). Caps stay hard; SHALL NOT silent-clip. When the offer fits, the mark is absent. `SHAPE_DROP_KEYS` / hid honesty unchanged. Export header MAY add `truncated=1`. Package **0.19.6** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Hatch **0.19.6**; published PyPI remains **`memnet-llm==0.19.5`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.6** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**.
+
 ## [0.19.5] - 2026-09-06
 
 ### Changed
@@ -690,7 +696,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.5...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.6...HEAD
+[0.19.6]: https://github.com/chouswei/MemNet/compare/v0.19.5...v0.19.6
 [0.19.5]: https://github.com/chouswei/MemNet/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/chouswei/MemNet/compare/v0.19.3...v0.19.4
 [0.19.0]: https://github.com/chouswei/MemNet/compare/v0.9.0...v0.19.0

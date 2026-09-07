@@ -618,7 +618,16 @@ class MemStore:
         max_rows: int = DEFAULT_QUERY_MAX_ROWS,
         active_only: bool = False,
         stale_warnings: list[tuple[Record, str]] | None = None,
+        clip_notes: list[dict] | None = None,
     ) -> list[Record]:
+        if clip_notes is not None and depth > self.caps.max_depth:
+            clip_notes.append(
+                {
+                    "reason": "depth",
+                    "offered": depth,
+                    "kept": self.caps.max_depth,
+                }
+            )
         depth = min(depth, self.caps.max_depth)
         ids: list[str] = []
         for aid in list(anchor_ids or []):
@@ -650,6 +659,20 @@ class MemStore:
             subgraph = self.neighbors(aid, depth, fanout_warnings=fanout)
             for w in fanout:
                 emit_wrn(*w.split("|", 1))
+                if clip_notes is not None:
+                    parts = w.split("|")
+                    offered = kept = None
+                    if len(parts) >= 3 and "/" in parts[2]:
+                        raw_n, raw_cap = parts[2].split("/", 1)
+                        try:
+                            offered, kept = int(raw_n), int(raw_cap)
+                        except ValueError:
+                            offered, kept = None, None
+                    note: dict = {"reason": "fanout"}
+                    if offered is not None and kept is not None:
+                        note["offered"] = offered
+                        note["kept"] = kept
+                    clip_notes.append(note)
             for rec in subgraph:
                 if rec.hid in seen:
                     continue
@@ -671,7 +694,10 @@ class MemStore:
             resolve=self.resolve_one,
         )
         combined = seed_nodes + other_nodes + ranked(edges, resolve=self.resolve_one)
-        if len(combined) > max_rows:
+        offered = len(combined)
+        if offered > max_rows:
+            if clip_notes is not None:
+                clip_notes.append({"reason": "max_rows", "offered": offered, "kept": max_rows})
             combined = combined[:max_rows]
         if not active_only and stale_warnings is not None:
             for rec in combined:
