@@ -171,7 +171,7 @@ memnet-mcp = "memnet_mcp.server:main"
 mcp = ["mcp>=1.2,<2"]
 ```
 
-Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. Hatch **0.19.3**; last PyPI **`memnet-llm==0.19.0`** until upload: `pip install 'memnet-llm[mcp]'` (contributors: `pip install -e ".[mcp]"`).
+Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. Hatch **0.19.5**; published PyPI is **`memnet-llm==0.19.5`**: `pip install 'memnet-llm[mcp]'` (contributors: `pip install -e ".[mcp]"`).
 
 ---
 
@@ -221,7 +221,7 @@ mcp-memnet/
 name: mcp-memnet
 description: >-
   Cursor MCP MemNet: token-efficient GQL + shaped pin_map graph
-  (not JSON) — atomise, pin_map from anchor, goldfish loop via
+  (not JSON) — atomise, cue then pin_map, goldfish loop via
   memnet serve or HTTP. Coding, articles, user constraints, SysML/MUD.
   Triggers: memnet, memnet mcp, pin_map, goldfish loop, atomise,
   wire format, token efficient, knowledge graph, GQL dialect.
@@ -234,8 +234,8 @@ metadata:
 token_guardrails: |
   - **Wire format:** GQL + shaped pin_map; short fields, no prose.
   - **Atomise first:** one fact per row; edges for relations; electrical ports/law/bind.
-  - **Read:** pin_map with anchor — never bare full-session dump.
-  - **Write:** add new ids; update changes; copy ids from pin_map.
+  - **Read:** cue then pin_map — never bare full-session dump; leftover `--anchor` is leftover.
+  - **Write:** pattern mutate; locators from shaped emit (labels/properties); never treat nickname id / hid as identity.
   - **Coding:** grep/LSP to verify — then store compact MOD/SYM atoms.
   - **Session:** pass MCP arg `session` (not `session_id`) on tools.
   - **Server:** in-process for a single agent; `memnet serve` / HTTP when sharing a graph.

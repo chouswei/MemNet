@@ -158,7 +158,7 @@ Client leftover `NEW` mint is leftover, not product. Prefer ingest for bounded p
 | **leftover `add`** | leftover façade for incremental locators after grep/LSP confirm; prefer `mutate` |
 | leftover `id:'NEW'` mint | leftover engine; product is GraphElement `CREATE` without NEW |
 
-Re-`pin_map` after ingest/seed; workers copy ids from the slice.
+Re-`pin_map` after ingest/seed; workers copy locators / cue from the shaped slice (labels + observable properties), not nickname ids.
 
 ---
 

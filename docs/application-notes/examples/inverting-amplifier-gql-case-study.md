@@ -31,7 +31,7 @@ MemNet **states** stamps; it does **not** solve the network.
 | Construct | Convention in this sketch |
 |-----------|---------------------------|
 | **Label** | `:CST` (constitutive / device leaf) |
-| **Stable id** | property `id` (house pin) |
+| **Ground locator** | property `id` (house pin `CST_*`, a locator property — not a store key; nickname `id` stays off shaped `pin_map` emit) |
 | **Law** | node property `law` (LaTeX string) — **never** on a relationship |
 | **Ports** | node property `ports` (map / structured bag) — `PortIncidence` |
 | **Params** | ordinary node properties (`R`, `a_s`, …) |
@@ -137,20 +137,20 @@ Agent goldfish read is **not** a raw binding table such as:
 MATCH (n)-[r]->(m) RETURN n, r, m
 ```
 
-Instead, `pin_map(kind='CST', locators=['id=CST_U1'], depth=2, view='shell')` wraps GQL internally and returns a **bounded shaped subgraph** — openCypher-family graph lines the agent can copy when mutating. leftover `pin_map(anchor='CST_U1')` is leftover. `view=shell` here is grain **on that seed**, not session outline (empty q is outline regardless of view):
+Instead, `pin_map(kind='CST', locators=['id=CST_U1'], depth=2, view='shell')` wraps GQL internally and returns a **bounded shaped subgraph** — openCypher-family graph lines the agent can reuse as labels+properties when mutating. `locators=['id=CST_U1']` is a **property cue** (ground locator `CST_U1`, not a store key on the wire). leftover `pin_map(anchor='CST_U1')` is leftover. Nickname `id` / `hid` / `_memnet_hid` / `elementId` stay off shaped emit (`SHAPE_DROP_KEYS`). `view=shell` here is grain **on that seed**, not session outline (empty q is outline regardless of view):
 
 ```cypher
-// shaped emit (illustrative — same family as mutate, ego-bounded)
-(:CST {id:'CST_U1', name:'opamp', a_s:1000000, law:'$@ip=0$,$@im=0$,$@vo=a_s*(@vp-@vm)$', ...})
-(:CST {id:'CST_Rin', name:'Rin', R:10000, ...})
-(:CST {id:'CST_Rf', name:'Rf', R:100000, ...})
-(:CST {id:'CST_Gnd', name:'VGND', ...})
-(:CST {id:'CST_A', name:'closed_loop', A_s:-10.0, ...})
-(:CST {id:'CST_U1'})-[:bind {id:'E_sum_r', fromPort:'b', toPort:'inm'}]->(:CST {id:'CST_Rin'})
-(:CST {id:'CST_U1'})-[:bind {id:'E_sum_f', fromPort:'b', toPort:'inm'}]->(:CST {id:'CST_Rf'})
-(:CST {id:'CST_U1'})-[:bind {id:'E_out_f', fromPort:'out', toPort:'a'}]->(:CST {id:'CST_Rf'})
-(:CST {id:'CST_U1'})-[:bind {id:'E_inp', fromPort:'inp', toPort:'a'}]->(:CST {id:'CST_Gnd'})
-(:CST {id:'CST_U1'})-[:bind {id:'E_A_out', fromPort:'out', toPort:'out'}]->(:CST {id:'CST_A'})
+// shaped emit (illustrative — same family as mutate, ego-bounded; nickname id off the wire)
+(:CST {name:'opamp', a_s:1000000, law:'$@ip=0$,$@im=0$,$@vo=a_s*(@vp-@vm)$', ...})
+(:CST {name:'Rin', R:10000, ...})
+(:CST {name:'Rf', R:100000, ...})
+(:CST {name:'VGND', ...})
+(:CST {name:'closed_loop', A_s:-10.0, ...})
+(:CST {name:'opamp'})-[:bind {fromPort:'b', toPort:'inm'}]->(:CST {name:'Rin'})
+(:CST {name:'opamp'})-[:bind {fromPort:'b', toPort:'inm'}]->(:CST {name:'Rf'})
+(:CST {name:'opamp'})-[:bind {fromPort:'out', toPort:'a'}]->(:CST {name:'Rf'})
+(:CST {name:'opamp'})-[:bind {fromPort:'inp', toPort:'a'}]->(:CST {name:'VGND'})
+(:CST {name:'opamp'})-[:bind {fromPort:'out', toPort:'out'}]->(:CST {name:'closed_loop'})
 ```
 
 Engine-law rows may prepend when present. Recyclable / out-of-budget neighbours stay hidden (MN-REQ-04).
@@ -164,7 +164,7 @@ Engine-law rows may prepend when present. Recyclable / out-of-budget neighbours 
 | Device constitutive law | Node property `law` on `:CST` |
 | Port bags (V/I, direc) | Node property `ports` (`PortIncidence`) |
 | Copper | Relationship type `:bind` + port endpoint properties |
-| Chart / mission links | Other relationship types on bare node ids |
+| Chart / mission links | Other relationship types on locators as properties |
 | Goldfish budget | `PinMapShapedRead` / `pin_map` view+depth+max_rows |
 | Durable AgensGraph | Optional later; same GQL family — not this sketch |
 
