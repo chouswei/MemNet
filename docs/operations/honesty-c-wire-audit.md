@@ -1,8 +1,19 @@
-# Honesty `c` wire audit (0.19.6)
+# Honesty `c` wire audit (0.19.7)
 
-**Date:** 2026-09-07. **Package:** Hatch **0.19.6** (same-method cut on **0.19**). Published PyPI wheel is **`memnet-llm==0.19.6`**. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-08. **Package:** Hatch **0.19.7** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
-This note records Truncation honesty after silent `max_rows` clip, plus the 0.19.5 hid / nickname audit. Chat is not SSOT.
+This note records catalog Snap leftover nicknames so snapshot save/load round-trips, plus Truncation honesty (0.19.6) and the 0.19.5 hid / nickname audit. Chat is not SSOT.
+
+## Surfaces checked (0.19.7 catalog leftover nick)
+
+| Surface | Result |
+|---------|--------|
+| `snap_model` `_commit_catalog` | Catalog PKG CREATE carries leftover `id: 'pkg_…'` (slug from `qname` / `kind_band`, hash if over 64). Not GraphElement identity. |
+| Snapshot `# memnet-snapshot-v1` | `@PKG:` first field length 1–64. `session_save` → `session_load` parses. |
+| `pin_map` on catalog | Still kind + `qname` / locators. Nickname off shaped read (0.19.4). |
+| Catalog vs mission | SHALL NOT mint `TSK_model_*`. Interiors unchanged (Path-B CREATE still locator-only). |
+
+Regression: `tests/test_catalog_snap.py` (`test_catalog_session_save_load_roundtrip`).
 
 ## Surfaces checked (0.19.6 Truncation)
 
@@ -37,6 +48,10 @@ Regression: `tests/test_pin_map_truncation.py`. Hid regression remains `tests/te
 - leftover `add`/`update` façades; leftover `--anchor`.
 - Snapshot files (`# memnet-snapshot-v1`) are operator save/load, not `pin_map`.
 - leftover `query context` pipe emit still silent-clips (not goldfish).
+
+## Cut in 0.19.7
+
+Catalog Snap wrote PKG without a leftover nickname (`CREATE (:PKG {qname, session, …})`). Snapshot emit is leftover `@TAG` with required id length 1–64, so empty id (`@PKG: ||qname|…`) failed `session_load` (`invalid_id`). Honesty: mint leftover nicknames on catalog emit; do not teach identity-by-id; do not change the goldfish loop.
 
 ## Cut in 0.19.6
 

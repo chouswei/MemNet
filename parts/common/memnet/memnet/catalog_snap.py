@@ -7,6 +7,7 @@ Hid stays off the wire. Locators are properties.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -317,10 +318,58 @@ def _edges_in(
     return [e for e in edges if e[1] in ids and e[3] in ids]
 
 
+_NICK_SAFE = re.compile(r"[^A-Za-z0-9_.-]+")
+
+
+def leftover_catalog_pkg_nick(
+    qname: str,
+    *,
+    kind_band: str = "",
+    grain: str = "",
+    used: set[str] | None = None,
+) -> str:
+    """leftover snapshot nickname for a catalog PKG row.
+
+    GraphElement identity stays the hid. Optional ``id`` is a nickname so
+    ``session_save`` / ``session_load`` can parse wire fields (length 1-64).
+    Cue remains kind + ``qname`` / locators — do not teach identity-by-id.
+    """
+    used = used if used is not None else set()
+    bits = [qname]
+    if kind_band:
+        bits.append(kind_band)
+    if grain and grain not in {"package", ""}:
+        bits.append(grain)
+    raw = "|".join(bits)
+    slug = _NICK_SAFE.sub("_", "_".join(bits)).strip("._-")
+    nick = f"pkg_{slug}" if slug else ""
+    if not nick or len(nick) > 64:
+        digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        nick = f"pkg_{digest}"
+    if nick in used:
+        digest = hashlib.sha256(f"{raw}|{nick}".encode()).hexdigest()[:12]
+        base = f"pkg_{digest}"
+        nick = base
+        n = 2
+        while nick in used:
+            nick = f"{base}{n}"[:64]
+            n += 1
+    used.add(nick)
+    return nick
+
+
 def _commit_catalog(catalog: SessionStore, refs: Sequence[InteriorRef]) -> None:
     lines: list[str] = []
+    used: set[str] = set()
     for ref in refs:
+        nick = leftover_catalog_pkg_nick(
+            ref.qname,
+            kind_band=ref.kind_band,
+            grain=ref.grain,
+            used=used,
+        )
         props = {
+            "id": nick,
             "qname": ref.qname,
             "session": ref.session_id,
             "grain": ref.grain,

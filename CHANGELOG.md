@@ -7,6 +7,12 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.7] - 2026-09-08
+
+### Changed
+- **Honesty `c` — catalog Snap leftover nicknames** — `snap_model` catalog PKG rows mint a leftover `pkg_*` nickname on CREATE so `# memnet-snapshot-v1` emit has id length 1–64 and `session_save` → `session_load` round-trips. GraphElement identity stays the hid; optional `id` is nickname only. Cue / `pin_map` stay kind + `qname` / locators (nickname stays off shaped read). SHALL NOT mint `TSK_model_*`. SHALL NOT teach identity-by-id. Package **0.19.7** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Hatch **0.19.7**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.7** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch is **0.19.7**; last published PyPI remains **0.19.6** until upload.
+
 ## [0.19.6] - 2026-09-07
 
 ### Changed
@@ -696,7 +702,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.6...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.7...HEAD
+[0.19.7]: https://github.com/chouswei/MemNet/compare/v0.19.6...v0.19.7
 [0.19.6]: https://github.com/chouswei/MemNet/compare/v0.19.5...v0.19.6
 [0.19.5]: https://github.com/chouswei/MemNet/compare/v0.19.4...v0.19.5
 [0.19.4]: https://github.com/chouswei/MemNet/compare/v0.19.3...v0.19.4
