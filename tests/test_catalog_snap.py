@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from memnet.catalog_snap import snap_model
+from memnet.catalog_snap import leftover_catalog_pkg_nick, snap_model
 from memnet.cli import app
 from memnet.config import Caps, examples_dir
 from memnet.exceptions import MemNetError
@@ -18,6 +18,8 @@ from memnet.import_absorb import (
 )
 from memnet.pin_map_composer import PinMapComposer
 from memnet.session import close_session, get_session, list_sessions, open_session
+from memnet.snapshot import load_snapshot, snapshot_text, write_snapshot
+from memnet.tag_map import validate_id
 
 runner = CliRunner()
 _MAP = examples_dir() / "schema.sysml.example.txt"
@@ -83,6 +85,11 @@ def test_snap_model_catalog_and_package_interiors(memnet_temp, model_dir: Path):
     assert len(pkgs) == 2
     sessions = {r.fields.get("session") for r in pkgs}
     assert sessions == {row.session_id for row in result.interiors}
+    nicks = {r.id for r in pkgs}
+    assert all(nicks)
+    for nick in nicks:
+        validate_id(nick)
+        assert nick.startswith("pkg_")
     assert not catalog.store.list_records("REQ")
     blob = PinMapComposer(catalog).compose(anchor=None, kind="PKG", locators=[], depth=1)[1]
     assert "PkgReq" in blob
@@ -178,6 +185,69 @@ def test_close_frees_slots_for_snap_model(memnet_temp, model_dir: Path, schema_f
     result = snap_model(model_dir, map_file=_MAP, caps=Caps())
     assert result.catalog_session_id
     assert len(result.session_ids) == 3
+
+
+def test_leftover_catalog_pkg_nick_stable_and_unique() -> None:
+    used: set[str] = set()
+    a = leftover_catalog_pkg_nick("PkgReq", used=used)
+    b = leftover_catalog_pkg_nick("PkgReq", used=set())
+    assert a == b == "pkg_PkgReq"
+    validate_id(a)
+    band = leftover_catalog_pkg_nick("FatPkg", kind_band="REQ", used=used)
+    assert band == "pkg_FatPkg_REQ"
+    collide = leftover_catalog_pkg_nick("PkgReq", used=used)
+    assert collide != a
+    assert collide.startswith("pkg_")
+    validate_id(collide)
+    long_q = "Q" * 80
+    hashed = leftover_catalog_pkg_nick(long_q, used=set())
+    assert hashed.startswith("pkg_")
+    assert len(hashed) <= 64
+    validate_id(hashed)
+
+
+def test_catalog_session_save_load_roundtrip(memnet_temp, model_dir: Path, tmp_path: Path):
+    del memnet_temp
+    result = snap_model(model_dir, map_file=_MAP)
+    catalog = get_session(result.catalog_session_id)
+    text = snapshot_text(catalog)
+    rec_lines = [
+        ln for ln in text.splitlines() if ln.startswith("@") and not ln.startswith("@SNAP:")
+    ]
+    rec_lines = [ln for ln in rec_lines if ln.startswith("@PKG:")]
+    assert rec_lines
+    for line in rec_lines:
+        nick = line.split(":", 1)[1].strip().split("|", 1)[0]
+        assert nick, line
+        validate_id(nick)
+
+    snap_path = tmp_path / "catalog.snap"
+    write_snapshot(catalog, snap_path)
+    loaded = load_snapshot(snap_path)
+    pkgs = [r for r in loaded.store.list_records("PKG") if r.fields.get("session")]
+    assert {r.fields.get("qname") for r in pkgs} == {"PkgReq", "PkgPart"}
+    assert all(r.id for r in pkgs)
+    look = PinMapComposer(loaded).compose(anchor=None, kind="PKG", locators=[], depth=1)[1]
+    assert "PkgReq" in look
+    assert "pkg_PkgReq" not in look
+    assert "_el" not in look
+
+    save = runner.invoke(
+        app,
+        [
+            "session",
+            "save",
+            "--file",
+            str(snap_path),
+            "--session",
+            result.catalog_session_id,
+        ],
+    )
+    assert save.exit_code == 0, save.stderr
+    load = runner.invoke(app, ["session", "load", "--file", str(snap_path)])
+    assert load.exit_code == 0, load.stderr
+    assert "@ERR:" not in load.stdout
+    assert "invalid_id" not in load.stderr
 
 
 def test_cli_snap_model_and_session_list(memnet_temp, model_dir: Path):
