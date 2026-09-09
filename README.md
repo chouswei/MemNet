@@ -6,7 +6,7 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.7**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (0.19.7 honesty `c`: leftover nicknames on catalog Snap PKG). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.8**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (0.19.8 honesty `c`: leftover nicknames on all snapshot records + camelCase `:inFile`). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Install + quick CLI
 

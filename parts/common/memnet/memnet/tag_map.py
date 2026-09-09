@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 
 from memnet.config import ID_PATTERN, RELATION_PATTERN, RESERVED_TAGS, Caps
@@ -181,6 +182,36 @@ def tag_map_to_lines(tag_map: TagMap) -> list[str]:
     return lines
 
 
+def leftover_wire_nick(
+    seed: str,
+    *,
+    kind: str = "rec",
+    used: set[str] | None = None,
+) -> str:
+    """leftover snapshot / pipe nickname — not GraphElement identity.
+
+    Hid stays identity. Optional ``id`` is a leftover nick so ``# memnet-snapshot-v1``
+    and ``parse_line`` satisfy id length 1-64. SHALL NOT mint ``TSK_model_*``.
+    Cue / ``pin_map`` stay kind + locators.
+    """
+    used = used if used is not None else set()
+    slug = re.sub(r"[^a-z0-9]+", "", kind.lower())[:8] or "rec"
+    digest = hashlib.sha256(seed.encode()).hexdigest()[:16]
+    nick = f"sn_{slug}_{digest}"
+    if len(nick) > 64:
+        nick = f"sn_{digest}"
+    if nick in used:
+        bump = hashlib.sha256(f"{seed}|{nick}".encode()).hexdigest()[:12]
+        base = f"sn_{slug}_{bump}"[:64]
+        nick = base
+        n = 2
+        while nick in used:
+            nick = f"{base}{n}"[:64]
+            n += 1
+    used.add(nick)
+    return nick
+
+
 def validate_id(record_id: str) -> None:
     if not record_id or len(record_id) > 64:
         raise MemNetError("invalid_id", f"id length must be 1-64 got {len(record_id)}")
@@ -221,7 +252,8 @@ def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str,
                 f"value_bytes|{len(val.encode('utf-8'))}/{caps.max_value_bytes}",
             )
         result[name] = val
-    validate_id(result["id"])
+    if result.get("id"):
+        validate_id(result["id"])
     if tag_def.tag == "EDG":
         rel = result.get("relation", "")
         if rel and not _REL_RE.match(rel):
@@ -232,7 +264,13 @@ def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str,
     return result
 
 
-def parse_line(line: str, tag_map: TagMap, caps: Caps | None = None) -> Record:
+def parse_line(
+    line: str,
+    tag_map: TagMap,
+    caps: Caps | None = None,
+    *,
+    used_nicks: set[str] | None = None,
+) -> Record:
     caps = caps or Caps()
     if len(line.encode("utf-8")) > caps.max_line_bytes:
         raise MemNetError(
@@ -251,6 +289,16 @@ def parse_line(line: str, tag_map: TagMap, caps: Caps | None = None) -> Record:
         raise MemNetError("unknown_tag", f"{tag} not in tagMap known: {known}")
     values = split_payload(payload)
     fields = validate_values(tag_def, values, caps)
+    nick = fields.get("id", "")
+    if nick:
+        if used_nicks is not None:
+            used_nicks.add(nick)
+    else:
+        fields["id"] = leftover_wire_nick(
+            f"{tag}|{payload}",
+            kind=tag,
+            used=used_nicks,
+        )
     return Record(tag=tag, fields=fields)
 
 

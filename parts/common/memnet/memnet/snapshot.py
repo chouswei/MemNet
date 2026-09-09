@@ -10,16 +10,34 @@ from pathlib import Path
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
-from memnet.models import SessionMeta
+from memnet.models import Record, SessionMeta
 from memnet.output import emit_record
 from memnet.registry import SessionEntry, count, register
 from memnet.session import SessionStore, purge_expired, utc_now
-from memnet.tag_map import load_persisted_map_from_lines, parse_line, tag_map_to_lines
+from memnet.tag_map import (
+    leftover_wire_nick,
+    load_persisted_map_from_lines,
+    parse_line,
+    tag_map_to_lines,
+    validate_id,
+)
 
 SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
+
+
+def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
+    nick = rec.fields.get("id") or ""
+    if nick:
+        try:
+            validate_id(nick)
+            used.add(nick)
+            return nick
+        except MemNetError:
+            pass
+    return leftover_wire_nick(rec.hid, kind=rec.tag, used=used)
 
 
 def snapshot_text(ss: SessionStore) -> str:
@@ -36,10 +54,25 @@ def snapshot_text(ss: SessionStore) -> str:
     for rel in sorted(ss.relations):
         lines.append(f"@REL: {rel}")
     lines.append(_SECTION_REC)
+    used: set[str] = set()
+    hid_to_nick: dict[str, str] = {}
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
         if rec:
-            lines.append(emit_record(rec, ss.tag_map))
+            hid_to_nick[rec.hid] = _snapshot_emit_nick(rec, used)
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if not rec:
+            continue
+        fields = dict(rec.fields)
+        fields["id"] = hid_to_nick[rec.hid]
+        if rec.tag == "EDG":
+            for key in ("src", "dist"):
+                token = fields.get(key, "")
+                if token in hid_to_nick:
+                    fields[key] = hid_to_nick[token]
+        clone = rec.model_copy(update={"fields": fields})
+        lines.append(emit_record(clone, ss.tag_map))
     return "\n".join(lines) + "\n"
 
 
@@ -183,8 +216,9 @@ def load_snapshot_text(
         modified_at=meta.modified_at,
     )
     store = MemStore(tag_map, caps)
+    used_nicks: set[str] = set()
     for line in rec_lines:
-        rec = parse_line(line, tag_map, caps)
+        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
         store.upsert(rec, relations=relations)
     entry = SessionEntry(
         meta=new_meta,

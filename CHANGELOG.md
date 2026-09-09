@@ -7,6 +7,13 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.8] - 2026-09-09
+
+### Changed
+- **Honesty `c` — snapshot leftover nicknames on every record** — Catalog PKG mint in 0.19.7 was not enough: mission `session_save` still emitted empty leftover `id` (`@TSK: |TSK_model_vfdl2|…`) so `session_load` failed `invalid_id|id length got 0`. Snapshot emit now mints stable leftover `sn_<kind>_<digest>` from GraphElement hid (rewrite EDG `src`/`dist` hid→nick). `parse_line` / load mint the same class of nick when the first field is empty. GraphElement identity stays the hid; optional `id` is nickname only. SHALL NOT mint `TSK_model_*`. SHALL NOT teach identity-by-id. Cue / `pin_map` stay kind + locators.
+- **Honesty `c` — camelCase relation types on leftover pipe** — Product GQL uses `:inFile` / `:declaredIn` / `:typedBy`. Snapshot `@REL` / `@EDG` load no longer rejects them (`invalid_relation` vs `^[a-z][a-z0-9_]*$`). `RELATION_PATTERN` is `^[a-z][a-zA-Z0-9_]*$`. Seed relations include those product verbs. Package **0.19.8** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. `operatorCount` stays 2. Hatch **0.19.8**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.8** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch is **0.19.8**; last published PyPI remains **0.19.6** until upload.
+
 ## [0.19.7] - 2026-09-08
 
 ### Changed
@@ -702,7 +709,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.7...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.8...HEAD
+[0.19.8]: https://github.com/chouswei/MemNet/compare/v0.19.7...v0.19.8
 [0.19.7]: https://github.com/chouswei/MemNet/compare/v0.19.6...v0.19.7
 [0.19.6]: https://github.com/chouswei/MemNet/compare/v0.19.5...v0.19.6
 [0.19.5]: https://github.com/chouswei/MemNet/compare/v0.19.4...v0.19.5

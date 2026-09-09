@@ -9,7 +9,8 @@ RESERVED_TAGS = frozenset({"SESSION", "ERR", "WRN", "STAT", "REL", "DEL"})
 ORPHAN_EXEMPT_TAGS = frozenset({"LAW", "CFG", "SYS", "PLR"})
 RECYCLE_INACTIVE = frozenset({"delete_on_settle", "delete_on_expire"})
 ID_PATTERN = r"^[A-Za-z0-9_.-]+$"
-RELATION_PATTERN = r"^[a-z][a-z0-9_]*$"
+# Product GQL uses camelCase verbs (inFile, declaredIn, typedBy, memberOf).
+RELATION_PATTERN = r"^[a-z][a-zA-Z0-9_]*$"
 MAX_WRN_PER_CALL = 12
 
 DEFAULT_QUERY_MAX_ROWS = 50
