@@ -144,7 +144,7 @@ def test_mission_empty_nick_infile_save_load(memnet_temp, tmp_path: Path):
     from memnet.pin_map_composer import PinMapComposer
 
     look = PinMapComposer(loaded).compose(
-        anchor=None, kind="SYM", locators=["name=edgePc"], depth=1
+        anchor=None, kind="SYM", locators=[("name", "edgePc")], depth=1
     )[1]
     assert "edgePc" in look
     assert ":inFile" in look or "inFile" in look
