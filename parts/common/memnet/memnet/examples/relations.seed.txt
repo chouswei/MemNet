@@ -39,3 +39,14 @@ memberOf
 mentions
 maps_to
 helps
+
+# SysML / coding product wire (camelCase; same types as GQL :inFile)
+inFile
+declaredIn
+typedBy
+hasPort
+dependsOn
+flowOf
+allocates
+connects
+realizes

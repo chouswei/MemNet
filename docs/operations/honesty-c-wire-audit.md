@@ -1,8 +1,19 @@
-# Honesty `c` wire audit (0.19.7)
+# Honesty `c` wire audit (0.19.8)
 
-**Date:** 2026-09-08. **Package:** Hatch **0.19.7** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-09. **Package:** Hatch **0.19.8** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
-This note records catalog Snap leftover nicknames so snapshot save/load round-trips, plus Truncation honesty (0.19.6) and the 0.19.5 hid / nickname audit. Chat is not SSOT.
+This note records leftover nicknames on **all** snapshot records (mission TSK/PRT/SYM/MOD as well as catalog PKG) and camelCase product relation types on leftover pipe load, plus Truncation honesty (0.19.6) and the 0.19.5 hid / nickname audit. Chat is not SSOT.
+
+## Surfaces checked (0.19.8 snapshot leftover nick + `:inFile`)
+
+| Surface | Result |
+|---------|--------|
+| `snapshot_text` / `session_save` | Every `# memnet-snapshot-v1` record has leftover nickname length 1–64. Empty GraphElement `id` mints `sn_<kind>_<digest>` from hid. EDG `src`/`dist` hid rewritten to that nick. SHALL NOT mint `TSK_model_*`. |
+| `parse_line` / `session_load` | Empty first field mints the same leftover nick class. Old foam empty-id lines no longer `invalid_id`. |
+| Relation pattern | `RELATION_PATTERN` allows camelCase (`inFile`, `declaredIn`, `typedBy`, `memberOf`). Seed includes product verbs. |
+| `pin_map` | Still kind + locators. Nickname off shaped read (0.19.4). Hid off emit (0.19.5). |
+
+Regression: `tests/test_snapshot.py` (`test_mission_empty_nick_infile_save_load`). Catalog PKG mint (0.19.7) remains `tests/test_catalog_snap.py`.
 
 ## Surfaces checked (0.19.7 catalog leftover nick)
 
@@ -48,6 +59,10 @@ Regression: `tests/test_pin_map_truncation.py`. Hid regression remains `tests/te
 - leftover `add`/`update` façades; leftover `--anchor`.
 - Snapshot files (`# memnet-snapshot-v1`) are operator save/load, not `pin_map`.
 - leftover `query context` pipe emit still silent-clips (not goldfish).
+
+## Cut in 0.19.8
+
+Mission `CREATE (:TSK {goal})` (and PRT/SYM/MOD/…) still had empty leftover `id` on snapshot emit after 0.19.7 catalog PKG mint. Load failed `invalid_id`. Hand-mint then failed `invalid_relation` on `:inFile` (camelCase vs lowercase-only pattern). Honesty: mint leftover nicks on **all** snapshot records (and on empty-id parse); allow product camelCase relation types on leftover pipe; do not teach identity-by-id; do not change the goldfish loop.
 
 ## Cut in 0.19.7
 
