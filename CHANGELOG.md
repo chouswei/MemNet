@@ -7,6 +7,12 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.19.9] - 2026-09-12
+
+### Changed
+- **Honesty `c` — Path-B SysML `connection` → CON** — Teach already maps SysML connection / link to `:CON` (`connectionDef` / `connectionUsage` / `linkUsage`). Path-B `ingest_sysml` was wrong: `_KIND_FOR_KW` mapped `connection def` to **PRT**, and `_DEF_HEAD` omitted bare `connection` / `link` usages, so Foam `connections.sysml` defs and deploy usages projected CON=0. Code now maps `connection def` / `connection` / `link def` / `link` to CON, sets `kind` to the closed enum, and emits cheap `typedBy` / `hasPort` / `connects` when end names already exist. Nest `contains` / `satisfies` unchanged. Map `schema.sysml.example.txt` lists SCHEMA CON (canonical kind was already CON). Same goldfish loop (`cue → pin_map → mutate`); not a new agent step. Package **0.19.9** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. Hatch **0.19.9**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Package identity 0.19.9** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch is **0.19.9**; last published PyPI remains **0.19.6** until upload.
+
 ## [0.19.8] - 2026-09-09
 
 ### Changed
@@ -709,7 +715,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.8...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.9...HEAD
+[0.19.9]: https://github.com/chouswei/MemNet/compare/v0.19.8...v0.19.9
 [0.19.8]: https://github.com/chouswei/MemNet/compare/v0.19.7...v0.19.8
 [0.19.7]: https://github.com/chouswei/MemNet/compare/v0.19.6...v0.19.7
 [0.19.6]: https://github.com/chouswei/MemNet/compare/v0.19.5...v0.19.6

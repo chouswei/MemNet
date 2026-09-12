@@ -5,5 +5,6 @@ SCHEMA PKG ; fields=id name qname path sysml_kind session grain kind_band recycl
 SCHEMA PRT ; fields=id name qname path sysml_kind recycle
 SCHEMA REQ ; fields=id name qname path requirementId sysml_kind recycle
 SCHEMA POR ; fields=id name qname path sysml_kind recycle
+SCHEMA CON ; fields=id name qname path sysml_kind kind recycle
 SCHEMA TSK ; fields=id goal anchor status recycle
 SCHEMA USR ; fields=id topic content status recycle

@@ -41,8 +41,8 @@ _DEF_HEAD = re.compile(
     r"package|"
     r"part\s+def|requirement\s+def|port\s+def|item\s+def|"
     r"connection\s+def|interface\s+def|action\s+def|state\s+def|"
-    r"verification\s+def|view\s+def|viewpoint\s+def|"
-    r"part|port|requirement|item"
+    r"verification\s+def|view\s+def|viewpoint\s+def|link\s+def|"
+    r"part|port|requirement|item|connection|link"
     r")\s+(?P<name>[A-Za-z_][\w]*)",
     re.MULTILINE,
 )
@@ -56,6 +56,23 @@ _SATISFY = re.compile(
     r"\bsatisfy\s+((?:[A-Za-z_][\w]*::)*[A-Za-z_][\w]*)",
 )
 
+_TYPE_AFTER = re.compile(r"^\s*:\s*([A-Za-z_][\w]*)")
+_END_TYPED = re.compile(
+    r"\bend\s+(?:port\s+)?[A-Za-z_][\w]*\s*:\s*([A-Za-z_][\w]*)",
+)
+_END_CONNECT = re.compile(
+    r"\bend\s+(?:port\s+)?[A-Za-z_][\w]*\s*::>\s*([A-Za-z_][\w.]*)",
+)
+_CONNECT_STMT = re.compile(
+    r"\bconnect\s+([A-Za-z_][\w.]*)\s+to\s+([A-Za-z_][\w.]*)",
+)
+_CON_KIND_ENUM: dict[str, str] = {
+    "connection def": "connectionDef",
+    "connection": "connectionUsage",
+    "link def": "linkUsage",
+    "link": "linkUsage",
+}
+
 _KIND_FOR_KW: dict[str, str] = {
     "package": "PKG",
     "part def": "PRT",
@@ -66,7 +83,10 @@ _KIND_FOR_KW: dict[str, str] = {
     "port": "POR",
     "item def": "PRT",
     "item": "PRT",
-    "connection def": "PRT",
+    "connection def": "CON",
+    "connection": "CON",
+    "link def": "CON",
+    "link": "CON",
     "interface def": "PRT",
     "action def": "PRT",
     "state def": "PRT",
@@ -156,7 +176,7 @@ class PinMapIngestBase:
 
 
 class PinMapIngest_Sysml(PinMapIngestBase):
-    """Selective SysML v2 .sysml → PKG|PRT|REQ|POR pins (first shipped engine)."""
+    """Selective SysML v2 .sysml → PKG|PRT|REQ|POR|CON pins (first shipped engine)."""
 
     domain = "sysml"
     implemented = IMPLEMENTED_SYSML
@@ -544,6 +564,7 @@ def _project_sysml_file(
     text = _strip_comments(fpath.read_text(encoding="utf-8", errors="replace"))
     # Event stream: def heads, braces, requirementId, satisfy.
     # Anonymous braces (e.g. #derivation connection {…}) must not corrupt nest.
+    pending_con: list[tuple[str, str, str]] = []  # nid, type_name, body
     stack: list[tuple[str, str, str, int]] = []  # kind, name, id, depth
     depth = 0
     pending_push: tuple[str, str, str] | None = None
@@ -628,6 +649,9 @@ def _project_sysml_file(
             "sysml_kind": kw.replace(" ", "_"),
             "recycle": "persistent",
         }
+        kind_enum = _CON_KIND_ENUM.get(kw, "")
+        if kind_enum:
+            fields["kind"] = kind_enum
         nodes.append(fields)
         name_index[name] = nid
         qname_index[qname] = nid
@@ -636,12 +660,27 @@ def _project_sysml_file(
             eid = alloc.allocate_from_locator("E", f"contains_{parent_id}_{nid}")
             edges.append((eid, parent_id, "contains", nid))
         after = text[m.end() :]
+        type_m = _TYPE_AFTER.match(after)
+        type_name = type_m.group(1) if type_m else ""
+        body = _extract_brace_body(after)
+        if pin_kind == "CON":
+            pending_con.append((nid, type_name, body or ""))
         brace_i = after.find("{")
         semi_i = after.find(";")
         if brace_i >= 0 and (semi_i < 0 or brace_i < semi_i):
             pending_push = (pin_kind, name, nid)
         else:
             pending_push = None
+
+    _emit_con_relations(
+        pending_con,
+        text=text,
+        nodes=nodes,
+        edges=edges,
+        name_index=name_index,
+        qname_index=qname_index,
+        alloc=alloc,
+    )
 
 
 def _set_node_field(nodes: list[dict[str, str]], nid: str, key: str, value: str) -> None:
@@ -674,11 +713,144 @@ def _retarget_node_id(
                 d[k] = new_id
 
 
+def _extract_brace_body(after: str) -> str | None:
+    brace_i = after.find("{")
+    semi_i = after.find(";")
+    if brace_i < 0 or (semi_i >= 0 and semi_i < brace_i):
+        return None
+    depth = 0
+    for j, ch in enumerate(after[brace_i:], start=brace_i):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return after[brace_i + 1 : j]
+    return after[brace_i + 1 :]
+
+
+def _append_sysml_edge(
+    edges: list[tuple[str, str, str, str]],
+    alloc: IdAllocator,
+    src_id: str,
+    rel: str,
+    dst_id: str,
+) -> None:
+    if not src_id or not dst_id or src_id == dst_id:
+        return
+    eid = alloc.allocate_from_locator("E", f"{rel}_{src_id}_{dst_id}")
+    rec = (eid, src_id, rel, dst_id)
+    if rec not in edges:
+        edges.append(rec)
+
+
+def _resolve_sysml_name(
+    name: str,
+    nodes: list[dict[str, str]],
+    name_index: dict[str, str],
+    qname_index: dict[str, str],
+    *,
+    prefer: tuple[str, ...] = (),
+) -> str | None:
+    leaf = name.split("::")[-1].split(".")[-1]
+    if prefer:
+        for kind in prefer:
+            for n in reversed(nodes):
+                if n.get("name") == leaf and n.get("_kind") == kind:
+                    return n.get("id")
+    return qname_index.get(name) or name_index.get(leaf)
+
+
+def _kind_of_node(nodes: list[dict[str, str]], nid: str) -> str:
+    for n in nodes:
+        if n.get("id") == nid:
+            return n.get("_kind", "")
+    return ""
+
+
+def _emit_con_relations(
+    pending_con: Sequence[tuple[str, str, str]],
+    *,
+    text: str,
+    nodes: list[dict[str, str]],
+    edges: list[tuple[str, str, str, str]],
+    name_index: dict[str, str],
+    qname_index: dict[str, str],
+    alloc: IdAllocator,
+) -> None:
+    """Cheap CON typedBy / hasPort / connects when names already projected."""
+    for nid, type_name, body in pending_con:
+        if type_name:
+            dst = _resolve_sysml_name(
+                type_name,
+                nodes,
+                name_index,
+                qname_index,
+                prefer=("CON", "PRT", "POR"),
+            )
+            if dst:
+                _append_sysml_edge(edges, alloc, nid, "typedBy", dst)
+        if not body:
+            continue
+        for m in _END_TYPED.finditer(body):
+            tname = m.group(1)
+            dst = _resolve_sysml_name(
+                tname,
+                nodes,
+                name_index,
+                qname_index,
+                prefer=("POR", "CON", "PRT"),
+            )
+            if not dst:
+                continue
+            rel = "hasPort" if _kind_of_node(nodes, dst) == "POR" else "typedBy"
+            _append_sysml_edge(edges, alloc, nid, rel, dst)
+        for m in _END_CONNECT.finditer(body):
+            dst = _resolve_sysml_name(
+                m.group(1),
+                nodes,
+                name_index,
+                qname_index,
+                prefer=("POR", "PRT"),
+            )
+            if dst:
+                _append_sysml_edge(edges, alloc, nid, "connects", dst)
+        for m in _CONNECT_STMT.finditer(body):
+            for path in (m.group(1), m.group(2)):
+                dst = _resolve_sysml_name(
+                    path,
+                    nodes,
+                    name_index,
+                    qname_index,
+                    prefer=("POR", "PRT"),
+                )
+                if dst:
+                    _append_sysml_edge(edges, alloc, nid, "connects", dst)
+    for m in _CONNECT_STMT.finditer(text):
+        src = _resolve_sysml_name(
+            m.group(1),
+            nodes,
+            name_index,
+            qname_index,
+            prefer=("POR", "PRT"),
+        )
+        dst = _resolve_sysml_name(
+            m.group(2),
+            nodes,
+            name_index,
+            qname_index,
+            prefer=("POR", "PRT"),
+        )
+        if src and dst:
+            _append_sysml_edge(edges, alloc, src, "connects", dst)
+
+
 _KIND_PREFIXES = (
     "PKG",
     "PRT",
     "REQ",
     "POR",
+    "CON",
     "MOD",
     "SYM",
     "CMP",

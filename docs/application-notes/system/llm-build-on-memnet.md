@@ -171,7 +171,7 @@ memnet-mcp = "memnet_mcp.server:main"
 mcp = ["mcp>=1.2,<2"]
 ```
 
-Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. Hatch **0.19.8**; last published PyPI is **`memnet-llm==0.19.6`**: `pip install 'memnet-llm[mcp]'` (contributors: `pip install -e ".[mcp]"`).
+Optional-deps keep `pip install memnet-llm` lightweight; only `[mcp]` users pull the `mcp` package. Hatch **0.19.9**; last published PyPI is **`memnet-llm==0.19.6`**: `pip install 'memnet-llm[mcp]'` (contributors: `pip install -e ".[mcp]"`).
 
 ---
 

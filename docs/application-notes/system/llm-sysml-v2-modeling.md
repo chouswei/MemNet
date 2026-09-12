@@ -90,7 +90,7 @@ edit .sysml of THAT cut → re-Snap THAT interior
 
 **Parallel sub-units.** When the **parent shell is already clear in `.sysml`** (children named, ports typed, `session=` assigned), sibling interiors are **disjoint**. Parent mints one `TSK_*` per sub-unit, passes that interior session id, **ends the turn**. Workers goldfish **only** their interior (TCP or streamable-http; [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)). If the parent nest is still being invented, stay **serial**: write the shell first. Cross-cut `satisfy` / `allocate` waits until both interiors exist (second look / slice). MUST NOT two workers on the same interior, the same brace, or overlapping `MOD_*` without RSV.
 
-**As-is leftover:** `snap_model` still package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` misses `interface` usages, `subsets`/`redefines`, `connect`/`flow`, multiplicity, attributes; Snap may re-project the same `qname=`. Do not teach those caps as law. `.sysml` stays SSOT.
+**As-is leftover:** `snap_model` still package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` still misses `interface` usages, `subsets`/`redefines`, multiplicity, attributes (named `connection` / `link` now project as CON; cheap `connect`/`::>` ends when names exist). Snap may re-project the same `qname=`. Do not teach those caps as law. `.sysml` stays SSOT.
 
 ---
 
