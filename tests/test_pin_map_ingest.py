@@ -377,9 +377,7 @@ def test_ingest_connections_sysml_con_count(memnet_temp, sysml_schema: Path):
     cons = [r for r in ss.store.list_records("CON") if r.fields.get("kind") == "connectionDef"]
     assert len(cons) >= 27
     prt_as_flow = [
-        r
-        for r in ss.store.list_records("PRT")
-        if r.fields.get("sysml_kind") == "connection_def"
+        r for r in ss.store.list_records("PRT") if r.fields.get("sysml_kind") == "connection_def"
     ]
     assert not prt_as_flow
 
