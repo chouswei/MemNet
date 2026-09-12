@@ -163,6 +163,47 @@ def test_mission_empty_nick_infile_save_load(memnet_temp, tmp_path: Path):
     assert "invalid_relation" not in load.stderr
 
 
+def test_session_save_warns_when_qname_not_in_schema(memnet_temp, tmp_path: Path):
+    """H2: RAM qname is dropped on emit_record if SCHEMA omits it — warn, do not rewrite SCHEMA."""
+    del memnet_temp
+    from memnet.output import reset_warn_budget
+    from memnet.snapshot import snapshot_locator_schema_warnings
+
+    narrow = [
+        "SCHEMA PRT ; fields=id name path sysml_kind recycle",
+        "SCHEMA TSK ; fields=id goal anchor status recycle",
+    ]
+    ss = open_session(map_lines=narrow)
+    from memnet.mutate_gate import MutateGate
+
+    MutateGate(ss).apply(
+        ["CREATE (:PRT {name: 'Valve', qname: 'Pkg::Valve', path: 'models/x.sysml'})"],
+        mode="add",
+    )
+    prt = ss.store.list_records("PRT")[0]
+    assert prt.fields.get("qname") == "Pkg::Valve"
+    warns = snapshot_locator_schema_warnings(ss)
+    assert any("PRT.qname" in w for w in warns)
+    assert not any("PRT.path" in w for w in warns)
+
+    reset_warn_budget()
+    snap_path = tmp_path / "narrow.snap"
+    save = runner.invoke(
+        app,
+        ["session", "save", "--file", str(snap_path), "--session", ss.session_id],
+    )
+    assert save.exit_code == 0, save.stderr
+    mixed = save.stderr + save.stdout
+    assert "snapshot_schema_drop" in mixed
+    assert "PRT.qname" in mixed
+    text = snap_path.read_text(encoding="utf-8")
+    assert "Pkg::Valve" not in text
+
+    wide = open_session(map_lines=_MISSION_MAP)
+    _mission_graph(wide)
+    assert snapshot_locator_schema_warnings(wide) == []
+
+
 def test_parse_line_mints_empty_id_and_accepts_infile(memnet_temp):
     del memnet_temp
     from memnet.tag_map import leftover_wire_nick, parse_line, validate_id

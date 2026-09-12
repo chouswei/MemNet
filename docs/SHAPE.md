@@ -29,7 +29,7 @@ From that problem, the product **must** be this shape:
 
 1. **Named session \(S\)** — a labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). The handle you pass is the **session id**. Peers **re-`pin_map`** from a codebook cue (labels+properties / keyword). They do not receive a graph dump in chat. Optional property `id` is a nickname, not identity.
 
-2. **Goldfish read** — each turn the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (kind / labels+properties / keyword / `find`), then neighbourhood. Empty \(q\) is **session outline** (0.11). Skip is valid when a *cued* seed is empty. When \(|Q|>1\), the emit carries **CueConflict** (list \(Q\), show cardinality) — do not pick one root and do not absorb.
+2. **Goldfish read** — each turn the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (kind / labels+properties / keyword / `find`), then neighbourhood. Empty \(q\) is **session outline** (0.11). Skip is valid when a *cued* seed is empty. When MATCH_L \(|Q|>1\), the emit carries **CueConflict** (list \(Q\), show cardinality) — do not pick one root and do not absorb. A codebook miss last-resorts **Peak_L** and **MUST** carry **CueMiss** / **Peak_L**, not CueConflict.
 
 3. **Sparse write** — \(\mathrm{Commit}(\Delta)\) gated mutate. Same **GQL (openCypher-shaped)** alphabet as the read. **Write = display**: the live pin map is a shaped subgraph emit, not a second language.
 
@@ -74,7 +74,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 
 **0.8.0** is this shape **taught for people** in-repo: this file, GQL-only playbook, application-note contract, Multitask honesty (RSV + Path-B ingest shipped; full ACL modes still to-be).
 
-**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map and **`a.b.c` law:** [`ROADMAP.md`](ROADMAP.md). **Honest install:** Hatch **0.19.9**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**; 0.19.9 honesty `c`: Path-B SysML `connection` → CON). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). **1.0** stays unclaimed.
+**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map and **`a.b.c` law:** [`ROADMAP.md`](ROADMAP.md). **Honest install:** Hatch **0.19.10**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**; 0.19.10 honesty `c`: CueMiss/Peak_L vs CueConflict). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). **1.0** stays unclaimed.
 
 ---
 

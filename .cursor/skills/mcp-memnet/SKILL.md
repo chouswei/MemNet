@@ -37,7 +37,7 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 ```
 
 1. **Map** — `session_open` needs `map_file` or `map_lines` else `no_map`.
-2. **Cue** — `kind` / `locators` (`qname=`, `path=`, `goal=`, …) / `keyword` / nickname `cue`. Empty cue = **session outline** (0.11). Ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When \(|Q|>1\), CueConflict — do not pick one root.
+2. **Cue** — `kind` / `locators` (`qname=`, `path=`, `goal=`, …) / `keyword` / nickname `cue`. Empty cue = **session outline** (0.11). Ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When MATCH_L \(|Q|>1\), CueConflict — do not pick one root. A locator/keyword miss is CueMiss / Peak_L, not CueConflict.
 3. **`pin_map`** — one \(S\) per generate. MCP `session=` selects the stratum. Drop the prior map next turn. leftover `anchor=` / `anchors=` are leftover nicknames.
 4. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint. Under RSV pass `llm_id`.
 5. Persist if needed: `session_save` (file) or live cabinet (0.7 Agens / 0.14 Neo4j). Agents MUST NOT talk Bolt.

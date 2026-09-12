@@ -204,4 +204,6 @@ def test_v9_raw_degree_contains_parent_is_not_peak(memnet_temp):
     assert "owns" in miss.stdout
     assert "contains" not in miss.stdout
     assert "CueConflict" not in miss.stdout
+    assert "## CueMiss" in miss.stdout
+    assert "## Peak_L" in miss.stdout
     assert "_el" not in miss.stdout

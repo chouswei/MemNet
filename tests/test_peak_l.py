@@ -85,6 +85,8 @@ def test_v9_contains_parent_is_not_rho_star_peak(memnet_temp):
     assert "owns" in miss.stdout
     assert "contains" not in miss.stdout
     assert "CueConflict" not in miss.stdout
+    assert "## CueMiss" in miss.stdout
+    assert "## Peak_L" in miss.stdout
     assert "_el" not in miss.stdout
     assert "_memnet_hid" not in miss.stdout
 
@@ -140,7 +142,7 @@ def test_peak_not_default_pin_map(memnet_temp):
     assert "owns" not in empty.stdout
 
 
-def test_two_peaks_cue_conflict(memnet_temp):
+def test_two_peaks_cue_miss_not_cue_conflict(memnet_temp):
     sid = _open(memnet_temp, _CODING_MAP)
     _add(
         sid,
@@ -164,12 +166,31 @@ def test_two_peaks_cue_conflict(memnet_temp):
         ["query", "pin-map", "--keyword", "zzznosuchcue018", "--session", sid],
     )
     assert miss.exit_code == 0, miss.stderr
-    assert "CueConflict" in miss.stdout
+    assert "CueConflict" not in miss.stdout
+    assert "## CueMiss" in miss.stdout
+    assert "## Peak_L" in miss.stdout
     assert "|Q|=2" in miss.stdout
     assert "goal: 'star-a'" in miss.stdout
     assert "goal: 'star-b'" in miss.stdout
     assert "-[:" not in miss.stdout
     assert "_el" not in miss.stdout
+
+    loc_miss = runner.invoke(
+        app,
+        [
+            "query",
+            "pin-map",
+            "--locator",
+            "qname=Pkg::Missing",
+            "--session",
+            sid,
+        ],
+    )
+    assert loc_miss.exit_code == 0, loc_miss.stderr
+    assert "CueConflict" not in loc_miss.stdout
+    assert "## CueMiss" in loc_miss.stdout
+    assert "## Peak_L" in loc_miss.stdout
+    assert "|Q|=2" in loc_miss.stdout
 
 
 def test_find_codebook_miss_does_not_peak(memnet_temp):
