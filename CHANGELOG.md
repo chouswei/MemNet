@@ -7,10 +7,13 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Changed
+- **Docs — CON-as-node citation** — Schummer & Hyba (2022) ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)) as primary SysML→LPG precedent for MemNet `:CON` as a node (`:HYPERNODE`, not a bare edge). No Hatch bump. See [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+
 ## [0.19.9] - 2026-09-12
 
 ### Changed
-- **Honesty `c` — Path-B SysML `connection` → CON** — Teach already maps SysML connection / link to `:CON` (`connectionDef` / `connectionUsage` / `linkUsage`). Path-B `ingest_sysml` was wrong: `_KIND_FOR_KW` mapped `connection def` to **PRT**, and `_DEF_HEAD` omitted bare `connection` / `link` usages, so Foam `connections.sysml` defs and deploy usages projected CON=0. Code now maps `connection def` / `connection` / `link def` / `link` to CON, sets `kind` to the closed enum, and emits cheap `typedBy` / `hasPort` / `connects` when end names already exist. Nest `contains` / `satisfies` unchanged. Map `schema.sysml.example.txt` lists SCHEMA CON (canonical kind was already CON). Same goldfish loop (`cue → pin_map → mutate`); not a new agent step. Package **0.19.9** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. Hatch **0.19.9**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
+- **Honesty `c` — Path-B SysML `connection` → CON** — Teach already maps SysML connection / link to `:CON` (`connectionDef` / `connectionUsage` / `linkUsage`). Path-B `ingest_sysml` was wrong: `_KIND_FOR_KW` mapped `connection def` to **PRT**, and `_DEF_HEAD` omitted bare `connection` / `link` usages, so Foam `connections.sysml` defs and deploy usages projected CON=0. Code now maps `connection def` / `connection` / `link def` / `link` to CON, sets `kind` to the closed enum, and emits cheap `typedBy` / `hasPort` / `connects` when end names already exist. Nest `contains` / `satisfies` unchanged. Map `schema.sysml.example.txt` lists SCHEMA CON (canonical kind was already CON). Same goldfish loop (`cue → pin_map → mutate`); not a new agent step. Package **0.19.9** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. Hatch **0.19.9**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md). See also Schummer & Hyba 2022 `:HYPERNODE` ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)).
 - **Package identity 0.19.9** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch is **0.19.9**; last published PyPI remains **0.19.6** until upload.
 
 ## [0.19.8] - 2026-09-09

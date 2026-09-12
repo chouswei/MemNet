@@ -17,6 +17,8 @@ This note records Path-B SysML `connection` → CON (0.19.9), leftover nicknames
 
 Regression: `tests/test_pin_map_ingest.py` (`test_project_sysml_connection_def_is_con`, `test_ingest_sysml_connection_rels`, `test_ingest_connections_sysml_con_count`).
 
+**Precedent (CON as node).** Schummer & Hyba (2022) map each SysML connector to a labelled-property-graph **`:HYPERNODE`** — a connector *node*, not a bare binary edge — because an LPG edge joins exactly two vertices (Florian Schummer & Maximillian Hyba, *An Approach for System Analysis with MBSE and Graph Data Engineering*, [arXiv:2201.06363](https://arxiv.org/abs/2201.06363); HTML [v1](https://arxiv.org/html/2201.06363v1); *Data-Centric Engineering*). MemNet Path-B is the same schema class: `connection def` / `connection` / `link` project as node kind **CON** (`connectionDef` / `connectionUsage` / `linkUsage`); ends are edges (`connects`, `hasPort`, `typedBy`). CON is not a mission `TSK`.
+
 ## Surfaces checked (0.19.8 snapshot leftover nick + `:inFile`)
 
 | Surface | Result |

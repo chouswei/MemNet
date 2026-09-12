@@ -53,6 +53,8 @@ House tokens such as `TSK_model_<short>` are **`goal`** (or `name` / `qname` / `
 
 `ITM` is a **NODE only**: an item definition or flow item. It is never an edge. Use `declaredIn` to link an ITM to its package and optionally `flowOf` to link a flow item to its item definition. Ports and connections remain `POR` and `CON`; do not model them as ITM edges.
 
+**CON is a node.** Same class as Schummer & Hyba (2022) `:HYPERNODE` (SysML connector as LPG hypernode, not a binary edge): [arXiv:2201.06363](https://arxiv.org/abs/2201.06363). Ends are `connects` / `hasPort` / `typedBy`. Do not flatten a connection to an edge-only.
+
 ```cypher
 CREATE (i:ITM {name: 'LaserFrame', kind: 'itemDef', recycle: 'persistent'})
 CREATE (f:ITM {name: 'LaserFrameFlow', kind: 'flowItem', recycle: 'persistent'})
