@@ -38,6 +38,32 @@ package DemoPkg {
 }
 """
 
+_CON_FIXTURE = """\
+package DemoConn {
+  port def PwrOut;
+  port def PwrIn;
+  part def Src {
+    port astOut : PwrOut;
+  }
+  part def Sink {
+    port astIn : PwrIn;
+  }
+  connection def PwrFlow {
+    end port source : PwrOut;
+    end port sink : PwrIn;
+  }
+  part def Box {
+    part parseFront : Src;
+    part productGate : Sink;
+    connection parseThenGate : PwrFlow {
+      end port source ::> parseFront.astOut;
+      end port sink ::> productGate.astIn;
+    }
+    connect parseFront.astOut to productGate.astIn;
+  }
+}
+"""
+
 _CODE_FIXTURE = '''\
 """Golden codebase fixture for PinMapIngest_Codebase."""
 
@@ -145,6 +171,13 @@ def skills_schema(tmp_path: Path) -> Path:
 def sysml_file(tmp_path: Path) -> Path:
     p = tmp_path / "demo.sysml"
     p.write_text(_FIXTURE, encoding="utf-8")
+    return p
+
+
+@pytest.fixture
+def sysml_con_file(tmp_path: Path) -> Path:
+    p = tmp_path / "demo_conn.sysml"
+    p.write_text(_CON_FIXTURE, encoding="utf-8")
     return p
 
 
@@ -280,6 +313,73 @@ def test_ingest_real_requirements_leaf(memnet_temp, sysml_schema: Path):
     assert rows
     row = rows[0]
     assert "requirements.sysml" in row.fields.get("path", "")
+
+
+def test_project_sysml_connection_def_is_con(sysml_con_file: Path):
+    result = PinMapIngest_Sysml().project(sysml_con_file, max_nodes=50)
+    gql = "\n".join(result.gql_lines)
+    assert "CREATE (:CON" in gql
+    assert "kind: 'connectionDef'" in gql
+    assert "kind: 'connectionUsage'" in gql
+    con_creates = [ln for ln in result.gql_lines if ln.lstrip().startswith("CREATE (:CON")]
+    prt_pwr = [ln for ln in result.gql_lines if "PwrFlow" in ln and "CREATE (:PRT" in ln]
+    assert con_creates
+    assert not prt_pwr
+    assert any("parseThenGate" in ln for ln in con_creates)
+    again = PinMapIngest_Sysml().project(sysml_con_file, max_nodes=50)
+    assert again.node_ids == result.node_ids
+
+
+def test_ingest_sysml_connection_rels(memnet_temp, sysml_schema: Path, sysml_con_file: Path):
+    ss = open_session(map_file=str(sysml_schema))
+    result = ingest_sysml(ss, sysml_con_file, max_nodes=50)
+    assert result.committed
+    cons = [r for r in ss.store.list_records("CON")]
+    assert any(r.fields.get("name") == "PwrFlow" for r in cons)
+    assert any(r.fields.get("kind") == "connectionDef" for r in cons)
+    assert any(r.fields.get("kind") == "connectionUsage" for r in cons)
+    rails = [r for r in ss.store.list_records("PRT") if r.fields.get("name") == "PowerRail"]
+    assert not rails
+    typed = [
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "typedBy"
+    ]
+    has_port = [
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "hasPort"
+    ]
+    connects = [
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "connects"
+    ]
+    contains = [
+        r
+        for r in ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "contains"
+    ]
+    assert typed
+    assert has_port
+    assert connects
+    assert contains
+
+
+def test_ingest_connections_sysml_con_count(memnet_temp, sysml_schema: Path):
+    """Foam connections.sysml: connection defs are CON, not PRT."""
+    path = Path(__file__).resolve().parents[1] / "sysml-models/models/connections.sysml"
+    if not path.is_file():
+        pytest.skip("sysml-models not present")
+    ss = open_session(map_file=str(sysml_schema))
+    result = ingest_sysml(ss, path, max_nodes=400, max_files=1)
+    assert result.committed
+    cons = [r for r in ss.store.list_records("CON") if r.fields.get("kind") == "connectionDef"]
+    assert len(cons) >= 27
+    prt_as_flow = [
+        r for r in ss.store.list_records("PRT") if r.fields.get("sysml_kind") == "connection_def"
+    ]
+    assert not prt_as_flow
 
 
 # ----- Codebase -----

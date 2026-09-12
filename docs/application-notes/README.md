@@ -3,7 +3,7 @@
 How to **use** MemNet (not engine internals). Folders: **system** (repos / SysML / builder), **domains** (worked domains), **examples** (InvAmp). Index: [`../README.md`](../README.md).
 
 **Product shape:** [`../SHAPE.md`](../SHAPE.md).  
-**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.8.** Hatch **0.19.8**; last published PyPI is **`memnet-llm==0.19.6`**. **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md). Honesty `c` (snapshot leftover nick + `:inFile` + Truncation + `SHAPE_DROP_KEYS`): [`../operations/honesty-c-wire-audit.md`](../operations/honesty-c-wire-audit.md). Changelog: [`../../CHANGELOG.md`](../../CHANGELOG.md) **0.19.8**.  
+**Dialect teach:** openCypher-shaped **GQL** + shaped `pin_map` + gated mutate — [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Product **0.19.9.** Hatch **0.19.9**; last published PyPI is **`memnet-llm==0.19.6`**. **1.0** = 0.5–0.8 claimed (unclaimed; no extra engine). Playbook: [`../LLM-GUIDE.md`](../LLM-GUIDE.md). Honesty `c` (Path-B SysML CON + snapshot leftover nick + `:inFile` + Truncation + `SHAPE_DROP_KEYS`): [`../operations/honesty-c-wire-audit.md`](../operations/honesty-c-wire-audit.md). Changelog: [`../../CHANGELOG.md`](../../CHANGELOG.md) **0.19.9**.  
 **Worked GQL example:** [`examples/inverting-amplifier-gql-case-study.md`](examples/inverting-amplifier-gql-case-study.md).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md). Versions: [`../ROADMAP.md`](../ROADMAP.md).
 

@@ -1,8 +1,21 @@
-# Honesty `c` wire audit (0.19.8)
+# Honesty `c` wire audit (0.19.9)
 
-**Date:** 2026-09-09. **Package:** Hatch **0.19.8** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-12. **Package:** Hatch **0.19.9** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
-This note records leftover nicknames on **all** snapshot records (mission TSK/PRT/SYM/MOD as well as catalog PKG) and camelCase product relation types on leftover pipe load, plus Truncation honesty (0.19.6) and the 0.19.5 hid / nickname audit. Chat is not SSOT.
+This note records Path-B SysML `connection` → CON (0.19.9), leftover nicknames on **all** snapshot records (0.19.8), camelCase product relation types on leftover pipe load, Truncation honesty (0.19.6), and the 0.19.5 hid / nickname audit. Chat is not SSOT. Teach already mapped connection to `:CON`; ingest code was wrong — this cut is honesty `c`, not a new goldfish step.
+
+## Surfaces checked (0.19.9 Path-B SysML CON)
+
+| Surface | Result |
+|---------|--------|
+| `PinMapIngest_Sysml` `_KIND_FOR_KW` | `connection def` / `connection` / `link def` / `link` → CON. Not PRT. |
+| `_DEF_HEAD` | Named bare `connection` / `link` usages project. Anonymous `#derivation connection {` still skipped (no name). |
+| CON props | `kind` = `connectionDef` / `connectionUsage` / `linkUsage`. `sysml_kind` stays `connection_def` / `connection`. |
+| Cheap rels | `typedBy` (usage → def), `hasPort` (def end → POR), `connects` (`::>` / `connect … to`). Nest `contains` / `satisfies` unchanged. |
+| Map | `schema.sysml.example.txt` SCHEMA CON. Canonical kind was already CON. |
+| `pin_map` | Cue `kind=CON` + `name` / `qname`. Loop still `cue → pin_map → mutate`. |
+
+Regression: `tests/test_pin_map_ingest.py` (`test_project_sysml_connection_def_is_con`, `test_ingest_sysml_connection_rels`, `test_ingest_connections_sysml_con_count`).
 
 ## Surfaces checked (0.19.8 snapshot leftover nick + `:inFile`)
 
@@ -59,6 +72,10 @@ Regression: `tests/test_pin_map_truncation.py`. Hid regression remains `tests/te
 - leftover `add`/`update` façades; leftover `--anchor`.
 - Snapshot files (`# memnet-snapshot-v1`) are operator save/load, not `pin_map`.
 - leftover `query context` pipe emit still silent-clips (not goldfish).
+
+## Cut in 0.19.9
+
+Teach (`sysml-gql`, `sysml-memnet-patterns`) already said SysML connection is `:CON`. Path-B ingest mapped `connection def` to PRT and skipped named `connection` usages, so Foam connection defs and deploy usages were CON=0. Honesty: project CON with the closed `kind` enum; emit cheap end rels when names exist; do not change the goldfish loop.
 
 ## Cut in 0.19.8
 

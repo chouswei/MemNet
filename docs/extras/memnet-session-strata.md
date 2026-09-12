@@ -97,7 +97,7 @@ Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Re
 
 The Snap is of **one model** (a load tree / root package). The sessions are **strata of that Snap**, not a pile of unrelated library stores.
 
-**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone is ~193 nodes. **`.sysml` stays structural SSOT.**
+**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR/CON with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone is ~193 nodes. **`.sysml` stays structural SSOT.**
 
 **Wrong reading of “strata”.** Opening a new session for each file on disk and calling that Snap. That is N ingests, not **one model Snap**. Files are how this repo **stores** packages; they are not the Snap cardinality.
 

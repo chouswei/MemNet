@@ -13,7 +13,7 @@ SCHEMA lines list kinds and property names. Built-in `LAW` / `EDG` are merged au
 |------|------|
 | `schema.example.txt` | Demo world for CLI tests and `memnet examples map` (CFG/SYS/PLR/NPC/TSK/…) |
 | `schema.coding.example.txt` | Coding session (MOD/SYM/TSK/USR/DEC) |
-| `schema.sysml.example.txt` | Path-B SysML ingest (PKG/PRT/REQ/POR) |
+| `schema.sysml.example.txt` | Path-B SysML ingest (PKG/PRT/REQ/POR/CON) |
 | `schema.codebase.example.txt` | Path-B codebase ingest (MOD/SYM) |
 | `schema.pcba.example.txt` | Path-B PCBA `.ato` ingest (CMP/NET/PIN) |
 | `schema.skills.example.txt` | Path-B skills/rules ingest (SKL/RUL) |
