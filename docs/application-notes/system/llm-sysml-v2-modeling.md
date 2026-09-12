@@ -57,6 +57,8 @@ MemNet is not a second copy of every brace. Chat is never SSOT.
 | `ART` / `SEC` / `CLM` | Outputs / claims |
 | Transient | `DEC` / `ISSUE` / short `TSK` (`delete_on_settle`) |
 
+`:CON` is a **node** kind (`connectionDef` / `connectionUsage` / `linkUsage`); wire ends are edges (`connects`, `hasPort`, `typedBy`). Primary SysML→LPG precedent: Schummer & Hyba (2022) `:HYPERNODE` ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)). Path-B honesty: [`honesty-c-wire-audit.md`](../../operations/honesty-c-wire-audit.md).
+
 Teach `:declaredIn`, `:typedBy`, `:inFile`, `:about`, `:owns`, `:contains`, `:satisfies`. Electrical `:CST` / `:bind` / `law` is [`llm-circuit-schematic.md`](../domains/llm-circuit-schematic.md). leftover `id:'NEW'` is leftover; product is GraphElement `CREATE`.
 
 ---

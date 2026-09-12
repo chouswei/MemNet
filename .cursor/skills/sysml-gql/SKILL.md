@@ -39,12 +39,14 @@ Closed enums: [sysml-memnet-patterns.md](../sysml-memnet-documentation/reference
 |----------|------|--------------|
 | part | `:PRT` | `:declaredIn`, `:hasPort` |
 | port | `:POR` | `:typedBy`, port-port `:BIND` |
-| connection | `:CON` | `:connects` |
+| connection | `:CON` (node, not a bare edge) | `:connects` |
 | requirement | `:REQ` | — |
 | item | `:ITM` | `:flowOf` |
 | state / action | `:BEH` | `:declaredIn` |
 | satisfy / allocate | rel only | `:satisfies` / `:allocates` |
 | file / line | `:MOD` / `:SYM` | `:inFile` |
+
+`:CON` matches Schummer & Hyba (2022) `:HYPERNODE` — SysML connector as LPG node ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)). Ends stay edges. Not a mission `TSK`.
 
 ```cypher
 MATCH (t:TSK {goal: $goal})
