@@ -10,6 +10,13 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ### Changed
 - **Docs — CON-as-node citation** — Schummer & Hyba (2022) ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)) as primary SysML→LPG precedent for MemNet `:CON` as a node (`:HYPERNODE`, not a bare edge). No Hatch bump. See [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
 
+## [0.19.10] - 2026-09-12
+
+### Changed
+- **Honesty `c` — CueMiss / Peak_L vs CueConflict (H3)** — `pin_map` last-resort Peak_L on a codebook miss (MATCH_L empty) was emitting `## CueConflict |Q|=N` when residual-degree peaks were many. That mark is dishonest: CueConflict means BoundedMatchFind `total>1` (or leftover nickname multi-hit), not “locator miss then Peak_L”. Miss now emits `## CueMiss MATCH_L=0` and `## Peak_L |Q|=N`. Same goldfish loop. `find` still skips Peak_L. Package **0.19.10** patch on **0.19**. Numbered extras **0.10–0.19** unchanged. No 0.20 extra. Hatch **0.19.10**; last published PyPI remains **`memnet-llm==0.19.6`** until upload. Surfaces: [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md); wire: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md) §5.2.
+- **Honesty `c` — snapshot locator drop warn (H2)** — `session_save` / `emit_record` persist SCHEMA columns only. RAM extras such as Path-B `qname` vanish if the map omitted them. `write_snapshot` now warns `@WRN: snapshot_schema_drop|TAG.key not in SCHEMA…` for locator keys `qname`, `path`, `requirementId`, `skill_id`. Does not rewrite app SCHEMA. Does not refuse Path-B ingest. SHALL NOT silently add columns.
+- **Package identity 0.19.10** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Hatch is **0.19.10**; last published PyPI remains **0.19.6** until upload.
+
 ## [0.19.9] - 2026-09-12
 
 ### Changed
@@ -718,7 +725,8 @@ Initial public release.
 - Caps are configurable via `MEMNET_MAX_*` env vars.
 - Sessions live in process memory only. On `serve` restart, all sessions are gone unless saved via `session save`.
 
-[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.9...HEAD
+[Unreleased]: https://github.com/chouswei/MemNet/compare/v0.19.10...HEAD
+[0.19.10]: https://github.com/chouswei/MemNet/compare/v0.19.9...v0.19.10
 [0.19.9]: https://github.com/chouswei/MemNet/compare/v0.19.8...v0.19.9
 [0.19.8]: https://github.com/chouswei/MemNet/compare/v0.19.7...v0.19.8
 [0.19.7]: https://github.com/chouswei/MemNet/compare/v0.19.6...v0.19.7

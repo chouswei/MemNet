@@ -1,8 +1,27 @@
-# Honesty `c` wire audit (0.19.9)
+# Honesty `c` wire audit (0.19.10)
 
-**Date:** 2026-09-12. **Package:** Hatch **0.19.9** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
+**Date:** 2026-09-12. **Package:** Hatch **0.19.10** (same-method cut on **0.19**). Last published PyPI wheel remains **`memnet-llm==0.19.6`** until upload. Numbered extras **0.10–0.19** unchanged. No usage-method `b`. No claim `a`. No 0.20. No 1.0. No `rag_query`.
 
-This note records Path-B SysML `connection` → CON (0.19.9), leftover nicknames on **all** snapshot records (0.19.8), camelCase product relation types on leftover pipe load, Truncation honesty (0.19.6), and the 0.19.5 hid / nickname audit. Chat is not SSOT. Teach already mapped connection to `:CON`; ingest code was wrong — this cut is honesty `c`, not a new goldfish step.
+This note records CueMiss / Peak_L vs CueConflict (0.19.10), Path-B SysML `connection` → CON (0.19.9), leftover nicknames on **all** snapshot records (0.19.8), camelCase product relation types on leftover pipe load, Truncation honesty (0.19.6), and the 0.19.5 hid / nickname audit. Chat is not SSOT. Goldfish loop stays `cue → pin_map → mutate`.
+
+## Surfaces checked (0.19.10 CueMiss / Peak_L + snapshot locator warn)
+
+| Surface | Result |
+|---------|--------|
+| `PinMapComposer` MATCH_L `total>1` | Still `## CueConflict \|Q\|=N`. Not Peak_L. leftover nickname multi-hit unchanged. |
+| `PinMapComposer` codebook miss (kind / locator / keyword; MATCH empty) | `## CueMiss MATCH_L=0` + `## Peak_L \|Q\|=N`. **MUST NOT** emit CueConflict. `npeak>1` lists Peak_L seeds (no ShapeWalk). `npeak=1` prefixes banners then ShapeWalk. `npeak=0` banners only. |
+| CLI `query pin-map` / leftover `query warm` / MCP `pin_map` | Same composer text. |
+| `query find` / MCP `find` | Still seed-only; codebook miss stays empty skip (no Peak_L). CueConflict only when `total>1`. |
+| `export_pin_map` `conflict=` | Still true only when body contains `## CueConflict`. Peak_L miss is not `conflict=1`. |
+| `write_snapshot` / `session_save` | `@WRN: snapshot_schema_drop` when RAM locator keys (`qname`, `path`, `requirementId`, `skill_id`) are absent from SCHEMA columns. SCHEMA unchanged. Path-B ingest not refused. |
+
+Regression: `tests/test_peak_l.py` (`test_two_peaks_cue_miss_not_cue_conflict`); `tests/test_bounded_match_find.py` / `tests/test_honesty_c_wire.py` CueConflict; `tests/test_snapshot.py` (`test_session_save_warns_when_qname_not_in_schema`).
+
+**H2 hypothesis:** warn on `write_snapshot` is enough. Foam bind used a narrow SCHEMA without `PRT.qname`; save dropped RAM `qname`; keep-id reload then missed `qname=` and Peak_L looked like CueConflict. Fix the lie on emit + warn on save. Do not silently widen SCHEMA. Nest SysML still says “two peaks → CueConflict” until a later nest pass — engine wire is Peak_L.
+
+## Cut in 0.19.10
+
+CueConflict sold a codebook miss as multi-match. Honesty: two marks. CueConflict stays MATCH_L multi-seed. Peak_L last-resort stays one Recall operator, never default goldfish.
 
 ## Surfaces checked (0.19.9 Path-B SysML CON)
 

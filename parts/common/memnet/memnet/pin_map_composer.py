@@ -13,6 +13,8 @@ without a seed is still that census, not a 1-hop of the session.
 
 Non-empty codebook miss (tokens present, MATCH_L empty) is Peak_L last-resort
 residual cue (0.18), then ShapeWalk — not outline, not default goldfish.
+CueConflict is MATCH_L |Q|>1 (or leftover nickname multi-hit) only. A codebook
+miss MUST emit ``## CueMiss`` / ``## Peak_L``, never ``## CueConflict``.
 """
 
 from __future__ import annotations
@@ -249,6 +251,7 @@ class PinMapComposer:
                 "pin map leftover --anchor is not product; cue with kind/locator/keyword",
             )
         Q: list[Record] = []
+        honesty_prefix = ""
         if cue_on:
             found = bounded_match_find(
                 self.ss.store,
@@ -267,6 +270,7 @@ class PinMapComposer:
                 return seeds, text
             if not Q:
                 # Last-resort Peak_L: non-empty codebook miss, not empty-q outline.
+                # Honesty: miss is CueMiss/Peak_L, never CueConflict (that mark is MATCH_L |Q|>1).
                 from memnet.peak_l import peak_l
 
                 peaks, npeak = peak_l(
@@ -274,13 +278,13 @@ class PinMapComposer:
                     limit=limit or max(1, max_rows),
                     active_only=active_only,
                 )
+                miss_text = emit_cue_miss_peak(peaks, cardinality=npeak, store=self.ss.store)
                 if npeak > 1:
-                    peaks = ranked(peaks, resolve=self.ss.store.resolve_one)
-                    text = emit_cue_conflict(peaks, cardinality=npeak, store=self.ss.store)
-                    return peaks, text
+                    return ranked(peaks, resolve=self.ss.store.resolve_one), miss_text
                 if not peaks:
-                    return [], ""
+                    return [], miss_text
                 Q = list(peaks)
+                honesty_prefix = emit_cue_miss_peak_banners(npeak)
             Q = ranked(Q, resolve=self.ss.store.resolve_one)
             seed_ids = [r.hid for r in Q]
         elif leftover_nicks:
@@ -337,7 +341,7 @@ class PinMapComposer:
         leases = intersecting_leases(self.ss.reserves, view_ids, now=utc_now())
         reserve_text = emit_reserves_section(leases, now=utc_now())
         trunc_text = emit_truncation(clip_notes, max_rows=eff_max_rows)
-        prefix = trunc_text + reserve_text
+        prefix = honesty_prefix + trunc_text + reserve_text
         if prefix:
             text = prefix + text
         return rows, text
@@ -452,13 +456,28 @@ class FindResult:
 
 
 def emit_cue_conflict(seeds: list[Record], *, cardinality: int, store=None) -> str:
-    """Shaped emit mark: Q listed, |Q| visible. Not a product command."""
+    """Shaped emit mark for MATCH_L |Q|>1 (or leftover nickname multi-hit). Not a command."""
     resolve = store.resolve_one if store is not None and hasattr(store, "resolve_one") else None
     ordered = ranked(seeds, resolve=resolve)
     lines = [f"## CueConflict |Q|={cardinality}"]
     for rec in ordered:
         lines.append(record_to_gql_line(rec, store=store))
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+def emit_cue_miss_peak_banners(cardinality: int) -> str:
+    """Honesty banners for a codebook miss that last-resorts Peak_L. Not CueConflict."""
+    return f"## CueMiss MATCH_L=0\n## Peak_L |Q|={cardinality}\n"
+
+
+def emit_cue_miss_peak(peaks: list[Record], *, cardinality: int, store=None) -> str:
+    """List Peak_L seeds after a MATCH_L miss. SHALL NOT use CueConflict."""
+    resolve = store.resolve_one if store is not None and hasattr(store, "resolve_one") else None
+    ordered = ranked(peaks, resolve=resolve)
+    lines = [emit_cue_miss_peak_banners(cardinality).rstrip()]
+    for rec in ordered:
+        lines.append(record_to_gql_line(rec, store=store))
+    return "\n".join(lines) + "\n"
 
 
 def bounded_match_find(

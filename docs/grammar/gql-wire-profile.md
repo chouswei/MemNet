@@ -248,6 +248,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 - **MUST NOT** emit store-identity keys `hid` / `_memnet_hid` / `elementId` (`SHAPE_DROP_KEYS`). Cabinet MERGE may keep `_memnet_hid` off this wire.
 - Hide recyclable / out-of-budget neighbours (MN-REQ-04).
 - When a hard cap clips the neighbourhood (`max_rows` \(M\), hop \(k\) vs `max_depth`, fan-out, or `view=shell` grain), the emit **MUST** carry a **Truncation** mark (`## Truncation truncated=true M=… omitted=… reason=…`) in the same honesty family as CueConflict / Reserves. Caps stay hard. SHALL NOT silent-clip. When the offer fits, omit the mark.
+- **CueConflict** (`## CueConflict |Q|=N`) is MATCH_L `|Q|>1` (BoundedMatchFind `total>1`) or leftover nickname multi-hit. A non-empty codebook miss (MATCH_L empty, Peak_L last-resort) **MUST** emit `## CueMiss MATCH_L=0` and `## Peak_L |Q|=N` — **MUST NOT** spell CueConflict. Empty \(q\) stays outline.
 - Engine-law / control preamble rows **MAY** prepend when authorised — still not a binding table.
 - Ranking already excludes nickname `id` from the rank key. This cut also drops it from the composed text.
 

@@ -11,7 +11,7 @@ from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import Record, SessionMeta
-from memnet.output import emit_record
+from memnet.output import emit_record, emit_wrn
 from memnet.registry import SessionEntry, count, register
 from memnet.session import SessionStore, purge_expired, utc_now
 from memnet.tag_map import (
@@ -26,6 +26,9 @@ SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
+# Locator keys agents cue with. emit_record persists SCHEMA columns only;
+# extras vanish on session_save unless listed on the map.
+LOCATOR_PERSIST_KEYS = frozenset({"qname", "path", "requirementId", "skill_id"})
 
 
 def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
@@ -76,7 +79,38 @@ def snapshot_text(ss: SessionStore) -> str:
     return "\n".join(lines) + "\n"
 
 
+def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
+    """Warn when RAM locator keys will not appear on SCHEMA-shaped snapshot emit.
+
+    Does not change SCHEMA. Honesty only: session_save otherwise drops extras
+    such as Path-B ``qname`` when the map omitted them.
+    """
+    seen: set[tuple[str, str]] = set()
+    msgs: list[str] = []
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if not rec:
+            continue
+        tag_def = ss.tag_map.get(rec.tag)
+        schema_fields = set(tag_def.fields) if tag_def else set()
+        for key in LOCATOR_PERSIST_KEYS:
+            val = rec.fields.get(key, "")
+            if not val:
+                continue
+            if key in schema_fields:
+                continue
+            pair = (rec.tag, key)
+            if pair in seen:
+                continue
+            seen.add(pair)
+            listed = " ".join(tag_def.fields) if tag_def else ""
+            msgs.append(f"{rec.tag}.{key} not in SCHEMA fields={listed}")
+    return msgs
+
+
 def write_snapshot(ss: SessionStore, path: str | Path) -> int:
+    for msg in snapshot_locator_schema_warnings(ss):
+        emit_wrn("snapshot_schema_drop", msg)
     text = snapshot_text(ss)
     Path(path).write_text(text, encoding="utf-8")
     return ss.store.row_count_non_law()
