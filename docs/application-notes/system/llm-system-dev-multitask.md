@@ -16,6 +16,7 @@ This note complements:
 - [`sysml-models/outputs/multitask-case-study.md`](../../../sysml-models/outputs/multitask-case-study.md) — MemNet product SysML walk-through (MN-REQ-12)
 - [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) — SysML loop (in-process OK); parallel interiors need TCP/HTTP
 - [`llm-software-development.md`](llm-software-development.md) — single-agent coding memory
+- [`llm-unsync-checkpoint-pipeline.md`](llm-unsync-checkpoint-pipeline.md) — unsync waves, Bind atoms, checkpoint kinds (cite this note and memnet-multitask; do not fork transport)
 
 **Doctrine pointer:** adopt **MN-REQ-12** via a short local requirement mirror or doc link — do **not** import `MemNetRequirements` from the MemNet product repo into the system project's SysML load tree.
 
@@ -209,3 +210,4 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | Case study | [`sysml-models/outputs/multitask-case-study.md`](../../../sysml-models/outputs/multitask-case-study.md) |
 | ACL / reserve (RSV shipped; full ACL modes design) | [`docs/extras/memnet-security-multi-agent.md`](../../extras/memnet-security-multi-agent.md), [`memnet-neighbourhood-reserve.md`](../../extras/memnet-neighbourhood-reserve.md) |
 | SysML modeling (single-agent) | [`llm-sysml-v2-modeling.md`](llm-sysml-v2-modeling.md) |
+| Unsync checkpoint pipeline (roles / Bind / gates) | [`llm-unsync-checkpoint-pipeline.md`](llm-unsync-checkpoint-pipeline.md) |

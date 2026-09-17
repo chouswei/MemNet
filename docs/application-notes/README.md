@@ -34,6 +34,7 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 | [`llm-nodal-analysis-formulas.md`](domains/llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
 | [`llm-sysml-v2-modeling.md`](system/llm-sysml-v2-modeling.md) | SysML SSOT; relatives of one cue; sub-unit in a **separate session** | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
 | [`llm-system-dev-multitask.md`](system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` | sysml + coding (+ ingest maps as needed) |
+| [`llm-unsync-checkpoint-pipeline.md`](system/llm-unsync-checkpoint-pipeline.md) | Unsync checkpoint pipeline (roles / Bind / checkpoints; cite multitask SSOT) | same as system-dev multitask |
 | [`llm-software-development.md`](system/llm-software-development.md) | Multi-turn coding memory | `schema.coding.example.txt`; locators via `ingest_codebase` |
 | [`llm-tech-docs-decomposition.md`](domains/llm-tech-docs-decomposition.md) | Manual / SCPI atomisation | `schema.techdocs.example.txt` |
 | [`llm-daily-news.md`](domains/llm-daily-news.md) | RSS digest pipeline | project `memnet_schema.txt` (must list `KYWD` / `ENT` / …) |
