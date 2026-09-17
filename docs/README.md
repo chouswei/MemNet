@@ -76,6 +76,7 @@ Shared contract: [`application-notes/README.md`](application-notes/README.md). D
 | Doc | Role |
 |-----|------|
 | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` |
+| [`application-notes/system/llm-unsync-checkpoint-pipeline.md`](application-notes/system/llm-unsync-checkpoint-pipeline.md) | Unsync checkpoint pipeline (roles, Bind atoms, checkpoint kinds; cite, do not fork transport) |
 | [`application-notes/system/llm-software-development.md`](application-notes/system/llm-software-development.md) | Multi-turn coding |
 | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | SysML SSOT; relatives + sub-unit sessions |
 | [`../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I |

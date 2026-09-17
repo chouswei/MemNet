@@ -138,3 +138,5 @@ Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NE
 | [memnet-format](../memnet-format/SKILL.md) | MemNet GQL wire / shaped pin_map |
 | [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) | Look loop / nested `session=` |
 | [sysml-memnet-documentation](../sysml-memnet-documentation/SKILL.md) | SysML relatives (pair when SysML + Multitask) |
+
+Unsync waves / Bind atoms / checkpoint kinds (cite, do not fork this skill): MemNet `docs/application-notes/system/llm-unsync-checkpoint-pipeline.md`.
