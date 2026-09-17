@@ -1,5 +1,6 @@
 # Session map for session_open --map-file (SCHEMA lines).
 # Coding kinds for workflow.coding.example.txt. Prefer SCHEMA; leftover @TAG pipe still loads.
+# leftover `id` is a nickname column for tests (get("CFG01")), not GraphElement identity.
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
 SCHEMA CFG ; fields=id repo anchor version notes
 SCHEMA MOD ; fields=id path summary status recycle

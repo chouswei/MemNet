@@ -1,6 +1,7 @@
 # Session map for session_open --map-file (SCHEMA lines).
 # Demo world for CLI tests + memnet examples map — not the README warehouse sketch.
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
+# leftover `id` is a nickname column for tests (get("CFG01")), not GraphElement identity.
 # leftover @TAG pipe maps still load; agent mutate is GQL.
 SCHEMA CFG ; fields=id world economy identity core_ability crisis
 SCHEMA SYS ; fields=id round time deficit revenue chaos exchange_rate

@@ -8,6 +8,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [Unreleased]
 
 ### Changed
+- **Honesty `c` — bundled examples grammar hygiene** — Teach-only, same goldfish loop (`cue → pin_map → mutate`); not a usage-method `b`. `schema.sysml.example.txt` SCHEMA CON matches Path-B ingest fields (`name` `qname` `path` `sysml_kind` `kind` `recycle`; leftover nickname `id`). Connection ends stay edges (`connects` / `hasPort` / `typedBy`); no invented `ends` property. GQL demo/coding seeds banner leftover `id` as test nickname only (CLI/MCP `get("CFG01")` kept). Layer-era LAW constraint strings marked leftover fixture text, not product teach. Tiny `workflow.sysml.snippet.example.txt` MATCH by `qname`. `@TAG` pipe seeds stay at the same paths with strong leftover-pipe banners (generators emit the same). No pin_map/mutate API change. No N-server. Hatch stays **0.19.10**.
+
 - **Docs — CON-as-node citation** — Schummer & Hyba (2022) ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)) as primary SysML→LPG precedent for MemNet `:CON` as a node (`:HYPERNODE`, not a bare edge). No Hatch bump. See [`docs/operations/honesty-c-wire-audit.md`](docs/operations/honesty-c-wire-audit.md).
 
 ## [0.19.10] - 2026-09-12
