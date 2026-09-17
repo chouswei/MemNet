@@ -1,6 +1,7 @@
 # Tiny Path-B SysML GQL snippet for schema.sysml.example.txt.
 # Teach only: CON is a node; MATCH by qname/name/path. No leftover nickname id.
 # Not a CLI/MCP nickname fixture. Ends are connects edges (ingest does not emit ends=).
+# Gated mutate: one MATCH … CREATE relationship per statement.
 
 CREATE (:PKG {name: 'DemoPkg', qname: 'DemoPkg', path: 'demo.sysml', sysml_kind: 'package', recycle: 'persistent'})
 CREATE (:PRT {name: 'Amp', qname: 'DemoPkg::Amp', path: 'demo.sysml', sysml_kind: 'part_def', recycle: 'persistent'})
@@ -11,9 +12,11 @@ MATCH (pkg:PKG {qname: 'DemoPkg'}), (amp:PRT {qname: 'DemoPkg::Amp'})
 CREATE (pkg)-[:contains]->(amp)
 MATCH (amp:PRT {qname: 'DemoPkg::Amp'}), (con:CON {qname: 'DemoPkg::Amp::sig'})
 CREATE (amp)-[:contains]->(con)
-MATCH (amp:PRT {qname: 'DemoPkg::Amp'}), (vin:POR {qname: 'DemoPkg::Amp::vin'}), (vout:POR {qname: 'DemoPkg::Amp::vout'})
+MATCH (amp:PRT {qname: 'DemoPkg::Amp'}), (vin:POR {qname: 'DemoPkg::Amp::vin'})
 CREATE (amp)-[:contains]->(vin)
+MATCH (amp:PRT {qname: 'DemoPkg::Amp'}), (vout:POR {qname: 'DemoPkg::Amp::vout'})
 CREATE (amp)-[:contains]->(vout)
-MATCH (con:CON {qname: 'DemoPkg::Amp::sig'}), (vin:POR {qname: 'DemoPkg::Amp::vin'}), (vout:POR {qname: 'DemoPkg::Amp::vout'})
+MATCH (con:CON {qname: 'DemoPkg::Amp::sig'}), (vin:POR {qname: 'DemoPkg::Amp::vin'})
 CREATE (con)-[:connects]->(vin)
+MATCH (con:CON {qname: 'DemoPkg::Amp::sig'}), (vout:POR {qname: 'DemoPkg::Amp::vout'})
 CREATE (con)-[:connects]->(vout)

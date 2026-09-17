@@ -117,7 +117,7 @@ def test_examples_readme_con_and_pipe_section():
     assert "PKG/PRT/REQ/POR/**CON**" in readme or "PKG/PRT/REQ/POR/CON" in readme
     assert "leftover pipe quarantine" in readme.lower() or "leftover `@TAG` pipe" in readme
     assert "workflow.sysml.snippet.example.txt" in readme
-    assert "get(\"CFG01\")" in readme
+    assert 'get("CFG01")' in readme
     tm = load_map_from_lines(
         (_EXAMPLES / "schema.sysml.example.txt").read_text(encoding="utf-8").splitlines()
     )
