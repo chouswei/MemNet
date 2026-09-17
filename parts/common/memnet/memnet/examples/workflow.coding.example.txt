@@ -1,8 +1,11 @@
 # GQL coding seed for schema.coding.example.txt (gated openCypher-shaped).
-# Leftover nicknames kept for tests (CFG01, MOD_cli, E_cfg_root). Product 0.9.0 locators.
+# leftover nickname `id` (CFG01, MOD_cli, E_cfg_root) is for CLI/MCP tests only
+# (store.get("CFG01")). Not GraphElement identity. Not store-key teach.
+# Product MATCH/SET by path/name/goal. Product 0.9.0 locators on MOD/SYM.
 # Domain LAWs are project-local (not MCP engine LAW01–LAW05).
 
 ## Laws
+# leftover LAW text for tests — not product teach.
 CREATE (:LAW {id: 'LAW-CODE01', name: 'SYM', cycle: 'on_add', mechanism: 'verify_first', constraint: 'grep_or_lsp_before_first_sym_row'})
 CREATE (:LAW {id: 'LAW-CODE02', name: 'SYM', cycle: 'on_turn', mechanism: 'refresh_line', constraint: 'update_line_after_every_edit'})
 CREATE (:LAW {id: 'LAW-CODE03', name: '*', cycle: 'on_add', mechanism: 'no_bodies', constraint: 'path_line_signature_not_file_text'})
@@ -28,6 +31,7 @@ CREATE (:USR {id: 'USR_keep_id', topic: 'api', content: 'MCP session_load keep_i
 CREATE (:DEC {id: 'DEC_mcp_keep_id', task: 'TSK_mcp_session_load', question: 'keep_id default on session_load', options: 'MCP true / CLI false', chosen: 'MCP true', recycle: 'delete_on_settle'})
 
 ## Edges
+# leftover MATCH {id} — nickname lookup for tests. Product MATCH is labels+locators.
 MATCH (a {id: 'CFG01'}), (b {id: 'MOD_repo_root'})
 CREATE (a)-[:contains {id: 'E_cfg_root', note: 'struct', recycle: 'persistent'}]->(b)
 MATCH (a {id: 'MOD_cli'}), (b {id: 'SYM_cli_session_save'})

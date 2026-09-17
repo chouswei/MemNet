@@ -1,8 +1,11 @@
 # GQL seed for schema.example.txt (gated openCypher-shaped).
-# Stable leftover nicknames (PLR01, N01, T01, LAW01…) kept for CLI/MCP tests.
-# Product create is labels+properties; MATCH/SET by the same. Live pin_map emits shaped present.
+# leftover nickname `id` (CFG01, PLR01, LAW01…) is for CLI/MCP tests only
+# (store.get("CFG01") / MATCH {id}). Not GraphElement identity. Not store-key teach.
+# Product create is labels+properties; product MATCH/SET by name/qname/path/goal.
+# Live pin_map emits shaped present (nickname id off shaped read).
 
 ## Laws
+# leftover LAW text for tests — not product teach (Layer-era constraint strings kept as fixture copy).
 CREATE (:LAW {id: 'LAW01', name: 'EDG', cycle: 'on_context', mechanism: 'hide', constraint: 'settled_edg_unless_anchor'})
 CREATE (:LAW {id: 'LAW02', name: '*', cycle: 'on_add', mechanism: 'unique', constraint: 'one_id_add_then_update'})
 CREATE (:LAW {id: 'LAW03', name: 'EDG', cycle: 'on_add', mechanism: 'validate', constraint: 'src_dist_exist_first'})
@@ -19,6 +22,7 @@ CREATE (:TEC {id: 'TEC01', name: '21C coke blast furnace', domain: 'thermal meta
 CREATE (:PRD {id: 'PRD01', name: 'Industrial pig iron', type: 'goods', cost: '0', price: '0', status: 'not_in_production'})
 
 ## Edges
+# leftover MATCH {id} — nickname lookup for tests. Product MATCH is labels+locators.
 MATCH (a {id: 'N01'}), (b {id: 'PLR01'})
 CREATE (a)-[:seeks_help {id: 'E01', note: 'unlock', recycle: 'delete_on_expire'}]->(b)
 MATCH (a {id: 'PLR01'}), (b {id: 'TEC01'})
