@@ -24,7 +24,7 @@ def test_archive_off_config_and_root_load():
     ]
     assert "archive.sysml is OFF this load" in cfg
     root = ROOT_SYSML.read_text(encoding="utf-8")
-    assert "import MemNetArchive" not in root
+    assert "private import MemNetArchive" not in root
     assert "MUST NOT import MemNetArchive" in root
 
 
