@@ -62,7 +62,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 ## Import absorb vs shared session
 
 - **Path A** — same `sessionId`; peers just re-`pin_map`. No import.
-- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (pattern match, not MERGE-by-id). leftover `keep`/`reject`/`remint` `id_policy` is leftover, not product. That's absorb into the lead SSOT, not append. Optional **ImportGuard** soft policy: host hook and/or env-gated **CheapLlmImportGuard** (`MEMNET_IMPORT_GUARD_API_KEY`; optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips even when the key is set.
+- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (pattern match, not MERGE-by-id). leftover `keep`/`reject`/`remint` `id_policy` is leftover, not product. That's absorb into the lead SSOT, not append. **ImportGuard** / **CheapLlmImportGuard** is a **user-selectable** optional soft LLM (feature stays; not deprecated). Absorb works with the key unset. Set `MEMNET_IMPORT_GUARD_API_KEY` on serve to activate (optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips the soft pass for one call. Hard ImportAbsorb always runs. Teach: [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md).
 
 ## ACL + transport
 

@@ -32,7 +32,7 @@ Module A → B **MUST** pass **session id only** (`SessionHandoff`) plus anchors
 | Pattern | What happens |
 |---------|--------------|
 | **Shared session** | Same `sessionId`; B re-`pin_map` (path A) |
-| **Separate worker session** | Lead **imports** a bounded slice (`SessionImportReceive` / import_slice; path B) |
+| **Separate worker session** | Lead **imports** a bounded slice (`SessionImportReceive` / import_slice; path B). Optional ImportGuard soft LLM is user-selectable — [`LLM-GUIDE.md`](../LLM-GUIDE.md) § ImportGuard |
 
 EvidenceCentre / MissionDock / `HostSearchBridge` are application patterns — **MUST NOT** nest under `MemNetSystem`.
 

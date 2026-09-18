@@ -186,9 +186,25 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 Client `NEW` is rejected for source pins. Bounded (`--max-nodes` / `--max-files`). Ingest is not export. 0.19 pin-map export writes a cue `pin_map` (or empty-q outline) as shaped GQL (`memnet export pin-map` / MCP `export_pin_map`). Re-ingest / `.sysml` reverse (MN-REQ-11.5 SHOULD) remains later (#66).
 
+### ImportGuard (optional soft LLM)
+
+Path-B **slice absorb** (`import_slice` / CLI `memnet import-slice` / ImportAbsorb) works **without** an LLM API key. Hard ImportAbsorb gates always run. Path A (shared session, re-`pin_map`) never enters this nest.
+
+**CheapLlmImportGuard** is a **user-selectable** optional soft policy (MN-REQ-12.11 / #63). The adapter **stays shipped** — leave it off unless you want LLM review. Soft review is not SSOT.
+
+| State | Behaviour |
+|-------|-----------|
+| `MEMNET_IMPORT_GUARD_API_KEY` unset | Guard **off** (passthrough). Absorb still works. |
+| Key set on the **serve** process (or the in-process MCP / CLI process that runs absorb) | Soft LLM review (`allow` / `trim` / `reject`); **hard gates still run after**. |
+| `--no-guard` (MCP `enable_guard=false`) | Skip the soft guard for **that call**, even when the key is set. |
+
+Activate: set `MEMNET_IMPORT_GUARD_API_KEY` on serve (do not paste keys into chat or docs). Optional `MEMNET_IMPORT_GUARD_BASE_URL` (default `https://api.openai.com/v1`) and `MEMNET_IMPORT_GUARD_MODEL` (default `gpt-4.1-mini`). Leave the key unset to keep the guard off. Transport or parse failure **soft-skips** (passthrough + `@WRN`); import does not hang.
+
+Do **not** confuse this key with `MEMNET_MCP_HTTP_TOKEN`, CapsPolicy `session_token`, or RSV `llm_id`. Host `ImportGuardHook` (`set_import_guard`) is a separate optional plug-in; `--no-guard` skips that too.
+
 ### Multi-agent / Multitask
 
-**MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http.
+**MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
 
 ### Not implemented (design only)
 
