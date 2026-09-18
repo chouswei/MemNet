@@ -539,6 +539,40 @@ package MemNetConnections {
     doc /* Row counts and cap utilisation from housekeep stats. */
   }
 
+  item def ServeUsageLook {
+    doc /*
+      Human-facing read-only usage snapshot (not GQL agent wire).
+      Carries serve_status (up/host/port), optional sessions|n/max plus
+      listed ids, and/or housekeep_stats summary. MUST NOT carry secrets,
+      ImportGuard API keys, or mutate payloads. Observed from live serve
+      / registry — not a second graph API.
+    */
+    attribute serveUp : Boolean;
+    attribute host : String;
+    attribute listenPort : Integer;
+    attribute sessionCount : Integer;
+    attribute sessionMax : Integer;
+    attribute housekeepSummary : String;
+  }
+
+  item def ImportGuardArmedLook {
+    doc /*
+      ImportGuard armed/disarmed from env presence only (display).
+      MUST NOT carry the key. MUST NOT enable, disable, or reproject.
+    */
+    attribute armed : Boolean;
+    attribute keyOnPage : Boolean = false;
+    attribute writable : Boolean = false;
+  }
+
+  item def HumanUsagePage {
+    doc /*
+      Localhost human look surface (HTML/text). Not agent GQL; not Foam
+      product MCP. HTTP/UI parked until Core GO (implemented=false).
+    */
+    attribute localBindDefault : Boolean = true;
+  }
+
   // =====================================================================
   // Ports — GQL primary + Multitask / durable; internal records
   // (Retired TierA / LegacyPipe ports: see RETIRED archive section below)
@@ -801,6 +835,29 @@ package MemNetConnections {
     in item err : ErrorSignal;
   }
 
+  port def ServeUsageLookOutPort {
+    doc /* Emit read-only serve usage snapshot toward the human look. */
+    out item look : ServeUsageLook;
+  }
+  port def ServeUsageLookInPort {
+    doc /* Dashboard accepts a usage snapshot (look only). */
+    in item look : ServeUsageLook;
+  }
+
+  port def ImportGuardArmedLookOutPort {
+    doc /* Emit ImportGuard armed flag (env presence; no key). */
+    out item armed : ImportGuardArmedLook;
+  }
+  port def ImportGuardArmedLookInPort {
+    doc /* Dashboard accepts ImportGuard armed display (no write). */
+    in item armed : ImportGuardArmedLook;
+  }
+
+  port def HumanLookOutPort {
+    doc /* Emit localhost human usage page (not agent wire). */
+    out item page : HumanUsagePage;
+  }
+
   // =====================================================================
   // Connection defs
   // =====================================================================
@@ -995,6 +1052,25 @@ package MemNetConnections {
     doc /* Error/warn signalling on stderr path. */
     end port source : ErrorSignalOutPort;
     end port sink : ErrorSignalInPort;
+  }
+
+  connection def ServeUsageLookFlow {
+    doc /*
+      Read-only usage snapshot from serve / session list / housekeep
+      toward MemNetUsageDashboard. MUST NOT convey mutate, session_close,
+      import_slice, or ImportGuard keys. Dashboard does not own lifecycle.
+    */
+    end port source : ServeUsageLookOutPort;
+    end port sink : ServeUsageLookInPort;
+  }
+
+  connection def ImportGuardArmedLookFlow {
+    doc /*
+      ImportGuard armed display (env presence) toward the dashboard.
+      MUST NOT convey the API key or a write toggle.
+    */
+    end port source : ImportGuardArmedLookOutPort;
+    end port sink : ImportGuardArmedLookInPort;
   }
 
   // =====================================================================

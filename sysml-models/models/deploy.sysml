@@ -64,6 +64,11 @@
   locators into existing MutateGate / ingest. No ImportGuard leaf copy.
   Extra 0.17: RagHostHook.implemented=true outside MemNetSystem; skip
   is valid. Grammar: docs/extras/memnet-host-search-nest.md
+  APPLICATION / OPS LOOK (not in MemNetSystem): MemNetUsageDashboard —
+  human read-only usage look (serve_status, sessions n/max, housekeep,
+  ImportGuard armed display). MUST NOT nest manage/mutate ports.
+  HTTP/UI parked (httpImplemented=false). tip is not face; not Foam
+  product MCP. Manage = Memnetor + Devicor.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   seven cousin pointing/identity designs (sysml-models/models/cousins.sysml).
   MUST NOT thicken Recall/Commit; operatorCount stays 2.
@@ -1116,8 +1121,11 @@ package MemNet {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
       Recycle policy feeds PinMapShapedRead hide rules.
+      usageLookOut is a read-only stats snapshot for MemNetUsageDashboard
+      — not a manage/prune command from the page.
     */
     port statsOut : GqlWireOutPort;
+    port usageLookOut : ServeUsageLookOutPort;
     port errOut : ErrorSignalOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
@@ -1246,9 +1254,11 @@ package MemNet {
       Migration / multi-process fallback: length-prefixed JSON over TCP
       localhost. Under Multitask this path (or streamable-http / LocalIpc)
       is the shared-store binding (MN-REQ-12.2).
+      usageLookOut = serve_status (up/host/port) for MemNetUsageDashboard.
     */
     port cmdIn : ServeCommandInPort;
     port envelopeOut : JsonEnvelopeOutPort;
+    port usageLookOut : ServeUsageLookOutPort;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
 
@@ -1295,8 +1305,11 @@ package MemNet {
       pins (MN-REQ-11.17). Emits header sessions|n/max then ids.
       Session handle is not a graph store key.
       SHALL NOT ANN-rank sessions. Look remains pin_map of a listed id.
+      usageLookOut repeats n/max + ids for the human dashboard (look
+      only — SHALL NOT session_close from that surface).
     */
     port locatorIn : CatalogSessionLocatorInPort;
+    port usageLookOut : ServeUsageLookOutPort;
     attribute requiresStoreKeyId : Boolean = false;
     attribute listsCatalogSessionPins : Boolean = true;
     attribute annRankSessions : Boolean = false;
@@ -2374,6 +2387,8 @@ package MemNet {
       soft-review; engine MUST still hard-gate ImportAbsorb.
       implemented=true after adapter ship (#63). costTier = cost/latency
       class only (no vendor model id).
+      armedLookOut = env-presence armed flag for MemNetUsageDashboard
+      (display only; MUST NOT carry MEMNET_IMPORT_GUARD_API_KEY).
     */
     attribute gateKind : String = "soft";
     attribute actor : String = "llm";
@@ -2384,6 +2399,7 @@ package MemNet {
     attribute vendorsModel : Boolean = false;
     attribute doctrineAsIs : Boolean = false;
     attribute leftoverIssue : String = "#63";
+    port armedLookOut : ImportGuardArmedLookOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_11_CheapLlmImportGuardSoft;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
@@ -2648,14 +2664,16 @@ package MemNet {
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;
-      MUST NOT nest on product path.       HostSearchBridge / EvidenceCentre / CousinPointingContrast
-      MUST NOT nest here. Only MN-REQ-00 satisfied here.
+      MUST NOT nest on product path.       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
+      MemNetUsageDashboard MUST NOT nest here. Only MN-REQ-00 satisfied here.
+      usageDashboardInsideSystem=false (ops look is outside; not MCP face).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
     part durable : DurableBuffer;
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
+    attribute usageDashboardInsideSystem : Boolean = false;
 
     connection mcpInProcess : InProcessFlow {
       end port source ::> mcp.tools.apiOut;
@@ -2771,5 +2789,117 @@ package MemNet {
     */
     end port source ::> hostSearch.locatorOut;
     end port sink ::> memNetSystem.core.transport.inProcess.memory.sessions.recallCommit.commit.mutate.libraryLocatorIn;
+  }
+
+  // =====================================================================
+  // OPS LOOK — MemNetUsageDashboard (MUST NOT instantiate under
+  // MemNetSystem). Human read-only usage; manage = Memnetor + Devicor.
+  // HTTP/UI parked (httpImplemented=false) until Core GO.
+  // =====================================================================
+
+  part def ServeStatusLook {
+    doc /*
+      Display serve_status: up / host / port. Look only.
+    */
+    attribute lookOnly : Boolean = true;
+  }
+
+  part def SessionCensusLook {
+    doc /*
+      Display @STAT sessions|n/max and listed session ids (cheap row
+      counts when available). Look only — SHALL NOT session_close.
+    */
+    attribute lookOnly : Boolean = true;
+    attribute sessionClose : Boolean = false;
+  }
+
+  part def HousekeepLook {
+    doc /*
+      Display housekeep_stats caps / row counts. Look only —
+      SHALL NOT prune / settle from the page.
+    */
+    attribute lookOnly : Boolean = true;
+    attribute pruneFromPage : Boolean = false;
+  }
+
+  part def ImportGuardArmedDisplay {
+    doc /*
+      Display ImportGuard armed/disarmed from env presence.
+      MUST NOT show or accept the API key. MUST NOT enable/disable.
+    */
+    attribute lookOnly : Boolean = true;
+    attribute keyOnPage : Boolean = false;
+    attribute writable : Boolean = false;
+  }
+
+  part def MemNetUsageDashboard {
+    doc /*
+      Human look surface for MemNet serve usage (MN-REQ-06.5).
+      Observes TcpServeBridge / CmdSessionList / HousekeepSettle /
+      CheapLlmImportGuard armed flag and MultitaskSharedStoreBinding
+      (shared registry). SHALL NOT own SessionLifecycle. SHALL NOT nest
+      under MemNetSystem (not MCP/CLI face; tip is not face; not Foam
+      product MCP). Manage of serve / MCP / roll / housekeep /
+      ImportGuard env = Memnetor + Devicor.
+      HTTP/UI parked: httpImplemented=false until Core GO.
+      MUST NOT ports: session_close, mutate, import_slice, key entry,
+      reproject.
+    */
+    port serveLookIn : ServeUsageLookInPort;
+    port sessionLookIn : ServeUsageLookInPort;
+    port housekeepLookIn : ServeUsageLookInPort;
+    port armedLookIn : ImportGuardArmedLookInPort;
+    port pageOut : HumanLookOutPort;
+    part serveStatus : ServeStatusLook;
+    part sessionCensus : SessionCensusLook;
+    part housekeep : HousekeepLook;
+    part importGuardArmed : ImportGuardArmedDisplay;
+    attribute lookOnly : Boolean = true;
+    attribute httpImplemented : Boolean = false;
+    attribute agentWire : Boolean = false;
+    attribute foamProductMcp : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute localBindDefault : Boolean = true;
+    attribute manageViaPage : Boolean = false;
+    attribute sessionClosePort : Boolean = false;
+    attribute mutatePort : Boolean = false;
+    attribute importSlicePort : Boolean = false;
+    attribute keyEntryPort : Boolean = false;
+    attribute reprojectPort : Boolean = false;
+    attribute ownsSessionLifecycle : Boolean = false;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute manageOwners : String = "Memnetor+Devicor";
+    attribute lookActor : String = "human";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_HumanUsageLook;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
+  }
+
+  part usageDashboard : MemNetUsageDashboard;
+
+  connection tcpStatusToDashboard : ServeUsageLookFlow {
+    doc /* serve_status observe; dashboard does not send ServeCommand. */
+    end port source ::> memNetSystem.core.transport.tcp.usageLookOut;
+    end port sink ::> usageDashboard.serveLookIn;
+  }
+
+  connection sessionListToDashboard : ServeUsageLookFlow {
+    doc /* sessions|n/max + ids from MCP session_list (look only). */
+    end port source ::> memNetSystem.mcp.tools.sessionList.usageLookOut;
+    end port sink ::> usageDashboard.sessionLookIn;
+  }
+
+  connection housekeepStatsToDashboard : ServeUsageLookFlow {
+    doc /* housekeep_stats observe; no prune from the page. */
+    end port source ::> memNetSystem.core.transport.inProcess.memory.sessions.housekeep.usageLookOut;
+    end port sink ::> usageDashboard.housekeepLookIn;
+  }
+
+  connection importGuardArmedToDashboard : ImportGuardArmedLookFlow {
+    doc /* Armed display from env presence; no key; no write toggle. */
+    end port source ::> memNetSystem.multitask.coordinator.importReceive.guard.cheapLlm.armedLookOut;
+    end port sink ::> usageDashboard.armedLookIn;
   }
 }
