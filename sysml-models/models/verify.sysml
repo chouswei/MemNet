@@ -519,7 +519,7 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.emptyCueIsOutline == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.seed.leftoverEmptySkip.productCommand == false
+            .recall.seed.leftoverEmptySkipProductCommand == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.cueByLabelsAndProps == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -647,9 +647,9 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.outline.afterOutlinePickCueThenPinMap == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.leftoverEmptySkip.productCommand == false
+            .recall.leftoverEmptySkipProductCommand == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.leftoverEmptySkip.targetImplemented == false
+            .recall.leftoverEmptySkipTargetImplemented == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.emptyCueIsOutline == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -1040,13 +1040,13 @@ package MemNetVerification {
           and system.core.cli.pinMap.requireAnchorId == false
           and system.core.cli.mutate.createRequiresId == false
           and system.core.transport.inProcess.memory.sessions.store
-            .leftover_read_get.productCommand == false
+            .leftoverReadGetProductCommand == false
           and system.core.transport.inProcess.memory.sessions.store
-            .leftover_read_get.targetImplemented == false
+            .leftoverReadGetTargetImplemented == false
           and system.core.transport.inProcess.memory.sessions.store
-            .leftover_by_id.productCommand == false
+            .leftoverByIdProductCommand == false
           and system.core.transport.inProcess.memory.sessions.store
-            .leftover_MERGE_by_id.productCommand == false
+            .leftoverMergeByIdProductCommand == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.allocator.implemented == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -1054,18 +1054,18 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.allocator.targetImplemented == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .commit.mutate.allocator.leftover_NEW_mint.productCommand == false
+            .commit.mutate.allocator.leftoverNewMintProductCommand == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .commit.mutate.allocator.leftover_AssignedIdMap.productCommand
+            .commit.mutate.allocator.leftoverAssignedIdMapProductCommand
             == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
-            .recall.shapedRead.pinMap.leftover_require_anchor.productCommand
+            .recall.shapedRead.pinMap.leftoverRequireAnchorProductCommand
             == false
           and system.pinMaps.interface.matchByLabelsAndProps == true
           and system.pinMaps.interface.leftoverAllocateIsProductCommand
             == false
-          and system.pinMaps.interface.leftover_allocate_from_locator
-            .productCommand == false
+          and system.pinMaps.interface.leftoverAllocateFromLocatorProductCommand
+            == false
           and system.multitask.coordinator.importReceive.absorb
             .leftoverIdPolicyIsProductCommand == false
           and system.multitask.coordinator.importReceive.absorb
@@ -1191,14 +1191,14 @@ package MemNetVerification {
       Honesty: operatorCount == 2; hostSearchInsideSystem == false;
       Commit.oneGate == true; RSV nested under Commit (implemented);
       PinMapShapedRead true / BoundedMatchFind true (#73 seed-only find);
-      Layer leftover retire-from-wheel (leftoverLayer.deleteThisPr == false;
-      MUST NOT nest under MemNetSystem).
+      Layer leftover retire-from-wheel (leftoverLayerDeleteThisPr == false;
+      leftoverFogNested == false; leftoverArchiveOffLoad; ProductGqlGate
+      rejectLayer). leftover_* parts live on MemNetArchive, off this load.
       All examination/test is paradox (pytest, MN-VER). Math: docs/grammar/math-skeleton.md.
     */
     attribute verificationId : String = "MN-VER-13-S01";
 
     subject system : MemNetSystem;
-    subject leftoverLayer : TierACodec;
 
     objective twoOperators {
       verify twoOperatorsReq;
@@ -1225,9 +1225,12 @@ package MemNetVerification {
             .recall.outline.notAThirdOperator == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.cosineMetric == false
-          and leftoverLayer.deleteThisPr == false
-          and leftoverLayer.leftoverIssue == "retire-from-wheel"
-          and leftoverLayer.mustNotNestOnProductPath == true
+          and system.core.transport.inProcess.memory.sessions.gqlWire
+            .productGate.rejectLayer == true
+          and system.leftoverLayerDeleteThisPr == false
+          and system.leftoverLayerMustNotNestOnProductPath == true
+          and system.leftoverFogNested == false
+          and system.leftoverArchiveOffLoad == true
       }
     }
   }

@@ -25,11 +25,11 @@
     │       │   │       └── BoundedMatchFind    // RelativeSeed MATCH_L; CueConflict on emit
     │       │   └── Commit          // ONE gate; TARGET GraphElement identity
     │       │       ├── MutateGate
-    │       │       ├── IdAllocator // leftover_NEW_mint / leftover_by_id
+    │       │       ├── IdAllocator // leftover mint honesty flags; leftover_* parts off this nest
     │       │       ├── NeighbourhoodReserve // RSV lease — not a third API
     │       │       └── SameThingAbsorb // in-session collapse; not ImportAbsorb
-    │       ├── Schema / Caps (size + shipped ACL) / …
-    │       └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
+    │       └── Schema / Caps (size + shipped ACL) / …
+    // leftover_* / TierACodec / LegacyPipe* : models/archive.sysml (off ProjectMemNet load)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
     │   └── McpFacade               // TARGET cue/pattern commands only
@@ -144,7 +144,7 @@ package MemNet {
     port schemaIn : SchemaInPort;
     port schemaOut : SchemaOutPort;
     port errOut : ErrorSignalOutPort;
-    part leftover_id_first : leftover_id_first;
+    attribute leftoverIdFirstProductCommand : Boolean = false;
     attribute idFirstRequired : Boolean = false;
     attribute leftoverIdFirst : Boolean = true;
     attribute leftoverIssue : String = "id_first";
@@ -261,137 +261,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_7_HumanVerifyViaParser;
   }
 
-  part def TierACodec {
-    doc /*
-      RETIRED / REJECTED on product path (ADR-001 M2 **done**): former Layer /
-      Tier A NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a / memnet.layer).
-      MutateGate rejects with legacy_dialect_retired. MUST NOT be nested as
-      accept or 1.x teach. Hierarchical reconstruct (Recall k-hop) is NOT
-      Layer dialect. Leftover retire-from-wheel: modules may remain on disk
-      for archive/tests; MUST NOT silently delete in the math-skeleton PR.
-      Primary wire is GqlCodec.
-    */
-    port tierAIn : TierAInPort;
-    port tierAOut : TierAOutPort;
-    port recordsOut : GraphRecordOutPort;
-    port recordsIn : GraphRecordInPort;
-    port errOut : ErrorSignalOutPort;
-    attribute productPathRetired : Boolean = true;
-    attribute mustNotNestOnProductPath : Boolean = true;
-    attribute leftoverIssue : String = "retire-from-wheel";
-    attribute deleteThisPr : Boolean = false;
-  }
-
-  part def LegacyPipeImport {
-    doc /*
-      RETIRED archive — MUST NOT nest on product path. One-shot import of
-      historical @TAG pipe session blobs; convert then discard. Kept for
-      as-is traceability only (not first-class product).
-    */
-    port legacyIn : LegacyPipeInPort;
-    port recordsOut : GraphRecordOutPort;
-    port errOut : ErrorSignalOutPort;
-    attribute implemented : Boolean = false;
-  }
-
-  part def leftover_id_first {
-    doc /* 0.9 leftover SCHEMA id_first. Nested under SchemaRegistry. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "id_first";
-    attribute productCommand : Boolean = false;
-  }
-
-  part def leftover_by_id {
-    doc /* 0.9 leftover MemStore.by_id index. Nested under GraphStore. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "by_id";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-  }
-
-  part def leftover_MERGE_by_id {
-    doc /* 0.9 leftover MERGE-by-id as PK. Nested under GraphStore. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "MERGE-by-id";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-  }
-
-  part def leftover_NEW_mint {
-    doc /* 0.9 leftover NEW mint. Nested under IdAllocator / remint. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "NEW";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-    attribute implemented : Boolean = true;
-  }
-
-  part def leftover_allocate_from_locator {
-    doc /* 0.9 leftover PinMapIngest allocate_from_locator. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "locator-as-PK";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-  }
-
-  part def leftover_require_anchor {
-    doc /*
-      0.9 leftover pin_map require_anchor / by_id. Honesty under
-      PinMapShapedRead. MUST NOT be the TARGET pin_map command.
-    */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "require_anchor";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-    attribute requireAnchorId : Boolean = true;
-  }
-
-  part def leftover_empty_seed_skip {
-    doc /*
-      leftover 0.10 empty Q skip ShapeWalk. Honesty under Recall /
-      RelativeSeed. TARGET empty q is SessionOutline. MUST NOT be a
-      product command. Python engine now outlines empty q (0.11 census);
-      this leftover skip is leftover only. Do not flip SessionOutline.implemented.
-    */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "empty-cue-skip";
-    attribute productCommand : Boolean = false;
-    attribute targetImplemented : Boolean = false;
-  }
-
-  part def leftover_ingestIsIdRule {
-    doc /* 0.9 leftover ingestIsIdRule=true. TARGET Commit flag is false. */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "ingestIsIdRule";
-    attribute productCommand : Boolean = false;
-  }
-
-  part def leftover_read_get {
-    doc /*
-      0.9 leftover MCP/CLI read_get(id) keyed on store-key. Honesty
-      engine only. MUST NOT nest under McpFacade / CliFacade as a
-      product command (MN-REQ-07.5). TARGET implemented=false.
-    */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "read_get";
-    attribute productCommand : Boolean = false;
-    attribute implemented : Boolean = true;
-    attribute targetImplemented : Boolean = false;
-    attribute requiresStoreKeyId : Boolean = true;
-  }
-
-  part def leftover_AssignedIdMap {
-    doc /*
-      0.9 leftover required AssignedIdMap emit after NEW. Honesty
-      under IdAllocator. MUST NOT nest as a product command.
-      TARGET implemented=false.
-    */
-    attribute leftoverAsIsEngine : Boolean = true;
-    attribute leftoverIssue : String = "AssignedIdMap";
-    attribute productCommand : Boolean = false;
-    attribute implemented : Boolean = true;
-    attribute targetImplemented : Boolean = false;
-  }
+  // leftover_* / TierACodec / LegacyPipeImport part defs: models/archive.sysml
+  // (MemNetArchive; off ProjectMemNet load). Product nest uses flags only.
 
   part def liveNeo4jClaimed {
     doc /*
@@ -418,8 +289,8 @@ package MemNet {
     port recordsOut : GraphRecordOutPort;
     port idsOut : AssignedIdOutPort;
     port errOut : ErrorSignalOutPort;
-    part leftover_NEW_mint : leftover_NEW_mint;
-    part leftover_AssignedIdMap : leftover_AssignedIdMap;
+    attribute leftoverNewMintProductCommand : Boolean = false;
+    attribute leftoverAssignedIdMapProductCommand : Boolean = false;
     attribute implemented : Boolean = false;
     attribute targetImplemented : Boolean = false;
     attribute productCommand : Boolean = false;
@@ -459,9 +330,10 @@ package MemNet {
     port recordsOut : GraphRecordOutPort;
     port errOut : ErrorSignalOutPort;
     part caps : CapsPolicy;
-    part leftover_by_id : leftover_by_id;
-    part leftover_MERGE_by_id : leftover_MERGE_by_id;
-    part leftover_read_get : leftover_read_get;
+    attribute leftoverByIdProductCommand : Boolean = false;
+    attribute leftoverMergeByIdProductCommand : Boolean = false;
+    attribute leftoverReadGetProductCommand : Boolean = false;
+    attribute leftoverReadGetTargetImplemented : Boolean = false;
     attribute requiredIdProperty : Boolean = false;
     attribute leftoverByIdIndex : Boolean = true;
     attribute leftoverIssue : String = "by_id";
@@ -578,7 +450,8 @@ package MemNet {
     attribute sameNameIsCandidateOnly : Boolean = true;
     attribute emitQHonestWhenMulti : Boolean = true;
     attribute silentPickOneRoot : Boolean = false;
-    part leftoverEmptySkip : leftover_empty_seed_skip;
+    attribute leftoverEmptySkipProductCommand : Boolean = false;
+    attribute leftoverEmptySkipTargetImplemented : Boolean = false;
     part peak : Peak_L;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
@@ -683,8 +556,9 @@ package MemNet {
     attribute elementIdOnWire : Boolean = false;
     attribute cueConflictIfExemplarNameCollides : Boolean = true;
     attribute twoRootsStayTwo : Boolean = true;
+    attribute leftoverEmptySkipProductCommand : Boolean = false;
+    attribute leftoverEmptySkipTargetImplemented : Boolean = false;
     part cueConflict : CueConflict;
-    part leftoverEmptySkip : leftover_empty_seed_skip;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_7_RelativeSeedThenShapeWalk;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
@@ -775,7 +649,7 @@ package MemNet {
     attribute rankingIndependentOfCreateOrder : Boolean = true;
     attribute hiddenHandleIsRankingKey : Boolean = false;
     attribute nicknameIdIsRankingKey : Boolean = false;
-    part leftover_require_anchor : leftover_require_anchor;
+    attribute leftoverRequireAnchorProductCommand : Boolean = false;
     part walk : ShapeWalk;
     part outline : SessionOutline;
     part caps : CapsPolicy;
@@ -1005,7 +879,8 @@ package MemNet {
     attribute codebookMissOnly : Boolean = true;
     part seed : RelativeSeed;
     part outline : SessionOutline;
-    part leftoverEmptySkip : leftover_empty_seed_skip;
+    attribute leftoverEmptySkipProductCommand : Boolean = false;
+    attribute leftoverEmptySkipTargetImplemented : Boolean = false;
     part shapedRead : AgentShapedRead;
     connection seedToWalk : SeedSetFlow {
       end port source ::> seed.seedOut;
@@ -1816,8 +1691,8 @@ package MemNet {
     attribute roadmapOnly : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
-    part leftover_allocate_from_locator : leftover_allocate_from_locator;
-    part leftover_ingestIsIdRule : leftover_ingestIsIdRule;
+    attribute leftoverAllocateFromLocatorProductCommand : Boolean = false;
+    attribute leftoverIngestIsIdRuleProductCommand : Boolean = false;
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
     attribute leftoverAllocateIsProductCommand : Boolean = false;
@@ -2154,7 +2029,7 @@ package MemNet {
     attribute matchByLabelsAndProps : Boolean = true;
     attribute leftoverKeyedOnStoreKey : Boolean = true;
     attribute leftoverIdPolicyIsProductCommand : Boolean = false;
-    part leftover_MERGE_by_id : leftover_MERGE_by_id;
+    attribute leftoverMergeByIdProductCommand : Boolean = false;
   }
 
   part def IdPolicyReject {
@@ -2191,8 +2066,6 @@ package MemNet {
     attribute productCommand : Boolean = false;
     attribute leftoverIdPolicyIsProductCommand : Boolean = false;
     part allocator : IdAllocator;
-    part leftover_NEW_mint : leftover_NEW_mint;
-    part leftover_by_id : leftover_by_id;
   }
 
   part def IdPolicyApply {
@@ -2663,8 +2536,9 @@ package MemNet {
       PinMapRoadmap (PinMapIngest_* + CatalogSnap 0.15 + PinMapExport 0.19) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
-      TierACodec / LegacyPipeImport RETIRED — leftover retire-from-wheel;
-      MUST NOT nest on product path.       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
+      leftover_* / TierACodec / LegacyPipeImport live on MemNetArchive
+      (models/archive.sysml; off ProjectMemNet load). MUST NOT nest here.
+      HostSearchBridge / EvidenceCentre / CousinPointingContrast /
       MemNetUsageDashboard MUST NOT nest here. Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
     */
@@ -2674,6 +2548,10 @@ package MemNet {
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
     attribute usageDashboardInsideSystem : Boolean = false;
+    attribute leftoverFogNested : Boolean = false;
+    attribute leftoverArchiveOffLoad : Boolean = true;
+    attribute leftoverLayerDeleteThisPr : Boolean = false;
+    attribute leftoverLayerMustNotNestOnProductPath : Boolean = true;
 
     connection mcpInProcess : InProcessFlow {
       end port source ::> mcp.tools.apiOut;

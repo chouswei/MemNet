@@ -1,5 +1,6 @@
 /*
   Root package for MemNet SysML models — imports only; always last in config.yaml.
+  MUST NOT import MemNetArchive (models/archive.sysml is off this load).
 */
 package ProjectMemNet {
   private import MemNetConnections::*;
