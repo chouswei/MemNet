@@ -20,66 +20,35 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1; 04.9 empty-q outline) |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs seven cousin pointing/identity designs (not a product switch) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` outside `MemNetSystem` |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S02 |
-| `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
+| `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
+| `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe*). **Off** `config.yaml` load |
+
+**One-page nest:** [outputs/product-nest-one-page.md](outputs/product-nest-one-page.md).
 
 ## Nesting outline (target)
 
 ```text
 MemNetSystem                                 // SharedLlmMemory product
-├── MemNetCoreLibrary
-│   ├── TransportBoundary
-│   │   ├── InProcessEngine
-│   │   │   └── AgentMemory                  // session-scoped working set
-│   │   │       └── SessionLifecycle         // session id = SSOT handle
-│   │   │           ├── GraphStore
-│   │   │           ├── GqlCodec             // GraphGlot parse front + product gate
-│   │   │           │   ├── GraphGlotParseFront  // implemented=true — PyPI graphglot
-│   │   │           │   └── ProductGqlGate       // after parse; not a store
-│   │   │           ├── RecallCommit         // 0.5: TWO operators only
-│   │   │           │   ├── Recall           // seed + k-hop; empty q ⇒ outline
-│   │   │           │   │   ├── SessionOutline   // 0.11 TARGET census of S
-│   │   │           │   │   └── AgentShapedRead
-│   │   │           │   │       ├── PinMapShapedRead // implemented=true
-│   │   │           │   │       └── BoundedMatchFind // implemented=true #73 seed find
-│   │   │           │   └── Commit           // ONE gate; GraphElement identity
-│   │   │           │       ├── MutateGate
-│   │   │           │       └── NeighbourhoodReserve // lease, not 3rd API
-│   │   │           └── Schema / Caps / Walk / Housekeep / Snapshot
-│   │   │               (TierACodec RETIRED/REJECTED — leftover; not nested)
-│   │   ├── LocalIpcGateway
-│   │   └── TcpServeBridge
-│   └── CliFacade                            // LLM <-> MemNet (GQL)
-├── MemNetMcpServer                          // LLM <-> MemNet (MCP)
-├── DurableBuffer                            // M2.5 / 0.7 Agens live proven; cabinet external
-│   ├── AgensGraphAdapter                    // hydrate/flush client; liveCabinetClaimed=true
-│   ├── Neo4jAdapter                         // same seam; implemented; liveNeo4jClaimed=true (0.14)
-│   └── Neo4jLibraryPort                     // 0.16; skip unless MEMNET_NEO4J_LIBRARY_DATABASE
-├── PinMapRoadmap                            // all PinMapIngest_* domains shipped (#64)
-│   ├── PinMapIngest_Sysml                  // first engine (qname=/path=)
-│   ├── PinMapIngest_Codebase               // MOD/SYM (path=/line=/signature=)
-│   ├── PinMapIngest_PcbaAto                // CMP/NET/PIN (refdes=/net=/pin=)
-│   └── PinMapIngest_SkillsRules            // SKL/RUL (skill_id=/phrase=)
-└── MultitaskOperatingModel
-    ├── MultitaskCoordinator                 // team lead
-    │   ├── SessionHandoffEmit
-    │   ├── AsyncTaskDispatch                // spawn N; end turn
-    │   └── SessionImportReceive             // path B only
-    │       ├── ImportGuard                  // OPTIONAL soft nest
-    │       │   ├── ImportGuardHook          // shipped #49
-    │       │   └── CheapLlmImportGuard      // shipped (#63 / 12.11; env-gated)
-    │       └── ImportAbsorb                 // hard gates + import + settle
-    ├── WorkerPool
-    │   └── MultitaskWorker[1..*]            // async parallel members
-    └── MultitaskSharedStoreBinding
+├── Core
+│   ├── Session                              // session id = SSOT handle
+│   ├── GQL                                  // GqlCodec + ProductGqlGate
+│   └── RecallCommit                         // TWO operators
+│       ├── Recall                           // cue → pin_map
+│       └── Commit                           // mutate
+├── Multitask
+│   ├── Path A                               // shared session → re-pin
+│   └── Path B                               // ImportGuard optional → ImportAbsorb
+└── DurableBuffer                            // one primary cabinet story
 
-CousinPointingContrast                         // APPLICATION contrast — MUST NOT nest here
-MemNetUsageDashboard                           // OPS LOOK — MUST NOT nest here (look only)
+APPLICATION LOOK   CousinPointingContrast / HostSearchBridge (outside)
+ARCHIVE LOOK       MemNetArchive — leftover fog shelf; root does not import
+OPS LOOK           MemNetUsageDashboard — look only; not agent wire
 ```
 
 **Happy path Multitask:** Path A shared session → re-`pin_map` (ImportGuard unused). Path B uses optional ImportGuard nest then ImportAbsorb. Hook shipped ≠ cheap LLM shipped.
@@ -97,7 +66,7 @@ MemNetUsageDashboard                           // OPS LOOK — MUST NOT nest her
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
 - **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast / human usage look)
-- **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
+- **ARCHIVE (off ProjectMemNet load):** leftover_* / TierACodec / LegacyPipe* honesty in `models/archive.sysml` (`MemNetArchive`). Root MUST NOT import it. Engine leftover codecs may remain on disk for tests; product teach is GQL only.
 
 ### CapsPolicy ACL (as-is 0.8)
 

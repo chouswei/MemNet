@@ -57,47 +57,17 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 
 ## Nesting outline
 
-```text
-MemNetSystem                                 // SharedLlmMemory
-├── MemNetCoreLibrary
-│   ├── TransportBoundary
-│   │   ├── InProcessEngine → AgentMemory → SessionLifecycle
-│   │   │     ├── GqlCodec (GraphGlotParseFront + ProductGqlGate) / GraphStore / RecallCommit
-│   │   │     │     Recall / RelativeSeed └── Peak_L last-resort (0.18; never default) /
-│   │   │     │     SessionOutline (empty-q census; 0.11 TARGET) /
-│   │   │     │     AgentShapedRead /
-│   │   │     │     PinMapShapedRead (shipped; CueConflict mark when |Q|>1) /
-│   │   │     │     BoundedMatchFind (shipped #73 seed-only)
-│   │   │     │     Commit / MutateGate / NeighbourhoodReserve (lease) /
-│   │   │     │     SameThingAbsorb (in-session Commit rule; not ImportAbsorb)
-│   │   │     └── (TierACodec RETIRED/REJECTED — leftover retire-from-wheel; not nested)
-│   │   ├── LocalIpcGateway
-│   │   └── TcpServeBridge
-│   └── CliFacade                            // catalog Snap + session list/close (0.15/0.19.3); pin-map export (0.19)
-├── MemNetMcpServer                          // snap_model / session_list / session_close / export_pin_map
-├── DurableBuffer → AgensGraphAdapter + Neo4jAdapter  // M2.5; Agens 0.7; Neo4j 0.14 claimed
-│                         + Neo4jLibraryPort          // 0.16 locators; rejectSameNameAsCabinet
-├── PinMapRoadmap                            // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
-└── MultitaskOperatingModel
-    ├── MultitaskCoordinator                 // team lead
-    │   ├── SessionHandoffEmit
-    │   ├── AsyncTaskDispatch                // spawn N; end turn
-    │   └── SessionImportReceive             // path B only
-    │       ├── ImportGuard                  // soft nest (PinMapIngest-style)
-    │       │   ├── ImportGuardHook          // shipped #49 (+ GuardPassthrough)
-    │       │   ├── CheapLlmImportGuard      // shipped #63 (12.11; env-gated)
-    │       │   └── Soft* leaves
-    │       └── ImportAbsorb                 // engine SHALL hard
-    │           └── DistinctSession / LawVocab / Acl / Schema /
-    │               IdPolicyKeep|Reject|Remint / NodesThenEdgesCommit
-    ├── WorkerPool
-    │   └── MultitaskWorker[1..*]
-    │       └── WorkingMemorySliceExport     // hard: anchors, budget, LAW skip
-    └── MultitaskSharedStoreBinding
+One-page product nest: [product-nest-one-page.md](product-nest-one-page.md).
 
-HostSearchBridge / EvidenceCentre / CompanyMemory / CousinPointingContrast
-MemNetUsageDashboard  // OPS LOOK — MUST NOT nest here (look only; HTTP parked)
-    // APPLICATION — MUST NOT nest here
+```text
+MemNetSystem                          // SharedLlmMemory product
+├── Core                              // Session / GQL / RecallCommit
+├── Multitask                         // Path A re-pin; Path B optional Guard → Absorb
+└── DurableBuffer                     // one primary cabinet story
+
+APPLICATION LOOK   CousinPointingContrast / HostSearchBridge
+ARCHIVE LOOK       MemNetArchive (models/archive.sysml; off ProjectMemNet load)
+OPS LOOK           MemNetUsageDashboard (look only; HTTP parked; not agent wire)
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
@@ -198,7 +168,7 @@ reserve and Path-B ingest are **shipped**.
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
 - PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
-- TierA / LegacyPipe* — parked in connections RETIRED archive; MUST NOT nest on product path
+- TierA / LegacyPipe* / leftover_* — ARCHIVE shelf `models/archive.sysml` (`MemNetArchive`); off `config.yaml` / `ProjectMemNet` load; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** — application / contrast / ops-look nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); [usage-dashboard-case-study.md](usage-dashboard-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish **from a cue** (empty q = outline, not “when leftover-anchored”)
 - pin_map ranking — **MN-REQ-04.11**: emit order is kind + observable payload; hid / nickname `id` / CREATE order are not ranking keys. Nickname `id` stays off `pin_map` emit (0.19.c honesty; hid still off the wire)

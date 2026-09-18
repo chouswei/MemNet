@@ -575,7 +575,7 @@ package MemNetConnections {
 
   // =====================================================================
   // Ports — GQL primary + Multitask / durable; internal records
-  // (Retired TierA / LegacyPipe ports: see RETIRED archive section below)
+  // (Retired TierA / LegacyPipe ports: models/archive.sysml — off ProjectMemNet load)
   // =====================================================================
 
   port def GqlWireOutPort {
@@ -1103,56 +1103,7 @@ package MemNetConnections {
     */
   }
 
-  // =====================================================================
-  // RETIRED / ARCHIVE — as-is traceability only (MUST NOT nest on product path)
-  // TierA / Layer accept retired (ADR-001 M2 done). Keep defs for archive/
-  // tests / historical wiring; do not compete with GQL item zoo as first-class.
-  // =====================================================================
-
-  item def LegacyLayerBatch {
-    doc /*
-      RETIRED archive — former Layer / Tier A NODE|EDGE ASCII (MemNetLayer.g4 /
-      tier_a). Product accept REJECTED (M2 done; legacy_dialect_retired).
-      MUST NOT be agent teach or nested on product path. Alias: TierABatch.
-      Modules may remain for archive/tests only.
-    */
-  }
-
-  item def LegacyPipeBatch {
-    doc /*
-      RETIRED archive — one-shot import of historical @TAG pipe session blobs.
-      Not a standing store codec or agent dialect. MUST NOT nest on product path.
-    */
-  }
-
-  port def TierAOutPort {
-    doc /* RETIRED archive: former Tier A emit — MUST NOT nest on product path. */
-    out item payload : LegacyLayerBatch;
-  }
-  port def TierAInPort {
-    doc /* RETIRED archive: former Tier A consume — MUST NOT nest on product path. */
-    in item payload : LegacyLayerBatch;
-  }
-
-  port def LegacyPipeOutPort {
-    doc /* RETIRED archive: legacy pipe emit — MUST NOT nest on product path. */
-    out item payload : LegacyPipeBatch;
-  }
-  port def LegacyPipeInPort {
-    doc /* RETIRED archive: legacy pipe consume — MUST NOT nest on product path. */
-    in item payload : LegacyPipeBatch;
-  }
-
-  connection def TierAFlow {
-    doc /* RETIRED archive flow — MUST NOT nest on product path (M2 done). */
-    end port source : TierAOutPort;
-    end port sink : TierAInPort;
-  }
-
-  connection def LegacyPipeFlow {
-    doc /* RETIRED archive: one-shot legacy pipe import — MUST NOT nest on product path. */
-    end port source : LegacyPipeOutPort;
-    end port sink : LegacyPipeInPort;
-  }
+  // Retired Layer / TierA / LegacyPipe item zoo lives in models/archive.sysml
+  // (package MemNetArchive). Root MUST NOT import it.
 
 }
