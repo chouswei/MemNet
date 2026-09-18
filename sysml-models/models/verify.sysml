@@ -22,6 +22,8 @@
   extra 0.16 library port locator-only (generate=false;
   rejectSameNameAsCabinet); RagHostHook.implemented=true required
   outside MemNetSystem (hostSearchInsideSystem stays false).
+  Human usage look (MN-VER-06-S02): MemNetUsageDashboard look-only
+  outside MemNetSystem; HTTP/UI parked; no manage/mutate ports.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1136,6 +1138,53 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S02_HumanUsageLookOnly {
+    doc /*
+      MN-REQ-06.5 — MemNetUsageDashboard is a human look, not manage.
+      Outside MemNetSystem (usageDashboardInsideSystem=false;
+      insideMemNetSystem=false). lookOnly; httpImplemented=false (HTTP/UI
+      parked). agentWire=false; foamProductMcp=false; tipIsFace=false.
+      No session_close / mutate / import_slice / key-entry / reproject
+      ports. Does not own SessionLifecycle. Manage owners remain
+      Memnetor+Devicor; lookActor=human. Nested looks are display-only.
+    */
+    attribute verificationId : String = "MN-VER-06-S02";
+
+    subject system : MemNetSystem;
+    subject dashboard : MemNetUsageDashboard;
+
+    objective usageLookOnly {
+      verify humanUsageLookReq;
+      require constraint {
+        system.usageDashboardInsideSystem == false
+          and dashboard.insideMemNetSystem == false
+          and dashboard.lookOnly == true
+          and dashboard.httpImplemented == false
+          and dashboard.agentWire == false
+          and dashboard.foamProductMcp == false
+          and dashboard.tipIsFace == false
+          and dashboard.localBindDefault == true
+          and dashboard.manageViaPage == false
+          and dashboard.sessionClosePort == false
+          and dashboard.mutatePort == false
+          and dashboard.importSlicePort == false
+          and dashboard.keyEntryPort == false
+          and dashboard.reprojectPort == false
+          and dashboard.ownsSessionLifecycle == false
+          and dashboard.manageOwners == "Memnetor+Devicor"
+          and dashboard.lookActor == "human"
+          and dashboard.serveStatus.lookOnly == true
+          and dashboard.sessionCensus.lookOnly == true
+          and dashboard.sessionCensus.sessionClose == false
+          and dashboard.housekeep.lookOnly == true
+          and dashboard.housekeep.pruneFromPage == false
+          and dashboard.importGuardArmed.lookOnly == true
+          and dashboard.importGuardArmed.keyOnPage == false
+          and dashboard.importGuardArmed.writable == false
+      }
+    }
+  }
+
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
       MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
@@ -1364,4 +1413,6 @@ package MemNetVerification {
     : MN_VER_11_S17_CatalogModelSnap;
   verification durableCabinetHonestyVerify
     : MN_VER_06_S01_DurableCabinetHonesty;
+  verification humanUsageLookOnlyVerify
+    : MN_VER_06_S02_HumanUsageLookOnly;
 }

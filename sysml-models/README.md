@@ -20,12 +20,12 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1; 04.9 empty-q outline) |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge`; retired TierA archive |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue |Q|>1; 04.9 empty-q outline) |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs seven cousin pointing/identity designs (not a product switch) |
-| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine |
+| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` outside `MemNetSystem` |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S02 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last) |
 
 ## Nesting outline (target)
@@ -79,6 +79,7 @@ MemNetSystem                                 // SharedLlmMemory product
     └── MultitaskSharedStoreBinding
 
 CousinPointingContrast                         // APPLICATION contrast — MUST NOT nest here
+MemNetUsageDashboard                           // OPS LOOK — MUST NOT nest here (look only)
 ```
 
 **Happy path Multitask:** Path A shared session → re-`pin_map` (ImportGuard unused). Path B uses optional ImportGuard nest then ImportAbsorb. Hook shipped ≠ cheap LLM shipped.
@@ -95,7 +96,7 @@ CousinPointingContrast                         // APPLICATION contrast — MUST 
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
-- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast)
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast / human usage look)
 - **Retired / archive (MUST NOT nest on product path):** TierACodec (REJECTED; M2 done); LegacyPipeImport; LegacyLayer*/TierA* connections archive
 
 ### CapsPolicy ACL (as-is 0.8)
@@ -126,6 +127,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Session import + optional ImportGuard (path B) | [outputs/session-import-case-study.md](outputs/session-import-case-study.md) |
 | Snapshot passport | [outputs/snapshot-passport-case-study.md](outputs/snapshot-passport-case-study.md) |
 | Empty-cue session outline | [outputs/session-outline-case-study.md](outputs/session-outline-case-study.md) |
+| Human usage look (read-only dashboard; HTTP parked) | [outputs/usage-dashboard-case-study.md](outputs/usage-dashboard-case-study.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
 
 ### Application examples (on SharedLlmMemory)

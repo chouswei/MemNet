@@ -20,6 +20,7 @@
                        never default goldfish
     MN-REQ-04.11       pin_map order is a function of Shape observables,
                        not hid / nickname id / CREATE order (gauge)
+    MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -622,7 +623,7 @@ package MemNetRequirements {
           Live external cabinet SHALL NOT be claimed shipped until
           operator-proven. Neither AgensGraph nor Neo4j servers SHALL be
           vendored in-repo. Two cabinet URLs SHALL require an explicit
-          backend pick (MUST NOT silently bind two owners). Live Neo4j
+          backend pick (MUST NOT silently bind two owners).           Live Neo4j
           tests SHALL skip unless MEMNET_NEO4J_URL. Hid SHALL stay off
           the wire. Extra 0.16: a second Neo4j *database name* on the
           same Neo4j URL is allowed as the library namespace (cabinet
@@ -639,6 +640,26 @@ package MemNetRequirements {
           nest the hook under MemNetSystem; SHALL NOT add rag_query MCP.
         */
         attribute requirementId : String = "MN-REQ-06.4";
+      }
+
+      requirement def MN_REQ_06_5_HumanUsageLook {
+        doc /*
+          SHALL provide a read-only human look at live serve usage:
+          serve_status (up / host / port), session census
+          (@STAT sessions|n/max plus listed ids), housekeep_stats
+          (caps / row counts), and optional ImportGuard armed display
+          from env presence only. The look SHALL observe the serve
+          registry / MultitaskSharedStoreBinding and SHALL NOT own
+          SessionLifecycle. SHALL NOT expose session_close, mutate,
+          import_slice, ImportGuard key entry, enable toggles that
+          write, or reproject. SHALL NOT be agent wire, a second GQL
+          API, or a Foam product MCP face (tip is not face). Manage of
+          serve / MCP / roll / housekeep / ImportGuard env remains
+          Memnetor + Devicor (CLI/MCP). HTTP/UI MAY stay parked
+          (implemented=false) until Core GO. SemVer c only if later
+          shipped without teaching agents the page as wire.
+        */
+        attribute requirementId : String = "MN-REQ-06.5";
       }
     }
 
@@ -1553,6 +1574,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
   requirement durableStoreBehindMemNetReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
+  requirement humanUsageLookReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_HumanUsageLook;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1769,6 +1792,7 @@ package MemNetRequirements {
     end #derive ::> localIpcShareReq;
     end #derive ::> tcpServeMigrationReq;
     end #derive ::> durableStoreBehindMemNetReq;
+    end #derive ::> humanUsageLookReq;
   }
 
   #derivation connection deriveMcpLeaves {
@@ -2018,6 +2042,14 @@ package MemNetRequirements {
     end #original ::> localIpcShareReq;
     end #original ::> tcpServeMigrationReq;
     end #derive ::> sharedStoreTransportReq;
+  }
+
+  #derivation connection deriveHumanUsageLookFromServeAndCaps {
+    end #original ::> tcpServeMigrationReq;
+    end #original ::> sessionTtlAndCapsReq;
+    end #original ::> storeResourceCapsReq;
+    end #original ::> genericToolSurfaceReq;
+    end #derive ::> humanUsageLookReq;
   }
 
   #derivation connection deriveWorkerFromPinMap {
