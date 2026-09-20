@@ -8,18 +8,19 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
 from memnet.acl import SessionAcl, WorkerWriteScope, acl_globally_enabled, parse_write_scope
-from memnet.config import Caps, default_ttl_minutes, examples_dir
+from memnet.config import Caps, default_ttl_minutes, examples_dir, expire_snapshot_dir
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta
 from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
+from memnet.output import emit_wrn
 from memnet.registry import (
     SessionEntry,
     clear_all,
     count,
     get_entry,
     list_entries,
-    purge_before,
+    list_expired_ids,
     register,
     remove_entry,
 )
@@ -132,9 +133,40 @@ class SessionStore:
         self.meta.acl_enabled = True
 
 
-def purge_expired(caps: Caps | None = None) -> None:
-    del caps  # registry-wide purge; caps reserved for API compatibility
-    purge_before(utc_now())
+def _session_is_expired(entry: SessionEntry) -> bool:
+    expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
+    return expires < utc_now()
+
+
+def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str | None:
+    """Write a snapshot if ``MEMNET_EXPIRE_SNAPSHOT_DIR`` is set. Entry must remain."""
+    dest_dir = expire_snapshot_dir()
+    if dest_dir is None:
+        return None
+    entry = get_entry(session_id)
+    if entry is None:
+        return None
+    from memnet.snapshot import write_snapshot
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    path = dest_dir / f"{session_id}.snap"
+    ss = SessionStore(session_id, caps)
+    try:
+        write_snapshot(ss, path)
+    except OSError as exc:
+        emit_wrn("expire_snapshot_failed", f"{session_id}|{type(exc).__name__}")
+        return None
+    emit_wrn("expire_snapshot", str(path))
+    return str(path)
+
+
+def purge_expired(caps: Caps | None = None, *, keep: str | None = None) -> None:
+    now = utc_now()
+    for sid in list_expired_ids(now):
+        if keep is not None and sid == keep:
+            continue
+        snapshot_expired_session(sid, caps)
+        remove_entry(sid)
 
 
 def count_sessions() -> int:
@@ -198,6 +230,7 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
         raise MemNetError("session_not_found", "unknown session", exit_code=2)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
+        snapshot_expired_session(session_id, caps)
         remove_entry(session_id)
         purge_expired(caps)
         raise MemNetError("session_expired", "session expired", exit_code=2)
@@ -207,6 +240,28 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
     purge_expired(caps)
     return SessionStore(session_id, caps)
+
+
+def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[SessionStore, bool]:
+    """Load a session for ``session_save``. Expired ids stay until the caller writes.
+
+    Live sessions slide TTL. Expired sessions do not. Other expired ids still purge
+    (and snapshot when ``MEMNET_EXPIRE_SNAPSHOT_DIR`` is set).
+    """
+    caps = caps or Caps()
+    entry = get_entry(session_id)
+    if entry is None:
+        purge_expired(caps)
+        raise MemNetError("session_not_found", "unknown session", exit_code=2)
+    expired = _session_is_expired(entry)
+    if not expired:
+        original_ttl = entry.meta.ttl_minutes
+        new_expires = utc_now() + timedelta(minutes=original_ttl)
+        entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
+        purge_expired(caps)
+    else:
+        purge_expired(caps, keep=session_id)
+    return SessionStore(session_id, caps), expired
 
 
 def list_sessions(caps: Caps | None = None) -> list[tuple[str, str, int, str]]:

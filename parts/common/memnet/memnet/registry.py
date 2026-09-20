@@ -71,6 +71,16 @@ def clear_all() -> None:
         _sessions.clear()
 
 
+def list_expired_ids(now: datetime) -> list[str]:
+    expired: list[str] = []
+    with _registry_lock:
+        for sid, entry in _sessions.items():
+            expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
+            if expires < now:
+                expired.append(sid)
+    return expired
+
+
 def purge_before(now: datetime) -> list[str]:
     expired: list[str] = []
     with _registry_lock:

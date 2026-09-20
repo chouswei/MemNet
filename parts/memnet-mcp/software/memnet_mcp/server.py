@@ -187,7 +187,10 @@ async def session_save(
     file: str,
     session: str | None = None,
 ) -> str:
-    """Write the current session graph to a snapshot file."""
+    """Write the current session graph to a snapshot file.
+
+    TTL-expired sessions still save (then the id is dropped). Not Neo4j.
+    """
     return await _run(["session", "save", "--file", file], session=session)
 
 

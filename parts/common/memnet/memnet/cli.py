@@ -53,12 +53,14 @@ from memnet.pin_map_composer import (
     bounded_match_find,
     parse_find_locators,
 )
+from memnet.registry import remove_entry
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
     close_session,
     count_sessions,
     get_session,
+    get_session_for_save,
     list_sessions,
     open_session,
     purge_expired,
@@ -380,11 +382,21 @@ def session_save(
     file: Annotated[Path, typer.Option("--file", help="User snapshot path (wire format)")],
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    ss, lock = _load_session(session)
-    with lock:
+    """Write the session graph. Works after TTL expiry; then the id is dropped."""
+    try:
+        sid = resolve_session_id(session)
+        ss, expired = get_session_for_save(sid, _caps())
+    except MemNetError as exc:
+        _handle_error(exc)
+        raise AssertionError("unreachable") from exc
+    reset_warn_budget()
+    with ss.lock(exclusive=True):
         rows = write_snapshot(ss, file)
-        emit_stat("saved", rows, str(file))
-        emit_stderr(f"saved {rows} rows to {file}")
+    if expired:
+        remove_entry(sid)
+        emit_wrn("session_expired_saved", str(file))
+    emit_stat("saved", rows, str(file))
+    emit_stderr(f"saved {rows} rows to {file}")
 
 
 @session_app.command("load")
