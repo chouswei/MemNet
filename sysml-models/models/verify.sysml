@@ -30,7 +30,7 @@
   tools on McpFacade / CliFacade; leftover id commands stay leftover_*.
   Cousin pointing contrast (MN-VER-02-S02): TARGET vs eight cousins
   (including SysMLEdge as a distinct pin_map / desk, not MemNet strata;
-  overlay prefix SysMLEdgePrj-; git sysml-models/ is SSOT);
+  overlay family SysMLEdgePrj-*; git sysml-models/ is SSOT);
   operatorCount stays 2; cousin nest liveNeo4jClaimed stays false.
   Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
@@ -971,6 +971,7 @@ package MemNetVerification {
           and contrast.sysmledge.mustNotSubstituteMemNetPinMap == true
           and contrast.sysmledge.thisRepoHasProductFace == false
           and contrast.sysmledge.downstreamRepoPrefix == "SysMLEdgePrj-"
+          and contrast.sysmledge.downstreamRepoFamily == "SysMLEdgePrj-*"
           and contrast.sysmledge.gitModelPathIsSsot == true
           and contrast.sysmledge.mustNotInventUploadBind == true
       }

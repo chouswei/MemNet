@@ -6,7 +6,7 @@ description: >-
   MUST/MUSTNOT, MN-REQ-12 usage, system-dev two-store pattern for modelbasedPrj-* / SysMLEdgePrj-*.
   Triggers: Multitask Mode, multitask, multi-agent, Task sub-agent, background
   worker, parent coordinator, delegate worker, shared session, memnet multitask,
-  system-dev multitask, modelbasedPrj multitask, SysMLEdgePrj, MN-REQ-12, parallel workers,
+  system-dev multitask, modelbasedPrj-* multitask, SysMLEdgePrj-*, MN-REQ-12, parallel workers,
   TSK_* settle, TCP serve, streamable-http MCP.
 metadata:
   pattern: pipeline

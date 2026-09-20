@@ -222,8 +222,9 @@ package MemNetCousinContrast {
   part def CousinSysMLEdge {
     doc /*
       SysMLEdge (user-sysmledge / product sysmledge): multi-projectId
-      desk with its own pin_map. Downstream family prefix is
-      SysMLEdgePrj- (not modelbasedPrj-*). Not MemNet session strata.
+      desk with its own pin_map. Downstream family is
+      SysMLEdgePrj-* (prefix SysMLEdgePrj-; not modelbasedPrj-*).
+      Not MemNet session strata.
       Graph is not SSOT; SSOT is the open repo model path
       (sysml-models/ in that checkout). The system-dev git tree is
       the copy that holds authority; the desk is a bound look.
@@ -245,6 +246,7 @@ package MemNetCousinContrast {
     attribute openProjectHumanGated : Boolean = true;
     attribute thisRepoHasProductFace : Boolean = false;
     attribute downstreamRepoPrefix : String = "SysMLEdgePrj-";
+    attribute downstreamRepoFamily : String = "SysMLEdgePrj-*";
     attribute gitModelPathIsSsot : Boolean = true;
     attribute mustNotInventUploadBind : Boolean = true;
     attribute mustNotCopy : Boolean = true;
@@ -292,10 +294,10 @@ package MemNetCousinContrast {
       the wire. GraphLite is a cabinet, not the product. Logseq pages
       are the closest name-you-have cousin; SiYuan / NL2GQL are the
       leftover-id path. SysMLEdge is a distinct desk pin_map, not MemNet
-      session strata and not SSOT. Downstream overlay prefix is
-      SysMLEdgePrj-; git sysml-models/ stays structural SSOT. MUST NOT
-      invert MemNetSystem to copy Logseq / SiYuan / llm-graph-builder
-      identity or SysMLEdge pin_map.
+      session strata and not SSOT. Downstream overlay family is
+      SysMLEdgePrj-* (prefix SysMLEdgePrj-); git sysml-models/ stays
+      structural SSOT. MUST NOT invert MemNetSystem to copy Logseq /
+      SiYuan / llm-graph-builder identity or SysMLEdge pin_map.
     */
     attribute designOnly : Boolean = true;
     attribute mustNotNestUnderMemNetSystem : Boolean = true;
