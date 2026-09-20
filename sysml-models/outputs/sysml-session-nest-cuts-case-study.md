@@ -193,7 +193,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 | Claim | Status |
 |-------|--------|
 | `snap_model` catalog + package interiors | shipped 0.15 (package 0.19.2); `tests/test_catalog_snap.py` |
-| Cross-cut `satisfies` as catalog locators | shipped honesty `c` (0.19.10 unreleased); interiors stay free of dest stubs; `@WRN: cross_cut` |
+| Cross-cut `satisfies` as catalog locators | shipped honesty `c` (0.19.10 unreleased); MN-REQ-11.17.1; interiors stay free of dest stubs; `@WRN: cross_cut`; SysMLEdge `pin_map` is a different tool |
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
 | Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |

@@ -22,6 +22,8 @@
                        not hid / nickname id / CREATE order (gauge)
     MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
+    MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
+                       pin_map is a different tool (not this catalog)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -1185,8 +1187,26 @@ package MemNetRequirements {
           on the wire. SHALL NOT thicken Recall/Commit into a third
           operator (Snap is Commit of locators; Absorb stays Path-B).
           ingest_sysml 1-path-into-current-session remains Path-B as-is.
+          Cross-cut satisfy: MN-REQ-11.17.1.
         */
         attribute requirementId : String = "MN-REQ-11.17";
+
+        requirement def MN_REQ_11_17_1_CrossCutSatisfyLocators {
+          doc /*
+            When Snap drops a satisfy whose ends live in two interiors of
+            the same model Snap, the catalog SHALL Commit locator stubs
+            (session= + qname= / requirementId=) and a satisfies edge when
+            unique ends fit goldfish M; otherwise a package-pair satisfies
+            plus an honest cross_cut warning. Unresolved dest SHALL warn
+            cross_cut_miss. Interiors SHALL NOT grow a dangling dest node.
+            SHALL NOT merge interiors, Absorb a whole S, or treat a
+            foreign product pin_map (SysMLEdge / other desk) as this
+            catalog look. SysMLEdge graph is not SSOT; SSOT is the open
+            repo model path (this checkout: sysml-models/). Look remains
+            one named session per generate; join remains Path-B slice.
+          */
+          attribute requirementId : String = "MN-REQ-11.17.1";
+        }
       }
     }
 
@@ -1681,6 +1701,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
   requirement catalogModelSnapReq
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+  requirement crossCutSatisfyLocatorsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
 
   requirement multitaskModeReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode;
@@ -1859,6 +1881,7 @@ package MemNetRequirements {
     end #derive ::> pcbaAtoEdgesAreConnectivityReq;
     end #derive ::> pinIngestDeterministicIdsReq;
     end #derive ::> catalogModelSnapReq;
+    end #derive ::> crossCutSatisfyLocatorsReq;
   }
 
   #derivation connection deriveMultitaskLeaves {

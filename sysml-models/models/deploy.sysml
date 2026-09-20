@@ -70,8 +70,9 @@
   HTTP/UI parked (httpImplemented=false). tip is not face; not Foam
   product MCP. Manage = Memnetor + Devicor.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
-  seven cousin pointing/identity designs (sysml-models/models/cousins.sysml).
-  MUST NOT thicken Recall/Commit; operatorCount stays 2.
+  eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
+  including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
+  graph is not SSOT). MUST NOT thicken Recall/Commit; operatorCount stays 2.
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */
@@ -1384,6 +1385,7 @@ package MemNet {
       TARGET 0.15: Snap(model) → catalog + interiors. List session= ids;
       look = pin_map; join = ImportAbsorb slice. Locators are properties.
       SHALL NOT require a store-key id. Not a third operator.
+      Cross-cut satisfy: catalog locators (MN-REQ-11.17.1); not SysMLEdge.
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute locatorsAreProperties : Boolean = true;
@@ -1397,8 +1399,12 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
     attribute notAThirdOperator : Boolean = true;
+    attribute crossCutSatisfyOnCatalog : Boolean = true;
+    attribute danglingDestInInterior : Boolean = false;
+    attribute foreignProductPinMap : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1468,6 +1474,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_3_MinimiseTokenRoundTrips;
   }
@@ -1562,6 +1569,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_5_GrammarMustBeLlmLearnable;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
   }
 
   part def MemNetCoreLibrary {
@@ -1904,6 +1912,10 @@ package MemNet {
       SHALL NOT ANN-rank sessions; Absorb whole S; dump the model into one
       session; Layer; one session per REQ; invent a store key; emit hid.
       Not a third operator (Commit of locators into named sessions).
+      Cross-cut satisfy lives on the catalog as locators (session= +
+      qname= / requirementId=) when unique ends fit M; else package-pair
+      + cross_cut warn. Interiors have no dangling dest. SysMLEdge
+      pin_map is a different tool — not this catalog (MN-REQ-11.17.1).
     */
     attribute implemented : Boolean = true;
     attribute packageGrain : Boolean = true;
@@ -1919,9 +1931,15 @@ package MemNet {
     attribute locatorsAreProperties : Boolean = true;
     attribute notAThirdOperator : Boolean = true;
     attribute leftoverIngestOnePath : Boolean = true;
+    attribute crossCutSatisfyOnCatalog : Boolean = true;
+    attribute danglingDestInInterior : Boolean = false;
+    attribute endLocatorsBoundedByM : Boolean = true;
+    attribute packagePairWhenOverM : Boolean = true;
+    attribute foreignProductPinMap : Boolean = false;
     port locatorOut : CatalogSessionLocatorOutPort;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;

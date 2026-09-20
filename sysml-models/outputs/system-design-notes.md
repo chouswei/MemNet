@@ -37,7 +37,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
-| Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs seven cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. |
+| Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs eight cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8 / 11.17.1). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. SysMLEdge is a distinct desk `pin_map` (not MemNet session strata; graph is not SSOT; this repo has no product face). |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
 | SysML modelling goldfish (MBSE meta) | TSK_model_memnet loop → [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |
@@ -167,7 +167,7 @@ reserve and Path-B ingest are **shipped**.
 - WorkerWriteScope — **hard reject via shipped CapsPolicy ACL**; overlap: serialise or **RSV** lease
 - MN-REQ-12.7 — ACL cut is shipped; RSV + Path-B ingest **shipped**; full ACL modes WAIT
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
-- PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
+- PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; cross-cut `satisfies` = catalog locators (MN-REQ-11.17.1; no dangling dest; SysMLEdge `pin_map` is not this catalog); PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
 - TierA / LegacyPipe* / leftover_* — ARCHIVE shelf `models/archive.sysml` (`MemNetArchive`); off `config.yaml` / `ProjectMemNet` load; MUST NOT nest on product path
 - EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** — application / contrast / ops-look nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); [usage-dashboard-case-study.md](usage-dashboard-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish **from a cue** (empty q = outline, not “when leftover-anchored”)

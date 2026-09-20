@@ -56,7 +56,7 @@ package MemNetCousinContrast {
   }
 
   // =====================================================================
-  // Seven cousins (pointing / identity only — not a clone of each product)
+  // Eight cousins (pointing / identity only — not a clone of each product)
   // =====================================================================
 
   part def CousinNl2Gql {
@@ -219,6 +219,35 @@ package MemNetCousinContrast {
     attribute mustNotCopyUniquePageNameLaw : Boolean = true;
   }
 
+  part def CousinSysMLEdge {
+    doc /*
+      SysMLEdge (user-sysmledge / product sysmledge): multi-projectId
+      desk with its own pin_map. Not MemNet session strata. Graph is
+      not SSOT; SSOT is the open repo model path (this checkout:
+      sysml-models/). SHALL NOT substitute SysMLEdge pin_map for
+      MemNet pin_map. SHALL NOT bleed projectId. openProject is
+      human-gated. This MemNet repo has no SysMLEdge product face;
+      MUST NOT invent upload/bind. Cross-session MemNet edges stay
+      catalog locators on MemNet; they are not SysMLEdge relations.
+    */
+    attribute storeKeyOnWire : Boolean = false;
+    attribute requiredUniqueName : Boolean = false;
+    attribute sessionVsVault : String = "product_desk";
+    attribute queryLanguage : String = "product_pin_map";
+    attribute productJob : String = "sysml_desk";
+    attribute distinctPinMapFromMemNet : Boolean = true;
+    attribute graphIsNotSsot : Boolean = true;
+    attribute mustNotSubstituteMemNetPinMap : Boolean = true;
+    attribute mustNotBleedProjectId : Boolean = true;
+    attribute openProjectHumanGated : Boolean = true;
+    attribute thisRepoHasProductFace : Boolean = false;
+    attribute mustNotInventUploadBind : Boolean = true;
+    attribute mustNotCopy : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
+  }
+
   part def CousinSiyuan {
     doc /*
       siyuan-note/siyuan: leftover MemNet 0.9 (--anchor TSK1) path. Every
@@ -257,8 +286,9 @@ package MemNetCousinContrast {
       Cousins confirm TARGET; they do not force a store-key back onto
       the wire. GraphLite is a cabinet, not the product. Logseq pages
       are the closest name-you-have cousin; SiYuan / NL2GQL are the
-      leftover-id path. MUST NOT invert MemNetSystem to copy Logseq /
-      SiYuan / llm-graph-builder identity.
+      leftover-id path. SysMLEdge is a distinct desk pin_map, not MemNet
+      session strata and not SSOT. MUST NOT invert MemNetSystem to copy
+      Logseq / SiYuan / llm-graph-builder identity or SysMLEdge pin_map.
     */
     attribute designOnly : Boolean = true;
     attribute mustNotNestUnderMemNetSystem : Boolean = true;
@@ -283,6 +313,8 @@ package MemNetCousinContrast {
     attribute mustNotCopyPatternCTour : Boolean = true;
     attribute mustNotCopyPatternDSeededRag : Boolean = true;
     attribute mustNotCopyViewShellAsOutline : Boolean = true;
+    attribute mustNotSubstituteSysmledgePinMap : Boolean = true;
+    attribute mustNotCopySysmledgeAsMemNetStrata : Boolean = true;
     part chosen : MemNetTargetPointing;
     part nl2gql : CousinNl2Gql;
     part graphlite : CousinGraphLite;
@@ -291,6 +323,7 @@ package MemNetCousinContrast {
     part understandAnything : CousinUnderstandAnything;
     part logseq : CousinLogseq;
     part siyuan : CousinSiyuan;
+    part sysmledge : CousinSysMLEdge;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_9_MustNotCopyCousinStoreKey;
@@ -299,6 +332,7 @@ package MemNetCousinContrast {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
   }
 
   part cousinPointing : CousinPointingContrast;
