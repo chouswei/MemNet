@@ -187,7 +187,11 @@ async def session_save(
     file: str,
     session: str | None = None,
 ) -> str:
-    """Write the current session graph to a snapshot file."""
+    """Write the current session graph to a snapshot file.
+
+    After TTL, only if ``MEMNET_SAVE_ON_EXPIRE`` (then the id is dropped).
+    Auto-dir: ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Not Neo4j.
+    """
     return await _run(["session", "save", "--file", file], session=session)
 
 
