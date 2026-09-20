@@ -87,6 +87,8 @@ def test_one_page_nest_labels_shelves():
         "MemNetUsageDashboard",
         "httpImplemented=false",
         "tipIsFace=false",
+        "MemNetOpsFleet",
+        "one MCP at droplet",
     ):
         assert needle in text
 

@@ -24,6 +24,9 @@
   outside MemNetSystem (hostSearchInsideSystem stays false).
   Human usage look (MN-VER-06-S02): MemNetUsageDashboard look-only
   outside MemNetSystem; HTTP/UI parked; no manage/mutate ports.
+  Device fleet (MN-VER-06-S03): MemNetOpsFleet outside MemNetSystem;
+  device MemNetCoreLibrary services; one MCP at the droplet;
+  nServerFederation=false (#47).
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1195,6 +1198,41 @@ package MemNetVerification {
           and dashboard.importGuardArmed.lookOnly == true
           and dashboard.importGuardArmed.keyOnPage == false
           and dashboard.importGuardArmed.writable == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S03_DeviceFleetOneDropletMcp {
+    doc /*
+      MN-REQ-06.6 — ops fleet: device MemNet services, one MCP at droplet.
+      Outside MemNetSystem (opsFleetInsideSystem=false;
+      insideMemNetSystem=false). mcpCount=1; fleetMcpHost=droplet.
+      Device hosts mcpNested=false. nServerFederation=false (#47).
+      MemNetMcpServer.fleetSingleton=true; CoreLibrary.deviceHostLegal.
+    */
+    attribute verificationId : String = "MN-VER-06-S03";
+
+    subject system : MemNetSystem;
+    subject fleet : MemNetOpsFleet;
+    subject mcp : MemNetMcpServer;
+    subject core : MemNetCoreLibrary;
+
+    objective deviceFleetOneDropletMcp {
+      verify deviceServicesOneDropletMcpReq;
+      require constraint {
+        system.opsFleetInsideSystem == false
+          and fleet.insideMemNetSystem == false
+          and fleet.mcpCount == 1
+          and fleet.nServerFederation == false
+          and fleet.fleetMcpHost == "droplet"
+          and fleet.droplet.hostKind == "droplet"
+          and fleet.droplet.mcpCount == 1
+          and fleet.devices.hostKind == "device"
+          and fleet.devices.mcpNested == false
+          and fleet.devices.nServerPeer == false
+          and mcp.fleetSingleton == true
+          and mcp.defaultHostKind == "droplet"
+          and core.deviceHostLegal == true
       }
     }
   }

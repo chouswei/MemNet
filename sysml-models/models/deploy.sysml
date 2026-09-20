@@ -31,7 +31,7 @@
     │       └── Schema / Caps (size + shipped ACL) / …
     // leftover_* / TierACodec / LegacyPipe* : models/archive.sysml (off ProjectMemNet load)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
-    ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP)
+    ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP); fleet: one at droplet
     │   └── McpFacade               // TARGET cue/pattern commands only
     ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter cabinet
     │                                 // + optional Neo4jLibraryPort (0.16; skip unless name)
@@ -69,6 +69,9 @@
   ImportGuard armed display). MUST NOT nest manage/mutate ports.
   HTTP/UI parked (httpImplemented=false). tip is not face; not Foam
   product MCP. Manage = Memnetor + Devicor.
+  APPLICATION / OPS FLEET (not in MemNetSystem): MemNetOpsFleet —
+  device hosts run MemNetCoreLibrary services; the droplet hosts
+  the one MemNetMcpServer. Not N-server federation (#47).
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -1577,19 +1580,30 @@ package MemNet {
       Target core composite allocated to parts/common/memnet.
       Nest: TransportBoundary (InProcessEngine owns AgentMemory) + CliFacade.
       AgentMemory lives under transport.inProcess.memory — one instance.
+      Legal on a device host as a MemNet service without nesting
+      MemNetMcpServer (MN-REQ-06.6). The LLM MCP face stays on the droplet.
     */
     part transport : TransportBoundary;
     part cli : CliFacade;
+    attribute deviceHostLegal : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
   }
 
   part def MemNetMcpServer {
     doc /*
       Product surface parts/memnet-mcp — generic tools only.
+      Ops fleet: at most one instance, on the droplet host (MN-REQ-06.6).
+      Device MemNet services SHALL NOT nest a second product MCP.
     */
     part tools : McpFacade;
     part bridge : ServeBridge;
     part seed : LawSeedHelper;
     port fromHost : GqlWireInPort;
+    attribute fleetSingleton : Boolean = true;
+    attribute defaultHostKind : String = "droplet";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
   }
 
   // =====================================================================
@@ -2593,8 +2607,9 @@ package MemNet {
       leftover_* / TierACodec / LegacyPipeImport live on MemNetArchive
       (models/archive.sysml; off ProjectMemNet load). MUST NOT nest here.
       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
-      MemNetUsageDashboard MUST NOT nest here. Only MN-REQ-00 satisfied here.
+      MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here. Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
+      opsFleetInsideSystem=false (device services + one droplet MCP is outside).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2602,6 +2617,7 @@ package MemNet {
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
     attribute usageDashboardInsideSystem : Boolean = false;
+    attribute opsFleetInsideSystem : Boolean = false;
     attribute leftoverFogNested : Boolean = false;
     attribute leftoverArchiveOffLoad : Boolean = true;
     attribute leftoverLayerDeleteThisPr : Boolean = false;
@@ -2834,4 +2850,59 @@ package MemNet {
     end port source ::> memNetSystem.multitask.coordinator.importReceive.guard.cheapLlm.armedLookOut;
     end port sink ::> usageDashboard.armedLookIn;
   }
+
+  // =====================================================================
+  // OPS FLEET — MemNetOpsFleet (MUST NOT instantiate under MemNetSystem).
+  // Multiple device MemNet services; one MCP server at the droplet.
+  // Not N-server federation (#47).
+  // =====================================================================
+
+  part def DropletHost {
+    doc /*
+      DigitalOcean droplet. Hosts the fleet's one MemNetSystem, hence
+      the one MemNetMcpServer (LLM tool face) plus local core /
+      CompanyMemory. MUST NOT add a second product MCP on this host.
+    */
+    part memnet : MemNetSystem;
+    attribute hostKind : String = "droplet";
+    attribute mcpCount : Integer = 1;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
+  }
+
+  part def MemNetDeviceHost {
+    doc /*
+      Compute device (Pi, workstation, SBC). Hosts a MemNet service
+      (engine + serve + CLI) as a local notepad / device working set.
+      MUST NOT nest MemNetMcpServer. Session registry is this host's
+      own; MUST NOT mash handles with the droplet. Software-only host
+      (no ISQ/SI). Illustrative first device: rpi5-syson.
+    */
+    part service : MemNetCoreLibrary;
+    attribute hostKind : String = "device";
+    attribute mcpNested : Boolean = false;
+    attribute nServerPeer : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
+  }
+
+  part def MemNetOpsFleet {
+    doc /*
+      OPS nest outside MemNetSystem (MN-REQ-06.6). Device hosts run
+      MemNetCoreLibrary services; the droplet hosts the one MCP face.
+      Each service keeps its own session handles. Handoff remains
+      session id; optional Path-B ImportAbsorb is not a live-server
+      MERGE. nServerFederation=false (#47 stays research).
+    */
+    part droplet : DropletHost;
+    part devices : MemNetDeviceHost[1..*];
+    attribute mcpCount : Integer = 1;
+    attribute nServerFederation : Boolean = false;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute fleetMcpHost : String = "droplet";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
+  }
+
+  part opsFleet : MemNetOpsFleet;
 }
