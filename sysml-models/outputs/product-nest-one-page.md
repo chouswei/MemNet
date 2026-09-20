@@ -31,3 +31,9 @@ OPS LOOK           MemNetUsageDashboard — human look only; not agent wire
 - SemVer `b` (honesty `c` only; goldfish loop unchanged)
 
 Honesty that leftovers exist lives on the **ARCHIVE** shelf, not on `ProjectMemNet` load (`sysml-models/config.yaml` omits `archive.sysml`; `root.sysml` does not import `MemNetArchive`).
+
+## Review (TTL file + nest)
+
+Session TTL drops **RAM**. Expire `session_save` is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM. DurableBuffer / Neo4j is a different cabinet story, not this file (`MN-VER-01-S03`).
+
+ARCHIVE leftover fog remains **off** `ProjectMemNet` load (`leftoverFogNested=false`, `leftoverArchiveOffLoad=true`). OPS `MemNetUsageDashboard` remains look-only (`httpImplemented=false`, `tipIsFace=false`, `agentWire=false`).

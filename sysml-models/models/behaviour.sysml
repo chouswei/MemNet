@@ -90,8 +90,15 @@ package MemNetBehaviour {
   attribute def EvSaveSnapshot {
     doc /* session_save to SessionSnapshotBlob. */
   }
+  attribute def EvExpireTtl {
+    doc /*
+      Sliding TTL elapsed. RAM drop. Optional SnapshotStore file only
+      when saveOnExpire is configured (MEMNET_SAVE_ON_EXPIRE). File stays
+      until the user deletes it. Not Neo4j.
+    */
+  }
   attribute def EvCloseOrExpire {
-    doc /* session_close or TTL purge. */
+    doc /* session_close or TTL purge after optional expire save. */
   }
   attribute def EvSettleRecycle {
     doc /* housekeep settle / mark recyclable / prune. */
@@ -382,6 +389,14 @@ package MemNetBehaviour {
       first active
       accept EvCloseOrExpire
       then closed;
+    transition active_to_expire_save
+      first active
+      accept EvExpireTtl
+      then expireSaving;
+    transition active_expire_drop
+      first active
+      accept EvExpireTtl
+      then closed;
     transition active_error_stay
       first active
       accept EvError
@@ -400,6 +415,17 @@ package MemNetBehaviour {
       then active;
     transition saving_to_closed
       first saving
+      accept EvCloseOrExpire
+      then closed;
+
+    state expireSaving {
+      doc /*
+        Configurable expire session_save. RAM then closed. File remains
+        until user drop. Load from closed via EvLoadSnapshot.
+      */
+    }
+    transition expire_save_to_closed
+      first expireSaving
       accept EvCloseOrExpire
       then closed;
   }

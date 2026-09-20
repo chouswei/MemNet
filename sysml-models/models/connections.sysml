@@ -483,7 +483,9 @@ package MemNetConnections {
   item def SessionSnapshotBlob {
     doc /*
       Durable named-session file (MN-REQ-01.4--01.6): schema + records +
-      relations. Distinct from MN-REQ-11 pin-map projections.
+      relations. Distinct from MN-REQ-11 pin-map projections. Optional
+      TTL expire write when MEMNET_SAVE_ON_EXPIRE; remains until user
+      drop. MUST NOT be treated as Neo4j cabinet dump.
     */
   }
 

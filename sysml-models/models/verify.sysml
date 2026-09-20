@@ -31,6 +31,8 @@
   Cousin pointing contrast (MN-VER-02-S02): TARGET vs seven cousins;
   operatorCount stays 2; cousin nest liveNeo4jClaimed stays false.
   Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
+  Expire session_save (MN-VER-01-S03): configurable; default off; RAM
+  drops; file until user drop; load restores; not Neo4j.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -1372,6 +1374,54 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_01_S03_ExpireSaveConfigurable {
+    doc /*
+      MN-REQ-01.3 / 01.4 / 01.5 — TTL drops RAM. Expire session_save is
+      configurable (default off). File until user drop; session_load
+      restores RAM; not Neo4j. Leftover fog stays off ProjectMemNet load.
+      Dashboard remains look-only.
+    */
+    attribute verificationId : String = "MN-VER-01-S03";
+
+    subject system : MemNetSystem;
+    subject dashboard : MemNetUsageDashboard;
+
+    objective expireSaveConfigurable {
+      verify sessionTtlAndCapsReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.slidingTtl == true
+          and system.core.transport.inProcess.memory.sessions.ramDropsOnTtl
+            == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .saveOnExpireDefault == false
+          and system.core.transport.inProcess.memory.sessions.snap
+            .saveOnExpireConfigurable == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .fileUntilUserDrop == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .loadRestoresRam == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .notNeo4j == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .saveOnExpireDefault == false
+          and system.core.transport.inProcess.memory.sessions.caps
+            .saveOnExpireConfigurable == true
+          and system.core.cli.sessionSave.saveOnExpireDefault == false
+          and system.core.cli.sessionSave.saveOnExpireConfigurable == true
+          and system.core.cli.sessionSave.ramDropsAfterExpireSave == true
+          and system.mcp.tools.sessionSave.saveOnExpireDefault == false
+          and system.core.cli.sessionLoad.newIdDefault == true
+          and system.core.cli.sessionLoad.keepIdOptional == true
+          and system.core.cli.sessionLoad.ttlResetsOnLoad == true
+          and system.leftoverFogNested == false
+          and system.leftoverArchiveOffLoad == true
+          and dashboard.httpImplemented == false
+          and dashboard.tipIsFace == false
+          and dashboard.agentWire == false
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -1418,4 +1468,6 @@ package MemNetVerification {
     : MN_VER_06_S01_DurableCabinetHonesty;
   verification humanUsageLookOnlyVerify
     : MN_VER_06_S02_HumanUsageLookOnly;
+  verification expireSaveConfigurableVerify
+    : MN_VER_01_S03_ExpireSaveConfigurable;
 }
