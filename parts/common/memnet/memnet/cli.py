@@ -846,6 +846,10 @@ def snap_model_cmd(
         _handle_error(exc)
         return
     emit_stdout(f"@SNAP: catalog|{result.catalog_session_id}|interiors={len(result.interiors)}")
+    if result.cross_cuts:
+        emit_wrn("cross_cut", f"satisfies {len(result.cross_cuts)}")
+    if result.cross_cut_misses:
+        emit_wrn("cross_cut_miss", f"satisfies {result.cross_cut_misses}")
     emit_session(result.catalog_session_id, "catalog")
     for row in result.interiors:
         emit_session(row.session_id, row.qname, row.grain, row.kind_band or "package")

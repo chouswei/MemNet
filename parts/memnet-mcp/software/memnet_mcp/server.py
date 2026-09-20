@@ -133,9 +133,11 @@ async def snap_model(
 ) -> str:
     """Snap one SysML load tree into a catalog session plus package interiors.
 
-    Catalog pins carry session= + qname= locators. Look = pin_map on one
-    session id. Join = import_slice of a neighbourhood — not Absorb of a
-    whole S, not one session per requirement, not Layer.
+    Catalog pins carry session= + qname= locators. Cross-cut satisfy is a
+    catalog locator (session= on both ends), not a dangling interior node
+    and not a merge. Look = pin_map on one session id. Join = import_slice
+    of a neighbourhood — not Absorb of a whole S, not one session per
+    requirement, not Layer.
     """
     argv = [
         "snap",

@@ -112,7 +112,7 @@ The Snap is of **one model** (a load tree / root package). The sessions are **st
 | **PKG degree peak (V9)** | Raw `contains` fan makes `PKG` / root look like \(\mathrm{Peak}_L\). Shell of the model is the parent tree, not `REQ_MN_REQ_00`. | Catalog holds package **roots** as `session=` locators. Interior \(S_{\mathrm{req}}\) has REQ neighbourhood without the deploy nest. Topology cue is not required. |
 | **Abstraction layers smashed** | Requirements, structure, verify, connections share one ego walk. `pin_map` depth 2 mixes layers. | Each SysML package (MBSE layer of **this** model) is an interior. Cue names the layer via catalog, then one Shape. |
 | **`view=` vs SysML `view def`** | Ingest maps `view def` → `PRT`. Agents confuse `pin_map view=shell` with SysML views. | SysML `view`/`viewpoint` pins stay in the package interior. `view=` stays grain **inside one session**. Different words, different sessions if still over \(M\). |
-| **Satisfy across layers** | `satisfies` only resolves if both ends were in the **same** ingest index. Cross-package miss is silent. | Same Snap, two interiors. Catalog names both. Second look or Absorb a slice — honest miss, not a dangling same-store edge. |
+| **Satisfy across layers** | `satisfies` only resolves if both ends were in the **same** ingest index. Cross-package miss was silent: Snap dropped the edge (`_edges_in` / per-package index). | Same Snap, two interiors. Catalog carries the satisfy as locators (`session=` + `qname=` on both ends, or a package-pair edge when unique ends exceed \(M\)). Interiors have **no** dangling dest node. `@WRN: cross_cut` counts the resolved cuts. Unresolved target is `@WRN: cross_cut_miss`. Second look or Absorb a slice — not a merged store and not a silent drop. |
 | **Truncation as Shape** | `max_rows` / shell 8+12 / ingest mid-brace **look** complete; children and `satisfy` vanish. Same class of lie as silentPickOneRoot. Raising \(M\) only hides it. | \(M\) is a **fit test**. Interior reconstruct **fits whole** or Recall refuses. Split the nest (recurse); do not clip. |
 | **Layer dialect relapse** | Nesting *feels* like MemNet Layer / Tier A, so agents revive the archived wire. | Nesting is **session ids**, GQL only. No `layer=` property. |
 
@@ -157,7 +157,7 @@ q = REQ_MN_REQ_00
   → mission Δ: TSK / TOUCHES only
 ```
 
-`satisfy` from requirements to verify: two interiors of the **same** Snap. Second look, or Absorb a slice into the mission. No edge that points at another session’s store.
+`satisfy` from a part interior to a requirement interior: two interiors of the **same** Snap. Catalog Shape names both ends with `session=`. Second look, or Absorb a slice into the mission. Interiors MUST NOT grow a dangling dest node. No edge that points at another session’s store hid.
 
 **Engine leftover (pre-0.15).** `ingest_sysml(path, session=current)` is 1→1. Model Snap is 1→k: walk the root, mint the stack, partition, Commit (`memnet snap model`). Caller 0.13 still drops old maps so the stack does not refill the prompt.
 

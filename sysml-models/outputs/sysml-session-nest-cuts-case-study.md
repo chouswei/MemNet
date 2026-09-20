@@ -116,7 +116,7 @@ CREATE (t)-[:ABOUT {recycle: 'delete_on_settle'}]->(s)
 ### D — satisfy across cuts
 
 `part def PduController { satisfy PkgReq::ReqAlpha; }`  
-`satisfies` is an edge. `ReqAlpha` lives in `mn_req`. **No** dangling node in `mn_pdu`. Second `pin_map` on `mn_req`, or Absorb a **slice** of `ReqAlpha` into `mn_mission`.
+`satisfies` is an edge. `ReqAlpha` lives in `mn_req`. **No** dangling node in `mn_pdu`. Catalog Snap commits locator stubs (`session=` + `qname=` / `requirementId=`) so a catalog `pin_map` of that cue shows the other end and which `session=` to look at next. When unique ends exceed goldfish \(M\), catalog keeps the package-pair `:satisfies` only and warns `@WRN: cross_cut`. Second `pin_map` on `mn_req`, or Absorb a **slice** of `ReqAlpha` into `mn_mission`. Not a join-across-sessions protocol and not Absorb of a whole \(S\).
 
 ### E — view def
 
@@ -193,6 +193,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 | Claim | Status |
 |-------|--------|
 | `snap_model` catalog + package interiors | shipped 0.15 (package 0.19.2); `tests/test_catalog_snap.py` |
+| Cross-cut `satisfies` as catalog locators | shipped honesty `c` (0.19.10 unreleased); interiors stay free of dest stubs; `@WRN: cross_cut` |
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
 | Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |

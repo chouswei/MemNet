@@ -23,6 +23,8 @@ The README warehouse sketch (`:TSK` / `:NPC` / `:helps`) is **illustrative GQL**
 
 **CON (Path-B).** Map fields follow ingest: `name`, `qname`, `path`, `sysml_kind`, `kind`, `recycle` (plus leftover nickname `id`). Ends are `connects` / `hasPort` / `typedBy` edges — ingest does not emit an `ends` property. Teach: [`docs/application-notes/system/llm-sysml-v2-modeling.md`](../../../../../docs/application-notes/system/llm-sysml-v2-modeling.md).
 
+**Catalog cross-cut.** SCHEMA REQ / PRT include `session` and `grain` so catalog Snap can persist satisfy locators (`grain=cross_cut`, `session=` of the owning interior). Interiors leave those columns empty.
+
 ## Relation vocabulary
 
 | File | Role |
