@@ -478,6 +478,7 @@ def project_sysml_parts(
     max_nodes: int = 200,
     max_files: int = 64,
     root: str | Path | None = None,
+    satisfy_events: list[tuple[str, str]] | None = None,
 ) -> tuple[list[dict[str, str]], list[tuple[str, str, str, str]], Path]:
     """Project SysML pins as locator-property records (not a store key)."""
     path_p = Path(path)
@@ -501,6 +502,7 @@ def project_sysml_parts(
             name_index=name_index,
             qname_index=qname_index,
             max_nodes=max_nodes,
+            satisfy_events=satisfy_events,
         )
     return nodes, edges, root_path
 
@@ -560,6 +562,7 @@ def _project_sysml_file(
     name_index: dict[str, str],
     qname_index: dict[str, str],
     max_nodes: int,
+    satisfy_events: list[tuple[str, str]] | None = None,
 ) -> None:
     text = _strip_comments(fpath.read_text(encoding="utf-8", errors="replace"))
     # Event stream: def heads, braces, requirementId, satisfy.
@@ -624,6 +627,13 @@ def _project_sysml_file(
                 eid = alloc.allocate_from_locator("E", f"sat_{src_id}_{dst_id}")
                 if (eid, src_id, "satisfies", dst_id) not in edges:
                     edges.append((eid, src_id, "satisfies", dst_id))
+            elif satisfy_events is not None and not dst_id:
+                src_qname = next(
+                    (n.get("qname") or "" for n in nodes if n.get("id") == src_id),
+                    "",
+                )
+                if src_qname:
+                    satisfy_events.append((src_qname, target))
             continue
 
         # def

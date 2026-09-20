@@ -2,11 +2,11 @@
 
 > **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../../SHAPE.md). Shared contract: [`README.md`](../README.md). Do **not** teach Layer / Tier A. Wire shapes: [`examples/inverting-amplifier-gql-case-study.md`](../examples/inverting-amplifier-gql-case-study.md).
 
-**Class:** applications — downstream `modelbasedPrj-*` system repos.  
+**Class:** applications — downstream system repos (`modelbasedPrj-*` two-store; **`SysMLEdgePrj-*`** when a SysMLEdge desk overlay is present).  
 **Operational doctrine (developers):** [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md).  
 **Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../../README.md).
 
-**Application example (documentation only).** Pattern for a downstream **`modelbasedPrj-*` system repository** when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT** for the system under design.
+**Application example (documentation only).** Pattern for a downstream system repository when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT**. A **`SysMLEdgePrj-*`** checkout MAY also bind a SysMLEdge desk (`user-sysmledge`) — that graph is a look, not SSOT; do not treat the git tree as a copy of the desk.
 
 **Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)).
 
@@ -31,6 +31,8 @@ This note complements:
 | **Source tree** (`parts/`, firmware, docs) | Git history | Code and artefacts on disk |
 
 Chat and sub-agent prose are **never** mission SSOT (MN-REQ-12.1; extends MN-REQ-10.1).
+
+**Repo prefixes.** `modelbasedPrj-*` is the older two-store family (mission MemNet + git `sysml-models/`). **`SysMLEdgePrj-*`** is the family that also has a SysMLEdge product overlay (its own `pin_map`, multi-`projectId`, human-gated `openProject`). In both families **git `sysml-models/` stays structural SSOT**. SysMLEdge MUST NOT be taught as the host of truth; MUST NOT substitute its `pin_map` for MemNet `pin_map`; MUST NOT invent an upload/bind the overlay forbids. This MemNet engine repo is neither prefix.
 
 ```mermaid
 flowchart TB
@@ -125,7 +127,7 @@ When the **SysML parent shell is already clear** (children named, `session=` ass
 
 ## 6. Adopting MN-REQ-12 in a system repo
 
-The MemNet **product** models Multitask in `MemNetRequirements::MN_REQ_12_*` and `MemNetVerification` (MN-VER-12-G00, S01…S09). A **`modelbasedPrj-*` repo** should:
+The MemNet **product** models Multitask in `MemNetRequirements::MN_REQ_12_*` and `MemNetVerification` (MN-VER-12-G00, S01…S09). A **`modelbasedPrj-*`** or **`SysMLEdgePrj-*`** repo should:
 
 | Approach | Use |
 |----------|-----|

@@ -291,7 +291,7 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 
 | # | Note | Summary |
 |---|------|---------|
-| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` repos (mission + SysML two-store) |
+| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` repos (mission + SysML two-store; git `sysml-models/` is SSOT) |
 | 1 | `system/llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `domains/llm-daily-news.md` | Batch RSS digest |
 | 3 | `domains/llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |

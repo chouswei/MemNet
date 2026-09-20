@@ -26,7 +26,7 @@ Chat is never SSOT. Goldfish is **one** \(S\) per generate. Do not revive Layer 
 | 1 | **Relatives of one cue** — complete Shape of **this** parent, then one brace at `SYM.line`. |
 | 2 | **Sub-unit in a separate session** — over \(M\), or **already built**, is cut away. Parent shell: **name** + `session=`. Do not walk that other \(S\) in this generate. |
 
-Look = `pin_map` with MCP arg **`session=`** that id (catalog pins also carry locator `session=`). Join = `import_slice` of a **neighbourhood**, not a second Snap and not a paste of the nested tree.
+Look = `pin_map` with MCP arg **`session=`** that id (catalog pins also carry locator `session=`). Cross-cut `satisfies` is a **catalog locator** (`session=` on both ends), not a dangling node in the source interior and not a merge of two \(S\). Join = `import_slice` of a **neighbourhood**, not a second Snap and not a paste of the nested tree.
 
 ## Look loop (session in session)
 

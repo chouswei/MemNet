@@ -49,6 +49,14 @@ package PkgPart {
 }
 """
 
+_PRT_SATISFY = """\
+package PkgPart {
+  part def PowerRail {
+    satisfy PkgReq::ReqAlpha;
+  }
+}
+"""
+
 _FAT = """\
 package FatPkg {
   requirement def R1 { attribute requirementId : String = "R1"; }
@@ -111,6 +119,119 @@ def test_snap_model_catalog_and_package_interiors(memnet_temp, model_dir: Path):
     )[1]
     assert "MN-REQ-DEMO.A" in look
     assert "_el" not in look
+
+
+def test_cross_cut_satisfy_is_catalog_locator_not_interior_dangle(memnet_temp, tmp_path: Path):
+    """Turn D honesty: satisfy across package cuts lives on the catalog."""
+    del memnet_temp
+    root = tmp_path / "sat_model"
+    root.mkdir()
+    (root / "root.sysml").write_text(_ROOT, encoding="utf-8")
+    (root / "req.sysml").write_text(_REQ, encoding="utf-8")
+    (root / "part.sysml").write_text(_PRT_SATISFY, encoding="utf-8")
+    result = snap_model(root, map_file=_MAP)
+    assert len(result.cross_cuts) == 1
+    cut = result.cross_cuts[0]
+    assert cut.relation == "satisfies"
+    assert cut.src_qname.endswith("PowerRail")
+    assert cut.dst_qname.endswith("ReqAlpha")
+    assert cut.dst_requirement_id == "MN-REQ-DEMO.A"
+    assert cut.src_session != cut.dst_session
+    assert result.cross_cut_misses == 0
+
+    part_sid = next(row.session_id for row in result.interiors if row.qname == "PkgPart")
+    req_sid = next(row.session_id for row in result.interiors if row.qname == "PkgReq")
+    part_ss = get_session(part_sid)
+    req_ss = get_session(req_sid)
+    assert not part_ss.store.list_records("REQ")
+    sat_interior = [
+        r
+        for r in part_ss.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "satisfies"
+    ]
+    assert sat_interior == []
+    assert {r.fields.get("requirementId") for r in req_ss.store.list_records("REQ")} == {
+        "MN-REQ-DEMO.A",
+        "MN-REQ-DEMO.B",
+    }
+
+    catalog = get_session(result.catalog_session_id)
+    reqs = catalog.store.list_records("REQ")
+    assert any(r.fields.get("qname") == cut.dst_qname for r in reqs)
+    loc = next(r for r in reqs if r.fields.get("qname") == cut.dst_qname)
+    assert loc.fields.get("session") == req_sid
+    assert loc.fields.get("grain") == "cross_cut"
+    assert loc.fields.get("requirementId") == "MN-REQ-DEMO.A"
+    prts = catalog.store.list_records("PRT")
+    src = next(r for r in prts if r.fields.get("qname") == cut.src_qname)
+    assert src.fields.get("session") == part_sid
+    sat_cat = [
+        r
+        for r in catalog.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "satisfies"
+    ]
+    assert sat_cat
+
+    look = PinMapComposer(catalog).compose(
+        anchor=None,
+        kind="REQ",
+        locators=[("requirementId", "MN-REQ-DEMO.A")],
+        depth=2,
+    )[1]
+    assert "MN-REQ-DEMO.A" in look
+    assert "PowerRail" in look
+    assert req_sid in look
+    assert part_sid in look
+    assert "_el" not in look
+
+    snapped = runner.invoke(
+        app,
+        ["snap", "model", "--root", str(root), "--map-file", str(_MAP)],
+    )
+    assert snapped.exit_code == 0, snapped.stderr
+    assert "@WRN: cross_cut|satisfies 1" in snapped.stderr
+
+
+def test_cross_cut_over_m_keeps_package_pair_only(memnet_temp, tmp_path: Path):
+    """When unique ends exceed goldfish M, catalog keeps PKG-PKG satisfies only."""
+    del memnet_temp
+    root = tmp_path / "sat_fat"
+    root.mkdir()
+    (root / "root.sysml").write_text(_ROOT, encoding="utf-8")
+    (root / "req.sysml").write_text(
+        """\
+package PkgReq {
+  requirement def ReqAlpha {
+    attribute requirementId : String = "MN-REQ-DEMO.A";
+  }
+}
+""",
+        encoding="utf-8",
+    )
+    (root / "part.sysml").write_text(_PRT_SATISFY, encoding="utf-8")
+    result = snap_model(root, map_file=_MAP, goldfish_m=1)
+    assert len(result.cross_cuts) == 1
+    catalog = get_session(result.catalog_session_id)
+    assert not catalog.store.list_records("REQ")
+    assert not catalog.store.list_records("PRT") or all(
+        r.fields.get("grain") != "cross_cut" for r in catalog.store.list_records("PRT")
+    )
+    sat_cat = [
+        r
+        for r in catalog.store._by_hid.values()
+        if r.tag == "EDG" and r.fields.get("relation") == "satisfies"
+    ]
+    assert sat_cat
+    look = PinMapComposer(catalog).compose(
+        anchor=None,
+        kind="PKG",
+        locators=[("qname", "PkgPart")],
+        depth=2,
+    )[1]
+    assert "PkgPart" in look
+    assert "PkgReq" in look
+    assert "satisfies" in look
+    assert "CueConflict" not in look
 
 
 def test_snap_does_not_mint_session_per_req(memnet_temp, model_dir: Path):

@@ -16,7 +16,10 @@ MemNetSystem                          // SharedLlmMemory product
 │                                     //        → ImportAbsorb (hard)
 └── DurableBuffer                     // ONE primary cabinet story (hydrate/flush)
 
-APPLICATION LOOK   CousinPointingContrast, HostSearchBridge, …
+APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
+                   is a distinct pin_map / not SSOT; overlay family
+                   SysMLEdgePrj-*; git sysml-models/ is SSOT),
+                   HostSearchBridge, …
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml) — leftover_* /
                    TierACodec / LegacyPipe* shelf; ProjectMemNet MUST NOT import
 OPS LOOK           MemNetUsageDashboard — human look only; not agent wire

@@ -3,14 +3,16 @@
 # Built-in LAW / EDG are merged automatically — do not redefine them here.
 # leftover `id` on SCHEMA is a nickname column (snapshot / tests), not GraphElement identity.
 # Cue / MATCH by name, qname, path, requirementId. Product CREATE need not set id.
+# Catalog Snap MAY set session / grain on REQ / PRT for cross-cut satisfy locators
+# (session= of the owning interior). Interiors leave those columns empty.
 #
 # Path-B CON node props (PinMapIngest_Sysml): name, qname, path, sysml_kind, kind, recycle.
 # kind = connectionDef | connectionUsage | linkUsage (closed enum from ingest).
 # sysml_kind = connection_def | connection | link_def | link (keyword slug).
 # Connection ends are edges (connects / hasPort / typedBy), not an `ends` field.
 SCHEMA PKG ; fields=id name qname path sysml_kind session grain kind_band recycle
-SCHEMA PRT ; fields=id name qname path sysml_kind recycle
-SCHEMA REQ ; fields=id name qname path requirementId sysml_kind recycle
+SCHEMA PRT ; fields=id name qname path sysml_kind session grain recycle
+SCHEMA REQ ; fields=id name qname path requirementId sysml_kind session grain recycle
 SCHEMA POR ; fields=id name qname path sysml_kind recycle
 SCHEMA CON ; fields=id name qname path sysml_kind kind recycle
 SCHEMA TSK ; fields=id goal anchor status recycle

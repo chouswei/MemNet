@@ -85,7 +85,7 @@ The shape **applies** to SysML work; it is not a SysML clone.
 | Kind | Path | Role |
 |------|------|------|
 | **Application note** | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | Use MemNet as session memory while modelling **someone else's** SysML v2 tree (atoms + locators; `.sysml` stays structural SSOT) |
-| **Application note (Multitask)** | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*`: shared session goldfish vs product `sysml-models/` |
+| **Application note (Multitask)** | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*` / `SysMLEdgePrj-*`: shared session goldfish vs product `sysml-models/` (SysMLEdge desk is a look, not SSOT) |
 | **Product model** | [`../sysml-models/`](../sysml-models/) | MemNet **itself** (MN-REQ-00…13). Not an application note |
 
 Do **not** import `MemNetRequirements` into a downstream load tree. User pack: `sysml-memnet-documentation` / `sysml-memnet-cache`.

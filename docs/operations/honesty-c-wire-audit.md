@@ -4,6 +4,19 @@
 
 This note records CueMiss / Peak_L vs CueConflict (0.19.10), Path-B SysML `connection` → CON (0.19.9), leftover nicknames on **all** snapshot records (0.19.8), camelCase product relation types on leftover pipe load, Truncation honesty (0.19.6), and the 0.19.5 hid / nickname audit. Chat is not SSOT. Goldfish loop stays `cue → pin_map → mutate`.
 
+## Surfaces checked (unreleased — catalog cross-cut satisfy)
+
+| Surface | Result |
+|---------|--------|
+| `snap_model` per-package project | Cross-package `satisfy` is no longer a silent drop. Engine resolves dest against the Snap union (qname, then unique `::` leaf / name). |
+| Catalog | Locator stubs `session=` + `qname=` / `requirementId=` (`grain=cross_cut`) and `:satisfies` when unique ends ≤ goldfish \(M\). Else package-pair `:satisfies` only. |
+| Interiors | MUST NOT grow a dangling dest node. In-package `satisfies` stays in that interior. |
+| CLI / MCP `snap model` | `@WRN: cross_cut\|satisfies N` when any cut resolved. `@WRN: cross_cut_miss\|satisfies N` when a target is absent. |
+| Map | `schema.sysml.example.txt` SCHEMA REQ / PRT gain `session` `grain` (catalog locators). Interiors leave those columns empty. |
+| Out of scope | Join-across-sessions protocol. Absorb of a whole \(S\). N-server (#47). `allocate` (ingest has no allocate walker). |
+
+Regression: `tests/test_catalog_snap.py` (`test_cross_cut_satisfy_is_catalog_locator_not_interior_dangle`).
+
 ## Surfaces checked (0.19.10 CueMiss / Peak_L + snapshot locator warn)
 
 | Surface | Result |

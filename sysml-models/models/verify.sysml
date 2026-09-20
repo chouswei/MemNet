@@ -28,7 +28,9 @@
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
   tools on McpFacade / CliFacade; leftover id commands stay leftover_*.
-  Cousin pointing contrast (MN-VER-02-S02): TARGET vs seven cousins;
+  Cousin pointing contrast (MN-VER-02-S02): TARGET vs eight cousins
+  (including SysMLEdge as a distinct pin_map / desk, not MemNet strata;
+  overlay family SysMLEdgePrj-*; git sysml-models/ is SSOT);
   operatorCount stays 2; cousin nest liveNeo4jClaimed stays false.
   Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
@@ -962,6 +964,16 @@ package MemNetVerification {
           and contrast.logseq.closestHumanNameCousin == true
           and contrast.siyuan.mintedBlockIdOnWire == true
           and contrast.siyuan.leftoverZeroNineAnchorPath == true
+          and contrast.mustNotSubstituteSysmledgePinMap == true
+          and contrast.mustNotCopySysmledgeAsMemNetStrata == true
+          and contrast.sysmledge.distinctPinMapFromMemNet == true
+          and contrast.sysmledge.graphIsNotSsot == true
+          and contrast.sysmledge.mustNotSubstituteMemNetPinMap == true
+          and contrast.sysmledge.thisRepoHasProductFace == false
+          and contrast.sysmledge.downstreamRepoPrefix == "SysMLEdgePrj-"
+          and contrast.sysmledge.downstreamRepoFamily == "SysMLEdgePrj-*"
+          and contrast.sysmledge.gitModelPathIsSsot == true
+          and contrast.sysmledge.mustNotInventUploadBind == true
       }
     }
   }
@@ -1340,6 +1352,8 @@ package MemNetVerification {
       per REQ; invent a store key; hid on the wire. operatorCount stays 2.
       Catalog Snap SHALL NOT own the live Neo4j claim (this cut's fence).
       Product DurableBuffer liveNeo4jClaimed is true (0.14).
+      Cross-cut satisfy locators on the catalog (MN-REQ-11.17.1);
+      interiors have no dangling dest; SysMLEdge pin_map is not this catalog.
     */
     attribute verificationId : String = "MN-VER-11-S17";
 
@@ -1347,6 +1361,7 @@ package MemNetVerification {
 
     objective catalogSnapPackageGrain {
       verify catalogModelSnapReq;
+      verify crossCutSatisfyLocatorsReq;
       require constraint {
         system.pinMaps.catalog.implemented == true
           and system.pinMaps.catalog.packageGrain == true
@@ -1361,6 +1376,14 @@ package MemNetVerification {
           and system.pinMaps.catalog.hiddenHandleOnWire == false
           and system.pinMaps.catalog.locatorsAreProperties == true
           and system.pinMaps.catalog.notAThirdOperator == true
+          and system.pinMaps.catalog.crossCutSatisfyOnCatalog == true
+          and system.pinMaps.catalog.danglingDestInInterior == false
+          and system.pinMaps.catalog.endLocatorsBoundedByM == true
+          and system.pinMaps.catalog.packagePairWhenOverM == true
+          and system.pinMaps.catalog.foreignProductPinMap == false
+          and system.core.cli.catalogSnap.crossCutSatisfyOnCatalog == true
+          and system.core.cli.catalogSnap.danglingDestInInterior == false
+          and system.core.cli.catalogSnap.foreignProductPinMap == false
           and system.core.cli.catalogSnap.implemented == true
           and system.mcp.tools.catalogSnap.implemented == true
           and system.core.cli.sessionList.listsCatalogSessionPins == true
