@@ -120,7 +120,11 @@ package MemNetRequirements {
       requirement def MN_REQ_01_3_SessionTtlAndCaps {
         doc /*
           SHALL apply configurable session TTL and a cap on concurrent
-          sessions.
+          sessions. Sliding TTL: live access extends expires_at. After
+          TTL the in-memory session SHALL drop. Optional expire
+          session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
+          off): file snapshot MAY remain on disk until the user deletes
+          it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
         */
         attribute requirementId : String = "MN-REQ-01.3";
       }

@@ -26,7 +26,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) | Canon companion: two workers disjoint vs overlapping dual-write; end-turn; host `EvWorkerReturn` | S13; AsyncTaskDispatch / WorkerPool |
 | [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | Transport under Multitask: TCP / streamable-http shared store; in-process anti | MN-VER-12-S02; `TcpServeBridge` / handoff |
 | [session-import-case-study.md](session-import-case-study.md) | Lead **imports** member WM; optional ImportGuard nest (hook + cheap LLM #63); happy path A = re-pin | S10…S12, S14; SessionImportReceive |
-| [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5 |
+| [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5; expire-save configurable (`MN-VER-01-S03`) |
 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
 | [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) | Human look at serve n/max + housekeep; manage = Memnetor+Devicor | MN-REQ-06.5; MN-VER-06-S02; HTTP parked |

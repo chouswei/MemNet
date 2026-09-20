@@ -110,6 +110,8 @@ package MemNet {
       Path-B PinMapIngest_* domains shipped; full private/shared/open
       session_token modes WAIT. No EvidenceCentre / MissionDock /
       CompanyMemory / HostSearchBridge nest under MemNetSystem.
+      Expire session_save: Caps.save_on_expire from MEMNET_SAVE_ON_EXPIRE
+      (default off). File dir MEMNET_EXPIRE_SNAPSHOT_DIR. Not Neo4j.
     */
     attribute maxRows : Integer = 5000;
     attribute maxLaw : Integer = 100;
@@ -125,6 +127,10 @@ package MemNet {
     attribute aclOptionalBindMatch : Boolean = true;
     attribute engineAclShipped : Boolean = true;
     attribute doctrineAsIs : Boolean = false;
+    attribute saveOnExpireDefault : Boolean = false;
+    attribute saveOnExpireConfigurable : Boolean = true;
+    attribute envSaveOnExpire : String = "MEMNET_SAVE_ON_EXPIRE";
+    attribute envExpireSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
@@ -1010,14 +1016,29 @@ package MemNet {
     doc /*
       Named-session durable file: save/load schema + records + relations
       (MN-REQ-01.4--01.6). MUST NOT be taken as MN-REQ-11 pin-map export.
+      Expire-time save is configurable (MEMNET_SAVE_ON_EXPIRE default
+      off). When on, TTL drops RAM and MAY write a file
+      (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file). The file
+      remains until the user deletes it. session_load restores a live
+      session. MUST NOT treat this as Neo4j cabinet dump.
     */
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
     port errOut : ErrorSignalOutPort;
+    attribute saveOnExpireDefault : Boolean = false;
+    attribute saveOnExpireConfigurable : Boolean = true;
+    attribute envSaveOnExpire : String = "MEMNET_SAVE_ON_EXPIRE";
+    attribute envExpireSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";
+    attribute ramDropsOnTtl : Boolean = true;
+    attribute fileUntilUserDrop : Boolean = true;
+    attribute loadRestoresRam : Boolean = true;
+    attribute notNeo4j : Boolean = true;
+    attribute notWholeCabinetDump : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
   }
 
@@ -1033,6 +1054,7 @@ package MemNet {
       (SOMETHING). Nested under AgentMemory (SharedLlmMemory). As-is:
       memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
       client landed; live cabinet external. RSV lease lives under Commit.
+      Sliding TTL; expire save via nested SnapshotStore (configurable).
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -1052,6 +1074,8 @@ package MemNet {
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
+    attribute slidingTtl : Boolean = true;
+    attribute ramDropsOnTtl : Boolean = true;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -1210,17 +1234,29 @@ package MemNet {
   }
 
   part def CmdSessionSave {
-    doc /* TARGET: session save. Session handle is not a graph store key. */
+    doc /*
+      TARGET: session save. Session handle is not a graph store key.
+      After TTL, save only if MEMNET_SAVE_ON_EXPIRE; then RAM id drops.
+    */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
+    attribute saveOnExpireConfigurable : Boolean = true;
+    attribute saveOnExpireDefault : Boolean = false;
+    attribute ramDropsAfterExpireSave : Boolean = true;
   }
 
   part def CmdSessionLoad {
-    doc /* TARGET: session load. Session handle is not a graph store key. */
+    doc /*
+      TARGET: session load. Session handle is not a graph store key.
+      Restores RAM from file; new id unless keep_id; TTL window resets.
+    */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
+    attribute newIdDefault : Boolean = true;
+    attribute keepIdOptional : Boolean = true;
+    attribute ttlResetsOnLoad : Boolean = true;
   }
 
   part def CmdFind {

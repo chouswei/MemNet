@@ -81,6 +81,6 @@ flowchart LR
 
 | Study | Distinction |
 |-------|-------------|
-| [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Named session **file** save/load (MN-REQ-01.4/01.5) |
+| [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | Named session **file** save/load (MN-REQ-01.4/01.5); TTL expire-save configurable, not Neo4j |
 | [company-memory-case-study.md](company-memory-case-study.md) | `COM_*` pattern that would flush/hydrate |
 | [async-parallel-conflict-case-study.md](async-parallel-conflict-case-study.md) | Live Multitask; durable is orthogonal |
