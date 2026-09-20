@@ -2,7 +2,7 @@
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
 **Product shape:** [`SHAPE.md`](../SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
-**Application adoption** (`modelbasedPrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
+**Application adoption** (`modelbasedPrj-*` / `SysMLEdgePrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
 sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /
@@ -15,7 +15,7 @@ neighbourhood reserve is shipped; Path-B ingest domains are shipped —
 see `docs/extras/memnet-security-multi-agent.md` and
 `docs/extras/memnet-neighbourhood-reserve.md`. Full ACL modes remain deferred.
 
-**SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S14** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** adoption: [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md).
+**SysML trail (doctrine ↔ model):** group **MN-REQ-12** (`sysml-models/models/requirements.sysml`) → verify **MN-VER-12-G00** + step cases **S01…S14** (`sysml-models/models/verify.sysml`) → worked scenario [`sysml-models/outputs/multitask-case-study.md`](../../sysml-models/outputs/multitask-case-study.md). Downstream **`modelbasedPrj-*`** / **`SysMLEdgePrj-*`** adoption: [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md).
 
 ## Principle
 
@@ -140,7 +140,7 @@ Also see gaps in [`sysml-models/outputs/system-design-notes.md`](../../sysml-mod
 - `sysml-models/models/requirements.sysml` — **MN-REQ-12** group + leaves 12.1–12.8
 - `sysml-models/models/verify.sysml` — **MN-VER-12-G00** (group) + **S01…S14**
 - `sysml-models/outputs/multitask-case-study.md` — worked scenario + verify table
-- `docs/application-notes/system/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` system repos
+- `docs/application-notes/system/llm-system-dev-multitask.md` — Multitask pattern for `modelbasedPrj-*` / `SysMLEdgePrj-*` system repos
 - `.cursor/skills/memnet-reference/SKILL.md` — product development skill
 - `.cursor/skills/memnet-multitask/` — application Multitask skill (vendored in this repo)
 - `AGENTS.md` — hub policy

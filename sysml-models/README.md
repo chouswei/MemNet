@@ -22,7 +22,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` |
 | `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
-| `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map) |
+| `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map; overlay prefix `SysMLEdgePrj-`; git `sysml-models/` is SSOT) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` outside `MemNetSystem` |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S02 |

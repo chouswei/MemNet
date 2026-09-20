@@ -19,7 +19,7 @@ This note is **not** a second SSOT for transport, shared session, or parent/work
 | **memnet-multitask** (user pack; this checkout vendors a copy) | Shared-session transport, `pin_map` first, parent/worker MUST | [`.cursor/skills/memnet-multitask/`](../../../.cursor/skills/memnet-multitask/) · optional `~/.cursor/skills/memnet-multitask/` |
 | **memnet-format** | GQL wire / shaped `pin_map` | [`.cursor/skills/memnet-format/`](../../../.cursor/skills/memnet-format/) |
 | Product ops (`docs/multi-agent-sessions.md` live path) | Multitask operating model | [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md) |
-| System-dev adoption (`docs/application-notes/llm-system-dev-multitask.md` live path) | Two-store pattern + Multitask in `modelbasedPrj-*` | [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) |
+| System-dev adoption (`docs/application-notes/llm-system-dev-multitask.md` live path) | Two-store pattern + Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` | [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md) |
 | **User Rules** | Thin pointer: Multitask → this playbook + memnet-multitask. Host prefs (secrets, PowerShell, prompt quality) stay in User Rules | Cursor User Rules — **MUST NOT** paste here |
 
 MUST NOT restate TCP / HTTP / in-process tables or parent-worker MUST tables from memnet-multitask or `multi-agent-sessions.md`.
