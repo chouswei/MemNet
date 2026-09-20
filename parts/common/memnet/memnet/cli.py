@@ -382,7 +382,7 @@ def session_save(
     file: Annotated[Path, typer.Option("--file", help="User snapshot path (wire format)")],
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Write the session graph. Works after TTL expiry; then the id is dropped."""
+    """Write the session graph. After TTL, only if MEMNET_SAVE_ON_EXPIRE."""
     try:
         sid = resolve_session_id(session)
         ss, expired = get_session_for_save(sid, _caps())

@@ -83,6 +83,8 @@ class Caps:
         self.engine_acl_shipped = True
         # Optional force-enable ACL on newly opened sessions
         self.acl_default_enabled = _env_bool("MEMNET_ACL", False)
+        self.save_on_expire = save_on_expire()
+        self.expire_snapshot_dir = expire_snapshot_dir()
 
 
 DEFAULT_SERVE_MAX_FRAME_BYTES = 4 * 1024 * 1024  # 4 MiB
@@ -134,11 +136,15 @@ def default_ttl_minutes() -> int:
     return _env_int("MEMNET_SESSION_TTL_MINUTES", 60)
 
 
-def expire_snapshot_dir() -> Path | None:
-    """Optional directory for TTL-expire ``session_save`` snapshots.
+def save_on_expire() -> bool:
+    """TTL-expire ``session_save`` is off unless ``MEMNET_SAVE_ON_EXPIRE`` is truthy."""
+    return _env_bool("MEMNET_SAVE_ON_EXPIRE", False)
 
-    Set ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Unset = no auto file on purge;
-    explicit ``session save --file`` still writes an expired session.
+
+def expire_snapshot_dir() -> Path | None:
+    """Directory for auto TTL-expire snapshots. Used only when ``save_on_expire()``.
+
+    ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Unset with save-on-expire on: warn, drop, no file.
     """
     raw = (os.environ.get("MEMNET_EXPIRE_SNAPSHOT_DIR") or "").strip()
     if not raw:

@@ -8,7 +8,13 @@ from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 
 from memnet.acl import SessionAcl, WorkerWriteScope, acl_globally_enabled, parse_write_scope
-from memnet.config import Caps, default_ttl_minutes, examples_dir, expire_snapshot_dir
+from memnet.config import (
+    Caps,
+    default_ttl_minutes,
+    examples_dir,
+    expire_snapshot_dir,
+    save_on_expire,
+)
 from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import SessionMeta
@@ -139,9 +145,17 @@ def _session_is_expired(entry: SessionEntry) -> bool:
 
 
 def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str | None:
-    """Write a snapshot if ``MEMNET_EXPIRE_SNAPSHOT_DIR`` is set. Entry must remain."""
-    dest_dir = expire_snapshot_dir()
+    """Configurable expire ``session_save``. Off unless ``MEMNET_SAVE_ON_EXPIRE``.
+
+    Auto path also needs ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Entry must remain.
+    """
+    enabled = bool(getattr(caps, "save_on_expire", False)) if caps is not None else save_on_expire()
+    if not enabled:
+        return None
+    dest_dir = getattr(caps, "expire_snapshot_dir", None) if caps is not None else None
+    dest_dir = dest_dir if dest_dir is not None else expire_snapshot_dir()
     if dest_dir is None:
+        emit_wrn("save_on_expire_no_dir", session_id)
         return None
     entry = get_entry(session_id)
     if entry is None:
@@ -243,10 +257,10 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
 
 
 def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[SessionStore, bool]:
-    """Load a session for ``session_save``. Expired ids stay until the caller writes.
+    """Load a session for ``session_save``.
 
-    Live sessions slide TTL. Expired sessions do not. Other expired ids still purge
-    (and snapshot when ``MEMNET_EXPIRE_SNAPSHOT_DIR`` is set).
+    Expired save is off unless ``MEMNET_SAVE_ON_EXPIRE`` (Caps.save_on_expire).
+    Live sessions slide TTL. Other expired ids still purge.
     """
     caps = caps or Caps()
     entry = get_entry(session_id)
@@ -254,6 +268,11 @@ def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[Ses
         purge_expired(caps)
         raise MemNetError("session_not_found", "unknown session", exit_code=2)
     expired = _session_is_expired(entry)
+    if expired and not bool(getattr(caps, "save_on_expire", False)):
+        snapshot_expired_session(session_id, caps)
+        remove_entry(session_id)
+        purge_expired(caps)
+        raise MemNetError("session_expired", "session expired", exit_code=2)
     if not expired:
         original_ttl = entry.meta.ttl_minutes
         new_expires = utc_now() + timedelta(minutes=original_ttl)

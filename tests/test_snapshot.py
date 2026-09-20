@@ -239,7 +239,26 @@ def test_parse_line_mints_empty_id_and_accepts_infile(memnet_temp):
     validate_id(a)
 
 
-def test_cli_session_save_after_ttl_expiry(memnet_temp, schema_file, workflow_file, tmp_path: Path):
+def test_cli_session_save_expired_off_by_default(
+    memnet_temp, schema_file, workflow_file, tmp_path: Path
+):
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    snap_path = tmp_path / "expired.snap"
+    save = runner.invoke(app, ["session", "save", "--file", str(snap_path), "--session", sid])
+    assert save.exit_code == 2
+    assert "session_expired" in save.stderr
+    assert not snap_path.is_file()
+    assert not contains(sid)
+    set_now_override(None)
+
+
+def test_cli_session_save_after_ttl_expiry(
+    memnet_temp, schema_file, workflow_file, tmp_path: Path, monkeypatch
+):
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
     ss = open_session(map_file=str(schema_file), ttl_minutes=1)
     sid = ss.session_id
     runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
@@ -263,6 +282,7 @@ def test_purge_expired_writes_dir_snapshot(
     memnet_temp, schema_file, workflow_file, tmp_path: Path, monkeypatch
 ):
     expire_dir = tmp_path / "expire"
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
     monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
     ss = open_session(map_file=str(schema_file), ttl_minutes=1)
     sid = ss.session_id
@@ -274,4 +294,19 @@ def test_purge_expired_writes_dir_snapshot(
     assert not contains(sid)
     loaded = load_snapshot(snap)
     assert loaded.store.get("PLR01") is not None
+    set_now_override(None)
+
+
+def test_purge_expired_skips_snapshot_when_save_on_expire_off(
+    memnet_temp, schema_file, tmp_path: Path, monkeypatch
+):
+    expire_dir = tmp_path / "expire"
+    monkeypatch.delenv("MEMNET_SAVE_ON_EXPIRE", raising=False)
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    purge_expired()
+    assert not (expire_dir / f"{sid}.snap").is_file()
+    assert not contains(sid)
     set_now_override(None)
