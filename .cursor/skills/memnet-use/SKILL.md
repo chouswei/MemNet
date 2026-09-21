@@ -36,7 +36,7 @@ Hatch **0.19.3**. Chat is never SSOT. Novel-writer is out of scope. **GQL only.*
 | Nested sessions / look loop | [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md) |
 | Multitask / shared session | [memnet-multitask](../memnet-multitask/SKILL.md) |
 
-Code `:MOD`/`:SYM`: [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md). SysML: `docs/application-notes/system/llm-sysml-v2-modeling.md` and `sysml-*`.
+Code `:MOD`/`:SYM`: [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md). SysML: `docs/application-notes/system/llm-sysml-v2-modeling.md` and `sysml-*`. Which file realises a SysML part: [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md).
 
 ## MUST NOT
 

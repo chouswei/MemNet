@@ -46,4 +46,4 @@ token_guardrails: |
 
 Campaign `goal=TSK_model_<short>`. Structure by `name` / `qname` / `path` / `requirementId`. leftover nickname `id` is leftover.
 
-satisfy / allocate = relationships only.
+satisfy / allocate = relationships only. Product SSOT→code ledger: [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md) (`implementation.sysml` + allocate map). Do not load pack-only `sysml-allocate-generator`.

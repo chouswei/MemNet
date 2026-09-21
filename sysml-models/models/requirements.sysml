@@ -22,6 +22,7 @@
                        not hid / nickname id / CREATE order (gauge)
     MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
     MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
+    MN-REQ-06.7        Allocate SSOT parts to live code in this checkout (one Hatch wheel, many hosts; sysmledge not in wheel)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -77,8 +78,8 @@
     what the memory net knows via parse-faithful inspect/render.
 
   Out of scope: novel-writer product and general application framework.
-  Structure (software elements, ports, connections) lives in deploy.sysml
-  and connections.sysml.
+  Structure (software elements, ports, connections) lives in deploy.sysml,
+  connections.sysml, and implementation.sysml (allocate).
 */
 package MemNetRequirements {
   private import ScalarValues::*;
@@ -699,6 +700,33 @@ package MemNetRequirements {
           per MN-REQ-12.2.
         */
         attribute requirementId : String = "MN-REQ-06.6";
+      }
+
+      requirement def MN_REQ_06_7_SsotToCodeAllocate {
+        doc /*
+          SHALL allocate shipped logical SSOT parts (MemNetCoreLibrary,
+          MemNetMcpServer, transport, session, RecallCommit, MCP, durable,
+          pin-map, host-search) to live Python modules in this checkout
+          via SoftwareAllocate (logical → code). One Hatch wheel
+          (memnet-llm) SHALL instantiate on many hosts (droplet +
+          devices); hosts are not extra packages (oneWheelManyHosts).
+          The MemNet MCP module remains tip/ops (tipIsFace=false).
+          Cousin SysMLEdge SHALL NOT be allocated here
+          (sysmlEdgeInWheel=false; inThisRepo=false;
+          mustNotInventUploadBind). The allocate package SHALL be
+          the implementation tracker: each SoftwareAllocate row is a
+          live path record (track=true; implemented=true iff the path
+          exists in this checkout). Maintainers SHALL update the row
+          when a module ships or moves; a missing path SHALL fail
+          honesty tests. The derived map
+          (sysml-models/outputs/ssot-to-code-allocate-map.md) SHALL
+          list every row. Cousin sysmledge SHALL remain listed as
+          not in this repo (sysmlEdgeTracked=false). MUST NOT invent
+          upload/bind. MUST NOT be N-server federation (#47).
+          Engine/MCP behaviour code SHALL NOT change solely to
+          satisfy this allocate. Hatch stays 0.19.11 honesty c.
+        */
+        attribute requirementId : String = "MN-REQ-06.7";
       }
     }
 
@@ -1635,6 +1663,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_HumanUsageLook;
   requirement deviceServicesOneDropletMcpReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
+  requirement ssotToCodeAllocateReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_7_SsotToCodeAllocate;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1855,6 +1885,7 @@ package MemNetRequirements {
     end #derive ::> durableStoreBehindMemNetReq;
     end #derive ::> humanUsageLookReq;
     end #derive ::> deviceServicesOneDropletMcpReq;
+    end #derive ::> ssotToCodeAllocateReq;
   }
 
   #derivation connection deriveMcpLeaves {

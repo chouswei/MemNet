@@ -37,6 +37,7 @@ Catalog and load order: [`docs/README.md`](docs/README.md) (identity / `grammar/
 | Multitask Mode + MemNet | `.cursor/skills/memnet-multitask/`, `docs/operations/multi-agent-sessions.md`, `.cursor/rules/memnet-multitask.mdc` |
 | Code MOD/SYM | `.cursor/skills/memnet-codebase-snap/` |
 | SysML design memory | `.cursor/skills/sysml-modeling-workflow/` (checklist / cache / documentation / gql) |
+| SSOT → code (implementation tracker) | `.cursor/skills/sysml-ssot-to-code/` |
 | Develop MemNet engine / MCP / grammar | `.cursor/skills/memnet-reference/` |
 | MN-REQ-12 SysML + verify | `sysml-models/models/requirements.sysml`, `sysml-models/models/verify.sysml`, `sysml-models/outputs/multitask-case-study.md` |
 

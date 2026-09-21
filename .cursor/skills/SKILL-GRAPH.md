@@ -33,6 +33,7 @@ Default **one** skill per turn. Hub [`memnet-use`](memnet-use/SKILL.md) unless a
 | SysML cache defer | `sysml-memnet-cache` |
 | SysML snap / read policy | `sysml-memnet-documentation` |
 | SysML × GQL bridge | `sysml-gql` |
+| SSOT → code allocate / track implementation | `sysml-ssot-to-code` |
 | SysML token laws / Snap stack | `docs/application-notes/system/llm-sysml-v2-modeling.md` |
 
 ### Build
@@ -50,7 +51,9 @@ Default **one** skill per turn. Hub [`memnet-use`](memnet-use/SKILL.md) unless a
 (:SKL {name: 'memnet-multitask'})-[:REQUIRES {note: 'shared'}]->(:SKL {name: 'mcp-memnet'})
 (:SKL {name: 'sysml-modeling-session-checklist'})-[:DEFAULT_STACK]->(:SKL {name: 'sysml-modeling-workflow'})
 (:SKL {name: 'sysml-modeling-workflow'})-[:DEFAULT_STACK]->(:SKL {name: 'sysml-memnet-documentation'})
+(:SKL {name: 'sysml-ssot-to-code'})-[:REQUIRES {note: 'ledger'}]->(:SKL {name: 'sysml-modeling-workflow'})
+(:SKL {name: 'sysml-ssot-to-code'})-[:COMPLEMENTS {note: 'build'}]->(:SKL {name: 'memnet-reference'})
 (:SKL {name: 'sysml-gql'})-[:COMPLEMENTS]->(:SKL {name: 'memnet-format'})
 ```
 
-Load `memnet-reference` only when **building** this product. Multitask ops: `docs/operations/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.
+Load `memnet-reference` only when **building** this product. Track which file realises a SysML part with `sysml-ssot-to-code` (not a second code map). Multitask ops: `docs/operations/multi-agent-sessions.md`. Shape: `docs/SHAPE.md`.

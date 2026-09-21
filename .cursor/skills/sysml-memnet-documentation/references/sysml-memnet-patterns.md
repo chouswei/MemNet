@@ -44,7 +44,7 @@ House tokens such as `TSK_model_<short>` are **`goal`** (or `name` / `qname` / `
 | BEH | stateMachine, action, calculation |
 | ITM | itemDef, flowItem |
 | SYM | partDef, partUsage, portDef, portUsage, requirement, connection, behaviour, satisfy, allocate, package |
-| PKG | deploy, requirements, connections, behaviour, root, library, common |
+| PKG | deploy, requirements, connections, behaviour, implementation, root, library, common |
 | ART | report, interconnection, behaviour, requirements, traceability |
 | CLM.type | fact, decision, assumption, convention, conclusion, stat |
 | TSK.phase | model, sync, audit, refactor, report, verify, turn, route |
@@ -76,7 +76,7 @@ CREATE (f)-[:flowOf]->(i)
 | connection / link | CON + SYM | declaredIn; typedBy -> CONDEF_* |
 | requirement | REQ + SYM | declaredIn -> requirements PKG |
 | satisfy | edge only `satisfies` | PRT/BEH -> REQ |
-| allocate | edge only `allocates` | BEH/PRT -> PRT |
+| allocate | edge only `allocates` | BEH/PRT -> PRT (GQL relative). Product SSOT→code ledger is `implementation.sysml` ([sysml-ssot-to-code](../../sysml-ssot-to-code/SKILL.md)); MUST NOT invent pack-only `sysml-allocate-generator` |
 | state / action | BEH + SYM | declaredIn |
 | item / flow | ITM | declaredIn; optional flowOf |
 | convention | CONV | TSK constrained_by -> CONV |

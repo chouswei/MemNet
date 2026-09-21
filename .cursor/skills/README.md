@@ -28,12 +28,13 @@ Product write is **`mutate`**. leftover `add` / `update` / `id:'NEW'` / `anchor=
 | [`sysml-memnet-cache/`](sysml-memnet-cache/SKILL.md) | Relatives cache defer |
 | [`sysml-memnet-documentation/`](sysml-memnet-documentation/SKILL.md) | Snap / read policy / patterns |
 | [`sysml-gql/`](sysml-gql/SKILL.md) | Thin SysML × GQL bridge |
+| [`sysml-ssot-to-code/`](sysml-ssot-to-code/SKILL.md) | SSOT → live modules; implementation tracker |
 
 ## Build this product
 
 | Skill | Job |
 |-------|-----|
-| [`memnet-reference/`](memnet-reference/SKILL.md) | Engine / MCP / grammar / CI / layout |
+| [`memnet-reference/`](memnet-reference/SKILL.md) | Engine / MCP / grammar / CI / layout (no second code map; pair `sysml-ssot-to-code`) |
 
 **MUST NOT** vendor hardware / PCBA / mermaid / generator / DigiKey skills here.
 
