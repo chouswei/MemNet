@@ -18,6 +18,7 @@ Pair with [sysml-memnet-snap.md](sysml-memnet-snap.md) (6-step turn) and [sysml-
 | Where is `linkFoo` / a named part? | `pin_map` → `@SYM_<name>` → `path` + `line` | `Grep` exact symbol in `models/` |
 | What does requirement `REQ-*` satisfy? | `pin_map` → `@REQ_*` + `satisfies` EDGs | Read `root*.sysml` satisfy block (window) |
 | What changed last session? | `pin_map(TSK_model_*)` + `<model-root>/.memnet/*.snap` load if session expired | Git diff (user asked or commit prep only) |
+| Which file realises this SSOT part? | allocate map `sysml-models/outputs/ssot-to-code-allocate-map.md` | Window on `implementation.sysml` ([sysml-ssot-to-code](../../sysml-ssot-to-code/SKILL.md)) |
 | Exact `connection` / `bind` / import syntax to patch? | Read **±15 lines** at `SYM.line` | Wider window only if the window misses |
 | Load order / package imports broken? | `config.yaml` + validator errors | Read `root*.sysml` imports only |
 | Human narrative for one report section? | Hub `index.md` + **one** `llm_toc[].file` | Other sections |

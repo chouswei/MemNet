@@ -9,7 +9,7 @@ metadata:
   domain: sysml,memnet
   version: "1.3"
   product: memnet-llm==0.19.3
-  pairs_with: [mcp-memnet, memnet-format, sysml-memnet-cache, sysml-memnet-documentation, sysml-modeling-workflow, memnet-nested-sessions]
+  pairs_with: [mcp-memnet, memnet-format, sysml-memnet-cache, sysml-memnet-documentation, sysml-modeling-workflow, memnet-nested-sessions, sysml-ssot-to-code]
 token_guardrails: |
   - GQL only. No Layer / pipe @TAG. leftover NEW / leftover anchor= named leftover.
   - .sysml is structure; MemNet holds relatives. Kind map: sysml-memnet-patterns.md.
@@ -45,6 +45,8 @@ Closed enums: [sysml-memnet-patterns.md](../sysml-memnet-documentation/reference
 | state / action | `:BEH` | `:declaredIn` |
 | satisfy / allocate | rel only | `:satisfies` / `:allocates` |
 | file / line | `:MOD` / `:SYM` | `:inFile` |
+
+Product `SoftwareAllocate` (SSOT part → live module) is the implementation ledger in `sysml-models/models/implementation.sysml`. Cue `goal=TSK_model_alloc`. Skill: [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md). MUST NOT invent a `sysmledge` path. leftover pack `sysml-allocate-generator` is **not** vendored here.
 
 `:CON` matches Schummer & Hyba (2022) `:HYPERNODE` — SysML connector as LPG node ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)). Ends stay edges. Not a mission `TSK`.
 

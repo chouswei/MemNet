@@ -16,31 +16,18 @@
 
 ## Write (after validate) — by skill
 
+This checkout **vendors** only the skills in [`SKILL-GRAPH.md`](../../SKILL-GRAPH.md). Pack-only generator ids (`sysml-hardware-part-generator`, `sysml-allocate-generator`, mermaid, PCBA, …) are **not** here — MUST NOT invent those folders.
+
 | Skill id | MemNet rows to add/update |
 |----------|---------------------------|
-| sysml-hardware-part-generator | `@PRT`, `@POR`, `@SYM`, `hasPort`, `declaredIn`, `inFile` |
-| sysml-software-part-generator | same as hardware |
-| sysml-physical-port-generator | `@POR` (port def), `@SYM`, `typedBy` |
-| sysml-software-port-generator | same |
-| sysml-item-generator | `@ITM`, `@SYM`, `flowOf` |
-| sysml-connections | `@CON`, `@SYM`, connection `@EDG` ends |
-| sysml-nested-structure-modeling | `@PRT` tree, `@SYM`, composition `@EDG` |
-| sysml-requirements-generator | `@REQ`, `@SYM` |
-| sysml-traceability | `@EDG` `satisfies`, `allocates` |
-| sysml-behaviour-generator | `@BEH`, `@SYM`, owner `@EDG` |
-| sysml-allocate-generator | `@EDG` `allocates` |
-| sysml-refactorer | batch `@SYM.line` refresh; rename `@PRT`/`@POR`/`@CON`; `@CLM` refactor note |
-| sysml-requirements-audit | `@ISSUE`, `@CLM` finding |
-| sysml-part-reviewer | `@DEC`, `@CLM` maturity |
-| sysml-view-doc-sync | `@CLM` key claims; report `@ART`/`@SEC` if pack |
-| sysml-interconnection-mermaid | `@TSK` `TSK_diagram_*`, figure `@EDG` |
-| sysml-new-project | `@TSK`, `@MOD`, `owns` `@EDG` |
-| sysml-root-config | `@MOD` load-order note `@CLM` |
-| sysml-common-lib-contribution | `@PRT`/`@POR` in lib + `@CONV` if naming rule |
-| sysml-pcba-de-facto-alignment | `@PRT` de-facto attrs `@CLM` |
-| sysml-pcba-de-facto-alignment | `@CLM` netlist / de-facto bridge status (no full netlist in MemNet) |
+| sysml-modeling-workflow | campaign `@TSK`; structure `@PRT`/`@REQ`/`@CON` + `@SYM`; `satisfies` |
+| sysml-ssot-to-code | `SoftwareAllocate` relatives; cue `goal=TSK_model_alloc`; ledger path on `@PRT` / `@MOD` |
+| sysml-gql | `satisfies` / `allocates` edges; `hasPort`; no pack-only allocate-generator |
+| sysml-memnet-documentation | snap / read-policy locators; `@SYM.line` refresh |
+| sysml-modeling-session-checklist | campaign `@TSK` only (no structure invent) |
+| memnet-reference | product-build claims only; MUST NOT duplicate allocate ledger |
 
-Skills not listed: if they touch `.sysml` structure, use the matching row above or hub [sysml-memnet-snap.md](sysml-memnet-snap.md) §Delta write.
+Skills not listed: if they touch `.sysml` structure, use the matching row above or hub [sysml-memnet-snap.md](sysml-memnet-snap.md) §Delta write. MUST NOT load leftover `sysml-allocate-generator`.
 
 ## Forbidden in MemNet
 

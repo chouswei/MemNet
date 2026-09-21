@@ -52,5 +52,6 @@ Stable nicknames if used: `MOD_` + path slug; `SYM_` + short slug. Locators (`pa
 ## MUST NOT
 
 - Invent call edges from memory.
+- Treat `ingest_codebase` / `:MOD` snap as SoftwareAllocate SSOT — that ledger is [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md).
 - Teach leftover `--anchor` as the goldfish read.
 - Flood one generate with the whole tree — cut batches (or a nested session if over \(M\)).

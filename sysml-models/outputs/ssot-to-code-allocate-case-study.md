@@ -67,7 +67,7 @@ SoftwareAllocate                            // logical → code
 
 ## 3a. How to track implementation
 
-The allocate package **is** the tracker. Ledger: [ssot-to-code-allocate-map.md](ssot-to-code-allocate-map.md).
+The allocate package **is** the tracker. Ledger: [ssot-to-code-allocate-map.md](ssot-to-code-allocate-map.md). Agent skill: `.cursor/skills/sysml-ssot-to-code/`.
 
 | Step | Do this |
 |------|---------|

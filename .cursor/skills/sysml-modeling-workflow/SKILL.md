@@ -9,7 +9,7 @@ metadata:
   domain: sysml-v2
   version: "1.6"
   product: memnet-llm==0.19.3
-  pairs_with: [sysml-memnet-cache, sysml-memnet-documentation, sysml-gql, sysml-modeling-session-checklist, mcp-memnet, memnet-nested-sessions]
+  pairs_with: [sysml-memnet-cache, sysml-memnet-documentation, sysml-gql, sysml-modeling-session-checklist, mcp-memnet, memnet-nested-sessions, sysml-ssot-to-code]
 token_guardrails: |
   - Follow the turn table. .sysml is structural SSOT; MemNet is relatives.
   - pin_map from a cue before edit; mutate after validate.
@@ -45,7 +45,7 @@ Pin map first. At most two `Read` windows at `SYM.line`. Do not re-read whole `d
 
 1. Edit **`sysml-models/models/*.sysml`**.
 2. Validate; sync **`sysml-models/outputs/`**.
-3. Align engine/MCP code only when the model says so.
+3. Align engine/MCP code only when the model says so. Which file realises a part: [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md) (allocate map; MUST NOT invent `sysmledge`).
 
 ## Routing (this checkout)
 
@@ -54,6 +54,7 @@ Pin map first. At most two `Read` windows at `SYM.line`. Do not re-read whole `d
 | Relatives cache | [sysml-memnet-cache](../sysml-memnet-cache/SKILL.md) |
 | Snap / patterns | [sysml-memnet-documentation](../sysml-memnet-documentation/SKILL.md) |
 | Thin GQL bridge | [sysml-gql](../sysml-gql/SKILL.md) |
+| SSOT → code tracker | [sysml-ssot-to-code](../sysml-ssot-to-code/SKILL.md) |
 | Preflight | [sysml-modeling-session-checklist](../sysml-modeling-session-checklist/SKILL.md) |
 | MCP tools | [mcp-memnet](../mcp-memnet/SKILL.md) |
 
