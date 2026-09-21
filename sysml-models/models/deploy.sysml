@@ -1599,8 +1599,8 @@ package MemNet {
   part def MemNetMcpServer {
     doc /*
       parts/memnet-mcp — generic MemNet tools only. This is the MemNet
-      tip/ops MCP (CompanyMemory / engine tool face), NOT the product
-      invent face (tip≠face; tipIsFace=false). Product LLM face is
+      tip/ops MCP (CompanyMemory / engine tool face). NOT the product invent face
+      (tip≠face; tipIsFace=false). Product LLM face is
       cousin SysMLEdge (`sysmledge`; mustNotInventUploadBind).
       Ops fleet: at most one fleet MemNet MCP, on the droplet host
       (MN-REQ-06.6; mcpCount=1). Device hosts SHALL NOT nest a second
