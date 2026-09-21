@@ -31,7 +31,7 @@
     │       └── Schema / Caps (size + shipped ACL) / …
     // leftover_* / TierACodec / LegacyPipe* : models/archive.sysml (off ProjectMemNet load)
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
-    ├── MemNetMcpServer             // LLM ↔ MemNet (GQL/MCP); fleet: one at droplet
+    ├── MemNetMcpServer             // MemNet tip/ops MCP (GQL); fleet: one at droplet; tip≠face
     │   └── McpFacade               // TARGET cue/pattern commands only
     ├── DurableBuffer               // AgensGraphAdapter + Neo4jAdapter cabinet
     │                                 // + optional Neo4jLibraryPort (0.16; skip unless name)
@@ -71,7 +71,10 @@
   product MCP. Manage = Memnetor + Devicor.
   APPLICATION / OPS FLEET (not in MemNetSystem): MemNetOpsFleet —
   device hosts run MemNetCoreLibrary services; the droplet hosts
-  the one MemNetMcpServer. Not N-server federation (#47).
+  the one MemNet MCP (tip/ops engine face; tip≠face). Product invent
+  face is cousin SysMLEdge (`sysmledge`; mustNotInventUploadBind).
+  Device MAY run tip memnet-mcp for ops; MUST NOT nest a second
+  product MCP / SysMLEdge-as-product. Not N-server federation (#47).
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -1580,8 +1583,11 @@ package MemNet {
       Target core composite allocated to parts/common/memnet.
       Nest: TransportBoundary (InProcessEngine owns AgentMemory) + CliFacade.
       AgentMemory lives under transport.inProcess.memory — one instance.
-      Legal on a device host as a MemNet service without nesting
-      MemNetMcpServer (MN-REQ-06.6). The LLM MCP face stays on the droplet.
+      Legal on a device host as a MemNet service without nesting a
+      product MCP (MN-REQ-06.6). Tip memnet-mcp on the device for
+      engine ops is allowed and remains tip≠face. The fleet MemNet
+      MCP (tip/ops) sits on the droplet; product invent face is
+      sysmledge (cousin; mustNotInventUploadBind).
     */
     part transport : TransportBoundary;
     part cli : CliFacade;
@@ -1592,9 +1598,14 @@ package MemNet {
 
   part def MemNetMcpServer {
     doc /*
-      Product surface parts/memnet-mcp — generic tools only.
-      Ops fleet: at most one instance, on the droplet host (MN-REQ-06.6).
-      Device MemNet services SHALL NOT nest a second product MCP.
+      parts/memnet-mcp — generic MemNet tools only. This is the MemNet
+      tip/ops MCP (CompanyMemory / engine tool face), NOT the product
+      invent face (tip≠face; tipIsFace=false). Product LLM face is
+      cousin SysMLEdge (`sysmledge`; mustNotInventUploadBind).
+      Ops fleet: at most one fleet MemNet MCP, on the droplet host
+      (MN-REQ-06.6; mcpCount=1). Device hosts SHALL NOT nest a second
+      product MCP / SysMLEdge-as-product; a Pi MAY run tip memnet-mcp
+      for engine ops (still tip≠face; not sold as product).
     */
     part tools : McpFacade;
     part bridge : ServeBridge;
@@ -1602,6 +1613,7 @@ package MemNet {
     port fromHost : GqlWireInPort;
     attribute fleetSingleton : Boolean = true;
     attribute defaultHostKind : String = "droplet";
+    attribute tipIsFace : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
   }
@@ -2609,7 +2621,8 @@ package MemNet {
       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
       MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here. Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
-      opsFleetInsideSystem=false (device services + one droplet MCP is outside).
+      opsFleetInsideSystem=false (device services + one droplet MemNet
+      MCP tip/ops is outside; product face is sysmledge).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2853,15 +2866,19 @@ package MemNet {
 
   // =====================================================================
   // OPS FLEET — MemNetOpsFleet (MUST NOT instantiate under MemNetSystem).
-  // Multiple device MemNet services; one MCP server at the droplet.
-  // Not N-server federation (#47).
+  // Multiple device MemNet services; one MemNet MCP (tip/ops) at droplet.
+  // Product invent face = cousin sysmledge (tip≠face). Not #47.
   // =====================================================================
 
   part def DropletHost {
     doc /*
       DigitalOcean droplet. Hosts the fleet's one MemNetSystem, hence
-      the one MemNetMcpServer (LLM tool face) plus local core /
-      CompanyMemory. MUST NOT add a second product MCP on this host.
+      the one MemNetMcpServer (MemNet tip/ops engine face; tip≠face)
+      plus local core / CompanyMemory. mcpCount=1 counts that MemNet
+      MCP, not the product invent face. The product LLM face on this
+      host is cousin SysMLEdge (`sysmledge`; MUST NOT nest under
+      MemNetSystem; mustNotInventUploadBind). MUST NOT add a second
+      product MCP on this host.
     */
     part memnet : MemNetSystem;
     attribute hostKind : String = "droplet";
@@ -2874,13 +2891,20 @@ package MemNet {
     doc /*
       Compute device (Pi, workstation, SBC). Hosts a MemNet service
       (engine + serve + CLI) as a local notepad / device working set.
-      MUST NOT nest MemNetMcpServer. Session registry is this host's
-      own; MUST NOT mash handles with the droplet. Software-only host
-      (no ISQ/SI). Illustrative first device: rpi5-syson.
+      MUST NOT nest a second product MCP. MUST NOT nest
+      SysMLEdge-as-product on the device. mcpNested=false /
+      productMcpNested=false mean no product MCP nested — not a ban
+      on ops tip. A tip MemNet MCP (memnet-mcp) MAY run here for
+      engine ops and remains tip≠face (tipMcpLegal=true; not sold
+      as product). Session registry is this host's own; MUST NOT
+      mash handles with the droplet. Software-only host (no ISQ/SI).
+      Illustrative first device: rpi5-syson.
     */
     part service : MemNetCoreLibrary;
     attribute hostKind : String = "device";
     attribute mcpNested : Boolean = false;
+    attribute productMcpNested : Boolean = false;
+    attribute tipMcpLegal : Boolean = true;
     attribute nServerPeer : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
@@ -2889,10 +2913,15 @@ package MemNet {
   part def MemNetOpsFleet {
     doc /*
       OPS nest outside MemNetSystem (MN-REQ-06.6). Device hosts run
-      MemNetCoreLibrary services; the droplet hosts the one MCP face.
-      Each service keeps its own session handles. Handoff remains
-      session id; optional Path-B ImportAbsorb is not a live-server
-      MERGE. nServerFederation=false (#47 stays research).
+      MemNetCoreLibrary services; the droplet hosts the one MemNet
+      MCP (tip/ops engine face; tip≠face; mcpCount=1). Product invent
+      face is cousin SysMLEdge (`sysmledge`; mustNotInventUploadBind).
+      Dual-MCP remeter: product questions → sysmledge only; MemNet
+      tip/ops → droplet MemNet MCP and/or Pi tip. MUST NOT answer
+      product questions on the MemNet tip path. Each service keeps
+      its own session handles. Handoff remains session id; optional
+      Path-B ImportAbsorb is not a live-server MERGE.
+      nServerFederation=false (#47 stays research).
     */
     part droplet : DropletHost;
     part devices : MemNetDeviceHost[1..*];
@@ -2900,6 +2929,8 @@ package MemNet {
     attribute nServerFederation : Boolean = false;
     attribute insideMemNetSystem : Boolean = false;
     attribute fleetMcpHost : String = "droplet";
+    attribute productInventFace : String = "sysmledge";
+    attribute mustNotInventUploadBind : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
   }

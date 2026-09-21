@@ -1109,7 +1109,11 @@ package MemNetConnections {
     doc /*
       APPLICATION / OPS PATTERN only (MUST NOT nest under MemNetSystem):
       multiple device MemNet services (MemNetCoreLibrary on Pi /
-      workstation) plus one MemNetMcpServer at the droplet.
+      workstation) plus one MemNetMcpServer at the droplet as the
+      MemNet tip/ops engine face (tip≠face; mcpCount=1). Product
+      invent face is cousin SysMLEdge (`sysmledge`;
+      mustNotInventUploadBind). Device MAY run tip memnet-mcp for
+      ops; MUST NOT nest a second product MCP / SysMLEdge-as-product.
       Each service keeps its own session registry. Handoff = session id.
       MUST NOT be N-server federation (#47). See
       outputs/device-fleet-one-mcp-case-study.md.

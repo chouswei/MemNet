@@ -37,7 +37,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
-| Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet; not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
+| Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet as MemNet tip/ops (`tipIsFace=false`); product invent face is cousin `sysmledge` (`mustNotInventUploadBind`); not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
 | Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs eight cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8 / 11.17.1). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. SysMLEdge is a distinct desk `pin_map` (not MemNet session strata; graph is not SSOT; this repo has no product face). Overlay family is `SysMLEdgePrj-*` (prefix `SysMLEdgePrj-`); git `sysml-models/` stays structural SSOT. |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
@@ -55,7 +55,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 | Human usage look (parked HTTP) | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
-| Device fleet (one MCP at droplet) | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
+| Device fleet (one MemNet MCP at droplet; tip≠face) | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
 
 ## Nesting outline
 
@@ -70,7 +70,7 @@ MemNetSystem                          // SharedLlmMemory product
 APPLICATION LOOK   CousinPointingContrast / HostSearchBridge
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml; off ProjectMemNet load)
 OPS LOOK           MemNetUsageDashboard (look only; HTTP parked; not agent wire)
-OPS FLEET          MemNetOpsFleet (device services; one MCP at droplet; not #47)
+OPS FLEET          MemNetOpsFleet (device services; one MemNet MCP at droplet tip/ops; product face sysmledge; not #47)
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
