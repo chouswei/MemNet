@@ -21,6 +21,7 @@
     MN-REQ-04.11       pin_map order is a function of Shape observables,
                        not hid / nickname id / CREATE order (gauge)
     MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
+    MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -666,6 +667,38 @@ package MemNetRequirements {
           shipped without teaching agents the page as wire.
         */
         attribute requirementId : String = "MN-REQ-06.5";
+      }
+
+      requirement def MN_REQ_06_6_DeviceServicesOneDropletMcp {
+        doc /*
+          A droplet-centred ops fleet SHALL run MemNet engine/serve
+          (MemNetCoreLibrary) on one or more device hosts (Pi,
+          workstation, SBC) as separate services, each with its own
+          session registry. The fleet SHALL instantiate at most one
+          MemNet MCP (MemNetMcpServer) as the MemNet tip/ops engine
+          face, and that MemNet MCP SHALL sit on the droplet host.
+          That MemNet MCP is NOT the product invent face (tip≠face;
+          tipIsFace=false). The product LLM face is the cousin
+          SysMLEdge (`sysmledge` MCP on the droplet). MUST NOT invent
+          upload/bind (mustNotInventUploadBind). Device hosts SHALL
+          NOT nest a second product MCP and SHALL NOT nest
+          SysMLEdge-as-product on the device. A tip MemNet MCP on a
+          Pi for engine ops (memnet-mcp) is allowed and remains
+          tip≠face (not sold as product). mcpNested=false means no
+          product MCP nested, not a ban on ops tip. Product questions
+          SHALL bind sysmledge only; MemNet tip/ops SHALL bind the
+          droplet MemNet MCP and/or the Pi tip. MUST NOT answer
+          product questions on the MemNet tip path. Each service
+          keeps its own session handles (two handles stay two
+          handles). This SHALL NOT be N-server federation (#47): no
+          Cypher MERGE of live servers, no requirement that hosts
+          share a cabinet, no mashed session ids. Handoff remains
+          session id; optional Path-B import into a mission session
+          stays ImportAbsorb, not a new pipe. Shared Multitask on
+          one host still uses one serve (TCP / streamable-http)
+          per MN-REQ-12.2.
+        */
+        attribute requirementId : String = "MN-REQ-06.6";
       }
     }
 
@@ -1600,6 +1633,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   requirement humanUsageLookReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_5_HumanUsageLook;
+  requirement deviceServicesOneDropletMcpReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1819,6 +1854,7 @@ package MemNetRequirements {
     end #derive ::> tcpServeMigrationReq;
     end #derive ::> durableStoreBehindMemNetReq;
     end #derive ::> humanUsageLookReq;
+    end #derive ::> deviceServicesOneDropletMcpReq;
   }
 
   #derivation connection deriveMcpLeaves {

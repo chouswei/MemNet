@@ -30,6 +30,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
 | [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) | Human look at serve n/max + housekeep; manage = Memnetor+Devicor | MN-REQ-06.5; MN-VER-06-S02; HTTP parked |
+| [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) | Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge | MN-REQ-06.6; MN-VER-06-S03; tip≠face; not #47 |
 
 ### Application examples (on SharedLlmMemory)
 
