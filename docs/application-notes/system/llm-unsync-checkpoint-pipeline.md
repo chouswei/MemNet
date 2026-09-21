@@ -3,7 +3,7 @@
 > **Dialect (product 0.8):** **GQL only** — [`../../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../../SHAPE.md`](../../SHAPE.md). Shared contract: [`../README.md`](../README.md). Do **not** teach Layer / Tier A.
 
 **Class:** applications — coordinator doctrine for unsync Multitask waves.  
-**Honesty:** teach-only `c` (same goldfish loop). No new MemNet verbs. No MN-REQ-12 change. Hatch stays **0.19.11**.
+**Honesty:** teach-only `c` (same goldfish loop). No new MemNet verbs. No MN-REQ-12 change. Hatch stays **0.19.12**.
 
 **Purpose.** Parent coordinates unsync waves when MemNet is **mission SSOT**. Chat is never mission SSOT. Roles are roles, not nicknames. The next coordinator turn is a **checkpoint**, not a poll.
 

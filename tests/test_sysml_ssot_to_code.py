@@ -174,7 +174,7 @@ def test_ssot_to_code_outputs_and_not_nserver():
     assert "mustNotInventUploadBind" in study
     assert "tipIsFace=false" in study
     assert "nServerFederation=false" in study
-    assert "Hatch stays **0.19.11**" in study
+    assert "Hatch stays **0.19.12**" in study
     assert "How to track implementation" in study
     assert "ssot-to-code-allocate-map.md" in study
     blobs = [

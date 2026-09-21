@@ -6,13 +6,13 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.11**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (0.19.11 honesty `c`: catalog cross-session satisfy locators + CousinSysMLEdge mustNotInventUploadBind). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.12**; last published PyPI wheel is **`memnet-llm==0.19.11`** until this cut is uploaded (0.19.12 honesty `c`: #170 tip≠face ops fleet + #171 SSOT→code allocate). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Install + quick CLI
 
 ```bash
 pip install memnet-llm
-# or pin published: pip install memnet-llm==0.19.6
+# or pin published: pip install memnet-llm==0.19.11
 # optional extras (drivers only — not AgensGraph/Neo4j servers):
 # pip install 'memnet-llm[mcp]'
 # pip install 'memnet-llm[agensgraph]'

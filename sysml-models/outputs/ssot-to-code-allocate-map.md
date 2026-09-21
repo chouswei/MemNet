@@ -2,7 +2,7 @@
 
 **SSOT:** `sysml-models/models/implementation.sysml` (`SoftwareAllocate`).  
 **Verify:** MN-REQ-06.7 / MN-VER-06-S04 (`ImplementationTracker`).  
-**Use:** this table is the ledger. Cue `TSK_model_alloc` / `qname=MemNetImplementation`. When a module ships or moves, edit the allocate row, sync this file, run `pytest tests/test_sysml_ssot_to_code.py`. A missing path fails CI (`missingPathFailsCi`). Hatch stays **0.19.11**. Not #47.
+**Use:** this table is the ledger. Cue `TSK_model_alloc` / `qname=MemNetImplementation`. When a module ships or moves, edit the allocate row, sync this file, run `pytest tests/test_sysml_ssot_to_code.py`. A missing path fails CI (`missingPathFailsCi`). Hatch stays **0.19.12**. Not #47.
 
 **Wheel:** one `memnet-llm` package, many hosts (`oneWheelManyHosts=true`). MemNet MCP = tip/ops (`tipIsFace=false`). Cousin `sysmledge` is **not** a row (`sysmlEdgeTracked=false`).
 

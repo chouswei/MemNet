@@ -8,7 +8,7 @@ metadata:
   pattern: pipeline
   domain: sysml,memnet
   version: "1.0"
-  product: "0.19.11"
+  product: "0.19.12"
   pairs_with: [sysml-modeling-workflow, memnet-reference, sysml-gql, mcp-memnet]
 token_guardrails: |
   - Ledger: implementation.sysml + outputs/ssot-to-code-allocate-map.md.
@@ -19,7 +19,7 @@ token_guardrails: |
 
 This MemNet checkout. Logical parts live in `sysml-models/models/deploy.sysml`. **Which file realises them** is `SoftwareAllocate` in `sysml-models/models/implementation.sysml` plus the derived ledger `sysml-models/outputs/ssot-to-code-allocate-map.md` (`ImplementationTracker`; MN-REQ-06.7 / MN-VER-06-S04).
 
-**Not** codebase `:MOD` / `:SYM` snap. **Not** cousin sysmledge. **Not** N-server (#47). One Hatch wheel (`memnet-llm`) for many hosts. MemNet MCP stays tip/ops (`tipIsFace=false`). Hatch **0.19.11** honesty `c`.
+**Not** codebase `:MOD` / `:SYM` snap. **Not** cousin sysmledge. **Not** N-server (#47). One Hatch wheel (`memnet-llm`) for many hosts. MemNet MCP stays tip/ops (`tipIsFace=false`). Hatch **0.19.12** honesty `c`.
 
 ## When loaded
 

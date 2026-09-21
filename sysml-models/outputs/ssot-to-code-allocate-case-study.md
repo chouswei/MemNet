@@ -4,7 +4,7 @@
 
 Evidence walk of **SoftwareAllocate**: nested logical parts in `deploy.sysml` map to live Python modules in this checkout. One Hatch wheel (`memnet-llm`) instantiates on many hosts (droplet + devices). MemNet MCP stays **tip/ops** (`tipIsFace=false`). Cousin **sysmledge** is not in the wheel and is not allocated here (`mustNotInventUploadBind`).  
 Companions: [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) (ops topology), [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) (one shared serve per host).  
-Lock: allocate = **path record**, not a second product; Hatch stays **0.19.11** honesty `c`; [#47](https://github.com/chouswei/MemNet/issues/47) stays research.
+Lock: allocate = **path record**, not a second product; Hatch stays **0.19.12** honesty `c`; [#47](https://github.com/chouswei/MemNet/issues/47) stays research.
 
 **Wire:** unchanged. Agents still GQL / `pin_map` / `mutate`. This cut does not change engine or MCP behaviour.
 
@@ -88,7 +88,7 @@ Companions: [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study
 | MemNet MCP as product invent face | `McpServerMod.tipIsFace=false` (tip≠face) |
 | One package per host | `oneWheelManyHosts=true`; hosts instantiate the same wheel |
 | N-server federation | `nServerFederation=false`; #47 research |
-| Engine behaviour change | Allocate is a path **tracker**; Hatch stays 0.19.11 honesty `c` |
+| Engine behaviour change | Allocate is a path **tracker**; Hatch stays 0.19.12 honesty `c` |
 | SemVer `b` | Same goldfish loop (`cue → pin_map → mutate`) |
 
 ## 5. Honesty
