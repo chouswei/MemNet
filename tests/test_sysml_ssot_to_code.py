@@ -128,7 +128,13 @@ def test_ssot_to_code_outputs_and_not_nserver():
     assert "tipIsFace=false" in study
     assert "nServerFederation=false" in study
     assert "Hatch stays **0.19.11**" in study
-    blobs = [nest, study, _impl_text(), REQUIREMENTS.read_text(encoding="utf-8"), VERIFY.read_text(encoding="utf-8")]
+    blobs = [
+        nest,
+        study,
+        _impl_text(),
+        REQUIREMENTS.read_text(encoding="utf-8"),
+        VERIFY.read_text(encoding="utf-8"),
+    ]
     joined = "\n".join(blobs)
     for needle in _TIP_AS_FACE_TEACH:
         assert needle not in joined, f"tip-as-face teach string still present: {needle!r}"
