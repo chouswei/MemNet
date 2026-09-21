@@ -713,10 +713,18 @@ package MemNetRequirements {
           The MemNet MCP module remains tip/ops (tipIsFace=false).
           Cousin SysMLEdge SHALL NOT be allocated here
           (sysmlEdgeInWheel=false; inThisRepo=false;
-          mustNotInventUploadBind). MUST NOT invent upload/bind.
-          MUST NOT be N-server federation (#47). Engine/MCP behaviour
-          code SHALL NOT change solely to satisfy this allocate.
-          Hatch stays 0.19.11 honesty c.
+          mustNotInventUploadBind). The allocate package SHALL be
+          the implementation tracker: each SoftwareAllocate row is a
+          live path record (track=true; implemented=true iff the path
+          exists in this checkout). Maintainers SHALL update the row
+          when a module ships or moves; a missing path SHALL fail
+          honesty tests. The derived map
+          (sysml-models/outputs/ssot-to-code-allocate-map.md) SHALL
+          list every row. Cousin sysmledge SHALL remain listed as
+          not in this repo (sysmlEdgeTracked=false). MUST NOT invent
+          upload/bind. MUST NOT be N-server federation (#47).
+          Engine/MCP behaviour code SHALL NOT change solely to
+          satisfy this allocate. Hatch stays 0.19.11 honesty c.
         */
         attribute requirementId : String = "MN-REQ-06.7";
       }

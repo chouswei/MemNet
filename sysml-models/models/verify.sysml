@@ -1257,8 +1257,10 @@ package MemNetVerification {
       One Hatch wheel (memnet-llm) for many hosts. MemNet MCP module
       is tip/ops (tipIsFace=false). Cousin sysmledge is not in the
       wheel and not in this repo (mustNotInventUploadBind).
-      nServerFederation stays false (#47). Engine/MCP behaviour
-      unchanged; honesty c only.
+      nServerFederation stays false (#47). ImplementationTracker
+      watches allocate rows (trackAllocateRows; missingPathFailsCi);
+      sysmlEdgeTracked=false. Engine/MCP behaviour unchanged;
+      honesty c only.
     */
     attribute verificationId : String = "MN-VER-06-S04";
 
@@ -1266,23 +1268,31 @@ package MemNetVerification {
     subject mcpMod : McpServerMod;
     subject absent : CousinSysMLEdgeNotInRepo;
     subject fleet : MemNetOpsFleet;
+    subject tracker : ImplementationTracker;
 
     objective ssotToCodeAllocate {
       verify ssotToCodeAllocateReq;
       require constraint {
         wheel.oneWheelManyHosts == true
           and wheel.sysmlEdgeInWheel == false
+          and wheel.track == true
           and wheel.hatchPackage == "memnet-llm"
           and wheel.hatchCorePackage == "parts/common/memnet/memnet"
           and wheel.hatchMcpPackage == "parts/memnet-mcp/software/memnet_mcp"
           and wheel.consoleMemnet == "memnet.cli:main"
           and wheel.consoleMemnetMcp == "memnet_mcp.server:main"
           and mcpMod.tipIsFace == false
+          and mcpMod.track == true
+          and mcpMod.implemented == true
           and absent.inThisRepo == false
           and absent.implemented == false
+          and absent.track == false
           and absent.mustNotInventUploadBind == true
           and fleet.nServerFederation == false
           and fleet.mustNotInventUploadBind == true
+          and tracker.trackAllocateRows == true
+          and tracker.sysmlEdgeTracked == false
+          and tracker.missingPathFailsCi == true
       }
     }
   }

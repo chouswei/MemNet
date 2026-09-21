@@ -15,9 +15,11 @@ ROOT_SYSML = MODELS / "root.sysml"
 PYPROJECT = ROOT / "pyproject.toml"
 NEST = ROOT / "sysml-models" / "outputs" / "product-nest-one-page.md"
 STUDY = ROOT / "sysml-models" / "outputs" / "ssot-to-code-allocate-case-study.md"
+MAP = ROOT / "sysml-models" / "outputs" / "ssot-to-code-allocate-map.md"
 
 _PATH_RE = re.compile(r'attribute path : String = "([^"]+)"')
 _CODE_END_RE = re.compile(r"end code ::> ([A-Za-z0-9_.]+);")
+_ALLOC_RE = re.compile(r"allocation (\w+) : SoftwareAllocate \{([^}]*)\}", re.S)
 _TIP_AS_FACE_TEACH = (
     "LLM tool face",
     "bind the droplet MCP only",
@@ -27,6 +29,10 @@ _TIP_AS_FACE_TEACH = (
 
 def _impl_text() -> str:
     return IMPLEMENTATION.read_text(encoding="utf-8")
+
+
+def _allocate_names(text: str) -> list[str]:
+    return [m.group(1) for m in _ALLOC_RE.finditer(text)]
 
 
 def test_ssot_to_code_paths_exist():
@@ -56,9 +62,19 @@ def test_ssot_to_code_wheel_and_absence():
     assert "part def CousinSysMLEdgeNotInRepo" in text
     assert "inThisRepo : Boolean = false" in text
     assert "mustNotInventUploadBind : Boolean = true" in text
-    assert "attribute tipIsFace : Boolean = false;" in text
+    assert "part def ImplementationTracker" in text
+    assert "trackAllocateRows : Boolean = true" in text
+    assert "sysmlEdgeTracked : Boolean = false" in text
+    assert "missingPathFailsCi : Boolean = true" in text
+    assert "part tracker : ImplementationTracker" in text
+    assert "attribute track : Boolean = true;" in text
     mcp_block = text.split("part def McpServerMod", 1)[1].split("part def ", 1)[0]
     assert "attribute tipIsFace : Boolean = false;" in mcp_block
+    assert "attribute track : Boolean = true;" in mcp_block
+    absent = text.split("part def CousinSysMLEdgeNotInRepo", 1)[1].split(
+        "// ----- Usages", 1
+    )[0]
+    assert "attribute track : Boolean = false;" in absent
     assert "end code ::> sysmlEdgeAbsent" not in text
     assert "end logical ::> sysmlEdgeAbsent" not in text
     pyproject = PYPROJECT.read_text(encoding="utf-8")
@@ -85,7 +101,12 @@ def test_ssot_to_code_requirement_verify_load():
     assert "wheel.oneWheelManyHosts == true" in ver
     assert "wheel.sysmlEdgeInWheel == false" in ver
     assert "mcpMod.tipIsFace == false" in ver
-    assert "absent.inThisRepo == false" in ver
+    assert "mcpMod.track == true" in ver
+    assert "absent.track == false" in ver
+    assert "tracker.trackAllocateRows == true" in ver
+    assert "tracker.sysmlEdgeTracked == false" in ver
+    assert "tracker.missingPathFailsCi == true" in ver
+    assert "implementation tracker" in req
     assert "private import MemNetImplementation::*;" in ver
     cfg = CONFIG.read_text(encoding="utf-8")
     files = [
@@ -113,12 +134,40 @@ def test_ssot_to_code_allocate_targets_exist():
     assert missing == [], f"code ends without usages: {missing}"
 
 
+def test_ssot_to_code_map_tracks_every_allocate_row():
+    text = _impl_text()
+    names = _allocate_names(text)
+    assert len(names) >= 40, f"expected a full allocate ledger, got {len(names)}"
+    ledger = MAP.read_text(encoding="utf-8")
+    assert "Implementation tracker" in ledger or "implementation tracker" in ledger
+    assert "sysmlEdgeTracked=false" in ledger
+    assert "missingPathFailsCi" in ledger
+    assert "CousinSysMLEdgeNotInRepo" in ledger
+    assert "sysmledge" in ledger
+    missing = [name for name in names if f"| {name} |" not in ledger]
+    assert missing == [], f"allocate map missing rows: {missing}"
+    extra = []
+    for line in ledger.splitlines():
+        if not line.startswith("| ") or line.startswith("| Allocate"):
+            continue
+        if line.startswith("| ---") or "Logical (SSOT)" in line:
+            continue
+        if line.startswith("| `Cousin") or line.startswith("| N-server"):
+            continue
+        cell = line.split("|", 2)[1].strip()
+        if cell and cell not in names and cell not in {"Name", "Why"}:
+            extra.append(cell)
+    assert extra == [], f"map rows not in implementation.sysml: {extra}"
+
+
 def test_ssot_to_code_outputs_and_not_nserver():
     nest = NEST.read_text(encoding="utf-8")
     assert "IMPLEMENTATION" in nest
     assert "MemNetImplementation" in nest
     assert "oneWheelManyHosts=true" in nest
     assert "sysmlEdgeInWheel=false" in nest
+    assert "ImplementationTracker" in nest
+    assert "missingPathFailsCi" in nest
     study = STUDY.read_text(encoding="utf-8")
     assert "MN-REQ-06.7" in study
     assert "MN-VER-06-S04" in study
@@ -128,9 +177,12 @@ def test_ssot_to_code_outputs_and_not_nserver():
     assert "tipIsFace=false" in study
     assert "nServerFederation=false" in study
     assert "Hatch stays **0.19.11**" in study
+    assert "How to track implementation" in study
+    assert "ssot-to-code-allocate-map.md" in study
     blobs = [
         nest,
         study,
+        MAP.read_text(encoding="utf-8"),
         _impl_text(),
         REQUIREMENTS.read_text(encoding="utf-8"),
         VERIFY.read_text(encoding="utf-8"),

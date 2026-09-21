@@ -51,7 +51,7 @@ APPLICATION LOOK   CousinPointingContrast / HostSearchBridge (outside)
 ARCHIVE LOOK       MemNetArchive — leftover fog shelf; root does not import
 OPS LOOK           MemNetUsageDashboard — look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face)
-IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modules; one wheel many hosts
+IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modules; tracker ledger; one wheel many hosts
 ```
 
 **Happy path Multitask:** Path A shared session → re-`pin_map` (ImportGuard unused). Path B uses optional ImportGuard nest then ImportAbsorb. Hook shipped ≠ cheap LLM shipped.
@@ -102,6 +102,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Human usage look (read-only dashboard; HTTP parked) | [outputs/usage-dashboard-case-study.md](outputs/usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet, tip≠face; not #47) | [outputs/device-fleet-one-mcp-case-study.md](outputs/device-fleet-one-mcp-case-study.md) |
 | SSOT → code allocate (one Hatch wheel, many hosts) | [outputs/ssot-to-code-allocate-case-study.md](outputs/ssot-to-code-allocate-case-study.md) |
+| SSOT → code tracker map | [outputs/ssot-to-code-allocate-map.md](outputs/ssot-to-code-allocate-map.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
 
 ### Application examples (on SharedLlmMemory)

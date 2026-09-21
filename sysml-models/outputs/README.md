@@ -32,6 +32,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) | Human look at serve n/max + housekeep; manage = Memnetor+Devicor | MN-REQ-06.5; MN-VER-06-S02; HTTP parked |
 | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) | Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge | MN-REQ-06.6; MN-VER-06-S03; tip≠face; not #47 |
 | [ssot-to-code-allocate-case-study.md](ssot-to-code-allocate-case-study.md) | SSOT parts → live Python modules; one Hatch wheel many hosts; sysmledge not in wheel | MN-REQ-06.7; MN-VER-06-S04; SoftwareAllocate |
+| [ssot-to-code-allocate-map.md](ssot-to-code-allocate-map.md) | Implementation tracker ledger (every allocate row → path) | `ImplementationTracker`; missing path fails CI |
 
 ### Application examples (on SharedLlmMemory)
 

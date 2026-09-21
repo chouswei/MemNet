@@ -22,11 +22,33 @@ package MemNetImplementation {
   }
 
   part def CodeModule {
-    doc /* Live Python module or package directory in this repo. */
+    doc /*
+      Live Python module or package directory in this repo.
+      Tracking record: implemented=true and inThisRepo=true means
+      the path exists here; track=true means honesty tests watch it.
+    */
     attribute path : String;
     attribute pyName : String;
     attribute implemented : Boolean = true;
     attribute inThisRepo : Boolean = true;
+    attribute track : Boolean = true;
+  }
+
+  part def ImplementationTracker {
+    doc /*
+      Implementation ledger. Each SoftwareAllocate row tracks one
+      SSOT part to a live path. Derived map:
+      sysml-models/outputs/ssot-to-code-allocate-map.md
+      Cue TSK_model_alloc / qname=MemNetImplementation. A missing
+      path fails honesty tests — that is the tracker. MUST NOT
+      track cousin sysmledge (sysmlEdgeTracked=false).
+    */
+    attribute trackAllocateRows : Boolean = true;
+    attribute mapPath : String = "sysml-models/outputs/ssot-to-code-allocate-map.md";
+    attribute sysmlEdgeTracked : Boolean = false;
+    attribute missingPathFailsCi : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_7_SsotToCodeAllocate;
   }
 
   // ----- Wheel (one package, many hosts) -----
@@ -35,6 +57,9 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet";
     attribute pyName : String = "memnet";
     attribute hatchTarget : String = "parts/common/memnet/memnet";
+    attribute implemented : Boolean = true;
+    attribute inThisRepo : Boolean = true;
+    attribute track : Boolean = true;
   }
 
   part def McpServerMod {
@@ -46,6 +71,9 @@ package MemNetImplementation {
     attribute pyName : String = "memnet_mcp.server";
     attribute consoleEntry : String = "memnet_mcp.server:main";
     attribute tipIsFace : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute inThisRepo : Boolean = true;
+    attribute track : Boolean = true;
   }
 
   part def MemNetLlmWheel {
@@ -62,6 +90,7 @@ package MemNetImplementation {
     attribute consoleMemnetMcp : String = "memnet_mcp.server:main";
     attribute oneWheelManyHosts : Boolean = true;
     attribute sysmlEdgeInWheel : Boolean = false;
+    attribute track : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_7_SsotToCodeAllocate;
   }
@@ -224,6 +253,7 @@ package MemNetImplementation {
     attribute pyName : String = "sysmledge";
     attribute implemented : Boolean = false;
     attribute inThisRepo : Boolean = false;
+    attribute track : Boolean = false;
     attribute mustNotInventUploadBind : Boolean = true;
   }
 
@@ -265,6 +295,7 @@ package MemNetImplementation {
   part lawSeedMod : LawSeedHelperMod;
   part mcpHttpMod : McpHttpTransportMod;
   part sysmlEdgeAbsent : CousinSysMLEdgeNotInRepo;
+  part tracker : ImplementationTracker;
 
   // ----- Allocations (SSOT → code) -----
 
