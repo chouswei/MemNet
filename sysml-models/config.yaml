@@ -16,6 +16,7 @@ model_files:
   - requirements.sysml
   - cousins.sysml
   - deploy.sysml
+  - implementation.sysml
   - behaviour.sysml
   - verify.sysml
   - root.sysml

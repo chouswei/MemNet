@@ -28,6 +28,9 @@
   device MemNetCoreLibrary services; one MemNet MCP (tip/ops) at the
   droplet (tip≠face); product invent face is sysmledge;
   nServerFederation=false (#47).
+  SSOT-to-code allocate (MN-VER-06-S04): SoftwareAllocate maps
+  logical parts to live modules; one Hatch wheel many hosts;
+  sysmlEdgeInWheel=false; CousinSysMLEdge not in this repo.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -47,6 +50,7 @@ package MemNetVerification {
   private import MemNetBehaviour::*;
   private import MemNetConnections::*;
   private import MemNetCousinContrast::*;
+  private import MemNetImplementation::*;
 
   // --- MN-REQ-12 verification (group G00 + case-study steps S01–S09) ---
 
@@ -1247,6 +1251,42 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S04_SsotToCodeAllocate {
+    doc /*
+      MN-REQ-06.7 — SSOT parts allocate to live code in this checkout.
+      One Hatch wheel (memnet-llm) for many hosts. MemNet MCP module
+      is tip/ops (tipIsFace=false). Cousin sysmledge is not in the
+      wheel and not in this repo (mustNotInventUploadBind).
+      nServerFederation stays false (#47). Engine/MCP behaviour
+      unchanged; honesty c only.
+    */
+    attribute verificationId : String = "MN-VER-06-S04";
+
+    subject wheel : MemNetLlmWheel;
+    subject mcpMod : McpServerMod;
+    subject absent : CousinSysMLEdgeNotInRepo;
+    subject fleet : MemNetOpsFleet;
+
+    objective ssotToCodeAllocate {
+      verify ssotToCodeAllocateReq;
+      require constraint {
+        wheel.oneWheelManyHosts == true
+          and wheel.sysmlEdgeInWheel == false
+          and wheel.hatchPackage == "memnet-llm"
+          and wheel.hatchCorePackage == "parts/common/memnet/memnet"
+          and wheel.hatchMcpPackage == "parts/memnet-mcp/software/memnet_mcp"
+          and wheel.consoleMemnet == "memnet.cli:main"
+          and wheel.consoleMemnetMcp == "memnet_mcp.server:main"
+          and mcpMod.tipIsFace == false
+          and absent.inThisRepo == false
+          and absent.implemented == false
+          and absent.mustNotInventUploadBind == true
+          and fleet.nServerFederation == false
+          and fleet.mustNotInventUploadBind == true
+      }
+    }
+  }
+
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
       MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
@@ -1539,6 +1579,10 @@ package MemNetVerification {
     : MN_VER_06_S01_DurableCabinetHonesty;
   verification humanUsageLookOnlyVerify
     : MN_VER_06_S02_HumanUsageLookOnly;
+  verification deviceFleetOneDropletMcpVerify
+    : MN_VER_06_S03_DeviceFleetOneDropletMcp;
+  verification ssotToCodeAllocateVerify
+    : MN_VER_06_S04_SsotToCodeAllocate;
   verification expireSaveConfigurableVerify
     : MN_VER_01_S03_ExpireSaveConfigurable;
 }

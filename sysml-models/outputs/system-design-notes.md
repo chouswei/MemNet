@@ -5,7 +5,7 @@ Novel-writer is out of scope.
 
 **Wire:** openCypher-shaped GQL + shaped `pin_map` (ADR-001). Do not teach Layer.
 
-**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md).
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md) · [device fleet](device-fleet-one-mcp-case-study.md) · [SSOT → code](ssot-to-code-allocate-case-study.md).
 
 **Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [SysML nest cuts](sysml-session-nest-cuts-case-study.md).
 
@@ -38,6 +38,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet as MemNet tip/ops (`tipIsFace=false`); product invent face is cousin `sysmledge` (`mustNotInventUploadBind`); not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
+| SSOT → code (implementation) | `MemNetImplementation` `SoftwareAllocate` — logical parts → live modules; one Hatch wheel many hosts; sysmledge not in wheel → [ssot-to-code-allocate-case-study.md](ssot-to-code-allocate-case-study.md) |
 | Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs eight cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8 / 11.17.1). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. SysMLEdge is a distinct desk `pin_map` (not MemNet session strata; graph is not SSOT; this repo has no product face). Overlay family is `SysMLEdgePrj-*` (prefix `SysMLEdgePrj-`); git `sysml-models/` stays structural SSOT. |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
 | Tech-docs / SCPI working set | Art/Sec/Cmd on SharedLlmMemory → [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) |
@@ -132,6 +133,8 @@ reserve and Path-B ingest are **shipped**.
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)
+
+Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`; MN-REQ-06.7 / MN-VER-06-S04). One Hatch wheel (`memnet-llm`) for many hosts; `sysmlEdgeInWheel=false`.
 
 | Target part | Today's module(s) | Status |
 |-------------|-------------------|--------|
