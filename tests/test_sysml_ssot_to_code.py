@@ -71,9 +71,7 @@ def test_ssot_to_code_wheel_and_absence():
     mcp_block = text.split("part def McpServerMod", 1)[1].split("part def ", 1)[0]
     assert "attribute tipIsFace : Boolean = false;" in mcp_block
     assert "attribute track : Boolean = true;" in mcp_block
-    absent = text.split("part def CousinSysMLEdgeNotInRepo", 1)[1].split(
-        "// ----- Usages", 1
-    )[0]
+    absent = text.split("part def CousinSysMLEdgeNotInRepo", 1)[1].split("// ----- Usages", 1)[0]
     assert "attribute track : Boolean = false;" in absent
     assert "end code ::> sysmlEdgeAbsent" not in text
     assert "end logical ::> sysmlEdgeAbsent" not in text
