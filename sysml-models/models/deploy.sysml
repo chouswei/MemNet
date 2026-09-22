@@ -89,8 +89,9 @@
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
-  SysMLEdge graph is not MemNet SSOT; this engine repo is repo-based;
-  downstream bound desk is working model SSOT). MUST NOT thicken Recall/Commit; operatorCount stays 2.
+  SysMLEdge graph is not MemNet SSOT; this engine repo and modelbasedPrj-*
+  are repo-based — MUST NOT use SysMLEdge as model SSOT; SysMLEdgePrj-*
+  bound desk is working model SSOT). MUST NOT thicken Recall/Commit; operatorCount stays 2.
 
   Satisfy: MN-REQ-00 on MemNetSystem only; leaves on implementing parts.
 */

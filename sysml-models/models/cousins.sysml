@@ -224,19 +224,23 @@ package MemNetCousinContrast {
       SysMLEdge (user-sysmledge / product sysmledge): multi-projectId
       desk with its own pin_map. Downstream family is
       SysMLEdgePrj-* (prefix SysMLEdgePrj-; not modelbasedPrj-*).
+      Prefix is the host — not a README flip.
+      modelbasedPrj-* is repo-based (modelbasedPrjRepoBased): git
+      sysml-models/ is model SSOT. SHALL NOT use SysMLEdge as model
+      SSOT on that family (modelbasedPrjSysmlEdgeIsModelSsot=false).
       Not MemNet session strata. MemNet is mission working memory
       (memnetIsMissionWorkingMemory). SysMLEdge pin_map is not MemNet
       pin_map (graphIsNotSsot = not MemNet SSOT).
-      Operator README SHALL state repo-based or SysMLEdge-based
-      (operatorReadmeStatesHost). This MemNet engine repo is
-      repo-based: git sysml-models/ is model SSOT here
-      (gitModelPathIsSsot; thisRepoHasProductFace=false).
-      Downstream SysMLEdge-based AND bound (working_ssot=graph for
+      This MemNet engine repo is repo-based: git sysml-models/ is
+      model SSOT here (gitModelPathIsSsot; thisRepoHasProductFace=false).
+      Downstream SysMLEdgePrj-* AND bound (working_ssot=graph for
       this projectId): the desk graph is working model SSOT
       (downstreamBoundDeskIsWorkingModelSsot); git sysml-models/ is
-      backup after human Save. SHALL NOT substitute SysMLEdge pin_map
-      for MemNet pin_map. SHALL NOT bleed projectId. openProject is
-      human-gated. MUST NOT invent upload/bind. Cross-session MemNet
+      backup after human Save. Operator README on that overlay SHALL
+      state SysMLEdge-based (operatorReadmeStatesHost). SHALL NOT flip a modelbasedPrj-* tree onto a SysMLEdge host.
+      SHALL NOT substitute SysMLEdge pin_map for MemNet pin_map.
+      SHALL NOT bleed projectId. openProject is human-gated.
+      MUST NOT invent upload/bind. Cross-session MemNet
       edges stay catalog locators on MemNet; they are not SysMLEdge
       relations.
     */
@@ -255,6 +259,8 @@ package MemNetCousinContrast {
     attribute downstreamRepoFamily : String = "SysMLEdgePrj-*";
     attribute gitModelPathIsSsot : Boolean = true;
     attribute memnetIsMissionWorkingMemory : Boolean = true;
+    attribute modelbasedPrjRepoBased : Boolean = true;
+    attribute modelbasedPrjSysmlEdgeIsModelSsot : Boolean = false;
     attribute operatorReadmeStatesHost : Boolean = true;
     attribute downstreamBoundDeskIsWorkingModelSsot : Boolean = true;
     attribute mustNotInventUploadBind : Boolean = true;

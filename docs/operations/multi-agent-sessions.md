@@ -2,7 +2,7 @@
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
 **Product shape:** [`SHAPE.md`](../SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
-**Application adoption** (`modelbasedPrj-*` / `SysMLEdgePrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md) (MemNet = shared working memory; model host is repo-based git or bound SysMLEdge). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
+**Application adoption** (`modelbasedPrj-*` / `SysMLEdgePrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md) (MemNet = shared working memory; `modelbasedPrj-*` = git model SSOT, not SysMLEdge; `SysMLEdgePrj-*` bound desk = working model SSOT). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
 sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /

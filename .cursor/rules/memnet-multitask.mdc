@@ -9,7 +9,7 @@ alwaysApply: false
 
 # MemNet + Multitask Mode
 
-Load in-repo skill **`memnet-multitask`** (`.cursor/skills/memnet-multitask/SKILL.md`). Product ops: `docs/operations/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/system/llm-system-dev-multitask.md` (MemNet = working memory; operator README states repo-based or SysMLEdge-based). Chat is never mission SSOT. Product shape: `docs/SHAPE.md`.
+Load in-repo skill **`memnet-multitask`** (`.cursor/skills/memnet-multitask/SKILL.md`). Product ops: `docs/operations/multi-agent-sessions.md`. System-repo pattern: `docs/application-notes/system/llm-system-dev-multitask.md` (MemNet = working memory; `modelbasedPrj-*` is repo-based git SSOT and MUST NOT use SysMLEdge as model SSOT; `SysMLEdgePrj-*` bound desk is working model SSOT). Chat is never mission SSOT. Product shape: `docs/SHAPE.md`.
 
 ## MUST
 
