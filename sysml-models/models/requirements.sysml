@@ -1299,9 +1299,9 @@ package MemNetRequirements {
             foreign product pin_map (SysMLEdge / other desk) as this
             MemNet catalog look. SysMLEdge graph is not MemNet SSOT.
             This engine checkout is repo-based: SSOT is git
-            sysml-models/. Downstream SysMLEdge-based and bound: the
-            desk graph is working model SSOT; MemNet stays mission
-            working memory. Look remains one named session per
+            sysml-models/. modelbasedPrj-* is the same (MUST NOT use SysMLEdge as model SSOT).
+            Downstream SysMLEdgePrj-* and bound: the desk graph is working model SSOT;
+            MemNet stays mission working memory. Look remains one named session per
             generate; join remains Path-B slice.
           */
           attribute requirementId : String = "MN-REQ-11.17.1";

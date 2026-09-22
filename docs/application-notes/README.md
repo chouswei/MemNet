@@ -33,7 +33,7 @@ Kinds not in the open map fail `unknown_tag`. Bundled maps: `parts/common/memnet
 | [`llm-circuit-schematic.md`](domains/llm-circuit-schematic.md) | Schematic / s-domain (GQL) | same as GQL case study |
 | [`llm-nodal-analysis-formulas.md`](domains/llm-nodal-analysis-formulas.md) | Node method (GQL) | same as GQL case study |
 | [`llm-sysml-v2-modeling.md`](system/llm-sysml-v2-modeling.md) | SysML model host; relatives of one cue; sub-unit in a **separate session**; MemNet is campaign memory | `schema.sysml.example.txt` **union** `schema.coding.example.txt` |
-| [`llm-system-dev-multitask.md`](system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` (MemNet working memory; repo-based or SysMLEdge-based host) | sysml + coding (+ ingest maps as needed) |
+| [`llm-system-dev-multitask.md`](system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` (git model SSOT; not SysMLEdge) / `SysMLEdgePrj-*` (bound desk when SysMLEdge-based) | sysml + coding (+ ingest maps as needed) |
 | [`llm-unsync-checkpoint-pipeline.md`](system/llm-unsync-checkpoint-pipeline.md) | Unsync checkpoint pipeline (roles / Bind / checkpoints; cite multitask SSOT) | same as system-dev multitask |
 | [`llm-software-development.md`](system/llm-software-development.md) | Multi-turn coding memory | `schema.coding.example.txt`; locators via `ingest_codebase` |
 | [`llm-tech-docs-decomposition.md`](domains/llm-tech-docs-decomposition.md) | Manual / SCPI atomisation | `schema.techdocs.example.txt` |

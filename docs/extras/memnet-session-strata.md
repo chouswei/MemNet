@@ -97,7 +97,7 @@ Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Re
 
 The Snap is of **one model** (a load tree / root package). The sessions are **strata of that Snap**, not a pile of unrelated library stores.
 
-**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR/CON with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone is ~193 nodes. **This engine checkout is repo-based: `.sysml` stays structural SSOT here.** Downstream SysMLEdge-based bound overlays: the desk graph is working model SSOT; MemNet ingest remains a campaign cache.
+**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR/CON with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone is ~193 nodes. **This engine checkout and `modelbasedPrj-*` are repo-based: `.sysml` stays structural SSOT here. MUST NOT use SysMLEdge as model SSOT on that family.** Downstream `SysMLEdgePrj-*` bound overlays: the desk graph is working model SSOT; MemNet ingest remains a campaign cache.
 
 **Wrong reading of “strata”.** Opening a new session for each file on disk and calling that Snap. That is N ingests, not **one model Snap**. Files are how this repo **stores** packages; they are not the Snap cardinality.
 

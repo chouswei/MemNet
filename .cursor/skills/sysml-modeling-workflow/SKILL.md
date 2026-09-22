@@ -12,14 +12,15 @@ metadata:
   pairs_with: [sysml-memnet-cache, sysml-memnet-documentation, sysml-gql, sysml-modeling-session-checklist, mcp-memnet, memnet-nested-sessions, sysml-ssot-to-code]
 token_guardrails: |
   - Follow the turn table. This checkout is repo-based: .sysml is model SSOT; MemNet is relatives.
-  - Downstream SysMLEdge-based: bound desk hosts the model graph (playbook host mode).
+  - modelbasedPrj-* is the same (MUST NOT use SysMLEdge as model SSOT).
+  - SysMLEdgePrj-* bound: desk hosts the model graph (playbook host mode).
   - pin_map from a cue before edit; mutate after validate.
   - Nested interiors: memnet-nested-sessions (not N maps in one generate).
 ---
 
 # SysML modeling workflow
 
-This **MemNet product** checkout is **repo-based**: **`sysml-models/`** is model SSOT here. Downstream packs may use `sysml-v2-models/projects/<slug>/` or a **SysMLEdge-based** bound desk — copy the host from that repo’s operator README / `AGENTS.md`. MemNet stays campaign working memory.
+This **MemNet product** checkout is **repo-based**: **`sysml-models/`** is model SSOT here. A **`modelbasedPrj-*`** overlay is the same (git `sysml-models/`; **MUST NOT** use SysMLEdge as model SSOT). A **`SysMLEdgePrj-*`** overlay when bound uses the SysMLEdge desk as working model SSOT. MemNet stays campaign working memory.
 
 ## Turn sequence
 

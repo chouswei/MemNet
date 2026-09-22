@@ -6,7 +6,7 @@
 **Operational doctrine (developers):** [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md).  
 **Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../../README.md).
 
-**Application example (documentation only).** Pattern for a downstream system repository when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet stays **shared working memory for agents** (mission goldfish: `TSK_*`, locators, campaign `pin_map`). It is **not** the structural model graph. The operator README of the live overlay **MUST** state **repo-based** or **SysMLEdge-based**. When SysMLEdge-based and bound, the **SSOT graph is hosted by SysMLEdge**.
+**Application example (documentation only).** Pattern for a downstream system repository when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet stays **shared working memory for agents** (mission goldfish: `TSK_*`, locators, campaign `pin_map`). It is **not** the structural model graph. Prefix is the model host: **`modelbasedPrj-*` is repo-based** (git `sysml-models/`; **MUST NOT** use SysMLEdge as model SSOT). **`SysMLEdgePrj-*` is SysMLEdge-based** when bound (the SSOT graph is hosted by SysMLEdge).
 
 **Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)).
 
@@ -29,17 +29,17 @@ MemNet is **shared working memory for agents**. Chat is never mission SSOT (MN-R
 | Store | Role | SSOT for |
 |-------|------|----------|
 | **MemNet session** (shared TCP/HTTP) | Campaign goldfish: `TSK_*`, `USR_*`, scoped `MOD_*` / `SYM_*`, `CLM_*` / `DEC_*` | Mission ids, paths, task status, agent-verified locators. **Not** the model graph. |
-| **Model host** | Structural model (requirements, deploy, behaviour, satisfy/allocate) | **repo-based:** git `sysml-models/`. **SysMLEdge-based** and bound (`working_ssot=graph` for this `projectId`): **SysMLEdge graph**. git `sysml-models/` is backup after human Save, not the live graph while bound. |
+| **Model host** | Structural model (requirements, deploy, behaviour, satisfy/allocate) | **`modelbasedPrj-*` / this engine:** git `sysml-models/` (**MUST NOT** use SysMLEdge as model SSOT). **`SysMLEdgePrj-*`** and bound (`working_ssot=graph` for this `projectId`): **SysMLEdge graph**. git `sysml-models/` is backup after human Save, not the live graph while bound. |
 | **Source tree** (`parts/`, firmware, docs) | Git history | Code and artefacts on disk |
 
-**Host mode.** The overlay **operator README** MUST state **repo-based** or **SysMLEdge-based**. LLM-facing remains `AGENTS.md`. This MemNet **engine** repo is **repo-based** (no SysMLEdge product face; `mustNotInventUploadBind`).
+**Host mode.** Prefix is the host. LLM-facing remains `AGENTS.md`. This MemNet **engine** repo is **repo-based** (no SysMLEdge product face; `mustNotInventUploadBind`).
 
 | Host | Who has it | Model read / write | MemNet |
 |------|------------|--------------------|--------|
-| **repo-based** | `modelbasedPrj-*`; this engine checkout; unbound SysMLEdge overlay | Edit git `.sysml`; MemNet Snap / relatives are a cache | Campaign `pin_map` / `mutate` |
-| **SysMLEdge-based** | `SysMLEdgePrj-*` with product face **and** `rev_status` showing this `projectId` with `working_ssot=graph` | Read `rev_status` / `ask` / `gql` / product `pin_map`. Write `propose`. Desk Save is **human**, not an agent step to finish. | Campaign `pin_map` only — **not** model SSOT |
+| **repo-based** | `modelbasedPrj-*`; this engine checkout | Edit git `.sysml`. **MUST NOT** use SysMLEdge as model SSOT. MemNet Snap / relatives are a cache | Campaign `pin_map` / `mutate` |
+| **SysMLEdge-based** | `SysMLEdgePrj-*` with product face **and** `rev_status` showing this `projectId` with `working_ssot=graph` | Read `rev_status` / `ask` / `gql` / product `pin_map`. Write `propose`. Desk Save is **human**, not an agent step to finish. Operator README on that overlay states SysMLEdge-based. | Campaign `pin_map` only — **not** model SSOT |
 
-**Repo prefixes.** `modelbasedPrj-*` is the repo-based family (mission MemNet + git `sysml-models/`). **`SysMLEdgePrj-*`** is the family that MAY bind a SysMLEdge desk (`user-sysmledge`; its own `pin_map`; multi-`projectId`; human-gated `openProject`). MUST NOT invent `projectId`. MUST NOT skip the face because the graph lags files. MUST NOT substitute SysMLEdge `pin_map` for MemNet `pin_map` (or the reverse). MUST NOT invent an upload/bind this engine overlay forbids.
+**Repo prefixes.** `modelbasedPrj-*` is repo-based by prefix (mission MemNet + git `sysml-models/`). **MUST NOT** use SysMLEdge as model SSOT on that family. **`SysMLEdgePrj-*`** is SysMLEdge-based when bound (`user-sysmledge`; its own `pin_map`; multi-`projectId`; human-gated `openProject`). MUST NOT invent `projectId`. MUST NOT skip the face because the graph lags files. MUST NOT substitute SysMLEdge `pin_map` for MemNet `pin_map` (or the reverse). MUST NOT invent an upload/bind this engine overlay forbids. MUST NOT copy a SysMLEdge host onto a `modelbasedPrj-*` tree.
 
 ```mermaid
 flowchart TB

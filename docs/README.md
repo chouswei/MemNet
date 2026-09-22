@@ -76,7 +76,7 @@ Shared contract: [`application-notes/README.md`](application-notes/README.md). D
 
 | Doc | Role |
 |-----|------|
-| [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` (MemNet working memory; repo-based or SysMLEdge-based host) |
+| [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Multitask in `modelbasedPrj-*` (git model SSOT; MUST NOT SysMLEdge) / `SysMLEdgePrj-*` (bound desk when SysMLEdge-based) |
 | [`application-notes/system/llm-unsync-checkpoint-pipeline.md`](application-notes/system/llm-unsync-checkpoint-pipeline.md) | Unsync checkpoint pipeline (roles, Bind atoms, checkpoint kinds; cite, do not fork transport) |
 | [`application-notes/system/llm-software-development.md`](application-notes/system/llm-software-development.md) | Multi-turn coding |
 | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | SysML model host; relatives + sub-unit sessions; MemNet is campaign memory |

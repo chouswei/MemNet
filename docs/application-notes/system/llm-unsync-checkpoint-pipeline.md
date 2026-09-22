@@ -77,7 +77,7 @@ MUST NOT emit atoms, waves, patches, or file contents.
 2. **Complex** → Architect root plan → **Architect accept** → Bind. **Normal** → Bind plans and decomposes. **Unknown cause** → Diagnose → Bind.
 3. After Bind ready: spawn **one worker per ready atom** with that atom's **required role**. MUST NOT default every atom to Implement.
 4. MUST spawn **unsync** (background / Multitask) and MUST **end the turn** — no poll, no await. Transport and shared `session` id: cite memnet-multitask / [`multi-agent-sessions.md`](../../operations/multi-agent-sessions.md).
-5. Next coordinator turn = **checkpoint**. Campaign: MemNet `pin_map` first; settle `TSK_*` / `USR_*` from that session. **SysMLEdge-based** (operator README) and bound: model facts from product `pin_map` / `ask` / `gql` — tip MemNet `pin_map` is campaign only, not model SSOT. **repo-based:** model facts from git `sysml-models/`. Then spawn the next wave or stop.
+5. Next coordinator turn = **checkpoint**. Campaign: MemNet `pin_map` first; settle `TSK_*` / `USR_*` from that session. **`SysMLEdgePrj-*`** and bound (**SysMLEdge-based**): model facts from product `pin_map` / `ask` / `gql` — tip MemNet `pin_map` is campaign only, not model SSOT. **`modelbasedPrj-*` / this engine (repo-based):** model facts from git `sysml-models/` — **MUST NOT** use SysMLEdge as model SSOT. Then spawn the next wave or stop.
 6. Multitask Mode governs **spawn-async + end-turn only**. It MUST NOT change atom count or required role.
 
 GQL Commit stays `mutate`. Recall stays `pin_map`. Cite [`memnet-format`](../../../.cursor/skills/memnet-format/SKILL.md).
@@ -114,7 +114,7 @@ Checkpoint is the **coordinator** turn after a wave. Workers MUST NOT self-decla
 
 ## SysML note
 
-Architect I/O gate is unchanged (thin `path` / `qname` pointers). Bind / parent fills purpose, packages, part / port / `qname` from the **model host** in [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md): **SysMLEdge-based** and bound → product `pin_map` / `ask` then `propose` (human Save; agent does not finish Save). **repo-based** (this MemNet engine checkout) → Implement edits `.sysml` after Bind ready, then outputs and allocated `parts/**`.
+Architect I/O gate is unchanged (thin `path` / `qname` pointers). Bind / parent fills purpose, packages, part / port / `qname` from the **model host** in [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md): **`SysMLEdgePrj-*`** and bound → product `pin_map` / `ask` then `propose` (human Save; agent does not finish Save). **`modelbasedPrj-*` / this MemNet engine checkout** → Implement edits `.sysml` after Bind ready, then outputs and allocated `parts/**`. **MUST NOT** use SysMLEdge as model SSOT on `modelbasedPrj-*`.
 
 MemNet stays campaign working memory. Two `pin_map` tools MUST NOT substitute. Do not restate that note's transport or parent-worker tables here.
 

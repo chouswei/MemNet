@@ -206,12 +206,12 @@ Do **not** confuse this key with `MEMNET_MCP_HTTP_TOKEN`, CapsPolicy `session_to
 
 **MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
 
-### SysMLEdge users (model host)
+### Model host (prefix)
 
-MemNet stays **shared working memory for agents**. It is not the structural model graph. Downstream overlay **operator README** MUST state **repo-based** or **SysMLEdge-based**. Detail: [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md).
+MemNet stays **shared working memory for agents**. It is not the structural model graph. Prefix is the host — not a README flip. Detail: [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md).
 
-- **SysMLEdge-based** and bound (`rev_status`: this `projectId`, `working_ssot=graph`): the **SSOT graph is hosted by SysMLEdge**. Read `ask` / `gql` / product `pin_map`; write `propose`. git `sysml-models/` is backup after human Save. Checkpoint model facts from the desk, not from tip MemNet `pin_map`.
-- **repo-based** (this engine checkout; `modelbasedPrj-*`): git `sysml-models/` is model SSOT. MemNet Snap / relatives are a cache.
+- **`modelbasedPrj-*`** (and this engine checkout): **repo-based**. git `sysml-models/` is model SSOT. MemNet Snap / relatives are a cache. **MUST NOT** use SysMLEdge as model SSOT.
+- **`SysMLEdgePrj-*`** and bound (`rev_status`: this `projectId`, `working_ssot=graph`): **SysMLEdge-based**. The SSOT graph is hosted by SysMLEdge. Read `ask` / `gql` / product `pin_map`; write `propose`. git `sysml-models/` is backup after human Save. Checkpoint model facts from the desk, not from tip MemNet `pin_map`. Operator README on that overlay states SysMLEdge-based.
 - Two `pin_map` tools. **MUST NOT** substitute SysMLEdge `pin_map` for MemNet `pin_map` (or the reverse). Tip MemNet is campaign goldfish; tip≠face.
 - **MUST NOT** invent `openProject` / `projectId` / upload-bind in this engine repo. Desk Save is human, not an agent finish.
 
@@ -310,7 +310,7 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 
 | # | Note | Summary |
 |---|------|---------|
-| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` (MemNet = shared working memory; model host is repo-based git or bound SysMLEdge graph) |
+| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` (git model SSOT; MUST NOT SysMLEdge) / `SysMLEdgePrj-*` (bound desk when SysMLEdge-based) |
 | 1 | `system/llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `domains/llm-daily-news.md` | Batch RSS digest |
 | 3 | `domains/llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
