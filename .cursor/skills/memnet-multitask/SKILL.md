@@ -30,7 +30,7 @@ This checkout **vendors** the Multitask skill. Pair with [mcp-memnet](../mcp-mem
 |--------|--------|
 | Multitask Mode on | Follow this skill + MemNet `docs/operations/multi-agent-sessions.md` |
 | Spawning Task / background workers | Parent checklist below; pass session id in every worker prompt |
-| `modelbasedPrj-*` or `SysMLEdgePrj-*` system repo + Multitask | Also read MemNet `docs/application-notes/system/llm-system-dev-multitask.md`. `SysMLEdgePrj-*` MAY have a SysMLEdge desk; git `sysml-models/` stays SSOT |
+| `modelbasedPrj-*` or `SysMLEdgePrj-*` system repo + Multitask | Also read MemNet `docs/application-notes/system/llm-system-dev-multitask.md`. Operator README states **repo-based** or **SysMLEdge-based**. Bound SysMLEdge graph is working model SSOT; MemNet is campaign working memory |
 | Single-agent goldfish loop | [memnet-use](../memnet-use/SKILL.md) — default in-process MCP |
 
 ## Transport (shared store)
@@ -90,15 +90,15 @@ When working **in** the MemNet engine repository:
 
 In downstream **`modelbasedPrj-*`** / **`SysMLEdgePrj-*`** repos: adopt via doc pointer or thin local mirror -- **do not** import `MemNetRequirements` into the product load tree unless the project owns a merged model. Detail: MemNet `docs/application-notes/system/llm-system-dev-multitask.md` section 6.
 
-## System-dev two-store pattern (`modelbasedPrj-*` / `SysMLEdgePrj-*`)
+## System-dev working memory vs model host (`modelbasedPrj-*` / `SysMLEdgePrj-*`)
 
 | Store | SSOT for |
 |-------|----------|
-| **MemNet session** (TCP/HTTP) | Mission goldfish: `TSK_*`, `USR_*`, scoped `MOD_*` / `SYM_*`, `CLM_*` / `DEC_*` |
-| **Product `sysml-models/`** (git) | Structural model: requirements, deploy, behaviour |
+| **MemNet session** (TCP/HTTP) | Shared working memory: `TSK_*`, `USR_*`, scoped `MOD_*` / `SYM_*`, `CLM_*` / `DEC_*`. **Not** the model graph. |
+| **Model host** | **repo-based:** git `sysml-models/`. **SysMLEdge-based** and bound: SysMLEdge graph (`ask` / product `pin_map` / `propose`). git is backup after human Save. Operator README states the host. |
 | **Source tree** | Code and artefacts on disk |
 
-Recommended order when both SysML and code change: **SysML worker first** (disjoint `MOD_*` under `sysml-models/`), then **code worker** (`parts/`, tests). Full pattern: MemNet `docs/application-notes/system/llm-system-dev-multitask.md`.
+Two `pin_map` tools MUST NOT substitute. This MemNet engine repo is **repo-based** (`mustNotInventUploadBind`). Recommended order when both model and code change: **SysML worker first**, then **code worker**. Full pattern: MemNet `docs/application-notes/system/llm-system-dev-multitask.md`.
 
 Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NEW). Catalog Snap: **`snap_model`**. Export: **`export_pin_map`**. Ingest is **not** export.
 

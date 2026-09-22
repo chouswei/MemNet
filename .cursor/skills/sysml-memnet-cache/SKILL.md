@@ -11,7 +11,8 @@ metadata:
   product: memnet-llm==0.19.3
   pairs_with: [sysml-memnet-documentation, mcp-memnet, sysml-modeling-workflow, sysml-modeling-session-checklist, memnet-format, sysml-gql]
 token_guardrails: |
-  - .sysml is structure; MemNet is relatives; AGENT-CONTEXT is session stub.
+  - This checkout: .sysml is structure; MemNet is relatives; AGENT-CONTEXT is session stub.
+  - SysMLEdge-based overlays: bound desk hosts the model graph; MemNet stays campaign memory.
   - pin_map before edit; mutate after validate. leftover add/update named leftover.
 ---
 
@@ -28,13 +29,15 @@ Specialist `sysml-*` skills **read/write here**. They do not keep a parallel mem
 
 Copy the live root from `AGENTS.md`. Stale `path=` in an old snap is not SSOT.
 
-## Three stores
+## Three stores (this checkout is repo-based)
 
 | Store | Holds |
 |-------|-------|
-| `models/*.sysml` | Structure, satisfy — edit first |
-| MemNet | Relatives — cue `pin_map` then `mutate` |
+| `models/*.sysml` | Structure, satisfy — edit first (model SSOT **here**) |
+| MemNet | Relatives — cue `pin_map` then `mutate` (campaign working memory, not the model graph) |
 | `AGENT-CONTEXT.md` | Session id only |
+
+Downstream **SysMLEdge-based** overlays: the bound SysMLEdge graph is working model SSOT; git `.sysml` is backup after human Save. Playbook: `docs/application-notes/system/llm-system-dev-multitask.md`.
 
 Kinds: [sysml-memnet-patterns.md](../sysml-memnet-documentation/references/sysml-memnet-patterns.md). Who writes what: [relatives-cache-map.md](../sysml-memnet-documentation/references/relatives-cache-map.md).
 

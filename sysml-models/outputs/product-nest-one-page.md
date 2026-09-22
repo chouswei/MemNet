@@ -17,8 +17,9 @@ MemNetSystem                          // SharedLlmMemory product
 └── DurableBuffer                     // ONE primary cabinet story (hydrate/flush)
 
 APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
-                   is a distinct pin_map / not SSOT; overlay family
-                   SysMLEdgePrj-*; git sysml-models/ is SSOT),
+                   is a distinct pin_map / not MemNet SSOT; overlay family
+                   SysMLEdgePrj-*; this engine repo is repo-based git SSOT;
+                   downstream bound desk is working model SSOT),
                    HostSearchBridge, …
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml) — leftover_* /
                    TierACodec / LegacyPipe* shelf; ProjectMemNet MUST NOT import

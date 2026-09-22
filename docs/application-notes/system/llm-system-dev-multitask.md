@@ -6,7 +6,7 @@
 **Operational doctrine (developers):** [`docs/operations/multi-agent-sessions.md`](../../operations/multi-agent-sessions.md).  
 **Application skill:** `.cursor/skills/memnet-multitask/` (optional user pack: `~/.cursor/skills/memnet-multitask/`). Index: [`docs/README.md`](../../README.md).
 
-**Application example (documentation only).** Pattern for a downstream system repository when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet holds **mission goldfish state**; the product **`sysml-models/`** tree remains **structural SSOT**. A **`SysMLEdgePrj-*`** checkout MAY also bind a SysMLEdge desk (`user-sysmledge`) — that graph is a look, not SSOT; do not treat the git tree as a copy of the desk.
+**Application example (documentation only).** Pattern for a downstream system repository when Cursor **Multitask Mode** (or Task sub-agents) runs multi-step system, software, or SysML work. MemNet stays **shared working memory for agents** (mission goldfish: `TSK_*`, locators, campaign `pin_map`). It is **not** the structural model graph. The operator README of the live overlay **MUST** state **repo-based** or **SysMLEdge-based**. When SysMLEdge-based and bound, the **SSOT graph is hosted by SysMLEdge**.
 
 **Dialect:** GQL ([`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md)).
 
@@ -22,39 +22,45 @@ This note complements:
 
 ---
 
-## 1. Two stores of truth
+## 1. Working memory vs model SSOT
+
+MemNet is **shared working memory for agents**. Chat is never mission SSOT (MN-REQ-12.1; extends MN-REQ-10.1). The structural model has a **host mode**. Two MCP namespaces, two `pin_map` tools: **MUST NOT** substitute.
 
 | Store | Role | SSOT for |
 |-------|------|----------|
-| **MemNet session** (shared TCP/HTTP) | Turn-facing goldfish: `TSK_*`, `USR_*`, scoped `MOD_*` / `SYM_*`, `CLM_*` / `DEC_*` | Mission ids, paths, task status, agent-verified locators |
-| **Product `sysml-models/`** | Versioned structural model (requirements, deploy, behaviour) | System architecture, interfaces, satisfy/trace to product reqs |
+| **MemNet session** (shared TCP/HTTP) | Campaign goldfish: `TSK_*`, `USR_*`, scoped `MOD_*` / `SYM_*`, `CLM_*` / `DEC_*` | Mission ids, paths, task status, agent-verified locators. **Not** the model graph. |
+| **Model host** | Structural model (requirements, deploy, behaviour, satisfy/allocate) | **repo-based:** git `sysml-models/`. **SysMLEdge-based** and bound (`working_ssot=graph` for this `projectId`): **SysMLEdge graph**. git `sysml-models/` is backup after human Save, not the live graph while bound. |
 | **Source tree** (`parts/`, firmware, docs) | Git history | Code and artefacts on disk |
 
-Chat and sub-agent prose are **never** mission SSOT (MN-REQ-12.1; extends MN-REQ-10.1).
+**Host mode.** The overlay **operator README** MUST state **repo-based** or **SysMLEdge-based**. LLM-facing remains `AGENTS.md`. This MemNet **engine** repo is **repo-based** (no SysMLEdge product face; `mustNotInventUploadBind`).
 
-**Repo prefixes.** `modelbasedPrj-*` is the older two-store family (mission MemNet + git `sysml-models/`). **`SysMLEdgePrj-*`** is the family that also has a SysMLEdge product overlay (its own `pin_map`, multi-`projectId`, human-gated `openProject`). In both families **git `sysml-models/` stays structural SSOT**. SysMLEdge MUST NOT be taught as the host of truth; MUST NOT substitute its `pin_map` for MemNet `pin_map`; MUST NOT invent an upload/bind the overlay forbids. This MemNet engine repo is neither prefix.
+| Host | Who has it | Model read / write | MemNet |
+|------|------------|--------------------|--------|
+| **repo-based** | `modelbasedPrj-*`; this engine checkout; unbound SysMLEdge overlay | Edit git `.sysml`; MemNet Snap / relatives are a cache | Campaign `pin_map` / `mutate` |
+| **SysMLEdge-based** | `SysMLEdgePrj-*` with product face **and** `rev_status` showing this `projectId` with `working_ssot=graph` | Read `rev_status` / `ask` / `gql` / product `pin_map`. Write `propose`. Desk Save is **human**, not an agent step to finish. | Campaign `pin_map` only — **not** model SSOT |
+
+**Repo prefixes.** `modelbasedPrj-*` is the repo-based family (mission MemNet + git `sysml-models/`). **`SysMLEdgePrj-*`** is the family that MAY bind a SysMLEdge desk (`user-sysmledge`; its own `pin_map`; multi-`projectId`; human-gated `openProject`). MUST NOT invent `projectId`. MUST NOT skip the face because the graph lags files. MUST NOT substitute SysMLEdge `pin_map` for MemNet `pin_map` (or the reverse). MUST NOT invent an upload/bind this engine overlay forbids.
 
 ```mermaid
 flowchart TB
   subgraph mission [Shared MemNet session TCP/HTTP]
     TSK[TSK_* parent task]
     USR[USR_* constraints]
-    MOD[MOD_* / SYM_* under scope]
+    MOD[MOD_* / SYM_* locators]
   end
-  subgraph structural [Product sysml-models/ git]
-    REQ[requirements.sysml]
-    DEP[deploy.sysml]
-    BEH[behaviour.sysml]
+  subgraph model [Model SSOT host]
+    REPO[repo-based: git sysml-models/]
+    EDGE[SysMLEdge-based: bound desk graph]
   end
   subgraph workers [Multitask workers]
     W1[Worker scoped mutate]
   end
   PARENT[Parent coordinator] --> TSK
   PARENT -->|delegate + end turn| W1
-  W1 -->|pin_map first| mission
-  PARENT -->|pin_map reconcile| mission
-  W1 -.->|edit when in scope| structural
-  structural -.->|Path-B seed_lines / add| mission
+  W1 -->|campaign pin_map first| mission
+  PARENT -->|campaign pin_map reconcile| mission
+  PARENT -->|checkpoint: model facts| model
+  W1 -.->|repo-based edit or SysMLEdge propose| model
 ```
 
 ---
@@ -110,11 +116,11 @@ Probe with `serve_status` before delegating if transport is uncertain.
 
 ## 5. Serial SysML then code (recommended)
 
-When work touches both **`sysml-models/`** and implementation files:
+When work touches both the **model host** and implementation files:
 
 | Order | Worker | Scope | Rationale |
 |-------|--------|-------|-----------|
-| **1** | SysML worker | `MOD_*` under `sysml-models/`, product `REQ_*` / `SYM_*` | Structural decisions land in git SSOT first |
+| **1** | SysML worker | Model `qname=` / `REQ_*` / `SYM_*`. **repo-based:** `MOD_*` under `sysml-models/`. **SysMLEdge-based:** product `pin_map` / `ask` then `propose` | Structural decisions land in the model host first |
 | **2** | Code worker | `parts/`, tests, firmware | Implementation follows model; disjoint `MOD_*` anchors |
 
 **Alternative:** one worker if the mission is small and files do not overlap.
@@ -187,7 +193,8 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | Parent polls / re-investigates | Token waste; gate violation | End turn after spawn; next turn pin_map only |
 | Parallel same-anchor writers | Silent clobber | Serial worker or disjoint scopes |
 | Assuming full ACL modes / `session_token` | False isolation | CapsPolicy when enabled; RSV + Path-B ingest **are** shipped; full modes still to-be |
-| SysML vs MemNet drift | Model and pins disagree | SysML in git wins for structure; MemNet holds locators + mission state |
+| SysML vs MemNet drift | Model and campaign pins disagree | Model host wins for structure (git when repo-based; bound SysMLEdge graph when SysMLEdge-based). MemNet holds locators + mission state |
+| MemNet `pin_map` as the model graph | Agent edits `.sysml` or settles structure from campaign pins while a bound desk is SSOT | Two namespaces: product `pin_map` / `ask` / `propose` for the model; MemNet `pin_map` for the campaign |
 | Worker settles parent `TSK_*` | Lifecycle violation | Parent-only settle unless delegated |
 | Truncating `pin_map` as the copied slice | FND / checklist / fundamentals missing; false-complete extract | Filter-out (drop news / tighten cue) or raise `max_rows`; engine \(M\) stays a hard reject. Clipped emit MUST carry a truncation signal (CueConflict family); treat as incomplete Shape |
 

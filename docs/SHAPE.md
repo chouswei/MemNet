@@ -84,8 +84,8 @@ The shape **applies** to SysML work; it is not a SysML clone.
 
 | Kind | Path | Role |
 |------|------|------|
-| **Application note** | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | Use MemNet as session memory while modelling **someone else's** SysML v2 tree (atoms + locators; `.sysml` stays structural SSOT) |
-| **Application note (Multitask)** | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Same two-store cut in `modelbasedPrj-*` / `SysMLEdgePrj-*`: shared session goldfish vs product `sysml-models/` (SysMLEdge desk is a look, not SSOT) |
+| **Application note** | [`application-notes/system/llm-sysml-v2-modeling.md`](application-notes/system/llm-sysml-v2-modeling.md) | Use MemNet as session working memory while modelling **someone else's** SysML v2 tree (atoms + locators). This engine checkout is **repo-based** (`.sysml` is model SSOT here). **SysMLEdge-based** overlays: bound desk hosts the model graph |
+| **Application note (Multitask)** | [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md) | Shared working memory vs model host in `modelbasedPrj-*` / `SysMLEdgePrj-*`. Operator README states **repo-based** or **SysMLEdge-based**. Bound SysMLEdge graph is working model SSOT; MemNet stays campaign working memory |
 | **Product model** | [`../sysml-models/`](../sysml-models/) | MemNet **itself** (MN-REQ-00…13). Not an application note |
 
 Do **not** import `MemNetRequirements` into a downstream load tree. User pack: `sysml-memnet-documentation` / `sysml-memnet-cache`.

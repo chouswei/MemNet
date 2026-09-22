@@ -43,5 +43,6 @@ Code `:MOD`/`:SYM`: [memnet-codebase-snap](../memnet-codebase-snap/SKILL.md). Sy
 - Dump \(S\) or a fat `.sysml` into chat.
 - Stack \(N\) nested `pin_map`s in one generate — re-anchor with MCP `session=` / locator `session=`.
 - Treat chat as ids / paths / mission state.
+- Treat MemNet as the structural model graph when the overlay is **SysMLEdge-based** and bound — product `pin_map` / `ask` host that graph; MemNet stays campaign working memory.
 - `rag_query` / ANN of the session.
 - Load [memnet-reference](../memnet-reference/SKILL.md) unless **building** this product.

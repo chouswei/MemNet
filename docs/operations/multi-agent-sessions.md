@@ -2,7 +2,7 @@
 
 **Class:** developers — MemNet engine / MCP / agent operating doctrine.  
 **Product shape:** [`SHAPE.md`](../SHAPE.md). **Dialect:** **GQL only** — [`grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Handoff = **session id** (module A→B pipe; B cue then `pin_map`); prefer **import** over session merge.
-**Application adoption** (`modelbasedPrj-*` / `SysMLEdgePrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
+**Application adoption** (`modelbasedPrj-*` / `SysMLEdgePrj-*`): [`application-notes/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md) (MemNet = shared working memory; model host is repo-based git or bound SysMLEdge). Shared contract: [`application-notes/README.md`](../application-notes/README.md). Index: [`README.md`](../README.md).
 
 **Status:** enforceable agent doctrine for Cursor Multitask Mode and Task
 sub-agents. The CapsPolicy ACL cut (who / `pin_map`-vs-mutate /
@@ -19,7 +19,7 @@ see `docs/extras/memnet-security-multi-agent.md` and
 
 ## Principle
 
-When Multitask is **on**, one **shared MemNet session** \(S\) is mission SSOT. Chat is never SSOT. Parent coordinates; workers execute under assigned scope.
+When Multitask is **on**, one **shared MemNet session** \(S\) is **working memory** for the mission (goldfish `TSK_*` / locators). Chat is never SSOT. MemNet is **not** the structural model graph — see host mode in [`application-notes/system/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Parent coordinates; workers execute under assigned scope.
 
 Goldfish: cue then `pin_map(q)` (Recall Shape \(\tilde{X}\)); empty cue is session outline (0.11 census of \(S\)). **Drop** prior map rows from the pack each turn (`stuffed_maps`). Sparse gated mutate. Env blobs stay in the harness. leftover `--anchor` is not law. Host search MAY Snap **locators** only — MUST NOT Snap-on-session (`rag_query` / ANN of \(S\)). Durable GQL **backs** \(S\) (0.7 live path); it is not the handoff handle.
 

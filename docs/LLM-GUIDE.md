@@ -206,6 +206,15 @@ Do **not** confuse this key with `MEMNET_MCP_HTTP_TOKEN`, CapsPolicy `session_to
 
 **MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
 
+### SysMLEdge users (model host)
+
+MemNet stays **shared working memory for agents**. It is not the structural model graph. Downstream overlay **operator README** MUST state **repo-based** or **SysMLEdge-based**. Detail: [`application-notes/system/llm-system-dev-multitask.md`](application-notes/system/llm-system-dev-multitask.md).
+
+- **SysMLEdge-based** and bound (`rev_status`: this `projectId`, `working_ssot=graph`): the **SSOT graph is hosted by SysMLEdge**. Read `ask` / `gql` / product `pin_map`; write `propose`. git `sysml-models/` is backup after human Save. Checkpoint model facts from the desk, not from tip MemNet `pin_map`.
+- **repo-based** (this engine checkout; `modelbasedPrj-*`): git `sysml-models/` is model SSOT. MemNet Snap / relatives are a cache.
+- Two `pin_map` tools. **MUST NOT** substitute SysMLEdge `pin_map` for MemNet `pin_map` (or the reverse). Tip MemNet is campaign goldfish; tip≠face.
+- **MUST NOT** invent `openProject` / `projectId` / upload-bind in this engine repo. Desk Save is human, not an agent finish.
+
 ### Tip MemNet access (ops sidecar)
 
 Keyed access to **tip** MemNet MCP only. Not the SysMLEdge product and not `openProject`. Model: `MN-REQ-06.8`. Teach: [`operations/tip-memnet-access-portal.md`](operations/tip-memnet-access-portal.md). Code: `ops/tip_access_portal` (`memnet-tip-portal`). Not part of the `memnet-llm` wheel.
@@ -301,11 +310,11 @@ Under `docs/application-notes/` — domain examples (**GQL teach**):
 
 | # | Note | Summary |
 |---|------|---------|
-| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` repos (mission + SysML two-store; git `sysml-models/` is SSOT) |
+| 0 | `system/llm-system-dev-multitask.md` | Multitask in `modelbasedPrj-*` / `SysMLEdgePrj-*` (MemNet = shared working memory; model host is repo-based git or bound SysMLEdge graph) |
 | 1 | `system/llm-software-development.md` | Multi-turn coding in Cursor |
 | 2 | `domains/llm-daily-news.md` | Batch RSS digest |
 | 3 | `domains/llm-tech-docs-decomposition.md` | Manual / SCPI decomposition |
-| 4 | `system/llm-sysml-v2-modeling.md` | SysML SSOT; relatives + sub-unit sessions |
+| 4 | `system/llm-sysml-v2-modeling.md` | SysML model host; relatives + sub-unit sessions; MemNet is campaign memory |
 | 5 | `domains/llm-circuit-schematic.md` | Circuit schematic / s-domain (see GQL case study for wire) |
 | 5b | `domains/llm-nodal-analysis-formulas.md` | Nodal method ↔ node `law` + `:bind` |
 | 5c | `examples/inverting-amplifier-gql-case-study.md` | InvAmp GQL-wire case study |

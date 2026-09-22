@@ -2,7 +2,7 @@
 
 > **Dialect (product 0.8):** **GQL only** — [`../grammar/gql-wire-profile.md`](../../grammar/gql-wire-profile.md). Product shape: [`../SHAPE.md`](../../SHAPE.md). Shared contract: [`README.md`](../README.md). Do **not** teach Layer / Tier A. Map: `schema.sysml.example.txt` **union** `schema.coding.example.txt`.
 
-**Teach:** `.sysml` is structural **SSOT** (and of the code and docs it specifies). MemNet is mission working memory. Token saving is two laws together: **relatives of one cue**, and each over-budget **sub-unit in a separate session**. Doctrine: [`memnet-session-strata.md`](../../extras/memnet-session-strata.md). Evidence: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md).
+**Teach:** MemNet is **shared working memory**. The structural model host is **repo-based** or **SysMLEdge-based** (operator README). This MemNet engine checkout is **repo-based**: `.sysml` is structural SSOT here (and of the code and docs it specifies). Token saving is two laws together: **relatives of one cue**, and each over-budget **sub-unit in a separate session**. Doctrine: [`memnet-session-strata.md`](../../extras/memnet-session-strata.md). Evidence: [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md). Downstream **SysMLEdge-based** overlays: model graph on the bound desk; MemNet stays campaign goldfish — [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md).
 
 British English. ASCII.
 
@@ -39,15 +39,15 @@ The Shape must be **complete and the right relatives**, and the child nest must 
 
 ---
 
-## 2. Two stores
+## 2. Working memory vs model host
 
 | Store | SSOT for | In the prompt |
 |-------|----------|----------------|
-| `models/*.sysml` | Nest, `satisfy`, ports, mapping | **One brace** at `SYM.line` |
-| MemNet sessions | Relatives, locators, `TSK`/`USR` | **One** `pin_map` (drop it next turn) |
+| **Model host** | Nest, `satisfy`, ports, mapping | **repo-based** (this engine checkout): **one brace** at `SYM.line` in `models/*.sysml`. **SysMLEdge-based** and bound: product `pin_map` / `ask` / `gql` (write `propose`; human Save) |
+| MemNet sessions | Relatives, locators, `TSK`/`USR` — **campaign working memory**, not the model graph | **One** MemNet `pin_map` (drop it next turn) |
 | Source / docs tree | Implementation | One window after `SYM.path` |
 
-MemNet is not a second copy of every brace. Chat is never SSOT.
+MemNet is not a second copy of every brace. Chat is never SSOT. Two `pin_map` tools MUST NOT substitute. This engine repo has no SysMLEdge product face.
 
 | Kind | Role |
 |------|------|
@@ -92,7 +92,7 @@ edit .sysml of THAT cut → re-Snap THAT interior
 
 **Parallel sub-units.** When the **parent shell is already clear in `.sysml`** (children named, ports typed, `session=` assigned), sibling interiors are **disjoint**. Parent mints one `TSK_*` per sub-unit, passes that interior session id, **ends the turn**. Workers goldfish **only** their interior (TCP or streamable-http; [`llm-system-dev-multitask.md`](llm-system-dev-multitask.md)). If the parent nest is still being invented, stay **serial**: write the shell first. Cross-cut `satisfy` / `allocate` waits until both interiors exist (second look / slice). MUST NOT two workers on the same interior, the same brace, or overlapping `MOD_*` without RSV.
 
-**As-is leftover:** `snap_model` still package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` still misses `interface` usages, `subsets`/`redefines`, multiplicity, attributes (named `connection` / `link` now project as CON; cheap `connect`/`::>` ends when names exist). Snap may re-project the same `qname=`. Do not teach those caps as law. `.sysml` stays SSOT.
+**As-is leftover:** `snap_model` still package / kind-band / two-segment child package; `context_pack[:max_rows]` still clips; ingest `_DEF_HEAD` still misses `interface` usages, `subsets`/`redefines`, multiplicity, attributes (named `connection` / `link` now project as CON; cheap `connect`/`::>` ends when names exist). Snap may re-project the same `qname=`. Do not teach those caps as law. In this **repo-based** engine checkout, `.sysml` stays model SSOT. On a **SysMLEdge-based** bound overlay, the desk graph is working model SSOT.
 
 ---
 
@@ -104,7 +104,7 @@ MCP arg is **`session`**. In-process for a single agent; Multitask uses TCP/HTTP
 2. **Mission** — cue `TSK_model_<short>` → `pin_map` **that** session. Copy `SYM.path` / `line`. leftover `anchor=` is leftover.
 3. **Catalog** — `pin_map` \(S_{\mathrm{cat}}\) on the parent `qname=` / `requirementId=`. Row carries `session=` of the cut.
 4. **Relatives** — `pin_map` **that one interior**. Shape = parent + **direct** children **whole**. If a child `session=` is the cue, **re-anchor** next generate (look loop). Do not depth-2 the package and do not stack maps.
-5. **Edit SSOT** — narrow Read at `SYM.line`; write the nest in `.sysml`. Optional: one code or doc window at the same locator.
+5. **Edit the model host** — **repo-based:** narrow Read at `SYM.line`; write the nest in `.sysml`. **SysMLEdge-based** and bound: `propose` (do not treat desk Save as an agent finish). Optional: one code or doc window at the same locator.
 6. **Validate** — `mcp-sysml-v2 validate`.
 7. **Re-Snap this subtree.** If it no longer fits \(M\), cut the child. If that `qname=` already has `session=`, **reuse** it. Parent keeps name + `typedBy`/`session=`, not the child’s interior.
 8. **Mission Δ** — sparse `mutate`: refresh `SYM.line`; optional `:about`. Do not CREATE the nest into the mission. Drop the prior `pin_map`.
@@ -115,7 +115,7 @@ Conditional: `sysml-view-doc-sync` if `outputs/` changed. Settle transients; `ho
 
 ## 5. Relatives
 
-The **element is made in `.sysml`**. MemNet shows **relatives** of the parent cut. New interior only when that subtree no longer fits \(M\) **and** no catalog row exists for that `qname=`. Never one session per leaf.
+The **element is made on the model host**. In this engine checkout that is `.sysml`. MemNet shows **relatives** of the parent cut (campaign cache). New interior only when that subtree no longer fits \(M\) **and** no catalog row exists for that `qname=`. Never one session per leaf.
 
 | Nest | Parent cue | Relatives | Cut away when |
 |------|------------|-----------|----------------|

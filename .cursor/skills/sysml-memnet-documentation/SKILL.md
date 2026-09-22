@@ -18,7 +18,7 @@ token_guardrails: |
 
 **Cache defer:** [sysml-memnet-cache](../sysml-memnet-cache/SKILL.md). Tools: [mcp-memnet](../mcp-memnet/SKILL.md). Wire: [memnet-format](../memnet-format/SKILL.md). Nest: [memnet-nested-sessions](../memnet-nested-sessions/SKILL.md).
 
-`.sysml` is structure. MemNet holds locators, claims, backlog. **Do not** re-read whole `deploy.sysml` on a warm hit.
+`.sysml` is structure **in this repo-based engine checkout**. MemNet holds locators, claims, backlog (campaign working memory). **Do not** re-read whole `deploy.sysml` on a warm hit. Downstream **SysMLEdge-based** bound overlays: the desk graph is working model SSOT — [`llm-system-dev-multitask.md`](../../docs/application-notes/system/llm-system-dev-multitask.md).
 
 ## Load order
 
