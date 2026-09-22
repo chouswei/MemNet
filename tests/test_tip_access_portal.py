@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 import time
 
 from starlette.testclient import TestClient
@@ -12,6 +13,7 @@ from tip_access_portal.config import Settings
 from tip_access_portal.gate import authorization_active
 from tip_access_portal.google_oauth import GoogleOAuth
 from tip_access_portal.signing import sign_payload
+from tip_access_portal.status import Probe, parse_probes, probe_one
 from tip_access_portal.store import PortalStore
 
 ADMIN = "admin@example.com"
@@ -19,7 +21,7 @@ USER = "person@example.com"
 WWW = "https://memnet.139-59-255-181.nip.io/mcp"
 
 
-def _settings(db_path: str = ":memory:") -> Settings:
+def _settings(db_path: str = ":memory:", probes: tuple[Probe, ...] = ()) -> Settings:
     return Settings(
         google_client_id="client-id",
         google_client_secret="client-secret",
@@ -29,6 +31,7 @@ def _settings(db_path: str = ":memory:") -> Settings:
         db_path=db_path,
         cookie_secure=False,
         invite_ttl_hours=24,
+        status_probes=probes,
     )
 
 
@@ -74,10 +77,22 @@ def _state(settings: Settings, invite: str = "") -> str:
     )
 
 
-def _app(db_path: str = ":memory:"):
-    settings = _settings(db_path)
+def _app(
+    db_path: str = ":memory:",
+    *,
+    probes: tuple[Probe, ...] = (),
+    probe_http=None,
+    probe_tcp=None,
+):
+    settings = _settings(db_path, probes)
     store = PortalStore(db_path)
-    app = create_app(settings, store, _google(settings))
+    app = create_app(
+        settings,
+        store,
+        _google(settings),
+        probe_http=probe_http,
+        probe_tcp=probe_tcp,
+    )
     return settings, store, app
 
 
@@ -181,6 +196,9 @@ def test_admin_mints_invitee_sees_key_once_gate_checks():
     assert bad.status_code == 401
     ok = invitee.get("/auth/validate", headers={"Authorization": f"Bearer {key}"})
     assert ok.status_code == 200
+    used = store.list_keys()[0]
+    assert used.use_count == 1
+    assert used.last_used_at is not None
 
     admin_page = admin.get("/admin")
     key_id = store.list_keys()[0].id
@@ -207,3 +225,143 @@ def test_stranger_without_invite_gets_no_key():
         f"/auth/callback?code=code-unverified&state={_state(settings, 'missing')}"
     )
     assert "verified email" in unverified.text
+
+
+def test_parse_probes_and_http_401_is_up():
+    probes = parse_probes(
+        "tip-mcp=https://memnet.139-59-255-181.nip.io/mcp,serve=tcp://127.0.0.1:18765"
+    )
+    assert probes[0].name == "tip-mcp"
+    assert probes[1].target == "tcp://127.0.0.1:18765"
+    http_ok = probe_one(probes[0], http_request=lambda _url: 401)
+    assert http_ok.up is True
+    assert "401" in http_ok.detail
+    tcp_ok = probe_one(probes[1], tcp_connect=lambda _host, _port: None)
+    assert tcp_ok.up is True
+    tcp_down = probe_one(
+        Probe("serve", "tcp://127.0.0.1:18765"),
+        tcp_connect=_raise_oserror,
+    )
+    assert tcp_down.up is False
+    unsupported = probe_one(Probe("weird", "ftp://nope"))
+    assert unsupported.up is False
+
+
+def _raise_oserror(_host: str, _port: int) -> None:
+    raise ConnectionRefusedError("refused")
+
+
+def test_validate_records_use_and_status_hides_targets_from_public(tmp_path):
+    target = "https://memnet.139-59-255-181.nip.io/mcp"
+    probes = (Probe("tip-mcp", target), Probe("serve", "tcp://127.0.0.1:18765"))
+    settings, store, app = _app(
+        str(tmp_path / "portal.sqlite"),
+        probes=probes,
+        probe_http=lambda url: 401 if url == target else 500,
+        probe_tcp=lambda _host, _port: None,
+    )
+    public = _client(app)
+    home = public.get("/")
+    assert home.status_code == 200
+    assert "tip-mcp" in home.text
+    assert "class='up'>up" in home.text
+    assert target not in home.text
+    assert "tcp://127.0.0.1:18765" not in home.text
+    status = public.get("/status")
+    assert status.status_code == 200
+    assert "Look only" in status.text
+    assert USER not in status.text
+    assert "admin-only" in status.text
+    assert target not in status.text
+
+    invite, _token = store.mint_invite(label="pilot", ttl_hours=2)
+    key = store.issue_key(invite, email=USER, google_sub="sub-user")
+    assert store.list_keys()[0].use_count == 0
+    assert store.list_keys()[0].last_used_at is None
+    ok = public.get("/auth/validate", headers={"Authorization": f"Bearer {key}"})
+    assert ok.status_code == 200
+    row = store.list_keys()[0]
+    assert row.use_count == 1
+    assert row.last_used_at is not None
+    again = public.get("/auth/validate", headers={"Authorization": f"Bearer {key}"})
+    assert again.status_code == 200
+    assert store.list_keys()[0].use_count == 2
+    hidden = public.get("/status")
+    assert USER not in hidden.text
+    assert target not in hidden.text
+    store.revoke_key(row.id)
+    refused = public.get("/auth/validate", headers={"Authorization": f"Bearer {key}"})
+    assert refused.status_code == 401
+    assert store.list_keys()[0].use_count == 2
+
+    admin = _client(app)
+    admin.get(f"/auth/callback?code=code-admin&state={_state(settings)}")
+    admin_status = admin.get("/status")
+    assert target in admin_status.text
+    assert USER in admin_status.text
+    assert "Calls" in admin_status.text
+    assert "2" in admin_status.text
+    admin_page = admin.get("/admin")
+    assert "Last used" in admin_page.text
+    assert USER in admin_page.text
+    assert "Revoke" in admin_page.text
+
+
+def test_status_probes_from_env(monkeypatch):
+    monkeypatch.setenv("MEMNET_GOOGLE_CLIENT_ID", "cid")
+    monkeypatch.setenv("MEMNET_GOOGLE_CLIENT_SECRET", "csec")
+    monkeypatch.setenv("MEMNET_TIP_PORTAL_SECRET", "psec")
+    monkeypatch.setenv("MEMNET_TIP_ADMIN_EMAIL", ADMIN)
+    monkeypatch.setenv("MEMNET_TIP_PORTAL_BASE_URL", "https://memnet.example")
+    monkeypatch.setenv(
+        "MEMNET_STATUS_PROBES",
+        "serve=tcp://127.0.0.1:18765,tip-mcp=https://already.example/mcp",
+    )
+    monkeypatch.setenv("MEMNET_TIP_MCP_PROBE", "https://memnet.139-59-255-181.nip.io/mcp")
+    settings = Settings.from_env()
+    names = [item.name for item in settings.status_probes]
+    assert names == ["serve", "tip-mcp"]
+    assert settings.status_probes[1].target == "https://already.example/mcp"
+    monkeypatch.setenv("MEMNET_STATUS_PROBES", "serve=tcp://127.0.0.1:18765")
+    extra = Settings.from_env()
+    assert [item.name for item in extra.status_probes] == ["serve", "tip-mcp"]
+    assert extra.status_probes[1].target == "https://memnet.139-59-255-181.nip.io/mcp"
+
+
+def test_key_columns_migrate(tmp_path):
+    path = tmp_path / "old.sqlite"
+    conn = sqlite3.connect(path)
+    conn.executescript(
+        """
+        CREATE TABLE invites (
+            id TEXT PRIMARY KEY,
+            token_hash TEXT NOT NULL UNIQUE,
+            label TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            redeemed_at TEXT,
+            redeemed_email TEXT,
+            redeemed_sub TEXT,
+            revoked INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE keys (
+            id TEXT PRIMARY KEY,
+            key_hash TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL,
+            google_sub TEXT NOT NULL,
+            invite_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            revoked INTEGER NOT NULL DEFAULT 0
+        );
+        """
+    )
+    conn.commit()
+    conn.close()
+    store = PortalStore(str(path))
+    invite, _token = store.mint_invite(label="old", ttl_hours=2)
+    key = store.issue_key(invite, email=USER, google_sub="sub-user")
+    assert store.record_use(key) is True
+    row = store.list_keys()[0]
+    assert row.use_count == 1
+    assert row.last_used_at is not None
+    store.close()

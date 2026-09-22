@@ -3,8 +3,8 @@
 **Shelf:** product canon — ops access (not the SysMLEdge product)
 
 Evidence walk of a **gated** human portal that mints invites and shows Bearer keys for **tip MemNet MCP only**.  
-Companions: [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) (tip≠face; Pi tip legal), [usage-dashboard-case-study.md](usage-dashboard-case-study.md) (look, not this key page).  
-Lock: portal = **tip/ops access**; product invent face stays cousin `sysmledge`. The portal web is the ops sidecar (`portalWebImplemented=true`). Do not sell it as invent_2_green.
+Companions: [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) (tip≠face; Pi tip legal), [usage-dashboard-case-study.md](usage-dashboard-case-study.md) (engine HTTP parked; portal `/status` is a separate look-only page, not that dashboard).  
+Lock: portal = **tip/ops access**; product invent face stays cousin `sysmledge`. The portal web is the ops sidecar (`portalWebImplemented=true`). Do not sell it as invent_2_green. Status look (`statusLookOnly=true`) MUST NOT unpark `MemNetUsageDashboard` HTTP (`unparksUsageDashboard=false`).
 
 **Wire:** agents still GQL / `pin_map` / `mutate`. The portal does not change those operators. Callers of the public tip URL send `Authorization: Bearer <key>`.
 
@@ -60,6 +60,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 | **4. Show Bearer** | Portal → `KeyStore` → portal shows the key | Show a key to a user who is not invited |
 | **5. Call tip MCP** | Client sends `Authorization: Bearer <key>` to the WWW URL; gate forwards to the Pi tip | Unauthenticated MemNet MCP on that URL |
 | **6. Revoke** | Admin revokes the Bearer or the invite | Leave a revoked key accepted at the gate |
+| **7. Status look** | `/` and `/status` probe configured listeners; admin sees last-used | Unpark dashboard HTTP; restart / mutate / `session_close` from the page |
 
 ## 4. Contrast (soft-pass kills)
 
@@ -71,6 +72,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 | Portal grants free MemNet to strangers | `grantsOpenMemNet=false`; `freeStrangerPath=sysmledge-free-tier-or-memnet-llm-self-host` |
 | Nest under `MemNetSystem` | `tipAccessPortalInsideSystem=false` |
 | Selling **invent_2_green** | `sellsInvent2Green=false`; `inventOnly=false`; `portalWebImplemented=true` (sidecar shipped; secrets stay in env; engine unchanged) |
+| Unparking engine usage-dashboard HTTP | `unparksUsageDashboard=false`; `statusLookOnly=true`; `MemNetUsageDashboard.httpImplemented` stays `false` |
 
 ## 5. Teach (live sidecar)
 
@@ -80,7 +82,8 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 2. **User fetches a key.** The invitee opens the link, signs in with Google, and the portal shows their Bearer once. The server stores a hash.
 3. **Tip MCP header.** Requests to `https://memnet.139-59-255-181.nip.io/mcp` carry `Authorization: Bearer <key>`. nginx `auth_request` calls `GET /auth/validate`, then forwards to the Pi tip. A missing or revoked Bearer is refused.
 4. **Revoke.** Szu-Wei revokes the key or the invite. The gate then refuses that Bearer.
+5. **Status look.** `/` and `/status` show configured MemNet listeners (401 on `/mcp` still counts as up). Admin sees probe targets and Bearer last-used. The page does not manage serve.
 
 ## 6. Honesty
 
-The portal web is the ops sidecar `ops/tip_access_portal` (`memnet-tip-portal`). Google secrets are environment variables. nginx for `/mcp` is documented for Devicor and still refuses unauthenticated calls. `pin_map` / mutate operators are unchanged. Hatch `memnet-llm` is not bumped. `sellsInvent2Green=false`.
+The portal web is the ops sidecar `ops/tip_access_portal` (`memnet-tip-portal`). Google secrets are environment variables. nginx for `/mcp` is documented for Devicor and still refuses unauthenticated calls. `pin_map` / mutate operators are unchanged. Hatch `memnet-llm` is not bumped. `sellsInvent2Green=false`. Status look does not unpark `MemNetUsageDashboard` HTTP.

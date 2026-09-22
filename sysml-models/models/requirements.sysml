@@ -753,6 +753,13 @@ package MemNetRequirements {
           Google client secrets SHALL stay in the environment. nginx
           auth_request SHALL refuse unauthenticated /mcp. SHALL NOT
           sell this as invent_2_green (sellsInvent2Green=false).
+          The portal web SHALL look at configured MemNet listeners
+          and Bearer client last-used/use-count (statusLookOnly;
+          serviceLookImplemented; clientLookImplemented). That look
+          SHALL NOT unpark MemNetUsageDashboard HTTP
+          (unparksUsageDashboard=false; dashboard httpImplemented
+          stays false) and SHALL NOT restart, mutate, or
+          session_close from the page.
         */
         attribute requirementId : String = "MN-REQ-06.8";
       }

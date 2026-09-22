@@ -26,3 +26,5 @@ Production redirect URI:
 `https://memnet.139-59-255-181.nip.io/auth/callback`
 
 The process binds `127.0.0.1:8766` unless `MEMNET_TIP_PORTAL_BIND` / `MEMNET_TIP_PORTAL_PORT` say otherwise. Put TLS and the public host on nginx.
+
+`/` and `/status` look at configured MemNet listeners (`MEMNET_STATUS_PROBES` / `MEMNET_TIP_MCP_PROBE`). A 401 on the tip MCP still counts as up. Admin `/status` and `/admin` also show Bearer last-used and call counts. The page does not restart serve, mutate, or unpark the engine usage dashboard.

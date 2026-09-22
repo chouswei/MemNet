@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from tip_access_portal.status import Probe, parse_probes
 
 
 def _required(name: str) -> str:
@@ -25,6 +27,7 @@ class Settings:
     port: int = 8766
     invite_ttl_hours: int = 168
     cookie_secure: bool | None = None
+    status_probes: tuple[Probe, ...] = field(default_factory=tuple)
 
     @property
     def redirect_uri(self) -> str:
@@ -63,4 +66,16 @@ class Settings:
             bind=os.environ.get("MEMNET_TIP_PORTAL_BIND", "127.0.0.1").strip() or "127.0.0.1",
             port=port,
             invite_ttl_hours=ttl,
+            status_probes=_status_probes(),
         )
+
+
+def _status_probes() -> tuple[Probe, ...]:
+    listed = parse_probes(os.environ.get("MEMNET_STATUS_PROBES", "").strip())
+    extra = os.environ.get("MEMNET_TIP_MCP_PROBE", "").strip()
+    if not extra:
+        return listed
+    names = {item.name for item in listed}
+    if "tip-mcp" in names:
+        return listed
+    return listed + (Probe(name="tip-mcp", target=extra),)
