@@ -38,7 +38,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet as MemNet tip/ops (`tipIsFace=false`); product invent face is cousin `sysmledge` (`mustNotInventUploadBind`); not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
-| Tip access portal (ops) | `TipMemNetAccessPortal` **outside** MemNetSystem — Szu-Wei invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused; not a sysmledge product; invent only → [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
+| Tip access portal (ops) | `TipMemNetAccessPortal` **outside** MemNetSystem — Szu-Wei invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused; not a sysmledge product; portal sidecar → [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
 | SSOT → code (implementation) | `MemNetImplementation` `SoftwareAllocate` — logical parts → live modules; one Hatch wheel many hosts; sysmledge not in wheel → [ssot-to-code-allocate-case-study.md](ssot-to-code-allocate-case-study.md) |
 | Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs eight cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8 / 11.17.1). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. SysMLEdge is a distinct desk `pin_map` (not MemNet session strata; graph is not SSOT; this repo has no product face). Overlay family is `SysMLEdgePrj-*` (prefix `SysMLEdgePrj-`); git `sysml-models/` stays structural SSOT. |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
@@ -58,7 +58,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 | Human usage look (parked HTTP) | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet; tip≠face) | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
-| Tip access portal (keyed Bearer; invent only) | [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
+| Tip access portal (keyed Bearer; portal sidecar) | [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
 
 ## Nesting outline
 
@@ -74,7 +74,7 @@ APPLICATION LOOK   CousinPointingContrast / HostSearchBridge
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml; off ProjectMemNet load)
 OPS LOOK           MemNetUsageDashboard (look only; HTTP parked; not agent wire)
 OPS FLEET          MemNetOpsFleet (device services; one MemNet MCP at droplet tip/ops; product face sysmledge; not #47)
-OPS ACCESS         TipMemNetAccessPortal (keyed tip Bearer; tip≠face; not sysmledge; invent only)
+OPS ACCESS         TipMemNetAccessPortal (keyed tip Bearer; tip≠face; not sysmledge; portal sidecar)
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  

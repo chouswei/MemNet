@@ -80,8 +80,9 @@
   for the keyed tip MemNet MCP on droplet WWW
   (https://memnet.139-59-255-181.nip.io/mcp). TipMcpGate refuses
   unauthenticated WWW MemNet and forwards to the Pi tip. tip≠face.
-  Not a sysmledge product and not an openProject key page. Invent only
-  (portalWebImplemented=false). Free strangers stay on the SysMLEdge
+  Not a sysmledge product and not an openProject key page. Portal web
+  is the ops sidecar (portalWebImplemented=true; inventOnly=false).
+  sellsInvent2Green=false. Free strangers stay on the SysMLEdge
   free tier or memnet-llm self-host.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
@@ -2953,7 +2954,8 @@ package MemNet {
   // =====================================================================
   // OPS ACCESS — TipMemNetAccessPortal (MUST NOT instantiate under
   // MemNetSystem). Gated keys for tip MemNet MCP only. tip≠face.
-  // Not a sysmledge product. Invent only (web unshipped).
+  // Not a sysmledge product. Portal web is the ops sidecar
+  // (ops/tip_access_portal). sellsInvent2Green=false.
   // =====================================================================
 
   part def TipAccessAdmin {
@@ -3014,10 +3016,11 @@ package MemNet {
   part def PortalWeb {
     doc /*
       Droplet WWW page: Google login, invite redeem, show Bearer.
-      Invent only — portalWebImplemented=false. No Google client
-      secret in this model cut. Not an openProject key page.
+      Implemented as the ops sidecar ops/tip_access_portal
+      (portalWebImplemented=true). Google client secrets stay in the
+      environment, not in this model. Not an openProject key page.
     */
-    attribute portalWebImplemented : Boolean = false;
+    attribute portalWebImplemented : Boolean = true;
     port googleIn : GoogleAssertInPort;
     port inviteIn : InviteMintInPort;
     port keyFetchOut : TipBearerOutPort;
@@ -3065,10 +3068,10 @@ package MemNet {
       checks that Bearer and forwards to the Pi tip. tip≠face.
       isSysmlEdgeProduct=false; openProjectKeyPage=false;
       grantsOpenMemNet=false. Free for strangers is the SysMLEdge
-      free tier or memnet-llm self-host (freeStrangerPath). This
-      cut is invent only (inventOnly=true;
-      portalWebImplemented=false) and MUST NOT be sold as
-      invent_2_green.
+      free tier or memnet-llm self-host (freeStrangerPath). The
+      portal web is implemented (inventOnly=false;
+      portalWebImplemented=true) and MUST NOT be sold as
+      invent_2_green (sellsInvent2Green=false).
     */
     part admin : TipAccessAdmin;
     part user : InvitedTipUser;
@@ -3085,8 +3088,8 @@ package MemNet {
     attribute grantsOpenMemNet : Boolean = false;
     attribute unauthenticatedWwwMcp : Boolean = false;
     attribute keyedWwwMcp : Boolean = true;
-    attribute inventOnly : Boolean = true;
-    attribute portalWebImplemented : Boolean = false;
+    attribute inventOnly : Boolean = false;
+    attribute portalWebImplemented : Boolean = true;
     attribute sellsInvent2Green : Boolean = false;
     attribute gatesTipMcpOnly : Boolean = true;
     attribute freeStrangerPath : String = "sysmledge-free-tier-or-memnet-llm-self-host";

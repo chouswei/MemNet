@@ -51,7 +51,7 @@ APPLICATION LOOK   CousinPointingContrast / HostSearchBridge (outside)
 ARCHIVE LOOK       MemNetArchive — leftover fog shelf; root does not import
 OPS LOOK           MemNetUsageDashboard — look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face)
-OPS ACCESS         TipMemNetAccessPortal — invite + Google login + Bearer for keyed tip MCP (tip≠face; not sysmledge; invent only)
+OPS ACCESS         TipMemNetAccessPortal — invite + Google login + Bearer for keyed tip MCP (tip≠face; not sysmledge; portal sidecar)
 IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modules; tracker ledger; one wheel many hosts
 ```
 
@@ -102,7 +102,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Empty-cue session outline | [outputs/session-outline-case-study.md](outputs/session-outline-case-study.md) |
 | Human usage look (read-only dashboard; HTTP parked) | [outputs/usage-dashboard-case-study.md](outputs/usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet, tip≠face; not #47) | [outputs/device-fleet-one-mcp-case-study.md](outputs/device-fleet-one-mcp-case-study.md) |
-| Tip MemNet access portal (keyed Bearer; invent only) | [outputs/tip-memnet-access-portal-case-study.md](outputs/tip-memnet-access-portal-case-study.md) |
+| Tip MemNet access portal (keyed Bearer; portal sidecar) | [outputs/tip-memnet-access-portal-case-study.md](outputs/tip-memnet-access-portal-case-study.md) |
 | SSOT → code allocate (one Hatch wheel, many hosts) | [outputs/ssot-to-code-allocate-case-study.md](outputs/ssot-to-code-allocate-case-study.md) |
 | SSOT → code tracker map | [outputs/ssot-to-code-allocate-map.md](outputs/ssot-to-code-allocate-map.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |

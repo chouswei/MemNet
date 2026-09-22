@@ -39,8 +39,8 @@ def test_portal_parts_outside_system():
     assert "attribute grantsOpenMemNet : Boolean = false" in text
     assert "attribute unauthenticatedWwwMcp : Boolean = false" in text
     assert "attribute keyedWwwMcp : Boolean = true" in text
-    assert "attribute inventOnly : Boolean = true" in text
-    assert "attribute portalWebImplemented : Boolean = false" in text
+    assert "attribute inventOnly : Boolean = false" in text
+    assert "attribute portalWebImplemented : Boolean = true" in text
     assert "attribute sellsInvent2Green : Boolean = false" in text
     assert "attribute gatesTipMcpOnly : Boolean = true" in text
     assert "attribute gatesSysmlEdge : Boolean = false" in text
@@ -107,5 +107,6 @@ def test_teach_and_soft_pass_kills():
     assert "Authorization: Bearer" in teach
     assert "openProject" in study
     assert "Unauthenticated MemNet MCP on droplet WWW" in nest
-    assert "portalWebImplemented=false" in nest
+    assert "portalWebImplemented=true" in nest
+    assert "inventOnly=false" in nest
     assert "isSysmlEdgeProduct=false" in nest

@@ -4,7 +4,7 @@
 
 Evidence walk of a **gated** human portal that mints invites and shows Bearer keys for **tip MemNet MCP only**.  
 Companions: [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) (tip≠face; Pi tip legal), [usage-dashboard-case-study.md](usage-dashboard-case-study.md) (look, not this key page).  
-Lock: portal = **tip/ops access**; product invent face stays cousin `sysmledge`. This cut is **invent only**.
+Lock: portal = **tip/ops access**; product invent face stays cousin `sysmledge`. The portal web is the ops sidecar (`portalWebImplemented=true`). Do not sell it as invent_2_green.
 
 **Wire:** agents still GQL / `pin_map` / `mutate`. The portal does not change those operators. Callers of the public tip URL send `Authorization: Bearer <key>`.
 
@@ -29,7 +29,7 @@ TipMemNetAccessPortal                        // OUTSIDE — ops access, tip≠fa
 ├── TipAccessAdmin                           // Szu-Wei; mint invite; revoke
 ├── InvitedTipUser
 ├── GoogleIdP
-├── PortalWeb                                // invent only; portalWebImplemented=false
+├── PortalWeb                                // ops sidecar; portalWebImplemented=true
 ├── InviteStore
 ├── KeyStore
 ├── TipMcpGate                               // WWW URL; Bearer required
@@ -42,7 +42,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 
 **Title:** Admin invites a user; user fetches a Bearer; the gate checks it
 
-**Premise:** Tip MemNet MCP is reachable on droplet WWW only through `TipMcpGate`. The Pi runs the tip process. No Google client secret and no nginx change ship in this invent.
+**Premise:** Tip MemNet MCP is reachable on droplet WWW only through `TipMcpGate`. The Pi runs the tip process. The portal web is `ops/tip_access_portal`. Google client secrets stay in the environment. nginx `auth_request` is taught for Devicor and is not applied by the model file.
 
 **Actors:**
 
@@ -70,17 +70,17 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 | Open / unauthenticated MemNet MCP on WWW | `unauthenticatedWwwMcp=false`; `gate.unauthenticatedAllowed=false`; keyed WWW stays (`keyedWwwMcp=true`) |
 | Portal grants free MemNet to strangers | `grantsOpenMemNet=false`; `freeStrangerPath=sysmledge-free-tier-or-memnet-llm-self-host` |
 | Nest under `MemNetSystem` | `tipAccessPortalInsideSystem=false` |
-| Selling **invent_2_green** from this invent | `sellsInvent2Green=false`; `inventOnly=true`; `portalWebImplemented=false` (no live OAuth secret, no droplet nginx, no engine change) |
+| Selling **invent_2_green** | `sellsInvent2Green=false`; `inventOnly=false`; `portalWebImplemented=true` (sidecar shipped; secrets stay in env; engine unchanged) |
 
-## 5. Teach (when the web app exists)
+## 5. Teach (live sidecar)
 
-Until `portalWebImplemented` flips, these steps are the model, not a live site.
+`portalWebImplemented=true`. Steps and nginx: [`docs/operations/tip-memnet-access-portal.md`](../../docs/operations/tip-memnet-access-portal.md).
 
-1. **Admin mints an invite.** Szu-Wei creates an invite link in the portal. That link is the only way onto the allowlist.
-2. **User fetches a key.** The invitee opens the link, signs in with Google, and the portal shows their Bearer once.
-3. **Tip MCP header.** Requests to `https://memnet.139-59-255-181.nip.io/mcp` carry `Authorization: Bearer <key>`. The gate forwards that call to the Pi tip. A missing or revoked Bearer is refused.
+1. **Admin mints an invite.** Szu-Wei signs in as `MEMNET_TIP_ADMIN_EMAIL` and creates an invite link. That link is the only way onto the allowlist.
+2. **User fetches a key.** The invitee opens the link, signs in with Google, and the portal shows their Bearer once. The server stores a hash.
+3. **Tip MCP header.** Requests to `https://memnet.139-59-255-181.nip.io/mcp` carry `Authorization: Bearer <key>`. nginx `auth_request` calls `GET /auth/validate`, then forwards to the Pi tip. A missing or revoked Bearer is refused.
 4. **Revoke.** Szu-Wei revokes the key or the invite. The gate then refuses that Bearer.
 
 ## 6. Honesty
 
-SysML plus this note lock the access story. The portal web app, Google client secrets, and droplet nginx are **not** in this cut. `pin_map` / mutate operators are unchanged. Hatch is not bumped for this invent.
+The portal web is the ops sidecar `ops/tip_access_portal` (`memnet-tip-portal`). Google secrets are environment variables. nginx for `/mcp` is documented for Devicor and still refuses unauthenticated calls. `pin_map` / mutate operators are unchanged. Hatch `memnet-llm` is not bumped. `sellsInvent2Green=false`.
