@@ -1248,7 +1248,9 @@ package MemNetConnections {
       sysmledge product, not an openProject key page, not open MemNet
       for strangers (that remains SysMLEdge free tier or memnet-llm
       self-host). Portal web is the ops sidecar (portalWebImplemented=true;
-      sellsInvent2Green=false). See
+      sellsInvent2Green=false). Status look of services and Bearer
+      clients is look-only and MUST NOT unpark the usage dashboard
+      HTTP. See
       outputs/tip-memnet-access-portal-case-study.md.
     */
   }

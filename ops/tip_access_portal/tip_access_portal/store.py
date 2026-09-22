@@ -53,6 +53,8 @@ class KeyRow:
     invite_id: str
     created_at: str
     revoked: bool
+    last_used_at: str | None
+    use_count: int
 
 
 class PortalStore:
@@ -91,10 +93,19 @@ class PortalStore:
                     google_sub TEXT NOT NULL,
                     invite_id TEXT NOT NULL,
                     created_at TEXT NOT NULL,
-                    revoked INTEGER NOT NULL DEFAULT 0
+                    revoked INTEGER NOT NULL DEFAULT 0,
+                    last_used_at TEXT,
+                    use_count INTEGER NOT NULL DEFAULT 0
                 );
                 """
             )
+            cols = {row[1] for row in self._conn.execute("PRAGMA table_info(keys)").fetchall()}
+            if "last_used_at" not in cols:
+                self._conn.execute("ALTER TABLE keys ADD COLUMN last_used_at TEXT")
+            if "use_count" not in cols:
+                self._conn.execute(
+                    "ALTER TABLE keys ADD COLUMN use_count INTEGER NOT NULL DEFAULT 0"
+                )
             self._conn.commit()
 
     def mint_invite(self, *, label: str, ttl_hours: int) -> tuple[InviteRow, str]:
@@ -161,8 +172,9 @@ class PortalStore:
             self._conn.execute(
                 """
                 INSERT INTO keys (
-                    id, key_hash, email, google_sub, invite_id, created_at, revoked
-                ) VALUES (?, ?, ?, ?, ?, ?, 0)
+                    id, key_hash, email, google_sub, invite_id, created_at,
+                    revoked, last_used_at, use_count
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, NULL, 0)
                 """,
                 (key_id, hash_secret(plaintext), email.lower(), google_sub, invite.id, created),
             )
@@ -208,6 +220,22 @@ class PortalStore:
             return False
         return row["key_revoked"] == 0 and row["invite_revoked"] == 0
 
+    def record_use(self, plaintext: str) -> bool:
+        if not plaintext:
+            return False
+        stamp = _iso(_now())
+        with self._lock:
+            cur = self._conn.execute(
+                """
+                UPDATE keys
+                SET last_used_at = ?, use_count = use_count + 1
+                WHERE key_hash = ? AND revoked = 0
+                """,
+                (stamp, hash_secret(plaintext)),
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
     def contains_plaintext(self, plaintext: str) -> bool:
         """True when the raw secret appears in stored columns (it must not)."""
         with self._lock:
@@ -250,4 +278,6 @@ class PortalStore:
             invite_id=row["invite_id"],
             created_at=row["created_at"],
             revoked=bool(row["revoked"]),
+            last_used_at=row["last_used_at"] if "last_used_at" in row.keys() else None,
+            use_count=int(row["use_count"]) if "use_count" in row.keys() else 0,
         )

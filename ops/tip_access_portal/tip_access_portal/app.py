@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import secrets
 import time
+from collections.abc import Callable
 from urllib.parse import quote
 
 import httpx
@@ -14,9 +15,10 @@ from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.routing import Route
 
 from tip_access_portal.config import Settings
-from tip_access_portal.gate import authorization_active
+from tip_access_portal.gate import bearer_token
 from tip_access_portal.google_oauth import GoogleOAuth
 from tip_access_portal.signing import read_payload, sign_payload
+from tip_access_portal.status import ProbeResult, probe_all
 from tip_access_portal.store import PortalStore
 
 SESSION_COOKIE = "tip_portal_session"
@@ -31,7 +33,14 @@ STRANGER = (
 )
 
 
-def create_app(settings: Settings, store: PortalStore, google: GoogleOAuth) -> Starlette:
+def create_app(
+    settings: Settings,
+    store: PortalStore,
+    google: GoogleOAuth,
+    *,
+    probe_http: Callable[[str], int] | None = None,
+    probe_tcp: Callable[[str, int], None] | None = None,
+) -> Starlette:
     def _session(request: Request) -> dict | None:
         raw = request.cookies.get(SESSION_COOKIE)
         if not raw:
@@ -84,9 +93,15 @@ def create_app(settings: Settings, store: PortalStore, google: GoogleOAuth) -> S
             who = f"<p class='who'>{html.escape(str(session.get('email', '')))}</p>"
         nav = ""
         if _is_admin(session):
-            nav = "<p><a href='/admin'>Invites</a> · <a href='/logout'>Sign out</a></p>"
+            nav = (
+                "<p><a href='/admin'>Invites</a> · "
+                "<a href='/status'>Status</a> · "
+                "<a href='/logout'>Sign out</a></p>"
+            )
         elif session:
-            nav = "<p><a href='/logout'>Sign out</a></p>"
+            nav = "<p><a href='/status'>Status</a> · <a href='/logout'>Sign out</a></p>"
+        else:
+            nav = "<p><a href='/status'>Status</a></p>"
         document = f"""<!DOCTYPE html>
 <html lang="en-GB">
 <head>
@@ -95,13 +110,15 @@ def create_app(settings: Settings, store: PortalStore, google: GoogleOAuth) -> S
 <meta name="robots" content="noindex">
 <title>{html.escape(title)}</title>
 <style>
-body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 40rem; }}
+body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; }}
 code, input[type=text] {{ font-family: ui-monospace, monospace; }}
 table {{ border-collapse: collapse; width: 100%; }}
 th, td {{ border-bottom: 1px solid #ccc; text-align: left; padding: 0.35rem; vertical-align: top; }}
 .secret {{ word-break: break-all; background: #f4f4f4; padding: 0.6rem; }}
 .who {{ color: #444; }}
 button {{ margin-right: 0.4rem; }}
+.up {{ color: #0a7a32; font-weight: 600; }}
+.down {{ color: #b00020; font-weight: 600; }}
 </style>
 </head>
 <body>
@@ -123,6 +140,7 @@ button {{ margin-right: 0.4rem; }}
             f"<p>{html.escape(STRANGER)}</p>"
             "<p><a href='/auth/google'>Sign in with Google</a> if you are the admin.</p>"
             "<p>Invitees should open the invite link they were sent.</p>"
+            + _services_html(_look(), include_targets=False)
         )
         return _page("Tip MemNet access", body, session=session)
 
@@ -158,12 +176,15 @@ button {{ margin-right: 0.4rem; }}
             f"<td>{html.escape(row.email)}</td>"
             f"<td>{html.escape(row.invite_id)}</td>"
             f"<td>{'revoked' if row.revoked else 'active'}</td>"
+            f"<td>{html.escape(row.last_used_at or 'never')}</td>"
+            f"<td>{row.use_count}</td>"
             f"<td>{_key_revoke(row, csrf)}</td>"
             "</tr>"
             for row in keys
         )
         body = (
             notice
+            + _services_html(_look(), include_targets=True)
             + "<h2>Mint invite</h2>"
             + "<form method='post' action='/admin/invites'>"
             + f"<input type='hidden' name='csrf' value='{html.escape(csrf)}'>"
@@ -174,10 +195,13 @@ button {{ margin-right: 0.4rem; }}
             + "<th>Redeemed by</th><th></th></tr>"
             + (invite_rows or "<tr><td colspan='5'>None yet</td></tr>")
             + "</table>"
-            + "<h2>Bearer keys</h2>"
-            + "<p>Plaintext keys are not stored. Revoke refuses the key at the tip gate.</p>"
-            + "<table><tr><th>Id</th><th>Email</th><th>Invite</th><th>Status</th><th></th></tr>"
-            + (key_rows or "<tr><td colspan='5'>None yet</td></tr>")
+            + "<h2>Bearer clients</h2>"
+            + "<p>Look only for usage. Plaintext keys are not stored. "
+            "Revoke refuses the key at the tip gate. "
+            "Memnetor and Devicor manage serve from CLI, not this page.</p>"
+            + "<table><tr><th>Id</th><th>Email</th><th>Invite</th>"
+            + "<th>Status</th><th>Last used</th><th>Calls</th><th></th></tr>"
+            + (key_rows or "<tr><td colspan='7'>None yet</td></tr>")
             + "</table>"
         )
         response = _page("Tip access admin", body, session=session)
@@ -318,11 +342,57 @@ button {{ margin-right: 0.4rem; }}
         _clear_cookie(response, FLASH_COOKIE)
         return response
 
+    async def status_page(request: Request) -> Response:
+        session = _session(request)
+        admin = _is_admin(session)
+        body = (
+            "<p>Look only. This page does not manage serve, mutate, or open a project.</p>"
+            + _services_html(_look(), include_targets=admin)
+        )
+        if admin:
+            body += _admin_client_look()
+        else:
+            body += (
+                "<h2>Clients</h2><p>Bearer client emails and last-used times are admin-only.</p>"
+            )
+        return _page("MemNet status", body, session=session)
+
     async def validate(request: Request) -> Response:
-        ok = authorization_active(store, request.headers.get("authorization"))
-        if not ok:
+        token = bearer_token(request.headers.get("authorization"))
+        if token is None or not store.key_is_active(token):
             return Response(status_code=401)
+        store.record_use(token)
         return Response(status_code=200)
+
+    def _look() -> list[ProbeResult]:
+        return probe_all(
+            settings.status_probes,
+            http_request=probe_http,
+            tcp_connect=probe_tcp,
+        )
+
+    def _admin_client_look() -> str:
+        keys = store.list_keys()
+        active = sum(1 for row in keys if not row.revoked)
+        used = sum(1 for row in keys if row.last_used_at)
+        rows = "".join(
+            "<tr>"
+            f"<td>{html.escape(row.email)}</td>"
+            f"<td>{'revoked' if row.revoked else 'active'}</td>"
+            f"<td>{html.escape(row.last_used_at or 'never')}</td>"
+            f"<td>{row.use_count}</td>"
+            "</tr>"
+            for row in keys
+        )
+        return (
+            "<h2>Clients</h2>"
+            f"<p>Active Bearers: {active}. Ever used: {used}. "
+            "Look only — revoke stays on the admin page.</p>"
+            + "<table><tr><th>Email</th><th>Status</th>"
+            + "<th>Last used</th><th>Calls</th></tr>"
+            + (rows or "<tr><td colspan='4'>None yet</td></tr>")
+            + "</table>"
+        )
 
     def _take_flash(request: Request) -> dict | None:
         raw = request.cookies.get(FLASH_COOKIE)
@@ -343,6 +413,7 @@ button {{ margin-right: 0.4rem; }}
         Route("/auth/google", auth_google, methods=["GET"]),
         Route("/auth/callback", auth_callback, methods=["GET"]),
         Route("/key", show_key, methods=["GET"]),
+        Route("/status", status_page, methods=["GET"]),
         Route("/logout", logout, methods=["GET"]),
         Route("/auth/validate", validate, methods=["GET"]),
         Route("/internal/bearer-check", validate, methods=["GET"]),
@@ -370,6 +441,37 @@ def _key_revoke(row, csrf: str) -> str:
     if row.revoked:
         return ""
     return _revoke_form("/admin/keys/" + quote(row.id) + "/revoke", csrf)
+
+
+def _services_html(results: list[ProbeResult], *, include_targets: bool) -> str:
+    rows = []
+    for item in results:
+        mark = "up" if item.up else "down"
+        target = f"<td><code>{html.escape(item.target)}</code></td>" if include_targets else ""
+        rows.append(
+            "<tr>"
+            f"<td>{html.escape(item.name)}</td>"
+            f"<td class='{mark}'>{mark}</td>"
+            f"<td>{html.escape(item.detail)}</td>"
+            f"{target}"
+            "</tr>"
+        )
+    heading = "<h2>Services</h2>"
+    note = (
+        "<p>Look-only probe of configured MemNet listeners. "
+        "A 401 on the tip MCP still counts as up. No restart from this page.</p>"
+    )
+    if not rows:
+        empty = (
+            "<p>No service probes configured. "
+            "Set <code>MEMNET_STATUS_PROBES</code> or <code>MEMNET_TIP_MCP_PROBE</code>.</p>"
+        )
+        return heading + note + empty
+    head = "<tr><th>Name</th><th>State</th><th>Detail</th>"
+    if include_targets:
+        head += "<th>Target</th>"
+    head += "</tr>"
+    return heading + note + "<table>" + head + "".join(rows) + "</table>"
 
 
 def _revoke_form(action: str, csrf: str) -> str:
