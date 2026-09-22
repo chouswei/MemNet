@@ -75,6 +75,14 @@
   face is cousin SysMLEdge (`sysmledge`; mustNotInventUploadBind).
   Device MAY run tip memnet-mcp for ops; MUST NOT nest a second
   product MCP / SysMLEdge-as-product. Not N-server federation (#47).
+  APPLICATION / OPS ACCESS (not in MemNetSystem): TipMemNetAccessPortal —
+  Szu-Wei mints invites; invited users Google-login and fetch a Bearer
+  for the keyed tip MemNet MCP on droplet WWW
+  (https://memnet.139-59-255-181.nip.io/mcp). TipMcpGate refuses
+  unauthenticated WWW MemNet and forwards to the Pi tip. tip≠face.
+  Not a sysmledge product and not an openProject key page. Invent only
+  (portalWebImplemented=false). Free strangers stay on the SysMLEdge
+  free tier or memnet-llm self-host.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -2619,10 +2627,14 @@ package MemNet {
       leftover_* / TierACodec / LegacyPipeImport live on MemNetArchive
       (models/archive.sysml; off ProjectMemNet load). MUST NOT nest here.
       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
-      MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here. Only MN-REQ-00 satisfied here.
+      MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here.
+      TipMemNetAccessPortal MUST NOT nest here.
+      Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
       opsFleetInsideSystem=false (device services + one droplet MemNet
       MCP tip/ops is outside; product face is sysmledge).
+      tipAccessPortalInsideSystem=false (keyed tip access is outside;
+      tip≠face; not a sysmledge product).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2631,6 +2643,7 @@ package MemNet {
     part multitask : MultitaskOperatingModel;
     attribute usageDashboardInsideSystem : Boolean = false;
     attribute opsFleetInsideSystem : Boolean = false;
+    attribute tipAccessPortalInsideSystem : Boolean = false;
     attribute leftoverFogNested : Boolean = false;
     attribute leftoverArchiveOffLoad : Boolean = true;
     attribute leftoverLayerDeleteThisPr : Boolean = false;
@@ -2936,4 +2949,201 @@ package MemNet {
   }
 
   part opsFleet : MemNetOpsFleet;
+
+  // =====================================================================
+  // OPS ACCESS — TipMemNetAccessPortal (MUST NOT instantiate under
+  // MemNetSystem). Gated keys for tip MemNet MCP only. tip≠face.
+  // Not a sysmledge product. Invent only (web unshipped).
+  // =====================================================================
+
+  part def TipAccessAdmin {
+    doc /*
+      Portal admin. Display name Szu-Wei. Mints invite links and
+      revokes Bearers. Not a SysMLEdge product owner screen.
+    */
+    attribute displayName : String = "Szu-Wei";
+    attribute role : String = "admin";
+    port mintOut : InviteMintOutPort;
+    port revokeOut : TipBearerOutPort;
+  }
+
+  part def InvitedTipUser {
+    doc /*
+      User who redeemed an invite. Signs in with Google, then fetches
+      and sees their tip MCP Bearer. Strangers without an invite get
+      no key.
+    */
+    attribute allowlistRedeem : Boolean = true;
+    port loginOut : GoogleLoginOutPort;
+    port keyViewIn : TipBearerInPort;
+  }
+
+  part def GoogleIdP {
+    doc /*
+      Google OAuth identity provider for the portal. Asserts a
+      signed-in subject. MUST NOT gate the sysmledge product face.
+    */
+    attribute provider : String = "google";
+    port loginIn : GoogleLoginInPort;
+    port assertOut : GoogleAssertOutPort;
+  }
+
+  part def InviteStore {
+    doc /*
+      Stores admin-minted invites and the allowlist redeem. Mint is
+      admin-only.
+    */
+    attribute adminMintOnly : Boolean = true;
+    port mintIn : InviteMintInPort;
+    port redeemOut : InviteMintOutPort;
+  }
+
+  part def KeyStore {
+    doc /*
+      Issues, shows, and revokes Bearer keys for the tip MCP.
+      Shown only after invite redeem and Google login.
+    */
+    attribute bearerShownAfterLogin : Boolean = true;
+    attribute revokeSupported : Boolean = true;
+    port issueIn : TipBearerInPort;
+    port bearerOut : TipBearerOutPort;
+    port showOut : TipBearerOutPort;
+    port revokeIn : BearerRevokeInPort;
+  }
+
+  part def PortalWeb {
+    doc /*
+      Droplet WWW page: Google login, invite redeem, show Bearer.
+      Invent only — portalWebImplemented=false. No Google client
+      secret in this model cut. Not an openProject key page.
+    */
+    attribute portalWebImplemented : Boolean = false;
+    port googleIn : GoogleAssertInPort;
+    port inviteIn : InviteMintInPort;
+    port keyFetchOut : TipBearerOutPort;
+    port showIn : TipBearerInPort;
+    port showOut : TipBearerOutPort;
+  }
+
+  part def TipMcpGate {
+    doc /*
+      nginx/auth forward on droplet WWW in front of tip MemNet MCP
+      only: https://memnet.139-59-255-181.nip.io/mcp.
+      Requires Authorization: Bearer. Refuses unauthenticated MemNet
+      on that URL. Forwards to the Pi tip. Does not gate sysmledge.
+      Keyed tip MemNet on WWW stays; free/unauthenticated MemNet on
+      WWW does not.
+    */
+    attribute wwwUrl : String = "https://memnet.139-59-255-181.nip.io/mcp";
+    attribute authorizationScheme : String = "Bearer";
+    attribute keyedAuthRequired : Boolean = true;
+    attribute unauthenticatedAllowed : Boolean = false;
+    attribute forwardHost : String = "pi-tip";
+    attribute gatesSysmlEdge : Boolean = false;
+    attribute nginxAuthForward : Boolean = true;
+    port bearerIn : TipBearerInPort;
+    port forwardOut : TipForwardOutPort;
+  }
+
+  part def PiTipMemNetMcp {
+    doc /*
+      Forward target: tip memnet-mcp on the Pi. tip≠face. Not the
+      public WWW listener and not a nested MemNetSystem. Public
+      callers reach it only through TipMcpGate.
+    */
+    attribute hostKind : String = "pi-tip";
+    attribute tipIsFace : Boolean = false;
+    attribute unauthenticatedPublic : Boolean = false;
+    port mcpIn : TipForwardInPort;
+  }
+
+  part def TipMemNetAccessPortal {
+    doc /*
+      OPS nest outside MemNetSystem (MN-REQ-06.8). Admin (Szu-Wei)
+      mints invites. Invited user signs in with Google, then the
+      portal shows their Bearer for the tip MemNet MCP. TipMcpGate
+      checks that Bearer and forwards to the Pi tip. tip≠face.
+      isSysmlEdgeProduct=false; openProjectKeyPage=false;
+      grantsOpenMemNet=false. Free for strangers is the SysMLEdge
+      free tier or memnet-llm self-host (freeStrangerPath). This
+      cut is invent only (inventOnly=true;
+      portalWebImplemented=false) and MUST NOT be sold as
+      invent_2_green.
+    */
+    part admin : TipAccessAdmin;
+    part user : InvitedTipUser;
+    part google : GoogleIdP;
+    part portal : PortalWeb;
+    part invites : InviteStore;
+    part keys : KeyStore;
+    part gate : TipMcpGate;
+    part piTip : PiTipMemNetMcp;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute isSysmlEdgeProduct : Boolean = false;
+    attribute openProjectKeyPage : Boolean = false;
+    attribute grantsOpenMemNet : Boolean = false;
+    attribute unauthenticatedWwwMcp : Boolean = false;
+    attribute keyedWwwMcp : Boolean = true;
+    attribute inventOnly : Boolean = true;
+    attribute portalWebImplemented : Boolean = false;
+    attribute sellsInvent2Green : Boolean = false;
+    attribute gatesTipMcpOnly : Boolean = true;
+    attribute freeStrangerPath : String = "sysmledge-free-tier-or-memnet-llm-self-host";
+
+    connection adminMintsInvite : InviteMintFlow {
+      doc /* Admin → Invite. */
+      end port source ::> admin.mintOut;
+      end port sink ::> invites.mintIn;
+    }
+    connection inviteRedeem : InviteMintFlow {
+      doc /* Allowlist redeem into the portal. */
+      end port source ::> invites.redeemOut;
+      end port sink ::> portal.inviteIn;
+    }
+    connection userToGoogle : GoogleLoginFlow {
+      doc /* User → Google. */
+      end port source ::> user.loginOut;
+      end port sink ::> google.loginIn;
+    }
+    connection googleToPortal : GoogleAssertFlow {
+      doc /* Google → Portal. */
+      end port source ::> google.assertOut;
+      end port sink ::> portal.googleIn;
+    }
+    connection portalToKey : TipBearerFlow {
+      doc /* Portal → Key. */
+      end port source ::> portal.keyFetchOut;
+      end port sink ::> keys.issueIn;
+    }
+    connection keyToPortalShow : TipBearerFlow {
+      doc /* Key store returns the Bearer to the portal for display. */
+      end port source ::> keys.showOut;
+      end port sink ::> portal.showIn;
+    }
+    connection portalShowsKey : TipBearerFlow {
+      doc /* Portal shows the Bearer to the invited user. */
+      end port source ::> portal.showOut;
+      end port sink ::> user.keyViewIn;
+    }
+    connection adminRevokesKey : BearerRevokeFlow {
+      doc /* Admin revoke into the key store. */
+      end port source ::> admin.revokeOut;
+      end port sink ::> keys.revokeIn;
+    }
+    connection keyToGate : TipBearerFlow {
+      doc /* Key → TipMcpGate. */
+      end port source ::> keys.bearerOut;
+      end port sink ::> gate.bearerIn;
+    }
+    connection gateToPiTip : TipForwardFlow {
+      doc /* TipMcpGate → Pi tip MemNet MCP. */
+      end port source ::> gate.forwardOut;
+      end port sink ::> piTip.mcpIn;
+    }
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_8_TipMemNetAccessPortal;
+  }
+
+  part tipAccessPortal : TipMemNetAccessPortal;
 }

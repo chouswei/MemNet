@@ -206,6 +206,15 @@ Do **not** confuse this key with `MEMNET_MCP_HTTP_TOKEN`, CapsPolicy `session_to
 
 **MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
 
+### Tip MemNet access (ops invent)
+
+Keyed access to **tip** MemNet MCP only. Not the SysMLEdge product and not `openProject`. Model: `MN-REQ-06.8`. Teach: [`operations/tip-memnet-access-portal.md`](operations/tip-memnet-access-portal.md).
+
+- Admin **Szu-Wei** mints an invite link. The invitee signs in with Google. The portal then shows that user's Bearer.
+- Call `https://memnet.139-59-255-181.nip.io/mcp` with `Authorization: Bearer <key>`. The gate forwards to the Pi tip. No Bearer means refused.
+- Unauthenticated MemNet MCP on that WWW URL is off. Free MemNet for strangers is the SysMLEdge free tier or self-hosted `memnet-llm`, not this portal.
+- This cut does not ship the web app (`portalWebImplemented=false`). Do not sell it as invent_2_green.
+
 ### Not implemented (design only)
 
 - Full session ACL modes / roles / `session_token` (CapsPolicy ACL ships when enabled)

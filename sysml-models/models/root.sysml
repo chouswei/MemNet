@@ -7,6 +7,8 @@ package ProjectMemNet {
   private import MemNetRequirements::*;
   private import MemNetCousinContrast::*;
   private import MemNet::*;
+  // TipMemNetAccessPortal is in package MemNet, outside MemNetSystem
+  // (same import as MemNetUsageDashboard / MemNetOpsFleet). tip≠face.
   private import MemNetImplementation::*;
   private import MemNetBehaviour::*;
   private import MemNetVerification::*;

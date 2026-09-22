@@ -62,6 +62,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 |-----|------|
 | [`operations/multi-agent-sessions.md`](operations/multi-agent-sessions.md) | Multitask operating model (as-is 0.8; RSV + Path-B ingest shipped; full ACL modes to-be) |
 | [`operations/honesty-c-wire-audit.md`](operations/honesty-c-wire-audit.md) | 0.19.10 CueMiss/Peak_L vs CueConflict; snapshot locator SCHEMA warn; Path-B SysML CON; Truncation; hid emit audit |
+| [`operations/tip-memnet-access-portal.md`](operations/tip-memnet-access-portal.md) | Invent: keyed tip MemNet MCP access (invite, Google, Bearer; tip≠face; not sysmledge) |
 
 Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 

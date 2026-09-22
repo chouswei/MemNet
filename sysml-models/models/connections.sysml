@@ -860,6 +860,55 @@ package MemNetConnections {
     out item page : HumanUsagePage;
   }
 
+  port def InviteMintOutPort {
+    doc /* Admin emits an invite link (Szu-Wei only). */
+    out item invite : InviteLink;
+  }
+  port def InviteMintInPort {
+    doc /* Invite store accepts an admin-minted invite. */
+    in item invite : InviteLink;
+  }
+
+  port def GoogleLoginOutPort {
+    doc /* Invited user starts Google OAuth. */
+    out item login : GoogleLoginAssert;
+  }
+  port def GoogleLoginInPort {
+    doc /* Google IdP accepts the login start. */
+    in item login : GoogleLoginAssert;
+  }
+  port def GoogleAssertOutPort {
+    doc /* Google IdP emits a signed-in assertion. */
+    out item asserted : GoogleLoginAssert;
+  }
+  port def GoogleAssertInPort {
+    doc /* Portal accepts the Google assertion. */
+    in item asserted : GoogleLoginAssert;
+  }
+
+  port def TipBearerOutPort {
+    doc /* Emit a tip MCP Bearer (issue or show). */
+    out item bearer : TipMcpBearer;
+  }
+  port def TipBearerInPort {
+    doc /* Accept a tip MCP Bearer (issue, show, or gate). */
+    in item bearer : TipMcpBearer;
+  }
+
+  port def BearerRevokeInPort {
+    doc /* Key store accepts an admin revoke. */
+    in item bearer : TipMcpBearer;
+  }
+
+  port def TipForwardOutPort {
+    doc /* Gate emits an authenticated forward toward the Pi tip. */
+    out item hop : TipMcpForward;
+  }
+  port def TipForwardInPort {
+    doc /* Pi tip accepts an authenticated forward. */
+    in item hop : TipMcpForward;
+  }
+
   // =====================================================================
   // Connection defs
   // =====================================================================
@@ -1075,6 +1124,51 @@ package MemNetConnections {
     end port sink : ImportGuardArmedLookInPort;
   }
 
+  connection def InviteMintFlow {
+    doc /*
+      Admin invite mint into the invite store, and redeem onto the
+      portal allowlist. Not a product-face credential.
+    */
+    end port source : InviteMintOutPort;
+    end port sink : InviteMintInPort;
+  }
+
+  connection def GoogleLoginFlow {
+    doc /* Invited user to Google IdP. */
+    end port source : GoogleLoginOutPort;
+    end port sink : GoogleLoginInPort;
+  }
+
+  connection def GoogleAssertFlow {
+    doc /* Google IdP assertion into the portal. */
+    end port source : GoogleAssertOutPort;
+    end port sink : GoogleAssertInPort;
+  }
+
+  connection def TipBearerFlow {
+    doc /*
+      Bearer between portal, key store, invited user, and the tip
+      gate. Authorization: Bearer. MUST NOT carry a sysmledge key.
+    */
+    end port source : TipBearerOutPort;
+    end port sink : TipBearerInPort;
+  }
+
+  connection def BearerRevokeFlow {
+    doc /* Admin revoke into the key store. */
+    end port source : TipBearerOutPort;
+    end port sink : BearerRevokeInPort;
+  }
+
+  connection def TipForwardFlow {
+    doc /*
+      Authenticated forward from TipMcpGate to the Pi tip MemNet MCP.
+      Unauthenticated WWW MemNet is not this flow.
+    */
+    end port source : TipForwardOutPort;
+    end port sink : TipForwardInPort;
+  }
+
   // =====================================================================
   // Application patterns (NOT MemNet core item zoo — case-study only)
   // =====================================================================
@@ -1102,6 +1196,59 @@ package MemNetConnections {
       RagHostHook.implemented=true outside MemNetSystem. Product math
       sits above this research: docs/grammar/math-skeleton.md. See
       docs/extras/memnet-host-search-nest.md.
+    */
+  }
+
+  item def InviteLink {
+    doc /*
+      Admin-minted invite for the tip MemNet access portal.
+      Redeems onto an allowlist. Not a sysmledge product credential
+      and not an openProject token.
+    */
+    attribute mintedByAdmin : Boolean = true;
+    attribute adminDisplayName : String = "Szu-Wei";
+  }
+
+  item def GoogleLoginAssert {
+    doc /*
+      Google OAuth assertion for an invited portal user.
+      Identity only. MUST NOT authorise the SysMLEdge product face.
+    */
+    attribute provider : String = "google";
+  }
+
+  item def TipMcpBearer {
+    doc /*
+      Bearer key for the keyed tip MemNet MCP. Shown to the invited
+      user after Google login. Sent as Authorization: Bearer.
+      Revocable. MUST NOT open unauthenticated MemNet on WWW.
+    */
+    attribute scheme : String = "Bearer";
+    attribute shownToInvitedUser : Boolean = true;
+  }
+
+  item def TipMcpForward {
+    doc /*
+      Auth-forward hop from the droplet WWW gate to the Pi tip
+      MemNet MCP. Public URL stays keyed. tip≠face.
+    */
+    attribute wwwUrl : String = "https://memnet.139-59-255-181.nip.io/mcp";
+    attribute authorizationHeader : String = "Authorization: Bearer";
+    attribute unauthenticatedAllowed : Boolean = false;
+    attribute forwardHost : String = "pi-tip";
+  }
+
+  item def TipMemNetAccess {
+    doc /*
+      OPS ACCESS pattern only (MUST NOT nest under MemNetSystem):
+      Szu-Wei mints invites; invited users Google-login and fetch a
+      Bearer for the tip MemNet MCP at
+      https://memnet.139-59-255-181.nip.io/mcp. TipMcpGate refuses
+      unauthenticated WWW MemNet and forwards to the Pi tip. Not the
+      sysmledge product, not an openProject key page, not open MemNet
+      for strangers (that remains SysMLEdge free tier or memnet-llm
+      self-host). Invent only (portal web unshipped). See
+      outputs/tip-memnet-access-portal-case-study.md.
     */
   }
 
