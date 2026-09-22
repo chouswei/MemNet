@@ -214,6 +214,7 @@ Keyed access to **tip** MemNet MCP only. Not the SysMLEdge product and not `open
 - Call `https://memnet.139-59-255-181.nip.io/mcp` with `Authorization: Bearer <key>`. nginx `auth_request` calls `GET /auth/validate`, then forwards to the Pi tip. No Bearer, or a revoked Bearer, is refused.
 - Unauthenticated MemNet MCP on that WWW URL is off. Free MemNet for strangers is the SysMLEdge free tier or self-hosted `memnet-llm`, not this portal.
 - `portalWebImplemented=true`. Do not sell it as invent_2_green.
+- `/status` is a look-only probe of configured MemNet listeners and (admin) Bearer last-used. It does not unpark the engine usage dashboard HTTP.
 
 ### Not implemented (design only)
 

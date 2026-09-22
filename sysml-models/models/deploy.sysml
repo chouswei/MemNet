@@ -82,8 +82,10 @@
   unauthenticated WWW MemNet and forwards to the Pi tip. tip≠face.
   Not a sysmledge product and not an openProject key page. Portal web
   is the ops sidecar (portalWebImplemented=true; inventOnly=false).
-  sellsInvent2Green=false. Free strangers stay on the SysMLEdge
-  free tier or memnet-llm self-host.
+  sellsInvent2Green=false. Status look of services and Bearer
+  clients is look-only and MUST NOT unpark MemNetUsageDashboard
+  HTTP. Free strangers stay on the SysMLEdge free tier or
+  memnet-llm self-host.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -3003,10 +3005,14 @@ package MemNet {
   part def KeyStore {
     doc /*
       Issues, shows, and revokes Bearer keys for the tip MCP.
-      Shown only after invite redeem and Google login.
+      Shown only after invite redeem and Google login. Tracks last
+      used time and call count for the portal look page (hashed
+      keys only; plaintext never stored).
     */
     attribute bearerShownAfterLogin : Boolean = true;
     attribute revokeSupported : Boolean = true;
+    attribute lastUsedTracked : Boolean = true;
+    attribute useCountTracked : Boolean = true;
     port issueIn : TipBearerInPort;
     port bearerOut : TipBearerOutPort;
     port showOut : TipBearerOutPort;
@@ -3015,12 +3021,21 @@ package MemNet {
 
   part def PortalWeb {
     doc /*
-      Droplet WWW page: Google login, invite redeem, show Bearer.
-      Implemented as the ops sidecar ops/tip_access_portal
-      (portalWebImplemented=true). Google client secrets stay in the
-      environment, not in this model. Not an openProject key page.
+      Droplet WWW page: Google login, invite redeem, show Bearer,
+      and look-only status of configured MemNet listeners plus
+      Bearer client last-used. Implemented as the ops sidecar
+      ops/tip_access_portal (portalWebImplemented=true). Google
+      client secrets stay in the environment, not in this model.
+      Not an openProject key page. Status look MUST NOT unpark
+      MemNetUsageDashboard HTTP (unparksUsageDashboard=false;
+      dashboard httpImplemented stays false). MUST NOT restart,
+      mutate, or session_close from the page.
     */
     attribute portalWebImplemented : Boolean = true;
+    attribute serviceLookImplemented : Boolean = true;
+    attribute clientLookImplemented : Boolean = true;
+    attribute statusLookOnly : Boolean = true;
+    attribute unparksUsageDashboard : Boolean = false;
     port googleIn : GoogleAssertInPort;
     port inviteIn : InviteMintInPort;
     port keyFetchOut : TipBearerOutPort;
@@ -3071,7 +3086,11 @@ package MemNet {
       free tier or memnet-llm self-host (freeStrangerPath). The
       portal web is implemented (inventOnly=false;
       portalWebImplemented=true) and MUST NOT be sold as
-      invent_2_green (sellsInvent2Green=false).
+      invent_2_green (sellsInvent2Green=false). Status look of
+      services and Bearer clients is look-only
+      (statusLookOnly=true; serviceLookImplemented=true;
+      clientLookImplemented=true) and MUST NOT unpark the
+      usage dashboard HTTP (unparksUsageDashboard=false).
     */
     part admin : TipAccessAdmin;
     part user : InvitedTipUser;
@@ -3091,6 +3110,10 @@ package MemNet {
     attribute inventOnly : Boolean = false;
     attribute portalWebImplemented : Boolean = true;
     attribute sellsInvent2Green : Boolean = false;
+    attribute serviceLookImplemented : Boolean = true;
+    attribute clientLookImplemented : Boolean = true;
+    attribute statusLookOnly : Boolean = true;
+    attribute unparksUsageDashboard : Boolean = false;
     attribute gatesTipMcpOnly : Boolean = true;
     attribute freeStrangerPath : String = "sysmledge-free-tier-or-memnet-llm-self-host";
 

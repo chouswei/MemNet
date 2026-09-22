@@ -27,6 +27,8 @@ Copy [`ops/tip_access_portal/.env.example`](../../ops/tip_access_portal/.env.exa
 | `MEMNET_TIP_PORTAL_BIND` | Default `127.0.0.1` |
 | `MEMNET_TIP_PORTAL_PORT` | Default `8766` |
 | `MEMNET_TIP_INVITE_TTL_HOURS` | Default `168` |
+| `MEMNET_STATUS_PROBES` | Optional look-only probes: `name=target,...`. Target is `http(s)://` or `tcp://host:port`. Do not point this at the portal's own `/healthz` from the same worker. |
+| `MEMNET_TIP_MCP_PROBE` | Optional extra probe named `tip-mcp` (skipped if that name is already in `MEMNET_STATUS_PROBES`). Example: `https://memnet.139-59-255-181.nip.io/mcp` |
 
 Required Google redirect URI:
 
@@ -46,6 +48,8 @@ memnet-tip-portal
 Package notes: [`ops/tip_access_portal/README.md`](../../ops/tip_access_portal/README.md).
 
 Admin opens `/`, signs in with Google, and mints an invite. The invite URL is shown once. The invitee opens `/invite/<token>`, signs in with Google, and `/key` shows `mn_tip_…` once. Reload does not show it again. Ask the admin for a new invite after a revoke.
+
+`/` and `/status` show look-only service probes (name and up/down; probe targets stay admin-only). A 401 on `/mcp` still counts as up. Admin `/status` and `/admin` show Bearer client last-used and call counts. The page does not restart, mutate, `session_close`, or unpark `MemNetUsageDashboard` HTTP (`httpImplemented` stays false). `GET /auth/validate` records last-used when the Bearer is active.
 
 ## Call the tip
 
@@ -138,3 +142,5 @@ sudo systemctl enable --now memnet-tip-portal
 - A sysmledge product key page, or an `openProject` gate, invented from this portal
 - Open or unauthenticated MemNet MCP on the WWW URL
 - Selling **invent_2_green** (production-green) from this portal
+- Unparking engine `MemNetUsageDashboard` HTTP from this status look
+- Restart / mutate / `session_close` from the portal page

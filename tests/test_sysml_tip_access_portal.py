@@ -42,6 +42,13 @@ def test_portal_parts_outside_system():
     assert "attribute inventOnly : Boolean = false" in text
     assert "attribute portalWebImplemented : Boolean = true" in text
     assert "attribute sellsInvent2Green : Boolean = false" in text
+    assert "attribute serviceLookImplemented : Boolean = true" in text
+    assert "attribute clientLookImplemented : Boolean = true" in text
+    assert "attribute statusLookOnly : Boolean = true" in text
+    assert "attribute unparksUsageDashboard : Boolean = false" in text
+    assert "attribute lastUsedTracked : Boolean = true" in text
+    assert "attribute useCountTracked : Boolean = true" in text
+    assert "attribute httpImplemented : Boolean = false" in text
     assert "attribute gatesTipMcpOnly : Boolean = true" in text
     assert "attribute gatesSysmlEdge : Boolean = false" in text
     assert "attribute unauthenticatedAllowed : Boolean = false" in text
@@ -80,6 +87,10 @@ def test_requirement_verify_and_load():
     assert "portal.gate.gatesSysmlEdge == false" in ver
     assert f'portal.gate.wwwUrl == "{WWW}"' in ver
     assert "portal.sellsInvent2Green == false" in ver
+    assert "portal.statusLookOnly == true" in ver
+    assert "portal.unparksUsageDashboard == false" in ver
+    assert "portal.keys.lastUsedTracked == true" in ver
+    assert "dashboard.httpImplemented == false" in ver
     conn = CONNECTIONS.read_text(encoding="utf-8")
     assert "item def TipMemNetAccess" in conn
     assert "connection def TipBearerFlow" in conn
@@ -110,3 +121,10 @@ def test_teach_and_soft_pass_kills():
     assert "portalWebImplemented=true" in nest
     assert "inventOnly=false" in nest
     assert "isSysmlEdgeProduct=false" in nest
+    assert "statusLookOnly=true" in nest
+    assert "unparksUsageDashboard=false" in nest
+    assert "httpImplemented=false" in nest
+    assert "last-used" in teach
+    assert "MEMNET_STATUS_PROBES" in teach
+    assert "MEMNET_TIP_MCP_PROBE" in teach
+    assert "statusLookOnly" in study

@@ -1313,6 +1313,10 @@ package MemNetVerification {
       product (isSysmlEdgeProduct=false; openProjectKeyPage=false;
       gatesSysmlEdge=false). grantsOpenMemNet=false. inventOnly=false;
       portalWebImplemented=true; sellsInvent2Green=false.
+      Status look of services/clients is look-only
+      (statusLookOnly=true) and MUST NOT unpark
+      MemNetUsageDashboard HTTP (unparksUsageDashboard=false;
+      dashboard httpImplemented stays false).
     */
     attribute verificationId : String = "MN-VER-06-S05";
 
@@ -1342,6 +1346,16 @@ package MemNetVerification {
           and portal.keys.bearerShownAfterLogin == true
           and portal.keys.revokeSupported == true
           and portal.portal.portalWebImplemented == true
+          and portal.portal.serviceLookImplemented == true
+          and portal.portal.clientLookImplemented == true
+          and portal.portal.statusLookOnly == true
+          and portal.portal.unparksUsageDashboard == false
+          and portal.serviceLookImplemented == true
+          and portal.clientLookImplemented == true
+          and portal.statusLookOnly == true
+          and portal.unparksUsageDashboard == false
+          and portal.keys.lastUsedTracked == true
+          and portal.keys.useCountTracked == true
           and portal.gate.keyedAuthRequired == true
           and portal.gate.unauthenticatedAllowed == false
           and portal.gate.gatesSysmlEdge == false
