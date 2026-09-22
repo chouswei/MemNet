@@ -16,6 +16,8 @@ model_files:
   - requirements.sysml
   - cousins.sysml
   - deploy.sysml
+  #    TipMemNetAccessPortal nests in deploy.sysml (outside MemNetSystem;
+  #    same load as MemNetUsageDashboard / MemNetOpsFleet). No extra file.
   - implementation.sysml
   - behaviour.sysml
   - verify.sysml

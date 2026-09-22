@@ -31,6 +31,10 @@
   SSOT-to-code allocate (MN-VER-06-S04): SoftwareAllocate maps
   logical parts to live modules; one Hatch wheel many hosts;
   sysmlEdgeInWheel=false; CousinSysMLEdge not in this repo.
+  Tip access portal (MN-VER-06-S05): TipMemNetAccessPortal outside
+  MemNetSystem; admin invite (Szu-Wei); Google login; Bearer for
+  keyed tip MCP; unauthenticated WWW MemNet refused; tip≠face;
+  not a sysmledge product; invent only.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1293,6 +1297,60 @@ package MemNetVerification {
           and tracker.trackAllocateRows == true
           and tracker.sysmlEdgeTracked == false
           and tracker.missingPathFailsCi == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S05_TipMemNetAccessPortal {
+    doc /*
+      MN-REQ-06.8 — tip MemNet access portal. Outside MemNetSystem
+      (tipAccessPortalInsideSystem=false; insideMemNetSystem=false).
+      Admin display name Szu-Wei mints invites. Google login. Bearer
+      shown after login. TipMcpGate requires Bearer and refuses
+      unauthenticated WWW MemNet; forward host is the Pi tip; URL is
+      the droplet WWW tip MCP. tipIsFace=false. Not a sysmledge
+      product (isSysmlEdgeProduct=false; openProjectKeyPage=false;
+      gatesSysmlEdge=false). grantsOpenMemNet=false. inventOnly;
+      portalWebImplemented=false; sellsInvent2Green=false.
+    */
+    attribute verificationId : String = "MN-VER-06-S05";
+
+    subject system : MemNetSystem;
+    subject portal : TipMemNetAccessPortal;
+
+    objective tipMemNetAccessPortal {
+      verify tipMemNetAccessPortalReq;
+      require constraint {
+        system.tipAccessPortalInsideSystem == false
+          and portal.insideMemNetSystem == false
+          and portal.tipIsFace == false
+          and portal.isSysmlEdgeProduct == false
+          and portal.openProjectKeyPage == false
+          and portal.grantsOpenMemNet == false
+          and portal.unauthenticatedWwwMcp == false
+          and portal.keyedWwwMcp == true
+          and portal.inventOnly == true
+          and portal.portalWebImplemented == false
+          and portal.sellsInvent2Green == false
+          and portal.gatesTipMcpOnly == true
+          and portal.admin.displayName == "Szu-Wei"
+          and portal.admin.role == "admin"
+          and portal.invites.adminMintOnly == true
+          and portal.user.allowlistRedeem == true
+          and portal.google.provider == "google"
+          and portal.keys.bearerShownAfterLogin == true
+          and portal.keys.revokeSupported == true
+          and portal.portal.portalWebImplemented == false
+          and portal.gate.keyedAuthRequired == true
+          and portal.gate.unauthenticatedAllowed == false
+          and portal.gate.gatesSysmlEdge == false
+          and portal.gate.forwardHost == "pi-tip"
+          and portal.gate.authorizationScheme == "Bearer"
+          and portal.gate.wwwUrl == "https://memnet.139-59-255-181.nip.io/mcp"
+          and portal.piTip.tipIsFace == false
+          and portal.piTip.unauthenticatedPublic == false
+          and portal.piTip.hostKind == "pi-tip"
+          and portal.freeStrangerPath == "sysmledge-free-tier-or-memnet-llm-self-host"
       }
     }
   }

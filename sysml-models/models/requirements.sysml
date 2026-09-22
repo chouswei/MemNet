@@ -23,6 +23,7 @@
     MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
     MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
     MN-REQ-06.7        Allocate SSOT parts to live code in this checkout (one Hatch wheel, many hosts; sysmledge not in wheel)
+    MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -727,6 +728,32 @@ package MemNetRequirements {
           satisfy this allocate. Hatch stays 0.19.11 honesty c.
         */
         attribute requirementId : String = "MN-REQ-06.7";
+      }
+
+      requirement def MN_REQ_06_8_TipMemNetAccessPortal {
+        doc /*
+          SHALL provide an ops access portal for gated tip MemNet MCP
+          keys. This portal is tip/ops access control (tip≠face). It
+          SHALL NOT be the SysMLEdge product, a sysmledge key page, or
+          an openProject gate. Admin SHALL be Szu-Wei and SHALL mint
+          invite links for new users. An invited user SHALL redeem the
+          invite onto an allowlist, then sign in with Google OAuth.
+          After that login the portal SHALL issue and show that user's
+          Bearer key for the tip MCP. Admin SHALL be able to revoke a
+          key or an invite. The public tip endpoint
+          https://memnet.139-59-255-181.nip.io/mcp SHALL require that
+          Bearer (Authorization header) and SHALL forward only after
+          auth to the Pi tip MemNet MCP. Unauthenticated MemNet MCP on
+          that WWW URL SHALL be refused. Keyed tip MemNet on droplet
+          WWW SHALL stay. This portal SHALL NOT grant open MemNet to
+          strangers. Free use for strangers remains the SysMLEdge free
+          tier or a self-hosted memnet-llm, not this portal. SHALL NOT
+          change pin_map or engine operators. SHALL NOT sell this
+          invent as invent_2_green: the web app, Google client
+          secrets, and droplet nginx stay unshipped in this cut
+          (portalWebImplemented=false; inventOnly=true).
+        */
+        attribute requirementId : String = "MN-REQ-06.8";
       }
     }
 
@@ -1665,6 +1692,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
   requirement ssotToCodeAllocateReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_7_SsotToCodeAllocate;
+  requirement tipMemNetAccessPortalReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_8_TipMemNetAccessPortal;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1886,6 +1915,7 @@ package MemNetRequirements {
     end #derive ::> humanUsageLookReq;
     end #derive ::> deviceServicesOneDropletMcpReq;
     end #derive ::> ssotToCodeAllocateReq;
+    end #derive ::> tipMemNetAccessPortalReq;
   }
 
   #derivation connection deriveMcpLeaves {
