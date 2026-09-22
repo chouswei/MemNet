@@ -986,6 +986,9 @@ package MemNetVerification {
           and contrast.sysmledge.downstreamRepoPrefix == "SysMLEdgePrj-"
           and contrast.sysmledge.downstreamRepoFamily == "SysMLEdgePrj-*"
           and contrast.sysmledge.gitModelPathIsSsot == true
+          and contrast.sysmledge.memnetIsMissionWorkingMemory == true
+          and contrast.sysmledge.operatorReadmeStatesHost == true
+          and contrast.sysmledge.downstreamBoundDeskIsWorkingModelSsot == true
           and contrast.sysmledge.mustNotInventUploadBind == true
       }
     }

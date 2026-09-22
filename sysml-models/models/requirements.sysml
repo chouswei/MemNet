@@ -1290,9 +1290,12 @@ package MemNetRequirements {
             cross_cut_miss. Interiors SHALL NOT grow a dangling dest node.
             SHALL NOT merge interiors, Absorb a whole S, or treat a
             foreign product pin_map (SysMLEdge / other desk) as this
-            catalog look. SysMLEdge graph is not SSOT; SSOT is the open
-            repo model path (this checkout: sysml-models/). Look remains
-            one named session per generate; join remains Path-B slice.
+            MemNet catalog look. SysMLEdge graph is not MemNet SSOT.
+            This engine checkout is repo-based: SSOT is git
+            sysml-models/. Downstream SysMLEdge-based and bound: the
+            desk graph is working model SSOT; MemNet stays mission
+            working memory. Look remains one named session per
+            generate; join remains Path-B slice.
           */
           attribute requirementId : String = "MN-REQ-11.17.1";
         }

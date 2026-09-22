@@ -12,12 +12,13 @@ metadata:
   pairs_with: [mcp-memnet, memnet-format, sysml-memnet-cache, sysml-memnet-documentation, sysml-modeling-workflow, memnet-nested-sessions, sysml-ssot-to-code]
 token_guardrails: |
   - GQL only. No Layer / pipe @TAG. leftover NEW / leftover anchor= named leftover.
-  - .sysml is structure; MemNet holds relatives. Kind map: sysml-memnet-patterns.md.
+  - This checkout: .sysml is structure; MemNet is relatives. Kind map: sysml-memnet-patterns.md.
+  - SysMLEdge-based overlays: bound desk is model SSOT; MemNet stays campaign memory.
 ---
 
 # SysML × MemNet GQL
 
-**Stores:** `.sysml` = structure and satisfy. MemNet = atomised relatives for the next turn.
+**Stores:** this engine checkout is **repo-based** — `.sysml` = structure and satisfy. MemNet = atomised relatives for the next turn (campaign working memory). Downstream **SysMLEdge-based** bound overlays: the desk graph is working model SSOT; do not substitute product `pin_map` for MemNet `pin_map`.
 
 ## Turn loop
 

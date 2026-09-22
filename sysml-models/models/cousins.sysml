@@ -224,15 +224,21 @@ package MemNetCousinContrast {
       SysMLEdge (user-sysmledge / product sysmledge): multi-projectId
       desk with its own pin_map. Downstream family is
       SysMLEdgePrj-* (prefix SysMLEdgePrj-; not modelbasedPrj-*).
-      Not MemNet session strata.
-      Graph is not SSOT; SSOT is the open repo model path
-      (sysml-models/ in that checkout). The system-dev git tree is
-      the copy that holds authority; the desk is a bound look.
-      SHALL NOT substitute SysMLEdge pin_map for MemNet pin_map.
-      SHALL NOT bleed projectId. openProject is human-gated.
-      This MemNet engine repo has no SysMLEdge product face;
-      MUST NOT invent upload/bind. Cross-session MemNet edges stay
-      catalog locators on MemNet; they are not SysMLEdge relations.
+      Not MemNet session strata. MemNet is mission working memory
+      (memnetIsMissionWorkingMemory). SysMLEdge pin_map is not MemNet
+      pin_map (graphIsNotSsot = not MemNet SSOT).
+      Operator README SHALL state repo-based or SysMLEdge-based
+      (operatorReadmeStatesHost). This MemNet engine repo is
+      repo-based: git sysml-models/ is model SSOT here
+      (gitModelPathIsSsot; thisRepoHasProductFace=false).
+      Downstream SysMLEdge-based AND bound (working_ssot=graph for
+      this projectId): the desk graph is working model SSOT
+      (downstreamBoundDeskIsWorkingModelSsot); git sysml-models/ is
+      backup after human Save. SHALL NOT substitute SysMLEdge pin_map
+      for MemNet pin_map. SHALL NOT bleed projectId. openProject is
+      human-gated. MUST NOT invent upload/bind. Cross-session MemNet
+      edges stay catalog locators on MemNet; they are not SysMLEdge
+      relations.
     */
     attribute storeKeyOnWire : Boolean = false;
     attribute requiredUniqueName : Boolean = false;
@@ -248,6 +254,9 @@ package MemNetCousinContrast {
     attribute downstreamRepoPrefix : String = "SysMLEdgePrj-";
     attribute downstreamRepoFamily : String = "SysMLEdgePrj-*";
     attribute gitModelPathIsSsot : Boolean = true;
+    attribute memnetIsMissionWorkingMemory : Boolean = true;
+    attribute operatorReadmeStatesHost : Boolean = true;
+    attribute downstreamBoundDeskIsWorkingModelSsot : Boolean = true;
     attribute mustNotInventUploadBind : Boolean = true;
     attribute mustNotCopy : Boolean = true;
 
