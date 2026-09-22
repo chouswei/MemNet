@@ -23,6 +23,7 @@ htmlcov/
 # MemNet data (local graph stores)
 data/rto/*.pdf
 *.db
+*.sqlite
 .memnet/
 memnet-codebase.snap.txt
 

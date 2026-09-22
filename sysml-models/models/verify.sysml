@@ -34,7 +34,8 @@
   Tip access portal (MN-VER-06-S05): TipMemNetAccessPortal outside
   MemNetSystem; admin invite (Szu-Wei); Google login; Bearer for
   keyed tip MCP; unauthenticated WWW MemNet refused; tip≠face;
-  not a sysmledge product; invent only.
+  not a sysmledge product; portal sidecar (portalWebImplemented=true;
+  sellsInvent2Green=false).
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1310,8 +1311,8 @@ package MemNetVerification {
       unauthenticated WWW MemNet; forward host is the Pi tip; URL is
       the droplet WWW tip MCP. tipIsFace=false. Not a sysmledge
       product (isSysmlEdgeProduct=false; openProjectKeyPage=false;
-      gatesSysmlEdge=false). grantsOpenMemNet=false. inventOnly;
-      portalWebImplemented=false; sellsInvent2Green=false.
+      gatesSysmlEdge=false). grantsOpenMemNet=false. inventOnly=false;
+      portalWebImplemented=true; sellsInvent2Green=false.
     */
     attribute verificationId : String = "MN-VER-06-S05";
 
@@ -1329,8 +1330,8 @@ package MemNetVerification {
           and portal.grantsOpenMemNet == false
           and portal.unauthenticatedWwwMcp == false
           and portal.keyedWwwMcp == true
-          and portal.inventOnly == true
-          and portal.portalWebImplemented == false
+          and portal.inventOnly == false
+          and portal.portalWebImplemented == true
           and portal.sellsInvent2Green == false
           and portal.gatesTipMcpOnly == true
           and portal.admin.displayName == "Szu-Wei"
@@ -1340,7 +1341,7 @@ package MemNetVerification {
           and portal.google.provider == "google"
           and portal.keys.bearerShownAfterLogin == true
           and portal.keys.revokeSupported == true
-          and portal.portal.portalWebImplemented == false
+          and portal.portal.portalWebImplemented == true
           and portal.gate.keyedAuthRequired == true
           and portal.gate.unauthenticatedAllowed == false
           and portal.gate.gatesSysmlEdge == false

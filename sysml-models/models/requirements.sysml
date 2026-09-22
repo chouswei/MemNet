@@ -748,10 +748,11 @@ package MemNetRequirements {
           WWW SHALL stay. This portal SHALL NOT grant open MemNet to
           strangers. Free use for strangers remains the SysMLEdge free
           tier or a self-hosted memnet-llm, not this portal. SHALL NOT
-          change pin_map or engine operators. SHALL NOT sell this
-          invent as invent_2_green: the web app, Google client
-          secrets, and droplet nginx stay unshipped in this cut
-          (portalWebImplemented=false; inventOnly=true).
+          change pin_map or engine operators. The portal web SHALL be
+          the ops sidecar (portalWebImplemented=true; inventOnly=false).
+          Google client secrets SHALL stay in the environment. nginx
+          auth_request SHALL refuse unauthenticated /mcp. SHALL NOT
+          sell this as invent_2_green (sellsInvent2Green=false).
         */
         attribute requirementId : String = "MN-REQ-06.8";
       }

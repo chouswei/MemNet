@@ -26,10 +26,10 @@ jobs:
         run: pip install -e ".[dev,mcp]"
 
       - name: Ruff check
-        run: ruff check parts/common/memnet parts/memnet-mcp/software tests
+        run: ruff check parts/common/memnet parts/memnet-mcp/software ops/tip_access_portal tests
 
       - name: Ruff format (check only)
-        run: ruff format --check parts/common/memnet parts/memnet-mcp/software tests
+        run: ruff format --check parts/common/memnet parts/memnet-mcp/software ops/tip_access_portal tests
 
       - name: Pytest
         run: pytest

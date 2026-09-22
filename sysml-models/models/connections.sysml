@@ -1247,7 +1247,8 @@ package MemNetConnections {
       unauthenticated WWW MemNet and forwards to the Pi tip. Not the
       sysmledge product, not an openProject key page, not open MemNet
       for strangers (that remains SysMLEdge free tier or memnet-llm
-      self-host). Invent only (portal web unshipped). See
+      self-host). Portal web is the ops sidecar (portalWebImplemented=true;
+      sellsInvent2Green=false). See
       outputs/tip-memnet-access-portal-case-study.md.
     */
   }

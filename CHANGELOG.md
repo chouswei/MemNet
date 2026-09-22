@@ -9,6 +9,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ### Changed
 
+- **Honesty `c` — tip MemNet access portal (sidecar)** — `ops/tip_access_portal` (`memnet-tip-portal`) implements `TipMemNetAccessPortal` outside `MemNetSystem` (`MN-REQ-06.8` / `MN-VER-06-S05`). Admin Szu-Wei mints invites; Google login; Bearer shown once (hash stored) for keyed tip MCP at `https://memnet.139-59-255-181.nip.io/mcp`; `GET /auth/validate` for nginx `auth_request`; unauthenticated WWW MemNet refused; forward to Pi tip. tip≠face. Not a sysmledge product and not an `openProject` key page. `portalWebImplemented=true`; `inventOnly=false`; `sellsInvent2Green=false`. No Hatch bump.
 - **Honesty `c` — tip MemNet access portal (invent)** — `TipMemNetAccessPortal` outside `MemNetSystem` (`MN-REQ-06.8` / `MN-VER-06-S05`). Admin Szu-Wei mints invites; Google login; Bearer for keyed tip MCP at `https://memnet.139-59-255-181.nip.io/mcp`; unauthenticated WWW MemNet refused; forward to Pi tip. tip≠face. Not a sysmledge product and not an `openProject` key page. Invent only (`portalWebImplemented=false`). No Hatch bump.
 
 ## [0.19.12] - 2026-09-21
