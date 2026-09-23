@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import sqlite3
 import time
+from datetime import UTC, datetime
 
 from starlette.testclient import TestClient
 
@@ -263,15 +264,21 @@ def test_validate_records_use_and_status_hides_targets_from_public(tmp_path):
     public = _client(app)
     home = public.get("/")
     assert home.status_code == 200
-    assert "tip-mcp" in home.text
-    assert "class='up'>up" in home.text
+    assert "Invite-only keys" in home.text
+    assert "btn-google" in home.text
+    assert "tip-mcp" not in home.text
     assert target not in home.text
     assert "tcp://127.0.0.1:18765" not in home.text
     status = public.get("/status")
     assert status.status_code == 200
     assert "Look only" in status.text
     assert USER not in status.text
-    assert "admin-only" in status.text
+    assert "admin-only" not in status.text
+    assert "<h2>Clients</h2>" not in status.text
+    assert "Reachable (auth required)" in status.text
+    assert "OSError" not in status.text
+    assert "class='up'>" in status.text
+    assert "Up" in status.text
     assert target not in status.text
 
     invite, _token = store.mint_invite(label="pilot", ttl_hours=2)
@@ -305,6 +312,8 @@ def test_validate_records_use_and_status_hides_targets_from_public(tmp_path):
     assert "Last used" in admin_page.text
     assert USER in admin_page.text
     assert "Revoke" in admin_page.text
+    assert "Reachable (auth required)" in admin_status.text
+    assert "just now" in admin_page.text or "never" in admin_page.text
 
 
 def test_status_probes_from_env(monkeypatch):
@@ -365,3 +374,58 @@ def test_key_columns_migrate(tmp_path):
     assert row.use_count == 1
     assert row.last_used_at is not None
     store.close()
+
+
+def test_portal_ux_home_invite_key_and_revoke_confirm():
+    settings, store, app = _app()
+    public = _client(app)
+    home = public.get("/")
+    assert "class='btn btn-google'" in home.text
+    assert "Services" not in home.text
+    invite, token = store.mint_invite(label="pilot", ttl_hours=2)
+    redeem = public.get(f"/invite/{token}")
+    assert "Continue with Google" in redeem.text
+    assert "class='btn btn-google'" in redeem.text
+    assert "/status" not in redeem.text
+    shown = public.get(
+        f"/auth/callback?code=code-user&state={_state(settings, token)}",
+        follow_redirects=True,
+    )
+    assert "id='copy'" in shown.text
+    assert "aria-live='polite'" in shown.text
+    assert "Copied to clipboard" in shown.text
+    assert "Authorization: Bearer" in shown.text
+    again = public.get("/key")
+    assert "already shown" in again.text
+    assert "Ask Szu-Wei" in again.text
+    admin = _client(app)
+    admin.get(f"/auth/callback?code=code-admin&state={_state(settings)}")
+    page = admin.get("/admin")
+    assert "onsubmit=" in page.text
+    assert "return confirm(" in page.text
+    assert "<th>Label</th>" in page.text
+    assert "<th>Email</th>" in page.text
+    assert "table-wrap" in page.text
+    assert invite.id not in page.text or page.text.index("Label") < page.text.index(invite.id)
+    assert "Memnetor" not in page.text
+    assert "just now" in page.text or "never" in page.text
+
+
+def test_relative_used_and_probe_detail_wording():
+    from datetime import timedelta
+
+    from tip_access_portal.app import _probe_detail, _relative_used
+    from tip_access_portal.status import ProbeResult
+
+    now = datetime(2026, 9, 23, 12, 0, tzinfo=UTC)
+    assert _relative_used(None, now=now) == "never"
+    assert _relative_used((now - timedelta(seconds=10)).isoformat(), now=now) == "just now"
+    assert _relative_used((now - timedelta(minutes=5)).isoformat(), now=now) == "5 min ago"
+    assert _relative_used((now - timedelta(hours=2)).isoformat(), now=now) == "2 h ago"
+    assert _probe_detail(ProbeResult("tip", "https://x/mcp", True, "http 401")) == (
+        "Reachable (auth required)"
+    )
+    assert _probe_detail(ProbeResult("serve", "tcp://127.0.0.1:1", True, "tcp open")) == (
+        "Reachable"
+    )
+    assert _probe_detail(ProbeResult("pi", "https://x", False, "OSError")) == "Unreachable"

@@ -60,7 +60,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 | **4. Show Bearer** | Portal → `KeyStore` → portal shows the key | Show a key to a user who is not invited |
 | **5. Call tip MCP** | Client sends `Authorization: Bearer <key>` to the WWW URL; gate forwards to the Pi tip | Unauthenticated MemNet MCP on that URL |
 | **6. Revoke** | Admin revokes the Bearer or the invite | Leave a revoked key accepted at the gate |
-| **7. Status look** | `/` and `/status` probe configured listeners; admin sees last-used | Unpark dashboard HTTP; restart / mutate / `session_close` from the page |
+| **7. Status look** | `/status` probes configured listeners; admin sees last-used | Unpark dashboard HTTP; restart / mutate / `session_close` from the page |
 
 ## 4. Contrast (soft-pass kills)
 
@@ -82,7 +82,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 2. **User fetches a key.** The invitee opens the link, signs in with Google, and the portal shows their Bearer once. The server stores a hash.
 3. **Tip MCP header.** Requests to `https://memnet.139-59-255-181.nip.io/mcp` carry `Authorization: Bearer <key>`. nginx `auth_request` calls `GET /auth/validate`, then forwards to the Pi tip. A missing or revoked Bearer is refused.
 4. **Revoke.** Szu-Wei revokes the key or the invite. The gate then refuses that Bearer.
-5. **Status look.** `/` and `/status` show configured MemNet listeners (401 on `/mcp` still counts as up). Admin sees probe targets and Bearer last-used. The page does not manage serve.
+5. **Status look.** `/status` shows configured MemNet listeners (401 on `/mcp` still counts as up, shown as Reachable). Admin sees probe targets and Bearer last-used. `/` is the invite-only gate. The page does not manage serve.
 
 ## 6. Honesty
 
