@@ -180,6 +180,21 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-01.8";
       }
+
+      requirement def MN_REQ_01_9_DropStaleSessions {
+        doc /*
+          SHALL drop idle named sessions whose last activity
+          (modified_at, else created_at) is older than a caller
+          idle_minutes, plus TTL-expired sessions still in RAM. SHALL
+          keep a caller keep id. Dry-run unless apply. Apply SHALL
+          drop RAM and that sid's expire-dir snap (real drop; not
+          snap_available restore). Sliding TTL SHALL NOT count as
+          activity. SHALL NOT dump S. SHALL NOT walk or dump the
+          expire directory. SHALL NOT substitute housekeep prune
+          stale (graph rows). Not a third operator.
+        */
+        attribute requirementId : String = "MN-REQ-01.9";
+      }
     }
 
     // ----- Memory net information model: GQL node, edge, property -----
@@ -1624,6 +1639,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
   requirement noGraphDumpHandoffReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+  requirement dropStaleSessionsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;

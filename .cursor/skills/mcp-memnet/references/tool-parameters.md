@@ -23,6 +23,7 @@ Path-B: `ingest_*` into the current session. Catalog Snap: `snap_model`. Join a 
 | `session_open` | `map_lines` **or** `map_file` | `ttl`, `seed_lines`, `allow_new_relation` | SysML map: `schema.sysml.example.txt` |
 | `session_list` | — | — | `@STAT: sessions|n/max` then live ids (named strata; not ANN; default max **1024**) |
 | `session_close` | `session` | — | Close that id; does not dump \(S\) |
+| `session_drop_stale` | `idle_minutes` | `apply`, `keep`, `session` | Idle / TTL-expired drop. Dry-run unless `apply`. `keep` (else `session`) stays. Not housekeep prune stale |
 | `session_save` | `file` | `session` | Snapshot |
 | `session_load` | `file` **or** `session` | `keep_id`, `ttl` | Resume. Omit `file` + pass known `session` to load expire-dir `{sid}.snap` (`keep_id`). |
 | `session_current` | — | `session` | |

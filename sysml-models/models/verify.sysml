@@ -1621,6 +1621,43 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_01_S04_DropStaleSessions {
+    doc /*
+      MN-REQ-01.9 — idle / TTL-expired named sessions drop (RAM + that
+      sid's expire snap). Dry-run default. Sliding TTL is not activity.
+      Not housekeep prune stale (graph rows). SHALL NOT dump S or the
+      expire directory. Dashboard remains look-only.
+    */
+    attribute verificationId : String = "MN-VER-01-S04";
+
+    subject system : MemNetSystem;
+    subject dashboard : MemNetUsageDashboard;
+
+    objective dropStaleSessions {
+      verify dropStaleSessionsReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.dropStaleImplemented
+          == true
+          and system.core.transport.inProcess.memory.sessions
+            .dropStaleNotHousekeepRows == true
+          and system.core.transport.inProcess.memory.sessions
+            .dropStaleDryRunDefault == true
+          and system.core.transport.inProcess.memory.sessions
+            .slidingTtlIsNotActivity == true
+          and system.core.transport.inProcess.memory.sessions
+            .dropStaleDropsExpireSnap == true
+          and system.core.cli.sessionDropStale.dumpsS == false
+          and system.core.cli.sessionDropStale.dryRunDefault == true
+          and system.core.cli.sessionDropStale.dropsExpireSnap == true
+          and system.core.cli.sessionDropStale.notHousekeepRows == true
+          and system.mcp.tools.sessionDropStale.implemented == true
+          and system.mcp.tools.sessionDropStale.dumpsS == false
+          and dashboard.sessionClosePort == false
+          and dashboard.httpImplemented == false
+      }
+    }
+  }
+
   // --- Verification usages (traceability anchors) ---
 
   verification multitaskModeGroupVerify : MN_VER_12_G00_MultitaskModeGroup;
@@ -1673,4 +1710,6 @@ package MemNetVerification {
     : MN_VER_06_S04_SsotToCodeAllocate;
   verification expireSaveConfigurableVerify
     : MN_VER_01_S03_ExpireSaveConfigurable;
+  verification dropStaleSessionsVerify
+    : MN_VER_01_S04_DropStaleSessions;
 }

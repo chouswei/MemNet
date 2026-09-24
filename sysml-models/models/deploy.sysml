@@ -1098,6 +1098,11 @@ package MemNet {
     part snap : SnapshotStore;
     attribute slidingTtl : Boolean = true;
     attribute ramDropsOnTtl : Boolean = true;
+    attribute dropStaleImplemented : Boolean = true;
+    attribute dropStaleNotHousekeepRows : Boolean = true;
+    attribute dropStaleDryRunDefault : Boolean = true;
+    attribute slidingTtlIsNotActivity : Boolean = true;
+    attribute dropStaleDropsExpireSnap : Boolean = true;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -1115,6 +1120,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
@@ -1253,6 +1259,29 @@ package MemNet {
     attribute dumpsS : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
+  part def CmdSessionDropStale {
+    doc /*
+      TARGET: CLI session drop-stale / MCP session_drop_stale.
+      SessionLifecycle.drop_stale of idle and TTL-expired ids. Dry-run
+      unless apply. Apply drops RAM and that sid's expire snap. SHALL
+      NOT dump S. SHALL NOT walk the expire directory. Not housekeep
+      prune stale (graph rows). Sliding TTL is not activity. Not a
+      third operator.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute dumpsS : Boolean = false;
+    attribute dryRunDefault : Boolean = true;
+    attribute dropsExpireSnap : Boolean = true;
+    attribute notHousekeepRows : Boolean = true;
+    attribute keepCurrent : Boolean = true;
+    attribute slidingTtlIsNotActivity : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1440,7 +1469,8 @@ package MemNet {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
-      open/current/save/load, session list, session close, find, pin_map, mutate/Commit,
+      open/current/save/load, session list, session close, session drop-stale,
+      find, pin_map, mutate/Commit,
       Path-B ingest, pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
@@ -1464,6 +1494,7 @@ package MemNet {
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
     part sessionClose : CmdSessionClose;
+    part sessionDropStale : CmdSessionDropStale;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1488,6 +1519,7 @@ package MemNet {
     attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
@@ -1532,7 +1564,7 @@ package MemNet {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
       (MN-REQ-07.1 / 07.5): session_open / current / save / load,
-      session_list, session_close, find, pin_map, mutate/Commit, Path-B ingest,
+      session_list, session_close, session_drop_stale, find, pin_map, mutate/Commit, Path-B ingest,
       pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
@@ -1554,6 +1586,7 @@ package MemNet {
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
     part sessionClose : CmdSessionClose;
+    part sessionDropStale : CmdSessionDropStale;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1580,6 +1613,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_2_StructuredToolEnvelope;

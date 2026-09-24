@@ -107,6 +107,7 @@ Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the pr
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN) |
 | `session_close` | Close that id (does not dump \(S\)) |
+| `session_drop_stale` | Drop idle / TTL-expired sessions (dry-run; `--apply` drops RAM + that sid's expire snap). Not housekeep prune stale |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = leftover alias) |
 | `mutate` | **Product Commit** — gated GQL CREATE / MERGE / SET / DELETE |
@@ -166,7 +167,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 - One big job → one session id.
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
-- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors that **stay live**; close unused strata rather than filling the serve registry.
+- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees one slot; `session_drop_stale --idle-minutes N --apply` drops idle / TTL-expired strata (and that sid's expire snap). Dry-run unless `--apply`. `--keep` (or `MEMNET_SESSION`) stays. Default cap **1024**; `MEMNET_MAX_SESSIONS` overrides. `snap_model` mints catalog + interiors that **stay live**; drop unused strata rather than filling the serve registry. `housekeep prune stale` is graph **rows**, not sessions.
 - Milestones: `session_save` / `session_load` (MCP or CLI). After TTL with expire-save armed, `session_load(session=<sid>)` restores `{expire_dir}/{sid}.snap` (`keep_id`); no client-supplied serve path.
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).

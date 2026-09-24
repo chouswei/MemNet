@@ -384,6 +384,77 @@ def close_session(session_id: str, caps: Caps | None = None) -> None:
             raise MemNetError("session_not_found", "unknown session", exit_code=2)
 
 
+def drop_expire_snap(session_id: str, caps: Caps | None = None) -> bool:
+    """Unlink the expire-dir snap for a known sid. MUST NOT dump the directory."""
+    path = expire_snap_path(session_id, caps)
+    if path is None or not path.is_file():
+        return False
+    try:
+        path.unlink()
+    except OSError as exc:
+        emit_wrn("expire_snapshot_failed", type(exc).__name__)
+        return False
+    emit_wrn("expire_snapshot", "dropped")
+    return True
+
+
+def list_stale_sessions(
+    *,
+    idle_minutes: int,
+    keep: str | None = None,
+) -> tuple[list[str], list[str]]:
+    """Return (ttl-expired ids, idle ids). Sliding TTL is not activity.
+
+    Idle uses ``modified_at``, else ``created_at``. ``keep`` is never listed.
+    SHALL NOT walk the expire directory.
+    """
+    if idle_minutes < 1 or idle_minutes > 1440:
+        raise MemNetError("bad_idle", "idle_minutes must be 1..1440")
+    when = utc_now()
+    threshold = timedelta(minutes=idle_minutes)
+    expired: list[str] = []
+    idle: list[str] = []
+    for entry in list_entries():
+        sid = entry.meta.session_id
+        if keep is not None and sid == keep:
+            continue
+        if _session_is_expired(entry):
+            expired.append(sid)
+            continue
+        last = entry.meta.modified_at or entry.meta.created_at
+        last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+        if when - last_dt >= threshold:
+            idle.append(sid)
+    expired.sort()
+    idle.sort()
+    return expired, idle
+
+
+def drop_stale_sessions(
+    *,
+    idle_minutes: int,
+    keep: str | None = None,
+    apply: bool = False,
+    caps: Caps | None = None,
+) -> tuple[list[str], list[str]]:
+    """Drop idle / TTL-expired named sessions (RAM + that sid's expire snap).
+
+    Dry-run unless ``apply``. Not housekeep prune stale (graph rows). SHALL NOT
+    dump \(S\) or the expire directory. Sliding TTL is not activity.
+    """
+    caps = caps or Caps()
+    expired, idle = list_stale_sessions(idle_minutes=idle_minutes, keep=keep)
+    if apply:
+        for sid in (*expired, *idle):
+            entry = get_entry(sid)
+            if entry is None:
+                continue
+            with entry.lock:
+                remove_entry(sid)
+            drop_expire_snap(sid, caps)
+    return expired, idle
+
+
 def resolve_session_id(cli_session: str | None) -> str:
     import os
 

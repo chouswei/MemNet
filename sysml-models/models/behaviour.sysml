@@ -100,6 +100,12 @@ package MemNetBehaviour {
   attribute def EvCloseOrExpire {
     doc /* session_close or TTL purge after optional expire save. */
   }
+  attribute def EvDropStale {
+    doc /*
+      session drop-stale apply: idle or TTL-expired named session.
+      RAM drop plus that sid's expire snap. Not housekeep prune stale.
+    */
+  }
   attribute def EvSettleRecycle {
     doc /* housekeep settle / mark recyclable / prune. */
   }
@@ -388,6 +394,10 @@ package MemNetBehaviour {
     transition active_to_closed
       first active
       accept EvCloseOrExpire
+      then closed;
+    transition active_to_drop_stale
+      first active
+      accept EvDropStale
       then closed;
     transition active_to_expire_save
       first active

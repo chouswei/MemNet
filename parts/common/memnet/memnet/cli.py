@@ -61,6 +61,7 @@ from memnet.session import (
     _session_is_expired,
     close_session,
     count_sessions,
+    drop_stale_sessions,
     get_session,
     get_session_for_save,
     list_sessions,
@@ -467,6 +468,41 @@ def session_close(session_id: str) -> None:
         emit_session(session_id, "closed")
     except MemNetError as exc:
         _handle_error(exc)
+
+
+@session_app.command("drop-stale")
+def session_drop_stale(
+    idle_minutes: Annotated[
+        int,
+        typer.Option("--idle-minutes", help="Drop if last activity is this old"),
+    ],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Drop RAM and that sid's expire snap"),
+    ] = False,
+    keep: Annotated[
+        str | None,
+        typer.Option("--keep", help="Sid to keep (default MEMNET_SESSION)"),
+    ] = None,
+) -> None:
+    """Drop idle / TTL-expired sessions. Not housekeep prune stale (graph rows)."""
+    keep_sid = keep if keep is not None else os.environ.get("MEMNET_SESSION")
+    try:
+        expired, idle = drop_stale_sessions(
+            idle_minutes=idle_minutes,
+            keep=keep_sid or None,
+            apply=apply,
+            caps=_caps(),
+        )
+    except MemNetError as exc:
+        _handle_error(exc)
+        raise AssertionError("unreachable") from exc
+    mark = "dropped" if apply else "stale"
+    emit_stat("drop_stale", len(expired) + len(idle), "applied" if apply else "dry")
+    for sid in expired:
+        emit_session(sid, "expired", mark)
+    for sid in idle:
+        emit_session(sid, "idle", mark)
 
 
 @session_app.command("acl-enable")
