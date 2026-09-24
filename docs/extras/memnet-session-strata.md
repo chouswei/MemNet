@@ -97,7 +97,7 @@ Same token law as one session: few LLM tokens; emit **co-responds** to \(q\). Re
 
 The Snap is of **one model** (a load tree / root package). The sessions are **strata of that Snap**, not a pile of unrelated library stores.
 
-**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR/CON with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone projects 229 nodes / 228 edges (default 200 raises `ingest_budget`). **This engine checkout and `modelbasedPrj-*` are repo-based: `.sysml` stays structural SSOT here. MUST NOT use SysMLEdge as model SSOT on that family.** Downstream `SysMLEdgePrj-*` bound overlays: the desk graph is working model SSOT; MemNet ingest remains a campaign cache.
+**As-is (too thin).** `ingest_sysml` Commits one `.sysml` **path** into the **current** session (MN-REQ-11.16): PKG/PRT/REQ/POR/CON with `qname=` / `requirementId=` / `path=` (no client `NEW`). Map: `schema.sysml.example.txt`. Ingest `max_nodes` default 200. `requirements.sysml` alone projects 229 nodes / 228 edges; `deploy.sysml` projects 504. Default `snap_model` of this tree raises `ingest_budget` on those files before any interior cut. A big project (~10k pins) is still one model Snap, not `max_nodes=10000` on one `ingest_sysml`. **This engine checkout and `modelbasedPrj-*` are repo-based: `.sysml` stays structural SSOT here. MUST NOT use SysMLEdge as model SSOT on that family.** Downstream `SysMLEdgePrj-*` bound overlays: the desk graph is working model SSOT; MemNet ingest remains a campaign cache.
 
 **Wrong reading of “strata”.** Opening a new session for each file on disk and calling that Snap. That is N ingests, not **one model Snap**. Files are how this repo **stores** packages; they are not the Snap cardinality.
 
@@ -120,7 +120,9 @@ So: **SysML can nest everything.** Encoding that tree as `:contains` in one sess
 
 `Peak_L` (0.18 extra) stays last-resort for leftover `contains` **inside** an interior. It is not the fix for model-wide nesting. It is not default goldfish.
 
-**Two budgets.** Ingest `max_nodes` = Commit into **that interior** (error if the subtree still will not fit — do not Commit a partial brace). Goldfish \(M\approx 50\) = Shape of that interior **whole**. If it will not fit, cut again under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes. Do not teach silent `max_rows` as Shape.
+**Two budgets.** Ingest `max_nodes` = Commit into **that interior** (error if the subtree still will not fit — do not Commit a partial brace). Goldfish \(M\approx 50\) = Shape of that interior **whole** (about \(2M \approx 100\) pins per interior, MN-REQ-11.17). If it will not fit, cut again under the **same model Snap**. Do not raise goldfish \(M\). Do not `rag_query` `.sysml` bytes. Do not teach silent `max_rows` as Shape. A load tree of about 10k pins is this Snap: catalog plus interiors that fit, then one `pin_map` per generate. It is not one session of 10k, and it is not one session per requirement (`oneSessionPerReq=false`). Named sessions cap at 1024 (`MEMNET_MAX_SESSIONS`).
+
+**As-is gap at that size.** Projection aborts a single file above `max_nodes` (default 200) before `_split_interior` runs, so this product model (1092 pins, 9 files) does not Snap at the default. `_split_interior` is one shot: a kind band or a `qname` prefix of two segments, with no recurse. Lifting the cap on this tree Commits interiors still over \(2M\) (`MemNet` PRT 268, POR 198, `MN_REQ_00_MissionBridge` 114) and also mints one session per package-level requirement usage. A 10k sibling-usage package would head for the 1024 session cap; a 10k nest under one two-segment `qname` would Commit one fat interior. Model law is the recursive fit cut. That cutter is not what the code does.
 
 ### Interior grain (of the model)
 
