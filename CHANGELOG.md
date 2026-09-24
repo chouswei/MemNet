@@ -9,7 +9,11 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ### Changed
 
-- **Honesty `c` — TTL expire restore by known sid (#181)** — MCP/CLI/TCP `session_load(session=<sid>)` with `file` omitted resolves `MEMNET_EXPIRE_SNAPSHOT_DIR/{sid}.snap` on serve (`keep_id`). Honest miss for a sid the caller already holds: `@ERR: session_expired|snap_available` vs `session_expired|snap_missing` vs `session_not_found|unknown session`. `serve_status` reports `save_on_expire` and `expire_snapshot_dir_set` (path redacted). MUST NOT echo `mn_*` or dump the expire directory. Default `MEMNET_SAVE_ON_EXPIRE` stays off. Not Neo4j. Not `#47`. No Hatch bump.
+## [0.19.14] - 2026-09-24
+
+### Changed
+- **Honesty `c` — TTL expire restore by known sid (#181)** — MCP/CLI/TCP `session_load(session=<sid>)` with `file` omitted resolves `MEMNET_EXPIRE_SNAPSHOT_DIR/{sid}.snap` on serve (`keep_id`). Honest miss for a sid the caller already holds: `@ERR: session_expired|snap_available` vs `session_expired|snap_missing` vs `session_not_found|unknown session`. `serve_status` reports `save_on_expire` and `expire_snapshot_dir_set` (path redacted). MUST NOT echo `mn_*` or dump the expire directory. Default `MEMNET_SAVE_ON_EXPIRE` stays off. Not Neo4j. Not `#47`.
+- **Package identity 0.19.14** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19** so #181 tip can upload (0.19.13 already on PyPI).
 
 ## [0.19.13] - 2026-09-24
 
