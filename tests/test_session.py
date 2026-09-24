@@ -45,6 +45,7 @@ def test_session_expired(memnet_temp, schema_file):
     with pytest.raises(MemNetError) as exc:
         get_session(ss.session_id)
     assert exc.value.code == "session_expired"
+    assert exc.value.message == "snap_missing"
     set_now_override(None)
 
 

@@ -15,8 +15,8 @@ except ImportError as exc:
         "memnet-mcp requires the mcp package. Install with: pip install memnet-llm[mcp]"
     ) from exc
 
-from memnet.config import serve_host, serve_port
-from memnet.serve import probe
+from memnet.config import expire_save_status, serve_host, serve_port
+from memnet.serve import probe, send_command
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.http_transport import (
     DEFAULT_MCP_HTTP_HOST,
@@ -44,14 +44,36 @@ async def _run(argv: list[str], *, stdin: str | None = None, session: str | None
     return _json(resp)
 
 
+def _expire_flags_from_stat(stdout: str) -> dict[str, bool]:
+    flags = expire_save_status()
+    for line in stdout.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("@STAT: save_on_expire|"):
+            flags["save_on_expire"] = stripped.split("|", 2)[1] == "1"
+        elif stripped.startswith("@STAT: expire_snapshot_dir_set|"):
+            flags["expire_snapshot_dir_set"] = stripped.split("|", 2)[1] == "1"
+    return flags
+
+
 @mcp.tool()
 async def serve_status() -> str:
-    """Transport probe for TCP ``memnet serve`` (optional under default in-process)."""
+    """Transport probe for TCP ``memnet serve`` (optional under default in-process).
+
+    Also reports whether expire-save is armed (booleans only; path redacted).
+    When TCP serve is up, flags come from the serve process.
+    """
+    flags = expire_save_status()
+    running = probe()
+    if running:
+        raw = send_command(["session", "expire-status"])
+        flags = _expire_flags_from_stat(raw.get("stdout") or "")
     return json.dumps(
         {
-            "running": probe(),
+            "running": running,
             "host": serve_host(),
             "port": serve_port(),
+            "save_on_expire": flags["save_on_expire"],
+            "expire_snapshot_dir_set": flags["expire_snapshot_dir_set"],
         }
     )
 
@@ -164,19 +186,28 @@ async def session_current(session: str | None = None) -> str:
 
 @mcp.tool()
 async def session_load(
-    file: str,
+    file: str | None = None,
     keep_id: bool = True,
     ttl: int | None = None,
+    session: str | None = None,
 ) -> str:
     """Load a snapshot file into the MemNet graph (restores session state).
 
+    ``file`` is a path on the serve host. Omit ``file`` and pass ``session``
+    (a sid the caller already holds) to load
+    ``MEMNET_EXPIRE_SNAPSHOT_DIR/{sid}.snap`` with ``keep_id``.
     Works in-process (default) or via TCP ``memnet serve`` when configured.
     Returns session id in stdout/stderr. Does not require an existing session.
     Use before pin_map / mutate when resuming mid-task.
     leftover ``add`` / ``update`` names remain leftover façades.
     """
-    argv = ["session", "load", "--file", file]
-    if keep_id:
+    argv = ["session", "load"]
+    if file:
+        argv.extend(["--file", file])
+        if keep_id:
+            argv.append("--keep-id")
+    elif session:
+        argv.extend(["--session", session])
         argv.append("--keep-id")
     if ttl is not None:
         argv.extend(["--ttl", str(ttl)])

@@ -39,6 +39,12 @@ def test_snapshot_store_and_caps_default_off():
     assert "attribute notNeo4j : Boolean = true;" in text
     assert "attribute ramDropsAfterExpireSave : Boolean = true;" in text
     assert "attribute ttlResetsOnLoad : Boolean = true;" in text
+    assert "attribute loadByKnownSid : Boolean = true;" in text
+    assert "attribute expireSnapKeepId : Boolean = true;" in text
+    assert "attribute mustNotEchoSid : Boolean = true;" in text
+    assert "attribute expireMissHonest : Boolean = true;" in text
+    assert "attribute saveOnExpireFlag : Boolean = true;" in text
+    assert "attribute expireSnapshotDirSetFlag : Boolean = true;" in text
 
 
 def test_verify_mn_ver_01_s03_and_nest_review():

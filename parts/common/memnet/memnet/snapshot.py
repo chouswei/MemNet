@@ -185,6 +185,7 @@ def load_snapshot(
     caps: Caps | None = None,
     ttl_minutes: int | None = None,
     keep_id: bool = False,
+    hide_path: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
     purge_expired(caps)
@@ -197,16 +198,20 @@ def load_snapshot(
         text = Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
         cwd = os.getcwd()
+        if hide_path:
+            raise MemNetError("snapshot_not_found", "expire_snap", exit_code=2) from None
         raise MemNetError(
             "snapshot_not_found",
             f"{path}|serve_cwd={cwd}",
-            hint=(
+            example=(
                 "path is resolved on the memnet serve host; "
                 "use a path visible there or stream via session_load_lines"
             ),
         ) from None
     except OSError as exc:
         cwd = os.getcwd()
+        if hide_path:
+            raise MemNetError("snapshot_io_error", "expire_snap", exit_code=2) from exc
         raise MemNetError(
             "snapshot_io_error",
             f"{type(exc).__name__}|{path}|serve_cwd={cwd}",

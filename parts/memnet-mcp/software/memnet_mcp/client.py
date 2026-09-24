@@ -88,6 +88,7 @@ _NO_SESSION_ARG = frozenset(
         ("session", "open"),
         ("session", "list"),
         ("session", "close"),
+        ("session", "expire-status"),
     }
 )
 

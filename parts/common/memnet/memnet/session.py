@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
 import secrets
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import NoReturn
 
 from memnet.acl import SessionAcl, WorkerWriteScope, acl_globally_enabled, parse_write_scope
 from memnet.config import (
@@ -33,6 +36,8 @@ from memnet.registry import (
 from memnet.tag_map import TagMap, load_map_from_file, load_map_from_lines
 
 _now_override: datetime | None = None
+# Session id is a capability secret. Filename stem only; no path separators.
+_EXPIRE_SID_SAFE = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
 def set_now_override(dt: datetime | None) -> None:
@@ -144,6 +149,74 @@ def _session_is_expired(entry: SessionEntry) -> bool:
     return expires < utc_now()
 
 
+def expire_snap_filename(session_id: str) -> str | None:
+    """Return ``{sid}.snap`` when *session_id* is a safe filename stem.
+
+    MUST NOT echo the sid. Reject path separators / ``..``.
+    """
+    if not session_id or not _EXPIRE_SID_SAFE.fullmatch(session_id):
+        return None
+    if session_id != Path(session_id).name or ".." in session_id:
+        return None
+    return f"{session_id}.snap"
+
+
+def expire_snap_path(session_id: str, caps: Caps | None = None) -> Path | None:
+    """Expire-dir path for a known sid, or None if dir unset / sid unsafe."""
+    name = expire_snap_filename(session_id)
+    if name is None:
+        return None
+    dest_dir = getattr(caps, "expire_snapshot_dir", None) if caps is not None else None
+    dest_dir = dest_dir if dest_dir is not None else expire_snapshot_dir()
+    if dest_dir is None:
+        return None
+    return dest_dir / name
+
+
+def expire_snap_exists(session_id: str, caps: Caps | None = None) -> bool:
+    path = expire_snap_path(session_id, caps)
+    return bool(path is not None and path.is_file())
+
+
+def raise_session_miss(
+    session_id: str,
+    caps: Caps | None = None,
+    *,
+    saw_expire: bool = False,
+) -> NoReturn:
+    """Honest miss for a sid the caller already passed. MUST NOT echo the sid.
+
+    ``session_expired|snap_available`` / ``session_expired|snap_missing`` /
+    ``session_not_found|unknown session``.
+    """
+    if expire_snap_exists(session_id, caps):
+        raise MemNetError("session_expired", "snap_available", exit_code=2)
+    if saw_expire:
+        raise MemNetError("session_expired", "snap_missing", exit_code=2)
+    raise MemNetError("session_not_found", "unknown session", exit_code=2)
+
+
+def resolve_expire_load_path(session_id: str, caps: Caps | None = None) -> Path:
+    """Resolve ``MEMNET_EXPIRE_SNAPSHOT_DIR/{sid}.snap`` for load-by-sid.
+
+    File present → path. Save-on-expire armed + dir set + no file →
+    ``snapshot_not_found|expire_snap``. Else ``session_expired|snap_missing``.
+    MUST NOT echo the sid or dump the directory.
+    """
+    caps = caps or Caps()
+    if expire_snap_filename(session_id) is None:
+        raise MemNetError("session_not_found", "unknown session", exit_code=2)
+    path = expire_snap_path(session_id, caps)
+    if path is not None and path.is_file():
+        return path
+    enabled = bool(getattr(caps, "save_on_expire", False))
+    dest = getattr(caps, "expire_snapshot_dir", None)
+    dest = dest if dest is not None else expire_snapshot_dir()
+    if enabled and dest is not None:
+        raise MemNetError("snapshot_not_found", "expire_snap", exit_code=2)
+    raise MemNetError("session_expired", "snap_missing", exit_code=2)
+
+
 def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str | None:
     """Configurable expire ``session_save``. Off unless ``MEMNET_SAVE_ON_EXPIRE``.
 
@@ -155,22 +228,26 @@ def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str |
     dest_dir = getattr(caps, "expire_snapshot_dir", None) if caps is not None else None
     dest_dir = dest_dir if dest_dir is not None else expire_snapshot_dir()
     if dest_dir is None:
-        emit_wrn("save_on_expire_no_dir", session_id)
+        emit_wrn("save_on_expire_no_dir", "dir unset")
         return None
     entry = get_entry(session_id)
     if entry is None:
         return None
+    name = expire_snap_filename(session_id)
+    if name is None:
+        emit_wrn("expire_snapshot_failed", "unsafe_sid")
+        return None
     from memnet.snapshot import write_snapshot
 
     dest_dir.mkdir(parents=True, exist_ok=True)
-    path = dest_dir / f"{session_id}.snap"
+    path = dest_dir / name
     ss = SessionStore(session_id, caps)
     try:
         write_snapshot(ss, path)
     except OSError as exc:
-        emit_wrn("expire_snapshot_failed", f"{session_id}|{type(exc).__name__}")
+        emit_wrn("expire_snapshot_failed", type(exc).__name__)
         return None
-    emit_wrn("expire_snapshot", str(path))
+    emit_wrn("expire_snapshot", "written")
     return str(path)
 
 
@@ -241,13 +318,13 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     if entry is None:
         purge_expired(caps)
         # session id is a capability secret — do not echo it in errors
-        raise MemNetError("session_not_found", "unknown session", exit_code=2)
+        raise_session_miss(session_id, caps, saw_expire=False)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
         snapshot_expired_session(session_id, caps)
         remove_entry(session_id)
         purge_expired(caps)
-        raise MemNetError("session_expired", "session expired", exit_code=2)
+        raise_session_miss(session_id, caps, saw_expire=True)
     # Sliding TTL: extend on access (avoids silent expiry for long sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
@@ -266,13 +343,13 @@ def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[Ses
     entry = get_entry(session_id)
     if entry is None:
         purge_expired(caps)
-        raise MemNetError("session_not_found", "unknown session", exit_code=2)
+        raise_session_miss(session_id, caps, saw_expire=False)
     expired = _session_is_expired(entry)
     if expired and not bool(getattr(caps, "save_on_expire", False)):
         snapshot_expired_session(session_id, caps)
         remove_entry(session_id)
         purge_expired(caps)
-        raise MemNetError("session_expired", "session expired", exit_code=2)
+        raise_session_miss(session_id, caps, saw_expire=True)
     if not expired:
         original_ttl = entry.meta.ttl_minutes
         new_expires = utc_now() + timedelta(minutes=original_ttl)

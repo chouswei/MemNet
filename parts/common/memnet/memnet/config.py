@@ -150,3 +150,11 @@ def expire_snapshot_dir() -> Path | None:
     if not raw:
         return None
     return Path(raw)
+
+
+def expire_save_status() -> dict[str, bool]:
+    """Booleans for ``serve_status``. Path is redacted (dir set or not)."""
+    return {
+        "save_on_expire": save_on_expire(),
+        "expire_snapshot_dir_set": expire_snapshot_dir() is not None,
+    }
