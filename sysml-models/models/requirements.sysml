@@ -130,8 +130,8 @@ package MemNetRequirements {
           session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
           off): file snapshot MAY remain on disk until the user deletes
           it or session drop-stale apply unlinks that known sid's
-          expire snap; session_load restores RAM. SHALL NOT auto-flush
-          Neo4j. SHALL NOT walk the expire directory.
+          expire snap; session_load restores RAM. SHALL NOT auto-flush Neo4j.
+          SHALL NOT walk the expire directory.
         */
         attribute requirementId : String = "MN-REQ-01.3";
       }
