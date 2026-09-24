@@ -38,6 +38,9 @@ Args: [tool-parameters.md](tool-parameters.md). Wire: [wire-format.md](wire-form
 | Tools absent from catalog | Skip MemNet; plain Markdown |
 | `serve_required` | Start `memnet serve` or stay in-process |
 | `session_not_found` | `session_open` / `session_load` |
+| `session_expired\|snap_available` | `session_load(session=sid)` — expire snap exists |
+| `session_expired\|snap_missing` | Expire-save off or no file; do not guess a serve path |
+| `snapshot_not_found\|expire_snap` | Expire-save armed; file missing for that sid |
 | `no_map` | Pass `map_file` / `map_lines` |
 | `limit_exceeded` | `session_list` for `sessions|n/max`; `session_close` unused strata |
 

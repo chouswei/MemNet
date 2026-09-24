@@ -310,3 +310,91 @@ def test_purge_expired_skips_snapshot_when_save_on_expire_off(
     assert not (expire_dir / f"{sid}.snap").is_file()
     assert not contains(sid)
     set_now_override(None)
+
+
+def _assert_err_sid_free(*parts: str) -> None:
+    blob = "\n".join(parts)
+    assert "mn_" not in blob
+
+
+def test_expire_get_session_snap_missing_when_save_off(memnet_temp, schema_file):
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    with pytest.raises(MemNetError) as exc:
+        get_session(sid)
+    assert exc.value.code == "session_expired"
+    assert exc.value.message == "snap_missing"
+    _assert_err_sid_free(exc.value.code, exc.value.message)
+    set_now_override(None)
+
+
+def test_load_by_sid_keep_id_after_expire_save(
+    memnet_temp, schema_file, workflow_file, tmp_path: Path, monkeypatch
+):
+    expire_dir = tmp_path / "expire"
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    purge_expired()
+    assert (expire_dir / f"{sid}.snap").is_file()
+    assert not contains(sid)
+    with pytest.raises(MemNetError) as exc:
+        get_session(sid)
+    assert exc.value.code == "session_expired"
+    assert exc.value.message == "snap_available"
+    _assert_err_sid_free(exc.value.code, exc.value.message)
+    load = runner.invoke(app, ["session", "load", "--session", sid])
+    assert load.exit_code == 0, load.output
+    loaded_sid = load.stdout.strip().split("|")[0].replace("@SESSION: ", "")
+    assert loaded_sid == sid
+    restored = get_session(sid)
+    assert restored.store.get("PLR01") is not None
+    set_now_override(None)
+
+
+def test_load_by_sid_save_on_expire_off_snap_missing(
+    memnet_temp, schema_file, tmp_path: Path, monkeypatch
+):
+    monkeypatch.delenv("MEMNET_SAVE_ON_EXPIRE", raising=False)
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(tmp_path / "expire"))
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    load = runner.invoke(app, ["session", "load", "--session", sid])
+    assert load.exit_code == 2
+    assert "session_expired" in load.stderr
+    assert "snap_missing" in load.stderr
+    _assert_err_sid_free(load.stderr, load.stdout)
+    set_now_override(None)
+
+
+def test_load_by_sid_missing_file_snapshot_not_found(memnet_temp, tmp_path: Path, monkeypatch):
+    expire_dir = tmp_path / "expire"
+    expire_dir.mkdir()
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    load = runner.invoke(app, ["session", "load", "--session", "mn_abcd1234"])
+    assert load.exit_code == 2
+    assert "snapshot_not_found" in load.stderr
+    assert "expire_snap" in load.stderr
+    _assert_err_sid_free(load.stderr, load.stdout)
+
+
+def test_session_expire_status_booleans(memnet_temp, tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("MEMNET_SAVE_ON_EXPIRE", raising=False)
+    monkeypatch.delenv("MEMNET_EXPIRE_SNAPSHOT_DIR", raising=False)
+    off = runner.invoke(app, ["session", "expire-status"])
+    assert off.exit_code == 0, off.output
+    assert "@STAT: save_on_expire|0|" in off.stdout
+    assert "@STAT: expire_snapshot_dir_set|0|" in off.stdout
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(tmp_path / "expire"))
+    on = runner.invoke(app, ["session", "expire-status"])
+    assert on.exit_code == 0, on.output
+    assert "@STAT: save_on_expire|1|" in on.stdout
+    assert "@STAT: expire_snapshot_dir_set|1|" in on.stdout
+    _assert_err_sid_free(on.stdout, on.stderr)

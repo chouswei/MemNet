@@ -1054,6 +1054,8 @@ package MemNet {
     attribute loadRestoresRam : Boolean = true;
     attribute notNeo4j : Boolean = true;
     attribute notWholeCabinetDump : Boolean = true;
+    attribute loadByKnownSid : Boolean = true;
+    attribute expireMissHonest : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -1173,7 +1175,8 @@ package MemNet {
       Migration / multi-process fallback: length-prefixed JSON over TCP
       localhost. Under Multitask this path (or streamable-http / LocalIpc)
       is the shared-store binding (MN-REQ-12.2).
-      usageLookOut = serve_status (up/host/port) for MemNetUsageDashboard.
+      usageLookOut = serve_status (up/host/port + expire-save booleans;
+      path redacted) for MemNetUsageDashboard.
     */
     port cmdIn : ServeCommandInPort;
     port envelopeOut : JsonEnvelopeOutPort;
@@ -1270,6 +1273,9 @@ package MemNet {
     doc /*
       TARGET: session load. Session handle is not a graph store key.
       Restores RAM from file; new id unless keep_id; TTL window resets.
+      Load-by-known-sid (no client file path) resolves
+      MEMNET_EXPIRE_SNAPSHOT_DIR/{sid}.snap with keep_id. Honest miss:
+      snap_available / snap_missing / unknown session. MUST NOT echo sid.
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
@@ -1277,6 +1283,9 @@ package MemNet {
     attribute newIdDefault : Boolean = true;
     attribute keepIdOptional : Boolean = true;
     attribute ttlResetsOnLoad : Boolean = true;
+    attribute loadByKnownSid : Boolean = true;
+    attribute expireSnapKeepId : Boolean = true;
+    attribute mustNotEchoSid : Boolean = true;
   }
 
   part def CmdFind {
@@ -2778,9 +2787,13 @@ package MemNet {
 
   part def ServeStatusLook {
     doc /*
-      Display serve_status: up / host / port. Look only.
+      Display serve_status: up / host / port plus expire-save booleans
+      (save_on_expire, expire_snapshot_dir_set). Path redacted. Look only.
     */
     attribute lookOnly : Boolean = true;
+    attribute saveOnExpireFlag : Boolean = true;
+    attribute expireSnapshotDirSetFlag : Boolean = true;
+    attribute pathRedacted : Boolean = true;
   }
 
   part def SessionCensusLook {

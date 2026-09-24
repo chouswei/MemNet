@@ -116,6 +116,8 @@ mcp = pytest.importorskip("mcp")
 
 def test_serve_status_tool(monkeypatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    monkeypatch.delenv("MEMNET_SAVE_ON_EXPIRE", raising=False)
+    monkeypatch.delenv("MEMNET_EXPIRE_SNAPSHOT_DIR", raising=False)
     from memnet_mcp.server import serve_status
 
     raw = asyncio.run(serve_status())
@@ -123,6 +125,8 @@ def test_serve_status_tool(monkeypatch):
     assert "running" in payload
     assert "host" in payload
     assert "port" in payload
+    assert payload["save_on_expire"] is False
+    assert payload["expire_snapshot_dir_set"] is False
 
 
 def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):
@@ -352,3 +356,26 @@ def test_mcp_session_list_header_and_close_decrements(memnet_temp, schema_file, 
     assert payload["session_id"]
     assert payload["session_id"] != first.session_id
     assert count_sessions() == 1
+
+
+def test_mcp_session_load_by_sid(memnet_temp, schema_file, workflow_file, tmp_path, monkeypatch):
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    expire_dir = tmp_path / "expire"
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    from datetime import UTC, datetime, timedelta
+
+    from memnet.session import purge_expired, set_now_override
+    from memnet_mcp.server import session_load
+
+    ss = open_session(map_file=str(schema_file), ttl_minutes=1)
+    sid = ss.session_id
+    add = run_memnet(["add", "--file", str(workflow_file), "--session", sid])
+    assert add.exit_code == 0, add.stderr
+    set_now_override(datetime.now(UTC) + timedelta(minutes=5))
+    purge_expired()
+    raw = json.loads(asyncio.run(session_load(session=sid)))
+    assert raw["exit_code"] == 0, raw
+    assert raw["session_id"] == sid
+    assert "mn_" not in (raw.get("errors") or [])
+    set_now_override(None)

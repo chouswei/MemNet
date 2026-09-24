@@ -15,6 +15,7 @@ from memnet.config import (
     DEFAULT_QUERY_MAX_ROWS,
     Caps,
     default_ipc_socket_path,
+    expire_save_status,
     ipc_socket_path,
     serve_host,
     serve_port,
@@ -53,10 +54,11 @@ from memnet.pin_map_composer import (
     bounded_match_find,
     parse_find_locators,
 )
-from memnet.registry import remove_entry
+from memnet.registry import get_entry, remove_entry
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
+    _session_is_expired,
     close_session,
     count_sessions,
     get_session,
@@ -64,7 +66,9 @@ from memnet.session import (
     list_sessions,
     open_session,
     purge_expired,
+    resolve_expire_load_path,
     resolve_session_id,
+    snapshot_expired_session,
 )
 from memnet.snapshot import load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
@@ -401,21 +405,59 @@ def session_save(
 
 @session_app.command("load")
 def session_load(
-    file: Annotated[Path, typer.Option("--file", help="Snapshot from session save")],
+    file: Annotated[
+        Path | None,
+        typer.Option("--file", help="Snapshot from session save"),
+    ] = None,
     ttl: Annotated[int | None, typer.Option("--ttl")] = None,
     keep_id: Annotated[
         bool,
         typer.Option("--keep-id", help="Reuse session id from snapshot"),
     ] = False,
+    session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    purge_expired(_caps())
+    """Load a snapshot. ``--file`` or expire-dir load by ``--session`` (known sid)."""
+    caps = _caps()
+    purge_expired(caps)
     try:
-        ss = load_snapshot(file, caps=_caps(), ttl_minutes=ttl, keep_id=keep_id)
+        if file is not None:
+            ss = load_snapshot(file, caps=caps, ttl_minutes=ttl, keep_id=keep_id)
+        else:
+            sid = session or os.environ.get("MEMNET_SESSION")
+            if not sid:
+                raise MemNetError(
+                    "no_session",
+                    "provide --file or --session",
+                    exit_code=2,
+                )
+            entry = get_entry(sid)
+            if entry is not None and not _session_is_expired(entry):
+                ss = get_session(sid, caps)
+            else:
+                if entry is not None:
+                    snapshot_expired_session(sid, caps)
+                    remove_entry(sid)
+                path = resolve_expire_load_path(sid, caps)
+                ss = load_snapshot(
+                    path,
+                    caps=caps,
+                    ttl_minutes=ttl,
+                    keep_id=True,
+                    hide_path=True,
+                )
         emit_session(ss.session_id, ss.meta.expires_at, str(ss.meta.ttl_minutes))
         emit_stderr(f"MEMNET_SESSION={ss.session_id}")
-        emit_stat("loaded", ss.store.row_count_non_law(), str(file))
+        emit_stat("loaded", ss.store.row_count_non_law(), str(file) if file is not None else "-")
     except MemNetError as exc:
         _handle_error(exc)
+
+
+@session_app.command("expire-status")
+def session_expire_status() -> None:
+    """Booleans for expire-save (serve_status). Path redacted; no sids."""
+    flags = expire_save_status()
+    emit_stat("save_on_expire", int(flags["save_on_expire"]))
+    emit_stat("expire_snapshot_dir_set", int(flags["expire_snapshot_dir_set"]))
 
 
 @session_app.command("close")

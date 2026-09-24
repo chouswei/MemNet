@@ -19,12 +19,12 @@ Path-B: `ingest_*` into the current session. Catalog Snap: `snap_model`. Join a 
 
 | Tool | Required | Optional | Notes |
 |------|----------|----------|-------|
-| `serve_status` | — | — | `{running, host, port}` |
+| `serve_status` | — | — | `{running, host, port, save_on_expire, expire_snapshot_dir_set}` |
 | `session_open` | `map_lines` **or** `map_file` | `ttl`, `seed_lines`, `allow_new_relation` | SysML map: `schema.sysml.example.txt` |
 | `session_list` | — | — | `@STAT: sessions|n/max` then live ids (named strata; not ANN; default max **1024**) |
 | `session_close` | `session` | — | Close that id; does not dump \(S\) |
 | `session_save` | `file` | `session` | Snapshot |
-| `session_load` | `file` | `keep_id`, `ttl` | Resume |
+| `session_load` | `file` **or** `session` | `keep_id`, `ttl` | Resume. Omit `file` + pass known `session` to load expire-dir `{sid}.snap` (`keep_id`). |
 | `session_current` | — | `session` | |
 | `pin_map` | cue: `kind` / `locators` / `keyword` / `cue` / empty outline | `depth`, `max_rows`, `view`, `session`, `caller`, leftover `anchor`/`anchors` | Primary read |
 | `find` | `limit` | `kind`, `locators`, `keyword`, `session` | Seeds only |
