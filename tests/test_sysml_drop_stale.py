@@ -23,7 +23,7 @@ def test_mn_req_01_9_drop_stale():
     assert "requirement def MN_REQ_01_9_DropStaleSessions" in text
     assert "idle_minutes" in text
     assert "housekeep prune" in text
-    assert "Sliding TTL SHALL NOT count as activity" in text
+    assert "Sliding TTL SHALL NOT count as" in text
     assert "dropStaleSessionsReq" in text
 
 

@@ -111,9 +111,7 @@ def test_drop_stale_unlinks_expire_snap(memnet_temp, schema_file, tmp_path, monk
     set_now_override(None)
 
 
-def test_housekeep_prune_stale_does_not_drop_session(
-    memnet_temp, schema_file, workflow_file
-):
+def test_housekeep_prune_stale_does_not_drop_session(memnet_temp, schema_file, workflow_file):
     ss = open_session(map_file=str(schema_file), ttl_minutes=60)
     sid = ss.session_id
     runner.invoke(app, ["add", "--file", str(workflow_file), "--session", sid])

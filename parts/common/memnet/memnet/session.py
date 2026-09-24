@@ -409,7 +409,7 @@ def list_stale_sessions(
     SHALL NOT walk the expire directory.
     """
     if idle_minutes < 1 or idle_minutes > 1440:
-        raise MemNetError("bad_idle", "idle_minutes must be 1..1440")
+        raise MemNetError("bad_idle", "idle_minutes must be 1..1440", exit_code=2)
     when = utc_now()
     threshold = timedelta(minutes=idle_minutes)
     expired: list[str] = []
@@ -440,7 +440,7 @@ def drop_stale_sessions(
     """Drop idle / TTL-expired named sessions (RAM + that sid's expire snap).
 
     Dry-run unless ``apply``. Not housekeep prune stale (graph rows). SHALL NOT
-    dump \(S\) or the expire directory. Sliding TTL is not activity.
+    dump S or the expire directory. Sliding TTL is not activity.
     """
     caps = caps or Caps()
     expired, idle = list_stale_sessions(idle_minutes=idle_minutes, keep=keep)
