@@ -18,7 +18,7 @@ Lead or host B **cold-starts** a mission without pasting graph dumps into chat: 
 | Parts | `SnapshotStore` nested under `SessionLifecycle` |
 | Ports / flows | `SessionSnapshotOutPort` / `SessionSnapshotInPort` |
 | Behaviour | `SessionLifecycleStates` - save/load transitions (`EvLoadSnapshot`, etc.) |
-| Requirements | MN-REQ-01.4 SaveSessionSnapshot; 01.5 Load; 01.6 OptionalKeepSessionId; 01.7 / 01.8 handoff |
+| Requirements | MN-REQ-01.4 SaveSessionSnapshot; 01.5 Load; 01.6 OptionalKeepSessionId; 01.7 / 01.8 handoff; 01.9 drop-stale apply unlinks that sid's expire snap |
 | Distinct from | MN-REQ-11 pin-map export (`PinMapIngest_*`); M2.5 `DurableBuffer` |
 
 ## 3. Scenario
@@ -33,7 +33,7 @@ Lead or host B **cold-starts** a mission without pasting graph dumps into chat: 
 |------|--------|--------|
 | 1 | Host A works; facts in session | `GraphStore` + GQL mutate |
 | 2 | `session_save` -> snapshot file | `SnapshotStore` / MN-REQ-01.4 |
-| 2b | TTL elapses (optional) | RAM drop; file only if `MEMNET_SAVE_ON_EXPIRE`; user `session_load` |
+| 2b | TTL elapses (optional) | RAM drop; file only if `MEMNET_SAVE_ON_EXPIRE`; user `session_load` or `session drop-stale --apply` unlinks that known sid |
 | 3 | Deliver **session id + snapshot locator** (or load path) | `SessionHandoff` spirit - not prose dump |
 | 4 | Host B `session_load` | MN-REQ-01.5; optional keep session id (01.6) |
 | 5 | `pin_map` first | `GoldfishLoop` / MN-REQ-04 |
@@ -62,13 +62,14 @@ When only a **bounded** subgraph should move (separate sessions, Multitask impor
 | Distinguish session snapshot from MN-REQ-11 pin ingest | Confuse `SnapshotStore` with `PinMapIngest_*` |
 | pin_map after load before mutate | Assume ids without reading the live slice |
 | Handoff by session id (+ locator) | `EvDumpGraphInChat` |
-| Keep expire-save **off** unless configured | Auto-flush Neo4j / dump whole cabinet on TTL |
+| Keep expire-save **off** unless configured | Auto-flush Neo4j / dump whole cabinet on TTL; walk the expire directory |
+| Drop idle strata with `session drop-stale` | Substitute `housekeep prune stale` (graph rows); treat sliding TTL as activity |
 
 ## 5. Snapshot vs durable vs import
 
 | Mechanism | Role | Shipped claim |
 |-----------|------|----------------|
-| `SnapshotStore` save/load | Process/file passport for a named session | As-is session save/load; expire-save **configurable** (`MEMNET_SAVE_ON_EXPIRE` default off); file until user drop |
+| `SnapshotStore` save/load | Process/file passport for a named session | As-is session save/load; expire-save **configurable** (`MEMNET_SAVE_ON_EXPIRE` default off); file until user drop **or** `session drop-stale --apply` unlinks that known sid |
 | `DurableBuffer` hydrate/flush | Online GQL store behind MemNet | M2.5 **client** landed; live cabinet external |
 | `WorkingMemorySlice` import | Lead imports member WM (path B) | Doctrine + ImportGuard nest |
 

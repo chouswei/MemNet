@@ -8,6 +8,7 @@ import json
 import pytest
 
 from memnet.config import Caps
+from memnet.registry import contains
 from memnet.session import count_sessions, open_session
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.seed import supplement_seed_lines
@@ -185,6 +186,7 @@ def test_mcp_tool_names(monkeypatch):
     assert "snap_model" in tool_names
     assert "session_list" in tool_names
     assert "session_close" in tool_names
+    assert "session_drop_stale" in tool_names
     assert "session_current" in tool_names
     assert "read_get" not in tool_names
     assert "rag_query" not in tool_names
@@ -356,6 +358,34 @@ def test_mcp_session_list_header_and_close_decrements(memnet_temp, schema_file, 
     assert payload["session_id"]
     assert payload["session_id"] != first.session_id
     assert count_sessions() == 1
+
+
+def test_mcp_session_drop_stale_apply(memnet_temp, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
+    from datetime import UTC, datetime, timedelta
+
+    from memnet.session import set_now_override
+    from memnet_mcp.server import session_drop_stale
+
+    keep = open_session(map_file=str(schema_file), ttl_minutes=60)
+    keep.touch()
+    idle = open_session(map_file=str(schema_file), ttl_minutes=60)
+    set_now_override(datetime.now(UTC) + timedelta(minutes=10))
+    raw = json.loads(
+        asyncio.run(
+            session_drop_stale(
+                idle_minutes=5,
+                apply=True,
+                keep=keep.session_id,
+            )
+        )
+    )
+    assert raw["exit_code"] == 0, raw
+    assert "drop_stale|1|applied" in raw["stdout"]
+    assert idle.session_id in raw["stdout"]
+    assert contains(keep.session_id)
+    assert not contains(idle.session_id)
+    set_now_override(None)
 
 
 def test_mcp_session_load_by_sid(memnet_temp, schema_file, workflow_file, tmp_path, monkeypatch):

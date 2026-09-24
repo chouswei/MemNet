@@ -146,6 +146,28 @@ async def session_close(session: str) -> str:
 
 
 @mcp.tool()
+async def session_drop_stale(
+    idle_minutes: int,
+    apply: bool = False,
+    keep: str | None = None,
+    session: str | None = None,
+) -> str:
+    """Drop idle / TTL-expired named sessions (RAM + that sid's expire snap).
+
+    Idle is last activity (modified_at, else created_at), not sliding TTL.
+    Dry-run unless apply. keep (else session) is never dropped. SHALL NOT
+    dump S or the expire directory. Not housekeep prune stale (graph rows).
+    """
+    argv = ["session", "drop-stale", "--idle-minutes", str(idle_minutes)]
+    if apply:
+        argv.append("--apply")
+    keep_sid = keep or session
+    if keep_sid:
+        argv.extend(["--keep", keep_sid])
+    return await _run(argv)
+
+
+@mcp.tool()
 async def snap_model(
     root: str,
     map_file: str | None = None,

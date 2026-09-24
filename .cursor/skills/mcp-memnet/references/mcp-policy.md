@@ -25,7 +25,7 @@ Do **not** set serve host/port unless `MEMNET_MCP_TRANSPORT=tcp`. This repo vend
 
 ## Tools (product)
 
-`serve_status`, `session_open` / `list` / `close` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy `session_acl_*` opt-in.
+`serve_status`, `session_open` / `list` / `close` / `drop_stale` / `save` / `load` / `current`, `pin_map`, `find`, `mutate`, `snap_model`, `ingest_*`, `export_pin_map`, `import_slice`, `reserve` / `extend` / `release`, `read_list`, `housekeep_stats`, CapsPolicy `session_acl_*` opt-in.
 
 leftover: `add`, `update`, `query_warm`, `query_walk`. No `read_get`.
 
@@ -42,7 +42,7 @@ Args: [tool-parameters.md](tool-parameters.md). Wire: [wire-format.md](wire-form
 | `session_expired\|snap_missing` | Expire-save off or no file; do not guess a serve path |
 | `snapshot_not_found\|expire_snap` | Expire-save armed; file missing for that sid |
 | `no_map` | Pass `map_file` / `map_lines` |
-| `limit_exceeded` | `session_list` for `sessions|n/max`; `session_close` unused strata |
+| `limit_exceeded` | `session_list` for `sessions|n/max`; `session_close` a named unused stratum; `session_drop_stale` idle / TTL-expired (dry-run unless `apply`) |
 
 ## MUST NOT
 

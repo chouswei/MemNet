@@ -49,7 +49,7 @@ Package notes: [`ops/tip_access_portal/README.md`](../../ops/tip_access_portal/R
 
 Admin opens `/`, signs in with Google, and mints an invite. The invite URL is shown once. The invitee opens `/invite/<token>`, signs in with Google, and `/key` shows `mn_tip_…` once. Reload does not show it again. Ask the admin for a new invite after a revoke.
 
-`/` and `/status` show look-only service probes (name and up/down; probe targets stay admin-only). A 401 on `/mcp` still counts as up. Admin `/status` and `/admin` show Bearer client last-used and call counts. The page does not restart, mutate, `session_close`, or unpark `MemNetUsageDashboard` HTTP (`httpImplemented` stays false). `GET /auth/validate` records last-used when the Bearer is active.
+`/` and `/status` show look-only service probes (name and up/down; probe targets stay admin-only). A 401 on `/mcp` still counts as up. Admin `/status` and `/admin` show Bearer client last-used and call counts. The page does not restart, mutate, `session_close`, `session_drop_stale`, or unpark `MemNetUsageDashboard` HTTP (`httpImplemented` stays false). `GET /auth/validate` records last-used when the Bearer is active.
 
 ## Call the tip
 
@@ -143,4 +143,4 @@ sudo systemctl enable --now memnet-tip-portal
 - Open or unauthenticated MemNet MCP on the WWW URL
 - Selling **invent_2_green** (production-green) from this portal
 - Unparking engine `MemNetUsageDashboard` HTTP from this status look
-- Restart / mutate / `session_close` from the portal page
+- Restart / mutate / `session_close` / `session_drop_stale` from the portal page

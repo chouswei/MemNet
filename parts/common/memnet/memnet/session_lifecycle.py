@@ -5,6 +5,7 @@ from __future__ import annotations
 from memnet.session import (
     SessionStore,
     close_session,
+    drop_stale_sessions,
     get_session,
     list_sessions,
     open_session,
@@ -16,6 +17,7 @@ __all__ = [
     "SessionLifecycle",
     "SessionStore",
     "close_session",
+    "drop_stale_sessions",
     "get_session",
     "list_sessions",
     "open_session",
@@ -36,6 +38,7 @@ class SessionLifecycle:
     close = staticmethod(close_session)
     list = staticmethod(list_sessions)
     purge = staticmethod(purge_expired)
+    drop_stale = staticmethod(drop_stale_sessions)
     resolve = staticmethod(resolve_session_id)
 
     @staticmethod

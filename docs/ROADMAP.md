@@ -6,7 +6,7 @@
 
 **Package now:** Hatch **0.19.11** (`memnet.__version__`). Last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded. Numbered extras **0.10–0.19** are in this package (unchanged). **0.19.11** honesty `c` is the tip roll for [#168](https://github.com/chouswei/MemNet/pull/168) (catalog cross-session satisfy locators + `CousinSysMLEdge` `mustNotInventUploadBind`; do not claim tip=face). **0.19.10** honesty `c` keeps CueConflict for MATCH_L `|Q|>1` only; codebook miss emits CueMiss / Peak_L. **0.19.9** honesty `c` maps Path-B SysML `connection` / `link` to `:CON` (teach already said CON; ingest had mapped defs to PRT). **0.19.8** honesty `c` mints leftover nicknames on **all** snapshot records (not only catalog PKG) and accepts camelCase product relations (`inFile`) so `session_save` → `session_load` round-trips mission graphs. GraphGlot parse front is on master (#109 @ 73a63c9b). Extra **0.14** claims `liveNeo4jClaimed=true`. **1.0** is still unclaimed (0.5–0.8).
 
-**Last updated:** 2026-09-20 (`a.b.c` law locked; package **0.19.11** honesty `c` — catalog cross-session satisfy locators + `CousinSysMLEdge` `mustNotInventUploadBind`; extras **0.10–0.19** unchanged; Hatch **0.19.11**; last published PyPI **`memnet-llm==0.19.6`**; do not claim **1.0**; do not invent a **0.20** extra; do not claim tip=face).
+**Last updated:** 2026-09-24 (`a.b.c` law locked; package **0.19.11** honesty `c` — catalog cross-session satisfy locators + `CousinSysMLEdge` `mustNotInventUploadBind`; later Unreleased `c` names `session drop-stale` without a Hatch bump; extras **0.10–0.19** unchanged; Hatch **0.19.11**; last published PyPI **`memnet-llm==0.19.6`**; do not claim **1.0**; do not invent a **0.20** extra; do not claim tip=face).
 
 Patch notes: [`../CHANGELOG.md`](../CHANGELOG.md). CHANGELOG still follows Keep a Changelog. This file is how MemNet **interprets** SemVer — not a silent switch to npm-strict major=breaking for 0.x extras.
 
@@ -40,6 +40,8 @@ One concern per `b`. Do **not** fuse two usage-method changes into one `b`. Skip
 Same usage method. Honesty, leftover naming, docs / skills, wheel / tag, caps, façade, **faster same goldfish loop** (`cue → pin_map → mutate` with no new agent step).
 
 **0.19.1–0.19.11** were this (`session_close` + `sessions|n/max` + cap 1024 + ranking + nickname-off-`pin_map` + `SHAPE_DROP_KEYS` + Truncation-on-clip + catalog leftover nicknames + snapshot leftover nicks on every record + camelCase `:inFile` + Path-B SysML connection → CON + CueMiss/Peak_L vs CueConflict + catalog cross-session satisfy locators shipped as `c` because the loop stayed the same).
+
+**Later `c` (Unreleased):** `session drop-stale` / `session_drop_stale` is the same goldfish loop (not a `b`; no Hatch bump). Idle last-activity plus TTL-expired RAM; `--apply` unlinks that known sid's expire snap. Not `housekeep prune stale` (graph rows). Dashboard/portal stay look-only. See CHANGELOG Unreleased.
 
 Pure efficiency / speed on the current loop is **`0.19.c`**, not `0.20`.
 

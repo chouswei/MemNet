@@ -9,6 +9,7 @@ Envelope JSON is transport. **`stdout` / `wire_lines`** carry GQL. `serve_status
 | `session_open` | Map + optional seed | `SCHEMA …`; optional CREATE seed |
 | `session_list` | Live ids + `sessions|n/max` | text |
 | `session_close` | Close that id | `@SESSION: …|closed` |
+| `session_drop_stale` | Drop idle / TTL-expired (dry-run unless `apply`) | `@STAT: drop_stale|n|dry` or `|applied`; `@SESSION: …|idle|dropped` / `|expired|dropped` (dry `|stale`) |
 | `pin_map` | Primary read | shaped subgraph (empty q = outline) |
 | `find` | Seed | bounded MATCH |
 | `mutate` | Product Commit | CREATE / MERGE / SET / DELETE |

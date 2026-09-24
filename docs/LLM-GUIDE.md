@@ -96,7 +96,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; extra **0.14** claims live (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss; skip unless `MEMNET_NEO4J_URL`). Extra **0.16** optional `MEMNET_NEO4J_LIBRARY_DATABASE` is locator-only on the same process. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
+Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `session drop-stale --apply` unlinks that known sid's expire snap (real drop; not `snap_available`). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; extra **0.14** claims live (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss; skip unless `MEMNET_NEO4J_URL`). Extra **0.16** optional `MEMNET_NEO4J_LIBRARY_DATABASE` is locator-only on the same process. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
 Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the previous map from the pack.
 
@@ -107,6 +107,7 @@ Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the pr
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN) |
 | `session_close` | Close that id (does not dump \(S\)) |
+| `session_drop_stale` | Drop idle / TTL-expired sessions (dry-run; `--apply` drops RAM + that sid's expire snap). Not housekeep prune stale |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = leftover alias) |
 | `mutate` | **Product Commit** — gated GQL CREATE / MERGE / SET / DELETE |
@@ -166,7 +167,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 - One big job → one session id.
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
-- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors that **stay live**; close unused strata rather than filling the serve registry.
+- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees one slot; `session_drop_stale --idle-minutes N --apply` drops idle / TTL-expired strata (and that sid's expire snap). Dry-run unless `--apply`. `--keep` (or `MEMNET_SESSION`) stays. Default cap **1024**; `MEMNET_MAX_SESSIONS` overrides. `snap_model` mints catalog + interiors that **stay live**; drop unused strata rather than filling the serve registry. `housekeep prune stale` is graph **rows**, not sessions.
 - Milestones: `session_save` / `session_load` (MCP or CLI). After TTL with expire-save armed, `session_load(session=<sid>)` restores `{expire_dir}/{sid}.snap` (`keep_id`); no client-supplied serve path.
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).
@@ -338,6 +339,7 @@ Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@W
 - `memnet serve` — TCP daemon (`127.0.0.1:18765`); required for CLI unless `MEMNET_TEST_INLINE=1`
 - `memnet query pin-map --kind TSK` — live pin map from a cue (`query warm` = leftover alias). leftover `--anchor` = leftover nickname alias.
 - `memnet mutate --stdin` — product GQL Commit. leftover `add`/`update` named leftover.
+- `memnet session drop-stale --idle-minutes N` — dry-run idle / TTL-expired drop (`--apply` drops RAM + that sid's expire snap). Not housekeep prune stale.
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
 - `memnet guide --loose` — short cheat sheet
 

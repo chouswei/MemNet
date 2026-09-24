@@ -129,7 +129,9 @@ package MemNetRequirements {
           TTL the in-memory session SHALL drop. Optional expire
           session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
           off): file snapshot MAY remain on disk until the user deletes
-          it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
+          it or session drop-stale apply unlinks that known sid's
+          expire snap; session_load restores RAM. SHALL NOT auto-flush Neo4j.
+          SHALL NOT walk the expire directory.
         */
         attribute requirementId : String = "MN-REQ-01.3";
       }
@@ -179,6 +181,21 @@ package MemNetRequirements {
           Mutate still hits CapsPolicy (who / what / bind).
         */
         attribute requirementId : String = "MN-REQ-01.8";
+      }
+
+      requirement def MN_REQ_01_9_DropStaleSessions {
+        doc /*
+          SHALL drop idle named sessions whose last activity
+          (modified_at, else created_at) is older than a caller
+          idle_minutes, plus TTL-expired sessions still in RAM. SHALL
+          keep a caller keep id. Dry-run unless apply. Apply SHALL
+          drop RAM and that sid's expire-dir snap (real drop; not
+          snap_available restore). Sliding TTL SHALL NOT count as
+          activity. SHALL NOT dump S. SHALL NOT walk or dump the
+          expire directory. SHALL NOT substitute housekeep prune
+          stale (graph rows). Not a third operator.
+        */
+        attribute requirementId : String = "MN-REQ-01.9";
       }
     }
 
@@ -659,9 +676,10 @@ package MemNetRequirements {
           (caps / row counts), and optional ImportGuard armed display
           from env presence only. The look SHALL observe the serve
           registry / MultitaskSharedStoreBinding and SHALL NOT own
-          SessionLifecycle. SHALL NOT expose session_close, mutate,
-          import_slice, ImportGuard key entry, enable toggles that
-          write, or reproject. SHALL NOT be agent wire, a second GQL
+          SessionLifecycle. SHALL NOT expose session_close,
+          session_drop_stale, mutate, import_slice, ImportGuard key
+          entry, enable toggles that write, or reproject. SHALL NOT be
+          agent wire, a second GQL
           API, or a Foam product MCP face (tip is not face). Manage of
           serve / MCP / roll / housekeep / ImportGuard env remains
           Memnetor + Devicor (CLI/MCP). HTTP/UI MAY stay parked
@@ -758,8 +776,8 @@ package MemNetRequirements {
           serviceLookImplemented; clientLookImplemented). That look
           SHALL NOT unpark MemNetUsageDashboard HTTP
           (unparksUsageDashboard=false; dashboard httpImplemented
-          stays false) and SHALL NOT restart, mutate, or
-          session_close from the page.
+          stays false) and SHALL NOT restart, mutate, session_close,
+          or session_drop_stale from the page.
         */
         attribute requirementId : String = "MN-REQ-06.8";
       }
@@ -1624,6 +1642,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
   requirement noGraphDumpHandoffReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+  requirement dropStaleSessionsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;

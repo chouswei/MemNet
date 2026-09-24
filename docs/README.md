@@ -51,7 +51,7 @@ Shipped extras and remaining design notes. Index: [`extras/README.md`](extras/RE
 |-----|------|
 | [`extras/memnet-neighbourhood-reserve.md`](extras/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (RSV shipped; this file is still the design note) |
 | [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md) | Host locators into MutateGate (0.17 `RagHostHook`) |
-| [`extras/memnet-session-strata.md`](extras/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog Snap |
+| [`extras/memnet-session-strata.md`](extras/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog Snap; close vs drop-stale |
 | [`extras/memnet-security-multi-agent.md`](extras/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 
 ## Operations — `operations/`

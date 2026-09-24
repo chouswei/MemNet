@@ -60,7 +60,7 @@ Public URL (gate only): `https://memnet.139-59-255-181.nip.io/mcp`.
 | **4. Show Bearer** | Portal → `KeyStore` → portal shows the key | Show a key to a user who is not invited |
 | **5. Call tip MCP** | Client sends `Authorization: Bearer <key>` to the WWW URL; gate forwards to the Pi tip | Unauthenticated MemNet MCP on that URL |
 | **6. Revoke** | Admin revokes the Bearer or the invite | Leave a revoked key accepted at the gate |
-| **7. Status look** | `/` and `/status` probe configured listeners; admin sees last-used | Unpark dashboard HTTP; restart / mutate / `session_close` from the page |
+| **7. Status look** | `/` and `/status` probe configured listeners; admin sees last-used | Unpark dashboard HTTP; restart / mutate / `session_close` / `session_drop_stale` from the page |
 
 ## 4. Contrast (soft-pass kills)
 

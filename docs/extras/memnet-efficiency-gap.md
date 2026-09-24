@@ -61,7 +61,7 @@ Path-B ingest pays the same Commit stack: `pin_map_ingest.py` `PinMapIngestBase.
 
 `catalog_snap.py` `snap_model`: one `open_session` for the catalog, then **one `open_session` per interior**, then `PinMapIngest_Sysml.commit` (full GQL mutate of projected CREATE/MATCH lines). Interiors stay **live** in the registry (rollback closes only on exception). Look is later `pin_map` with `session=`. Join is slice absorb, not Absorb of whole \(S\).
 
-`Caps.max_sessions` default **1024**. TTL default 60 minutes, **sliding on every `get_session`** (`session.py`).
+`Caps.max_sessions` default **1024**. TTL default 60 minutes, **sliding on every `get_session`** (`session.py`) — that extends `expires_at` and SHALL NOT count as activity. Idle drop is CLI `session drop-stale` / MCP `session_drop_stale` (dry-run unless apply). `housekeep prune stale` is graph rows.
 
 ### 2.4 Cabinet — hydrate/flush (ego slice, not a mutate delta)
 
@@ -90,7 +90,7 @@ Leftover tools are **token / teach noise** on the goldfish turn if the model lis
 | Fact | Cite |
 |------|------|
 | Same RAM graph | `session.py` `get_session` returns `SessionStore` over the registry entry; **no copy-on-pin** |
-| Cap / TTL | `Caps.max_sessions` 1024; sliding TTL on access; `purge_expired` on get/open/list |
+| Cap / TTL | `Caps.max_sessions` 1024; sliding TTL on access (`expires_at`; not activity); `purge_expired` on get/open/list. Real idle drop is `session drop-stale` (not `housekeep prune stale`) |
 | Whole-\(S\) file | `snapshot.py` `snapshot_text` dumps map + relations + `write_order` records (MN-REQ-01.4), not goldfish |
 | Deepcopy | `import_absorb.py` copies records on absorb — Path-B join, not every `pin_map` |
 

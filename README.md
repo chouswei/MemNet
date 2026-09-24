@@ -59,6 +59,8 @@ MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-ag
 
 Handoff between modules/agents is the **`sessionId`** (treat it as a secret capability). The peer **re-`pin_map`s** — don't dump the graph into chat. Keep working/mission memory distinct from other product handles (e.g. a company store id); mixing those is an app concern, not MemNet's job.
 
+Live registry: `session list` (`sessions|n/max`); `session close` one finished id; `session drop-stale --idle-minutes N` (dry-run; `--apply` drops RAM + that sid's expire snap). `--keep` / current session stays. Sliding TTL is not activity. `housekeep prune stale` is graph **rows**, not sessions. SHALL NOT dump \(S\) or the expire directory.
+
 ## Import absorb vs shared session
 
 - **Path A** — same `sessionId`; peers just re-`pin_map`. No import.

@@ -3,7 +3,7 @@ name: mcp-memnet
 description: >-
   MemNet MCP tools: cue then pin_map, GQL mutate, session, ingest, snap_model,
   export_pin_map, reserve. Triggers: memnet mcp, MCP pin_map, MCP mutate,
-  session_open, find, ingest_sysml, snap_model, export_pin_map, reserve, RSV.
+  session_open, session_close, session_drop_stale, find, ingest_sysml, snap_model, export_pin_map, reserve, RSV.
 metadata:
   pattern: tool-wrapper
   version: "7.3"
@@ -63,6 +63,7 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 | `session_open` | Map required |
 | `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN; default max **1024**) |
 | `session_close` | Close that id (SessionLifecycle; does not dump \(S\)) |
+| `session_drop_stale` | Drop idle / TTL-expired sessions (dry-run unless `apply`; drops that sid's expire snap). Not housekeep prune stale |
 | `session_save` / `session_load` / `session_current` | Snapshot / resume. `session_load(session=sid)` restores expire-dir snap |
 | `pin_map` | Primary read. Empty q = outline. `view=shell` is grain on a seed, not outline |
 | `find` | Bounded seed (`limit` required). Not RAG |

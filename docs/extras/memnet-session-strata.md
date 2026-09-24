@@ -161,6 +161,8 @@ q = REQ_MN_REQ_00
 
 **Engine leftover (pre-0.15).** `ingest_sysml(path, session=current)` is 1→1. Model Snap is 1→k: walk the root, mint the stack, partition, Commit (`memnet snap model`). Caller 0.13 still drops old maps so the stack does not refill the prompt.
 
+**Registry.** `session_list` emits `sessions|n/max`. `session_close` one finished id (does not dump \(S\)). `session drop-stale --idle-minutes N` (MCP `session_drop_stale`) drops idle / TTL-expired RAM ids; `--apply` also unlinks that known sid's expire snap. Dry-run unless `--apply`. `--keep` / current stays. Sliding TTL is not activity. SHALL NOT dump \(S\) or the expire directory. `housekeep prune stale` is graph **rows**, not sessions.
+
 ### Steal / reject (SysML)
 
 | Cousin | Steal | Reject |

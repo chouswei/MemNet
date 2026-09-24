@@ -94,11 +94,18 @@ package MemNetBehaviour {
     doc /*
       Sliding TTL elapsed. RAM drop. Optional SnapshotStore file only
       when saveOnExpire is configured (MEMNET_SAVE_ON_EXPIRE). File stays
-      until the user deletes it. Not Neo4j.
+      until the user deletes it or session drop-stale apply unlinks that
+      known sid. Not Neo4j.
     */
   }
   attribute def EvCloseOrExpire {
     doc /* session_close or TTL purge after optional expire save. */
+  }
+  attribute def EvDropStale {
+    doc /*
+      session drop-stale apply: idle or TTL-expired named session.
+      RAM drop plus that sid's expire snap. Not housekeep prune stale.
+    */
   }
   attribute def EvSettleRecycle {
     doc /* housekeep settle / mark recyclable / prune. */
@@ -388,6 +395,10 @@ package MemNetBehaviour {
     transition active_to_closed
       first active
       accept EvCloseOrExpire
+      then closed;
+    transition active_to_drop_stale
+      first active
+      accept EvDropStale
       then closed;
     transition active_to_expire_save
       first active

@@ -1109,7 +1109,8 @@ package MemNetConnections {
     doc /*
       Read-only usage snapshot from serve / session list / housekeep
       toward MemNetUsageDashboard. MUST NOT convey mutate, session_close,
-      import_slice, or ImportGuard keys. Dashboard does not own lifecycle.
+      session_drop_stale, import_slice, or ImportGuard keys. Dashboard
+      does not own lifecycle.
     */
     end port source : ServeUsageLookOutPort;
     end port sink : ServeUsageLookInPort;

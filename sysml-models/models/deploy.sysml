@@ -1020,10 +1020,12 @@ package MemNet {
 
   part def HousekeepSettle {
     doc /*
-      Stats, stale/orphan/dangling/recyclable classification, settle/prune.
-      Recycle policy feeds PinMapShapedRead hide rules.
-      usageLookOut is a read-only stats snapshot for MemNetUsageDashboard
-      — not a manage/prune command from the page.
+      Stats, stale/orphan/dangling/recyclable classification, settle/prune
+      of graph rows. Housekeep stale is not named-session drop
+      (session drop-stale / SessionLifecycle). Recycle policy feeds
+      PinMapShapedRead hide rules. usageLookOut is a read-only stats
+      snapshot for MemNetUsageDashboard — not a manage/prune command
+      from the page.
     */
     port statsOut : GqlWireOutPort;
     port usageLookOut : ServeUsageLookOutPort;
@@ -1039,7 +1041,9 @@ package MemNet {
       Expire-time save is configurable (MEMNET_SAVE_ON_EXPIRE default
       off). When on, TTL drops RAM and MAY write a file
       (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file). The file
-      remains until the user deletes it. session_load restores a live
+      remains until the user deletes it or session drop-stale apply
+      unlinks that known sid's expire snap (real drop). MUST NOT walk
+      or dump the expire directory. session_load restores a live
       session. MUST NOT treat this as Neo4j cabinet dump.
     */
     port snapOut : SessionSnapshotOutPort;
@@ -1051,6 +1055,7 @@ package MemNet {
     attribute envExpireSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";
     attribute ramDropsOnTtl : Boolean = true;
     attribute fileUntilUserDrop : Boolean = true;
+    attribute dropStaleApplyUnlinksExpireSnap : Boolean = true;
     attribute loadRestoresRam : Boolean = true;
     attribute notNeo4j : Boolean = true;
     attribute notWholeCabinetDump : Boolean = true;
@@ -1061,6 +1066,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
   }
 
@@ -1077,6 +1083,8 @@ package MemNet {
       memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
       client landed; live cabinet external. RSV lease lives under Commit.
       Sliding TTL; expire save via nested SnapshotStore (configurable).
+      Drop-stale drops idle / TTL-expired RAM ids (dry-run default;
+      apply unlinks that known sid's expire snap). Not housekeep rows.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -1098,6 +1106,11 @@ package MemNet {
     part snap : SnapshotStore;
     attribute slidingTtl : Boolean = true;
     attribute ramDropsOnTtl : Boolean = true;
+    attribute dropStaleImplemented : Boolean = true;
+    attribute dropStaleNotHousekeepRows : Boolean = true;
+    attribute dropStaleDryRunDefault : Boolean = true;
+    attribute slidingTtlIsNotActivity : Boolean = true;
+    attribute dropStaleDropsExpireSnap : Boolean = true;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -1115,6 +1128,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_1_NoChatAsDurableStore;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
@@ -1228,7 +1242,8 @@ package MemNet {
       Session handle is not a graph store key.
       SHALL NOT ANN-rank sessions. Look remains pin_map of a listed id.
       usageLookOut repeats n/max + ids for the human dashboard (look
-      only — SHALL NOT session_close from that surface).
+      only — SHALL NOT session_close or session_drop_stale from that
+      surface).
     */
     port locatorIn : CatalogSessionLocatorInPort;
     port usageLookOut : ServeUsageLookOutPort;
@@ -1253,6 +1268,29 @@ package MemNet {
     attribute dumpsS : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
+  }
+
+  part def CmdSessionDropStale {
+    doc /*
+      TARGET: CLI session drop-stale / MCP session_drop_stale.
+      SessionLifecycle.drop_stale of idle and TTL-expired ids. Dry-run
+      unless apply. Apply drops RAM and that sid's expire snap. SHALL
+      NOT dump S. SHALL NOT walk the expire directory. Not housekeep
+      prune stale (graph rows). Sliding TTL is not activity. Not a
+      third operator.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = true;
+    attribute dumpsS : Boolean = false;
+    attribute dryRunDefault : Boolean = true;
+    attribute dropsExpireSnap : Boolean = true;
+    attribute notHousekeepRows : Boolean = true;
+    attribute keepCurrent : Boolean = true;
+    attribute slidingTtlIsNotActivity : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -1440,7 +1478,8 @@ package MemNet {
     doc /*
       Agent/human CLI. Presents GQL wire on stdio (target / product path).
       TARGET commands are cue/pattern only (MN-REQ-07.1 / 07.5): session
-      open/current/save/load, session list, session close, find, pin_map, mutate/Commit,
+      open/current/save/load, session list, session close, session drop-stale,
+      find, pin_map, mutate/Commit,
       Path-B ingest, pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint,
       leftover_AssignedIdMap, leftover_by_id, leftover_MERGE_by_id,
@@ -1464,6 +1503,7 @@ package MemNet {
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
     part sessionClose : CmdSessionClose;
+    part sessionDropStale : CmdSessionDropStale;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1488,6 +1528,7 @@ package MemNet {
     attribute noRequiredIdTools : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
@@ -1532,7 +1573,7 @@ package MemNet {
     doc /*
       Generic FastMCP tools. TARGET commands are cue/pattern only
       (MN-REQ-07.1 / 07.5): session_open / current / save / load,
-      session_list, session_close, find, pin_map, mutate/Commit, Path-B ingest,
+      session_list, session_close, session_drop_stale, find, pin_map, mutate/Commit, Path-B ingest,
       pin-map export, Path-B import, catalog Snap. MUST NOT nest
       leftover_read_get, leftover_NEW_mint, leftover_AssignedIdMap,
       leftover_by_id, leftover_MERGE_by_id, leftover_require_anchor,
@@ -1554,6 +1595,7 @@ package MemNet {
     part sessionLoad : CmdSessionLoad;
     part sessionList : CmdSessionList;
     part sessionClose : CmdSessionClose;
+    part sessionDropStale : CmdSessionDropStale;
     part find : CmdFind;
     part pinMap : CmdPinMap;
     part mutate : CmdMutate;
@@ -1580,6 +1622,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_DropStaleSessions;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_2_StructuredToolEnvelope;
@@ -1954,8 +1997,9 @@ package MemNet {
       0.15: Snap(one SysML load tree) → catalog S_cat plus package interiors.
       Catalog holds session= + qname= locators (properties). Look = pin_map
       of one interior. Join = ImportAbsorb a slice. Module:
-      memnet.catalog_snap.snap_model. CLI memnet snap model / session list;
-      MCP snap_model / session_list. Locator item is CatalogSessionLocator
+      memnet.catalog_snap.snap_model. CLI memnet snap model / session list
+      / session close / session drop-stale; MCP snap_model / session_list
+      / session_close / session_drop_stale. Locator item is CatalogSessionLocator
       (session= + qname=), not PinMapProjection.
       SHALL NOT ANN-rank sessions; Absorb whole S; dump the model into one
       session; Layer; one session per REQ; invent a store key; emit hid.
@@ -2799,10 +2843,12 @@ package MemNet {
   part def SessionCensusLook {
     doc /*
       Display @STAT sessions|n/max and listed session ids (cheap row
-      counts when available). Look only — SHALL NOT session_close.
+      counts when available). Look only — SHALL NOT session_close or
+      session_drop_stale.
     */
     attribute lookOnly : Boolean = true;
     attribute sessionClose : Boolean = false;
+    attribute sessionDropStale : Boolean = false;
   }
 
   part def HousekeepLook {
@@ -2834,8 +2880,8 @@ package MemNet {
       product MCP). Manage of serve / MCP / roll / housekeep /
       ImportGuard env = Memnetor + Devicor.
       HTTP/UI parked: httpImplemented=false until Core GO.
-      MUST NOT ports: session_close, mutate, import_slice, key entry,
-      reproject.
+      MUST NOT ports: session_close, session_drop_stale, mutate,
+      import_slice, key entry, reproject.
     */
     port serveLookIn : ServeUsageLookInPort;
     port sessionLookIn : ServeUsageLookInPort;
@@ -2854,6 +2900,7 @@ package MemNet {
     attribute localBindDefault : Boolean = true;
     attribute manageViaPage : Boolean = false;
     attribute sessionClosePort : Boolean = false;
+    attribute sessionDropStalePort : Boolean = false;
     attribute mutatePort : Boolean = false;
     attribute importSlicePort : Boolean = false;
     attribute keyEntryPort : Boolean = false;
@@ -3044,13 +3091,15 @@ package MemNet {
       Not an openProject key page. Status look MUST NOT unpark
       MemNetUsageDashboard HTTP (unparksUsageDashboard=false;
       dashboard httpImplemented stays false). MUST NOT restart,
-      mutate, or session_close from the page.
+      mutate, session_close, or session_drop_stale from the page.
     */
     attribute portalWebImplemented : Boolean = true;
     attribute serviceLookImplemented : Boolean = true;
     attribute clientLookImplemented : Boolean = true;
     attribute statusLookOnly : Boolean = true;
     attribute unparksUsageDashboard : Boolean = false;
+    attribute sessionClosePort : Boolean = false;
+    attribute sessionDropStalePort : Boolean = false;
     port googleIn : GoogleAssertInPort;
     port inviteIn : InviteMintInPort;
     port keyFetchOut : TipBearerOutPort;
@@ -3105,7 +3154,8 @@ package MemNet {
       services and Bearer clients is look-only
       (statusLookOnly=true; serviceLookImplemented=true;
       clientLookImplemented=true) and MUST NOT unpark the
-      usage dashboard HTTP (unparksUsageDashboard=false).
+      usage dashboard HTTP (unparksUsageDashboard=false). MUST NOT
+      session_close or session_drop_stale from the page.
     */
     part admin : TipAccessAdmin;
     part user : InvitedTipUser;
@@ -3129,6 +3179,8 @@ package MemNet {
     attribute clientLookImplemented : Boolean = true;
     attribute statusLookOnly : Boolean = true;
     attribute unparksUsageDashboard : Boolean = false;
+    attribute sessionClosePort : Boolean = false;
+    attribute sessionDropStalePort : Boolean = false;
     attribute gatesTipMcpOnly : Boolean = true;
     attribute freeStrangerPath : String = "sysmledge-free-tier-or-memnet-llm-self-host";
 
