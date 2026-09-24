@@ -129,7 +129,9 @@ package MemNetRequirements {
           TTL the in-memory session SHALL drop. Optional expire
           session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
           off): file snapshot MAY remain on disk until the user deletes
-          it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
+          it or session drop-stale apply unlinks that known sid's
+          expire snap; session_load restores RAM. SHALL NOT auto-flush
+          Neo4j. SHALL NOT walk the expire directory.
         */
         attribute requirementId : String = "MN-REQ-01.3";
       }
@@ -674,9 +676,10 @@ package MemNetRequirements {
           (caps / row counts), and optional ImportGuard armed display
           from env presence only. The look SHALL observe the serve
           registry / MultitaskSharedStoreBinding and SHALL NOT own
-          SessionLifecycle. SHALL NOT expose session_close, mutate,
-          import_slice, ImportGuard key entry, enable toggles that
-          write, or reproject. SHALL NOT be agent wire, a second GQL
+          SessionLifecycle. SHALL NOT expose session_close,
+          session_drop_stale, mutate, import_slice, ImportGuard key
+          entry, enable toggles that write, or reproject. SHALL NOT be
+          agent wire, a second GQL
           API, or a Foam product MCP face (tip is not face). Manage of
           serve / MCP / roll / housekeep / ImportGuard env remains
           Memnetor + Devicor (CLI/MCP). HTTP/UI MAY stay parked
@@ -773,8 +776,8 @@ package MemNetRequirements {
           serviceLookImplemented; clientLookImplemented). That look
           SHALL NOT unpark MemNetUsageDashboard HTTP
           (unparksUsageDashboard=false; dashboard httpImplemented
-          stays false) and SHALL NOT restart, mutate, or
-          session_close from the page.
+          stays false) and SHALL NOT restart, mutate, session_close,
+          or session_drop_stale from the page.
         */
         attribute requirementId : String = "MN-REQ-06.8";
       }

@@ -39,7 +39,7 @@ edit SSOT of THAT cut → re-Snap THAT interior (reuse session= if qname= alread
 
 Not \(N\) maps stacked in one prompt.
 
-Mint the stack with **`snap_model`** (catalog + interiors) or Path-B **`ingest_*`** into **one** current session (1→1 — that is not catalog Snap). The stack **stays live** (look is one \(S\) per generate). Default cap **1024** (`MEMNET_MAX_SESSIONS`). `session_list` emits `sessions|n/max`; `session_close` that id (does not dump \(S\)) when a stratum is finished so later Snap can mint.
+Mint the stack with **`snap_model`** (catalog + interiors) or Path-B **`ingest_*`** into **one** current session (1→1 — that is not catalog Snap). The stack **stays live** (look is one \(S\) per generate). Default cap **1024** (`MEMNET_MAX_SESSIONS`). `session_list` emits `sessions|n/max`. `session_close` that id (does not dump \(S\)) when a named stratum is finished so later Snap can mint. `session_drop_stale` (dry-run unless `apply`) drops idle / TTL-expired ids and that sid's expire snap. Sliding TTL is not activity. `--keep` / current session stays. Not `housekeep prune stale` (graph rows).
 
 ## Already built
 
@@ -56,3 +56,5 @@ When the **parent shell is already clear** in SSOT (children named, `session=` a
 - Clip `max_rows` and call it Shape — refuse; cut sessions.
 - Absorb a whole \(S\) / merge interiors in chat.
 - Two workers on the same interior before the shell is named.
+- Substitute `housekeep prune stale` (graph rows) for `session_drop_stale`.
+- Walk or dump the expire directory.

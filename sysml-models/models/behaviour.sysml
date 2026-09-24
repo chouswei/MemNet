@@ -94,7 +94,8 @@ package MemNetBehaviour {
     doc /*
       Sliding TTL elapsed. RAM drop. Optional SnapshotStore file only
       when saveOnExpire is configured (MEMNET_SAVE_ON_EXPIRE). File stays
-      until the user deletes it. Not Neo4j.
+      until the user deletes it or session drop-stale apply unlinks that
+      known sid. Not Neo4j.
     */
   }
   attribute def EvCloseOrExpire {

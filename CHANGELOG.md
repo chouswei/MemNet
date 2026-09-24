@@ -10,6 +10,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ### Changed
 
 - **Honesty `c` — drop real stale sessions** — CLI `session drop-stale` / MCP `session_drop_stale` drops idle named sessions (last activity `modified_at` else `created_at` older than `--idle-minutes`) and TTL-expired RAM ids. Dry-run unless `--apply`. Apply also unlinks that sid's expire-dir snap (real drop; not `snap_available` restore). `--keep` / `MEMNET_SESSION` is never dropped. Sliding TTL is not activity. SHALL NOT dump \(S\) or the expire directory. Not `housekeep prune stale` (graph rows). Same goldfish loop. No Hatch bump.
+- **Honesty `c` — models, playbooks, reader** — SysML MN-REQ-06.5/06.8, dashboard/portal MUST NOT `session_drop_stale`; SnapshotStore file until user delete **or** drop-stale `--apply` unlink of that known sid; HousekeepSettle stale = graph rows. Playbooks: nested-sessions, session-strata, MCP tool-grammar/policy, LLM-GUIDE CLI appendix. Reader: README session pipe, `docs/README.md` extras row, ROADMAP later `c` (Unreleased). Dashboard/portal remain look-only. No Hatch bump.
 
 ## [0.19.14] - 2026-09-24
 

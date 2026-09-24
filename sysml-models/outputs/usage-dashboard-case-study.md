@@ -32,7 +32,7 @@ MemNetSystem                                 // SharedLlmMemory product
 └── ImportGuard.cheapLlm                     // armedLookOut = env presence
 MemNetUsageDashboard                         // OUTSIDE — look only
 ├── ServeStatusLook
-├── SessionCensusLook                        // no session_close
+├── SessionCensusLook                        // no session_close / session_drop_stale
 ├── HousekeepLook                            // no prune
 └── ImportGuardArmedDisplay                  // no key, no enable
 ```
@@ -54,7 +54,7 @@ MemNetUsageDashboard                         // OUTSIDE — look only
 | Step | What happens | MUST NOT |
 |------|----------------|----------|
 | **1. Observe serve** | `serve_status` → up/host/port | Send `ServeCommand`; restart serve |
-| **2. Session census** | `@STAT: sessions\|n/max` + id table | `session_close`; open; dump \(S\) |
+| **2. Session census** | `@STAT: sessions\|n/max` + id table | `session_close`; `session_drop_stale`; open; dump \(S\) |
 | **3. Housekeep** | caps / row counts | prune / settle / housekeep apply |
 | **4. ImportGuard armed** | env presence on/off | key on page; enable toggle; reproject |
 | **5. Manage stays CLI** | Memnetor/Devicor use MCP/CLI | Humans operating serve via the page |
@@ -64,7 +64,7 @@ MemNetUsageDashboard                         // OUTSIDE — look only
 | Not this | Why |
 |----------|-----|
 | Manage console | Ownership lock: Memnetor + Devicor |
-| `session_close` / `mutate` / `import_slice` ports on the dashboard | MN-REQ-06.5; `sessionClosePort`/`mutatePort`/`importSlicePort`=false |
+| `session_close` / `session_drop_stale` / `mutate` / `import_slice` ports on the dashboard | MN-REQ-06.5; `sessionClosePort`/`sessionDropStalePort`/`mutatePort`/`importSlicePort`=false |
 | ImportGuard key entry / write toggles | `keyOnPage=false`; `writable=false` |
 | Agent wire / Foam product MCP | `agentWire=false`; `foamProductMcp=false`; `tipIsFace=false` |
 | Nest under `MemNetSystem` | `usageDashboardInsideSystem=false` (same honesty as HostSearch) |

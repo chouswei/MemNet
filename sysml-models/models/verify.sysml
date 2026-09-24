@@ -23,7 +23,7 @@
   rejectSameNameAsCabinet); RagHostHook.implemented=true required
   outside MemNetSystem (hostSearchInsideSystem stays false).
   Human usage look (MN-VER-06-S02): MemNetUsageDashboard look-only
-  outside MemNetSystem; HTTP/UI parked; no manage/mutate ports.
+  outside MemNetSystem; HTTP/UI parked; no manage/mutate/drop-stale ports.
   Device fleet (MN-VER-06-S03): MemNetOpsFleet outside MemNetSystem;
   device MemNetCoreLibrary services; one MemNet MCP (tip/ops) at the
   droplet (tip≠face); product invent face is sysmledge;
@@ -46,7 +46,8 @@
   operatorCount stays 2; cousin nest liveNeo4jClaimed stays false.
   Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
-  drops; file until user drop; load restores; not Neo4j.
+  drops; file until user drop or drop-stale apply unlink; load restores;
+  not Neo4j.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -1176,9 +1177,10 @@ package MemNetVerification {
       Outside MemNetSystem (usageDashboardInsideSystem=false;
       insideMemNetSystem=false). lookOnly; httpImplemented=false (HTTP/UI
       parked). agentWire=false; foamProductMcp=false; tipIsFace=false.
-      No session_close / mutate / import_slice / key-entry / reproject
-      ports. Does not own SessionLifecycle. Manage owners remain
-      Memnetor+Devicor; lookActor=human. Nested looks are display-only.
+      No session_close / session_drop_stale / mutate / import_slice /
+      key-entry / reproject ports. Does not own SessionLifecycle. Manage
+      owners remain Memnetor+Devicor; lookActor=human. Nested looks are
+      display-only.
     */
     attribute verificationId : String = "MN-VER-06-S02";
 
@@ -1198,6 +1200,7 @@ package MemNetVerification {
           and dashboard.localBindDefault == true
           and dashboard.manageViaPage == false
           and dashboard.sessionClosePort == false
+          and dashboard.sessionDropStalePort == false
           and dashboard.mutatePort == false
           and dashboard.importSlicePort == false
           and dashboard.keyEntryPort == false
@@ -1208,6 +1211,7 @@ package MemNetVerification {
           and dashboard.serveStatus.lookOnly == true
           and dashboard.sessionCensus.lookOnly == true
           and dashboard.sessionCensus.sessionClose == false
+          and dashboard.sessionCensus.sessionDropStale == false
           and dashboard.housekeep.lookOnly == true
           and dashboard.housekeep.pruneFromPage == false
           and dashboard.importGuardArmed.lookOnly == true
@@ -1321,7 +1325,8 @@ package MemNetVerification {
       Status look of services/clients is look-only
       (statusLookOnly=true) and MUST NOT unpark
       MemNetUsageDashboard HTTP (unparksUsageDashboard=false;
-      dashboard httpImplemented stays false).
+      dashboard httpImplemented stays false). MUST NOT session_close
+      or session_drop_stale from the page.
     */
     attribute verificationId : String = "MN-VER-06-S05";
 
@@ -1355,10 +1360,14 @@ package MemNetVerification {
           and portal.portal.clientLookImplemented == true
           and portal.portal.statusLookOnly == true
           and portal.portal.unparksUsageDashboard == false
+          and portal.portal.sessionClosePort == false
+          and portal.portal.sessionDropStalePort == false
           and portal.serviceLookImplemented == true
           and portal.clientLookImplemented == true
           and portal.statusLookOnly == true
           and portal.unparksUsageDashboard == false
+          and portal.sessionClosePort == false
+          and portal.sessionDropStalePort == false
           and portal.keys.lastUsedTracked == true
           and portal.keys.useCountTracked == true
           and portal.gate.keyedAuthRequired == true
@@ -1653,6 +1662,7 @@ package MemNetVerification {
           and system.mcp.tools.sessionDropStale.implemented == true
           and system.mcp.tools.sessionDropStale.dumpsS == false
           and dashboard.sessionClosePort == false
+          and dashboard.sessionDropStalePort == false
           and dashboard.httpImplemented == false
       }
     }
