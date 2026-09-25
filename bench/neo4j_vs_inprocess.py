@@ -1160,6 +1160,28 @@ def cold_neo4j(home: Path, runs: int, warmup: int, log: RowLog, user: str, passw
             break
 
 
+def checkpoint_report(args, log: RowLog, size_meta: list[dict], neo_desc: str) -> None:
+    import memnet
+    import neo4j
+
+    meta = {
+        "machine": machine_note(),
+        "neo4j": neo_desc,
+        "driver": neo4j.__version__,
+        "memnet": getattr(memnet, "__version__", "unknown"),
+        "runs": args.runs,
+        "warmup": args.warmup,
+        "sizes": size_meta,
+        "source_degree": "",
+        "conclusion": build_conclusion(log.rows, args.runs),
+    }
+    # source degree is a meta row written before sizes; keep it if present.
+    for row in log.rows:
+        if row["section"] == "meta" and row["size_label"] == "source_degree":
+            meta["source_degree"] = row["note"]
+    write_report(args.out_dir / "neo4j-bench-report.md", log, meta)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out-dir", type=Path, default=Path("/opt/cursor/artifacts"))
@@ -1627,6 +1649,22 @@ def main() -> None:
                 "load_neo": load_neo,
             }
         )
+        log.add(
+            section="size_meta",
+            size_label=key,
+            n_nodes=n_nodes,
+            n_edges=n_edges,
+            param="load",
+            side="both",
+            run="meta",
+            ok="1",
+            note=(
+                f"seed={qname};seed_hid={seed_hid};seed_deg={seed_deg};"
+                f"deg={size_meta[-1]['deg']};"
+                f"load_local_s={load_local:.6f};load_neo_s={load_neo:.6f}"
+            ),
+        )
+        checkpoint_report(args, log, size_meta, neo_desc)
         close_session(session.session_id)
         del session, store, composer, gate
         gc.collect()
@@ -1655,19 +1693,7 @@ def main() -> None:
                 error="NEO4J_HOME unset; JVM cold start not measured",
             )
 
-    conclusion = build_conclusion(log.rows, args.runs)
-    meta = {
-        "machine": machine_note(),
-        "neo4j": neo_desc,
-        "driver": neo4j.__version__,
-        "memnet": getattr(memnet, "__version__", "unknown"),
-        "runs": args.runs,
-        "warmup": args.warmup,
-        "sizes": size_meta,
-        "source_degree": json.dumps(source_degree),
-        "conclusion": conclusion,
-    }
-    write_report(args.out_dir / "neo4j-bench-report.md", log, meta)
+    checkpoint_report(args, log, size_meta, neo_desc)
     log.close()
     print(f"wrote {args.out_dir}", flush=True)
 
