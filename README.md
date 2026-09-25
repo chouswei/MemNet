@@ -2,7 +2,7 @@
 
 Mission working memory for LLMs. A named session graph (GQL **node**/vertex, **edge**/relationship, **property**) that agents **pin** and **mutate** — not a notepad in chat, and not the search library.
 
-MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus lookup stays on the host (grep, ingest, optional RAG); it may propose **locators**. In the session, kinds/tags are overlapping **cues**; recall is **serial** — cue, then a bounded `pin_map` neighbourhood. It is not GraphRAG, not a vector store, and not AgensGraph/Neo4j.
+MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus lookup stays on the host (grep, ingest, optional RAG); it may propose **locators**. In the session, kinds/tags are overlapping **cues**; recall is **serial** — cue, then a bounded `pin_map` neighbourhood. It is not GraphRAG, not a vector store, and not AgensGraph.
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
@@ -13,10 +13,9 @@ Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.11**;
 ```bash
 pip install memnet-llm
 # or pin published: pip install memnet-llm==0.19.6
-# optional extras (drivers only — not AgensGraph/Neo4j servers):
+# optional extras (drivers only — not an AgensGraph server):
 # pip install 'memnet-llm[mcp]'
 # pip install 'memnet-llm[agensgraph]'
-# pip install 'memnet-llm[neo4j]'
 # contributors: pip install -e ".[dev,mcp]"
 ```
 
@@ -72,7 +71,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional clients `memnet-llm[agensgraph]` and `memnet-llm[neo4j]`; cabinets are external and not vendored. **0.7** AgensGraph live hydrate/flush proven (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is the same hydrate/flush seam (`Neo4jAdapter`); extra **0.14** claims `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Extra **0.16**: optional library database (`MEMNET_NEO4J_LIBRARY_DATABASE`) on the same URL emits locators only. Skip unless `MEMNET_NEO4J_URL`.
+**Durable:** optional client `memnet-llm[agensgraph]`; the cabinet is external and not vendored. **0.7** is adapter + operator round trip (no runtime caller) (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is retired (#187). `MEMNET_NEO4J_*` is ignored (one log warning); the engine still starts.
 
 ## Deferred (honest)
 

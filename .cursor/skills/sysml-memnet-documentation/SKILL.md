@@ -32,7 +32,7 @@ token_guardrails: |
 
 ## Prerequisites
 
-1. Install **0.19**: `pip install 'memnet-llm[mcp]'` (Hatch **0.19.3**; pin `==0.19.3` after PyPI upload, else last wheel is **0.19.0**). Optional `[neo4j]` (live claimed 0.14; drivers only). Contributors: `pip install -e ".[mcp]"`.
+1. Install **0.19**: `pip install 'memnet-llm[mcp]'` (Hatch **0.19.3**; pin `==0.19.3` after PyPI upload, else last wheel is **0.19.0**). Neo4j extra is retired (#187). Contributors: `pip install -e ".[mcp]"`.
 2. MemNet tools in the catalog. If absent: edit `.sysml` only.
 3. SysML map: `parts/common/memnet/memnet/examples/schema.sysml.example.txt`.
 

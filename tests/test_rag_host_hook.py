@@ -160,29 +160,14 @@ def test_http_host_timeout_skips(monkeypatch, memnet_temp):
     assert committed.skipped is True
 
 
-def test_library_locators_consumed_as_host_source(monkeypatch):
+def test_retired_neo4j_env_is_not_a_host_source(monkeypatch):
     monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
     monkeypatch.setenv("MEMNET_NEO4J_LIBRARY_DATABASE", "library")
     monkeypatch.delenv("MEMNET_HOST_SEARCH_URL", raising=False)
-
-    class _Lib:
-        def emit_locators(self, cue, *, limit=8):
-            assert cue == "shape"
-            return [{"path": "docs/SHAPE.md", "_memnet_hid": "el1", "generate": True}]
-
-        def close(self):
-            return None
-
-    monkeypatch.setattr(
-        "memnet.rag_host_hook.make_library_client_from_env",
-        lambda: _Lib(),
-    )
     set_rag_host_hook(None)
     result = EnvRagHostHook().propose(HostSearchCue(question="shape"))
-    assert result.skipped is False
-    assert result.locators == ({"path": "docs/SHAPE.md"},)
-    assert "generate" not in result.locators[0]
-    assert "_memnet_hid" not in result.locators[0]
+    assert result.skipped is True
+    assert result.locators == ()
 
 
 def test_locators_are_not_rag_query_and_pin_map_does_not_rrf():

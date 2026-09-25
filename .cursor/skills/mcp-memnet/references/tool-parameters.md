@@ -59,8 +59,8 @@ Parse **`stdout`**. Join `wire_lines` with `\n`.
 | `MEMNET_MCP_TRANSPORT` | `tcp` when sharing a serve graph |
 | `MEMNET_SERVE_HOST` / `MEMNET_SERVE_PORT` | Serve bind (library default `127.0.0.1:18765`) |
 | `MEMNET_SESSION` | Default session after open/load |
-| `MEMNET_AGENSGRAPH_URL` | Live Agens (0.7) |
-| `MEMNET_NEO4J_URL` | Neo4j extra; live claimed **0.14**. Both URLs need `MEMNET_DURABLE_BACKEND` |
+| `MEMNET_AGENSGRAPH_URL` | AgensGraph adapter (0.7: operator round trip, no runtime caller) |
+| `MEMNET_NEO4J_*` | Retired (#187). Ignored. Engine starts |
 
 ## wire_lines (product)
 

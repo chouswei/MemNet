@@ -17,10 +17,10 @@
   GraphGlot parse front + product gate (MN-VER-09-S01).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
-  DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed;
-  Neo4j client implemented with liveNeo4jClaimed=true (0.14);
-  extra 0.16 library port locator-only (generate=false;
-  rejectSameNameAsCabinet); RagHostHook.implemented=true required
+  DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed
+  is adapter + operator round trip (no runtime caller);
+  bindsExactlyOneOf=fake|agensgraph; Neo4j cabinet archived (#187);
+  MEMNET_NEO4J_* ignored; RagHostHook.implemented=true required
   outside MemNetSystem (hostSearchInsideSystem stays false).
   Human usage look (MN-VER-06-S02): MemNetUsageDashboard look-only
   outside MemNetSystem; HTTP/UI parked; no manage/mutate ports.
@@ -432,10 +432,10 @@ package MemNetVerification {
       MN-REQ-09.5 — GraphGlot is the official-grammar parse front (implemented
       only because Python calls graphglot). ProductGqlGate is a separate part
       after parse (WITH / UNWIND / CALL / unbounded RETURN / Layer). No TCK
-      claim. Product gate still after parse. liveNeo4jClaimed stays true
-      (0.14). Recall/Commit still two operators. RagHostHook stays outside
-      MemNetSystem. Peak_L stays last-resort under RelativeSeed only.
-      Extra 0.16 library locators-only (generate=false). Hid / elementId /
+      claim. Product gate still after parse. Neo4j cabinet stays
+      archived (#187); this cut does not restore it. Recall/Commit still
+      two operators. RagHostHook stays outside MemNetSystem. Peak_L stays
+      last-resort under RelativeSeed only. Hid / elementId /
       _memnet_hid stay off CLI/MCP/GQL emit.
     */
     attribute verificationId : String = "MN-VER-09-S01";
@@ -460,9 +460,7 @@ package MemNetVerification {
             .productGate.rejectUnboundedReturn == true
           and system.core.transport.inProcess.memory.sessions.gqlWire
             .productGate.rejectLayer == true
-          and system.durable.neo4j.liveNeo4jClaimed == true
-          and system.durable.liveNeo4jClaimed == true
-          and system.durable.library.generate == false
+          and system.durable.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -515,8 +513,8 @@ package MemNetVerification {
       Q; ShapeWalk walks from Q under one M. requireStoreKeyAnchor=false;
       inventOnEmpty=false. Empty q is SessionOutline (emptyCueIsOutline);
       leftover_empty_seed_skip is leftover, not TARGET.       leftover copy-id /
-      require_anchor is leftover. operatorCount stays 2. Product
-      liveNeo4jClaimed is true (0.14; not this RelativeSeed cut).
+      require_anchor is leftover. operatorCount stays 2. Neo4j cabinet
+      stays archived (#187; not this RelativeSeed cut).
     */
     attribute verificationId : String = "MN-VER-04-S02";
 
@@ -587,7 +585,7 @@ package MemNetVerification {
           and system.mcp.tools.pinMap.walk.requireStoreKeyAnchor == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -679,7 +677,7 @@ package MemNetVerification {
           and system.mcp.tools.leftoverEmptySeedSkipCommandNested == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.sameThing.implemented == false
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -691,8 +689,8 @@ package MemNetVerification {
       PinMapShapedRead). implemented=true (engine path).
       defaultGoldfish=false. Codebook miss only; empty q stays outline.
       ρ* not raw contains degree. Two peaks CueConflict. Not a third
-      operator. operatorCount stays 2. Product liveNeo4jClaimed is true
-      (0.14; not this Peak cut). Peak_L is this verification's subject,
+      operator. operatorCount stays 2. Neo4j cabinet stays archived
+      (#187; not this Peak cut). Peak_L is this verification's subject,
       not HostSearch. RagHostHook.implemented=true outside MemNetSystem
       (0.17 law); hostSearchInsideSystem=false.
     */
@@ -757,7 +755,7 @@ package MemNetVerification {
             .recall.shapedRead.pinMap.defaultGoldfish == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.codebookMissOnly == true
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -818,8 +816,8 @@ package MemNetVerification {
       requireAnchorId=false; createRequiresId=false; idFirstRequired=false;
       IdAllocator.implemented=false. Honesty leftover: leftoverByIdIndex
       (leftover_by_id), leftoverRequireAnchor, leftoverIdFirst,
-      leftoverNewMint, leftover_ingestIsIdRule. Product
-      liveNeo4jClaimed is true (0.14). No IdentityHandle nest —
+      leftoverNewMint, leftover_ingestIsIdRule. Neo4j cabinet stays
+      archived (#187). No IdentityHandle nest —
       leftover named parts beside flags. Recall/Commit nest not
       thickened. Hid stays off the wire.
     */
@@ -880,7 +878,7 @@ package MemNetVerification {
             .commit.noReplacementStoreKey == true
           and system.durable.mergeIsPerWriteLookup == true
           and system.durable.noReplacementStoreKey == true
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
           and system.pinMaps.interface.leftoverLocatorMint == true
           and system.multitask.coordinator.importReceive.absorb.idPolicy
             .remint.leftoverInventedMint == true
@@ -899,8 +897,8 @@ package MemNetVerification {
       cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
       RelativeSeed bounded + honest; no third operator. operatorCount
       stays 2. Cousin nest cousinNestOwnsLiveNeo4jClaim stays false
-      (product claim is Neo4jAdapter.liveNeo4jClaimed / DurableBuffer
-      0.14). Catalog Snap SHALL NOT ANN-rank sessions,
+      (product Neo4j claim is archived, #187; this nest does not own it).
+      Catalog Snap SHALL NOT ANN-rank sessions,
       Absorb a whole S, or mint one session per REQ.
       Contrast MUST NOT nest under MemNetSystem.
     */
@@ -1005,8 +1003,8 @@ package MemNetVerification {
       leftover_read_get, NEW, AssignedIdMap, by_id, MERGE-by-id,
       require_anchor, allocate_from_locator, and id_policy keyed on
       store-key MUST NOT nest as product commands (leftover_* engine
-      honesty; TARGET implemented=false). Product liveNeo4jClaimed is
-      true (0.14; not this command-list cut). No Layer revival.
+      honesty; TARGET implemented=false). Neo4j cabinet stays archived
+      (#187; not this command-list cut). No Layer revival.
     */
     attribute verificationId : String = "MN-VER-07-S01";
 
@@ -1107,7 +1105,7 @@ package MemNetVerification {
             .leftoverIdPolicyIsProductCommand == false
           and system.multitask.coordinator.importReceive.absorb.idPolicy
             .remint.productCommand == false
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -1115,21 +1113,16 @@ package MemNetVerification {
   verification def MN_VER_06_S01_DurableCabinetHonesty {
     doc /*
       MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
-      AgensGraphAdapter.liveCabinetClaimed remains the 0.7 live cabinet.
-      Neo4jAdapter.implemented is the client; liveNeo4jClaimed=true
-      after 0.14 operator proof (live round-trip yes; hid flush;
-      leftover-nickname hydrate after hid miss). Extra 0.16: cabinet
-      vs library are two named databases on one Neo4j process;
-      library.generate=false; skipUnlessNameSet; hydrateSession=false;
-      fuseRetrieveIntoPinMap=false; rejectSameNameAsCabinet=true
-      (library namespace differs from cabinet). One DurableBuffer;
-      one sync owner. HostSearchBridge stays outside MemNetSystem;
+      AgensGraphAdapter.liveCabinetClaimed is the 0.7 claim: adapter +
+      operator round trip (no runtime caller). Factory binds exactly
+      one of fake or AgensGraph. Neo4jAdapter / Neo4jLibraryPort /
+      liveNeo4jClaimed are on MemNetArchive (#187). MEMNET_NEO4J_* is
+      ignored (retiredNeo4jEnvIgnored). One DurableBuffer; one sync
+      owner. HostSearchBridge stays outside MemNetSystem;
       RagHostHook.implemented=true (0.17) with fail-open locators;
-      hostSearchInsideSystem stays false. Skip unless
-      MEMNET_NEO4J_URL. Server not vendored.
-      hydrateFlushCallers="tests": no non-test caller. The live claims
-      are the adapter plus the operator round trip only, not a runtime
-      path. serve, IPC, and MCP bind the owner and do not invoke it.
+      hostSearchInsideSystem stays false. Server not vendored.
+      hydrateFlushCallers="tests": no non-test caller. serve, IPC, and
+      MCP bind the owner and do not invoke it. Do not wire a new caller.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
@@ -1141,26 +1134,10 @@ package MemNetVerification {
       require constraint {
         system.durable.agens.implemented == true
           and system.durable.agens.liveCabinetClaimed == true
-          and system.durable.neo4j.implemented == true
-          and system.durable.neo4j.liveNeo4jClaimed == true
           and system.durable.hydrateFlushCallers == "tests"
-          and system.durable.neo4j.honesty.claimed == true
-          and system.durable.neo4j.namespace == "cabinet"
+          and system.durable.bindsExactlyOneOf == "fake|agensgraph"
           and system.durable.liveCabinetClaimed == true
-          and system.durable.liveNeo4jClaimed == true
-          and system.durable.twoNamespaces == true
-          and system.durable.sameNeo4jProcess == true
-          and system.durable.twoUrlsStillNeedBackendPick == true
-          and system.durable.library.generate == false
-          and system.durable.library.skipUnlessNameSet == true
-          and system.durable.library.hydrateSession == false
-          and system.durable.library.flushSessionPins == false
-          and system.durable.library.fuseRetrieveIntoPinMap == false
-          and system.durable.library.rejectSameNameAsCabinet == true
-          and system.durable.library.namespace == "library"
-          and system.durable.library.sameProcessAsCabinet == true
-          and system.durable.neo4j.namespace
-            != system.durable.library.namespace
+          and system.durable.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.libraryIngestThisCut == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -1436,8 +1413,8 @@ package MemNetVerification {
       find emit Q honestly; CueConflict on shaped emit when |Q|>1 (Q listed,
       cardinality visible; not a product command). Same name is a candidate
       only. SameThingAbsorb MAY collapse under Commit after that mark,
-      distinct from ImportAbsorb. operatorCount stays 2. Product
-      liveNeo4jClaimed is true (0.14; not this absorb cut).
+      distinct from ImportAbsorb. operatorCount stays 2. Neo4j cabinet
+      stays archived (#187; not this absorb cut).
     */
     attribute verificationId : String = "MN-VER-13-S02";
 
@@ -1450,7 +1427,7 @@ package MemNetVerification {
       require constraint {
         system.core.transport.inProcess.memory.sessions.recallCommit
           .operatorCount == 2
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.absorbs == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -1531,8 +1508,8 @@ package MemNetVerification {
       Look = pin_map; join = Absorb slice. MUST NOT ANN-rank sessions;
       Absorb whole S; dump one model into one session; Layer; one session
       per REQ; invent a store key; hid on the wire. operatorCount stays 2.
-      Catalog Snap SHALL NOT own the live Neo4j claim (this cut's fence).
-      Product DurableBuffer liveNeo4jClaimed is true (0.14).
+      Catalog Snap SHALL NOT restore the retired Neo4j cabinet
+      (#187; this cut's fence).
       Cross-cut satisfy locators on the catalog (MN-REQ-11.17.1);
       interiors have no dangling dest; SysMLEdge pin_map is not this catalog.
     */
@@ -1573,7 +1550,7 @@ package MemNetVerification {
           and system.mcp.tools.sessionList.requiresStoreKeyId == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
-          and system.durable.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -1638,13 +1615,13 @@ package MemNetVerification {
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
       storageRole only where bytes outlive the call: working_memory,
-      file_snapshot, cabinet_ego, library_locators. Explicit save and
-      expire-save are one blob. Factory binds exactly one of fake,
-      AgensGraph, or Neo4j. hydrateFlushCallers="tests": no non-test
-      caller of hydrate/flush. serve, IPC, and MCP bind the owner and
-      do not invoke it. The live claims are the adapter plus the
-      operator round trip only. Hydrate-by-hid is not live-proven.
-      Archive stays off load. No behaviour change.
+      file_snapshot, cabinet_ego. Explicit save and expire-save are one
+      blob. Factory binds exactly one of fake or AgensGraph.
+      hydrateFlushCallers="tests": no non-test caller of hydrate/flush.
+      serve, IPC, and MCP bind the owner and do not invoke it. The 0.7
+      claim is adapter + operator round trip (no runtime caller).
+      Neo4j cabinet is archived. MEMNET_NEO4J_* is ignored.
+      Archive stays off load.
     */
     attribute verificationId : String = "MN-VER-06-S06";
 
@@ -1664,13 +1641,9 @@ package MemNetVerification {
             .explicitSaveAndExpireSaveOneBlob == true
           and system.durable.storageRole == "cabinet_ego"
           and system.durable.agens.storageRole == "cabinet_ego"
-          and system.durable.neo4j.storageRole == "cabinet_ego"
-          and system.durable.bindsExactlyOneOf == "fake|agensgraph|neo4j"
+          and system.durable.bindsExactlyOneOf == "fake|agensgraph"
           and system.durable.hydrateFlushCallers == "tests"
-          and system.durable.library.storageRole == "library_locators"
-          and system.durable.neo4j.hydrateByHidLiveProven == false
-          and system.durable.neo4j.serverVendored == false
-          and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.durable.retiredNeo4jEnvIgnored == true
           and system.leftoverArchiveOffLoad == true
       }
     }

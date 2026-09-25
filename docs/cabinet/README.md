@@ -5,7 +5,7 @@ Durable GQL **behind** sessions: hydrate / flush adapter, one sync owner. `hydra
 | Doc | Role |
 |-----|------|
 | [`agensgraph-buffer.md`](agensgraph-buffer.md) | AgensGraph adapter (0.7 round trip; `hydrateFlushCallers="tests"`) |
-| [`neo4j-buffer.md`](neo4j-buffer.md) | Neo4j client (0.14 round trip; `hydrateFlushCallers="tests"`; 0.16 two namespaces) |
+| [`neo4j-buffer.md`](neo4j-buffer.md) | Retired Neo4j cabinet (#187). Not a current backend |
 | [`storage-roles.d2`](storage-roles.d2) | Storage-role picture (working memory, file snapshot, cabinet ego) |
 
 Wire: [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md). Index: [`../README.md`](../README.md).

@@ -44,6 +44,9 @@ def test_archive_shelf_keeps_leftover_honesty():
         "leftover_AssignedIdMap",
         "TierACodec",
         "LegacyPipeImport",
+        "Neo4jAdapter",
+        "Neo4jLibraryPort",
+        "liveNeo4jClaimed",
     ):
         assert f"part def {name}" in text
 
@@ -53,6 +56,11 @@ def test_product_deploy_does_not_nest_leftover_fog():
     assert not re.search(r"^  part def leftover_", text, re.M)
     assert not re.search(r"^  part def TierACodec", text, re.M)
     assert not re.search(r"^  part def LegacyPipeImport", text, re.M)
+    assert not re.search(r"^  part def Neo4jAdapter", text, re.M)
+    assert not re.search(r"^  part def Neo4jLibraryPort", text, re.M)
+    assert not re.search(r"^  part def liveNeo4jClaimed", text, re.M)
+    assert "part neo4j :" not in text
+    assert 'bindsExactlyOneOf : String = "fake|agensgraph"' in text
     assert "part leftover_id_first" not in text
     assert "part leftover_by_id" not in text
     assert "part leftover_MERGE_by_id" not in text

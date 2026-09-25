@@ -67,7 +67,7 @@ Path-B ingest pays the same Commit stack: `pin_map_ingest.py` `PinMapIngestBase.
 
 | Cost | Cite | What happens |
 |------|------|----------------|
-| Hydrate | `durable/agensgraph.py` / `neo4j.py` `hydrate` | Loop `_HYDRATE_MATCH_KEYS = (_memnet_hid, "id")` — leftover **nickname `id` after hid miss**. Then a second query for edges among hydrated hids. Agens node walk is `OPTIONAL MATCH (ego)-[*0..depth]-(n)`. |
+| Hydrate | `durable/agensgraph.py` `hydrate` | Loop `_HYDRATE_MATCH_KEYS = (_memnet_hid, "id")` — leftover **nickname `id` after hid miss**. Then a second query for edges among hydrated hids. Agens node walk is `OPTIONAL MATCH (ego)-[*0..depth]-(n)`. Neo4j hydrate is retired (#187). |
 | Flush | `flush` in both adapters | **One MERGE per node and per edge**, keyed on `_memnet_hid` (not `{id}`). Agens: one transaction of N statements. Neo4j: **auto-commit each** `session.run`. |
 | Slice rebuild | `durable/sync.py` `DurableSyncOwner.flush_from_session` | Rebuilds the slice with `context_pack` (ego neighbourhood), **not** a Commit delta. Hydrate upserts every returned record into the live session. |
 

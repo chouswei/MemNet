@@ -37,7 +37,7 @@ From that problem, the product **must** be this shape:
    - **Session Shape** — compress \(S\) for the next LLM call (`max_rows` \(M\), hop \(k\)).
    - **Host Snap** — optional corpus → **locators** only. MUST NOT Snap-on-session (no ANN / `rag_query` of \(S\)).
 
-5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** proved live AgensGraph hydrate/flush; the server is not vendored. An optional Neo4j client sits on the **same** seam: LLM ↔ MemNet (GQL), MemNet ↔ Neo4j (Bolt hydrate/flush, one owner). Extra **0.14** claims live Neo4j (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss). Extra **0.16** allows a second Neo4j **database name** on that process (library namespace, locators only; skip if unset). Fake-alone is not a durable claim. Talk: [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md), [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md).
+5. **Durable cabinet behind, not instead** — an AgensGraph-class store may hydrate/flush \(S\). It is not the handoff handle and not the default teach surface. **0.7** is adapter + operator round trip (no runtime caller); the server is not vendored. Neo4j is retired (#187). `MEMNET_NEO4J_*` is ignored. Fake-alone is not a durable claim. Talk: [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md).
 
 6. **This repo** — engine + generic `memnet-mcp` only. Novel-writer stays dropped. Transport: in-process first (single agent); **Multitask** uses TCP serve or streamable-http so workers share one \(S\).
 
@@ -74,7 +74,7 @@ Do not call MemNet a “shaped RAG” or a “shaped Cypher proxy”.
 
 **0.8.0** is this shape **taught for people** in-repo: this file, GQL-only playbook, application-note contract, Multitask honesty (RSV + Path-B ingest shipped; full ACL modes still to-be).
 
-**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map and **`a.b.c` law:** [`ROADMAP.md`](ROADMAP.md). **Honest install:** Hatch **0.19.11**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (extras 0.10–0.19; Neo4j client from 0.9; live claimed as extra **0.14**; 0.19.11 honesty `c`: catalog cross-session satisfy locators + CousinSysMLEdge mustNotInventUploadBind). Optional extras `[mcp]`, `[agensgraph]`, `[neo4j]` (drivers only). **1.0** stays unclaimed.
+**1.0.0** is **0.5 + 0.6 + 0.7 + 0.8** claimed — the shape is mature for people: one GQL dialect, goldfish `pin_map`, gated mutate, cue-then-shape (including find when there is no ego), optional **proven** cabinet so \(S\) can outlive a process. Not GraphRAG. Not cabinet-only. Map and **`a.b.c` law:** [`ROADMAP.md`](ROADMAP.md). **Honest install:** Hatch **0.19.11**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (extras 0.10–0.19; Neo4j retired #187; 0.19.11 honesty `c`: catalog cross-session satisfy locators + CousinSysMLEdge mustNotInventUploadBind). Optional extras `[mcp]`, `[agensgraph]` (drivers only). **1.0** stays unclaimed.
 
 ---
 

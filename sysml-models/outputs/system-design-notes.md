@@ -132,7 +132,7 @@ reserve and Path-B ingest are **shipped**.
 | SessionHandoffFlow | Coordinator → Worker | Target |
 | WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
 | ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
-| DurableHydrate/FlushFlow | DurableBuffer adapters ↔ SessionLifecycle | M2.5; Agens 0.7; Neo4j 0.14 claimed |
+| DurableHydrate/FlushFlow | DurableBuffer adapters ↔ SessionLifecycle | M2.5; Agens 0.7 adapter + operator round trip (no runtime caller); Neo4j archived (#187) |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)

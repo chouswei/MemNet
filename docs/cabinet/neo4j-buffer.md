@@ -1,9 +1,8 @@
 # Between MemNet and Neo4j
 
-**Status:** client landed; **live Neo4j round-trip claimed** (`liveNeo4jClaimed=true`; extra 0.14). That claim is the adapter plus the 0.14 operator round trip, not a runtime path. `DurableBuffer.hydrateFlushCallers="tests"`: no MCP, CLI, Commit, or TTL caller. `serve`, IPC, and MCP bind the owner at startup and do not invoke it. Live round-trip yes; hid flush; leftover-nickname hydrate after hid miss. Do **not** write hydrate-by-hid proven on live. Extra **0.16** (package 0.19.0): two named databases on one Neo4j process — **cabinet** (`MEMNET_NEO4J_DATABASE`) vs optional **library** (`MEMNET_NEO4J_LIBRARY_DATABASE`; skip if unset). Library port emits **locators only** (`generate=false`). Skip live pytest unless `MEMNET_NEO4J_URL` is set. Server not vendored.  
-**Audience:** product developers.  
-**Sibling:** AgensGraph 0.7 live cabinet [`agensgraph-buffer.md`](agensgraph-buffer.md). Same MUST NOTs. Same ABC / owner / budget.  
-**Shape:** cabinet **behind** the session, not instead of it ([`../SHAPE.md`](../SHAPE.md) §5).
+**Status:** **Retired (#187).** The Neo4j model parts sit on `MemNetArchive` (`sysml-models/models/archive.sysml`), off `ProjectMemNet` load. The adapter module, the `neo4j` extra, and the `neo4j_live` marker are removed. `MEMNET_NEO4J_*` is ignored (one log warning). The engine starts. Do not install `memnet-llm[neo4j]`. The sections below are history, not a current backend.
+
+**Sibling:** AgensGraph 0.7 is adapter + operator round trip (no runtime caller): [`agensgraph-buffer.md`](agensgraph-buffer.md).
 
 MemNet sits **between** LLM call pipelines and a durable graph. [Neo4j](https://neo4j.com/) is one **external cabinet** on that far side. It is not goldfish, not agent wire, not GraphRAG, not a GraphQL facade, and not a vendored server. Agents talk GQL `pin_map` / mutate to **MemNet**. `hydrate` / `flush` exist on `DurableSyncOwner` / `SessionLifecycle` and are **not** on the agent path: no MCP tool, no CLI command, no Commit caller, and no TTL caller. Only tests invoke them. `serve`, IPC, and MCP bind the owner at startup and do not call it. **MUST NOT** teach LLM ↔ Bolt as the goldfish path or reframe MemNet as a Cypher proxy.
 

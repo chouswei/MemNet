@@ -1,8 +1,9 @@
 """RagHostHook — host Snap locators outside MemNetSystem (extra 0.17).
 
 Given a cue, return locators or skip. Default = skip (fail-open). Optional
-``MEMNET_HOST_SEARCH_URL`` (do not vendor a RAG server) and optional extra
-0.16 ``MEMNET_NEO4J_LIBRARY_DATABASE`` locators. Shape stays ``pin_map`` of
+``MEMNET_HOST_SEARCH_URL`` (do not vendor a RAG server). Neo4j library
+locators are retired (#187); ``MEMNET_NEO4J_*`` is not a host source.
+Shape stays ``pin_map`` of
 session S. Host search MUST NOT absorb. MUST NOT register MCP ``rag_query``.
 MUST NOT Snap-on-session (no ANN of S). Hid / generate / chunk bodies stay
 off the emit.
@@ -22,8 +23,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from memnet.durable.neo4j_library import locator_fields as library_locator_fields
-from memnet.durable.neo4j_library import make_library_client_from_env
 from memnet.gql import _emit_props
 from memnet.mutate_gate import MutateGate, MutateResult
 from memnet.pin_map_ingest import IngestResult, ingest_codebase, ingest_pcba, ingest_sysml
@@ -153,7 +152,7 @@ class SkipRagHostHook:
 
 
 class EnvRagHostHook:
-    """Optional URL and/or 0.16 library locators. Miss / timeout → skip."""
+    """Optional host URL. Miss / timeout → skip. Neo4j env is not a source."""
 
     implemented = True
 
@@ -162,7 +161,6 @@ class EnvRagHostHook:
         url = (os.environ.get(ENV_HOST_URL) or "").strip()
         if url:
             found.extend(_http_locators(url, cue))
-        found.extend(_library_locators(cue))
         deduped = _dedupe(found)
         if not deduped:
             return HostSearchResult(
@@ -322,27 +320,6 @@ def _parse_host_json(raw: str) -> list[dict[str, str]]:
             loc = sanitise_locator(row)
             if loc:
                 out.append(loc)
-    return out
-
-
-def _library_locators(cue: HostSearchCue) -> list[dict[str, str]]:
-    client = make_library_client_from_env()
-    if client is None:
-        return []
-    try:
-        rows = client.emit_locators(cue.question, limit=cue.max_hits)
-    except Exception:  # noqa: BLE001 — fail-open skip
-        return []
-    finally:
-        try:
-            client.close()
-        except Exception:  # noqa: BLE001
-            pass
-    out: list[dict[str, str]] = []
-    for row in rows:
-        loc = sanitise_locator(library_locator_fields(row))
-        if loc:
-            out.append(loc)
     return out
 
 

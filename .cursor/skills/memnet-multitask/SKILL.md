@@ -110,8 +110,8 @@ Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NE
 | Neighbourhood RSV | **Shipped** |
 | Path-B ingest | **Shipped** |
 | CapsPolicy ACL | **Shipped opt-in** (`session_acl_enable`) |
-| Live AgensGraph | **Claimed 0.7** when URL set |
-| Neo4j live | **Claimed 0.14** |
+| AgensGraph | **0.7** adapter + operator round trip (no runtime caller) when URL set |
+| Neo4j | **Retired** (#187). `MEMNET_NEO4J_*` ignored |
 | HostSearch locators | Extra **0.17** (`RagHostHook`; no `rag_query`) |
 | Peak_L | Extra **0.18** (last-resort; not default goldfish) |
 | Pin-map export / catalog Snap | Extra **0.19** / **0.15** |

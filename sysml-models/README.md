@@ -10,11 +10,11 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 1. **MemNet = mission working memory** — session-scoped NODE|EDGE buffer (brand SharedLlmMemory); **not** the search corpus, **not** GraphRAG. In-session recall = serial cue then `pin_map`; host RAG may propose locators only.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
-3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter + Neo4jAdapter) — **M2.5 / 0.7** Agens live hydrate/flush proven; Neo4j extra **0.14** `liveNeo4jClaimed=true` (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); extra **0.16** optional library database (locators only); cabinets external / not vendored. LLM↔store direct (Bolt) out of teach.
+3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5 / 0.7** claim is adapter + operator round trip (no runtime caller). Neo4j cabinet is on the archive shelf (#187). Cabinet external / not vendored. LLM↔store direct (Bolt) out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
-**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 live cabinet proven) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/extras/memnet-session-strata.md`](../docs/extras/memnet-session-strata.md).
+**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 adapter + operator round trip, no runtime caller) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/extras/memnet-session-strata.md`](../docs/extras/memnet-session-strata.md).
 
 ## Packages
 
@@ -28,7 +28,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, landed-client hydrate/flush |
 | `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S06 (S06 storage roles); MN-VER-01-S03 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
-| `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe*). **Off** `config.yaml` load |
+| `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe* / retired Neo4j). **Off** `config.yaml` load |
 
 **One-page nest:** [outputs/product-nest-one-page.md](outputs/product-nest-one-page.md).
 
@@ -48,7 +48,7 @@ MemNetSystem                                 // SharedLlmMemory product
 └── DurableBuffer                            // one primary cabinet story
 
 APPLICATION LOOK   CousinPointingContrast / HostSearchBridge (outside)
-ARCHIVE LOOK       MemNetArchive — leftover fog shelf; root does not import
+ARCHIVE LOOK       MemNetArchive — leftover fog + retired Neo4j (#187); root does not import
 OPS LOOK           MemNetUsageDashboard — look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face)
 OPS ACCESS         TipMemNetAccessPortal — invite + Google login + Bearer for keyed tip MCP (tip≠face; not sysmledge; portal sidecar)
@@ -63,14 +63,14 @@ IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modul
 
 - **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: SessionOutline empty-q census + AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
 - **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
-- **DurableBuffer:** AgensGraphAdapter **client** + 0.7 live hydrate/flush; Neo4jAdapter **client** (`liveNeo4jClaimed=true`, 0.14); cabinets external / not vendored
+- **DurableBuffer:** AgensGraphAdapter **client**; 0.7 claim is adapter + operator round trip (no runtime caller); Neo4j retired to archive (#187); cabinet external / not vendored
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). **CatalogSnap** 0.15: `memnet snap model` / MCP `snap_model` + `session_list` (`sessions|n/max`) + `session_close`. **PinMapExport** 0.19: cue `pin_map` GQL write-out (`memnet export pin-map`). Re-ingest / `.sysml` reverse (#66) not claimed.
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
 - **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** / **MemNetOpsFleet** / **TipMemNetAccessPortal** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast / human usage look / device fleet with one droplet MemNet MCP tip/ops; product face is sysmledge / tip access portal is ops key gating, not that product)
-- **ARCHIVE (off ProjectMemNet load):** leftover_* / TierACodec / LegacyPipe* honesty in `models/archive.sysml` (`MemNetArchive`). Root MUST NOT import it. Engine leftover codecs may remain on disk for tests; product teach is GQL only.
+- **ARCHIVE (off ProjectMemNet load):** leftover_* / TierACodec / LegacyPipe* / retired Neo4j cabinet in `models/archive.sysml` (`MemNetArchive`). Root MUST NOT import it. Engine leftover codecs may remain on disk for tests; the Neo4j adapter module is removed. Product teach is GQL only.
 
 ### CapsPolicy ACL (as-is 0.8)
 

@@ -186,17 +186,15 @@ package MemNetConnections {
 
   item def DurableGraphStore {
     doc /*
-      Online durable property-graph store (AgensGraph-class or Neo4j-class)
-      behind MemNet. Landed client: hydrate into / flush from the live
+      Online durable property-graph store (AgensGraph-class) behind
+      MemNet. Landed client: hydrate into / flush from the live
       session an ego slice (DurableStoreAdapter / FakeDurableAdapter when
       no URL / optional AgensGraph client with liveCabinetClaimed;
-      optional Neo4j client with liveNeo4jClaimed=true (0.14);
       SessionLifecycle hydrate/flush). Factory binds exactly one of
-      fake, AgensGraph, or Neo4j.
-      Not a full copy of S. Not the file snapshot.
-      Extra 0.16: one Neo4j process MAY host two named databases —
-      cabinet (flushed S) vs library (corpus). Library is not this
-      hydrate/flush item. Live cabinet is external — not vendored.
+      fake or AgensGraph. 0.7 claim is adapter + operator round trip
+      (no runtime caller). Not a full copy of S. Not the file snapshot.
+      Neo4j cabinet is archived (#187). MEMNET_NEO4J_* is ignored.
+      Live cabinet is external — not vendored.
       LLM ↔ store direct (including Bolt) is out of default teach.
       One sync owner. MN-REQ-06.4.
     */

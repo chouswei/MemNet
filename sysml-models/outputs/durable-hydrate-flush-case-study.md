@@ -15,7 +15,7 @@ Show how a mission or company ego **survives process death**: settled / durable 
 
 | Concern | Model element |
 |---------|----------------|
-| Parts | `DurableBuffer`, `AgensGraphAdapter`, `Neo4jAdapter`, `Neo4jLibraryPort`, `SessionLifecycle` hydrate/flush ports |
+| Parts | `DurableBuffer`, `AgensGraphAdapter`, `SessionLifecycle` hydrate/flush ports. Neo4j parts are on `MemNetArchive` (#187) |
 | Connections | `DurableHydrateFlow`, `DurableFlushFlow` |
 | Behaviour | `DurableHydrateFlushRoadmap` (`EvHydrateFromDurable`, `EvFlushToDurable`) |
 | Items | `DurableGraphStore` (connections), `MissionWorkingSet` / `SharedLlmMemory` |
@@ -72,9 +72,9 @@ flowchart LR
 
 | | As-is | Target / leftover |
 |--|-------|-------------------|
-| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; `liveCabinetClaimed=true` in 0.7), optional `Neo4jAdapter` (`memnet-llm[neo4j]`; `liveNeo4jClaimed=true` in 0.14), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable` | Keep Fake as CI seam |
+| Client adapter | **Landed** — `DurableStoreAdapter`, `FakeDurableAdapter`, optional `AgensGraphAdapter` (`memnet-llm[agensgraph]`; 0.7 claim is adapter + operator round trip, no runtime caller), `DurableSyncOwner`, `SessionLifecycle.hydrate_from_durable` / `flush_to_durable`. Neo4j adapter removed (#187) | Keep Fake as CI seam |
 | Behaviour | `DurableHydrateFlushRoadmap` + engine hydrate/flush ports | Same |
-| Live cabinet | Agens external / operator-proven (0.7); Neo4j extra 0.14 claimed (live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); **not** vendored; skip live marks unless URL | Not a hosted product service |
+| Live cabinet | Agens external; 0.7 claim is adapter + operator round trip (no runtime caller); **not** vendored; skip the live mark unless `MEMNET_AGENSGRAPH_URL`. Neo4j retired (#187); `MEMNET_NEO4J_*` ignored | Not a hosted product service |
 | Satisfy | MN-REQ-06.4 on `DurableBuffer` | Live claim is operator URL + pytest mark |
 
 ## 6. Related

@@ -9,8 +9,8 @@
 
   Load: after requirements.sysml, before deploy.sysml (config.yaml).
   Root last. Recall/Commit operatorCount stays 2; cousin nest
-  cousinNestOwnsLiveNeo4jClaim stays false (product claim is
-  Neo4jAdapter.liveNeo4jClaimed on DurableBuffer, 0.14).
+  cousinNestOwnsLiveNeo4jClaim stays false (product Neo4j claim is
+  archived on MemNetArchive, #187; this nest does not own it).
   Python engine and leftover 0.9 store drop are out of this cut.
 */
 package MemNetCousinContrast {
@@ -308,8 +308,8 @@ package MemNetCousinContrast {
       not Pattern C tour, not Pattern D seeded RAG, not view=shell.
       Cousins confirm TARGET; they do not force a store-key back onto
       the wire. cousinNestOwnsLiveNeo4jClaim=false: this nest does not
-      own the product live Neo4j claim (that stays
-      Neo4jAdapter.liveNeo4jClaimed). GraphLite is a cabinet, not the product. Logseq pages
+      own a Neo4j claim (the product cabinet is archived, #187).
+      GraphLite is a cabinet, not the product. Logseq pages
       are the closest name-you-have cousin; SiYuan / NL2GQL are the
       leftover-id path. SysMLEdge is a distinct desk pin_map, not MemNet
       session strata and not SSOT. Downstream overlay family is

@@ -198,14 +198,6 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/durable/agensgraph.py";
     attribute pyName : String = "memnet.durable.agensgraph";
   }
-  part def Neo4jAdapterMod {
-    attribute path : String = "parts/common/memnet/memnet/durable/neo4j.py";
-    attribute pyName : String = "memnet.durable.neo4j";
-  }
-  part def Neo4jLibraryPortMod {
-    attribute path : String = "parts/common/memnet/memnet/durable/neo4j_library.py";
-    attribute pyName : String = "memnet.durable.neo4j_library";
-  }
   part def RagHostHookMod {
     attribute path : String = "parts/common/memnet/memnet/rag_host_hook.py";
     attribute pyName : String = "memnet.rag_host_hook";
@@ -284,8 +276,6 @@ package MemNetImplementation {
   part exportMod : PinMapExportMod;
   part catalogMod : CatalogSnapMod;
   part agensMod : AgensGraphAdapterMod;
-  part neo4jMod : Neo4jAdapterMod;
-  part libraryMod : Neo4jLibraryPortMod;
   part ragHookMod : RagHostHookMod;
   part schemaMod : SchemaRegistryMod;
   part snapMod : SnapshotStoreMod;
@@ -437,14 +427,6 @@ package MemNetImplementation {
   allocation agensToMod : SoftwareAllocate {
     end logical ::> memNetSystem.durable.agens;
     end code ::> agensMod;
-  }
-  allocation neo4jToMod : SoftwareAllocate {
-    end logical ::> memNetSystem.durable.neo4j;
-    end code ::> neo4jMod;
-  }
-  allocation libraryToMod : SoftwareAllocate {
-    end logical ::> memNetSystem.durable.library;
-    end code ::> libraryMod;
   }
   allocation ragHookToMod : SoftwareAllocate {
     end logical ::> hostSearch.hook;
