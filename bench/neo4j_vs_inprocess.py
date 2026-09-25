@@ -33,9 +33,12 @@ from pathlib import Path
 
 # Shipped session row cap is 5000. 10k and 100k graphs cannot load without
 # raising it. This process only; not a change to the engine default.
-os.environ.setdefault("MEMNET_MAX_ROWS", "2000000")
-os.environ.setdefault("MEMNET_MAX_RELATIONS", "2000")
-os.environ.setdefault("MEMNET_MAX_TAGS", "128")
+# Force the bench process caps. setdefault is not enough: a parent shell may
+# already export the shipped (or a smaller) MEMNET_MAX_ROWS, and 10k/100k
+# graphs plus their edges exceed 5000 and also a 20000 override.
+os.environ["MEMNET_MAX_ROWS"] = "2000000"
+os.environ["MEMNET_MAX_RELATIONS"] = "2000"
+os.environ["MEMNET_MAX_TAGS"] = "128"
 
 from neo4j import GraphDatabase
 from neo4j.exceptions import Neo4jError
@@ -159,13 +162,19 @@ def fmt_ratio(neo: float | None, local: float | None) -> str:
 
 
 class RowLog:
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, append: bool = False) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = path.open("w", newline="")
-        self._writer = csv.DictWriter(self._fh, fieldnames=CSV_FIELDS)
-        self._writer.writeheader()
         self.rows: list[dict] = []
+        if append and path.exists() and path.stat().st_size:
+            with path.open(newline="") as fh:
+                self.rows = list(csv.DictReader(fh))
+            self._fh = path.open("a", newline="")
+            self._writer = csv.DictWriter(self._fh, fieldnames=CSV_FIELDS)
+        else:
+            self._fh = path.open("w", newline="")
+            self._writer = csv.DictWriter(self._fh, fieldnames=CSV_FIELDS)
+            self._writer.writeheader()
 
     def add(self, **kwargs) -> None:
         row = {key: "" for key in CSV_FIELDS}
@@ -1195,6 +1204,11 @@ def main() -> None:
         help="comma list: n80,n229,n504,n10000,n100000",
     )
     parser.add_argument("--skip-cold", action="store_true")
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="keep an existing raw CSV and skip sizes that already have size_meta",
+    )
     parser.add_argument("--query-timeout", type=float, default=QUERY_TIMEOUT_S)
     args = parser.parse_args()
 
@@ -1232,23 +1246,45 @@ def main() -> None:
     del src_session
     gc.collect()
 
-    log = RowLog(args.out_dir / "neo4j-bench-raw.csv")
-    log.add(
-        section="meta",
-        size_label="machine",
-        side="host",
-        run="meta",
-        note=machine_note(),
-        ok="1",
-    )
-    log.add(
-        section="meta",
-        size_label="source_degree",
-        side="requirements",
-        run="meta",
-        note=json.dumps(source_degree),
-        ok="1",
-    )
+    log = RowLog(args.out_dir / "neo4j-bench-raw.csv", append=args.append)
+    if not args.append:
+        log.add(
+            section="meta",
+            size_label="machine",
+            side="host",
+            run="meta",
+            note=machine_note(),
+            ok="1",
+        )
+        log.add(
+            section="meta",
+            size_label="source_degree",
+            side="requirements",
+            run="meta",
+            note=json.dumps(source_degree),
+            ok="1",
+        )
+    done = {r["size_label"] for r in log.rows if r["section"] == "size_meta"}
+    size_meta: list[dict] = []
+    for row in log.rows:
+        if row["section"] != "size_meta":
+            continue
+        note = {}
+        for part in (row["note"] or "").split(";"):
+            if "=" in part:
+                k, v = part.split("=", 1)
+                note[k] = v
+        size_meta.append(
+            {
+                "label": row["size_label"],
+                "n_nodes": int(row["n_nodes"] or 0),
+                "n_edges": int(row["n_edges"] or 0),
+                "seed_qname": note.get("seed", ""),
+                "deg": note.get("deg", ""),
+                "load_local": float(note["load_local_s"]) if note.get("load_local_s") else None,
+                "load_neo": float(note["load_neo_s"]) if note.get("load_neo_s") else None,
+            }
+        )
 
     specs = {
         "n80": ("sysml", MODELS / "implementation.sysml"),
@@ -1257,11 +1293,13 @@ def main() -> None:
         "n10000": ("synthetic", 10_000),
         "n100000": ("synthetic", 100_000),
     }
-    size_meta = []
     rng = random.Random(0)
     timeout = args.query_timeout
 
     for key in wanted:
+        if key in done:
+            print(f"=== size {key} already in CSV; skip ===", flush=True)
+            continue
         kind, payload = specs[key]
         print(f"=== size {key} ({kind}) ===", flush=True)
         clear_graph(driver)
