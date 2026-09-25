@@ -1278,6 +1278,8 @@ package MemNetRequirements {
           SHALL NOT be TARGET law for source elements. TARGET Path-B
           ingest is pattern match (labels+properties); leftover
           MERGE-by-id mint is leftover engine honesty.
+          Path-B is a keyword and brace walk that Commits GQL pins; it is not a
+          SysML v2 parser and has no grammar.
         */
         attribute requirementId : String = "MN-REQ-11.16";
       }
