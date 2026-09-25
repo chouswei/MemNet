@@ -8,7 +8,14 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [Unreleased]
 
 ### Changed
-- **Honesty `c` — retire Neo4j; narrow AgensGraph 0.7 (#187)** — Neo4j cabinet (`Neo4jAdapter`, `Neo4jLibraryPort`, `liveNeo4jClaimed`) moved to `sysml-models/models/archive.sysml` (`MemNetArchive`, off `ProjectMemNet` load). Factory `bindsExactlyOneOf="fake|agensgraph"`. Removed the Neo4j adapter module, the `neo4j` extra, and the `neo4j_live` marker. `MEMNET_NEO4J_*` is ignored (one log warning); the engine starts. **0.7** claim is adapter + operator round trip (no runtime caller). No new hydrate/flush caller. No Hatch bump.
+
+## [0.19.15] - 2026-09-25
+
+### Changed
+- **Honesty `c` — storage role labels (#186)** — Each byte-holding store has one `storageRole`. Elon CORRECT.
+- **Honesty `c` — Path-B SysML kinds match the keyword walk (#188)** — `PinMapIngest_Sysml` `nodeKinds` is `PKG,PRT,REQ,POR,CON` and `edgeRelations` is `contains,satisfies,typedBy,hasPort,connects`. Guard test checks those strings against `ingest_sysml`.
+- **Honesty `c` — Neo4j retired; AgensGraph 0.7 narrowed (#189)** — Neo4j cabinet is on the archive shelf. The `neo4j` extra is removed. `MEMNET_NEO4J_*` is ignored with a warning. **0.7** is adapter + operator round trip.
+- **Package identity 0.19.15** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19** so this tip can upload (0.19.14 already on PyPI).
 
 ## [0.19.14] - 2026-09-24
 
