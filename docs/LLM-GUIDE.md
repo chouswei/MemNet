@@ -96,7 +96,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. Live AgensGraph hydrate/flush is **0.7** when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work. Optional Neo4j client (`memnet-llm[neo4j]`) uses the same hydrate/flush owner; extra **0.14** claims live (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss; skip unless `MEMNET_NEO4J_URL`). Extra **0.16** optional `MEMNET_NEO4J_LIBRARY_DATABASE` is locator-only on the same process. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
+Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. AgensGraph **0.7** is adapter + operator round trip (no runtime caller) when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work, and not a runtime caller. Neo4j is retired. `MEMNET_NEO4J_*` is ignored; the engine still starts. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
 Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the previous map from the pack.
 
@@ -258,7 +258,7 @@ memnet query pin-map --cue …
 
 TCP `memnet serve` (`127.0.0.1:18765`) remains the Multitask / LAN fallback (MN-REQ-06.3).
 
-See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.7: live hydrate/flush proven against an external cabinet; Fake + URL skip in CI).
+See `docs/grammar/` for targets. Durable online GQL store adapter = **M2.5** (0.7: adapter + operator round trip, no runtime caller, against an external cabinet; Fake + URL skip in CI). Neo4j is not a backend.
 
 ### Common failure modes
 

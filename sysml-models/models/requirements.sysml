@@ -525,7 +525,7 @@ package MemNetRequirements {
           if exemplars collide on a name cue (two roots stay two).
           SHALL NOT: third operator; required property id; elementId on
           the wire; invent a store key; SameThingAbsorb as this cut;
-          revive Layer; flip liveNeo4jClaimed.
+          revive Layer; restore the retired Neo4j cabinet.
         */
         attribute requirementId : String = "MN-REQ-04.9";
       }
@@ -636,39 +636,31 @@ package MemNetRequirements {
 
       requirement def MN_REQ_06_4_DurableStoreBehindMemNet {
         doc /*
-          When a durable online GQL store (AgensGraph-class or Neo4j-class)
-          is present, MemNet SHALL remain the sole agent-facing shared
-          memory. The store SHALL sit behind MemNet (hydrate/flush). LLM ↔
-          store direct (Bolt / driver) SHALL NOT be the default teach path.
+          When a durable online GQL store (AgensGraph-class) is present,
+          MemNet SHALL remain the sole agent-facing shared memory. The
+          store SHALL sit behind MemNet (hydrate/flush). LLM ↔ store
+          direct (Bolt / driver) SHALL NOT be the default teach path.
           M2.5 client hydrate/flush adapter seam IS landed (Fake always;
-          optional AgensGraph client with liveCabinetClaimed; optional
-          Neo4j client with liveNeo4jClaimed=true after operator live
-          round-trip (0.14: live round-trip yes; hid flush;
-          leftover-nickname hydrate after hid miss); one DurableSyncOwner).
+          optional AgensGraph client with liveCabinetClaimed; one
+          DurableSyncOwner). Factory binds exactly one of fake or
+          AgensGraph (bindsExactlyOneOf="fake|agensgraph").
           hydrateFlushCallers="tests" on DurableBuffer: no non-test
           caller of hydrate/flush. serve, IPC, and MCP bind the owner
-          at startup and SHALL NOT be read as invoking it.
-          liveCabinetClaimed and liveNeo4jClaimed are the adapter plus
-          the operator round trip only (Agens 0.7, Neo4j 0.14), not a
-          runtime path.
-          Live external cabinet SHALL NOT be claimed shipped until
-          operator-proven. Neither AgensGraph nor Neo4j servers SHALL be
-          vendored in-repo. Two cabinet URLs SHALL require an explicit
-          backend pick (MUST NOT silently bind two owners).           Live Neo4j
-          tests SHALL skip unless MEMNET_NEO4J_URL. Hid SHALL stay off
-          the wire. Extra 0.16: a second Neo4j *database name* on the
-          same Neo4j URL is allowed as the library namespace (cabinet
-          vs library). SHALL NOT treat two database names as two cabinet
-          URLs. When the library database name is set, it SHALL differ
-          from the cabinet database name (same process, two names;
-          rejectSameNameAsCabinet). Library port SHALL emit locators
-          only (generate=false). SHALL NOT hydrate S from the library
-          database; SHALL NOT flush session pins into the library
-          database. SHALL NOT fuse retrieve rankers (RRF / PPR / Leiden
-          / ANN) into Recall / pin_map. HostSearch / RagHostHook SHALL
-          remain outside MemNetSystem. Extra 0.17: RagHostHook.implemented
-          SHALL be true outside MemNetSystem (skip is valid); SHALL NOT
-          nest the hook under MemNetSystem; SHALL NOT add rag_query MCP.
+          at startup and SHALL NOT be read as invoking it. SHALL NOT
+          wire a new hydrate/flush caller. The 0.7 claim is adapter +
+          operator round trip (no runtime caller). liveCabinetClaimed
+          records that operator round trip. The AgensGraph server SHALL
+          NOT be vendored in-repo. Neo4jAdapter, Neo4jLibraryPort, and
+          liveNeo4jClaimed are retired on MemNetArchive (#187). When
+          MEMNET_NEO4J_URL or any other MEMNET_NEO4J_* variable is set,
+          the engine SHALL ignore it and start. One log warning is
+          enough. SHALL NOT crash. SHALL NOT bind a Neo4j adapter.
+          Hid SHALL stay off the wire. SHALL NOT fuse retrieve rankers
+          (RRF / PPR / Leiden / ANN) into Recall / pin_map. HostSearch /
+          RagHostHook SHALL remain outside MemNetSystem. Extra 0.17:
+          RagHostHook.implemented SHALL be true outside MemNetSystem
+          (skip is valid); SHALL NOT nest the hook under MemNetSystem;
+          SHALL NOT add rag_query MCP. SHALL NOT read a Neo4j library.
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }

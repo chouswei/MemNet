@@ -224,17 +224,6 @@ package MemNetBehaviour {
       No MCP or CLI caller.
     */
   }
-  attribute def EvLibrarySkipUnset {
-    doc /*
-      Extra 0.16: MEMNET_NEO4J_LIBRARY_DATABASE unset — no second bind.
-    */
-  }
-  attribute def EvLibraryLocatorCue {
-    doc /*
-      Extra 0.16: cue the Neo4j library port for locator-only emit.
-      SHALL NOT hydrate S. SHALL NOT generate.
-    */
-  }
   attribute def EvHostSearchCue {
     doc /*
       Extra 0.17: cue the outside RagHostHook (corpus Snap). SHALL NOT
@@ -1407,13 +1396,11 @@ package MemNetBehaviour {
       Landed client (name kept): SessionLifecycle.hydrate_from_durable /
       flush_to_durable via DurableSyncOwner and DurableStoreAdapter
       (FakeDurableAdapter always; optional AgensGraphAdapter client with
-      liveCabinetClaimed; optional Neo4jAdapter client with
-      liveNeo4jClaimed=true, 0.14). MemNet remains sole agent-facing
+      liveCabinetClaimed). MemNet remains sole agent-facing
       memory; LLM ↔ DurableGraphStore direct (Bolt) is out of default
-      teach. Client seam landed; 0.7 Agens live hydrate/flush proven;
-      0.14 Neo4j live round-trip yes; hid flush; leftover-nickname
-      hydrate after hid miss (MN-REQ-06.4). Extra 0.16 library
-      namespace is NOT this hydrate/flush path (locator emit only).
+      teach. Client seam landed. 0.7 claim is adapter + operator round
+      trip (no runtime caller) (MN-REQ-06.4). Neo4j cabinet is archived
+      (#187). Do not wire a new hydrate/flush caller.
     */
     entry;
     then durableIdle;
@@ -1455,41 +1442,7 @@ package MemNetBehaviour {
       then durableIdle;
   }
 
-  // --- Extra 0.16: Neo4j library locators (not hydrate/flush) ---
-
-  state def Neo4jLibraryLocatorRoadmap {
-    doc /*
-      Same Neo4j process as cabinet; second database name. Skip when
-      MEMNET_NEO4J_LIBRARY_DATABASE is unset. Emit locators only.
-      MUST NOT hydrate S, MUST NOT flush session pins, MUST NOT generate.
-    */
-    entry;
-    then libraryIdle;
-
-    state libraryIdle {
-      doc /* Library name unset, or waiting for a locator cue. */
-    }
-    transition idle_skip_unset
-      first libraryIdle
-      accept EvLibrarySkipUnset
-      then libraryIdle;
-    transition idle_to_emitting
-      first libraryIdle
-      accept EvLibraryLocatorCue
-      then emittingLocators;
-
-    state emittingLocators {
-      doc /* Locator-only read of the library database. Not pin_map. */
-    }
-    transition emit_ok
-      first emittingLocators
-      accept EvCommitOk
-      then libraryIdle;
-    transition emit_fail
-      first emittingLocators
-      accept EvError
-      then libraryIdle;
-  }
+  // Neo4jLibraryLocatorRoadmap: models/archive.sysml (#187).
 
   // --- Extra 0.17: host Snap locators (outside MemNetSystem) ---
 

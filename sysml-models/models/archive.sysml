@@ -191,11 +191,92 @@ package MemNetArchive {
     attribute implemented : Boolean = false;
   }
 
+  // =====================================================================
+  // Retired Neo4j cabinet (#187). Former product parts lived on
+  // DurableBuffer. No runtime hydrate/flush caller (agentReachable=false;
+  // hydrateFlushCallers="tests"). Bench: not faster at 80 / 229 / 504
+  // nodes; JVM ~7 s / 811 MiB vs MemNet 0.87 s / 33 MiB; flush-then-hydrate
+  // did not return the flushed node set. MUST NOT nest on product path.
+  // =====================================================================
+
+  part def liveNeo4jClaimed {
+    doc /*
+      RETIRED archive — former honesty nest for extra 0.14
+      liveNeo4jClaimed. Product path no longer claims it (#187).
+      MUST NOT nest on ProjectMemNet.
+    */
+    attribute claimed : Boolean = false;
+    attribute productPathRetired : Boolean = true;
+    attribute mustNotNestOnProductPath : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute retiredIssue : String = "187";
+  }
+
+  part def Neo4jAdapter {
+    doc /*
+      RETIRED archive — former cabinet client beside AgensGraphAdapter.
+      Ego hydrate/flush only. Opt-in was MEMNET_NEO4J_URL (extra
+      memnet-llm[neo4j]). Factory no longer binds it. Engine ignores
+      MEMNET_NEO4J_* and starts. MUST NOT nest on product path.
+      Historical 0.14 operator note (not a current claim): live round-trip
+      yes; hid flush; leftover-nickname hydrate after hid miss.
+      Hydrate-by-hid was not live-proven.
+    */
+    part honesty : liveNeo4jClaimed;
+    attribute implemented : Boolean = false;
+    attribute productPathRetired : Boolean = true;
+    attribute mustNotNestOnProductPath : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute liveNeo4jClaimed : Boolean = false;
+    attribute storageRole : String = "cabinet_ego";
+    attribute hydrateByHidLiveProven : Boolean = false;
+    attribute serverVendored : Boolean = false;
+    attribute namespace : String = "cabinet";
+    attribute phase : String = "retired";
+    attribute retiredIssue : String = "187";
+  }
+
+  part def Neo4jLibraryPort {
+    doc /*
+      RETIRED archive — former extra 0.16 second Neo4j database on the
+      same process as Neo4jAdapter. Locator-only. Retired with the
+      cabinet (#187). MUST NOT nest on product path. MUST NOT hydrate
+      session S. RagHostHook no longer reads this port.
+    */
+    attribute implemented : Boolean = false;
+    attribute productPathRetired : Boolean = true;
+    attribute mustNotNestOnProductPath : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute generate : Boolean = false;
+    attribute skipUnlessNameSet : Boolean = true;
+    attribute hydrateSession : Boolean = false;
+    attribute flushSessionPins : Boolean = false;
+    attribute snapOnSession : Boolean = false;
+    attribute fuseRetrieveIntoPinMap : Boolean = false;
+    attribute storageRole : String = "library_locators";
+    attribute rejectSameNameAsCabinet : Boolean = true;
+    attribute namespace : String = "library";
+    attribute sameProcessAsCabinet : Boolean = true;
+    attribute retiredIssue : String = "187";
+  }
+
+  part def Neo4jLibraryLocatorRoadmap {
+    doc /*
+      RETIRED archive — former behaviour roadmap for library locators.
+      MUST NOT nest on product path.
+    */
+    attribute productPathRetired : Boolean = true;
+    attribute mustNotNestOnProductPath : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute retiredIssue : String = "187";
+  }
+
   part def LeftoverArchiveShelf {
     doc /*
       One shelf for leftover honesty. Not Schema. Not GraphStore.
       Not MemNetSystem. ProjectMemNet does not load this package.
-      Retired grammar, not a session archive.
+      Retired grammar, not a session archive. Retired Neo4j cabinet
+      sits on this shelf (#187).
     */
     part leftoverLayer : TierACodec;
     part leftoverPipe : LegacyPipeImport;
@@ -209,6 +290,10 @@ package MemNetArchive {
     part leftover_ingestIsIdRule : leftover_ingestIsIdRule;
     part leftover_read_get : leftover_read_get;
     part leftover_AssignedIdMap : leftover_AssignedIdMap;
+    part retiredNeo4jClaim : liveNeo4jClaimed;
+    part retiredNeo4j : Neo4jAdapter;
+    part retiredNeo4jLibrary : Neo4jLibraryPort;
+    part retiredNeo4jLibraryRoadmap : Neo4jLibraryLocatorRoadmap;
   }
 
   part leftoverArchiveShelf : LeftoverArchiveShelf;

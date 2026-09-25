@@ -40,8 +40,8 @@ Durable store **behind** sessions. Index: [`cabinet/README.md`](cabinet/README.m
 
 | Doc | Role |
 |-----|------|
-| [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md) | AgensGraph adapter: 0.7 live hydrate/flush; Fake + URL skip |
-| [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md) | MemNet ↔ Neo4j; live claimed (0.14); two namespaces (0.16) |
+| [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md) | AgensGraph adapter: 0.7 adapter + operator round trip (no runtime caller); Fake + URL skip |
+| [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md) | Retired Neo4j cabinet (#187). `MEMNET_NEO4J_*` ignored |
 
 ## Extras — `extras/`
 

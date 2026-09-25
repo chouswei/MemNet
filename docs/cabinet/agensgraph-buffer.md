@@ -77,7 +77,7 @@
 | Optional extra `memnet-llm[agensgraph]` (`psycopg`, not the DB server) | Landed |
 | serve / MCP bind `get_sync_owner(make_adapter_from_env())` once | Landed |
 | Live integration test | Skip unless `MEMNET_AGENSGRAPH_URL` set |
-| Claim adapter / M2.5 shipped | **0.7** — live hydrate/flush proven; still not a hosted cabinet service |
+| Claim adapter / M2.5 shipped | **0.7** — adapter + operator round trip (no runtime caller); still not a hosted cabinet service |
 
 Agents continue to use MemNet GQL `pin_map` / mutate only. Durable calls go through `DurableSyncOwner` / `SessionLifecycle.hydrate_from_durable` — never as the LLM primary path.
 
@@ -101,12 +101,11 @@ Factory / startup semantics:
 | Env | Adapter bound by `get_sync_owner()` |
 |-----|-------------------------------------|
 | `MEMNET_DURABLE_FAKE` truthy | `FakeDurableAdapter` |
-| else both AgensGraph and Neo4j URLs set | **error** unless `MEMNET_DURABLE_BACKEND` is `agensgraph` or `neo4j` |
+| `MEMNET_NEO4J_*` set | **Ignored.** One log warning. Engine starts. No Neo4j bind (#187) |
 | else `MEMNET_AGENSGRAPH_URL` set | `AgensGraphAdapter` (client) |
-| else `MEMNET_NEO4J_URL` set | `Neo4jAdapter` (client; extra **0.14** live claimed) |
 | else | `FakeDurableAdapter` (dev/test seam — not a production cabinet) |
 
-Second cabinet (same ABC / owner / budget; **not** a live claim). What talks to what, Cypher vs Agens, steal/reject: [`neo4j-buffer.md`](neo4j-buffer.md).
+Neo4j is retired. Historical talk: [`neo4j-buffer.md`](neo4j-buffer.md).
 
 `memnet serve` and `memnet-mcp` bind the owner once at process start using those rules.
 

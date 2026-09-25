@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 
 import pytest
@@ -17,7 +18,6 @@ from memnet.durable import (
     make_adapter_from_env,
     reset_sync_owner_for_tests,
 )
-from memnet.durable import neo4j as neo4j_cypher
 from memnet.durable.agensgraph import (
     AgensGraphAdapter,
     AgensGraphConfig,
@@ -28,7 +28,7 @@ from memnet.durable.agensgraph import (
     map_edge_row,
     map_node_row,
 )
-from memnet.durable.neo4j import Neo4jAdapter, Neo4jConfig, first_label
+from memnet.durable.factory import reset_neo4j_retired_warning_for_tests
 from memnet.exceptions import MemNetError
 from memnet.models import Record
 from memnet.pin_map_composer import PinMapComposer
@@ -41,7 +41,6 @@ _COM_MAP = [
 ]
 
 _LIVE = bool((os.environ.get("MEMNET_AGENSGRAPH_URL") or "").strip())
-_NEO4J_LIVE = bool((os.environ.get("MEMNET_NEO4J_URL") or "").strip())
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +53,6 @@ def _reset_owner():
 def test_adapter_is_abc_contract():
     assert issubclass(FakeDurableAdapter, DurableStoreAdapter)
     assert issubclass(AgensGraphAdapter, DurableStoreAdapter)
-    assert issubclass(Neo4jAdapter, DurableStoreAdapter)
 
 
 def test_fake_hydrate_respects_budget():
@@ -146,13 +144,46 @@ def test_make_adapter_from_env_agens_when_url(monkeypatch):
     assert isinstance(adapter, AgensGraphAdapter)
 
 
-def test_make_adapter_from_env_neo4j_when_url(monkeypatch):
+def test_retired_neo4j_env_is_ignored_and_engine_starts(monkeypatch, caplog):
+    """A deployed host may still export MEMNET_NEO4J_*. Ignore and start."""
     monkeypatch.delenv("MEMNET_AGENSGRAPH_URL", raising=False)
+    monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
+    monkeypatch.setenv("MEMNET_NEO4J_USER", "neo4j")
+    monkeypatch.setenv("MEMNET_NEO4J_PASSWORD", "do-not-log")
+    monkeypatch.setenv("MEMNET_NEO4J_DATABASE", "memnet")
+    monkeypatch.setenv("MEMNET_NEO4J_LIBRARY_DATABASE", "library")
+    monkeypatch.setenv("MEMNET_DURABLE_BACKEND", "neo4j")
+    monkeypatch.delenv("MEMNET_DURABLE_FAKE", raising=False)
+    reset_neo4j_retired_warning_for_tests()
+    reset_sync_owner_for_tests()
+    with caplog.at_level(logging.WARNING):
+        adapter = make_adapter_from_env()
+        owner = get_sync_owner()
+    assert isinstance(adapter, FakeDurableAdapter)
+    assert owner is get_sync_owner()
+    warnings = [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING]
+    assert len(warnings) == 1
+    assert "MEMNET_NEO4J_URL" in warnings[0]
+    assert "MEMNET_NEO4J_PASSWORD" in warnings[0]
+    assert "do-not-log" not in warnings[0]
+    assert "bolt://" not in warnings[0]
+    # Second start does not raise and does not warn again.
+    caplog.clear()
+    again = make_adapter_from_env()
+    assert isinstance(again, FakeDurableAdapter)
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+def test_retired_neo4j_env_does_not_block_agens(monkeypatch, caplog):
+    monkeypatch.setenv("MEMNET_AGENSGRAPH_URL", "postgresql://localhost/memnet")
     monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
     monkeypatch.delenv("MEMNET_DURABLE_BACKEND", raising=False)
     monkeypatch.delenv("MEMNET_DURABLE_FAKE", raising=False)
-    adapter = make_adapter_from_env()
-    assert isinstance(adapter, Neo4jAdapter)
+    reset_neo4j_retired_warning_for_tests()
+    with caplog.at_level(logging.WARNING):
+        adapter = make_adapter_from_env()
+    assert isinstance(adapter, AgensGraphAdapter)
+    assert any("MEMNET_NEO4J_URL" in r.getMessage() for r in caplog.records)
 
 
 def test_make_adapter_from_env_fake_overrides_url(monkeypatch):
@@ -161,28 +192,6 @@ def test_make_adapter_from_env_fake_overrides_url(monkeypatch):
     monkeypatch.setenv("MEMNET_DURABLE_FAKE", "1")
     adapter = make_adapter_from_env()
     assert isinstance(adapter, FakeDurableAdapter)
-
-
-def test_make_adapter_from_env_both_urls_conflict(monkeypatch):
-    monkeypatch.setenv("MEMNET_AGENSGRAPH_URL", "postgresql://localhost/memnet")
-    monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
-    monkeypatch.delenv("MEMNET_DURABLE_BACKEND", raising=False)
-    monkeypatch.delenv("MEMNET_DURABLE_FAKE", raising=False)
-    with pytest.raises(MemNetError) as ei:
-        make_adapter_from_env()
-    assert ei.value.code == "durable_backend_conflict"
-
-
-def test_make_adapter_from_env_both_urls_backend_pick(monkeypatch):
-    monkeypatch.setenv("MEMNET_AGENSGRAPH_URL", "postgresql://localhost/memnet")
-    monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
-    monkeypatch.delenv("MEMNET_DURABLE_FAKE", raising=False)
-    monkeypatch.setenv("MEMNET_DURABLE_BACKEND", "neo4j")
-    adapter = make_adapter_from_env()
-    assert isinstance(adapter, Neo4jAdapter)
-    monkeypatch.setenv("MEMNET_DURABLE_BACKEND", "agensgraph")
-    adapter = make_adapter_from_env()
-    assert isinstance(adapter, AgensGraphAdapter)
 
 
 def test_agens_hydrate_unavailable_without_psycopg(monkeypatch):
@@ -386,336 +395,8 @@ def test_agens_live_flush_hydrate_round_trip(memnet_temp):
     assert any(e.fields.get("relation") == "ABOUT" for e in loaded.edges)
 
 
-def test_neo4j_from_env(monkeypatch):
-    monkeypatch.setenv("MEMNET_NEO4J_URL", "bolt://127.0.0.1:7687")
-    monkeypatch.setenv("MEMNET_NEO4J_USER", "neo4j")
-    monkeypatch.setenv("MEMNET_NEO4J_PASSWORD", "test")
-    monkeypatch.setenv("MEMNET_NEO4J_DATABASE", "memnet")
-    adapter = Neo4jAdapter.from_env()
-    assert adapter is not None
-    assert adapter.name == "neo4j"
-    assert adapter.config.database_name == "memnet"
-    assert adapter.config.user == "neo4j"
-
-
-def test_neo4j_hydrate_unavailable_without_driver(monkeypatch):
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-
-    def _boom() -> None:
-        raise MemNetError(
-            "neo4j_unavailable",
-            "neo4j missing (simulated)",
-            example="pip install neo4j",
-        )
-
-    monkeypatch.setattr(adapter, "_import_graphdatabase", _boom)
-    with pytest.raises(MemNetError) as ei:
-        adapter.hydrate("COM_acme", HydrateBudget())
-    assert ei.value.code == "neo4j_unavailable"
-
-
-def test_neo4j_connect_failed_is_clear(monkeypatch):
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:1"))
-
-    class _GraphDatabase:
-        @staticmethod
-        def driver(*_a, **_k):
-            raise OSError("connection refused (simulated)")
-
-    monkeypatch.setattr(adapter, "_import_graphdatabase", lambda: _GraphDatabase)
-    with pytest.raises(MemNetError) as ei:
-        adapter.hydrate("COM_acme", HydrateBudget())
-    assert ei.value.code == "neo4j_connect_failed"
-
-
-def test_neo4j_build_hydrate_nodes_cypher():
-    cypher, params = neo4j_cypher.build_hydrate_nodes_cypher(
-        "COM_acme", HydrateBudget(max_nodes=12, depth=2)
-    )
-    assert params["ego_id"] == "COM_acme"
-    assert "{_memnet_hid: $ego_id}" in cypher
-    assert "MATCH (ego {id:" not in cypher
-    assert "*0..2" in cypher
-    assert "LIMIT 12" in cypher
-    assert "labels(n)" in cypher
-    assert "label(n)" not in cypher
-    assert "properties(n)" in cypher
-
-
-def test_neo4j_build_hydrate_edges_cypher_filters_ids():
-    cypher, params = neo4j_cypher.build_hydrate_edges_cypher(
-        "COM_acme",
-        HydrateBudget(max_edges=20, depth=2),
-        node_ids=["COM_acme", "TSK_mission_q3"],
-    )
-    assert params["node_ids"] == ["COM_acme", "TSK_mission_q3"]
-    assert "src._memnet_hid IN $node_ids" in cypher
-    assert "type(rel)" in cypher
-    assert "label(rel)" not in cypher
-
-
-def test_neo4j_build_hydrate_edges_zero_or_empty():
-    cypher, _params = neo4j_cypher.build_hydrate_edges_cypher(
-        "COM_acme", HydrateBudget(max_edges=0)
-    )
-    assert "LIMIT 0" in cypher
-    cypher, _params = neo4j_cypher.build_hydrate_edges_cypher(
-        "COM_acme", HydrateBudget(max_edges=20)
-    )
-    assert "LIMIT 0" in cypher
-
-
-def test_neo4j_build_merge_node_and_edge_cypher():
-    fixture = company_ego_fixture()
-    node = next(n for n in fixture.nodes if n.tag == "COM")
-    task = next(n for n in fixture.nodes if n.tag == "TSK")
-    edge = fixture.edges[0]
-    n_cypher, n_params = neo4j_cypher.build_merge_node_cypher(node)
-    assert "MERGE (n:COM {_memnet_hid: $hid})" in n_cypher
-    assert "MERGE (n:COM {id:" not in n_cypher
-    assert n_params["hid"] == node.hid
-    assert n_params["props"]["name"] == "Acme"
-    assert n_params["props"]["id"] == "COM_acme"
-    assert "_memnet_tag" in n_cypher
-
-    e_cypher, e_params = neo4j_cypher.build_merge_edge_cypher(edge, nodes=fixture.nodes)
-    assert "_memnet_hid" in e_cypher
-    assert "MATCH (a {id:" not in e_cypher
-    assert e_params["src"] == task.hid
-    assert e_params["dist"] == node.hid
-
-
-def test_neo4j_rejects_unsafe_ident_and_id():
-    with pytest.raises(MemNetError) as ei:
-        neo4j_cypher.build_merge_node_cypher(Record(tag="COM;DROP", fields={"id": "COM_acme"}))
-    assert ei.value.code == "neo4j_bad_ident"
-    with pytest.raises(MemNetError) as ei:
-        neo4j_cypher.build_hydrate_nodes_cypher("COM_acme' OR 1=1", HydrateBudget())
-    assert ei.value.code == "neo4j_bad_id"
-
-
-def test_first_label_from_neo4j_list():
-    assert first_label(["COM", "Entity"]) == "COM"
-    assert first_label("TSK") == "TSK"
-    assert first_label([]) == ""
-
-
-def test_neo4j_hydrate_maps_mocked_rows(monkeypatch):
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
-
-    def _run(_cypher: str, params=None):
-        if "labels(n)" in _cypher:
-            return [
-                {
-                    "labels": ["COM"],
-                    "props": {"id": "COM_acme", "name": "Acme", "_memnet_tag": "COM"},
-                },
-                {
-                    "labels": ["TSK"],
-                    "props": {
-                        "id": "TSK_mission_q3",
-                        "goal": "Q3 mission",
-                        "status": "settled",
-                        "_memnet_tag": "TSK",
-                    },
-                },
-            ]
-        return [
-            {
-                "rel_type": "ABOUT",
-                "props": {"id": "E_about_q3", "relation": "ABOUT", "_memnet_tag": "EDG"},
-                "src": "TSK_mission_q3",
-                "dist": "COM_acme",
-            }
-        ]
-
-    monkeypatch.setattr(adapter, "_run", _run)
-    g = adapter.hydrate("COM_acme", HydrateBudget(max_nodes=10, max_edges=10, depth=2))
-    assert {n.id for n in g.nodes} == {"COM_acme", "TSK_mission_q3"}
-    assert len(g.edges) == 1
-    assert "ABOUT" in g.relations
-
-
-def test_neo4j_flush_emits_merge_statements(monkeypatch):
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    seen: list[tuple[str, dict]] = []
-    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
-
-    def _run(cypher: str, params=None):
-        seen.append((cypher, params or {}))
-        return []
-
-    monkeypatch.setattr(adapter, "_run", _run)
-    fixture = company_ego_fixture()
-    ego = next(n for n in fixture.nodes if n.tag == "COM")
-    task = next(n for n in fixture.nodes if n.tag == "TSK")
-    adapter.flush(fixture)
-    cyphers = [c for c, _p in seen]
-    assert any("MERGE (n:COM {_memnet_hid: $hid})" in c for c in cyphers)
-    assert not any("MERGE (n:COM {id:" in c for c in cyphers)
-    assert any("MERGE (n:TSK" in c for c in cyphers)
-    about = next((c, p) for c, p in seen if "MERGE (a)-[r:ABOUT" in c)
-    assert about[1]["src"] == task.hid
-    assert about[1]["dist"] == ego.hid
-    assert cyphers.index(next(c for c in cyphers if "MERGE (n:COM" in c)) < cyphers.index(
-        next(c for c in cyphers if "MERGE (a)-[r:ABOUT" in c)
-    )
-
-
-def test_neo4j_recorded_session_stub(monkeypatch):
-    """Always-on Bolt stub: session.run is recorded; no live server."""
-
-    class _Session:
-        def __init__(self) -> None:
-            self.queries: list[str] = []
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_a):
-            return False
-
-        def run(self, query: str, params=None, **_k):
-            self.queries.append(query)
-            if "labels(n)" in query:
-                return [
-                    {
-                        "labels": ["COM"],
-                        "props": {"id": "COM_acme", "name": "Acme", "_memnet_tag": "COM"},
-                    }
-                ]
-            return []
-
-        def close(self) -> None:
-            return None
-
-    session = _Session()
-
-    class _Driver:
-        def session(self, database=None):
-            assert database == "neo4j"
-            return session
-
-        def close(self) -> None:
-            return None
-
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    monkeypatch.setattr(adapter, "_ensure_driver", lambda: _Driver())
-    g = adapter.hydrate("COM_acme", HydrateBudget(max_nodes=5, max_edges=5, depth=1))
-    assert any(n.id == "COM_acme" for n in g.nodes)
-    assert any("labels(n)" in q for q in session.queries)
-
-
-def test_neo4j_hydrate_after_flush_uses_hid(monkeypatch):
-    """Official fixture: flush then hydrate by the same hid that was written."""
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
-    fixture = company_ego_fixture(ego_id="COM_acme_live_neo4j")
-    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
-    task = next(n for n in fixture.nodes if n.tag == "TSK")
-    seen: list[tuple[str, dict]] = []
-
-    def _run(cypher: str, params=None):
-        params = params or {}
-        seen.append((cypher, params))
-        if "labels(n)" in cypher:
-            if params.get("ego_id") != ego.hid:
-                return []
-            return [
-                {
-                    "labels": ["COM"],
-                    "props": {
-                        "id": "COM_acme_live_neo4j",
-                        "name": "Acme",
-                        "_memnet_tag": "COM",
-                        "_memnet_hid": ego.hid,
-                    },
-                },
-                {
-                    "labels": ["TSK"],
-                    "props": {
-                        "id": "TSK_mission_q3",
-                        "goal": "Q3 mission",
-                        "status": "settled",
-                        "_memnet_tag": "TSK",
-                        "_memnet_hid": task.hid,
-                    },
-                },
-            ]
-        if "type(rel)" in cypher:
-            node_ids = params.get("node_ids") or []
-            if ego.hid not in node_ids or task.hid not in node_ids:
-                return []
-            return [
-                {
-                    "rel_type": "ABOUT",
-                    "props": {
-                        "id": "E_about_q3",
-                        "relation": "ABOUT",
-                        "_memnet_tag": "EDG",
-                    },
-                    "src": task.hid,
-                    "dist": ego.hid,
-                }
-            ]
-        return []
-
-    monkeypatch.setattr(adapter, "_run", _run)
-    adapter.flush(fixture)
-    merge_com = next(c for c, _p in seen if "MERGE (n:COM" in c)
-    assert "MERGE (n:COM {_memnet_hid: $hid})" in merge_com
-    assert "MERGE (n:COM {id:" not in merge_com
-    assert next(p["hid"] for c, p in seen if "MERGE (n:COM" in c) == ego.hid
-    about_params = next(p for c, p in seen if "MERGE (a)-[r:ABOUT" in c)
-    assert about_params["src"] == task.hid
-    assert about_params["dist"] == ego.hid
-
-    seen.clear()
-    loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
-    ego_match = next(c for c, _p in seen if "labels(n)" in c)
-    assert "{_memnet_hid: $ego_id}" in ego_match
-    assert "MATCH (ego {id:" not in ego_match
-    assert any(n.id == "COM_acme_live_neo4j" for n in loaded.nodes)
-    assert any(e.fields.get("relation") == "ABOUT" for e in loaded.edges)
-    about = next(e for e in loaded.edges if e.fields.get("relation") == "ABOUT")
-    assert about.fields.get("dist") == "COM_acme_live_neo4j"
-    assert about.fields.get("src") == "TSK_mission_q3"
-
-
-def test_neo4j_hydrate_nickname_after_hid_miss(monkeypatch):
-    """Leftover: nickname as property ``id`` only after hid MATCH is empty."""
-    adapter = Neo4jAdapter(Neo4jConfig(url="bolt://127.0.0.1:7687"))
-    monkeypatch.setattr(adapter, "_ensure_driver", lambda: object())
-    keys: list[str] = []
-
-    def _run(cypher: str, params=None):
-        if "labels(n)" in cypher:
-            if "{_memnet_hid:" in cypher.split("OPTIONAL", 1)[0]:
-                keys.append("hid")
-                return []
-            keys.append("id")
-            return [
-                {
-                    "labels": ["COM"],
-                    "props": {
-                        "id": "COM_acme_live_neo4j",
-                        "name": "Acme",
-                        "_memnet_tag": "COM",
-                        "_memnet_hid": "_el2",
-                    },
-                }
-            ]
-        return []
-
-    monkeypatch.setattr(adapter, "_run", _run)
-    g = adapter.hydrate("COM_acme_live_neo4j", HydrateBudget(max_nodes=5, max_edges=0))
-    assert keys == ["hid", "id"]
-    assert any(n.id == "COM_acme_live_neo4j" for n in g.nodes)
-
-
 def test_agens_hydrate_after_flush_uses_hid(monkeypatch):
-    """Same hid story as Neo4j: fixture flush then hydrate by written hid."""
+    """Fixture flush then hydrate by the written hid."""
     adapter = AgensGraphAdapter(AgensGraphConfig(url="postgresql://localhost/memnet"))
     seen: list[str] = []
 
@@ -788,20 +469,3 @@ def test_agens_hydrate_after_flush_uses_hid(monkeypatch):
     assert any(n.id == "COM_acme_live_m25" for n in loaded.nodes)
     about_e = next(e for e in loaded.edges if e.fields.get("relation") == "ABOUT")
     assert about_e.fields.get("dist") == "COM_acme_live_m25"
-
-
-@pytest.mark.neo4j_live
-@pytest.mark.skipif(not _NEO4J_LIVE, reason="MEMNET_NEO4J_URL not set")
-def test_neo4j_live_flush_hydrate_round_trip(memnet_temp):
-    """Optional: exercise external Neo4j cabinet when URL is exported."""
-    adapter = Neo4jAdapter.from_env()
-    assert adapter is not None
-    fixture = company_ego_fixture(ego_id="COM_acme_live_neo4j")
-    ego = next(n for n in fixture.nodes if n.id == fixture.ego_id)
-    try:
-        adapter.flush(fixture)
-        loaded = adapter.hydrate(ego.hid, HydrateBudget(max_nodes=20, max_edges=20, depth=2))
-    finally:
-        adapter.close()
-    assert any(n.id == fixture.ego_id for n in loaded.nodes)
-    assert any(e.fields.get("relation") == "ABOUT" for e in loaded.edges)

@@ -8,6 +8,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [Unreleased]
 
 ### Changed
+- **Honesty `c` — retire Neo4j; narrow AgensGraph 0.7 (#187)** — Neo4j cabinet (`Neo4jAdapter`, `Neo4jLibraryPort`, `liveNeo4jClaimed`) moved to `sysml-models/models/archive.sysml` (`MemNetArchive`, off `ProjectMemNet` load). Factory `bindsExactlyOneOf="fake|agensgraph"`. Removed the Neo4j adapter module, the `neo4j` extra, and the `neo4j_live` marker. `MEMNET_NEO4J_*` is ignored (one log warning); the engine starts. **0.7** claim is adapter + operator round trip (no runtime caller). No new hydrate/flush caller. No Hatch bump.
 
 ## [0.19.14] - 2026-09-24
 

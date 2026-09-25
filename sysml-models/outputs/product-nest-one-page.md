@@ -14,7 +14,7 @@ MemNetSystem                          // SharedLlmMemory product
 │   ├── Path A                        // shared session → re-pin (no import nest)
 │   └── Path B                        // slice → ImportGuard (optional soft)
 │                                     //        → ImportAbsorb (hard)
-└── DurableBuffer                     // cabinet_ego; factory binds exactly one of fake, AgensGraph, or Neo4j
+└── DurableBuffer                     // cabinet_ego; factory binds exactly one of fake or AgensGraph
 
 APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
                    is a distinct pin_map / not MemNet SSOT; overlay family
@@ -22,7 +22,8 @@ APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
                    downstream bound desk is working model SSOT),
                    HostSearchBridge, …
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml) — leftover_* /
-                   TierACodec / LegacyPipe* shelf; ProjectMemNet MUST NOT import
+                   TierACodec / LegacyPipe* / retired Neo4j cabinet (#187);
+                   ProjectMemNet MUST NOT import
 OPS LOOK           MemNetUsageDashboard — human look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face; product face is sysmledge)
 OPS ACCESS         TipMemNetAccessPortal — Szu-Wei invite, Google login, Bearer for keyed tip MCP at droplet WWW (tip≠face; not sysmledge; portal sidecar; look-only service/client status)
@@ -53,6 +54,6 @@ Honesty that leftovers exist lives on the **ARCHIVE** shelf, not on `ProjectMemN
 
 ## Review (TTL file + nest)
 
-Session TTL drops **RAM**. Explicit `session_save` and expire-save write **one** file blob. Expire-save is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM (`session_load(session=<sid>)` resolves the expire-dir snap when the caller already holds the sid; `loadByKnownSid`). DurableBuffer / Neo4j is a cabinet ego slice, not this file (`MN-VER-01-S03`, `MN-VER-06-S06`).
+Session TTL drops **RAM**. Explicit `session_save` and expire-save write **one** file blob. Expire-save is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM (`session_load(session=<sid>)` resolves the expire-dir snap when the caller already holds the sid; `loadByKnownSid`). DurableBuffer is a cabinet ego slice, not this file (`MN-VER-01-S03`, `MN-VER-06-S06`). Neo4j is archived (#187).
 
 ARCHIVE leftover fog remains **off** `ProjectMemNet` load (`leftoverFogNested=false`, `leftoverArchiveOffLoad=true`). OPS `MemNetUsageDashboard` remains look-only (`httpImplemented=false`, `tipIsFace=false`, `agentWire=false`). OPS `MemNetOpsFleet` remains outside `MemNetSystem` (`mcpCount=1` = one MemNet MCP at droplet, `nServerFederation=false`, `productInventFace=sysmledge`, `tipIsFace=false`). OPS `TipMemNetAccessPortal` remains outside `MemNetSystem` (`tipIsFace=false`, `keyedWwwMcp=true`, `unauthenticatedWwwMcp=false`, `isSysmlEdgeProduct=false`, `inventOnly=false`, `portalWebImplemented=true`, `sellsInvent2Green=false`, `statusLookOnly=true`, `unparksUsageDashboard=false`). IMPLEMENTATION `MemNetLlmWheel` remains one Hatch package for many hosts (`oneWheelManyHosts=true`, `sysmlEdgeInWheel=false`). IMPLEMENTATION tracker (`ImplementationTracker`) watches allocate rows (`missingPathFailsCi`; `sysmlEdgeTracked=false`).

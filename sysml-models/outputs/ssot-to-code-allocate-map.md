@@ -42,8 +42,6 @@
 | exportToMod | `memNetSystem.pinMaps.export` | `exportMod` | `parts/common/memnet/memnet/pin_map_export.py` | `memnet.pin_map_export` | true |
 | catalogToMod | `memNetSystem.pinMaps.catalog` | `catalogMod` | `parts/common/memnet/memnet/catalog_snap.py` | `memnet.catalog_snap` | true |
 | agensToMod | `memNetSystem.durable.agens` | `agensMod` | `parts/common/memnet/memnet/durable/agensgraph.py` | `memnet.durable.agensgraph` | true |
-| neo4jToMod | `memNetSystem.durable.neo4j` | `neo4jMod` | `parts/common/memnet/memnet/durable/neo4j.py` | `memnet.durable.neo4j` | true |
-| libraryToMod | `memNetSystem.durable.library` | `libraryMod` | `parts/common/memnet/memnet/durable/neo4j_library.py` | `memnet.durable.neo4j_library` | true |
 | ragHookToMod | `hostSearch.hook` | `ragHookMod` | `parts/common/memnet/memnet/rag_host_hook.py` | `memnet.rag_host_hook` | true |
 | mcpToolsToMod | `memNetSystem.mcp.tools` | `mcpFacadeMod` | `parts/memnet-mcp/software/memnet_mcp/mcp_facade.py` | `memnet_mcp.mcp_facade` | true |
 | mcpToolsToServer | `memNetSystem.mcp.tools` | `wheel.mcp` | `parts/memnet-mcp/software/memnet_mcp/server.py` | `memnet_mcp.server` | true |

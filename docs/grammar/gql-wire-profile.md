@@ -269,7 +269,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 |-------|------|-------------------------|
 | **M1 (done)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5 (done, 0.7 / 0.14)** | Durable online GQL store adapter (MemNet ↔ AgensGraph hydrate/flush; one sync owner; optional Neo4j live claimed 0.14) — [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md), [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter (MemNet ↔ AgensGraph; one sync owner; 0.7 is adapter + operator round trip, no runtime caller). Neo4j retired (#187) — [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet; a Neo4j backend |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 
@@ -289,7 +289,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
 | [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
-| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Second cabinet client (extra **0.14** live claimed) |
+| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Retired Neo4j cabinet (#187). Not a current backend |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`memnet-session-strata.md`](../extras/memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |
