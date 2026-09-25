@@ -1,0 +1,80 @@
+# MemNet storage roles. Labels are storageRole strings from the SysML model.
+# Solid arrows are the default product path. Dashed arrows are opt-in.
+
+direction: down
+
+llm: LLM {
+  shape: person
+}
+
+wm: "GraphStore\nworking_memory\ndefault RAM" {
+  style.fill: "#e8f4ea"
+}
+
+pin: "PinMapShapedRead\nrecall_window\none turn" {
+  style.fill: "#f4f4f4"
+}
+
+snap: "SnapshotStore\nfile_snapshot\nexplicit save and expire-save\nare one blob" {
+  style.fill: "#e8eef8"
+}
+
+cabinet: "DurableBuffer\ncabinet_ego\nfactory binds exactly one of\nAgensGraph or Neo4j\nego hydrate / flush" {
+  style.fill: "#fff4e5"
+}
+
+library: "Neo4jLibraryPort\nlibrary_locators\nsecond database name" {
+  style.fill: "#fff4e5"
+}
+
+fake: "unconfigured URL\nci_seam\nFakeDurableAdapter" {
+  style.fill: "#f7f7f7"
+}
+
+hk: "HousekeepSettle\nrow_prune" {
+  style.fill: "#f4f4f4"
+}
+
+mark: "recycle field\nrow_hide_mark" {
+  style.fill: "#f4f4f4"
+}
+
+host: "InProcessEngine / TcpServeBridge\nprocess_host\nmany mn_* in one registry" {
+  style.fill: "#f4f4f4"
+}
+
+shelf: "MemNetArchive\nretired_shelf\noff ProjectMemNet load" {
+  style.fill: "#f7f7f7"
+}
+
+git: "git sysml-models/\nmodel SSOT on this repo\nexisting flag, not storageRole" {
+  style.fill: "#fde8e8"
+}
+
+desk: "SysMLEdge desk\nworking model only if\nSysMLEdgePrj-* and bound" {
+  style.fill: "#fde8e8"
+}
+
+llm -> wm: "Commit / mutate"
+wm -> pin: "Recall"
+pin -> llm: "drop after the turn"
+wm -> snap: "session_save\nor TTL if armed"
+snap -> wm: "session_load\nloadByKnownSid"
+wm -> cabinet: "flush API\nnot on Commit, not on TTL" {
+  style.stroke-dash: 3
+}
+cabinet -> wm: "hydrate API\nego slice" {
+  style.stroke-dash: 3
+}
+library -> wm: "locators only" {
+  style.stroke-dash: 3
+}
+fake -> wm: "no durable copy" {
+  style.stroke-dash: 3
+}
+hk -> wm: "prune deletes"
+mark -> wm: "hide from pin_map"
+host -> wm: "hosts the live graphs"
+git -> wm: "Path-B ingest pins" {
+  style.stroke-dash: 3
+}

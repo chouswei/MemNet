@@ -25,8 +25,8 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map; overlay family `SysMLEdgePrj-*`; this engine repo and `modelbasedPrj-*` are repo-based — MUST NOT use SysMLEdge as model SSOT; `SysMLEdgePrj-*` bound desk is working model SSOT) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` outside `MemNetSystem` |
 | `models/implementation.sysml` | `MemNetImplementation` | `SoftwareAllocate` logical → live modules; one Hatch wheel many hosts; sysmledge not in wheel |
-| `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, M2.5 hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S04; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S05 |
+| `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, landed-client hydrate/flush |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S06 (S06 storage roles); MN-VER-01-S03 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
 | `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe*). **Off** `config.yaml` load |
 

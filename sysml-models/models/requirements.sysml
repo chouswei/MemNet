@@ -90,12 +90,18 @@ package MemNetRequirements {
 
   requirement def MN_REQ_00_MissionBridge {
     doc /*
-      SHALL provide a Net of Memory (MemNet): an in-memory network of durable
-      facts and relations -- not a chat notepad and not the search corpus --
-      that sits between pipelines of LLM calls and data searching, aiding the
-      LLM for system, programme, software, firmware, hardware, and
-      documentation development, with the aims of saving wall-clock time and
-      token usage while keeping high accuracy when presenting facts.
+      SHALL provide a Net of Memory (MemNet): an in-memory working-memory
+      network of facts and relations -- not a chat notepad and not the
+      search corpus -- that sits between pipelines of LLM calls and data
+      searching, aiding the LLM for system, programme, software, firmware,
+      hardware, and documentation development, with the aims of saving
+      wall-clock time and token usage while keeping high accuracy when
+      presenting facts. The live graph is working memory. Durability is a
+      file snapshot (explicit save and expire-save are one blob) or an
+      optional cabinet ego slice. The session id is the mission handle.
+      The model SSOT is git sysml-models/ on this repo and on
+      modelbasedPrj-*. A bound SysMLEdge desk is the working model only
+      on SysMLEdgePrj-*.
     */
     attribute requirementId : String = "MN-REQ-00";
 
@@ -103,7 +109,11 @@ package MemNetRequirements {
 
     requirement def MN_REQ_01_SessionLifecycle {
       doc /*
-        Group: durable named session state across pipeline turns.
+        Group: named session working memory across pipeline turns.
+        The live graph is working memory. The session id is the mission
+        handle, not the model SSOT. Durability is the file snapshot
+        (explicit save and expire-save write one blob) or an optional
+        cabinet ego slice.
       */
       attribute requirementId : String = "MN-REQ-01";
 
@@ -130,14 +140,18 @@ package MemNetRequirements {
           session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
           off): file snapshot MAY remain on disk until the user deletes
           it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
+          Explicit session_save and this expire-save write one
+          SessionSnapshotBlob.
         */
         attribute requirementId : String = "MN-REQ-01.3";
       }
 
       requirement def MN_REQ_01_4_SaveSessionSnapshot {
         doc /*
-          SHALL persist a named session to a durable snapshot so working-memory
-          state can outlive the process (schema, records, relations).
+          SHALL persist a named session to one durable file snapshot so
+          working-memory state can outlive the process (schema, records,
+          relations). Explicit session_save and expire-save write that
+          same blob. The file is not the cabinet and not the model SSOT.
         */
         attribute requirementId : String = "MN-REQ-01.4";
       }
@@ -165,7 +179,9 @@ package MemNetRequirements {
           delivering the session id only (SessionHandoff; module A → B pipe).
           Peers SHALL re-pin_map; chat, MissionDock payloads, and HTTP bodies
           SHALL NOT be treated as SSOT (extends MN-REQ-10.1; Multitask
-          MN-REQ-12.1).
+          MN-REQ-12.1). This SSOT is the mission working-set handle. It
+          is not the model SSOT (git sysml-models/ on this repo and on
+          modelbasedPrj-*; a bound SysMLEdge desk only on SysMLEdgePrj-*).
         */
         attribute requirementId : String = "MN-REQ-01.7";
       }

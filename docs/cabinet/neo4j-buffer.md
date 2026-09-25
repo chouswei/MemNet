@@ -18,9 +18,11 @@ MemNet sits **between** LLM call pipelines and a durable graph. [Neo4j](https://
                     |  hydrate / flush (one sync owner)
                     v
                Neo4j  = one process, two namespaces (extra 0.16)
-                        cabinet DB  = durable copy of S
+                        cabinet DB  = ego slice of S
                         library DB  = corpus (optional; locators only)
 ```
+
+Role picture for every store: [`storage-roles.d2`](storage-roles.d2).
 
 | Path | Role |
 |------|------|

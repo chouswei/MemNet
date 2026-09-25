@@ -187,16 +187,19 @@ package MemNetConnections {
   item def DurableGraphStore {
     doc /*
       Online durable property-graph store (AgensGraph-class or Neo4j-class)
-      behind MemNet. Hydrate into / flush from the live session via the
-      M2.5 client adapter seam (DurableStoreAdapter / Fake / optional
-      AgensGraph client with liveCabinetClaimed; optional Neo4j client
-      with liveNeo4jClaimed=true (0.14); SessionLifecycle hydrate/flush).
+      behind MemNet. Landed client: hydrate into / flush from the live
+      session an ego slice (DurableStoreAdapter / Fake ci_seam when no
+      URL / optional AgensGraph client with liveCabinetClaimed; optional
+      Neo4j client with liveNeo4jClaimed=true (0.14); SessionLifecycle
+      hydrate/flush). Factory binds exactly one of AgensGraph or Neo4j.
+      Not a full copy of S. Not the file snapshot.
       Extra 0.16: one Neo4j process MAY host two named databases —
       cabinet (flushed S) vs library (corpus). Library is not this
       hydrate/flush item. Live cabinet is external — not vendored.
       LLM ↔ store direct (including Bolt) is out of default teach.
       One sync owner. MN-REQ-06.4.
     */
+    attribute storageRole : String = "cabinet_ego";
   }
 
   // =====================================================================
@@ -454,7 +457,9 @@ package MemNetConnections {
       (ShapedSubgraph) for an ego/anchor within depth/max_rows/view budget;
       engine-law rows prepended when present. Wraps GQL; emit is graph-shaped
       Write = display. Legacy alias: query_warm. Not a full session dump.
+      Recall window, not a store.
     */
+    attribute storageRole : String = "recall_window";
   }
 
   item def WalkSlice {
@@ -485,8 +490,11 @@ package MemNetConnections {
       Durable named-session file (MN-REQ-01.4--01.6): schema + records +
       relations. Distinct from MN-REQ-11 pin-map projections. Optional
       TTL expire write when MEMNET_SAVE_ON_EXPIRE; remains until user
-      drop. MUST NOT be treated as Neo4j cabinet dump.
+      drop. Explicit save and expire-save are this one blob.
+      MUST NOT be treated as Neo4j cabinet dump.
+      storageRole file_snapshot.
     */
+    attribute storageRole : String = "file_snapshot";
   }
 
   item def PinMapProjection {
@@ -704,19 +712,19 @@ package MemNetConnections {
   }
 
   port def DurableHydrateOutPort {
-    doc /* ROADMAP M2.5: hydrate subgraph from DurableGraphStore into session. */
+    doc /* Landed client: hydrate an ego slice from DurableGraphStore into the session. Not on Commit. Not on TTL. */
     out item store : DurableGraphStore;
   }
   port def DurableHydrateInPort {
-    doc /* ROADMAP M2.5: session accepts hydrate from DurableGraphStore. */
+    doc /* Landed client: session accepts an ego hydrate from DurableGraphStore. */
     in item store : DurableGraphStore;
   }
   port def DurableFlushOutPort {
-    doc /* ROADMAP M2.5: flush settled subgraph from session toward store. */
+    doc /* Landed client: flush an ego slice from the session toward DurableGraphStore. Not on Commit. Not on TTL. */
     out item store : DurableGraphStore;
   }
   port def DurableFlushInPort {
-    doc /* ROADMAP M2.5: DurableGraphStore accepts flush from session. */
+    doc /* Landed client: DurableGraphStore accepts an ego flush from the session. */
     in item store : DurableGraphStore;
   }
 
@@ -999,8 +1007,9 @@ package MemNetConnections {
 
   connection def DurableHydrateFlow {
     doc /*
-      ROADMAP M2.5: DurableBuffer / AgensGraphAdapter → SessionLifecycle /
-      GraphStore. LLM does not connect to DurableBuffer as primary.
+      Landed client: DurableBuffer ports → SessionLifecycle / GraphStore.
+      Factory binds exactly one of AgensGraph or Neo4j. LLM does not
+      connect to DurableBuffer as primary.
     */
     end port source : DurableHydrateOutPort;
     end port sink : DurableHydrateInPort;
@@ -1020,7 +1029,8 @@ package MemNetConnections {
 
   connection def DurableFlushFlow {
     doc /*
-      ROADMAP M2.5: SessionLifecycle / GraphStore → DurableBuffer.
+      Landed client: SessionLifecycle / GraphStore → DurableBuffer ports.
+      Factory binds exactly one of AgensGraph or Neo4j.
       One sync owner; MUST NOT dual-write.
     */
     end port source : DurableFlushOutPort;
