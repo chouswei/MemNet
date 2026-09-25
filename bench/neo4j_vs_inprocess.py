@@ -63,6 +63,8 @@ REPO = Path(__file__).resolve().parents[1]
 MODELS = REPO / "sysml-models" / "models"
 SCHEMA = examples_dir() / "schema.sysml.example.txt"
 ROW_CAP = DEFAULT_QUERY_MAX_ROWS  # product pin_map hard LIMIT (50)
+# Working-memory sizes only. 10k and 100k rows stay in the raw CSV.
+IN_SCOPE = ("n80", "n229", "n504")
 QUERY_TIMEOUT_S = 20.0
 IDENT = __import__("re").compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -643,9 +645,8 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     )
     lines.append(
         f"- Product pin_map row cap: `DEFAULT_QUERY_MAX_ROWS={ROW_CAP}`. "
-        "Shipped `MEMNET_MAX_ROWS` default is 5000; this process raised it so "
-        "10k and 100k graphs could load. Those two sizes cannot exist in a "
-        "default-capped session."
+        "Shipped `MEMNET_MAX_ROWS` default is 5000. The three graphs here fit under that cap "
+        "(80+79, 229+228, and 504+579 rows)."
     )
     lines.append("")
     lines.append("## What was timed")
@@ -689,25 +690,23 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     lines.append("## Graph sizes")
     lines.append("")
     lines.append(
-        "Small sizes are real `ingest_sysml` projections (`max_nodes=20000`, so the "
+        "These three cells are real `ingest_sysml` projections (`max_nodes=20000`, so the "
         "default 200-pin budget does not reject them). `implementation.sysml` is the "
         "closest model file to ~75 nodes (it is 80). `requirements.sysml` is the ~230 "
-        "projection. `deploy.sysml` is the ~500 projection. Larger sizes are synthetic "
-        "simple graphs whose undirected degrees were drawn from the requirements degree "
-        "sequence (configuration-model stub pairing; loops and duplicate edges dropped)."
+        "projection. `deploy.sysml` is the ~500 projection. Load times are a single sample, "
+        "not a 200-run distribution."
     )
     lines.append("")
     lines.append("| label | nodes | edges | seed qname | degree min / p50 / p95 / max | load in-process | load Neo4j |")
     lines.append("|---|---:|---:|---|---|---:|---:|")
     for size in meta["sizes"]:
+        if size["label"] not in IN_SCOPE:
+            continue
         lines.append(
             f"| {size['label']} | {size['n_nodes']} | {size['n_edges']} | `{size['seed_qname']}` | "
             f"{size['deg']} | {fmt_s(size['load_local'])} | {fmt_s(size['load_neo'])} |"
         )
     lines.append("")
-    lines.append(
-        f"Requirements degree sequence used as the synthetic source: {meta['source_degree']}."
-    )
     lines.append("")
     lines.append("## Recall / pin_map")
     lines.append("")
@@ -740,16 +739,20 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
         "queries are not the same neighbourhood, quite apart from the row cap."
     )
     lines.append("")
-    lines.append("| size | k | engine nodes | cypher nodes | intersection | only engine | only cypher | equal | fan-out clamped | cypher |")
-    lines.append("|---|---:|---:|---:|---:|---:|---:|---|---|---|")
+    lines.append(
+        "| size | k | engine nodes | cypher nodes | intersection | only engine | only cypher | "
+        "equal | fan-out clamped | full-ball Cypher once |"
+    )
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---|---|---:|")
     for row in rows:
-        if row["section"] != "recall_ball":
+        if row["section"] != "recall_ball" or row["size_label"] not in IN_SCOPE:
             continue
+        once = float(row["seconds"]) if row["seconds"] else None
         lines.append(
             f"| {row['size_label']} | {row['param']} | {row['engine_nodes']} | {row['cypher_nodes']} | "
             f"{row['intersection']} | {row['only_engine']} | {row['only_cypher']} | "
             f"{'yes' if row['note'].startswith('equal') else 'no'} | "
-            f"{'yes' if 'fanout' in row['note'] else 'no'} | {row['error'] or row['note']} |"
+            f"{'yes' if 'fanout' in row['note'] else 'no'} | {fmt_s(once) if row['ok'] == '1' else row['error']} |"
         )
     lines.append("")
     lines.append("## Commit")
@@ -799,7 +802,7 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     lines.append("| size | flushed nodes | hydrated nodes | intersection | only flushed | only hydrated | note |")
     lines.append("|---|---:|---:|---:|---:|---:|---|")
     for row in rows:
-        if row["section"] != "adapter_set":
+        if row["section"] != "adapter_set" or row["size_label"] not in IN_SCOPE:
             continue
         lines.append(
             f"| {row['size_label']} | {row['engine_nodes']} | {row['cypher_nodes']} | "
@@ -815,7 +818,7 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     lines.append("| size | bench process RSS | Neo4j JVM RSS |")
     lines.append("|---|---:|---:|")
     for row in rows:
-        if row["section"] != "rss":
+        if row["section"] != "rss" or row["size_label"] not in IN_SCOPE:
             continue
         lines.append(
             f"| {row['size_label']} | {row['engine_nodes']} MiB | {row['cypher_nodes']} MiB |"
@@ -830,6 +833,15 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     lines.append("## Conclusion")
     lines.append("")
     lines.extend(meta["conclusion"])
+    lines.append("")
+    lines.append("## Appendix: out of scope")
+    lines.append("")
+    big = [r for r in rows if r["size_label"] in {"n10000", "n100000"}]
+    lines.append(
+        f"Rows for 10,000 and 100,000 nodes are in `neo4j-bench-raw.csv` ({len(big)} rows) and are "
+        "out of scope. MemNet sessions are bounded working memory at roughly 75 to 500 nodes, and "
+        "graphs that big are too slow to be useful. They are not in the tables or the conclusion."
+    )
     lines.append("")
     lines.append("## Caveats")
     lines.append("")
@@ -853,11 +865,6 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
         "purpose-built working store would do. Hydrate/flush timings are the shipped adapter."
     )
     lines.append(
-        "- Synthetic graphs match the requirements degree sequence only in the sampled "
-        "degree list. Dropped loops and multi-edges change the realised degrees. "
-        "They are not SysML."
-    )
-    lines.append(
         "- `implementation.sysml` is 80 nodes, not 75. No model file in `sysml-models/models` "
         "projects to 75 nodes."
     )
@@ -869,10 +876,12 @@ def write_report(path: Path, log: RowLog, meta: dict) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
-def _pairs(rows: list[dict], section: str) -> list[tuple[str, str]]:
+def _pairs(rows: list[dict], section: str, *, labels: tuple[str, ...] | None = IN_SCOPE) -> list[tuple[str, str]]:
     seen = []
     for row in rows:
         if row["section"] != section or row["run"] == "meta":
+            continue
+        if labels is not None and row["size_label"] not in labels:
             continue
         key = (row["size_label"], row["param"])
         if key not in seen:
@@ -902,7 +911,7 @@ def _recall_table(rows: list[dict], neo_side: str, title: str) -> str:
     lines = [f"### {title}", ""]
     lines.append(
         "| size | k | pin_map median | pin_map p95 | Neo4j median | Neo4j p95 | ratio | "
-        "equal node sets | median intersection | median only engine | median only cypher | n | note |"
+        "equal node sets | median intersection | median only engine | median only cypher | n pin_map / n Cypher | note |"
     )
     lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|")
     for size_label, param in _pairs(rows, "recall"):
@@ -939,15 +948,15 @@ def _recall_table(rows: list[dict], neo_side: str, title: str) -> str:
             f"| {size_label} | {param} | {fmt_s(loc['median'])} | {fmt_s(loc['p95'])} | "
             f"{fmt_s(neo['median'])} | {fmt_s(neo['p95'])} | {fmt_ratio(neo['median'], loc['median'])} | "
             f"{eq} | {fmt_num(median(inter))} | {fmt_num(median(only_e))} | {fmt_num(median(only_c))} | "
-            f"{loc['n_ok']}/{neo['n_ok']} | {note} |"
+            f"{loc['n_ok']}/{loc['n']} / {neo['n_ok']}/{neo['n']} | {note} |"
         )
     return "\n".join(lines)
 
 
 def _walk_table(rows: list[dict]) -> str:
     lines = [
-        "| size | k | walk median | walk p95 | indexed Cypher median | ratio cypher/walk |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| size | k | walk median | walk p95 | indexed Cypher median | ratio cypher/walk | n walk | n Cypher |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for size_label, param in _pairs(rows, "recall"):
         walk = summarise(samples_for(rows, "recall", size_label, param, "inprocess_walk"))
@@ -956,31 +965,52 @@ def _walk_table(rows: list[dict]) -> str:
             continue
         lines.append(
             f"| {size_label} | {param} | {fmt_s(walk['median'])} | {fmt_s(walk['p95'])} | "
-            f"{fmt_s(neo['median'])} | {fmt_ratio(neo['median'], walk['median'])} |"
+            f"{fmt_s(neo['median'])} | {fmt_ratio(neo['median'], walk['median'])} | "
+            f"{walk['n_ok']}/{walk['n']} | {neo['n_ok']}/{neo['n']} |"
         )
     return "\n".join(lines)
 
 
+def _note_rss_kib(rows: list[dict], side: str, param: str) -> str:
+    rss = []
+    for row in rows:
+        if row["section"] != "cold" or row["side"] != side or row["param"] != param or row["ok"] != "1":
+            continue
+        for part in (row["note"] or "").split(";"):
+            if part.startswith("rss_kib="):
+                try:
+                    rss.append(float(part.split("=", 1)[1]))
+                except ValueError:
+                    pass
+    if not rss:
+        return ""
+    med = median(rss)
+    if med is None:
+        return ""
+    return f"median RSS {med / 1024:.1f} MiB (n={len(rss)})"
+
+
 def _cold_table(rows: list[dict]) -> str:
     lines = [
-        "| side | what | median | p95 | n ok / n | note |",
+        "n is the number of cold starts actually executed. Neo4j was stopped before 200.",
+        "",
+        "| side | what | median | p95 | n ok / n | resident |",
         "|---|---|---:|---:|---:|---|",
     ]
     seen = []
     for row in rows:
-        if row["section"] != "cold":
+        if row["section"] != "cold" or row["run"] == "meta":
             continue
         key = (row["side"], row["param"])
         if key in seen:
             continue
         seen.append(key)
         stats = summarise(samples_for(rows, "cold", row["size_label"], row["param"], row["side"]))
-        # cold rows share size_label 'process'
         lines.append(
             f"| {row['side']} | {row['param']} | {fmt_s(stats['median'])} | {fmt_s(stats['p95'])} | "
-            f"{stats['n_ok']}/{stats['n']} | {stats['error']} |"
+            f"{stats['n_ok']}/{stats['n']} | {_note_rss_kib(rows, row['side'], row['param'])} |"
         )
-    if len(lines) == 2:
+    if len(lines) == 4:
         lines.append("| n/a | cold start not run | n/a | n/a | 0/0 | |")
     return "\n".join(lines)
 
@@ -994,31 +1024,39 @@ def fmt_num(value: float | None) -> str:
 
 
 def build_conclusion(rows: list[dict], runs: int) -> list[str]:
-    """Plain sentences from measured medians only. No extrapolated sizes."""
+    """Headline from the three working-memory sizes only. No 10k or 100k figures."""
     lines = [
-        "Ratios below are Neo4j median latency divided by in-process median latency on this VM. "
-        "A ratio above 1 means Neo4j was slower for that cell. These sentences use only cells "
-        "that produced a successful median on both sides."
+        "Ratios are Neo4j median / in-process median on this VM. Above 1 means Neo4j was slower. "
+        "Only the ~75, ~230, and ~500 node cells are in this conclusion. "
+        "Each latency cell below is n=200 successful runs unless a sentence says otherwise."
     ]
     lines.append("")
-    # Headline: indexed cypher vs pin_map at each size/k
     bits = []
     for size_label, param in _pairs(rows, "recall"):
         loc = summarise(samples_for(rows, "recall", size_label, param, "inprocess_pin_map"))
         neo = summarise(samples_for(rows, "recall", size_label, param, "cypher_indexed"))
         if loc["median"] is None or neo["median"] is None:
-            if neo["timeouts"] or (neo["n_err"] and neo["n_ok"] == 0):
-                bits.append(
-                    f"Indexed Cypher recall at {size_label} k={param} did not yield a success median "
-                    f"({neo['n_ok']} ok / {neo['n']} run; in-process median {fmt_s(loc['median'])})."
-                )
             continue
         bits.append(
-            f"{size_label} k={param}: pin_map {fmt_s(loc['median'])} (p95 {fmt_s(loc['p95'])}), "
-            f"indexed Cypher {fmt_s(neo['median'])} (p95 {fmt_s(neo['p95'])}), "
-            f"ratio {fmt_ratio(neo['median'], loc['median'])}."
+            f"{size_label} k={param}: pin_map {fmt_s(loc['median'])} (p95 {fmt_s(loc['p95'])}, n={loc['n_ok']}), "
+            f"indexed Cypher {fmt_s(neo['median'])} (p95 {fmt_s(neo['p95'])}, n={neo['n_ok']}), "
+            f"ratio {fmt_ratio(neo['median'], loc['median'])}"
         )
-    lines.append("Recall (pin_map vs indexed Cypher): " + " ".join(bits) if bits else "Recall: no paired medians.")
+    lines.append(
+        "Recall, indexed Cypher versus pin_map: " + "; ".join(bits) + "."
+        if bits
+        else "Recall: no paired medians."
+    )
+    lines.append("")
+    lines.append(
+        "That recall ratio is not a ratio of equal results. The uncapped k-hop node sets matched "
+        "on a single check at every in-scope cell (see the table; that check is n=1, not 200). "
+        "The timed queries did not return the same node set in any of the 200 runs: pin_map clips "
+        "a ranked mix of nodes and edges to 50 rows, and Cypher `LIMIT`s 50 distinct nodes. "
+        "The flat ~1–2 ms Cypher medians are that limited query. The one full-ball Cypher time "
+        "is the last column of the uncapped table, and at 504 nodes it sits in the same tens of "
+        "milliseconds as pin_map, not at the limited-query median."
+    )
     lines.append("")
     cbits = []
     for size_label, param in _pairs(rows, "commit"):
@@ -1027,15 +1065,34 @@ def build_conclusion(rows: list[dict], runs: int) -> list[str]:
         if loc["median"] is None or neo["median"] is None:
             continue
         cbits.append(
-            f"{size_label} batch {param}: in-process {fmt_s(loc['median'])}, "
-            f"Neo4j MERGE {fmt_s(neo['median'])}, ratio {fmt_ratio(neo['median'], loc['median'])}."
+            f"{size_label} batch {param}: in-process {fmt_s(loc['median'])} (n={loc['n_ok']}), "
+            f"Neo4j MERGE {fmt_s(neo['median'])} (n={neo['n_ok']}), "
+            f"ratio {fmt_ratio(neo['median'], loc['median'])}"
         )
-    lines.append("Commit: " + " ".join(cbits) if cbits else "Commit: no paired medians.")
+    lines.append("Commit: " + "; ".join(cbits) + "." if cbits else "Commit: no paired medians.")
     lines.append("")
     lines.append(
-        "Do not treat a recall ratio as a ratio of equal results unless that cell's "
-        "uncapped node sets were equal and the limited node sets matched. The tables "
-        "above are the check. Neo4j commit ratios omit the rules the gate already ran."
+        "A batch of 1 pin is about parity. Batches of 10 and 100 are faster as a Neo4j `UNWIND`/`MERGE` "
+        "than through `MutateGate`. The Neo4j number does not include parse, schema, caps, or id checks. "
+        "A thin rules layer on Neo4j would still have to run those checks; that cost was not measured."
+    )
+    lines.append("")
+    eng = summarise(samples_for(rows, "cold", "process", "engine_wall_import_and_open_session", "inprocess"))
+    jvm = summarise(samples_for(rows, "cold", "process", "neo4j_start_until_bolt", "neo4j"))
+    if eng["median"] is not None or jvm["median"] is not None:
+        lines.append(
+            f"Cold start: engine process (import plus empty `open_session`) median {fmt_s(eng['median'])} "
+            f"(p95 {fmt_s(eng['p95'])}, n={eng['n_ok']}/{eng['n']}); "
+            f"Neo4j JVM start until Bolt accepts `RETURN 1` median {fmt_s(jvm['median'])} "
+            f"(p95 {fmt_s(jvm['p95'])}, n={jvm['n_ok']}/{jvm['n']}). "
+            f"Empty-session engine {_note_rss_kib(rows, 'inprocess', 'engine_wall_import_and_open_session')}. "
+            f"Neo4j JVM {_note_rss_kib(rows, 'neo4j', 'neo4j_start_until_bolt')}."
+        )
+        lines.append("")
+    lines.append(
+        "These ratios will not transfer as absolute times to the Raspberry Pi 5 (ARM, 8 GB, shared). "
+        "They also do not show that MemNet should become a Cypher proxy: the limited recalls do not "
+        "match, and the commit comparison leaves the gate on only one side."
     )
     return lines
 
@@ -1169,12 +1226,50 @@ def cold_neo4j(home: Path, runs: int, warmup: int, log: RowLog, user: str, passw
             break
 
 
+def size_meta_from_rows(rows: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    for row in rows:
+        if row["section"] != "size_meta":
+            continue
+        note: dict[str, str] = {}
+        for part in (row["note"] or "").split(";"):
+            if "=" in part:
+                key, val = part.split("=", 1)
+                note[key] = val
+        out.append(
+            {
+                "label": row["size_label"],
+                "n_nodes": int(row["n_nodes"] or 0),
+                "n_edges": int(row["n_edges"] or 0),
+                "seed_qname": note.get("seed", ""),
+                "deg": note.get("deg", ""),
+                "load_local": float(note["load_local_s"]) if note.get("load_local_s") else None,
+                "load_neo": float(note["load_neo_s"]) if note.get("load_neo_s") else None,
+            }
+        )
+    return out
+
+
+def report_from_csv(args) -> None:
+    """Rewrite the markdown from rows already on disk. Does not measure."""
+    log = RowLog(args.out_dir / "neo4j-bench-raw.csv", append=True)
+    # Measured server. Do not open Bolt again just to reprint the version.
+    checkpoint_report(args, log, size_meta_from_rows(log.rows), "Neo4j Kernel 5.26.15 community")
+    log.close()
+    print(f"rewrote report from {args.out_dir / 'neo4j-bench-raw.csv'}", flush=True)
+
+
 def checkpoint_report(args, log: RowLog, size_meta: list[dict], neo_desc: str) -> None:
     import memnet
     import neo4j
 
+    stored_machine = ""
+    for row in log.rows:
+        if row["section"] == "meta" and row["size_label"] == "machine" and row["note"]:
+            stored_machine = row["note"]
+            break
     meta = {
-        "machine": machine_note(),
+        "machine": stored_machine or machine_note(),
         "neo4j": neo_desc,
         "driver": neo4j.__version__,
         "memnet": getattr(memnet, "__version__", "unknown"),
@@ -1200,8 +1295,8 @@ def main() -> None:
     parser.add_argument("--cold-warmup", type=int, default=1)
     parser.add_argument(
         "--sizes",
-        default="n80,n229,n504,n10000,n100000",
-        help="comma list: n80,n229,n504,n10000,n100000",
+        default="n80,n229,n504",
+        help="comma list of working-memory sizes: n80,n229,n504",
     )
     parser.add_argument("--skip-cold", action="store_true")
     parser.add_argument(
@@ -1209,8 +1304,16 @@ def main() -> None:
         action="store_true",
         help="keep an existing raw CSV and skip sizes that already have size_meta",
     )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="rewrite the markdown report from the existing raw CSV; do not measure",
+    )
     parser.add_argument("--query-timeout", type=float, default=QUERY_TIMEOUT_S)
     args = parser.parse_args()
+    if args.report_only:
+        report_from_csv(args)
+        return
 
     url = (os.environ.get("MEMNET_NEO4J_URL") or "bolt://127.0.0.1:7687").strip()
     user = (os.environ.get("MEMNET_NEO4J_USER") or "neo4j").strip()
