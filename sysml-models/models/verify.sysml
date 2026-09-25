@@ -1126,10 +1126,10 @@ package MemNetVerification {
       one sync owner. HostSearchBridge stays outside MemNetSystem;
       RagHostHook.implemented=true (0.17) with fail-open locators;
       hostSearchInsideSystem stays false. Skip unless
-      MEMNET_NEO4J_URL. Server not vendored. agentReachable=false:
-      implemented and the live claims are the adapter plus the operator
-      round trip only, not a runtime path. Only tests call hydrate/flush.
-      serve, IPC, and MCP bind the owner and do not invoke it.
+      MEMNET_NEO4J_URL. Server not vendored.
+      hydrateFlushCallers="tests": no non-test caller. The live claims
+      are the adapter plus the operator round trip only, not a runtime
+      path. serve, IPC, and MCP bind the owner and do not invoke it.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
@@ -1143,12 +1143,7 @@ package MemNetVerification {
           and system.durable.agens.liveCabinetClaimed == true
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == true
-          and system.durable.neo4j.agentReachable == false
-          and system.durable.neo4j.claimIsAdapterRoundTripOnly == true
-          and system.durable.agens.agentReachable == false
-          and system.durable.agens.claimIsAdapterRoundTripOnly == true
-          and system.durable.agentReachable == false
-          and system.durable.claimIsAdapterRoundTripOnly == true
+          and system.durable.hydrateFlushCallers == "tests"
           and system.durable.neo4j.honesty.claimed == true
           and system.durable.neo4j.namespace == "cabinet"
           and system.durable.liveCabinetClaimed == true
@@ -1642,19 +1637,14 @@ package MemNetVerification {
 
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
-      One storageRole string per storage-bearing part. Live graph is
-      working_memory. Session id is the mission_handle. File snapshot
-      is file_snapshot (explicit save and expire-save are one blob).
-      AgensGraph and Neo4j are cabinet_ego; the factory binds exactly
-      one. Unconfigured URL is ci_seam. Library is library_locators.
-      Housekeep is row_prune. Recycle is row_hide_mark. pin_map is
-      recall_window. In-process and TCP are process_host. MemNetArchive
-      is retired_shelf and stays off load. Neo4j does not run on Commit
-      or TTL. agentReachable=false on AgensGraph, Neo4j, and
-      DurableBuffer: only tests call hydrate/flush; serve, IPC, and MCP
-      bind the owner and do not invoke it. implemented and the live
-      claims are the adapter plus the operator round trip only.
-      Hydrate-by-hid is not live-proven. No behaviour change.
+      storageRole only where bytes outlive the call: working_memory,
+      file_snapshot, cabinet_ego, library_locators. Explicit save and
+      expire-save are one blob. Factory binds exactly one of fake,
+      AgensGraph, or Neo4j. hydrateFlushCallers="tests": no non-test
+      caller of hydrate/flush. serve, IPC, and MCP bind the owner and
+      do not invoke it. The live claims are the adapter plus the
+      operator round trip only. Hydrate-by-hid is not live-proven.
+      Archive stays off load. No behaviour change.
     */
     attribute verificationId : String = "MN-VER-06-S06";
 
@@ -1668,8 +1658,6 @@ package MemNetVerification {
       require constraint {
         system.core.transport.inProcess.memory.sessions.store
             .storageRole == "working_memory"
-          and system.core.transport.inProcess.memory.sessions
-            .storageRole == "mission_handle"
           and system.core.transport.inProcess.memory.sessions.snap
             .storageRole == "file_snapshot"
           and system.core.transport.inProcess.memory.sessions.snap
@@ -1677,42 +1665,12 @@ package MemNetVerification {
           and system.durable.storageRole == "cabinet_ego"
           and system.durable.agens.storageRole == "cabinet_ego"
           and system.durable.neo4j.storageRole == "cabinet_ego"
-          and system.durable.unconfiguredIsFakeSeam == true
-          and system.durable.fakeSeamStorageRole == "ci_seam"
-          and system.durable.bindsExactlyOneAdapter == true
-          and system.durable.bindsExactlyOneOf == "agensgraph|neo4j"
+          and system.durable.bindsExactlyOneOf == "fake|agensgraph|neo4j"
+          and system.durable.hydrateFlushCallers == "tests"
           and system.durable.library.storageRole == "library_locators"
-          and system.durable.neo4j.runsOnCommit == false
-          and system.durable.neo4j.runsOnTtl == false
-          and system.durable.neo4j.mcpCliCaller == false
-          and system.durable.neo4j.notFileSnapshot == true
-          and system.durable.neo4j.notLibrary == true
           and system.durable.neo4j.hydrateByHidLiveProven == false
           and system.durable.neo4j.serverVendored == false
           and system.durable.neo4j.liveNeo4jClaimed == true
-          and system.durable.neo4j.agentReachable == false
-          and system.durable.neo4j.claimIsAdapterRoundTripOnly == true
-          and system.durable.neo4j.testsOnlyHydrateFlushCaller == true
-          and system.durable.neo4j.startupBindsOwnerWithoutInvoke == true
-          and system.durable.agens.agentReachable == false
-          and system.durable.agens.claimIsAdapterRoundTripOnly == true
-          and system.durable.agens.testsOnlyHydrateFlushCaller == true
-          and system.durable.agens.startupBindsOwnerWithoutInvoke == true
-          and system.durable.agentReachable == false
-          and system.durable.claimIsAdapterRoundTripOnly == true
-          and system.durable.testsOnlyHydrateFlushCaller == true
-          and system.durable.startupBindsOwnerWithoutInvoke == true
-          and system.core.transport.inProcess.memory.sessions.housekeep
-            .storageRole == "row_prune"
-          and system.core.transport.inProcess.memory.sessions.housekeep
-            .recycleHideRole == "row_hide_mark"
-          and system.core.transport.inProcess.memory.sessions
-            .recallCommit.recall.shapedRead.pinMap.storageRole
-            == "recall_window"
-          and system.core.transport.inProcess.storageRole == "process_host"
-          and system.core.transport.tcp.storageRole == "process_host"
-          and system.core.transport.ipc.storageRole == "process_host"
-          and system.retiredShelfRole == "retired_shelf"
           and system.leftoverArchiveOffLoad == true
       }
     }

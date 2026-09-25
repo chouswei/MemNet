@@ -294,8 +294,11 @@ package MemNet {
     doc /*
       Honesty nest so find/pin_map see liveNeo4jClaimed. Product claim
       is extra 0.14 (operator proof rpi5-syson): live round-trip yes;
-      hid flush; leftover-nickname hydrate after hid miss. Not leftover
-      mint. Not a 1.0 gate. Hid stays off the wire.
+      hid flush; leftover-nickname hydrate after hid miss. That claim
+      is the adapter plus the 0.14 operator round trip only, not a
+      runtime path. serve, IPC, and MCP bind the owner at startup and
+      do not invoke it. Callers are DurableBuffer.hydrateFlushCallers.
+      Not leftover mint. Not a 1.0 gate. Hid stays off the wire.
     */
     attribute claimed : Boolean = true;
   }
@@ -635,8 +638,8 @@ package MemNet {
       Realizes ShapeWalk: k-hop from seed set Q; emits bounded shaped
       openCypher-family subgraph (ShapedSubgraph / LivePinMap) —
       redefined Write = display. Hide recyclable rows; depth/row/view
-      caps; prepend engine-law rows. Recall window only (storageRole
-      recall_window): not a store. SHALL NOT require a store-key
+      caps; prepend engine-law rows. Recall window only: not a store.
+      SHALL NOT require a store-key
       anchor. Emit MAY omit {id:'…'}. Product compression = Shape
       (Recall X̃ of session S) — not host Snap. Nested under Recall /
       AgentShapedRead beside BoundedMatchFind.
@@ -659,7 +662,6 @@ package MemNet {
     port shapedOut : ShapedSubgraphOutPort;
     port gqlOut : GqlWireOutPort;
     port errOut : ErrorSignalOutPort;
-    attribute storageRole : String = "recall_window";
     attribute lawPrepend : Boolean = true;
     attribute implemented : Boolean = true;
     attribute compressionKind : String = "shape";
@@ -1025,8 +1027,7 @@ package MemNet {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
       Recycle policy feeds PinMapShapedRead hide rules.
-      storageRole row_prune: this part deletes classified rows.
-      recycleHideRole row_hide_mark: recycle=delete_on_settle and
+      This part deletes classified rows. recycle=delete_on_settle and
       recycle=delete_on_expire hide a row from pin_map. That mark is
       not TTL expire-save and not a second store.
       usageLookOut is a read-only stats snapshot for MemNetUsageDashboard
@@ -1035,8 +1036,6 @@ package MemNet {
     port statsOut : GqlWireOutPort;
     port usageLookOut : ServeUsageLookOutPort;
     port errOut : ErrorSignalOutPort;
-    attribute storageRole : String = "row_prune";
-    attribute recycleHideRole : String = "row_hide_mark";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
   }
@@ -1090,8 +1089,8 @@ package MemNet {
       memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
       client landed; live cabinet external. RSV lease lives under Commit.
       Sliding TTL; expire save via nested SnapshotStore (configurable).
-      storageRole mission_handle: the session id is the mission
-      working-set handle, not the model SSOT and not a second graph.
+      The session id is the mission working-set handle, not the model
+      SSOT and not a second graph.
     */
     port sessionOut : SessionIdOutPort;
     port sessionIn : SessionIdInPort;
@@ -1111,7 +1110,6 @@ package MemNet {
     part walk : WalkQuery;
     part housekeep : HousekeepSettle;
     part snap : SnapshotStore;
-    attribute storageRole : String = "mission_handle";
     attribute slidingTtl : Boolean = true;
     attribute ramDropsOnTtl : Boolean = true;
 
@@ -1164,11 +1162,10 @@ package MemNet {
     doc /*
       Primary binding: AgentMemory / SessionLifecycle in the same process
       as the caller (MCP or library). Lowest latency; no serialised hop.
-      storageRole process_host: hosts GraphStore. Not a second graph.
+      Hosts GraphStore. Not a second graph.
     */
     port apiIn : InProcessInPort;
     port envelopeOut : JsonEnvelopeOutPort;
-    attribute storageRole : String = "process_host";
     part memory : AgentMemory;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
@@ -1179,11 +1176,10 @@ package MemNet {
       Secondary: share one session registry across CLI + MCP processes via
       AF_UNIX (POSIX; same length-prefixed JSON as TcpServeBridge).
       Env: MEMNET_IPC_SOCKET. CLI: memnet serve --ipc / --ipc-path.
-      As-is: implemented (MN-REQ-06.2). storageRole process_host.
+      As-is: implemented (MN-REQ-06.2).
     */
     port ipcIn : LocalIpcInPort;
     port envelopeOut : JsonEnvelopeOutPort;
-    attribute storageRole : String = "process_host";
     attribute implemented : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_2_LocalIpcShare;
@@ -1196,13 +1192,12 @@ package MemNet {
       is the shared-store binding (MN-REQ-12.2).
       usageLookOut = serve_status (up/host/port + expire-save booleans;
       path redacted) for MemNetUsageDashboard.
-      storageRole process_host: many mn_* sessions in one registry.
-      Not a projectId map. Not a second graph.
+      Many mn_* sessions in one registry. Not a projectId map.
+      Not a second graph.
     */
     port cmdIn : ServeCommandInPort;
     port envelopeOut : JsonEnvelopeOutPort;
     port usageLookOut : ServeUsageLookOutPort;
-    attribute storageRole : String = "process_host";
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
 
@@ -1677,11 +1672,8 @@ package MemNet {
       operator-proven (0.7 hydrate/flush) — not vendored in-repo.
       MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
       primary path (LLM ↔ MemNet only). Ego slice, not a full copy of
-      S. storageRole cabinet_ego. agentReachable=false: no MCP, CLI,
-      Commit, or TTL caller. Only tests call hydrate/flush. serve, IPC,
-      and MCP bind the owner at startup and do not invoke it.
-      implemented=true and liveCabinetClaimed=true are the adapter plus
-      the 0.7 round trip only, not a runtime path. MN-REQ-06.4.
+      S. storageRole cabinet_ego. Callers are
+      DurableBuffer.hydrateFlushCallers. MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
@@ -1689,13 +1681,11 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     // Client hydrate/flush adapter seam (Fake + optional AgensGraph client).
     attribute storageRole : String = "cabinet_ego";
-    attribute agentReachable : Boolean = false;
-    attribute claimIsAdapterRoundTripOnly : Boolean = true;
-    attribute testsOnlyHydrateFlushCaller : Boolean = true;
-    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
     attribute implemented : Boolean = true;
-    // Live external AgensGraph cabinet — claimed after 0.7 hydrate/flush proof.
-    // That claim is the adapter round trip, not an agent runtime path.
+    // liveCabinetClaimed: 0.7 hydrate/flush proof. The claim is the
+    // adapter plus the operator round trip only, not a runtime path.
+    // serve, IPC, and MCP bind the owner at startup and do not invoke
+    // it. Callers are DurableBuffer.hydrateFlushCallers.
     attribute liveCabinetClaimed : Boolean = true;
     attribute phase : String = "M2.5";
   }
@@ -1705,14 +1695,11 @@ package MemNet {
       Alternative cabinet client beside AgensGraphAdapter. Ego
       hydrate/flush only. Opt-in via MEMNET_NEO4J_URL (extra
       memnet-llm[neo4j]; official driver only). Factory binds exactly
-      one of AgensGraph or Neo4j (one DurableSyncOwner). Not the
-      session file snapshot. Not Neo4jLibraryPort. Does not run on
-      Commit. Does not run on TTL (MN-REQ-01.3). agentReachable=false:
-      no MCP, CLI, Commit, or TTL caller. Only tests call hydrate/flush.
-      serve, IPC, and MCP bind the owner at startup and do not invoke
-      it. Cabinet is external; this repo does not vendor a Neo4j
-      server. implemented=true and liveNeo4jClaimed=true are the
-      adapter plus the 0.14 round trip only, not a runtime path.
+      one of fake, AgensGraph, or Neo4j (one DurableSyncOwner;
+      bindsExactlyOneOf). Not the session file snapshot. Not
+      Neo4jLibraryPort. Does not run on Commit. Does not run on TTL
+      (MN-REQ-01.3). Cabinet is external; this repo does not vendor a
+      Neo4j server. Callers are DurableBuffer.hydrateFlushCallers.
       liveNeo4jClaimed=true (extra 0.14): live round-trip yes; hid
       flush; leftover-nickname hydrate after hid miss.
       Hydrate-by-hid is not live-proven. pytest.mark.neo4j_live skips
@@ -1728,17 +1715,11 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     part honesty : liveNeo4jClaimed;
     attribute implemented : Boolean = true;
+    // liveNeo4jClaimed: extra 0.14 operator round trip only, not a
+    // runtime path. serve, IPC, and MCP bind the owner at startup and
+    // do not invoke it. Callers are DurableBuffer.hydrateFlushCallers.
     attribute liveNeo4jClaimed : Boolean = true;
     attribute storageRole : String = "cabinet_ego";
-    attribute agentReachable : Boolean = false;
-    attribute claimIsAdapterRoundTripOnly : Boolean = true;
-    attribute testsOnlyHydrateFlushCaller : Boolean = true;
-    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
-    attribute runsOnCommit : Boolean = false;
-    attribute runsOnTtl : Boolean = false;
-    attribute mcpCliCaller : Boolean = false;
-    attribute notFileSnapshot : Boolean = true;
-    attribute notLibrary : Boolean = true;
     attribute hydrateByHidLiveProven : Boolean = false;
     attribute serverVendored : Boolean = false;
     attribute namespace : String = "cabinet";
@@ -1791,14 +1772,9 @@ package MemNet {
       Neo4j URL (Neo4jLibraryPort); skip unless that name is set. Two
       cabinet URLs still require MEMNET_DURABLE_BACKEND. Factory SHALL
       NOT treat two database names as two URLs. Factory binds exactly
-      one of AgensGraph or Neo4j onto this buffer's hydrate/flush
-      ports. Unconfigured URL is the ci_seam (FakeDurableAdapter), not
-      Neo4j and not a durable claim. agentReachable=false on this
-      buffer and on both cabinet adapters: no MCP, CLI, Commit, or TTL
-      caller. Only tests call hydrate/flush. serve, IPC, and MCP bind
-      the owner at startup and do not invoke it. implemented and the
-      live claims are the adapter plus the operator round trip only
-      (Agens 0.7, Neo4j 0.14), not a runtime path. MN-REQ-06.4.
+      one of fake, AgensGraph, or Neo4j (bindsExactlyOneOf). An
+      unconfigured URL binds FakeDurableAdapter. hydrateFlushCallers
+      names who calls hydrate/flush. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
@@ -1806,16 +1782,16 @@ package MemNet {
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     attribute storageRole : String = "cabinet_ego";
-    attribute agentReachable : Boolean = false;
-    attribute claimIsAdapterRoundTripOnly : Boolean = true;
-    attribute testsOnlyHydrateFlushCaller : Boolean = true;
-    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
-    attribute unconfiguredIsFakeSeam : Boolean = true;
-    attribute fakeSeamStorageRole : String = "ci_seam";
-    attribute bindsExactlyOneAdapter : Boolean = true;
-    attribute bindsExactlyOneOf : String = "agensgraph|neo4j";
+    attribute hydrateFlushCallers : String = "tests";
+    attribute bindsExactlyOneOf : String = "fake|agensgraph|neo4j";
     attribute clientLanded : Boolean = true;
+    // liveCabinetClaimed: 0.7 operator round trip only, not a runtime
+    // path. serve, IPC, and MCP bind the owner at startup and do not
+    // invoke it. Callers are hydrateFlushCallers.
     attribute liveCabinetClaimed : Boolean = true;
+    // liveNeo4jClaimed: 0.14 operator round trip only, not a runtime
+    // path. serve, IPC, and MCP bind the owner at startup and do not
+    // invoke it. Callers are hydrateFlushCallers.
     attribute liveNeo4jClaimed : Boolean = true;
     attribute twoNamespaces : Boolean = true;
     attribute sameNeo4jProcess : Boolean = true;
@@ -2708,10 +2684,8 @@ package MemNet {
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
       leftover_* / TierACodec / LegacyPipeImport live on MemNetArchive
-      (models/archive.sysml; off ProjectMemNet load; storageRole
-      retired_shelf). MUST NOT nest here. retiredShelfRole names that
-      shelf so the loaded verify can pin the word without importing
-      MemNetArchive.
+      (models/archive.sysml; off ProjectMemNet load). MUST NOT nest
+      here.
       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
       MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here.
       TipMemNetAccessPortal MUST NOT nest here.
@@ -2732,7 +2706,6 @@ package MemNet {
     attribute tipAccessPortalInsideSystem : Boolean = false;
     attribute leftoverFogNested : Boolean = false;
     attribute leftoverArchiveOffLoad : Boolean = true;
-    attribute retiredShelfRole : String = "retired_shelf";
     attribute leftoverLayerDeleteThisPr : Boolean = false;
     attribute leftoverLayerMustNotNestOnProductPath : Boolean = true;
 

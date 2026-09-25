@@ -214,14 +214,14 @@ package MemNetBehaviour {
     doc /*
       Landed client: hydrate an ego slice from DurableGraphStore into the
       live session under pin budget. Not on Commit. Not on TTL. No MCP
-      or CLI caller yet.
+      or CLI caller.
     */
   }
   attribute def EvFlushToDurable {
     doc /*
       Landed client: flush an ego slice from the session into
       DurableGraphStore. One sync owner. Not on Commit. Not on TTL.
-      No MCP or CLI caller yet.
+      No MCP or CLI caller.
     */
   }
   attribute def EvLibrarySkipUnset {

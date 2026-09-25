@@ -14,7 +14,7 @@ MemNetSystem                          // SharedLlmMemory product
 │   ├── Path A                        // shared session → re-pin (no import nest)
 │   └── Path B                        // slice → ImportGuard (optional soft)
 │                                     //        → ImportAbsorb (hard)
-└── DurableBuffer                     // cabinet_ego; factory binds exactly one of AgensGraph or Neo4j
+└── DurableBuffer                     // cabinet_ego; factory binds exactly one of fake, AgensGraph, or Neo4j
 
 APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
                    is a distinct pin_map / not MemNet SSOT; overlay family

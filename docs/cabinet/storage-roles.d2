@@ -1,5 +1,7 @@
-# MemNet storage roles. Labels are storageRole strings from the SysML model.
-# Solid arrows are the default product path. Dashed arrows are opt-in.
+# MemNet storage picture.
+# storageRole (bytes past the call): working_memory, file_snapshot,
+# cabinet_ego, library_locators.
+# Other words on this page are labels only. They are not model attributes.
 
 direction: down
 
@@ -7,43 +9,43 @@ llm: LLM {
   shape: person
 }
 
-wm: "GraphStore\nworking_memory\ndefault RAM" {
+wm: "GraphStore\nstorageRole working_memory\ndefault RAM" {
   style.fill: "#e8f4ea"
 }
 
-pin: "PinMapShapedRead\nrecall_window\none turn" {
+pin: "PinMapShapedRead\nlabel: recall window\none turn" {
   style.fill: "#f4f4f4"
 }
 
-snap: "SnapshotStore\nfile_snapshot\nexplicit save and expire-save\nare one blob" {
+snap: "SnapshotStore\nstorageRole file_snapshot\nexplicit save and expire-save\nare one blob" {
   style.fill: "#e8eef8"
 }
 
-cabinet: "DurableBuffer\ncabinet_ego\nfactory binds exactly one of\nAgensGraph or Neo4j\nagentReachable=false\nadapter round trip only" {
+cabinet: "DurableBuffer\nstorageRole cabinet_ego\nbinds exactly one of\nfake | agensgraph | neo4j\nhydrateFlushCallers=tests" {
   style.fill: "#fff4e5"
 }
 
-library: "Neo4jLibraryPort\nlibrary_locators\nsecond database name" {
+library: "Neo4jLibraryPort\nstorageRole library_locators\nsecond database name" {
   style.fill: "#fff4e5"
 }
 
-fake: "unconfigured URL\nci_seam\nFakeDurableAdapter" {
+fake: "label: unconfigured URL\nFakeDurableAdapter\none of the three binds" {
   style.fill: "#f7f7f7"
 }
 
-hk: "HousekeepSettle\nrow_prune" {
+hk: "HousekeepSettle\nlabel: row prune" {
   style.fill: "#f4f4f4"
 }
 
-mark: "recycle field\nrow_hide_mark" {
+mark: "recycle field\nlabel: row hide mark" {
   style.fill: "#f4f4f4"
 }
 
-host: "InProcessEngine / TcpServeBridge\nprocess_host\nmany mn_* in one registry" {
+host: "InProcessEngine / TcpServeBridge\nlabel: process host\nmany mn_* in one registry" {
   style.fill: "#f4f4f4"
 }
 
-shelf: "MemNetArchive\nretired_shelf\noff ProjectMemNet load" {
+shelf: "MemNetArchive\nlabel: retired shelf\noff ProjectMemNet load" {
   style.fill: "#f7f7f7"
 }
 
@@ -60,16 +62,16 @@ wm -> pin: "Recall"
 pin -> llm: "drop after the turn"
 wm -> snap: "session_save\nor TTL if armed"
 snap -> wm: "session_load\nloadByKnownSid"
-wm -> cabinet: "flush API\ntests only\nnot on Commit, not on TTL" {
+wm -> cabinet: "flush API\nhydrateFlushCallers=tests" {
   style.stroke-dash: 3
 }
-cabinet -> wm: "hydrate API\ntests only\nego slice" {
+cabinet -> wm: "hydrate API\nhydrateFlushCallers=tests\nego slice" {
   style.stroke-dash: 3
 }
 library -> wm: "locators only" {
   style.stroke-dash: 3
 }
-fake -> wm: "no durable copy" {
+fake -> cabinet: "unconfigured bind" {
   style.stroke-dash: 3
 }
 hk -> wm: "prune deletes"

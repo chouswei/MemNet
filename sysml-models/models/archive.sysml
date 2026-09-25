@@ -13,7 +13,6 @@ package MemNetArchive {
 
   attribute mustNotImportFromProjectMemNet : Boolean = true;
   attribute leftoverArchiveOffLoad : Boolean = true;
-  attribute storageRole : String = "retired_shelf";
   attribute productTeach : Boolean = false;
 
   // =====================================================================
@@ -196,9 +195,8 @@ package MemNetArchive {
     doc /*
       One shelf for leftover honesty. Not Schema. Not GraphStore.
       Not MemNetSystem. ProjectMemNet does not load this package.
-      storageRole retired_shelf: retired grammar, not a session archive.
+      Retired grammar, not a session archive.
     */
-    attribute storageRole : String = "retired_shelf";
     part leftoverLayer : TierACodec;
     part leftoverPipe : LegacyPipeImport;
     part leftover_id_first : leftover_id_first;

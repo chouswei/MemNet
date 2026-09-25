@@ -188,10 +188,11 @@ package MemNetConnections {
     doc /*
       Online durable property-graph store (AgensGraph-class or Neo4j-class)
       behind MemNet. Landed client: hydrate into / flush from the live
-      session an ego slice (DurableStoreAdapter / Fake ci_seam when no
-      URL / optional AgensGraph client with liveCabinetClaimed; optional
-      Neo4j client with liveNeo4jClaimed=true (0.14); SessionLifecycle
-      hydrate/flush). Factory binds exactly one of AgensGraph or Neo4j.
+      session an ego slice (DurableStoreAdapter / FakeDurableAdapter when
+      no URL / optional AgensGraph client with liveCabinetClaimed;
+      optional Neo4j client with liveNeo4jClaimed=true (0.14);
+      SessionLifecycle hydrate/flush). Factory binds exactly one of
+      fake, AgensGraph, or Neo4j.
       Not a full copy of S. Not the file snapshot.
       Extra 0.16: one Neo4j process MAY host two named databases —
       cabinet (flushed S) vs library (corpus). Library is not this
@@ -459,7 +460,6 @@ package MemNetConnections {
       Write = display. Legacy alias: query_warm. Not a full session dump.
       Recall window, not a store.
     */
-    attribute storageRole : String = "recall_window";
   }
 
   item def WalkSlice {
@@ -1008,7 +1008,7 @@ package MemNetConnections {
   connection def DurableHydrateFlow {
     doc /*
       Landed client: DurableBuffer ports → SessionLifecycle / GraphStore.
-      Factory binds exactly one of AgensGraph or Neo4j. LLM does not
+      Factory binds exactly one of fake, AgensGraph, or Neo4j. LLM does not
       connect to DurableBuffer as primary.
     */
     end port source : DurableHydrateOutPort;
@@ -1030,7 +1030,7 @@ package MemNetConnections {
   connection def DurableFlushFlow {
     doc /*
       Landed client: SessionLifecycle / GraphStore → DurableBuffer ports.
-      Factory binds exactly one of AgensGraph or Neo4j.
+      Factory binds exactly one of fake, AgensGraph, or Neo4j.
       One sync owner; MUST NOT dual-write.
     */
     end port source : DurableFlushOutPort;
