@@ -7,7 +7,7 @@
   SessionHandoffById (pass session id, not graph dump);
   SessionImportReceive (lead imports member working memory; ImportGuard);
   Multitask Mode for relevant tasks only (MN-REQ-12);
-  optional DurableBuffer hydrate/flush roadmap (M2.5).
+  optional DurableBuffer hydrate/flush (landed client; M2.5 seam).
   Empty-q GoldfishLoop: SessionOutline census of S (0.11 TARGET);
   leftover EvEmptySeedSkip is leftover 0.10 only.
 */
@@ -212,14 +212,16 @@ package MemNetBehaviour {
   }
   attribute def EvHydrateFromDurable {
     doc /*
-      ROADMAP M2.5: hydrate a subgraph from DurableGraphStore into the live
-      session under pin budget. Not claimed shipped.
+      Landed client: hydrate an ego slice from DurableGraphStore into the
+      live session under pin budget. Not on Commit. Not on TTL. No MCP
+      or CLI caller.
     */
   }
   attribute def EvFlushToDurable {
     doc /*
-      ROADMAP M2.5: flush settled / durable pins from the session into
-      DurableGraphStore. One sync owner. Not claimed shipped.
+      Landed client: flush an ego slice from the session into
+      DurableGraphStore. One sync owner. Not on Commit. Not on TTL.
+      No MCP or CLI caller.
     */
   }
   attribute def EvLibrarySkipUnset {
@@ -1402,7 +1404,7 @@ package MemNetBehaviour {
 
   state def DurableHydrateFlushRoadmap {
     doc /*
-      M2.5 behaviour: SessionLifecycle.hydrate_from_durable /
+      Landed client (name kept): SessionLifecycle.hydrate_from_durable /
       flush_to_durable via DurableSyncOwner and DurableStoreAdapter
       (FakeDurableAdapter always; optional AgensGraphAdapter client with
       liveCabinetClaimed; optional Neo4jAdapter client with
@@ -1411,7 +1413,7 @@ package MemNetBehaviour {
       teach. Client seam landed; 0.7 Agens live hydrate/flush proven;
       0.14 Neo4j live round-trip yes; hid flush; leftover-nickname
       hydrate after hid miss (MN-REQ-06.4). Extra 0.16 library
-      namespace is NOT this hydrate/flush roadmap (locator emit only).
+      namespace is NOT this hydrate/flush path (locator emit only).
     */
     entry;
     then durableIdle;

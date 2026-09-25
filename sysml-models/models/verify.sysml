@@ -43,7 +43,7 @@
   Cousin pointing contrast (MN-VER-02-S02): TARGET vs eight cousins
   (including SysMLEdge as a distinct pin_map / desk, not MemNet strata;
   overlay family SysMLEdgePrj-*; git sysml-models/ is SSOT);
-  operatorCount stays 2; cousin nest liveNeo4jClaimed stays false.
+  operatorCount stays 2; cousin nest cousinNestOwnsLiveNeo4jClaim stays false.
   Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
   drops; file until user drop; load restores; not Neo4j.
@@ -898,8 +898,9 @@ package MemNetVerification {
       vector indexes as identity, or GraphLite as product. MAY copy
       cue-without-store-key and neighbourhood emit. Cue |Q|>1 stays
       RelativeSeed bounded + honest; no third operator. operatorCount
-      stays 2. Cousin nest liveNeo4jClaimed stays false (product claim
-      is DurableBuffer 0.14). Catalog Snap SHALL NOT ANN-rank sessions,
+      stays 2. Cousin nest cousinNestOwnsLiveNeo4jClaim stays false
+      (product claim is Neo4jAdapter.liveNeo4jClaimed / DurableBuffer
+      0.14). Catalog Snap SHALL NOT ANN-rank sessions,
       Absorb a whole S, or mint one session per REQ.
       Contrast MUST NOT nest under MemNetSystem.
     */
@@ -927,7 +928,7 @@ package MemNetVerification {
           and contrast.mustNotCopyTypedPathIdsAsAgentLanguage == true
           and contrast.mustNotCopyVectorIndexAsIdentity == true
           and contrast.operatorCountUnchanged == 2
-          and contrast.liveNeo4jClaimed == false
+          and contrast.cousinNestOwnsLiveNeo4jClaim == false
           and contrast.inventThirdOperatorOnAmbiguity == false
           and contrast.chosen.storeKeyOnWire == false
           and contrast.chosen.requiredUniqueName == false
@@ -1126,6 +1127,9 @@ package MemNetVerification {
       RagHostHook.implemented=true (0.17) with fail-open locators;
       hostSearchInsideSystem stays false. Skip unless
       MEMNET_NEO4J_URL. Server not vendored.
+      hydrateFlushCallers="tests": no non-test caller. The live claims
+      are the adapter plus the operator round trip only, not a runtime
+      path. serve, IPC, and MCP bind the owner and do not invoke it.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
@@ -1139,6 +1143,7 @@ package MemNetVerification {
           and system.durable.agens.liveCabinetClaimed == true
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.durable.hydrateFlushCallers == "tests"
           and system.durable.neo4j.honesty.claimed == true
           and system.durable.neo4j.namespace == "cabinet"
           and system.durable.liveCabinetClaimed == true
@@ -1576,8 +1581,9 @@ package MemNetVerification {
   verification def MN_VER_01_S03_ExpireSaveConfigurable {
     doc /*
       MN-REQ-01.3 / 01.4 / 01.5 — TTL drops RAM. Expire session_save is
-      configurable (default off). File until user drop; session_load
-      restores RAM; not Neo4j. Leftover fog stays off ProjectMemNet load.
+      configurable (default off). Explicit save and expire-save are one
+      blob. File until user drop; session_load restores RAM, including
+      loadByKnownSid; not Neo4j. Leftover fog stays off ProjectMemNet load.
       Dashboard remains look-only.
     */
     attribute verificationId : String = "MN-VER-01-S03";
@@ -1601,6 +1607,14 @@ package MemNetVerification {
             .loadRestoresRam == true
           and system.core.transport.inProcess.memory.sessions.snap
             .notNeo4j == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .loadByKnownSid == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireMissHonest == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .explicitSaveAndExpireSaveOneBlob == true
+          and system.core.cli.sessionLoad.loadByKnownSid == true
+          and system.mcp.tools.sessionLoad.loadByKnownSid == true
           and system.core.transport.inProcess.memory.sessions.caps
             .saveOnExpireDefault == false
           and system.core.transport.inProcess.memory.sessions.caps
@@ -1617,6 +1631,47 @@ package MemNetVerification {
           and dashboard.httpImplemented == false
           and dashboard.tipIsFace == false
           and dashboard.agentWire == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S06_StorageRoles {
+    doc /*
+      storageRole only where bytes outlive the call: working_memory,
+      file_snapshot, cabinet_ego, library_locators. Explicit save and
+      expire-save are one blob. Factory binds exactly one of fake,
+      AgensGraph, or Neo4j. hydrateFlushCallers="tests": no non-test
+      caller of hydrate/flush. serve, IPC, and MCP bind the owner and
+      do not invoke it. The live claims are the adapter plus the
+      operator round trip only. Hydrate-by-hid is not live-proven.
+      Archive stays off load. No behaviour change.
+    */
+    attribute verificationId : String = "MN-VER-06-S06";
+
+    subject system : MemNetSystem;
+
+    objective storageRolesPinned {
+      verify inProcessPrimaryReq;
+      verify durableStoreBehindMemNetReq;
+      verify saveSessionSnapshotReq;
+      verify sessionTtlAndCapsReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.store
+            .storageRole == "working_memory"
+          and system.core.transport.inProcess.memory.sessions.snap
+            .storageRole == "file_snapshot"
+          and system.core.transport.inProcess.memory.sessions.snap
+            .explicitSaveAndExpireSaveOneBlob == true
+          and system.durable.storageRole == "cabinet_ego"
+          and system.durable.agens.storageRole == "cabinet_ego"
+          and system.durable.neo4j.storageRole == "cabinet_ego"
+          and system.durable.bindsExactlyOneOf == "fake|agensgraph|neo4j"
+          and system.durable.hydrateFlushCallers == "tests"
+          and system.durable.library.storageRole == "library_locators"
+          and system.durable.neo4j.hydrateByHidLiveProven == false
+          and system.durable.neo4j.serverVendored == false
+          and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.leftoverArchiveOffLoad == true
       }
     }
   }
@@ -1673,4 +1728,5 @@ package MemNetVerification {
     : MN_VER_06_S04_SsotToCodeAllocate;
   verification expireSaveConfigurableVerify
     : MN_VER_01_S03_ExpireSaveConfigurable;
+  verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
 }

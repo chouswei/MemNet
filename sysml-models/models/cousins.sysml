@@ -9,7 +9,8 @@
 
   Load: after requirements.sysml, before deploy.sysml (config.yaml).
   Root last. Recall/Commit operatorCount stays 2; cousin nest
-  liveNeo4jClaimed stays false (product claim is DurableBuffer 0.14).
+  cousinNestOwnsLiveNeo4jClaim stays false (product claim is
+  Neo4jAdapter.liveNeo4jClaimed on DurableBuffer, 0.14).
   Python engine and leftover 0.9 store drop are out of this cut.
 */
 package MemNetCousinContrast {
@@ -306,7 +307,9 @@ package MemNetCousinContrast {
       is outline (census of S), not skip, not dump S, not getAllPages,
       not Pattern C tour, not Pattern D seeded RAG, not view=shell.
       Cousins confirm TARGET; they do not force a store-key back onto
-      the wire. GraphLite is a cabinet, not the product. Logseq pages
+      the wire. cousinNestOwnsLiveNeo4jClaim=false: this nest does not
+      own the product live Neo4j claim (that stays
+      Neo4jAdapter.liveNeo4jClaimed). GraphLite is a cabinet, not the product. Logseq pages
       are the closest name-you-have cousin; SiYuan / NL2GQL are the
       leftover-id path. SysMLEdge is a distinct desk pin_map, not MemNet
       session strata and not SSOT. Downstream overlay family is
@@ -331,7 +334,7 @@ package MemNetCousinContrast {
     attribute mustNotCopyTypedPathIdsAsAgentLanguage : Boolean = true;
     attribute mustNotCopyVectorIndexAsIdentity : Boolean = true;
     attribute operatorCountUnchanged : Integer = 2;
-    attribute liveNeo4jClaimed : Boolean = false;
+    attribute cousinNestOwnsLiveNeo4jClaim : Boolean = false;
     attribute inventThirdOperatorOnAmbiguity : Boolean = false;
     attribute mustNotCopyGetAllPages : Boolean = true;
     attribute mustNotCopyPatternCTour : Boolean = true;

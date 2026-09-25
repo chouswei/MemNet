@@ -195,6 +195,7 @@ package MemNetArchive {
     doc /*
       One shelf for leftover honesty. Not Schema. Not GraphStore.
       Not MemNetSystem. ProjectMemNet does not load this package.
+      Retired grammar, not a session archive.
     */
     part leftoverLayer : TierACodec;
     part leftoverPipe : LegacyPipeImport;
