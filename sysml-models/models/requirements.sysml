@@ -645,6 +645,12 @@ package MemNetRequirements {
           Neo4j client with liveNeo4jClaimed=true after operator live
           round-trip (0.14: live round-trip yes; hid flush;
           leftover-nickname hydrate after hid miss); one DurableSyncOwner).
+          agentReachable=false: no MCP, CLI, Commit, or TTL caller of
+          hydrate/flush. Only tests call them. serve, IPC, and MCP bind
+          the owner at startup and SHALL NOT be read as invoking it.
+          implemented, liveCabinetClaimed, and liveNeo4jClaimed are the
+          adapter plus the operator round trip only (Agens 0.7, Neo4j
+          0.14), not a runtime path.
           Live external cabinet SHALL NOT be claimed shipped until
           operator-proven. Neither AgensGraph nor Neo4j servers SHALL be
           vendored in-repo. Two cabinet URLs SHALL require an explicit

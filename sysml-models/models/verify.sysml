@@ -1126,7 +1126,10 @@ package MemNetVerification {
       one sync owner. HostSearchBridge stays outside MemNetSystem;
       RagHostHook.implemented=true (0.17) with fail-open locators;
       hostSearchInsideSystem stays false. Skip unless
-      MEMNET_NEO4J_URL. Server not vendored.
+      MEMNET_NEO4J_URL. Server not vendored. agentReachable=false:
+      implemented and the live claims are the adapter plus the operator
+      round trip only, not a runtime path. Only tests call hydrate/flush.
+      serve, IPC, and MCP bind the owner and do not invoke it.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
@@ -1140,6 +1143,12 @@ package MemNetVerification {
           and system.durable.agens.liveCabinetClaimed == true
           and system.durable.neo4j.implemented == true
           and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.durable.neo4j.agentReachable == false
+          and system.durable.neo4j.claimIsAdapterRoundTripOnly == true
+          and system.durable.agens.agentReachable == false
+          and system.durable.agens.claimIsAdapterRoundTripOnly == true
+          and system.durable.agentReachable == false
+          and system.durable.claimIsAdapterRoundTripOnly == true
           and system.durable.neo4j.honesty.claimed == true
           and system.durable.neo4j.namespace == "cabinet"
           and system.durable.liveCabinetClaimed == true
@@ -1641,8 +1650,11 @@ package MemNetVerification {
       Housekeep is row_prune. Recycle is row_hide_mark. pin_map is
       recall_window. In-process and TCP are process_host. MemNetArchive
       is retired_shelf and stays off load. Neo4j does not run on Commit
-      or TTL, has no MCP/CLI caller, and hydrate-by-hid is not
-      live-proven. No behaviour change.
+      or TTL. agentReachable=false on AgensGraph, Neo4j, and
+      DurableBuffer: only tests call hydrate/flush; serve, IPC, and MCP
+      bind the owner and do not invoke it. implemented and the live
+      claims are the adapter plus the operator round trip only.
+      Hydrate-by-hid is not live-proven. No behaviour change.
     */
     attribute verificationId : String = "MN-VER-06-S06";
 
@@ -1678,6 +1690,18 @@ package MemNetVerification {
           and system.durable.neo4j.hydrateByHidLiveProven == false
           and system.durable.neo4j.serverVendored == false
           and system.durable.neo4j.liveNeo4jClaimed == true
+          and system.durable.neo4j.agentReachable == false
+          and system.durable.neo4j.claimIsAdapterRoundTripOnly == true
+          and system.durable.neo4j.testsOnlyHydrateFlushCaller == true
+          and system.durable.neo4j.startupBindsOwnerWithoutInvoke == true
+          and system.durable.agens.agentReachable == false
+          and system.durable.agens.claimIsAdapterRoundTripOnly == true
+          and system.durable.agens.testsOnlyHydrateFlushCaller == true
+          and system.durable.agens.startupBindsOwnerWithoutInvoke == true
+          and system.durable.agentReachable == false
+          and system.durable.claimIsAdapterRoundTripOnly == true
+          and system.durable.testsOnlyHydrateFlushCaller == true
+          and system.durable.startupBindsOwnerWithoutInvoke == true
           and system.core.transport.inProcess.memory.sessions.housekeep
             .storageRole == "row_prune"
           and system.core.transport.inProcess.memory.sessions.housekeep

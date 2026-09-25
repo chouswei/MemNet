@@ -1,6 +1,6 @@
 # AgensGraph buffer — durable graph behind shared LLM memory
 
-**Status:** version map SSOT [`../ROADMAP.md`](../ROADMAP.md). 0.7 live cabinet **shipped**. 0.8 is teach/shape, not a second cabinet claim. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
+**Status:** version map SSOT [`../ROADMAP.md`](../ROADMAP.md). 0.7 live cabinet **shipped** as the adapter plus the operator round trip (`liveCabinetClaimed=true`). That claim is not a runtime path (`agentReachable=false`): no MCP, CLI, Commit, or TTL caller of hydrate/flush. Only tests call them. `serve`, IPC, and MCP bind the owner at startup and do not invoke it. 0.8 is teach/shape, not a second cabinet claim. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL` is set.  
 **Audience:** product developers.  
 **Promotion (historical):** durable adapter was the notch after M2 (named M2.5). **Done in 0.7.** M3 playbook GQL rewrite is **done in 0.8**. See [`../ROADMAP.md`](../ROADMAP.md).
 
@@ -14,7 +14,7 @@
 | **Should** it be the only agent dialect? | **Yes** (ADR-001 + supersession). |
 | MemNet role | **Shared working memory** for LLMs (sessions, budgets, Multitask, mint/`NEW`, MutateGate). |
 | Session role | Mission / shared-memory **SSOT handle**; handoff = session id (+ anchors / scope); peers re-`pin_map`. |
-| AgensGraph role | **Durable backing** behind sessions; hydrate into / flush from MemNet (**M2.5**) — not the handoff handle. |
+| AgensGraph role | **Durable backing** behind sessions; hydrate/flush adapter (**M2.5**, `agentReachable=false`) — not the handoff handle, and not an agent runtime path. |
 
 ---
 

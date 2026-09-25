@@ -44,6 +44,10 @@ def test_storage_role_strings_on_parts():
     assert "attribute runsOnCommit : Boolean = false;" in text
     assert "attribute runsOnTtl : Boolean = false;" in text
     assert "attribute mcpCliCaller : Boolean = false;" in text
+    assert text.count("attribute agentReachable : Boolean = false;") == 3
+    assert text.count("attribute claimIsAdapterRoundTripOnly : Boolean = true;") == 3
+    assert text.count("attribute testsOnlyHydrateFlushCaller : Boolean = true;") == 3
+    assert text.count("attribute startupBindsOwnerWithoutInvoke : Boolean = true;") == 3
 
 
 def test_durable_flow_uses_buffer_ports():
@@ -65,6 +69,18 @@ def test_verify_pins_roles_and_known_sid():
     assert ".loadByKnownSid == true" in text
     assert "contrast.cousinNestOwnsLiveNeo4jClaim == false" in text
     assert "contrast.liveNeo4jClaimed" not in text
+    for subject in (
+        "system.durable.neo4j",
+        "system.durable.agens",
+        "system.durable",
+    ):
+        assert f"{subject}.agentReachable == false" in text
+        assert f"{subject}.claimIsAdapterRoundTripOnly == true" in text
+        assert f"{subject}.testsOnlyHydrateFlushCaller == true" in text
+        assert f"{subject}.startupBindsOwnerWithoutInvoke == true" in text
+    req = _read(REQ)
+    assert "agentReachable=false" in req
+    assert "not a runtime path" in req
 
 
 def test_cousin_fence_renamed():

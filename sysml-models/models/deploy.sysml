@@ -1677,7 +1677,11 @@ package MemNet {
       operator-proven (0.7 hydrate/flush) — not vendored in-repo.
       MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
       primary path (LLM ↔ MemNet only). Ego slice, not a full copy of
-      S. storageRole cabinet_ego. MN-REQ-06.4.
+      S. storageRole cabinet_ego. agentReachable=false: no MCP, CLI,
+      Commit, or TTL caller. Only tests call hydrate/flush. serve, IPC,
+      and MCP bind the owner at startup and do not invoke it.
+      implemented=true and liveCabinetClaimed=true are the adapter plus
+      the 0.7 round trip only, not a runtime path. MN-REQ-06.4.
     */
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
@@ -1685,8 +1689,13 @@ package MemNet {
     port gqlOut : GqlWireOutPort;
     // Client hydrate/flush adapter seam (Fake + optional AgensGraph client).
     attribute storageRole : String = "cabinet_ego";
+    attribute agentReachable : Boolean = false;
+    attribute claimIsAdapterRoundTripOnly : Boolean = true;
+    attribute testsOnlyHydrateFlushCaller : Boolean = true;
+    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
     attribute implemented : Boolean = true;
     // Live external AgensGraph cabinet — claimed after 0.7 hydrate/flush proof.
+    // That claim is the adapter round trip, not an agent runtime path.
     attribute liveCabinetClaimed : Boolean = true;
     attribute phase : String = "M2.5";
   }
@@ -1698,11 +1707,14 @@ package MemNet {
       memnet-llm[neo4j]; official driver only). Factory binds exactly
       one of AgensGraph or Neo4j (one DurableSyncOwner). Not the
       session file snapshot. Not Neo4jLibraryPort. Does not run on
-      Commit. Does not run on TTL (MN-REQ-01.3). No MCP or CLI caller
-      yet (SessionLifecycle ports only). Cabinet is external; this
-      repo does not vendor a Neo4j server. Client hydrate/flush IS
-      implemented. liveNeo4jClaimed=true (extra 0.14): live round-trip
-      yes; hid flush; leftover-nickname hydrate after hid miss.
+      Commit. Does not run on TTL (MN-REQ-01.3). agentReachable=false:
+      no MCP, CLI, Commit, or TTL caller. Only tests call hydrate/flush.
+      serve, IPC, and MCP bind the owner at startup and do not invoke
+      it. Cabinet is external; this repo does not vendor a Neo4j
+      server. implemented=true and liveNeo4jClaimed=true are the
+      adapter plus the 0.14 round trip only, not a runtime path.
+      liveNeo4jClaimed=true (extra 0.14): live round-trip yes; hid
+      flush; leftover-nickname hydrate after hid miss.
       Hydrate-by-hid is not live-proven. pytest.mark.neo4j_live skips
       unless MEMNET_NEO4J_URL. Agents MUST NOT talk Bolt.
       Cabinet namespace = MEMNET_NEO4J_DATABASE (default neo4j).
@@ -1718,6 +1730,10 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute liveNeo4jClaimed : Boolean = true;
     attribute storageRole : String = "cabinet_ego";
+    attribute agentReachable : Boolean = false;
+    attribute claimIsAdapterRoundTripOnly : Boolean = true;
+    attribute testsOnlyHydrateFlushCaller : Boolean = true;
+    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
     attribute runsOnCommit : Boolean = false;
     attribute runsOnTtl : Boolean = false;
     attribute mcpCliCaller : Boolean = false;
@@ -1777,7 +1793,12 @@ package MemNet {
       NOT treat two database names as two URLs. Factory binds exactly
       one of AgensGraph or Neo4j onto this buffer's hydrate/flush
       ports. Unconfigured URL is the ci_seam (FakeDurableAdapter), not
-      Neo4j and not a durable claim. MN-REQ-06.4.
+      Neo4j and not a durable claim. agentReachable=false on this
+      buffer and on both cabinet adapters: no MCP, CLI, Commit, or TTL
+      caller. Only tests call hydrate/flush. serve, IPC, and MCP bind
+      the owner at startup and do not invoke it. implemented and the
+      live claims are the adapter plus the operator round trip only
+      (Agens 0.7, Neo4j 0.14), not a runtime path. MN-REQ-06.4.
     */
     part agens : AgensGraphAdapter;
     part neo4j : Neo4jAdapter;
@@ -1785,6 +1806,10 @@ package MemNet {
     port hydrateOut : DurableHydrateOutPort;
     port flushIn : DurableFlushInPort;
     attribute storageRole : String = "cabinet_ego";
+    attribute agentReachable : Boolean = false;
+    attribute claimIsAdapterRoundTripOnly : Boolean = true;
+    attribute testsOnlyHydrateFlushCaller : Boolean = true;
+    attribute startupBindsOwnerWithoutInvoke : Boolean = true;
     attribute unconfiguredIsFakeSeam : Boolean = true;
     attribute fakeSeamStorageRole : String = "ci_seam";
     attribute bindsExactlyOneAdapter : Boolean = true;

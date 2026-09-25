@@ -19,7 +19,7 @@ snap: "SnapshotStore\nfile_snapshot\nexplicit save and expire-save\nare one blob
   style.fill: "#e8eef8"
 }
 
-cabinet: "DurableBuffer\ncabinet_ego\nfactory binds exactly one of\nAgensGraph or Neo4j\nego hydrate / flush" {
+cabinet: "DurableBuffer\ncabinet_ego\nfactory binds exactly one of\nAgensGraph or Neo4j\nagentReachable=false\nadapter round trip only" {
   style.fill: "#fff4e5"
 }
 
@@ -60,10 +60,10 @@ wm -> pin: "Recall"
 pin -> llm: "drop after the turn"
 wm -> snap: "session_save\nor TTL if armed"
 snap -> wm: "session_load\nloadByKnownSid"
-wm -> cabinet: "flush API\nnot on Commit, not on TTL" {
+wm -> cabinet: "flush API\ntests only\nnot on Commit, not on TTL" {
   style.stroke-dash: 3
 }
-cabinet -> wm: "hydrate API\nego slice" {
+cabinet -> wm: "hydrate API\ntests only\nego slice" {
   style.stroke-dash: 3
 }
 library -> wm: "locators only" {
