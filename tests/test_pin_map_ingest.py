@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -380,6 +381,87 @@ def test_ingest_connections_sysml_con_count(memnet_temp, sysml_schema: Path):
         r for r in ss.store.list_records("PRT") if r.fields.get("sysml_kind") == "connection_def"
     ]
     assert not prt_as_flow
+
+
+_SYSML_PART = re.compile(
+    r"part def PinMapIngest_Sysml \{(?P<body>.*?)\n  \}",
+    re.DOTALL,
+)
+_SYSML_ATTR = re.compile(
+    r'attribute (?P<name>nodeKinds|edgeRelations) : String = "(?P<value>[^"]*)";'
+)
+_CREATE_LABEL = re.compile(r"CREATE \(:([A-Z]+)\b")
+_EDGE_REL = re.compile(r"-\[:([A-Za-z]+)\]->")
+
+# Covers every label and relation the keyword/brace walk can emit.
+# requirements.sysml alone is PKG/REQ/contains.
+_KINDS_FIXTURE = """\
+package DemoKinds {
+  port def PwrOut;
+  port def PwrIn;
+  part def Src {
+    port astOut : PwrOut;
+  }
+  part def Sink {
+    port astIn : PwrIn;
+  }
+  requirement def NeedPower {
+    attribute requirementId : String = "MN-REQ-DEMO.KINDS";
+    satisfy Src;
+  }
+  connection def PwrFlow {
+    end port source : PwrOut;
+    end port sink : PwrIn;
+  }
+  part def Box {
+    part parseFront : Src;
+    part productGate : Sink;
+    connection parseThenGate : PwrFlow {
+      end port source ::> parseFront.astOut;
+      end port sink ::> productGate.astIn;
+    }
+    connect parseFront.astOut to productGate.astIn;
+  }
+}
+"""
+
+
+def _csv_set(value: str) -> set[str]:
+    parts = [p.strip() for p in value.split(",")]
+    assert parts and all(parts)
+    return set(parts)
+
+
+def _emitted_labels_rels(gql_lines: list[str]) -> tuple[set[str], set[str]]:
+    labels: set[str] = set()
+    rels: set[str] = set()
+    for line in gql_lines:
+        labels.update(_CREATE_LABEL.findall(line))
+        rels.update(_EDGE_REL.findall(line))
+    return labels, rels
+
+
+def test_sysml_model_kinds_match_ingest_emit(tmp_path: Path):
+    """PinMapIngest_Sysml nodeKinds/edgeRelations match what ingest emits."""
+    root = Path(__file__).resolve().parents[1]
+    deploy = (root / "sysml-models/models/deploy.sysml").read_text(encoding="utf-8")
+    part = _SYSML_PART.search(deploy)
+    assert part is not None
+    attrs = {m.group("name"): m.group("value") for m in _SYSML_ATTR.finditer(part.group("body"))}
+    assert set(attrs) == {"nodeKinds", "edgeRelations"}
+
+    fixture = tmp_path / "kinds.sysml"
+    fixture.write_text(_KINDS_FIXTURE, encoding="utf-8")
+    projected = ingest_sysml(None, fixture, max_nodes=80, dry_run=True)
+    labels, rels = _emitted_labels_rels(projected.gql_lines)
+
+    req_path = root / "sysml-models/models/requirements.sysml"
+    req = ingest_sysml(None, req_path, max_nodes=2000, max_files=1, dry_run=True)
+    req_labels, req_rels = _emitted_labels_rels(req.gql_lines)
+    assert req.node_count >= 200
+
+    assert _csv_set(attrs["nodeKinds"]) == labels | req_labels
+    assert _csv_set(attrs["edgeRelations"]) == rels | req_rels
 
 
 # ----- Codebase -----

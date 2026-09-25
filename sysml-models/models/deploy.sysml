@@ -1847,10 +1847,12 @@ package MemNet {
   part def PinMapIngest_Sysml {
     doc /*
       FIRST Path-B engine (ship order). Selective SysML v2 .sysml → PKG / PRT /
-      REQ (+ optional POR) pins with path= + qname= (+ requirementId=).
+      REQ / POR / CON pins with path= + qname= (+ requirementId=).
       Bounded (max_nodes / file caps). As-is: implemented (MN-REQ-11.13,
       11.16; issue #31). MUST NOT satisfy MN-REQ-11.1–11.5 (ingest is not
       export). Module: memnet.pin_map_ingest.PinMapIngest_Sysml.
+      Path-B is a keyword and brace walk that Commits GQL pins; it is not a
+      SysML v2 parser and has no grammar.
     */
     attribute domainVariant : String = "sysml";
     attribute implemented : Boolean = true;
@@ -1858,8 +1860,8 @@ package MemNet {
     attribute firstEngine : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
-    attribute nodeKinds : String = "PKG,PRT,REQ,POR";
-    attribute edgeRelations : String = "contains,satisfies";
+    attribute nodeKinds : String = "PKG,PRT,REQ,POR,CON";
+    attribute edgeRelations : String = "contains,satisfies,typedBy,hasPort,connects";
     attribute leftoverLocatorMint : Boolean = true;
     attribute leftoverIssue : String = "locator-as-PK";
     attribute leftoverAllocateIsProductCommand : Boolean = false;
