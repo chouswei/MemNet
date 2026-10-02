@@ -5,7 +5,7 @@ Novel-writer is out of scope.
 
 **Wire:** openCypher-shaped GQL + shaped `pin_map` (ADR-001). Do not teach Layer.
 
-**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md) · [device fleet](device-fleet-one-mcp-case-study.md) · [SSOT → code](ssot-to-code-allocate-case-study.md).
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md) · [device fleet](device-fleet-one-mcp-case-study.md) · [SSOT → code](ssot-to-code-allocate-case-study.md) · [LAN MCP front](lan-mcp-front-case-study.md).
 
 **Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [SysML nest cuts](sysml-session-nest-cuts-case-study.md).
 
@@ -39,6 +39,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet as MemNet tip/ops (`tipIsFace=false`); product invent face is cousin `sysmledge` (`mustNotInventUploadBind`); not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
 | Tip access portal (ops) | `TipMemNetAccessPortal` **outside** MemNetSystem — Szu-Wei invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused; look-only service/client status; not a sysmledge product; portal sidecar → [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
+| LAN MCP front (ops invent) | `MemNetLanMcpFront` **outside** MemNetSystem — one MCP catalogue, N LAN serves; registry owner; tip≠face; inventOnly #191; cousin of #47 → [lan-mcp-front-case-study.md](lan-mcp-front-case-study.md) |
 | SSOT → code (implementation) | `MemNetImplementation` `SoftwareAllocate` — logical parts → live modules; one Hatch wheel many hosts; sysmledge not in wheel → [ssot-to-code-allocate-case-study.md](ssot-to-code-allocate-case-study.md) |
 | Cousin pointing contrast | TARGET cue→RelativeSeed→ShapeWalk vs eight cousins (`CousinPointingContrast` in `models/cousins.sysml`; MN-REQ-02.9 / 04.8 / 11.17.1). Copy cue-without-store-key + neighbourhood emit. Do not copy engines, unique-name MERGE, silent LLM same-name merge, content-hash ids, typed path-ids, or vector indexes as identity. SysMLEdge is a distinct desk `pin_map` (not MemNet session strata; not MemNet SSOT; this repo has no product face). Overlay family is `SysMLEdgePrj-*` (prefix `SysMLEdgePrj-`); this engine checkout and **`modelbasedPrj-*`** are **repo-based** (git `sysml-models/` is model SSOT; **MUST NOT** use SysMLEdge as model SSOT). **`SysMLEdgePrj-*`** and bound: the desk graph is working model SSOT; MemNet stays mission working memory. |
 | Dual-EDGE bind / law-on-node | Circuit ego `CST_U1` → [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) |
@@ -59,6 +60,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Human usage look (parked HTTP) | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet; tip≠face) | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
 | Tip access portal (keyed Bearer; portal sidecar) | [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
+| LAN MCP front (one catalogue, N serves; inventOnly #191) | [lan-mcp-front-case-study.md](lan-mcp-front-case-study.md) |
 
 ## Nesting outline
 
@@ -75,6 +77,7 @@ ARCHIVE LOOK       MemNetArchive (models/archive.sysml; off ProjectMemNet load)
 OPS LOOK           MemNetUsageDashboard (look only; HTTP parked; not agent wire)
 OPS FLEET          MemNetOpsFleet (device services; one MemNet MCP at droplet tip/ops; product face sysmledge; not #47)
 OPS ACCESS         TipMemNetAccessPortal (keyed tip Bearer; tip≠face; not sysmledge; portal sidecar)
+OPS LAN FRONT      MemNetLanMcpFront (one MCP catalogue, N LAN serves; inventOnly #191; cousin of #47; tip≠face)
 ```
 
 **Path A:** shared mission sessionId → re-`pin_map` (ImportGuard / ImportAbsorb unused).  
@@ -178,6 +181,6 @@ Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`;
 - `LocalIpcFlow` — `LocalIpcGateway` **shipped** (`memnet serve --ipc`)
 - PinMapIngest — all leftover domains **shipped** (#64); CatalogSnap 0.15 = catalog + interiors; cross-cut `satisfies` = catalog locators (MN-REQ-11.17.1; no dangling dest; SysMLEdge `pin_map` is not this catalog); PinMapExport 0.19 = cue GQL write-out (#66); re-ingest later
 - TierA / LegacyPipe* / leftover_* — ARCHIVE shelf `models/archive.sysml` (`MemNetArchive`); off `config.yaml` / `ProjectMemNet` load; MUST NOT nest on product path
-- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** / **MemNetOpsFleet** / **TipMemNetAccessPortal** — application / contrast / ops nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); [usage-dashboard-case-study.md](usage-dashboard-case-study.md); [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md); `models/cousins.sysml`)
+- EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** / **MemNetOpsFleet** / **TipMemNetAccessPortal** / **MemNetLanMcpFront** — application / contrast / ops nests only; MUST NOT nest under MemNetSystem ([host-search-nest-case-study.md](host-search-nest-case-study.md); [usage-dashboard-case-study.md](usage-dashboard-case-study.md); [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md); [lan-mcp-front-case-study.md](lan-mcp-front-case-study.md); `models/cousins.sysml`)
 - BoundedMatchFind — **shipped** (`implemented=true`; MN-REQ-04.6 / #73 seed-only); pin_map remains default goldfish **from a cue** (empty q = outline, not “when leftover-anchored”)
 - pin_map ranking — **MN-REQ-04.11**: emit order is kind + observable payload; hid / nickname `id` / CREATE order are not ranking keys. Nickname `id` stays off `pin_map` emit (0.19.c honesty; hid still off the wire)

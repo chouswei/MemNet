@@ -36,6 +36,10 @@
   keyed tip MCP; unauthenticated WWW MemNet refused; tip≠face;
   not a sysmledge product; portal sidecar (portalWebImplemented=true;
   sellsInvent2Green=false).
+  LAN MCP front (MN-VER-06-S07): MemNetLanMcpFront outside
+  MemNetSystem; inventOnly #191; registry owner; one owner per
+  session; pin_map / find SHALL NOT span backends; cousin of #47;
+  no SemVer; tip≠face.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1357,6 +1361,83 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S07_LanMcpFrontSeveralServes {
+    doc /*
+      MN-REQ-06.9 — LAN MCP front over several serves (#191).
+      Outside MemNetSystem (lanMcpFrontInsideSystem=false;
+      insideMemNetSystem=false). tipIsFace=false;
+      isSysmlEdgeProduct=false; inventOnly=true;
+      implemented=false; codeApproved=false; noSemVerBump.
+      Registry is owner (registryPreferred; silentHashRouting=
+      false; explicitPinAllowed; oneOwnerPerSession). pin_map /
+      find SHALL NOT span backends. Truncation flags survive.
+      Incomplete if any backend clipped or unreachable. Owner
+      down is loud. Snapshot dir per backend. No silent migrate.
+      No import_slice(from_url). Cousin of #47
+      (nServerPeerHandoff=false; cousinIssue47). Shared graph DB
+      false. Rate cap per-session. Unauthenticated public MCP
+      refused. One serve already hosts many sessions
+      (worthBuildingVisible).
+    */
+    attribute verificationId : String = "MN-VER-06-S07";
+
+    subject system : MemNetSystem;
+    subject front : MemNetLanMcpFront;
+
+    objective lanMcpFrontSeveralServes {
+      verify lanMcpFrontSeveralServesReq;
+      require constraint {
+        system.lanMcpFrontInsideSystem == false
+          and front.insideMemNetSystem == false
+          and front.tipIsFace == false
+          and front.isSysmlEdgeProduct == false
+          and front.inventOnly == true
+          and front.implemented == false
+          and front.codeApproved == false
+          and front.noSemVerBump == true
+          and front.nServerPeerHandoff == false
+          and front.sharedGraphDb == false
+          and front.pinMapSpansBackends == false
+          and front.findSpansBackends == false
+          and front.truncationFlagsSurviveRouting == true
+          and front.incompleteIfAnyClippedOrUnreachable == true
+          and front.loudFailOwnerDown == true
+          and front.silentMigrate == false
+          and front.snapshotDirPerBackend == true
+          and front.sessionAclFollowsSession == true
+          and front.rateCapPerSession == true
+          and front.rateCapPerBackendOptional == true
+          and front.importSliceFromUrl == false
+          and front.cousinIssue47 == true
+          and front.singleServeHostsManySessions == true
+          and front.worthBuildingVisible == true
+          and front.unauthenticatedPublicMcp == false
+          and front.registry.registryPreferred == true
+          and front.registry.silentHashRouting == false
+          and front.registry.explicitPinAllowed == true
+          and front.registry.oneOwnerPerSession == true
+          and front.auth.lanAuthRequired == true
+          and front.auth.openPort == false
+          and front.auth.unauthenticatedPublicMcp == false
+          and front.openRoute.writesRegistry == true
+          and front.openRoute.explicitPinFirst == true
+          and front.openRoute.silentHashSolePolicy == false
+          and front.listUnion.ownerTagged == true
+          and front.listUnion.incompleteIfAnyClippedOrUnreachable == true
+          and front.currentBind.oneCurrentSid == true
+          and front.currentBind.oneOwner == true
+          and front.currentBind.loudFailOwnerDown == true
+          and front.handCarry.silentMigrate == false
+          and front.handCarry.saveThenLoad == true
+          and front.handCarry.importSliceFromUrl == false
+          and front.backends.hostKind == "lan-serve"
+          and front.backends.snapshotDirPerBackend == true
+          and front.backends.sharedNfsRequired == false
+          and front.backends.commitGateLocal == true
+      }
+    }
+  }
+
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
       MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
@@ -1702,4 +1783,6 @@ package MemNetVerification {
   verification expireSaveConfigurableVerify
     : MN_VER_01_S03_ExpireSaveConfigurable;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
+  verification lanMcpFrontSeveralServesVerify
+    : MN_VER_06_S07_LanMcpFrontSeveralServes;
 }

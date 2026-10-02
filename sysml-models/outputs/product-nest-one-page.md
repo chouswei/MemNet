@@ -27,6 +27,7 @@ ARCHIVE LOOK       MemNetArchive (models/archive.sysml) — leftover_* /
 OPS LOOK           MemNetUsageDashboard — human look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face; product face is sysmledge)
 OPS ACCESS         TipMemNetAccessPortal — Szu-Wei invite, Google login, Bearer for keyed tip MCP at droplet WWW (tip≠face; not sysmledge; portal sidecar; look-only service/client status)
+OPS LAN FRONT      MemNetLanMcpFront — one MCP catalogue over N LAN serves (inventOnly #191; tip≠face; cousin of #47; not shipped)
 IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modules; tracker ledger; one Hatch wheel many hosts; sysmledge not in wheel
 ```
 
@@ -46,6 +47,10 @@ IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modul
 - Selling invent_2_green (`sellsInvent2Green=false`; `portalWebImplemented=true`; `inventOnly=false`)
 - Unparking engine usage-dashboard HTTP from the portal status look (`unparksUsageDashboard=false`; dashboard `httpImplemented=false`)
 - N-server federation (`nServerFederation=false`; #47)
+- LAN MCP front as shipped code (`MemNetLanMcpFront.inventOnly=true`; `implemented=false`; `codeApproved=false`; #191)
+- Silent hash as sole session routing (`silentHashRouting=false`; registry entry preferred)
+- `pin_map` / `find` spanning backends (`pinMapSpansBackends=false`)
+- Silent session migrate / shipped `import_slice(from_url)` (`silentMigrate=false`; `importSliceFromUrl=false`)
 - SemVer `b` (honesty `c` only; goldfish loop unchanged)
 - SysMLEdge product face nested in the Hatch wheel (`sysmlEdgeInWheel=false`; `CousinSysMLEdgeNotInRepo`)
 - One Python package per host (`oneWheelManyHosts=true`)
@@ -56,4 +61,4 @@ Honesty that leftovers exist lives on the **ARCHIVE** shelf, not on `ProjectMemN
 
 Session TTL drops **RAM**. Explicit `session_save` and expire-save write **one** file blob. Expire-save is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM (`session_load(session=<sid>)` resolves the expire-dir snap when the caller already holds the sid; `loadByKnownSid`). DurableBuffer is a cabinet ego slice, not this file (`MN-VER-01-S03`, `MN-VER-06-S06`). Neo4j is archived (#187).
 
-ARCHIVE leftover fog remains **off** `ProjectMemNet` load (`leftoverFogNested=false`, `leftoverArchiveOffLoad=true`). OPS `MemNetUsageDashboard` remains look-only (`httpImplemented=false`, `tipIsFace=false`, `agentWire=false`). OPS `MemNetOpsFleet` remains outside `MemNetSystem` (`mcpCount=1` = one MemNet MCP at droplet, `nServerFederation=false`, `productInventFace=sysmledge`, `tipIsFace=false`). OPS `TipMemNetAccessPortal` remains outside `MemNetSystem` (`tipIsFace=false`, `keyedWwwMcp=true`, `unauthenticatedWwwMcp=false`, `isSysmlEdgeProduct=false`, `inventOnly=false`, `portalWebImplemented=true`, `sellsInvent2Green=false`, `statusLookOnly=true`, `unparksUsageDashboard=false`). IMPLEMENTATION `MemNetLlmWheel` remains one Hatch package for many hosts (`oneWheelManyHosts=true`, `sysmlEdgeInWheel=false`). IMPLEMENTATION tracker (`ImplementationTracker`) watches allocate rows (`missingPathFailsCi`; `sysmlEdgeTracked=false`).
+ARCHIVE leftover fog remains **off** `ProjectMemNet` load (`leftoverFogNested=false`, `leftoverArchiveOffLoad=true`). OPS `MemNetUsageDashboard` remains look-only (`httpImplemented=false`, `tipIsFace=false`, `agentWire=false`). OPS `MemNetOpsFleet` remains outside `MemNetSystem` (`mcpCount=1` = one MemNet MCP at droplet, `nServerFederation=false`, `productInventFace=sysmledge`, `tipIsFace=false`). OPS `TipMemNetAccessPortal` remains outside `MemNetSystem` (`tipIsFace=false`, `keyedWwwMcp=true`, `unauthenticatedWwwMcp=false`, `isSysmlEdgeProduct=false`, `inventOnly=false`, `portalWebImplemented=true`, `sellsInvent2Green=false`, `statusLookOnly=true`, `unparksUsageDashboard=false`). OPS `MemNetLanMcpFront` remains outside `MemNetSystem` (`inventOnly=true`, `implemented=false`, `codeApproved=false`, `nServerPeerHandoff=false`, `pinMapSpansBackends=false`, `worthBuildingVisible=true`; #191). IMPLEMENTATION `MemNetLlmWheel` remains one Hatch package for many hosts (`oneWheelManyHosts=true`, `sysmlEdgeInWheel=false`). IMPLEMENTATION tracker (`ImplementationTracker`) watches allocate rows (`missingPathFailsCi`; `sysmlEdgeTracked=false`).

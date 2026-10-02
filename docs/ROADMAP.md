@@ -29,7 +29,7 @@ Feature changes that change **how an agent uses MemNet**. `b` moves **only** whe
 
 Historical **0.10–0.19** extras were this (identity, outline, SameThingAbsorb, caller, live Neo4j, catalog Snap, two namespaces, HostSearch, Peak_L, pin-map export).
 
-**N-server ([#47](https://github.com/chouswei/MemNet/issues/47)) is not a `b`.** It stays Later research, unnumbered.
+**N-server ([#47](https://github.com/chouswei/MemNet/issues/47)) is not a `b`.** It stays Later research, unnumbered. **LAN MCP front ([#191](https://github.com/chouswei/MemNet/issues/191))** is the same: invent-only, not a `b`, not a SemVer cut.
 
 One concern per `b`. Do **not** fuse two usage-method changes into one `b`. Skip a `b` only if the coordinator writes the skip in CHANGELOG.
 
@@ -101,7 +101,7 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 | **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md). Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
 | **0.10–0.19** | Numbered extras (table below). Each row is one `b` (usage-method revision). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.19.15**; last published PyPI **`memnet-llm==0.19.14`**; extras first shipped as 0.19.0) |
 | **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine. This is `a=1` | **Claim when coordinator tags** — package **0.19.15** does not claim 1.0 |
-| **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns (`b` after the claim) | **Out** of 1.0 |
+| **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47); LAN MCP front invent (#191). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns (`b` after the claim) | **Out** of 1.0 |
 
 **1.0 MAY ship from 0.9** (claim only). **0.10+ MAY ship before 1.0** as extras (`b` on `a=0`). Do not wait for the other. User-pack GQL rewrite is **sibling** (`chouswei/cursor-user-skills`), not this repo.
 

@@ -9,6 +9,7 @@ package ProjectMemNet {
   private import MemNet::*;
   // TipMemNetAccessPortal is in package MemNet, outside MemNetSystem
   // (same import as MemNetUsageDashboard / MemNetOpsFleet). tip≠face.
+  // MemNetLanMcpFront is the same nest (invent-only #191; cousin of #47).
   private import MemNetImplementation::*;
   private import MemNetBehaviour::*;
   private import MemNetVerification::*;

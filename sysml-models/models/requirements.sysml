@@ -24,6 +24,7 @@
     MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
     MN-REQ-06.7        Allocate SSOT parts to live code in this checkout (one Hatch wheel, many hosts; sysmledge not in wheel)
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
+    MN-REQ-06.9        LAN MCP front invent (#191): one MCP catalogue, N LAN serves; registry owner; cousin of #47; inventOnly
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -776,6 +777,61 @@ package MemNetRequirements {
           session_close from the page.
         */
         attribute requirementId : String = "MN-REQ-06.8";
+      }
+
+      requirement def MN_REQ_06_9_LanMcpFrontSeveralServes {
+        doc /*
+          OPTIONAL Later invent (#191): one MemNet MCP front MAY
+          catalogue sessions across several LAN memnet serve
+          backends. This is engine/tip topology (tip≠face). SHALL
+          NOT be the SysMLEdge product face, an AccountFace UI, or
+          InvenTree. SHALL NOT nest under MemNetSystem.
+          Distinct from MN-REQ-06.6 (one droplet MCP bound to that
+          host's serve; device registries stay independent) and
+          from #47 (peer sid handoff / optional bounded import
+          between independent MemNets with no shared catalogue).
+          Placement: SessionOwnerRegistry entry SHALL be the owner
+          of a session. Explicit pin of a new session to a live
+          backend SHALL be allowed. Silent hash of sid SHALL NOT
+          be the sole routing policy (hash MAY hint placement;
+          owner is the registry row). session_open SHALL pin or
+          pick a live backend, write the registry, and forward
+          open to that serve. session_list SHALL union reachable
+          backend catalogues, each row tagged with owner
+          backendId, and SHALL NOT look complete if any backend
+          clipped or was unreachable. session_current SHALL bind
+          one sid owned by exactly one backend.
+          One owner: each session lives on exactly one serve.
+          SHALL NOT merge graphs across backends. Commit / mutate
+          SHALL stay the owning serve's one gate.
+          Recall: pin_map and find SHALL NOT span sessions on
+          different backends in one call. Cross-host slice moves
+          SHALL use the #47 path, export then file copy then
+          import, or session_save / session_load hand-carry.
+          SHALL NOT invent shipped import_slice(from_url).
+          Caps: hard max_rows / hops and truncation flags SHALL
+          survive routing. A multi-backend answer SHALL NOT look
+          complete if any backend clipped or was unreachable.
+          Failure: serve_status SHALL be per-backend. Owner
+          backend down SHALL fail loudly. Session move SHALL be
+          optional save then load via snapshot dir, not silent
+          migrate.
+          TTL / expire-save: snapshot dir SHALL be per-backend by
+          default. Shared NFS is an optional ops choice, not
+          required by this model. Neo4j shared graph DB is
+          retired (#189) and SHALL NOT be the cluster store.
+          Auth: session ACL SHALL follow the session to its
+          backend. LAN front↔backend SHALL require its own auth
+          (not an open port). Unauthenticated MemNet MCP on the
+          public internet SHALL stay refused (InkMirage CEO lock).
+          Rate cap SHALL remain per-session; a per-backend cap
+          MAY be an optional ops overlay.
+          One serve already hosts many sessions. This invent
+          SHALL make the complexity-versus-capacity trade-off
+          visible. inventOnly; implemented=false; codeApproved=
+          false; no SemVer bump.
+        */
+        attribute requirementId : String = "MN-REQ-06.9";
       }
     }
 
@@ -1721,6 +1777,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_7_SsotToCodeAllocate;
   requirement tipMemNetAccessPortalReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_8_TipMemNetAccessPortal;
+  requirement lanMcpFrontSeveralServesReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -1943,6 +2001,7 @@ package MemNetRequirements {
     end #derive ::> deviceServicesOneDropletMcpReq;
     end #derive ::> ssotToCodeAllocateReq;
     end #derive ::> tipMemNetAccessPortalReq;
+    end #derive ::> lanMcpFrontSeveralServesReq;
   }
 
   #derivation connection deriveMcpLeaves {

@@ -8,6 +8,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [Unreleased]
 
 ### Changed
+- **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
 
 ## [0.19.15] - 2026-09-25
 
