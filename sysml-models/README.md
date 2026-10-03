@@ -20,13 +20,13 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 | File | Package | Role |
 |------|---------|------|
-| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` / `DeviceMemNetFleet` / `TipMemNetAccess` / `MemNetLanMcpCluster` |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** LAN MCP front invent #191, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
+| `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` / `DeviceMemNetFleet` / `TipMemNetAccess` / `MemNetLanMcpCluster` / `MemNetTwoMovesContrast` |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** ClusterRoute LAN MCP front invent #191, **06.10** SliceHandCarry invent #47 cousin, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map; overlay family `SysMLEdgePrj-*`; this engine repo and `modelbasedPrj-*` are repo-based — MUST NOT use SysMLEdge as model SSOT; `SysMLEdgePrj-*` bound desk is working model SSOT) |
-| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` outside `MemNetSystem` |
+| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` / `MemNetTwoMoves` outside `MemNetSystem` |
 | `models/implementation.sysml` | `MemNetImplementation` | `SoftwareAllocate` logical → live modules; one Hatch wheel many hosts; sysmledge not in wheel |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, landed-client hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S07 (S06 storage roles; S07 LAN MCP front); MN-VER-01-S03 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S08 (S06 storage roles; S07 ClusterRoute LAN MCP front; S08 two named moves); MN-VER-01-S03 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
 | `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe* / retired Neo4j). **Off** `config.yaml` load |
 
@@ -52,7 +52,8 @@ ARCHIVE LOOK       MemNetArchive — leftover fog + retired Neo4j (#187); root d
 OPS LOOK           MemNetUsageDashboard — look only; not agent wire
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face)
 OPS ACCESS         TipMemNetAccessPortal — invite + Google login + Bearer for keyed tip MCP (tip≠face; not sysmledge; portal sidecar)
-OPS LAN FRONT      MemNetLanMcpFront — one MCP catalogue over N LAN serves (inventOnly #191; tip≠face; cousin of #47; not shipped)
+OPS LAN FRONT      MemNetLanMcpFront — ClusterRoute: one MCP catalogue over N LAN serves (inventOnly #191; tip≠face; not shipped)
+OPS TWO MOVES      MemNetTwoMoves — ClusterRoute vs SliceHandCarry (inventOnly #191 / #47 cousin; explicit copy ≠ live hop; not shipped)
 IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modules; tracker ledger; one wheel many hosts
 ```
 
@@ -70,7 +71,7 @@ IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modul
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
 - **WorkerWriteScope:** CapsPolicy / MutateGate hard-rejects out-of-scope mutate when session ACL is enabled; overlap: serialise or **RSV** lease
 - **CapsPolicy ACL (as-is):** who / pin_map-vs-mutate / WorkerWriteScope hard reject / optional bind are shipped (`engineAclShipped=true`); MutateGate, PinMapShapedRead, and SessionHandoffEmit consult; ACL is off by default
-- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** / **MemNetOpsFleet** / **TipMemNetAccessPortal** / **MemNetLanMcpFront** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast / human usage look / device fleet with one droplet MemNet MCP tip/ops; product face is sysmledge / tip access portal is ops key gating, not that product / LAN MCP front is invent-only #191)
+- **Out of scope:** novel-writer; EvidenceCentre / MissionDock / CompanyMemory / **HostSearchBridge** / **CousinPointingContrast** / **MemNetUsageDashboard** / **MemNetOpsFleet** / **TipMemNetAccessPortal** / **MemNetLanMcpFront** / **MemNetTwoMoves** MUST NOT nest under MemNetSystem (optional host locators 0.17 / cousin pointing contrast / human usage look / device fleet with one droplet MemNet MCP tip/ops; product face is sysmledge / tip access portal is ops key gating, not that product / LAN MCP front is invent-only #191 / SliceHandCarry is invent-only #47 cousin)
 - **ARCHIVE (off ProjectMemNet load):** leftover_* / TierACodec / LegacyPipe* / retired Neo4j cabinet in `models/archive.sysml` (`MemNetArchive`). Root MUST NOT import it. Engine leftover codecs may remain on disk for tests; the Neo4j adapter module is removed. Product teach is GQL only.
 
 ### CapsPolicy ACL (as-is 0.8)
@@ -104,7 +105,8 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Human usage look (read-only dashboard; HTTP parked) | [outputs/usage-dashboard-case-study.md](outputs/usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet, tip≠face; not #47) | [outputs/device-fleet-one-mcp-case-study.md](outputs/device-fleet-one-mcp-case-study.md) |
 | Tip MemNet access portal (keyed Bearer; portal sidecar) | [outputs/tip-memnet-access-portal-case-study.md](outputs/tip-memnet-access-portal-case-study.md) |
-| LAN MCP front (one catalogue, N LAN serves; inventOnly #191; cousin of #47) | [outputs/lan-mcp-front-case-study.md](outputs/lan-mcp-front-case-study.md) |
+| LAN MCP front (ClusterRoute; one catalogue, N LAN serves; inventOnly #191) | [outputs/lan-mcp-front-case-study.md](outputs/lan-mcp-front-case-study.md) |
+| ClusterRoute vs SliceHandCarry (two named moves; inventOnly #191 / #47 cousin) | [outputs/cluster-route-vs-slice-hand-carry-case-study.md](outputs/cluster-route-vs-slice-hand-carry-case-study.md) |
 | SSOT → code allocate (one Hatch wheel, many hosts) | [outputs/ssot-to-code-allocate-case-study.md](outputs/ssot-to-code-allocate-case-study.md) |
 | SSOT → code tracker map | [outputs/ssot-to-code-allocate-map.md](outputs/ssot-to-code-allocate-map.md) |
 | Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |

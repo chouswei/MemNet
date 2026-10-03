@@ -21,16 +21,17 @@ Let agents keep **one MCP endpoint** while sessions live on more than one LAN se
 | Part | `MemNetLanMcpFront` **outside** `MemNetSystem` |
 | Load | Already on `ProjectMemNet` via `deploy.sysml` (`config.yaml` / `root.sysml` import `MemNet`) |
 | Items | `MemNetLanMcpCluster`, `SessionOwnerRecord`, `RoutedMcpCall`, `TruncationHonestyMark`, `SnapshotHandCarryBlob`, `LanFrontAuthToken` |
-| Parts | `SessionOwnerRegistry`, `ServeBackend[1..*]`, `FrontBackendAuth`, `SessionOpenRoute`, `SessionListUnion`, `SessionCurrentBind`, `SnapshotHandCarry` |
+| Parts | `ClusterRoute` (`SessionOpenRoute` / `SessionListUnion` / `SessionCurrentBind`), `SessionOwnerRegistry`, `ServeBackend[1..*]`, `FrontBackendAuth`, `SnapshotHandCarry` |
 
 ```text
 MemNetSystem                                 // SharedLlmMemory product (unchanged)
-MemNetLanMcpFront                            // OUTSIDE — inventOnly #191; tip≠face
+MemNetLanMcpFront                            // OUTSIDE — inventOnly #191; ClusterRoute
+├── ClusterRoute                             // named move A: where the session lives
+│   └── SessionOpenRoute / SessionListUnion / SessionCurrentBind
 ├── SessionOwnerRegistry                     // sid → backendId; pin allowed; not silent hash
 ├── ServeBackend[1..*]                       // one serve; local Commit; per-backend snap dir
 ├── FrontBackendAuth                         // LAN hop auth; not an open port
-├── SessionOpenRoute / SessionListUnion / SessionCurrentBind
-└── SnapshotHandCarry                        // optional save+load; not silent migrate
+└── SnapshotHandCarry                        // same-sid relocate; not SliceHandCarry
 ```
 
 ## 3. Scenario
@@ -57,7 +58,7 @@ MemNetLanMcpFront                            // OUTSIDE — inventOnly #191; tip
 | **5. Caps** | `max_rows` / hops / Truncation pass through | Drop the truncation mark |
 | **6. Fail** | Per-backend `serve_status`; owner down is loud | Silent retry on another serve |
 | **7. Move** | Optional `session_save` → copy file → `session_load`; update registry | Silent migrate; shipped `import_slice(from_url=…)` |
-| **8. Cross-host slice** | #47 path, export→file copy→import, or save/load | Shared Neo4j / AgensGraph as the cluster store |
+| **8. Cross-host slice** | Not this nest — see SliceHandCarry / MN-REQ-06.10 | Shared Neo4j / AgensGraph as the cluster store |
 
 ## 4. Contrast (soft-pass kills)
 

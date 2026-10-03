@@ -969,6 +969,15 @@ package MemNetConnections {
     in item token : LanFrontAuthToken;
   }
 
+  port def SliceFileOutPort {
+    doc /* Emit a disk file after export_pin_map or session_save. */
+    out item file : SliceHandCarryFile;
+  }
+  port def SliceFileInPort {
+    doc /* Accept a copied slice/snapshot file for dest absorb. */
+    in item file : SliceHandCarryFile;
+  }
+
   // =====================================================================
   // Connection defs
   // =====================================================================
@@ -1288,6 +1297,17 @@ package MemNetConnections {
     end port sink : LanFrontAuthInPort;
   }
 
+  connection def SliceFileFlow {
+    doc /*
+      SliceHandCarry file hop: export_pin_map or session_save
+      blob copied on the LAN, then dest import or session_load.
+      Not a live MCP hop. Not import_slice(from_url).
+      TruncationHonestyMark SHALL ride with the file.
+    */
+    end port source : SliceFileOutPort;
+    end port sink : SliceFileInPort;
+  }
+
   // =====================================================================
   // Application patterns (NOT MemNet core item zoo — case-study only)
   // =====================================================================
@@ -1445,18 +1465,48 @@ package MemNetConnections {
   item def MemNetLanMcpCluster {
     doc /*
       APPLICATION / OPS PATTERN only (MUST NOT nest under
-      MemNetSystem): one MemNet MCP front catalogues sessions
-      across N LAN serve backends (MN-REQ-06.9 / #191).
-      SessionOwnerRegistry is owner. tip≠face. inventOnly.
-      Cousin of #47 (peer sid handoff without a shared catalogue),
-      not the same invent. Distinct from DeviceMemNetFleet
-      (MN-REQ-06.6: one droplet MCP bound to that host).
-      pin_map / find SHALL NOT span backends. Cross-host slice
-      moves use #47 / export-file-import / session_save then
-      session_load. Shared graph DB is retired (#189). See
-      outputs/lan-mcp-front-case-study.md and
-      docs/operations/memnet-lan-mcp-front.md.
+      MemNetSystem): named move ClusterRoute — where the session
+      lives. One MemNet MCP front catalogues sessions across N
+      LAN serve backends (MN-REQ-06.9 / #191). SessionOwnerRegistry
+      is owner. tip≠face. inventOnly. Distinct from SliceHandCarry
+      (MN-REQ-06.10 / #47 cousin: explicit copy into another
+      session). Distinct from DeviceMemNetFleet (MN-REQ-06.6:
+      one droplet MCP bound to that host). pin_map / find SHALL
+      NOT span backends. Shared graph DB is retired (#189). See
+      outputs/lan-mcp-front-case-study.md,
+      outputs/cluster-route-vs-slice-hand-carry-case-study.md,
+      and docs/operations/cluster-route-vs-slice-hand-carry.md.
     */
+  }
+
+  item def SliceHandCarryFile {
+    doc /*
+      Disk file after export_pin_map (bounded GQL) or session_save
+      (snapshot). Caps and TruncationHonestyMark SHALL ride with
+      the file. MUST NOT look complete if clipped. Operator copies
+      this file on the LAN. Dest absorbs it locally. Not a live
+      hop. Not import_slice(from_url).
+    */
+    attribute clippedMustNotLookComplete : Boolean = true;
+    attribute liveHop : Boolean = false;
+    attribute importSliceFromUrl : Boolean = false;
+  }
+
+  item def MemNetTwoMovesContrast {
+    doc /*
+      APPLICATION / OPS PATTERN only (MUST NOT nest under
+      MemNetSystem): one diagram of two named moves — ClusterRoute
+      (where the session lives; MN-REQ-06.9 / #191) versus
+      SliceHandCarry (explicit copy into another session;
+      MN-REQ-06.10 / #47 cousin). Not a live hop. Not
+      import_slice across hosts. See
+      outputs/cluster-route-vs-slice-hand-carry-case-study.md
+      and docs/operations/cluster-route-vs-slice-hand-carry.md.
+    */
+    attribute clusterIsWhereSessionLives : Boolean = true;
+    attribute sliceIsExplicitCopy : Boolean = true;
+    attribute liveHop : Boolean = false;
+    attribute importSliceAcrossHosts : Boolean = false;
   }
 
   // Retired Layer / TierA / LegacyPipe item zoo lives in models/archive.sysml

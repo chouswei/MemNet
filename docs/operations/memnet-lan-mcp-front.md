@@ -1,10 +1,12 @@
 # LAN MCP front (several MemNet serves)
 
-Later invent ([#191](https://github.com/chouswei/MemNet/issues/191)): **one MemNet MCP** catalogues sessions across **N LAN `memnet serve` backends**. Engine/tip topology only (**tip≠face**). Not the SysMLEdge product face. Not AccountFace. Not InvenTree. Invent-only: no engine code, no SemVer.
+Later invent ([#191](https://github.com/chouswei/MemNet/issues/191)): **one MemNet MCP** catalogues sessions across **N LAN `memnet serve` backends**. Named move: **ClusterRoute** — where the session lives. Engine/tip topology only (**tip≠face**). Not the SysMLEdge product face. Not AccountFace. Not InvenTree. Invent-only: no engine code, no SemVer.
+
+**Two moves, do not conflate:** ClusterRoute (this note) is **not** SliceHandCarry. Contrast: [`cluster-route-vs-slice-hand-carry.md`](cluster-route-vs-slice-hand-carry.md).
 
 Model: `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). Case study: [`sysml-models/outputs/lan-mcp-front-case-study.md`](../../sysml-models/outputs/lan-mcp-front-case-study.md).
 
-**Cousin, not the same invent:** [#47](https://github.com/chouswei/MemNet/issues/47) is a **peer session pipe** between independent MemNets (handoff = sid; optional bounded import; no shared catalogue). This note is **one MCP catalogue + N backends**. Cross-host slice moves still use the #47 path, export→file copy→import, or `session_save` / `session_load`. `import_slice(from_url=…)` is **not** shipped (Later / cousin to #47).
+**Cousin, not the same invent:** [#47](https://github.com/chouswei/MemNet/issues/47) / **SliceHandCarry** is a bounded copy into **another** session (handoff ≠ live hop; `import_slice` only on the same serve). This note is **one MCP catalogue + N backends** (where the session lives). Cross-host slice still uses export→file copy→import, or `session_save` / `session_load`. `import_slice(from_url=…)` is **not** shipped.
 
 Distinct from **MN-REQ-06.6** (`MemNetOpsFleet`): one droplet MemNet MCP bound to **that host’s** serve; device registries stay independent.
 
@@ -24,7 +26,7 @@ A session lives on **exactly one** serve. No cross-backend graph merge. Commit /
 
 ## Recall across backends
 
-`pin_map` / `find` MUST NOT span sessions on different backends in one call. Cross-host slice moves: #47 path, export→file copy→import, or `session_save` / `session_load` hand-carry.
+`pin_map` / `find` MUST NOT span sessions on different backends in one call. Copying atoms into another session is **SliceHandCarry**, not this cluster route.
 
 ## Caps and truncation
 

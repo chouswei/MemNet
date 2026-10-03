@@ -37,9 +37,13 @@
   not a sysmledge product; portal sidecar (portalWebImplemented=true;
   sellsInvent2Green=false).
   LAN MCP front (MN-VER-06-S07): MemNetLanMcpFront outside
-  MemNetSystem; inventOnly #191; registry owner; one owner per
-  session; pin_map / find SHALL NOT span backends; cousin of #47;
-  no SemVer; tip≠face.
+  MemNetSystem; inventOnly #191; ClusterRoute (where the session
+  lives); registry owner; one owner per session; pin_map / find
+  SHALL NOT span backends; distinct from SliceHandCarry; no SemVer;
+  tip≠face.
+  ClusterRoute vs SliceHandCarry (MN-VER-06-S08): MemNetTwoMoves
+  outside MemNetSystem; two named moves; slice is explicit copy
+  not a live hop; import_slice same-serve only; inventOnly.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1419,21 +1423,97 @@ package MemNetVerification {
           and front.auth.lanAuthRequired == true
           and front.auth.openPort == false
           and front.auth.unauthenticatedPublicMcp == false
-          and front.openRoute.writesRegistry == true
-          and front.openRoute.explicitPinFirst == true
-          and front.openRoute.silentHashSolePolicy == false
-          and front.listUnion.ownerTagged == true
-          and front.listUnion.incompleteIfAnyClippedOrUnreachable == true
-          and front.currentBind.oneCurrentSid == true
-          and front.currentBind.oneOwner == true
-          and front.currentBind.loudFailOwnerDown == true
+          and front.clusterRoute.isWhereSessionLives == true
+          and front.clusterRoute.isExplicitCopy == false
+          and front.clusterRoute.pinMapSpansBackends == false
+          and front.clusterRoute.openRoute.writesRegistry == true
+          and front.clusterRoute.openRoute.explicitPinFirst == true
+          and front.clusterRoute.openRoute.silentHashSolePolicy == false
+          and front.clusterRoute.listUnion.ownerTagged == true
+          and front.clusterRoute.listUnion.incompleteIfAnyClippedOrUnreachable == true
+          and front.clusterRoute.currentBind.oneCurrentSid == true
+          and front.clusterRoute.currentBind.oneOwner == true
+          and front.clusterRoute.currentBind.loudFailOwnerDown == true
           and front.handCarry.silentMigrate == false
           and front.handCarry.saveThenLoad == true
           and front.handCarry.importSliceFromUrl == false
+          and front.handCarry.isClusterRelocate == true
+          and front.handCarry.isSliceCopy == false
           and front.backends.hostKind == "lan-serve"
           and front.backends.snapshotDirPerBackend == true
           and front.backends.sharedNfsRequired == false
           and front.backends.commitGateLocal == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S08_ClusterRouteVsSliceHandCarry {
+    doc /*
+      MN-REQ-06.9 + MN-REQ-06.10 — two named moves in one nest.
+      ClusterRoute is where the session lives (not an explicit
+      copy). SliceHandCarry is an explicit copy into another
+      session (not a live hop; import_slice same-serve only).
+      Outside MemNetSystem. inventOnly; implemented=false.
+      Caps / truncation survive both. No import_slice(from_url).
+      No shared graph DB. Commit stays on the owning serve.
+    */
+    attribute verificationId : String = "MN-VER-06-S08";
+
+    subject system : MemNetSystem;
+    subject twoMoves : MemNetTwoMoves;
+    subject slice : SliceHandCarry;
+    subject cluster : ClusterRoute;
+
+    objective clusterRouteVsSliceHandCarry {
+      verify lanMcpFrontSeveralServesReq;
+      verify sliceHandCarryAcrossServesReq;
+      require constraint {
+        system.twoMovesInsideSystem == false
+          and system.lanMcpFrontInsideSystem == false
+          and twoMoves.insideMemNetSystem == false
+          and twoMoves.tipIsFace == false
+          and twoMoves.isSysmlEdgeProduct == false
+          and twoMoves.inventOnly == true
+          and twoMoves.implemented == false
+          and twoMoves.codeApproved == false
+          and twoMoves.noSemVerBump == true
+          and twoMoves.clusterIsWhereSessionLives == true
+          and twoMoves.sliceIsExplicitCopy == true
+          and twoMoves.liveHop == false
+          and twoMoves.importSliceAcrossHosts == false
+          and twoMoves.importSliceFromUrl == false
+          and twoMoves.sharedGraphDb == false
+          and twoMoves.truncationFlagsSurviveBothMoves == true
+          and twoMoves.clippedMustNotLookComplete == true
+          and twoMoves.commitGateOnOwningServe == true
+          and cluster.isWhereSessionLives == true
+          and cluster.isExplicitCopy == false
+          and cluster.isLiveHop == false
+          and cluster.pinMapSpansBackends == false
+          and cluster.findSpansBackends == false
+          and cluster.realisedByLanFront == true
+          and slice.insideMemNetSystem == false
+          and slice.isWhereSessionLives == false
+          and slice.isExplicitCopy == true
+          and slice.isLiveHop == false
+          and slice.isClusterRoute == false
+          and slice.importSliceSameServeOnly == true
+          and slice.importSliceAcrossHosts == false
+          and slice.importSliceFromUrl == false
+          and slice.destIsDifferentSession == true
+          and slice.sourceSessionStays == true
+          and slice.truncationFlagsSurvive == true
+          and slice.clippedMustNotLookComplete == true
+          and slice.sharedGraphDb == false
+          and slice.commitGateOnOwningServe == true
+          and slice.inventOnly == true
+          and slice.implemented == false
+          and slice.lanCopy.isLiveHop == false
+          and slice.lanCopy.importSliceFromUrl == false
+          and slice.lanCopy.isClusterRoute == false
+          and slice.destAbsorb.importSliceSameServeOnly == true
+          and slice.destAbsorb.importSliceAcrossHosts == false
+          and slice.exportCarry.clippedMustNotLookComplete == true
       }
     }
   }
@@ -1785,4 +1865,6 @@ package MemNetVerification {
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
   verification lanMcpFrontSeveralServesVerify
     : MN_VER_06_S07_LanMcpFrontSeveralServes;
+  verification clusterRouteVsSliceHandCarryVerify
+    : MN_VER_06_S08_ClusterRouteVsSliceHandCarry;
 }
