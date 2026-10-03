@@ -915,6 +915,60 @@ package MemNetConnections {
     in item hop : TipMcpForward;
   }
 
+  port def SessionOwnerRecordOutPort {
+    doc /* Emit a session-id → backendId owner row. */
+    out item owner : SessionOwnerRecord;
+  }
+  port def SessionOwnerRecordInPort {
+    doc /* Accept a session owner row (pin or lookup). */
+    in item owner : SessionOwnerRecord;
+  }
+
+  port def RoutedMcpCallOutPort {
+    doc /* Front forwards one MCP call to the owning serve. */
+    out item call : RoutedMcpCall;
+  }
+  port def RoutedMcpCallInPort {
+    doc /* Serve backend accepts a routed MCP call. */
+    in item call : RoutedMcpCall;
+  }
+
+  port def BackendServeStatusOutPort {
+    doc /* Per-backend serve_status (up / host / port). */
+    out item status : BackendServeStatusLook;
+  }
+  port def BackendServeStatusInPort {
+    doc /* Front accepts per-backend serve_status. */
+    in item status : BackendServeStatusLook;
+  }
+
+  port def TruncationHonestyOutPort {
+    doc /* Caps / truncation mark from the owning serve. */
+    out item mark : TruncationHonestyMark;
+  }
+  port def TruncationHonestyInPort {
+    doc /* Front must pass truncation through unchanged. */
+    in item mark : TruncationHonestyMark;
+  }
+
+  port def SnapshotHandCarryOutPort {
+    doc /* Emit a session snapshot file blob for optional move. */
+    out item snap : SnapshotHandCarryBlob;
+  }
+  port def SnapshotHandCarryInPort {
+    doc /* Accept a copied snapshot for session_load. */
+    in item snap : SnapshotHandCarryBlob;
+  }
+
+  port def LanFrontAuthOutPort {
+    doc /* LAN front↔backend auth token. Not an open port. */
+    out item token : LanFrontAuthToken;
+  }
+  port def LanFrontAuthInPort {
+    doc /* Backend accepts LAN hop auth. */
+    in item token : LanFrontAuthToken;
+  }
+
   // =====================================================================
   // Connection defs
   // =====================================================================
@@ -1177,6 +1231,63 @@ package MemNetConnections {
     end port sink : TipForwardInPort;
   }
 
+  connection def SessionOwnerRecordFlow {
+    doc /*
+      Session owner row between the LAN MCP front and
+      SessionOwnerRegistry. Registry entry is the owner; silent
+      hash of sid is not this flow.
+    */
+    end port source : SessionOwnerRecordOutPort;
+    end port sink : SessionOwnerRecordInPort;
+  }
+
+  connection def RoutedMcpCallFlow {
+    doc /*
+      One MCP call forwarded to the owning serve only. pin_map /
+      find SHALL NOT span backends on this flow.
+    */
+    end port source : RoutedMcpCallOutPort;
+    end port sink : RoutedMcpCallInPort;
+  }
+
+  connection def BackendServeStatusFlow {
+    doc /*
+      Per-backend serve_status into the LAN MCP front. Owner
+      down is a loud fail, not a silent retry on another serve.
+    */
+    end port source : BackendServeStatusOutPort;
+    end port sink : BackendServeStatusInPort;
+  }
+
+  connection def TruncationHonestyFlow {
+    doc /*
+      Hard max_rows / hops clip and Truncation mark from the
+      owning serve. The front SHALL NOT drop the mark or present
+      a clipped / unreachable multi-backend answer as complete.
+    */
+    end port source : TruncationHonestyOutPort;
+    end port sink : TruncationHonestyInPort;
+  }
+
+  connection def SnapshotHandCarryFlow {
+    doc /*
+      Optional session_save file copy toward session_load on
+      another backend. Not a live graph MERGE. Not
+      import_slice(from_url).
+    */
+    end port source : SnapshotHandCarryOutPort;
+    end port sink : SnapshotHandCarryInPort;
+  }
+
+  connection def LanFrontAuthFlow {
+    doc /*
+      Auth on the LAN hop between MCP front and serve backend.
+      Not an open port. Session ACL still follows the session.
+    */
+    end port source : LanFrontAuthOutPort;
+    end port sink : LanFrontAuthInPort;
+  }
+
   // =====================================================================
   // Application patterns (NOT MemNet core item zoo — case-study only)
   // =====================================================================
@@ -1275,6 +1386,76 @@ package MemNetConnections {
       Each service keeps its own session registry. Handoff = session id.
       MUST NOT be N-server federation (#47). See
       outputs/device-fleet-one-mcp-case-study.md.
+    */
+  }
+
+  item def SessionOwnerRecord {
+    doc /*
+      Registry row: session id → backendId. One owner. Explicit
+      pin writes this row. Silent hash of sid is not this item.
+    */
+  }
+
+  item def ExplicitBackendPin {
+    doc /*
+      Optional pin on session_open naming a live ServeBackend.
+      Front writes SessionOwnerRecord from this pin.
+    */
+  }
+
+  item def RoutedMcpCall {
+    doc /*
+      One MCP tool call (session_open / list / current / pin_map /
+      find / mutate / serve_status) forwarded to the owning serve.
+      pin_map / find on this item SHALL NOT name sessions on two
+      backends.
+    */
+  }
+
+  item def BackendServeStatusLook {
+    doc /*
+      Per-backend serve_status: up / host / port plus expire-save
+      flags. Path redacted. Owner down is loud, not hidden.
+    */
+  }
+
+  item def TruncationHonestyMark {
+    doc /*
+      Hard cap clip (max_rows / hops) and Truncation flag from the
+      owning serve. MUST survive routing. Multi-backend answers
+      MUST NOT look complete when any backend clipped or was
+      unreachable.
+    */
+  }
+
+  item def SnapshotHandCarryBlob {
+    doc /*
+      SessionSnapshotBlob copied between backends for optional
+      save+load move. Not a live MERGE. Not import_slice(from_url).
+    */
+  }
+
+  item def LanFrontAuthToken {
+    doc /*
+      Auth material for the LAN front↔backend hop. Not an open
+      port. Not a sysmledge / AccountFace credential.
+    */
+  }
+
+  item def MemNetLanMcpCluster {
+    doc /*
+      APPLICATION / OPS PATTERN only (MUST NOT nest under
+      MemNetSystem): one MemNet MCP front catalogues sessions
+      across N LAN serve backends (MN-REQ-06.9 / #191).
+      SessionOwnerRegistry is owner. tip≠face. inventOnly.
+      Cousin of #47 (peer sid handoff without a shared catalogue),
+      not the same invent. Distinct from DeviceMemNetFleet
+      (MN-REQ-06.6: one droplet MCP bound to that host).
+      pin_map / find SHALL NOT span backends. Cross-host slice
+      moves use #47 / export-file-import / session_save then
+      session_load. Shared graph DB is retired (#189). See
+      outputs/lan-mcp-front-case-study.md and
+      docs/operations/memnet-lan-mcp-front.md.
     */
   }
 

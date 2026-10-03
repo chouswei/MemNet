@@ -4,7 +4,9 @@
   One Hatch wheel (memnet-llm) for many hosts (droplet + devices).
   MemNet MCP module = tip/ops (tip≠face). Cousin sysmledge is NOT
   allocated here (thisRepoHasProductFace=false; mustNotInventUploadBind).
-  Not N-server federation (#47).
+  Not N-server federation (#47). LAN MCP front (#191) is invent-only
+  in deploy.sysml (MemNetLanMcpFront); MUST NOT allocate a Python path
+  from this package.
 */
 package MemNetImplementation {
   private import ScalarValues::*;

@@ -86,6 +86,13 @@
   clients is look-only and MUST NOT unpark MemNetUsageDashboard
   HTTP. Free strangers stay on the SysMLEdge free tier or
   memnet-llm self-host.
+  APPLICATION / OPS LAN FRONT (not in MemNetSystem): MemNetLanMcpFront —
+  Later invent (#191): one MCP catalogue in front of N LAN
+  memnet serve backends. SessionOwnerRegistry is owner (explicit
+  pin allowed; silent hash is not sole routing). One owner per
+  session; no cross-backend graph merge. pin_map / find SHALL NOT
+  span backends. Cousin of #47 (peer sid handoff), not the same
+  invent. tip≠face; inventOnly; no SemVer.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -2602,12 +2609,15 @@ package MemNet {
       HostSearchBridge / EvidenceCentre / CousinPointingContrast /
       MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here.
       TipMemNetAccessPortal MUST NOT nest here.
+      MemNetLanMcpFront MUST NOT nest here.
       Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
       opsFleetInsideSystem=false (device services + one droplet MemNet
       MCP tip/ops is outside; product face is sysmledge).
       tipAccessPortalInsideSystem=false (keyed tip access is outside;
       tip≠face; not a sysmledge product).
+      lanMcpFrontInsideSystem=false (LAN MCP catalogue over N serves
+      is outside; inventOnly #191; not #47 peer pipe).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2617,6 +2627,7 @@ package MemNet {
     attribute usageDashboardInsideSystem : Boolean = false;
     attribute opsFleetInsideSystem : Boolean = false;
     attribute tipAccessPortalInsideSystem : Boolean = false;
+    attribute lanMcpFrontInsideSystem : Boolean = false;
     attribute leftoverFogNested : Boolean = false;
     attribute leftoverArchiveOffLoad : Boolean = true;
     attribute leftoverLayerDeleteThisPr : Boolean = false;
@@ -3146,4 +3157,215 @@ package MemNet {
   }
 
   part tipAccessPortal : TipMemNetAccessPortal;
+
+  // =====================================================================
+  // OPS LAN FRONT — MemNetLanMcpFront (MUST NOT instantiate under
+  // MemNetSystem). Later invent #191: one MCP catalogue, N serve
+  // backends. tip≠face. Cousin of #47, not the same invent.
+  // inventOnly; implemented=false; no SemVer.
+  // =====================================================================
+
+  part def ServeBackend {
+    doc /*
+      One memnet serve process (TCP / IPC) with its own GraphStore,
+      session registry, Caps, Commit gate, and expire snapshot dir.
+      A session that this backend owns lives only here. SHALL NOT
+      merge another backend's graph. Snapshot dir is this host's
+      by default (shared NFS optional ops, not required).
+    */
+    attribute hostKind : String = "lan-serve";
+    attribute oneOwnerHere : Boolean = true;
+    attribute snapshotDirPerBackend : Boolean = true;
+    attribute sharedNfsRequired : Boolean = false;
+    attribute commitGateLocal : Boolean = true;
+    attribute sessionAclLocal : Boolean = true;
+    port mcpIn : RoutedMcpCallInPort;
+    port statusOut : BackendServeStatusOutPort;
+    port authIn : LanFrontAuthInPort;
+    port truncationOut : TruncationHonestyOutPort;
+    port snapOut : SnapshotHandCarryOutPort;
+    port snapIn : SnapshotHandCarryInPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+  }
+
+  part def SessionOwnerRegistry {
+    doc /*
+      Maps session id → backendId. Registry row is the owner.
+      Explicit pin of a new session to a live backend is allowed.
+      Silent hash of sid is not the sole routing policy (hash MAY
+      hint placement; owner is this row). One owner per session.
+    */
+    attribute registryPreferred : Boolean = true;
+    attribute silentHashRouting : Boolean = false;
+    attribute explicitPinAllowed : Boolean = true;
+    attribute oneOwnerPerSession : Boolean = true;
+    port pinIn : SessionOwnerRecordInPort;
+    port ownerOut : SessionOwnerRecordOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+  }
+
+  part def FrontBackendAuth {
+    doc /*
+      Auth on the LAN hop between the MCP front and each serve
+      backend. Not an open port. Session ACL still lives on the
+      owning backend with the session. Public internet remains
+      the InkMirage CEO lock: no unauthenticated MemNet MCP.
+    */
+    attribute lanAuthRequired : Boolean = true;
+    attribute openPort : Boolean = false;
+    attribute unauthenticatedPublicMcp : Boolean = false;
+    port tokenOut : LanFrontAuthOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+  }
+
+  part def SessionOpenRoute {
+    doc /*
+      session_open: honour explicit pin if the backend is live;
+      else pick a live backend and WRITE the registry; forward
+      open to that serve. SHALL NOT route solely by hashing sid.
+    */
+    attribute writesRegistry : Boolean = true;
+    attribute explicitPinFirst : Boolean = true;
+    attribute silentHashSolePolicy : Boolean = false;
+  }
+
+  part def SessionListUnion {
+    doc /*
+      session_list: union reachable backend catalogues; tag each
+      row with owner backendId. MUST NOT look complete if any
+      backend clipped or was unreachable.
+    */
+    attribute ownerTagged : Boolean = true;
+    attribute incompleteIfAnyClippedOrUnreachable : Boolean = true;
+  }
+
+  part def SessionCurrentBind {
+    doc /*
+      session_current: one current sid for this MCP connection,
+      owned by exactly one backend. Owner down → loud fail.
+    */
+    attribute oneCurrentSid : Boolean = true;
+    attribute oneOwner : Boolean = true;
+    attribute loudFailOwnerDown : Boolean = true;
+  }
+
+  part def SnapshotHandCarry {
+    doc /*
+      Optional session move: session_save on the owner, copy the
+      snapshot file, session_load on the dest, then update the
+      registry. Not silent migrate. Cross-host slice otherwise
+      uses #47 / export-file-import. import_slice(from_url) is
+      not shipped (Later / cousin to #47).
+    */
+    attribute silentMigrate : Boolean = false;
+    attribute saveThenLoad : Boolean = true;
+    attribute importSliceFromUrl : Boolean = false;
+    port snapIn : SnapshotHandCarryInPort;
+    port snapOut : SnapshotHandCarryOutPort;
+  }
+
+  part def MemNetLanMcpFront {
+    doc /*
+      OPS nest outside MemNetSystem (MN-REQ-06.9 / #191). One
+      MemNet MCP catalogue in front of N LAN serve backends.
+      Agents see one tool surface. tip≠face.
+      isSysmlEdgeProduct=false. inventOnly=true;
+      implemented=false; codeApproved=false; noSemVerBump.
+      Distinct from MemNetOpsFleet (MN-REQ-06.6: one droplet MCP
+      bound to that host) and from #47 (nServerPeerHandoff).
+      pin_map / find SHALL NOT span backends. Truncation flags
+      survive routing. Rate cap stays per-session; per-backend
+      overlay is optional ops. One serve already hosts many
+      sessions (singleServeHostsManySessions); this nest makes
+      the complexity-versus-capacity trade-off visible without
+      approving engine code.
+    */
+    part registry : SessionOwnerRegistry;
+    part backends : ServeBackend[1..*];
+    part auth : FrontBackendAuth;
+    part openRoute : SessionOpenRoute;
+    part listUnion : SessionListUnion;
+    part currentBind : SessionCurrentBind;
+    part handCarry : SnapshotHandCarry;
+    port routeOut : RoutedMcpCallOutPort;
+    port pinOut : SessionOwnerRecordOutPort;
+    port ownerIn : SessionOwnerRecordInPort;
+    port statusIn : BackendServeStatusInPort;
+    port truncationIn : TruncationHonestyInPort;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute isSysmlEdgeProduct : Boolean = false;
+    attribute inventOnly : Boolean = true;
+    attribute implemented : Boolean = false;
+    attribute codeApproved : Boolean = false;
+    attribute noSemVerBump : Boolean = true;
+    attribute nServerPeerHandoff : Boolean = false;
+    attribute sharedGraphDb : Boolean = false;
+    attribute pinMapSpansBackends : Boolean = false;
+    attribute findSpansBackends : Boolean = false;
+    attribute truncationFlagsSurviveRouting : Boolean = true;
+    attribute incompleteIfAnyClippedOrUnreachable : Boolean = true;
+    attribute loudFailOwnerDown : Boolean = true;
+    attribute silentMigrate : Boolean = false;
+    attribute snapshotDirPerBackend : Boolean = true;
+    attribute sessionAclFollowsSession : Boolean = true;
+    attribute rateCapPerSession : Boolean = true;
+    attribute rateCapPerBackendOptional : Boolean = true;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute cousinIssue47 : Boolean = true;
+    attribute singleServeHostsManySessions : Boolean = true;
+    attribute worthBuildingVisible : Boolean = true;
+    attribute unauthenticatedPublicMcp : Boolean = false;
+
+    connection frontRoutesToOwner : RoutedMcpCallFlow {
+      doc /* Front forwards a call to the owning serve only. */
+      end port source ::> routeOut;
+      end port sink ::> backends.mcpIn;
+    }
+    connection pinIntoRegistry : SessionOwnerRecordFlow {
+      doc /* Open / explicit pin writes the owner row. */
+      end port source ::> pinOut;
+      end port sink ::> registry.pinIn;
+    }
+    connection ownerToFront : SessionOwnerRecordFlow {
+      doc /* Registry row is the owner; not silent hash. */
+      end port source ::> registry.ownerOut;
+      end port sink ::> ownerIn;
+    }
+    connection authToBackend : LanFrontAuthFlow {
+      doc /* LAN hop is authenticated; not an open port. */
+      end port source ::> auth.tokenOut;
+      end port sink ::> backends.authIn;
+    }
+    connection backendStatusToFront : BackendServeStatusFlow {
+      doc /* Per-backend serve_status; owner down is loud. */
+      end port source ::> backends.statusOut;
+      end port sink ::> statusIn;
+    }
+    connection truncationThroughFront : TruncationHonestyFlow {
+      doc /* Caps / truncation flags survive routing. */
+      end port source ::> backends.truncationOut;
+      end port sink ::> truncationIn;
+    }
+    connection handCarryBetweenBackends : SnapshotHandCarryFlow {
+      doc /* Optional save+load move; not a live MERGE. */
+      end port source ::> backends.snapOut;
+      end port sink ::> handCarry.snapIn;
+    }
+    connection handCarryOntoDest : SnapshotHandCarryFlow {
+      doc /* Load the copied snapshot on the dest backend. */
+      end port source ::> handCarry.snapOut;
+      end port sink ::> backends.snapIn;
+    }
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
+  }
+
+  part lanMcpFront : MemNetLanMcpFront;
 }
