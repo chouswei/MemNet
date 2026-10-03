@@ -24,7 +24,8 @@
     MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
     MN-REQ-06.7        Allocate SSOT parts to live code in this checkout (one Hatch wheel, many hosts; sysmledge not in wheel)
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
-    MN-REQ-06.9        LAN MCP front invent (#191): one MCP catalogue, N LAN serves; registry owner; cousin of #47; inventOnly
+    MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
+    MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -781,15 +782,18 @@ package MemNetRequirements {
 
       requirement def MN_REQ_06_9_LanMcpFrontSeveralServes {
         doc /*
-          OPTIONAL Later invent (#191): one MemNet MCP front MAY
+          OPTIONAL Later invent (#191): named move ClusterRoute —
+          where the session lives. One MemNet MCP front MAY
           catalogue sessions across several LAN memnet serve
-          backends. This is engine/tip topology (tip≠face). SHALL
-          NOT be the SysMLEdge product face, an AccountFace UI, or
+          backends. Realised by MemNetLanMcpFront. This is
+          engine/tip topology (tip≠face). SHALL NOT be the
+          SysMLEdge product face, an AccountFace UI, or
           InvenTree. SHALL NOT nest under MemNetSystem.
           Distinct from MN-REQ-06.6 (one droplet MCP bound to that
           host's serve; device registries stay independent) and
-          from #47 (peer sid handoff / optional bounded import
-          between independent MemNets with no shared catalogue).
+          from MN-REQ-06.10 / #47 (SliceHandCarry: explicit copy
+          of a bounded WorkingMemorySlice into another session;
+          no shared catalogue; not a live hop).
           Placement: SessionOwnerRegistry entry SHALL be the owner
           of a session. Explicit pin of a new session to a live
           backend SHALL be allowed. Silent hash of sid SHALL NOT
@@ -805,16 +809,18 @@ package MemNetRequirements {
           SHALL NOT merge graphs across backends. Commit / mutate
           SHALL stay the owning serve's one gate.
           Recall: pin_map and find SHALL NOT span sessions on
-          different backends in one call. Cross-host slice moves
-          SHALL use the #47 path, export then file copy then
-          import, or session_save / session_load hand-carry.
+          different backends in one call. Relocating where the
+          SAME session lives MAY use SnapshotHandCarry
+          (session_save then load, then update the registry).
+          Copying atoms into a DIFFERENT session is SliceHandCarry
+          (MN-REQ-06.10), not this cluster move.
           SHALL NOT invent shipped import_slice(from_url).
           Caps: hard max_rows / hops and truncation flags SHALL
           survive routing. A multi-backend answer SHALL NOT look
           complete if any backend clipped or was unreachable.
           Failure: serve_status SHALL be per-backend. Owner
-          backend down SHALL fail loudly. Session move SHALL be
-          optional save then load via snapshot dir, not silent
+          backend down SHALL fail loudly. Session relocate SHALL
+          be optional save then load via snapshot dir, not silent
           migrate.
           TTL / expire-save: snapshot dir SHALL be per-backend by
           default. Shared NFS is an optional ops choice, not
@@ -832,6 +838,39 @@ package MemNetRequirements {
           false; no SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.9";
+      }
+
+      requirement def MN_REQ_06_10_SliceHandCarryAcrossServes {
+        doc /*
+          OPTIONAL Later invent (#47 cousin; contrast to #191):
+          named move SliceHandCarry — a bounded WorkingMemorySlice
+          MAY leave one memnet serve and be absorbed into a
+          session on another serve (or into a different session
+          on the same serve). This is an explicit copy, not
+          ClusterRoute, not a live hop, and not import_slice
+          across hosts. Engine/tip topology (tip≠face). SHALL
+          NOT be the SysMLEdge product face, an AccountFace UI,
+          or InvenTree. SHALL NOT nest under MemNetSystem.
+          Path SHALL be export_pin_map or session_save, then
+          operator file copy on the LAN, then import or
+          session_load on the destination. import_slice SHALL
+          be allowed only when both sessions already live on
+          the SAME serve. SHALL NOT invent shipped
+          import_slice(from_url). SHALL NOT teach dest-side
+          absorb of a remote URL as import_slice.
+          Source session SHALL stay on its owning serve. Dest
+          SHALL be a different session (same host or other host).
+          Caps and truncation flags SHALL survive the file.
+          A clipped extract SHALL NOT look complete.
+          Commit / mutate SHALL stay the dest session's owning
+          serve gate after absorb. Neo4j shared graph DB is
+          retired (#189) and SHALL NOT be the pipe. Distinct
+          from MN-REQ-06.9 (ClusterRoute: where the session
+          lives; pin_map / find SHALL NOT span backends).
+          inventOnly; implemented=false; codeApproved=false;
+          no SemVer bump. Public operator text: InkMirage only.
+        */
+        attribute requirementId : String = "MN-REQ-06.10";
       }
     }
 
@@ -1779,6 +1818,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_8_TipMemNetAccessPortal;
   requirement lanMcpFrontSeveralServesReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+  requirement sliceHandCarryAcrossServesReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -2002,6 +2043,7 @@ package MemNetRequirements {
     end #derive ::> ssotToCodeAllocateReq;
     end #derive ::> tipMemNetAccessPortalReq;
     end #derive ::> lanMcpFrontSeveralServesReq;
+    end #derive ::> sliceHandCarryAcrossServesReq;
   }
 
   #derivation connection deriveMcpLeaves {

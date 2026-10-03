@@ -87,12 +87,17 @@
   HTTP. Free strangers stay on the SysMLEdge free tier or
   memnet-llm self-host.
   APPLICATION / OPS LAN FRONT (not in MemNetSystem): MemNetLanMcpFront —
-  Later invent (#191): one MCP catalogue in front of N LAN
-  memnet serve backends. SessionOwnerRegistry is owner (explicit
-  pin allowed; silent hash is not sole routing). One owner per
-  session; no cross-backend graph merge. pin_map / find SHALL NOT
-  span backends. Cousin of #47 (peer sid handoff), not the same
-  invent. tip≠face; inventOnly; no SemVer.
+  Later invent (#191): named move ClusterRoute — where the session
+  lives. One MCP catalogue in front of N LAN memnet serve backends.
+  SessionOwnerRegistry is owner (explicit pin allowed; silent hash
+  is not sole routing). One owner per session; no cross-backend
+  graph merge. pin_map / find SHALL NOT span backends. Distinct
+  from SliceHandCarry (MN-REQ-06.10 / #47 cousin). tip≠face;
+  inventOnly; no SemVer.
+  APPLICATION / OPS TWO MOVES (not in MemNetSystem): MemNetTwoMoves —
+  one nest ClusterRoute vs SliceHandCarry so agents do not conflate
+  routing (where the session lives) with an explicit copy into
+  another session. inventOnly #191 + #47 cousin.
   APPLICATION (not in MemNetSystem): CousinPointingContrast — TARGET vs
   eight cousin pointing/identity designs (sysml-models/models/cousins.sysml),
   including SysMLEdge (distinct pin_map / desk; not MemNet session strata;
@@ -2610,6 +2615,7 @@ package MemNet {
       MemNetUsageDashboard / MemNetOpsFleet MUST NOT nest here.
       TipMemNetAccessPortal MUST NOT nest here.
       MemNetLanMcpFront MUST NOT nest here.
+      MemNetTwoMoves / SliceHandCarry MUST NOT nest here.
       Only MN-REQ-00 satisfied here.
       usageDashboardInsideSystem=false (ops look is outside; not MCP face).
       opsFleetInsideSystem=false (device services + one droplet MemNet
@@ -2617,7 +2623,9 @@ package MemNet {
       tipAccessPortalInsideSystem=false (keyed tip access is outside;
       tip≠face; not a sysmledge product).
       lanMcpFrontInsideSystem=false (LAN MCP catalogue over N serves
-      is outside; inventOnly #191; not #47 peer pipe).
+      is outside; inventOnly #191; ClusterRoute, not SliceHandCarry).
+      twoMovesInsideSystem=false (ClusterRoute vs SliceHandCarry
+      contrast is outside; inventOnly).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2628,6 +2636,7 @@ package MemNet {
     attribute opsFleetInsideSystem : Boolean = false;
     attribute tipAccessPortalInsideSystem : Boolean = false;
     attribute lanMcpFrontInsideSystem : Boolean = false;
+    attribute twoMovesInsideSystem : Boolean = false;
     attribute leftoverFogNested : Boolean = false;
     attribute leftoverArchiveOffLoad : Boolean = true;
     attribute leftoverLayerDeleteThisPr : Boolean = false;
@@ -3254,17 +3263,48 @@ package MemNet {
 
   part def SnapshotHandCarry {
     doc /*
-      Optional session move: session_save on the owner, copy the
-      snapshot file, session_load on the dest, then update the
-      registry. Not silent migrate. Cross-host slice otherwise
-      uses #47 / export-file-import. import_slice(from_url) is
-      not shipped (Later / cousin to #47).
+      ClusterRoute optional relocate: session_save on the owner,
+      copy the snapshot file, session_load on the dest, then
+      update the registry. Same session identity; new owner.
+      Not silent migrate. Not SliceHandCarry (copy into another
+      session). import_slice(from_url) is not shipped.
     */
     attribute silentMigrate : Boolean = false;
     attribute saveThenLoad : Boolean = true;
     attribute importSliceFromUrl : Boolean = false;
+    attribute isClusterRelocate : Boolean = true;
+    attribute isSliceCopy : Boolean = false;
     port snapIn : SnapshotHandCarryInPort;
     port snapOut : SnapshotHandCarryOutPort;
+  }
+
+  part def ClusterRoute {
+    doc /*
+      Named move A (#191 / MN-REQ-06.9): where the session lives.
+      Realised by MemNetLanMcpFront. SHALL NOT duplicate that nest
+      (no second SessionOwnerRegistry / ServeBackend here).
+      One owner per session. pin_map / find SHALL NOT span backends.
+      Loud incomplete if a backend is down or clipped. Commit stays
+      the owning serve's one gate. Optional SnapshotHandCarry
+      relocates the SAME sid (still this move). Copying atoms into
+      a DIFFERENT session is SliceHandCarry, not this move.
+    */
+    part openRoute : SessionOpenRoute;
+    part listUnion : SessionListUnion;
+    part currentBind : SessionCurrentBind;
+    attribute isWhereSessionLives : Boolean = true;
+    attribute isExplicitCopy : Boolean = false;
+    attribute isLiveHop : Boolean = false;
+    attribute oneOwnerPerSession : Boolean = true;
+    attribute pinMapSpansBackends : Boolean = false;
+    attribute findSpansBackends : Boolean = false;
+    attribute incompleteIfAnyClippedOrUnreachable : Boolean = true;
+    attribute loudFailOwnerDown : Boolean = true;
+    attribute realisedByLanFront : Boolean = true;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute sharedGraphDb : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
   }
 
   part def MemNetLanMcpFront {
@@ -3275,7 +3315,9 @@ package MemNet {
       isSysmlEdgeProduct=false. inventOnly=true;
       implemented=false; codeApproved=false; noSemVerBump.
       Distinct from MemNetOpsFleet (MN-REQ-06.6: one droplet MCP
-      bound to that host) and from #47 (nServerPeerHandoff).
+      bound to that host) and from SliceHandCarry (MN-REQ-06.10 /
+      #47 cousin: explicit copy into another session).
+      Named move: ClusterRoute — where the session lives.
       pin_map / find SHALL NOT span backends. Truncation flags
       survive routing. Rate cap stays per-session; per-backend
       overlay is optional ops. One serve already hosts many
@@ -3283,12 +3325,10 @@ package MemNet {
       the complexity-versus-capacity trade-off visible without
       approving engine code.
     */
+    part clusterRoute : ClusterRoute;
     part registry : SessionOwnerRegistry;
     part backends : ServeBackend[1..*];
     part auth : FrontBackendAuth;
-    part openRoute : SessionOpenRoute;
-    part listUnion : SessionListUnion;
-    part currentBind : SessionCurrentBind;
     part handCarry : SnapshotHandCarry;
     port routeOut : RoutedMcpCallOutPort;
     port pinOut : SessionOwnerRecordOutPort;
@@ -3368,4 +3408,171 @@ package MemNet {
   }
 
   part lanMcpFront : MemNetLanMcpFront;
+
+  // =====================================================================
+  // OPS TWO MOVES — ClusterRoute vs SliceHandCarry (MUST NOT
+  // instantiate under MemNetSystem). One diagram: where the
+  // session lives versus an explicit copy into another session.
+  // inventOnly; implemented=false; no SemVer. tip≠face.
+  // =====================================================================
+
+  part def SliceExportCarry {
+    doc /*
+      Source side of SliceHandCarry. SHALL emit export_pin_map
+      (bounded cue GQL) or session_save (snapshot file).
+      TruncationHonestyMark SHALL ride with the file. SHALL NOT
+      claim a complete extract when clipped. SHALL NOT be a live
+      MCP hop. SHALL NOT call import_slice(from_url).
+    */
+    attribute exportPinMapAllowed : Boolean = true;
+    attribute sessionSaveAllowed : Boolean = true;
+    attribute isLiveHop : Boolean = false;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute clippedMustNotLookComplete : Boolean = true;
+    port sliceOut : WorkingMemorySliceOutPort;
+    port fileOut : SliceFileOutPort;
+    port truncOut : TruncationHonestyOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+  }
+
+  part def LanFileCopy {
+    doc /*
+      Operator copies SliceHandCarryFile on the LAN from source
+      serve to dest serve. SHALL NOT be an MCP hop. SHALL NOT be
+      import_slice(from_url). SHALL NOT be ClusterRoute routing.
+    */
+    attribute isLiveHop : Boolean = false;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute isClusterRoute : Boolean = false;
+    port fileIn : SliceFileInPort;
+    port fileOut : SliceFileOutPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+  }
+
+  part def DestSessionAbsorb {
+    doc /*
+      Destination of SliceHandCarry. SAME serve: import_slice
+      into the dest session (both sessions already on that
+      serve). OTHER serve: session_load of a snapshot, or
+      dest-local absorb of the copied GQL file into the dest
+      session. import_slice across hosts SHALL be false.
+      Dest SHALL be a different session. Source session stays
+      on its owner. Commit after absorb is the dest serve gate.
+    */
+    attribute importSliceSameServeOnly : Boolean = true;
+    attribute importSliceAcrossHosts : Boolean = false;
+    attribute sessionLoadOnDest : Boolean = true;
+    attribute destIsDifferentSession : Boolean = true;
+    attribute sourceSessionStays : Boolean = true;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute commitGateOnDestOwner : Boolean = true;
+    port fileIn : SliceFileInPort;
+    port sliceIn : WorkingMemorySliceInPort;
+    port truncIn : TruncationHonestyInPort;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+  }
+
+  part def SliceHandCarry {
+    doc /*
+      Named move B (#47 cousin / MN-REQ-06.10): explicit copy of
+      a bounded WorkingMemorySlice into another session (same
+      host or other host). NOT ClusterRoute. NOT a live hop.
+      NOT import_slice across hosts. Path: export_pin_map or
+      session_save → LAN file copy → import/session_load on dest.
+      import_slice only when both sessions are on the SAME serve.
+      Caps and truncation flags survive. A clipped extract SHALL
+      NOT look complete. inventOnly; implemented=false.
+      Public operator text: InkMirage only.
+    */
+    part exportCarry : SliceExportCarry;
+    part lanCopy : LanFileCopy;
+    part destAbsorb : DestSessionAbsorb;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute isSysmlEdgeProduct : Boolean = false;
+    attribute inventOnly : Boolean = true;
+    attribute implemented : Boolean = false;
+    attribute codeApproved : Boolean = false;
+    attribute noSemVerBump : Boolean = true;
+    attribute isWhereSessionLives : Boolean = false;
+    attribute isExplicitCopy : Boolean = true;
+    attribute isLiveHop : Boolean = false;
+    attribute importSliceSameServeOnly : Boolean = true;
+    attribute importSliceAcrossHosts : Boolean = false;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute destIsDifferentSession : Boolean = true;
+    attribute sourceSessionStays : Boolean = true;
+    attribute truncationFlagsSurvive : Boolean = true;
+    attribute clippedMustNotLookComplete : Boolean = true;
+    attribute sharedGraphDb : Boolean = false;
+    attribute commitGateOnOwningServe : Boolean = true;
+    attribute cousinIssue47 : Boolean = true;
+    attribute isClusterRoute : Boolean = false;
+
+    connection sameServeSlice : WorkingMemorySliceFlow {
+      doc /* Same serve: import_slice dest session. Not cross-host. */
+      end port source ::> exportCarry.sliceOut;
+      end port sink ::> destAbsorb.sliceIn;
+    }
+    connection exportToCopy : SliceFileFlow {
+      doc /* export_pin_map or session_save file toward LAN copy. */
+      end port source ::> exportCarry.fileOut;
+      end port sink ::> lanCopy.fileIn;
+    }
+    connection copyToDest : SliceFileFlow {
+      doc /* Copied file onto dest; not import_slice(from_url). */
+      end port source ::> lanCopy.fileOut;
+      end port sink ::> destAbsorb.fileIn;
+    }
+    connection truncThroughCarry : TruncationHonestyFlow {
+      doc /* Caps / truncation flags survive the file. */
+      end port source ::> exportCarry.truncOut;
+      end port sink ::> destAbsorb.truncIn;
+    }
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
+  }
+
+  part def MemNetTwoMoves {
+    doc /*
+      OPS nest outside MemNetSystem. ONE diagram of the two
+      named moves agents keep conflating: ClusterRoute (A —
+      where the session lives; realised by MemNetLanMcpFront)
+      versus SliceHandCarry (B — explicit copy into another
+      session). SHALL NOT duplicate ServeBackend / registry
+      here. SHALL NOT be a live hop. SHALL NOT ship
+      import_slice(from_url). Caps survive both moves.
+      inventOnly; implemented=false; no SemVer. tip≠face.
+      Public operator text: InkMirage only.
+    */
+    part clusterRoute : ClusterRoute;
+    part sliceHandCarry : SliceHandCarry;
+    attribute insideMemNetSystem : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute isSysmlEdgeProduct : Boolean = false;
+    attribute inventOnly : Boolean = true;
+    attribute implemented : Boolean = false;
+    attribute codeApproved : Boolean = false;
+    attribute noSemVerBump : Boolean = true;
+    attribute clusterIsWhereSessionLives : Boolean = true;
+    attribute sliceIsExplicitCopy : Boolean = true;
+    attribute liveHop : Boolean = false;
+    attribute importSliceAcrossHosts : Boolean = false;
+    attribute importSliceFromUrl : Boolean = false;
+    attribute sharedGraphDb : Boolean = false;
+    attribute truncationFlagsSurviveBothMoves : Boolean = true;
+    attribute clippedMustNotLookComplete : Boolean = true;
+    attribute commitGateOnOwningServe : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+  }
+
+  part sliceHandCarry : SliceHandCarry;
+  part twoMoves : MemNetTwoMoves;
 }

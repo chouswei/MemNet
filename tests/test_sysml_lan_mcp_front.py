@@ -26,6 +26,8 @@ def test_lan_front_parts_outside_system():
     assert "part def ServeBackend" in text
     assert "part def SessionOwnerRegistry" in text
     assert "part def FrontBackendAuth" in text
+    assert "part def ClusterRoute" in text
+    assert "part clusterRoute : ClusterRoute" in text
     assert "part def SessionOpenRoute" in text
     assert "part def SessionListUnion" in text
     assert "part def SessionCurrentBind" in text
@@ -71,6 +73,7 @@ def test_requirement_verify_and_load():
     assert "front.pinMapSpansBackends == false" in ver
     assert "front.registry.silentHashRouting == false" in ver
     assert "front.importSliceFromUrl == false" in ver
+    assert "front.clusterRoute.openRoute.writesRegistry == true" in ver
     conn = CONNECTIONS.read_text(encoding="utf-8")
     assert "item def MemNetLanMcpCluster" in conn
     assert "item def SessionOwnerRecord" in conn

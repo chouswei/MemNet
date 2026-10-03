@@ -9,7 +9,9 @@ package ProjectMemNet {
   private import MemNet::*;
   // TipMemNetAccessPortal is in package MemNet, outside MemNetSystem
   // (same import as MemNetUsageDashboard / MemNetOpsFleet). tip≠face.
-  // MemNetLanMcpFront is the same nest (invent-only #191; cousin of #47).
+  // MemNetLanMcpFront is the same nest (invent-only #191; ClusterRoute).
+  // MemNetTwoMoves / SliceHandCarry is the sibling named move
+  // (invent-only #47 cousin; explicit copy, not a live hop).
   private import MemNetImplementation::*;
   private import MemNetBehaviour::*;
   private import MemNetVerification::*;
