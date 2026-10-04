@@ -327,8 +327,8 @@ def _house_sysml(*, parts: int, extra_satisfies: int = 0) -> str:
 
 def test_ingest_defaults_are_one_node_cap_and_one_edge_cap():
     """Pin budget is the node cap. CLI, MCP, and library share both defaults."""
-    assert DEFAULT_INGEST_MAX_NODES == 400
-    assert DEFAULT_INGEST_MAX_EDGES == 400
+    assert DEFAULT_INGEST_MAX_NODES == 2000
+    assert DEFAULT_INGEST_MAX_EDGES == 2000
     for fn in (
         ingest_sysml,
         PinMapIngest_Sysml.project,
@@ -349,6 +349,17 @@ def test_house_sized_projection_fits_default_node_and_edge_caps(tmp_path: Path):
     result = ingest_sysml(None, path, dry_run=True)
     assert result.node_count == 340
     assert result.edge_count >= 332
+    assert result.node_count <= DEFAULT_INGEST_MAX_NODES
+    assert result.edge_count <= DEFAULT_INGEST_MAX_EDGES
+
+
+def test_several_times_house_fits_default_caps(tmp_path: Path):
+    """Omitted caps must accept several times the 340 / 332 house walk."""
+    path = tmp_path / "several_houses.sysml"
+    path.write_text(_house_sysml(parts=5 * 340 - 1), encoding="utf-8")
+    result = ingest_sysml(None, path, dry_run=True)
+    assert result.node_count == 5 * 340
+    assert result.edge_count >= 5 * 332
     assert result.node_count <= DEFAULT_INGEST_MAX_NODES
     assert result.edge_count <= DEFAULT_INGEST_MAX_EDGES
 
@@ -525,8 +536,8 @@ def test_sysml_model_kinds_match_ingest_emit(tmp_path: Path):
     assert "nodeKinds" in attrs
     assert "edgeRelations" in attrs
     body = part.group("body")
-    assert "defaultMaxNodes : Integer = 400" in body
-    assert "defaultMaxEdges : Integer = 400" in body
+    assert "defaultMaxNodes : Integer = 2000" in body
+    assert "defaultMaxEdges : Integer = 2000" in body
 
     fixture = tmp_path / "kinds.sysml"
     fixture.write_text(_KINDS_FIXTURE, encoding="utf-8")

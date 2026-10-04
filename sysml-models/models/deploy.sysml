@@ -1755,8 +1755,8 @@ package MemNet {
     attribute roadmapOnly : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
-    attribute defaultMaxNodes : Integer = 400;
-    attribute defaultMaxEdges : Integer = 400;
+    attribute defaultMaxNodes : Integer = 2000;
+    attribute defaultMaxEdges : Integer = 2000;
     attribute leftoverAllocateFromLocatorProductCommand : Boolean = false;
     attribute leftoverIngestIsIdRuleProductCommand : Boolean = false;
     attribute leftoverLocatorMint : Boolean = true;
@@ -1792,8 +1792,8 @@ package MemNet {
     attribute firstEngine : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
-    attribute defaultMaxNodes : Integer = 400;
-    attribute defaultMaxEdges : Integer = 400;
+    attribute defaultMaxNodes : Integer = 2000;
+    attribute defaultMaxEdges : Integer = 2000;
     attribute nodeKinds : String = "PKG,PRT,REQ,POR,CON";
     attribute edgeRelations : String = "contains,satisfies,typedBy,hasPort,connects";
     attribute leftoverLocatorMint : Boolean = true;

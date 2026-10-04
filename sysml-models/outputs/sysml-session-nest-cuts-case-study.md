@@ -197,7 +197,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
 | Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |
-| Ingest `max_nodes=400` / `max_edges=400` on `deploy.sysml` | can hit `ingest_budget` before a recurse cut |
+| Ingest `max_nodes=2000` / `max_edges=2000` | covers this house and `deploy.sysml` (504); a ~10k file still hits `ingest_budget` before a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still `[:max_rows]` |
 | VehicleUsages `interface` / `subsets` / `redefines` / `flow` | not in `_DEF_HEAD`; `.sysml` SSOT |
 | `liveNeo4jClaimed` | extra **0.14**; not this Snap’s fence |
