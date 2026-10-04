@@ -29,8 +29,8 @@ Path-B: `ingest_*` into the current session. Catalog Snap: `snap_model`. Join a 
 | `pin_map` | cue: `kind` / `locators` / `keyword` / `cue` / empty outline | `depth`, `max_rows`, `view`, `session`, `caller`, leftover `anchor`/`anchors` | Primary read |
 | `find` | `limit` | `kind`, `locators`, `keyword`, `session` | Seeds only |
 | `mutate` | `wire_lines` | `allow_new_relation`, `session`, `llm_id`, `caller`, `mission_id`, `lease`, `write_scope` | Product Commit |
-| `snap_model` | `root` | `map_file`, `max_nodes`, `max_files`, `ttl` | Catalog + interiors |
-| `ingest_sysml` | `path` | `max_nodes`, `max_files`, `root`, `dry_run`, `session` | 1 path → this session |
+| `snap_model` | `root` | `map_file`, `max_nodes`, `max_edges`, `max_files`, `ttl` | Catalog + interiors |
+| `ingest_sysml` | `path` | `max_nodes`, `max_edges`, `max_files`, `root`, `dry_run`, `session` | 1 path → this session |
 | `ingest_codebase` / `ingest_pcba` / `ingest_skills` | `path` | same family | Locator pins |
 | `export_pin_map` | same cue family as `pin_map` | `out`, `view`, `session`, leftover `anchor`/`anchors` | Cue GQL write-out |
 | `import_slice` | `from_session`, leftover nick `anchors` | `depth`, `max_rows`, `view`, `session`, leftover `id_policy` | Slice Absorb |

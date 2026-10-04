@@ -1745,12 +1745,18 @@ package MemNet {
       (leftoverLocatorMint) and leftover_ingestIsIdRule. leftover_NEW_mint
       is leftover sugar, not TARGET. Wire = GQL family. Commit via
       MutateGate. As-is module: memnet.pin_map_ingest.
+      A pin is a node: defaultMaxNodes is the pin budget (one number).
+      defaultMaxEdges is the only other ingest cap. Over either default
+      SHALL hard-refuse ingest_budget. SHALL NOT silent-clip. SHALL NOT
+      invent a third pin-vs-node budget.
     */
     attribute domainVariant : String;
     attribute implemented : Boolean = false;
     attribute roadmapOnly : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute defaultMaxNodes : Integer = 400;
+    attribute defaultMaxEdges : Integer = 400;
     attribute leftoverAllocateFromLocatorProductCommand : Boolean = false;
     attribute leftoverIngestIsIdRuleProductCommand : Boolean = false;
     attribute leftoverLocatorMint : Boolean = true;
@@ -1771,9 +1777,12 @@ package MemNet {
     doc /*
       FIRST Path-B engine (ship order). Selective SysML v2 .sysml → PKG / PRT /
       REQ / POR / CON pins with path= + qname= (+ requirementId=).
-      Bounded (max_nodes / file caps). As-is: implemented (MN-REQ-11.13,
-      11.16; issue #31). MUST NOT satisfy MN-REQ-11.1–11.5 (ingest is not
-      export). Module: memnet.pin_map_ingest.PinMapIngest_Sysml.
+      Bounded (defaultMaxNodes / defaultMaxEdges / file caps). A pin is a
+      node — defaultMaxNodes is the pin budget, not a second cap.
+      Over either default SHALL hard-refuse ingest_budget. SHALL NOT
+      silent-clip. As-is: implemented (MN-REQ-11.13, 11.16; issue #31).
+      MUST NOT satisfy MN-REQ-11.1–11.5 (ingest is not export).
+      Module: memnet.pin_map_ingest.PinMapIngest_Sysml.
       Path-B is a keyword and brace walk that Commits GQL pins; it is not a
       SysML v2 parser and has no grammar.
     */
@@ -1783,6 +1792,8 @@ package MemNet {
     attribute firstEngine : Boolean = true;
     attribute rejectsClientNew : Boolean = true;
     attribute wireDialect : String = "gql";
+    attribute defaultMaxNodes : Integer = 400;
+    attribute defaultMaxEdges : Integer = 400;
     attribute nodeKinds : String = "PKG,PRT,REQ,POR,CON";
     attribute edgeRelations : String = "contains,satisfies,typedBy,hasPort,connects";
     attribute leftoverLocatorMint : Boolean = true;

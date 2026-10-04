@@ -14,6 +14,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from memnet.config import DEFAULT_INGEST_MAX_EDGES, DEFAULT_INGEST_MAX_NODES
 from memnet.exceptions import MemNetError
 from memnet.gql import _emit_props
 from memnet.id_allocator import IdAllocator
@@ -185,7 +186,8 @@ class PinMapIngest_Sysml(PinMapIngestBase):
         self,
         path: str | Path,
         *,
-        max_nodes: int = 200,
+        max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+        max_edges: int = DEFAULT_INGEST_MAX_EDGES,
         max_files: int = 64,
         root: str | Path | None = None,
     ) -> IngestResult:
@@ -194,6 +196,7 @@ class PinMapIngest_Sysml(PinMapIngestBase):
         nodes, edges, _root_path = project_sysml_parts(
             path,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=max_files,
             root=root,
         )
@@ -221,7 +224,8 @@ class PinMapIngest_Codebase(PinMapIngestBase):
         self,
         path: str | Path,
         *,
-        max_nodes: int = 200,
+        max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+        max_edges: int = DEFAULT_INGEST_MAX_EDGES,
         max_files: int = 64,
         root: str | Path | None = None,
     ) -> IngestResult:
@@ -250,6 +254,7 @@ class PinMapIngest_Codebase(PinMapIngestBase):
                 mod_index=mod_index,
                 max_nodes=max_nodes,
             )
+        _budget_over(nodes, max_nodes, edges, max_edges)
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
@@ -274,7 +279,8 @@ class PinMapIngest_PcbaAto(PinMapIngestBase):
         self,
         path: str | Path,
         *,
-        max_nodes: int = 200,
+        max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+        max_edges: int = DEFAULT_INGEST_MAX_EDGES,
         max_files: int = 64,
         root: str | Path | None = None,
     ) -> IngestResult:
@@ -305,6 +311,7 @@ class PinMapIngest_PcbaAto(PinMapIngestBase):
                 pin_index=pin_index,
                 max_nodes=max_nodes,
             )
+        _budget_over(nodes, max_nodes, edges, max_edges)
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
@@ -329,7 +336,8 @@ class PinMapIngest_SkillsRules(PinMapIngestBase):
         self,
         path: str | Path,
         *,
-        max_nodes: int = 200,
+        max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+        max_edges: int = DEFAULT_INGEST_MAX_EDGES,
         max_files: int = 64,
         root: str | Path | None = None,
     ) -> IngestResult:
@@ -362,6 +370,7 @@ class PinMapIngest_SkillsRules(PinMapIngestBase):
 
         # Second pass: resolve deferred related/paired edges now that index is full.
         _resolve_skill_edges(nodes, edges, skill_index, alloc)
+        _budget_over(nodes, max_nodes, edges, max_edges)
 
         gql = _nodes_edges_to_gql(nodes, edges)
         reject_client_new(gql)
@@ -403,14 +412,21 @@ def ingest_sysml(
     session,
     path: str | Path,
     *,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | Path | None = None,
     dry_run: bool = False,
 ) -> IngestResult:
     """Convenience: project (+ optionally commit) SysML Path-B pins."""
     eng = PinMapIngest_Sysml()
-    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    result = eng.project(
+        path,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        max_files=max_files,
+        root=root,
+    )
     if dry_run:
         return result
     return eng.commit(session, result)
@@ -420,14 +436,21 @@ def ingest_codebase(
     session,
     path: str | Path,
     *,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | Path | None = None,
     dry_run: bool = False,
 ) -> IngestResult:
     """Convenience: project (+ optionally commit) codebase Path-B pins."""
     eng = PinMapIngest_Codebase()
-    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    result = eng.project(
+        path,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        max_files=max_files,
+        root=root,
+    )
     if dry_run:
         return result
     return eng.commit(session, result)
@@ -437,14 +460,21 @@ def ingest_pcba(
     session,
     path: str | Path,
     *,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | Path | None = None,
     dry_run: bool = False,
 ) -> IngestResult:
     """Convenience: project (+ optionally commit) PCBA .ato Path-B pins."""
     eng = PinMapIngest_PcbaAto()
-    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    result = eng.project(
+        path,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        max_files=max_files,
+        root=root,
+    )
     if dry_run:
         return result
     return eng.commit(session, result)
@@ -454,14 +484,21 @@ def ingest_skills(
     session,
     path: str | Path,
     *,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | Path | None = None,
     dry_run: bool = False,
 ) -> IngestResult:
     """Convenience: project (+ optionally commit) skills/rules Path-B pins."""
     eng = PinMapIngest_SkillsRules()
-    result = eng.project(path, max_nodes=max_nodes, max_files=max_files, root=root)
+    result = eng.project(
+        path,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        max_files=max_files,
+        root=root,
+    )
     if dry_run:
         return result
     return eng.commit(session, result)
@@ -475,7 +512,8 @@ def ingest_skills(
 def project_sysml_parts(
     path: str | Path,
     *,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | Path | None = None,
     satisfy_events: list[tuple[str, str]] | None = None,
@@ -502,8 +540,10 @@ def project_sysml_parts(
             name_index=name_index,
             qname_index=qname_index,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             satisfy_events=satisfy_events,
         )
+    _budget_over(nodes, max_nodes, edges, max_edges)
     return nodes, edges, root_path
 
 
@@ -562,6 +602,7 @@ def _project_sysml_file(
     name_index: dict[str, str],
     qname_index: dict[str, str],
     max_nodes: int,
+    max_edges: int,
     satisfy_events: list[tuple[str, str]] | None = None,
 ) -> None:
     text = _strip_comments(fpath.read_text(encoding="utf-8", errors="replace"))
@@ -626,6 +667,7 @@ def _project_sysml_file(
             if dst_id and src_id != dst_id:
                 eid = alloc.allocate_from_locator("E", f"sat_{src_id}_{dst_id}")
                 if (eid, src_id, "satisfies", dst_id) not in edges:
+                    _edge_budget_check(edges, max_edges)
                     edges.append((eid, src_id, "satisfies", dst_id))
             elif satisfy_events is not None and not dst_id:
                 src_qname = next(
@@ -668,6 +710,7 @@ def _project_sysml_file(
         if stack:
             parent_id = stack[-1][2]
             eid = alloc.allocate_from_locator("E", f"contains_{parent_id}_{nid}")
+            _edge_budget_check(edges, max_edges)
             edges.append((eid, parent_id, "contains", nid))
         after = text[m.end() :]
         type_m = _TYPE_AFTER.match(after)
@@ -690,6 +733,8 @@ def _project_sysml_file(
         name_index=name_index,
         qname_index=qname_index,
         alloc=alloc,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
     )
 
 
@@ -745,12 +790,15 @@ def _append_sysml_edge(
     src_id: str,
     rel: str,
     dst_id: str,
+    *,
+    max_edges: int,
 ) -> None:
     if not src_id or not dst_id or src_id == dst_id:
         return
     eid = alloc.allocate_from_locator("E", f"{rel}_{src_id}_{dst_id}")
     rec = (eid, src_id, rel, dst_id)
     if rec not in edges:
+        _edge_budget_check(edges, max_edges)
         edges.append(rec)
 
 
@@ -787,6 +835,8 @@ def _emit_con_relations(
     name_index: dict[str, str],
     qname_index: dict[str, str],
     alloc: IdAllocator,
+    max_nodes: int,
+    max_edges: int,
 ) -> None:
     """Cheap CON typedBy / hasPort / connects when names already projected."""
     for nid, type_name, body in pending_con:
@@ -799,7 +849,14 @@ def _emit_con_relations(
                 prefer=("CON", "PRT", "POR"),
             )
             if dst:
-                _append_sysml_edge(edges, alloc, nid, "typedBy", dst)
+                _append_sysml_edge(
+                    edges,
+                    alloc,
+                    nid,
+                    "typedBy",
+                    dst,
+                    max_edges=max_edges,
+                )
         if not body:
             continue
         for m in _END_TYPED.finditer(body):
@@ -814,7 +871,14 @@ def _emit_con_relations(
             if not dst:
                 continue
             rel = "hasPort" if _kind_of_node(nodes, dst) == "POR" else "typedBy"
-            _append_sysml_edge(edges, alloc, nid, rel, dst)
+            _append_sysml_edge(
+                edges,
+                alloc,
+                nid,
+                rel,
+                dst,
+                max_edges=max_edges,
+            )
         for m in _END_CONNECT.finditer(body):
             dst = _resolve_sysml_name(
                 m.group(1),
@@ -824,7 +888,14 @@ def _emit_con_relations(
                 prefer=("POR", "PRT"),
             )
             if dst:
-                _append_sysml_edge(edges, alloc, nid, "connects", dst)
+                _append_sysml_edge(
+                    edges,
+                    alloc,
+                    nid,
+                    "connects",
+                    dst,
+                    max_edges=max_edges,
+                )
         for m in _CONNECT_STMT.finditer(body):
             for path in (m.group(1), m.group(2)):
                 dst = _resolve_sysml_name(
@@ -835,7 +906,14 @@ def _emit_con_relations(
                     prefer=("POR", "PRT"),
                 )
                 if dst:
-                    _append_sysml_edge(edges, alloc, nid, "connects", dst)
+                    _append_sysml_edge(
+                        edges,
+                        alloc,
+                        nid,
+                        "connects",
+                        dst,
+                        max_edges=max_edges,
+                    )
     for m in _CONNECT_STMT.finditer(text):
         src = _resolve_sysml_name(
             m.group(1),
@@ -852,7 +930,14 @@ def _emit_con_relations(
             prefer=("POR", "PRT"),
         )
         if src and dst:
-            _append_sysml_edge(edges, alloc, src, "connects", dst)
+            _append_sysml_edge(
+                edges,
+                alloc,
+                src,
+                "connects",
+                dst,
+                max_edges=max_edges,
+            )
 
 
 _KIND_PREFIXES = (
@@ -983,11 +1068,52 @@ def _collect_code_files(path: str | Path, *, max_files: int) -> list[Path]:
     return files
 
 
-def _budget_check(nodes: list[dict[str, str]], max_nodes: int) -> None:
+def _budget_check(
+    nodes: list[dict[str, str]],
+    max_nodes: int,
+    edges: list[tuple[str, str, str, str]] | None = None,
+    max_edges: int | None = None,
+) -> None:
+    """Refuse the next node or edge that would cross a cap. A pin is a node."""
     if len(nodes) >= max_nodes:
         raise MemNetError(
             "ingest_budget",
             f"pin budget exceeded (max_nodes={max_nodes})",
+        )
+    if edges is not None and max_edges is not None and len(edges) >= max_edges:
+        raise MemNetError(
+            "ingest_budget",
+            f"edge budget exceeded (max_edges={max_edges})",
+        )
+
+
+def _edge_budget_check(
+    edges: list[tuple[str, str, str, str]],
+    max_edges: int,
+) -> None:
+    if len(edges) >= max_edges:
+        raise MemNetError(
+            "ingest_budget",
+            f"edge budget exceeded (max_edges={max_edges})",
+        )
+
+
+def _budget_over(
+    nodes: list[dict[str, str]],
+    max_nodes: int,
+    edges: list[tuple[str, str, str, str]],
+    max_edges: int,
+) -> None:
+    """Post-project hard refuse. Equality is still in budget."""
+    if len(nodes) > max_nodes:
+        raise MemNetError(
+            "ingest_budget",
+            f"pin budget exceeded (max_nodes={max_nodes})",
+        )
+    if len(edges) > max_edges:
+        raise MemNetError(
+            "ingest_budget",
+            f"edge budget exceeded (max_edges={max_edges})",
         )
 
 

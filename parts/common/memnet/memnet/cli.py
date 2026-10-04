@@ -11,6 +11,8 @@ import typer
 
 from memnet import __version__
 from memnet.config import (
+    DEFAULT_INGEST_MAX_EDGES,
+    DEFAULT_INGEST_MAX_NODES,
     DEFAULT_QUERY_DEPTH,
     DEFAULT_QUERY_MAX_ROWS,
     Caps,
@@ -631,7 +633,8 @@ def release_cmd(
 def ingest_sysml_cmd(
     path: Annotated[str, typer.Option("--path", help="SysML file or directory")],
     session: Annotated[str | None, typer.Option("--session")] = None,
-    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = DEFAULT_INGEST_MAX_NODES,
+    max_edges: Annotated[int, typer.Option("--max-edges")] = DEFAULT_INGEST_MAX_EDGES,
     max_files: Annotated[int, typer.Option("--max-files")] = 64,
     root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
     dry_run: Annotated[
@@ -648,6 +651,7 @@ def ingest_sysml_cmd(
                 ss,
                 path,
                 max_nodes=max_nodes,
+                max_edges=max_edges,
                 max_files=max_files,
                 root=root,
                 dry_run=dry_run,
@@ -747,7 +751,8 @@ def export_pin_map_cmd(
 def ingest_codebase_cmd(
     path: Annotated[str, typer.Option("--path", help="Source file or directory")],
     session: Annotated[str | None, typer.Option("--session")] = None,
-    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = DEFAULT_INGEST_MAX_NODES,
+    max_edges: Annotated[int, typer.Option("--max-edges")] = DEFAULT_INGEST_MAX_EDGES,
     max_files: Annotated[int, typer.Option("--max-files")] = 64,
     root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
     dry_run: Annotated[
@@ -764,6 +769,7 @@ def ingest_codebase_cmd(
                 ss,
                 path,
                 max_nodes=max_nodes,
+                max_edges=max_edges,
                 max_files=max_files,
                 root=root,
                 dry_run=dry_run,
@@ -785,7 +791,8 @@ def ingest_codebase_cmd(
 def ingest_pcba_cmd(
     path: Annotated[str, typer.Option("--path", help="Atopile .ato file or directory")],
     session: Annotated[str | None, typer.Option("--session")] = None,
-    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = DEFAULT_INGEST_MAX_NODES,
+    max_edges: Annotated[int, typer.Option("--max-edges")] = DEFAULT_INGEST_MAX_EDGES,
     max_files: Annotated[int, typer.Option("--max-files")] = 64,
     root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
     dry_run: Annotated[
@@ -802,6 +809,7 @@ def ingest_pcba_cmd(
                 ss,
                 path,
                 max_nodes=max_nodes,
+                max_edges=max_edges,
                 max_files=max_files,
                 root=root,
                 dry_run=dry_run,
@@ -823,7 +831,8 @@ def ingest_pcba_cmd(
 def ingest_skills_cmd(
     path: Annotated[str, typer.Option("--path", help="SKILL.md / .mdc file or directory")],
     session: Annotated[str | None, typer.Option("--session")] = None,
-    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = DEFAULT_INGEST_MAX_NODES,
+    max_edges: Annotated[int, typer.Option("--max-edges")] = DEFAULT_INGEST_MAX_EDGES,
     max_files: Annotated[int, typer.Option("--max-files")] = 64,
     root: Annotated[str | None, typer.Option("--root", help="Locator path= root")] = None,
     dry_run: Annotated[
@@ -840,6 +849,7 @@ def ingest_skills_cmd(
                 ss,
                 path,
                 max_nodes=max_nodes,
+                max_edges=max_edges,
                 max_files=max_files,
                 root=root,
                 dry_run=dry_run,
@@ -864,7 +874,8 @@ def snap_model_cmd(
         str | None,
         typer.Option("--map-file", help="Session map (default: schema.sysml.example.txt)"),
     ] = None,
-    max_nodes: Annotated[int, typer.Option("--max-nodes")] = 200,
+    max_nodes: Annotated[int, typer.Option("--max-nodes")] = DEFAULT_INGEST_MAX_NODES,
+    max_edges: Annotated[int, typer.Option("--max-edges")] = DEFAULT_INGEST_MAX_EDGES,
     max_files: Annotated[int, typer.Option("--max-files")] = 64,
     ttl: Annotated[int | None, typer.Option("--ttl")] = None,
 ) -> None:
@@ -880,6 +891,7 @@ def snap_model_cmd(
             root,
             map_file=map_file,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=max_files,
             ttl_minutes=ttl,
             caps=_caps(),
