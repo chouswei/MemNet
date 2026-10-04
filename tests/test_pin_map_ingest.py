@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 from pathlib import Path
 
 import pytest
 
+from memnet.cli import ingest_sysml_cmd, snap_model_cmd
+from memnet.config import DEFAULT_INGEST_MAX_EDGES, DEFAULT_INGEST_MAX_NODES
 from memnet.exceptions import MemNetError
 from memnet.pin_map_composer import PinMapComposer
 from memnet.pin_map_ingest import (
@@ -26,6 +29,8 @@ from memnet.pin_map_ingest import (
     reject_client_new,
 )
 from memnet.session import open_session
+from memnet_mcp.server import ingest_sysml as mcp_ingest_sysml
+from memnet_mcp.server import snap_model as mcp_snap_model
 
 _FIXTURE = """\
 package DemoPkg {
@@ -298,6 +303,86 @@ def test_ingest_sysml_budget(memnet_temp, sysml_schema: Path, sysml_file: Path):
     with pytest.raises(MemNetError) as ei:
         ingest_sysml(ss, sysml_file, max_nodes=1)
     assert ei.value.code == "ingest_budget"
+    assert "max_nodes=" in str(ei.value)
+
+
+def test_ingest_sysml_edge_budget(memnet_temp, sysml_schema: Path, sysml_file: Path):
+    ss = open_session(map_file=str(sysml_schema))
+    with pytest.raises(MemNetError) as ei:
+        ingest_sysml(ss, sysml_file, max_edges=1)
+    assert ei.value.code == "ingest_budget"
+    assert "max_edges=" in str(ei.value)
+
+
+def _house_sysml(*, parts: int, extra_satisfies: int = 0) -> str:
+    lines = ["package House {"]
+    for i in range(parts):
+        if extra_satisfies and parts > 1 and i >= parts - extra_satisfies:
+            lines.append(f"  part def P{i:04d} {{ satisfy P0000; }}")
+        else:
+            lines.append(f"  part def P{i:04d};")
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def test_ingest_defaults_are_one_node_cap_and_one_edge_cap():
+    """Pin budget is the node cap. CLI, MCP, and library share both defaults."""
+    assert DEFAULT_INGEST_MAX_NODES == 2000
+    assert DEFAULT_INGEST_MAX_EDGES == 2000
+    for fn in (
+        ingest_sysml,
+        PinMapIngest_Sysml.project,
+        ingest_sysml_cmd,
+        snap_model_cmd,
+        mcp_ingest_sysml,
+        mcp_snap_model,
+    ):
+        params = inspect.signature(fn).parameters
+        assert params["max_nodes"].default == DEFAULT_INGEST_MAX_NODES
+        assert params["max_edges"].default == DEFAULT_INGEST_MAX_EDGES
+
+
+def test_house_sized_projection_fits_default_node_and_edge_caps(tmp_path: Path):
+    """InkMirage house scale: 340 nodes and 332 edges must fit the omitted caps."""
+    path = tmp_path / "house.sysml"
+    path.write_text(_house_sysml(parts=339), encoding="utf-8")
+    result = ingest_sysml(None, path, dry_run=True)
+    assert result.node_count == 340
+    assert result.edge_count >= 332
+    assert result.node_count <= DEFAULT_INGEST_MAX_NODES
+    assert result.edge_count <= DEFAULT_INGEST_MAX_EDGES
+
+
+def test_several_times_house_fits_default_caps(tmp_path: Path):
+    """Omitted caps must accept several times the 340 / 332 house walk."""
+    path = tmp_path / "several_houses.sysml"
+    path.write_text(_house_sysml(parts=5 * 340 - 1), encoding="utf-8")
+    result = ingest_sysml(None, path, dry_run=True)
+    assert result.node_count == 5 * 340
+    assert result.edge_count >= 5 * 332
+    assert result.node_count <= DEFAULT_INGEST_MAX_NODES
+    assert result.edge_count <= DEFAULT_INGEST_MAX_EDGES
+
+
+def test_default_node_budget_hard_refuses_over_cap(tmp_path: Path):
+    path = tmp_path / "over_nodes.sysml"
+    path.write_text(_house_sysml(parts=DEFAULT_INGEST_MAX_NODES), encoding="utf-8")
+    with pytest.raises(MemNetError) as ei:
+        ingest_sysml(None, path, dry_run=True)
+    assert ei.value.code == "ingest_budget"
+    assert "max_nodes=" in str(ei.value)
+
+
+def test_default_edge_budget_hard_refuses_over_cap(tmp_path: Path):
+    path = tmp_path / "over_edges.sysml"
+    path.write_text(
+        _house_sysml(parts=DEFAULT_INGEST_MAX_NODES - 1, extra_satisfies=2),
+        encoding="utf-8",
+    )
+    with pytest.raises(MemNetError) as ei:
+        ingest_sysml(None, path, dry_run=True)
+    assert ei.value.code == "ingest_budget"
+    assert "max_edges=" in str(ei.value)
 
 
 def test_ingest_real_requirements_leaf(memnet_temp, sysml_schema: Path):
@@ -448,7 +533,11 @@ def test_sysml_model_kinds_match_ingest_emit(tmp_path: Path):
     part = _SYSML_PART.search(deploy)
     assert part is not None
     attrs = {m.group("name"): m.group("value") for m in _SYSML_ATTR.finditer(part.group("body"))}
-    assert set(attrs) == {"nodeKinds", "edgeRelations"}
+    assert "nodeKinds" in attrs
+    assert "edgeRelations" in attrs
+    body = part.group("body")
+    assert "defaultMaxNodes : Integer = 2000" in body
+    assert "defaultMaxEdges : Integer = 2000" in body
 
     fixture = tmp_path / "kinds.sysml"
     fixture.write_text(_KINDS_FIXTURE, encoding="utf-8")

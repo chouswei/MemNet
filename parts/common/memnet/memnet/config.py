@@ -15,6 +15,9 @@ MAX_WRN_PER_CALL = 12
 
 DEFAULT_QUERY_MAX_ROWS = 50
 DEFAULT_QUERY_DEPTH = 2
+# Path-B ingest: a pin is a node. One node/pin budget; one edge budget.
+DEFAULT_INGEST_MAX_NODES = 2000
+DEFAULT_INGEST_MAX_EDGES = 2000
 # 0.11 session outline: Browser-style LIMIT k exemplars per kind (one hard LIMIT).
 OUTLINE_EXEMPLAR_LIMIT = 3
 

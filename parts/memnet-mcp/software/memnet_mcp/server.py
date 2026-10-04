@@ -15,7 +15,13 @@ except ImportError as exc:
         "memnet-mcp requires the mcp package. Install with: pip install memnet-llm[mcp]"
     ) from exc
 
-from memnet.config import expire_save_status, serve_host, serve_port
+from memnet.config import (
+    DEFAULT_INGEST_MAX_EDGES,
+    DEFAULT_INGEST_MAX_NODES,
+    expire_save_status,
+    serve_host,
+    serve_port,
+)
 from memnet.serve import probe, send_command
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.http_transport import (
@@ -149,7 +155,8 @@ async def session_close(session: str) -> str:
 async def snap_model(
     root: str,
     map_file: str | None = None,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     ttl: int | None = None,
 ) -> str:
@@ -168,6 +175,8 @@ async def snap_model(
         root,
         "--max-nodes",
         str(max_nodes),
+        "--max-edges",
+        str(max_edges),
         "--max-files",
         str(max_files),
     ]
@@ -737,7 +746,8 @@ async def export_pin_map(
 @mcp.tool()
 async def ingest_sysml(
     path: str,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | None = None,
     dry_run: bool = False,
@@ -751,6 +761,8 @@ async def ingest_sysml(
         path,
         "--max-nodes",
         str(max_nodes),
+        "--max-edges",
+        str(max_edges),
         "--max-files",
         str(max_files),
     ]
@@ -766,6 +778,7 @@ def _ingest_argv(
     path: str,
     *,
     max_nodes: int,
+    max_edges: int,
     max_files: int,
     root: str | None,
     dry_run: bool,
@@ -777,6 +790,8 @@ def _ingest_argv(
         path,
         "--max-nodes",
         str(max_nodes),
+        "--max-edges",
+        str(max_edges),
         "--max-files",
         str(max_files),
     ]
@@ -790,7 +805,8 @@ def _ingest_argv(
 @mcp.tool()
 async def ingest_codebase(
     path: str,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | None = None,
     dry_run: bool = False,
@@ -802,6 +818,7 @@ async def ingest_codebase(
             "codebase",
             path,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=max_files,
             root=root,
             dry_run=dry_run,
@@ -813,7 +830,8 @@ async def ingest_codebase(
 @mcp.tool()
 async def ingest_pcba(
     path: str,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | None = None,
     dry_run: bool = False,
@@ -825,6 +843,7 @@ async def ingest_pcba(
             "pcba",
             path,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=max_files,
             root=root,
             dry_run=dry_run,
@@ -836,7 +855,8 @@ async def ingest_pcba(
 @mcp.tool()
 async def ingest_skills(
     path: str,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     root: str | None = None,
     dry_run: bool = False,
@@ -848,6 +868,7 @@ async def ingest_skills(
             "skills",
             path,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=max_files,
             root=root,
             dry_run=dry_run,

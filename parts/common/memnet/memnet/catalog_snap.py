@@ -13,7 +13,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from memnet.config import DEFAULT_QUERY_MAX_ROWS, Caps, examples_dir
+from memnet.config import (
+    DEFAULT_INGEST_MAX_EDGES,
+    DEFAULT_INGEST_MAX_NODES,
+    DEFAULT_QUERY_MAX_ROWS,
+    Caps,
+    examples_dir,
+)
 from memnet.exceptions import MemNetError
 from memnet.gql import _emit_props
 from memnet.pin_map_ingest import (
@@ -103,7 +109,8 @@ def snap_model(
     *,
     map_file: str | Path | None = None,
     map_lines: list[str] | None = None,
-    max_nodes: int = 200,
+    max_nodes: int = DEFAULT_INGEST_MAX_NODES,
+    max_edges: int = DEFAULT_INGEST_MAX_EDGES,
     max_files: int = 64,
     goldfish_m: int = DEFAULT_QUERY_MAX_ROWS,
     ttl_minutes: int | None = None,
@@ -139,6 +146,7 @@ def snap_model(
             pkg_files,
             root_dir=root_dir,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             satisfy_events=satisfy_events,
         )
         if not nodes:
@@ -271,6 +279,7 @@ def _project_package(
     *,
     root_dir: Path,
     max_nodes: int,
+    max_edges: int,
     satisfy_events: list[tuple[str, str]] | None = None,
 ) -> tuple[list[dict[str, str]], list[tuple[str, str, str, str]]]:
     nodes: list[dict[str, str]] = []
@@ -279,6 +288,7 @@ def _project_package(
         part_nodes, part_edges, _root = project_sysml_parts(
             fpath,
             max_nodes=max_nodes,
+            max_edges=max_edges,
             max_files=1,
             root=root_dir,
             satisfy_events=satisfy_events,
