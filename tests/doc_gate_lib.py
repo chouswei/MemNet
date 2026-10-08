@@ -621,7 +621,7 @@ def e18_wire_shape(stmt: str, replacements: list[str]) -> str:
         g = gql_str(blob)
         if g in out:
             out = out.replace(g, token)
-        elif blob in out:
+        elif len(blob) >= 16 and blob in out:
             out = out.replace(blob, token)
     if len(out) > 240:
         return out[:120] + f"…({len(out)} chars)"

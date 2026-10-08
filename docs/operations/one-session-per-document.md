@@ -66,7 +66,7 @@ source .venv/bin/activate
 python scripts/probe_doc_gate_readiness.py --out /opt/cursor/artifacts/doc-gate-readiness-proof.log
 ```
 
-`--quick` shrinks nodes/churn/wait (not the product-gate proof). Extra flags: `--load-nodes` (E11, default 3000), `--fat-nodes` / `--fat-text-nodes` / `--fat-rss-samples` / `--fat-churn` (second RSS fixture), `--fulldoc-nodes` / `--fulldoc-fat` / `--e16-n` (third fixture + latency). Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve; E11 uses 3000 nodes).
+`--quick` shrinks nodes/churn/wait (not the product-gate proof). Extra flags: `--load-nodes` (E11, default 3000), `--fat-nodes` / `--fat-text-nodes` / `--fat-rss-samples` / `--fat-churn` (second RSS fixture), `--fulldoc-nodes` / `--fulldoc-fat` / `--e16-n` (third fixture + latency). E18-only: `--churn 0 --rss-samples 0 --expire-wait 0 --fat-churn 0 --fat-rss-samples 0 --load-nodes 0 --fulldoc-nodes 0 --nodes 40`. Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve; E11 uses 3000 nodes).
 
 ## Extra probes (E11–E14)
 
@@ -92,21 +92,21 @@ E16 (on the 10000 fulldoc session, this VM `Intel(R) Xeon(R) Processor` 4-core K
 
 **note:** MemNet has **no** native delete-refused-while-referenced check. `DETACH DELETE` of a node with inbound edges exits 0 and leaves dangling edges. The gate must refuse from the reverse lookup (`## Truncation truncated=true M=400 omitted=2604 reason=max_rows` on the hub). Documented `MATCH ()-[r {id}]-() DELETE r` is lowered as a node DROP with an empty id and refuses `@ERR: not_found|DELETE matched no element` (not a referenced-delete check). The probe's working edge DROP is `MATCH (n WHERE true)-[r {id}]->() DELETE r`.
 
-E18 (loopback mutate CREATE → `session save` → `session load` into a fresh session → `pin_map` cue; blobs omitted from the proof log). Cap citation: `tag_map.validate_values` measures `len(val.encode("utf-8")) > caps.max_value_bytes` **after** `split_payload`; `parse_line` measures raw `line.encode` vs `max_line_bytes` first. `wire.join_payload` escapes `\\` then `|` only. `validate_values` treats `\\n` / `\\r` as `newline_in_value` (tab is not checked). SCHEMA register vs `max_fields=32`; `output.emit_record` writes SCHEMA columns only.
+E18: **yes.** Snapshot `value_bytes` 4096 is the **decoded** UTF-8 after `split_payload` (`tag_map.validate_values`: `len(val.encode("utf-8")) > caps.max_value_bytes`, so 4096 passes). `join_payload` expansion of `\\` / `|` is not the cap (4000 `\\` or `|` emit 8000 escaped bytes, snap line ~8021, still loads). `parse_line` measures raw line vs `line_bytes` 32768 first. SCHEMA register vs `max_fields=32`. `emit_record` writes SCHEMA columns only. Loopback CREATE → save → load into a fresh session → `pin_map` cue. Binary search skipped (4000 exact for `\\` and `|`). Proof: `/opt/cursor/artifacts/doc-gate-readiness-e18.log`.
 
 | Case | Wire shape | Save / load | Exact? |
 |------|------------|-------------|--------|
-| E18a 4000 `\\` | `CREATE (:USR {id: 'USR_a4kbs', key: 'e18', value: <blob utf8=4000 chars=4000>, recycle: ''})` | live | live |
-| E18a 4000 `\|` | `CREATE (:USR {id: 'USR_b4kpp', … value: <blob utf8=4000>})` | live | live |
-| E18a 4000 `"` | `CREATE (:USR {id: 'USR_c4kdq', …})` | live | live |
-| E18a 4000 `'` | `CREATE (:USR {id: 'USR_d4ksq', …})` | live | live |
-| E18a 4000 CJK | 1333 × U+6D4B (`测`, 3-byte UTF-8) + 1 ASCII X; `USR_e4kcj` | live | live |
-| E18a 4096 (a–e) | same shapes, utf8=4096 (CJK: 1365 × `测` + 1 X) | live | live |
-| E18b tab mid/end | `value: 'ab\\tcd'` / `'ab\\t'` | live | live |
-| E18b CR mid/end | `value: 'ab\\rcd'` / `'ab\\r'` | live | live |
-| E18c SCHEMA 64/128 | `SCHEMA WIDE ; fields=id p000 …` (64 / 128 names) | open refuse | `fields N/32` |
-| E18c 8 × 4000 ASCII | `CREATE (:FAT {id: 'FAT_8x4000', p000: <4000 A>, … p007: <4000 A>})` | live | live |
-
-Proof: `/opt/cursor/artifacts/doc-gate-readiness-e18.log`.
+| E18a 4000 `\\` | `CREATE (:USR {id: 'USR_a4kbs', key: 'e18', value: <blob utf8=4000 chars=4000>, recycle: ''})` | 0 / 0, no `@ERR` | **yes** (escaped 8000, snap line 8021) |
+| E18a 4000 `\|` | `CREATE (:USR {id: 'USR_b4kpp', key: 'e18', value: <blob utf8=4000 chars=4000>, recycle: ''})` | 0 / 0 | **yes** (escaped 8000, snap line 8021) |
+| E18a 4000 `"` | `CREATE (:USR {id: 'USR_c4kdq', …})` | 0 / 0 | **yes** (escaped 4000, snap line 4021) |
+| E18a 4000 `'` | `CREATE (:USR {id: 'USR_d4ksq', …})` | 0 / 0 | **yes** (escaped 4000, snap line 4021) |
+| E18a 4000 CJK | 1333 × U+6D4B (`测`, 3-byte UTF-8) + 1 ASCII X; `USR_e4kcj` | 0 / 0 | **yes** (1334 chars, utf8 4000, snap line 4021) |
+| E18a 4096 (a–e) | same shapes; CJK is 1365 × `测` + 1 X | 0 / 0 all five | **yes** (`\\`/`\|` snap line 8215; quotes/CJK 4119) |
+| E18b tab mid/end | `CREATE (:USR {id: 'USR_tabm', … value: 'ab\\tcd'})` / `'ab\\t'` | 0 / 0 | **yes** (byte-exact) |
+| E18b CR mid/end | `… value: 'ab\\rcd'` / `'ab\\r'` | save 0 / load 1 | **no** — `@ERR: FIELD_COUNT\|Expected 4 fields for USR got 3` (same as newline: `str.splitlines` splits on CR before `newline_in_value`) |
+| E18c SCHEMA 64/128 | `SCHEMA WIDE ; fields=id p000 …` (64 / 128 names) | open 1 | `@ERR: limit_exceeded\|fields 64/32` and `128/32` |
+| E18c SCHEMA 32 | `SCHEMA PRT ; fields=id p00 … p30` | save 0 / load 0 | yes |
+| E18c 64/128 extras on USR | CREATE 60 / 124 keys beyond 4-field SCHEMA | save 0 / load 0 | RAM extras yes; load drops them (`emit_record` SCHEMA columns only) |
+| E18c 8 × 4000 ASCII | `CREATE (:FAT {id: 'FAT_8x4000', p000: <4000 A>, … p007: <4000 A>})` | 0 / 0 | **yes** (snap line 32024 < 32768; all eight fields exact) |
 
 E17: **note.** GQL `WHERE n.value CONTAINS '…'` is **not** a product substring filter. `MATCH … WHERE … RETURN n` → `@ERR: product_gate|agent surface forbids RETURN …`. `MATCH … WHERE … SET` GraphGlot-parses (single or double quotes; GQL escapes `\\ \' \" \n \r \t`; CJK and `$` unescaped) but lowering drops WHERE at SET: `|Q|=1500` → `@ERR: cue_conflict|SET  Q =1500; SHALL NOT pick one root or absorb`; a unique MATCH still SET when CONTAINS would miss. Inline `MATCH (n WHERE n.value CONTAINS '…')` → `@ERR: parse_error|unsupported MATCH shape`. Bare WHERE without SET/RETURN → `@ERR: parse_error|unsupported MATCH continuation`. `STARTS WITH` / `ENDS WITH` / `=~` are the same ignored-WHERE SET path. Working substring: `query find --keyword` / `pin_map --keyword` (casefold across all fields, hard `--limit` / `--max-rows`). leftover `read list --where value=*测例*` works on a small graph; on this fulldoc it is `@ERR: response_too_large|response 4659616 bytes exceeds cap 4194304`. Substitute latency (n=200, `find --limit 50`, warm 10000-row session, this VM): common `测例` (1500 USR hits, 50 returned) p50 **67.282** / p95 **84.020** / max **94.672** ms; rare `Part 1500` (1 hit) p50 **51.183** / p95 **69.090** / max **85.424** ms.
