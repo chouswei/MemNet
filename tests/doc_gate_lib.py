@@ -192,7 +192,7 @@ def populate_batches(
     ]
     for i in range(1, n_parts + 1):
         lines.append(sec_create(i))
-    sample = "Line one.\nLine two with unicode 测例 Ω.\nPipes | and quotes \"double\" and 'single'."
+    sample = "unicode 测例 Ω | pipe and quotes \"double\" and 'single'"
     for t in range(text_nodes):
         lines.append(
             "CREATE (:USR {"

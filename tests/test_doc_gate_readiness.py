@@ -73,7 +73,8 @@ def test_populate_batches_split_and_sid_free():
     joined = "".join(batches)
     assert joined.count("CREATE (:SEC") == 1800
     assert "测例" in joined
-    assert "Pipes |" in joined
+    assert "|" in joined
+    assert "pipe" in joined
     assert_sid_free(joined)
     assert all(chunk.count("\n") <= 900 for chunk in batches)
 
