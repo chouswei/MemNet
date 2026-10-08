@@ -324,6 +324,17 @@ def edge_create(rel: str, eid: str, src: str, dst: str) -> str:
     )
 
 
+def edge_delete(eid: str) -> str:
+    """Product edge DROP that actually reaches EdgeRec on 0.19.18.
+
+    Documented ``MATCH ()-[r {id}]-() DELETE r`` lowers as a node DROP with an
+    empty id and refuses ``@ERR: not_found|DELETE matched no element``. A node
+    WHERE filter makes ``_parse_node_patterns`` fail, so lowering takes the
+    relationship-DELETE path. GraphGlot still accepts this form.
+    """
+    return f"MATCH (n WHERE true)-[r {{id: {gql_str(eid)}}}]->() DELETE r"
+
+
 def fulldoc_edge_stmts(
     *,
     n_thin: int = FULLDOC_NODES - FULLDOC_FAT,

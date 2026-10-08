@@ -18,6 +18,7 @@ from doc_gate_lib import (
     citekeys_schema,
     cpu_model,
     edge_create,
+    edge_delete,
     err_lines,
     gql_str,
     make_special_blob,
@@ -633,6 +634,11 @@ def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
     pin = doc_serve.pin_map(sid, cue="SEC_0002", depth=1, max_rows=20)
     assert pin.exit_code == 0, redact(pin.stderr)
     assert "contains" in pin.stdout
+    documented = doc_serve.mutate(sid, "MATCH ()-[r {id: 'E_drop'}]-() DELETE r\n")
+    assert documented.exit_code != 0
+    joined_doc = "\n".join(err_lines(documented.stderr))
+    assert "not_found" in joined_doc
+    assert "DELETE matched no element" in joined_doc
     gone = doc_serve.mutate(sid, "MATCH (n:SEC {id: 'SEC_0002'}) DETACH DELETE n\n")
     assert gone.exit_code == 0, redact(gone.stderr)
     assert not any(e.startswith("@ERR:") for e in err_lines(gone.stderr))
@@ -641,7 +647,8 @@ def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
     batch = doc_serve.mutate(
         sid,
         "MATCH (n:SEC {id: 'SEC_0001'}) SET n.status = 'edited'\n"
-        "MATCH ()-[r {id: 'E_drop'}]-() DELETE r\n"
+        + edge_delete("E_drop")
+        + "\n"
         + edge_create("contains", "E_new_a", "SEC_0001", "SEC_0003")
         + "\n"
         + edge_create("contains", "E_new_b", "SEC_0001", "SEC_0003")

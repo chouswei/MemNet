@@ -46,6 +46,7 @@ from doc_gate_lib import (  # noqa: E402
     citekeys_schema,
     cpu_model,
     edge_create,
+    edge_delete,
     err_lines,
     fat_payload_bytes,
     fulldoc_edge_stmts,
@@ -1550,7 +1551,8 @@ def item_e16(
         cit = f"E_cit{i:04d}"
         return (
             f"MATCH (n:USR {{id: 'USR_fat0000'}}) SET n.value = {gql_str(blob)}\n"
-            f"MATCH ()-[r {{id: {gql_str(cit)}}}]-() DELETE r\n"
+            + edge_delete(cit)
+            + "\n"
             + edge_create(
                 "cites",
                 f"E_lata{i:04d}",
@@ -1583,13 +1585,15 @@ def item_e16(
         allow_new_relation=True,
     )
     probe_id = f"SEC_{n_thin + 1:04d}"
+    documented_edge_del = svc.mutate(sid, "MATCH ()-[r {id: 'E_probe_del'}]-() DELETE r\n")
+    documented_edge_err = err_lines(documented_edge_del.stderr)
     del_probe = svc.mutate(
         sid,
         f"MATCH (n:SEC {{id: {gql_str(probe_id)}}}) DETACH DELETE n\n",
     )
     native_refuse = del_probe.exit_code != 0
     del_err = err_lines(del_probe.stderr)
-    wires.extend(err_lines(setup.stderr) + del_err)
+    wires.extend(err_lines(setup.stderr) + documented_edge_err + del_err)
     # If DELETE succeeded, the node is gone and incident edge is dangling — no
     # native referenced check.
 
@@ -1662,6 +1666,11 @@ def item_e16(
             "the reverse lookup."
         )
         gaps.append("no native referenced-delete refuse")
+    notes.append(
+        "Documented MATCH ()-[r {id}]-() DELETE r lowers as a node DROP with empty id "
+        "and refuses @ERR: not_found|DELETE matched no element. Atomic (a) uses "
+        "MATCH (n WHERE true)-[r {id}]->() DELETE r, which reaches EdgeRec DROP."
+    )
     if a_fail:
         gaps.append(f"{a_fail} atomic mutate failures")
     verdict = "yes" if a_ok and b_ok else "no"
@@ -1683,6 +1692,8 @@ def item_e16(
             "native_delete_refused": native_refuse,
             "delete_probe_exit": del_probe.exit_code,
             "delete_probe_err": del_err,
+            "documented_edge_delete_exit": documented_edge_del.exit_code,
+            "documented_edge_delete_err": documented_edge_err,
             "hub_survived": hub_still,
             "lookup_truncation_sample": _truncation_lines(look.stdout) if look else [],
         },
