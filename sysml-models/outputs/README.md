@@ -34,6 +34,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) | Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge | MN-REQ-06.6; MN-VER-06-S03; tip≠face; not #47 |
 | [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) | Admin invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused | MN-REQ-06.8; MN-VER-06-S05; tip≠face; portal sidecar |
 | [lan-mcp-front-case-study.md](lan-mcp-front-case-study.md) | One MCP catalogue over N LAN serves; ClusterRoute; registry owner; not shipped | MN-REQ-06.9; MN-VER-06-S07; tip≠face; inventOnly #191 |
+| [product-gateway-case-study.md](product-gateway-case-study.md) | memnet-mcp routes a product to one owning serve; parent catalogue stays inventOnly | MN-REQ-06.12; MN-VER-06-S10; tip≠face; not mn_tip_ |
 | [cluster-route-vs-slice-hand-carry-case-study.md](cluster-route-vs-slice-hand-carry-case-study.md) | Two named moves: ClusterRoute vs SliceHandCarry; not shipped | MN-REQ-06.9 + 06.10; MN-VER-06-S08; tip≠face; inventOnly #191 / #47 cousin |
 | [ssot-to-code-allocate-case-study.md](ssot-to-code-allocate-case-study.md) | SSOT parts → live Python modules; one Hatch wheel many hosts; sysmledge not in wheel | MN-REQ-06.7; MN-VER-06-S04; SoftwareAllocate |
 | [ssot-to-code-allocate-map.md](ssot-to-code-allocate-map.md) | Implementation tracker ledger (every allocate row → path) | `ImplementationTracker`; missing path fails CI |

@@ -97,7 +97,10 @@
   is not sole routing). One owner per session; no cross-backend
   graph merge. pin_map / find SHALL NOT span backends. Distinct
   from SliceHandCarry (MN-REQ-06.10 / #47 cousin). tip≠face;
-  inventOnly; no SemVer.
+  inventOnly; no SemVer. Nested MemNetProductGateway (MN-REQ-06.12)
+  is the shipped memnet-mcp cut: per-product credentials, one
+  owning serve per session, exact serve-envelope pass-through.
+  The #191 catalogue union and SnapshotHandCarry stay inventOnly.
   APPLICATION / OPS TWO MOVES (not in MemNetSystem): MemNetTwoMoves —
   one nest ClusterRoute vs SliceHandCarry so agents do not conflate
   routing (where the session lives) with an explicit copy into
@@ -3514,6 +3517,58 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
   }
 
+  part def MemNetProductGateway {
+    doc /*
+      Shipped capability of memnet-mcp (MN-REQ-06.12), nested
+      on MemNetLanMcpFront. Not a separate droplet shim.
+      Registry maps backend id to host:port (no host literal
+      in code). Credential is per product, sha256 only, scoped
+      to that product's backends, rotatable and revocable.
+      Does not accept mn_tip_ keys. One owner per session.
+      No silent cross-backend move. Failover only for a new
+      session when house and backend are unnamed. Args and
+      stdin pass through. Engine control lines pass through
+      except the session-list membership filter. No caps below
+      the backend except the declared body ceiling. Version
+      pin per product. List is filtered. Foreign session is
+      gateway_forbidden_session. Bind is loopback or tailnet
+      unless MEMNET_GATEWAY_ALLOW_PUBLIC=1. Admin counts omit
+      content and session ids. Parent catalogue stays
+      inventOnly.
+    */
+    attribute insideMemNetSystem : Boolean = false;
+    attribute tipIsFace : Boolean = false;
+    attribute isSysmlEdgeProduct : Boolean = false;
+    attribute inventOnly : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute codeApproved : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+    attribute reusesTipBearer : Boolean = false;
+    attribute hashedCredentials : Boolean = true;
+    attribute credentialScopedToProductBackends : Boolean = true;
+    attribute rotateAndRevoke : Boolean = true;
+    attribute oneOwnerPerSession : Boolean = true;
+    attribute silentCrossBackendMove : Boolean = false;
+    attribute failoverOnlyForNewSession : Boolean = true;
+    attribute passThroughGql : Boolean = true;
+    attribute passThroughStdin : Boolean = true;
+    attribute verbatimEngineControlLines : Boolean = true;
+    attribute gatewayCapsBelowBackend : Boolean = false;
+    attribute bodyCeilingDeclared : Boolean = true;
+    attribute versionPinPerProduct : Boolean = true;
+    attribute listFilteredByProduct : Boolean = true;
+    attribute foreignSessionGatewayErr : Boolean = true;
+    attribute publicBindDefault : Boolean = false;
+    attribute loopbackOrTailnetOnly : Boolean = true;
+    attribute adminCountsOmitContent : Boolean = true;
+    attribute adminCountsOmitSessionId : Boolean = true;
+    attribute singleBackendUnchanged : Boolean = true;
+    attribute hardcodedHost : Boolean = false;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_12_ProductGateway;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
+  }
+
   part def MemNetLanMcpFront {
     doc /*
       OPS nest outside MemNetSystem (MN-REQ-06.9 / #191). One
@@ -3530,13 +3585,16 @@ package MemNet {
       overlay is optional ops. One serve already hosts many
       sessions (singleServeHostsManySessions); this nest makes
       the complexity-versus-capacity trade-off visible without
-      approving engine code.
+      approving that catalogue. Nested productGateway is the
+      shipped memnet-mcp cut (MN-REQ-06.12; implemented=true).
+      MCP tool union and SnapshotHandCarry stay inventOnly.
     */
     part clusterRoute : ClusterRoute;
     part registry : SessionOwnerRegistry;
     part backends : ServeBackend[1..*];
     part auth : FrontBackendAuth;
     part handCarry : SnapshotHandCarry;
+    part productGateway : MemNetProductGateway;
     port routeOut : RoutedMcpCallOutPort;
     port pinOut : SessionOwnerRecordOutPort;
     port ownerIn : SessionOwnerRecordInPort;

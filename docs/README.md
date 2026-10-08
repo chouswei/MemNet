@@ -65,6 +65,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 | [`operations/honesty-c-wire-audit.md`](operations/honesty-c-wire-audit.md) | 0.19.10 CueMiss/Peak_L vs CueConflict; snapshot locator SCHEMA warn; Path-B SysML CON; Truncation; hid emit audit |
 | [`operations/tip-memnet-access-portal.md`](operations/tip-memnet-access-portal.md) | Sidecar: keyed tip MemNet MCP access (invite, Google, Bearer; tip≠face; not sysmledge) |
 | [`operations/memnet-lan-mcp-front.md`](operations/memnet-lan-mcp-front.md) | Later invent #191: ClusterRoute — one MCP catalogue over N LAN serves (tip≠face; not shipped) |
+| [`operations/product-gateway-contract.md`](operations/product-gateway-contract.md) | Product gateway on memnet-mcp (MN-REQ-06.12): route by product, house, or session |
 | [`operations/cluster-route-vs-slice-hand-carry.md`](operations/cluster-route-vs-slice-hand-carry.md) | Two named moves: ClusterRoute vs SliceHandCarry (#191 / #47 cousin; inventOnly) |
 | [`operations/admin-usage-report.md`](operations/admin-usage-report.md) | Admin-only serve usage JSON for a product-gate admin MCP (opaque alias; not agent MCP) |
 | [`operations/one-session-per-document.md`](operations/one-session-per-document.md) | One MemNet session per document over loopback serve (no MCP front) |

@@ -21,12 +21,12 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` / `DeviceMemNetFleet` / `TipMemNetAccess` / `MemNetLanMcpCluster` / `MemNetTwoMovesContrast` |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** ClusterRoute LAN MCP front invent #191, **06.10** SliceHandCarry invent #47 cousin, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** ClusterRoute LAN MCP front invent #191, **06.10** SliceHandCarry invent #47 cousin, **06.12** product gateway on memnet-mcp, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map; overlay family `SysMLEdgePrj-*`; this engine repo and `modelbasedPrj-*` are repo-based — MUST NOT use SysMLEdge as model SSOT; `SysMLEdgePrj-*` bound desk is working model SSOT) |
-| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` / `MemNetTwoMoves` outside `MemNetSystem` |
+| `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` / `MemNetProductGateway` / `MemNetTwoMoves` outside `MemNetSystem` |
 | `models/implementation.sysml` | `MemNetImplementation` | `SoftwareAllocate` logical → live modules; one Hatch wheel many hosts; sysmledge not in wheel |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, landed-client hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S08 (S06 storage roles; S07 ClusterRoute LAN MCP front; S08 two named moves); MN-VER-01-S03 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-06-S01…S10 (S06 storage roles; S07 ClusterRoute LAN MCP front; S08 two named moves; S09 admin usage; S10 product gateway); MN-VER-01-S03 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
 | `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe* / retired Neo4j). **Off** `config.yaml` load |
 
@@ -106,6 +106,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | Device fleet (one MemNet MCP at droplet, tip≠face; not #47) | [outputs/device-fleet-one-mcp-case-study.md](outputs/device-fleet-one-mcp-case-study.md) |
 | Tip MemNet access portal (keyed Bearer; portal sidecar) | [outputs/tip-memnet-access-portal-case-study.md](outputs/tip-memnet-access-portal-case-study.md) |
 | LAN MCP front (ClusterRoute; one catalogue, N LAN serves; inventOnly #191) | [outputs/lan-mcp-front-case-study.md](outputs/lan-mcp-front-case-study.md) |
+| Product gateway (memnet-mcp route to one owning serve; MN-REQ-06.12) | [outputs/product-gateway-case-study.md](outputs/product-gateway-case-study.md) |
 | ClusterRoute vs SliceHandCarry (two named moves; inventOnly #191 / #47 cousin) | [outputs/cluster-route-vs-slice-hand-carry-case-study.md](outputs/cluster-route-vs-slice-hand-carry-case-study.md) |
 | SSOT → code allocate (one Hatch wheel, many hosts) | [outputs/ssot-to-code-allocate-case-study.md](outputs/ssot-to-code-allocate-case-study.md) |
 | SSOT → code tracker map | [outputs/ssot-to-code-allocate-map.md](outputs/ssot-to-code-allocate-map.md) |
