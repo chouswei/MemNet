@@ -9,16 +9,26 @@ import pytest
 from doc_gate_lib import (
     CAP_CONTRACT,
     CAP_CONTRACT_NEEDLES,
+    DEFAULT_BATCH_LINES,
     PROP32,
     ServeProc,
     assert_sid_free,
     canonical_snapshot,
+    citekeys_schema,
     err_lines,
     gql_str,
+    make_special_blob,
+    max_rows_count_report,
+    mutate_byte_cap_report,
+    parse_stat_int,
     populate_batches,
+    populate_fat_batches,
+    populate_node_batches,
     redact,
     running_serve,
     schema_prop32,
+    shaped_node_props,
+    snapshot_load_cap_report,
     snapshot_write_once_report,
     stat_lines,
 )
@@ -310,6 +320,55 @@ def test_gql_create_set_hop_count_and_max_rows_151(doc_serve: ServeProc):
     doc_serve.close(sid)
 
 
+def test_populate_node_batches_3000_under_1000_lines():
+    batches = populate_node_batches(3000, batch_lines=DEFAULT_BATCH_LINES)
+    assert len(batches) == 3
+    joined = "".join(batches)
+    assert joined.count("CREATE (:SEC") == 3000
+    assert all(chunk.count("\n") <= DEFAULT_BATCH_LINES for chunk in batches)
+    assert_sid_free(joined)
+
+
+def test_populate_fat_batches_byte_cap():
+    batches = populate_fat_batches(40, 8, batch_lines=1000, batch_bytes=1_500_000)
+    assert "".join(batches).count("CREATE (:USR") == 8
+    assert "".join(batches).count("CREATE (:SEC") == 32
+    assert all(len(chunk.encode("utf-8")) <= 1_500_000 for chunk in batches)
+    assert all(chunk.count("\n") <= 1000 for chunk in batches)
+
+
+def test_snapshot_load_not_ingest_budget_in_source():
+    report = snapshot_load_cap_report()
+    assert report["load_calls_parse_line"] is True
+    assert report["load_calls_upsert"] is True
+    assert report["load_mentions_ingest_budget"] is False
+    assert report["ingest_budget_in_pin_map_ingest"] is True
+
+
+def test_max_rows_count_report_nodes_and_edges():
+    report = max_rows_count_report()
+    assert report["default_value"] == 5000
+    assert report["row_count_sums_non_law_tags"] is True
+    assert report["upsert_edg_counts"] is True
+    assert report["counts_nodes_plus_edges"] is True
+
+
+def test_mutate_byte_cap_report_bug4():
+    report = mutate_byte_cap_report()
+    assert report["pipe_value_bytes_default"] == 4096
+    assert report["pipe_line_bytes_default"] == 32768
+    assert report["gql_mutate_checks_value_bytes"] is False
+    assert report["gql_mutate_checks_line_bytes"] is False
+    assert report["bug4_gql_skips_pipe_caps"] is True
+
+
+def test_special_blob_has_required_glyphs():
+    blob = make_special_blob(16 * 1024, newlines=True, pipes=True)
+    assert len(blob.encode("utf-8")) == 16 * 1024
+    for needle in ("\\frac", "{", "}", "$", '"', "'", "\n", "|", "测"):
+        assert needle in blob
+
+
 def test_churn_two_cycles_returns_live_count(doc_serve: ServeProc):
     base, cap = doc_serve.live_count()
     assert cap == 1024
@@ -321,3 +380,135 @@ def test_churn_two_cycles_returns_live_count(doc_serve: ServeProc):
         assert closed.exit_code == 0, redact(closed.stderr)
     end, _ = doc_serve.live_count()
     assert end == base
+
+
+def test_e11_3000_node_snapshot_load_not_ingest_budget(doc_serve: ServeProc, tmp_path: Path):
+    sid = _open_ok(doc_serve)
+    replies = doc_serve.populate_stmts(sid, populate_node_batches(3000))
+    assert all(r.exit_code == 0 for r in replies), redact(replies[-1].stderr)
+    hk = doc_serve.housekeep_stats(sid)
+    assert parse_stat_int(hk.stdout, "rows") == 3000
+    assert parse_stat_int(hk.stdout, "edges") == 0
+    snap = tmp_path / "e11.snap"
+    save = doc_serve.save(sid, snap)
+    assert save.exit_code == 0, redact(save.stderr)
+    doc_serve.close(sid)
+    load = doc_serve.load_file(snap)
+    assert load.exit_code == 0, redact(load.stderr)
+    assert not any("ingest_budget" in e for e in err_lines(load.stderr))
+    new = None
+    for line in load.stdout.splitlines():
+        if line.startswith("@SESSION:"):
+            new = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+    assert new
+    hk2 = doc_serve.housekeep_stats(new)
+    assert parse_stat_int(hk2.stdout, "rows") == 3000
+    doc_serve.close(new)
+    assert_sid_free(redact(load.stdout), redact(load.stderr))
+
+
+def test_e12_max_rows_counts_nodes_and_edges(tmp_path: Path):
+    with running_serve(tmp_path, extra_env={"MEMNET_MAX_ROWS": "4"}) as svc:
+        sid = _open_ok(svc)
+        n3 = svc.mutate(
+            sid,
+            "CREATE (:SEC {id: 'SEC_a', art: 'ART_doc', heading: 'a', numbering: '1', "
+            "parent: '', order: '1', status: 'active', recycle: ''})\n"
+            "CREATE (:SEC {id: 'SEC_b', art: 'ART_doc', heading: 'b', numbering: '2', "
+            "parent: '', order: '2', status: 'active', recycle: ''})\n"
+            "CREATE (:SEC {id: 'SEC_c', art: 'ART_doc', heading: 'c', numbering: '3', "
+            "parent: '', order: '3', status: 'active', recycle: ''})\n",
+        )
+        assert n3.exit_code == 0, redact(n3.stderr)
+        e1 = svc.mutate(
+            sid,
+            "MATCH (a {id: 'SEC_a'}), (b {id: 'SEC_b'})\n"
+            "CREATE (a)-[:contains {id: 'E_ab'}]->(b)\n",
+        )
+        assert e1.exit_code == 0, redact(e1.stderr)
+        hk = svc.housekeep_stats(sid)
+        assert parse_stat_int(hk.stdout, "rows") == 4
+        assert parse_stat_int(hk.stdout, "edges") == 1
+        e2 = svc.mutate(
+            sid,
+            "MATCH (a {id: 'SEC_a'}), (b {id: 'SEC_c'})\n"
+            "CREATE (a)-[:contains {id: 'E_ac'}]->(b)\n",
+        )
+        assert e2.exit_code != 0
+        joined = "\n".join(err_lines(e2.stderr))
+        assert "limit_exceeded" in joined
+        assert "rows" in joined
+        patch = svc.mutate(sid, "MATCH (n:SEC {id: 'SEC_a'}) SET n.status = 'still'\n")
+        assert patch.exit_code == 0, redact(patch.stderr)
+        svc.close(sid)
+
+
+def test_e13_16kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path: Path):
+    blob = make_special_blob(16 * 1024, newlines=True, pipes=True)
+    sid = _open_ok(doc_serve)
+    create = doc_serve.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_big', key: 'blob', value: " + gql_str(blob) + ", recycle: ''})\n",
+    )
+    assert create.exit_code == 0, redact(create.stderr)
+    setted = doc_serve.mutate(
+        sid,
+        "MATCH (n:USR {id: 'USR_big'}) SET n.value = " + gql_str(blob) + "\n",
+    )
+    assert setted.exit_code == 0, redact(setted.stderr)
+    pin = doc_serve.pin_map(sid, cue="USR_big")
+    assert pin.exit_code == 0, redact(pin.stderr)
+    props = shaped_node_props(pin.stdout)
+    assert props is not None
+    assert props.get("value") == blob
+    snap = tmp_path / "e13.snap"
+    save = doc_serve.save(sid, snap)
+    assert save.exit_code == 0, redact(save.stderr)
+    doc_serve.close(sid)
+    load = doc_serve.load_file(snap)
+    assert load.exit_code != 0
+    joined = "\n".join(err_lines(load.stderr))
+    assert "FIELD_COUNT" in joined or "value_bytes" in joined or "newline_in_value" in joined
+    assert "ingest_budget" not in joined
+
+    sid2 = _open_ok(doc_serve)
+    plain = make_special_blob(16 * 1024, newlines=False, pipes=False)
+    doc_serve.mutate(
+        sid2,
+        "CREATE (:USR {id: 'USR_p', key: 'blob', value: " + gql_str(plain) + ", recycle: ''})\n",
+    )
+    snap2 = tmp_path / "e13p.snap"
+    doc_serve.save(sid2, snap2)
+    doc_serve.close(sid2)
+    load2 = doc_serve.load_file(snap2)
+    assert load2.exit_code != 0
+    assert "value_bytes" in "\n".join(err_lines(load2.stderr))
+
+
+def test_e14_list_store_no_in_membership(doc_serve: ServeProc):
+    sid = doc_serve.open_session(map_lines=[ln for ln in citekeys_schema().splitlines() if ln])
+    create = doc_serve.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_cite', key: 'paper', value: 'v', "
+        "citeKeys: ['k', 'other'], recycle: ''})\n"
+        "CREATE (:USR {id: 'USR_miss', key: 'other', value: 'v', "
+        "citeKeys: ['x'], recycle: ''})\n",
+    )
+    assert create.exit_code == 0, redact(create.stderr)
+    pin = doc_serve.pin_map(sid, cue="USR_cite")
+    props = shaped_node_props(pin.stdout)
+    assert props is not None
+    assert props.get("citeKeys") == ["k", "other"]
+    loc = doc_serve.pin_map(sid, kind="USR", locator='citeKeys=["k","other"]')
+    assert loc.exit_code == 0, redact(loc.stderr)
+    in_mut = doc_serve.mutate(
+        sid,
+        "MATCH (p:USR) WHERE 'k' IN p.citeKeys SET p.key = 'hit'\n",
+    )
+    after = shaped_node_props(doc_serve.pin_map(sid, cue="USR_cite").stdout) or {}
+    miss = shaped_node_props(doc_serve.pin_map(sid, cue="USR_miss").stdout) or {}
+    membership = in_mut.exit_code == 0 and after.get("key") == "hit" and miss.get("key") != "hit"
+    assert membership is False
+    leftover = doc_serve.read_list(sid, tag="USR", where="citeKeys=*k*")
+    assert leftover.exit_code == 0, redact(leftover.stderr)
+    doc_serve.close(sid)

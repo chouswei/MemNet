@@ -29,23 +29,37 @@ for path in (str(ROOT), str(TESTS)):
 from doc_gate_lib import (  # noqa: E402
     CAP_CONTRACT,
     CAP_CONTRACT_NEEDLES,
+    DEFAULT_BATCH_LINES,
+    FAT_PROBE_NODES,
+    FAT_TEXT_NODES,
+    LOAD_PROBE_NODES,
     PROP32,
     ItemResult,
     ServeProc,
     ServeReply,
     assert_sid_free,
     canonical_snapshot,
+    citekeys_schema,
     err_lines,
+    fat_payload_bytes,
     gql_str,
+    make_special_blob,
+    max_rows_count_report,
+    mutate_byte_cap_report,
+    parse_stat_int,
+    populate_fat_batches,
+    populate_node_batches,
     redact,
     redact_obj,
     running_serve,
     schema_prop32,
+    sec_create,
+    shaped_node_props,
+    snapshot_load_cap_report,
     snapshot_write_once_report,
     stat_lines,
     wrn_lines,
 )
-
 from memnet import __version__  # noqa: E402
 
 
@@ -90,9 +104,7 @@ def item6_envelope(svc: ServeProc) -> ItemResult:
             "expire_status_stats": stat_lines(reply.stdout),
             "housekeep_stats": stat_lines(hk.stdout),
             "usage_process_rss": usage_body.get("process", {}).get("rss_bytes"),
-            "usage_session_row_keys": sorted(
-                (usage_body.get("session_rows") or [{}])[0].keys()
-            )
+            "usage_session_row_keys": sorted((usage_body.get("session_rows") or [{}])[0].keys())
             if usage_body.get("session_rows")
             else [],
         }
@@ -354,9 +366,7 @@ def item4_expire(svc: ServeProc, *, wait_s: float) -> ItemResult:
     wrote = snap_after > snap_before
     reload_r = svc.load_sid(sid)
     wires.extend(
-        err_lines(reload_r.stderr)
-        + wrn_lines(reload_r.stderr)
-        + stat_lines(reload_r.stdout)
+        err_lines(reload_r.stderr) + wrn_lines(reload_r.stderr) + stat_lines(reload_r.stdout)
     )
     latest = False
     if reload_r.exit_code == 0:
@@ -497,7 +507,11 @@ def item5_acl(svc: ServeProc) -> ItemResult:
         svc.save(sid, svc.snap_dir / "acl-save2.snap", caller="owner"),
         expect_acl=True,
     )
-    rec("load with caller", svc.load_file(svc.snap_dir / "acl-save.snap", caller="owner"), expect_acl=True)
+    rec(
+        "load with caller",
+        svc.load_file(svc.snap_dir / "acl-save.snap", caller="owner"),
+        expect_acl=True,
+    )
     rec("close missing caller", svc.close(sid), expect_acl=True)
 
     # Bind skip: reopen, grant+bind, mutate without mission/lease through serve.
@@ -636,9 +650,7 @@ def item7_gql(svc: ServeProc) -> ItemResult:
     if count_r.exit_code == 0:
         gaps.append("grouped count unexpectedly succeeded")
     else:
-        gaps.append(
-            "grouped count() is not product mutate/pin_map; refused (see wire)"
-        )
+        gaps.append("grouped count() is not product mutate/pin_map; refused (see wire)")
 
     # 151 row limit: star with 160 leaves.
     star = [
@@ -711,6 +723,567 @@ def item7_gql(svc: ServeProc) -> ItemResult:
     )
 
 
+def item_e11_load_budget(svc: ServeProc, tmp: Path, *, n_nodes: int) -> ItemResult:
+    path_info = snapshot_load_cap_report()
+    batches = populate_node_batches(n_nodes, batch_lines=DEFAULT_BATCH_LINES)
+    over_batch = any(chunk.count("\n") > DEFAULT_BATCH_LINES for chunk in batches)
+    sid = svc.open_session()
+    replies = svc.populate_stmts(sid, batches)
+    wires: list[str] = []
+    gaps: list[str] = []
+    if any(r.exit_code != 0 for r in replies):
+        err = next(r for r in replies if r.exit_code != 0)
+        wires.extend(err_lines(err.stderr))
+        gaps.append("mutate populate of 3000-node graph failed")
+    hk = svc.housekeep_stats(sid)
+    rows_live = parse_stat_int(hk.stdout, "rows")
+    edges_live = parse_stat_int(hk.stdout, "edges")
+    snap = tmp / "e11-3000.snap"
+    save = svc.save(sid, snap)
+    wires.extend(stat_lines(save.stdout) + err_lines(save.stderr))
+    svc.close(sid)
+    load = svc.load_file(snap)
+    wires.extend(stat_lines(load.stdout) + err_lines(load.stderr))
+    loaded_rows = None
+    ingest_hit = any("ingest_budget" in e for e in err_lines(load.stderr))
+    rows_hit = any("limit_exceeded" in e and "rows" in e for e in err_lines(load.stderr))
+    if load.exit_code == 0:
+        new_sid = _sid_from(load.stdout)
+        loaded_rows = parse_stat_int(load.stdout, "loaded")
+        if new_sid:
+            hk2 = svc.housekeep_stats(new_sid)
+            loaded_rows = parse_stat_int(hk2.stdout, "rows") or loaded_rows
+            wires.extend(stat_lines(hk2.stdout))
+            svc.close(new_sid)
+    else:
+        gaps.append(
+            "session_load refused: "
+            + ("; ".join(err_lines(load.stderr)) or f"exit={load.exit_code}")
+        )
+    notes = [
+        path_info["code_path"],
+        "ingest_budget is Path-B ingest only; session_load does not call it.",
+        "Other caps on this path: max_sessions at load start; MEMNET_MAX_ROWS at upsert; "
+        "leftover parse_line value/line/newline/FIELD_COUNT.",
+    ]
+    if load.exit_code == 0:
+        notes.append(
+            "Load of 3000 nodes succeeded. Neither a batched load nor an ingest_budget "
+            "exemption is required. If a larger snapshot hit MEMNET_MAX_ROWS, batched "
+            "load would not help (upsert counts the whole store); split sessions or "
+            "raise the row cap."
+        )
+        verdict = "yes"
+    elif ingest_hit:
+        notes.append(
+            "Load refused ingest_budget. An exemption for session_load (not batched load) "
+            "would be the right fix; ingest caps are Path-B artefact budgets, not snapshot restore."
+        )
+        verdict = "no"
+        gaps.append("session_load applied ingest_budget (unexpected on this code path)")
+    elif rows_hit:
+        notes.append(
+            "Load refused MEMNET_MAX_ROWS. Batched load would not help; ingest exemption "
+            "would not either. Split sessions or raise max_rows."
+        )
+        verdict = "note"
+    else:
+        verdict = "no"
+    if over_batch:
+        gaps.append("populate batch exceeded 1000 lines")
+        verdict = "no"
+    return ItemResult(
+        item="E11 session_load vs ingest budget (3000-node snapshot)",
+        verdict=verdict,
+        notes=notes,
+        numbers={
+            "n_nodes": n_nodes,
+            "batch_count": len(batches),
+            "max_batch_lines": max((c.count("\n") for c in batches), default=0),
+            "mutate_ok": all(r.exit_code == 0 for r in replies),
+            "rows_live": rows_live,
+            "edges_live": edges_live,
+            "save_exit": save.exit_code,
+            "load_exit": load.exit_code,
+            "loaded_rows": loaded_rows,
+            "ingest_budget_on_load": ingest_hit,
+            "rows_cap_on_load": rows_hit,
+            "load_err": err_lines(load.stderr),
+            "code": path_info,
+        },
+        wires=wires,
+        gaps=gaps,
+    )
+
+
+def item_e12_max_rows(tmp: Path) -> ItemResult:
+    cite = max_rows_count_report()
+    gaps: list[str] = []
+    wires: list[str] = []
+    with running_serve(tmp / "e12", extra_env={"MEMNET_MAX_ROWS": "4"}) as svc:
+        sid = svc.open_session()
+        n3 = svc.mutate(
+            sid,
+            "\n".join(sec_create(i) for i in range(1, 4)) + "\n",
+        )
+        wires.extend(err_lines(n3.stderr))
+        e1 = svc.mutate(
+            sid,
+            "MATCH (a {id: 'SEC_0001'}), (b {id: 'SEC_0002'})\n"
+            "CREATE (a)-[:contains {id: 'E_ab'}]->(b)\n",
+        )
+        wires.extend(err_lines(e1.stderr))
+        hk4 = svc.housekeep_stats(sid)
+        rows4 = parse_stat_int(hk4.stdout, "rows")
+        edges4 = parse_stat_int(hk4.stdout, "edges")
+        e2 = svc.mutate(
+            sid,
+            "MATCH (a {id: 'SEC_0001'}), (b {id: 'SEC_0003'})\n"
+            "CREATE (a)-[:contains {id: 'E_ac'}]->(b)\n",
+        )
+        wires.extend(err_lines(e2.stderr))
+        rows_refuse = err_lines(e2.stderr)
+        n4 = svc.mutate(sid, sec_create(4) + "\n")
+        wires.extend(err_lines(n4.stderr))
+        patch = svc.mutate(
+            sid,
+            "MATCH (n:SEC {id: 'SEC_0001'}) SET n.status = 'still'\n",
+        )
+        svc.close(sid)
+    edge_counted = (
+        e1.exit_code == 0
+        and e2.exit_code != 0
+        and any("limit_exceeded" in x and "rows" in x for x in rows_refuse)
+    )
+    if n3.exit_code != 0:
+        gaps.append("three nodes at max_rows=4 failed")
+    if e1.exit_code != 0:
+        gaps.append("first edge (row 4) failed; edges may be excluded from MEMNET_MAX_ROWS")
+    if e2.exit_code == 0:
+        gaps.append("second edge succeeded at 5 rows — edges not counted")
+    if not edge_counted:
+        gaps.append("did not observe rows 5/4 on a new edge")
+    verdict = "yes" if edge_counted and not gaps else "no"
+    return ItemResult(
+        item="E12 MEMNET_MAX_ROWS counts nodes plus edges",
+        verdict=verdict,
+        notes=[
+            "Caps.max_rows default 5000 (MEMNET_MAX_ROWS). row_count_non_law sums every "
+            "tag except LAW; upsert treats EDG as a non-LAW row. pin_map --max-rows is a "
+            "different clip (DEFAULT_QUERY_MAX_ROWS=50).",
+            f"housekeep after 3 nodes + 1 edge: rows={rows4} edges={edges4}",
+            "SET of an existing hid still works at the cap.",
+        ],
+        numbers={
+            "code": cite,
+            "three_nodes_exit": n3.exit_code,
+            "first_edge_exit": e1.exit_code,
+            "rows_after_first_edge": rows4,
+            "edges_after_first_edge": edges4,
+            "second_edge_exit": e2.exit_code,
+            "second_edge_err": rows_refuse,
+            "fourth_node_exit": n4.exit_code,
+            "patch_at_cap_exit": patch.exit_code,
+            "counts_nodes_plus_edges": edge_counted,
+        },
+        wires=wires,
+        gaps=gaps,
+    )
+
+
+def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
+    caps = mutate_byte_cap_report()
+    target = 16 * 1024
+    blob = make_special_blob(target, newlines=True, pipes=True)
+    blob_plain = make_special_blob(target, newlines=False, pipes=False)
+    blob_pipe = make_special_blob(target, newlines=False, pipes=True)
+    gaps: list[str] = []
+    wires: list[str] = []
+    cases: dict[str, Any] = {
+        "blob_bytes": len(blob.encode("utf-8")),
+        "plain_bytes": len(blob_plain.encode("utf-8")),
+        "pipe_bytes": len(blob_pipe.encode("utf-8")),
+        "caps": caps,
+    }
+
+    sid = svc.open_session()
+    insert_iso = svc.mutate(
+        sid,
+        "INSERT (:USR {id: 'USR_ins', key: 'k', value: 'x', recycle: ''})\n",
+    )
+    cases["insert_iso"] = {
+        "exit": insert_iso.exit_code,
+        "errs": err_lines(insert_iso.stderr),
+    }
+    wires.extend(err_lines(insert_iso.stderr))
+    create = svc.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_big', key: 'blob', value: " + gql_str(blob) + ", recycle: ''})\n",
+    )
+    cases["create_16kib"] = {
+        "exit": create.exit_code,
+        "errs": err_lines(create.stderr),
+    }
+    wires.extend(err_lines(create.stderr))
+    setted = svc.mutate(
+        sid,
+        "MATCH (n:USR {id: 'USR_big'}) SET n.value = " + gql_str(blob) + "\n",
+    )
+    cases["set_16kib"] = {"exit": setted.exit_code, "errs": err_lines(setted.stderr)}
+    wires.extend(err_lines(setted.stderr))
+    pin = svc.pin_map(sid, cue="USR_big")
+    props = shaped_node_props(pin.stdout) or {}
+    got = props.get("value")
+    ram_ok = create.exit_code == 0 and setted.exit_code == 0 and got == blob
+    cases["pin_map_roundtrip"] = ram_ok
+    cases["pin_map_exit"] = pin.exit_code
+    cases["pin_map_value_bytes"] = len(got.encode("utf-8")) if isinstance(got, str) else None
+    if not ram_ok:
+        gaps.append("16 KiB special blob did not round-trip CREATE/SET/pin_map")
+        wires.extend(err_lines(pin.stderr))
+
+    bad_esc = svc.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_esc', key: 'k', value: '\\q', recycle: ''})\n",
+    )
+    cases["unknown_escape"] = {
+        "exit": bad_esc.exit_code,
+        "errs": err_lines(bad_esc.stderr),
+    }
+    wires.extend(err_lines(bad_esc.stderr))
+
+    snap = tmp / "e13-nl.snap"
+    save = svc.save(sid, snap)
+    svc.close(sid)
+    load = svc.load_file(snap)
+    cases["snap_nl"] = {
+        "save_exit": save.exit_code,
+        "load_exit": load.exit_code,
+        "errs": err_lines(load.stderr),
+    }
+    wires.extend(err_lines(load.stderr))
+
+    sid2 = svc.open_session()
+    svc.mutate(
+        sid2,
+        "CREATE (:USR {id: 'USR_plain', key: 'blob', value: "
+        + gql_str(blob_plain)
+        + ", recycle: ''})\n",
+    )
+    snap2 = tmp / "e13-plain.snap"
+    svc.save(sid2, snap2)
+    svc.close(sid2)
+    load2 = svc.load_file(snap2)
+    cases["snap_plain"] = {
+        "load_exit": load2.exit_code,
+        "errs": err_lines(load2.stderr),
+    }
+    wires.extend(err_lines(load2.stderr))
+
+    sid3 = svc.open_session()
+    svc.mutate(
+        sid3,
+        "CREATE (:USR {id: 'USR_pipe', key: 'blob', value: "
+        + gql_str(blob_pipe)
+        + ", recycle: ''})\n",
+    )
+    snap3 = tmp / "e13-pipe.snap"
+    svc.save(sid3, snap3)
+    svc.close(sid3)
+    load3 = svc.load_file(snap3)
+    cases["snap_pipe"] = {
+        "load_exit": load3.exit_code,
+        "errs": err_lines(load3.stderr),
+    }
+    wires.extend(err_lines(load3.stderr))
+
+    snap_ok = load.exit_code == 0 and load2.exit_code == 0 and load3.exit_code == 0
+    if snap_ok:
+        gaps.append("16 KiB snapshot load unexpectedly succeeded for all variants")
+    notes = [
+        "GQL string literals: single or double quotes; escapes are \\\\ \\' \\\" \\n \\r \\t only. "
+        "Unknown escape -> parse_error (GraphGlot/ParseError). gql mutate does not enforce "
+        "MEMNET_MAX_VALUE_BYTES=4096 or MEMNET_MAX_LINE_BYTES=32768 (cap-contract bug 4).",
+        "Leftover parse_line: value_bytes 4096 -> @ERR: limit_exceeded|value_bytes {n}/{max} "
+        "(inner pipe becomes space); line_bytes 32768 -> limit_exceeded|line_bytes; "
+        "newline_in_value; FIELD_COUNT. Mutate stdin: batch_lines 1000. Serve frame 4 MiB.",
+        "ISO INSERT is not the mutate spelling (CREATE is).",
+    ]
+    if ram_ok and not snap_ok:
+        verdict = "note"
+        notes.append(
+            "16 KiB survives CREATE/SET/pin_map in RAM (bug 4). Snapshot save/load does not "
+            "round-trip: newlines split leftover pipe lines (FIELD_COUNT); pipe | splits fields; "
+            "a 16 KiB value without those still hits value_bytes 4096."
+        )
+    elif ram_ok and snap_ok:
+        verdict = "yes"
+    else:
+        verdict = "no"
+    return ItemResult(
+        item="E13 16 KiB string properties + mutate/GQL byte caps",
+        verdict=verdict,
+        notes=notes,
+        numbers=cases,
+        wires=wires,
+        gaps=gaps,
+    )
+
+
+def item_e14_lists(svc: ServeProc) -> ItemResult:
+    gaps: list[str] = []
+    wires: list[str] = []
+    cases: dict[str, Any] = {}
+    map_lines = [ln for ln in citekeys_schema().splitlines() if ln]
+    sid = svc.open_session(map_lines=map_lines)
+    create = svc.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_cite', key: 'paper', value: 'v', "
+        "citeKeys: ['k', 'other'], recycle: ''})\n"
+        "CREATE (:USR {id: 'USR_miss', key: 'other', value: 'v', "
+        "citeKeys: ['x'], recycle: ''})\n",
+    )
+    cases["create_list"] = {"exit": create.exit_code, "errs": err_lines(create.stderr)}
+    wires.extend(err_lines(create.stderr))
+    pin = svc.pin_map(sid, cue="USR_cite")
+    props = shaped_node_props(pin.stdout) or {}
+    stored = props.get("citeKeys")
+    cases["pin_map_citeKeys"] = stored
+    store_ok = create.exit_code == 0 and stored == ["k", "other"]
+    if not store_ok:
+        gaps.append("list-valued citeKeys did not store/emit as a list")
+        wires.extend(err_lines(pin.stderr))
+
+    loc = svc.pin_map(sid, kind="USR", locator='citeKeys=["k","other"]')
+    loc_hit = loc.exit_code == 0 and "paper" in loc.stdout
+    cases["locator_equality"] = {
+        "exit": loc.exit_code,
+        "hit": loc_hit,
+        "errs": err_lines(loc.stderr),
+    }
+    wires.extend(err_lines(loc.stderr))
+
+    loc_member = svc.pin_map(sid, kind="USR", locator="citeKeys=k")
+    cases["locator_bare_k"] = {
+        "exit": loc_member.exit_code,
+        "stdout_has_paper": "paper" in loc_member.stdout,
+        "cue_miss": "## CueMiss" in loc_member.stdout,
+        "errs": err_lines(loc_member.stderr),
+    }
+
+    in_stmt = "MATCH (p:USR) WHERE 'k' IN p.citeKeys SET p.key = 'hit'\n"
+    in_mut = svc.mutate(sid, in_stmt)
+    cases["where_in_set"] = {
+        "exit": in_mut.exit_code,
+        "errs": err_lines(in_mut.stderr),
+        "ok_lines": [ln for ln in in_mut.stderr.splitlines() if "ok=" in ln][:2],
+    }
+    wires.extend(err_lines(in_mut.stderr))
+    pin_after = svc.pin_map(sid, cue="USR_cite")
+    pin_miss = svc.pin_map(sid, cue="USR_miss")
+    props_hit = shaped_node_props(pin_after.stdout) or {}
+    props_miss = shaped_node_props(pin_miss.stdout) or {}
+    cases["after_where_in"] = {
+        "cite_key": props_hit.get("key"),
+        "miss_key": props_miss.get("key"),
+    }
+    membership_works = (
+        in_mut.exit_code == 0 and props_hit.get("key") == "hit" and props_miss.get("key") != "hit"
+    )
+    where_ignored = (
+        in_mut.exit_code == 0 and props_hit.get("key") == "hit" and props_miss.get("key") == "hit"
+    )
+
+    leftover = svc.read_list(sid, tag="USR", where="citeKeys=*k*")
+    cases["leftover_where_glob"] = {
+        "exit": leftover.exit_code,
+        "lines": len(leftover.stdout.splitlines()),
+        "has_cite": "USR_cite" in leftover.stdout or "paper" in leftover.stdout,
+        "errs": err_lines(leftover.stderr),
+    }
+    find_kw = svc.find(sid, kind="USR", keyword="k")
+    cases["find_keyword_k"] = {
+        "exit": find_kw.exit_code,
+        "errs": err_lines(find_kw.stderr),
+        "has_cite": "k" in find_kw.stdout,
+    }
+
+    svc.close(sid)
+    notes = [
+        "GQL parser accepts [a, b] lists; _value_to_store json.dumps them into a string field. "
+        "pin_map re-parses JSON-looking [ ] on emit.",
+        "pin_map / find locators are KEY=VAL exact equality (no IN membership). leftover "
+        "read list --where is field=value with * ? glob on the JSON string.",
+        "MATCH…WHERE is not a product mutate form; leftover lowering has no IN operator.",
+    ]
+    if membership_works:
+        verdict = "yes"
+        notes.append("WHERE 'k' IN p.citeKeys unexpectedly filtered (product IN).")
+    elif store_ok and not membership_works:
+        verdict = "note"
+        if where_ignored:
+            notes.append(
+                "WHERE 'k' IN p.citeKeys SET applied to every matched USR (WHERE ignored)."
+            )
+            gaps.append("WHERE IN is ignored on leftover MATCH…SET (not membership filter)")
+        elif in_mut.exit_code != 0:
+            notes.append(
+                "WHERE IN mutate refused (see wire). Lists store; membership filter does not."
+            )
+        if not loc_hit:
+            notes.append("locator equality on the JSON string is the only pin_map list lookup.")
+    else:
+        verdict = "no"
+    return ItemResult(
+        item="E14 list-valued properties and IN membership",
+        verdict=verdict,
+        notes=notes,
+        numbers={
+            **cases,
+            "store_ok": store_ok,
+            "membership_works": membership_works,
+            "where_ignored": where_ignored,
+            "locator_json_equality": loc_hit,
+        },
+        wires=wires,
+        gaps=gaps,
+    )
+
+
+def item_fat_rss(
+    svc: ServeProc,
+    *,
+    n_nodes: int,
+    n_fat: int,
+    samples: int,
+) -> ItemResult:
+    batches = populate_fat_batches(n_nodes, n_fat)
+    payload = sum(fat_payload_bytes(j) for j in range(n_fat))
+    deltas: list[int] = []
+    baseline = _rss_or_zero(svc)
+    sids: list[str] = []
+    try:
+        for _ in range(samples):
+            before = _rss_or_zero(svc)
+            sid = svc.open_session()
+            replies = svc.populate_stmts(sid, batches)
+            if any(r.exit_code != 0 for r in replies):
+                err = next(r for r in replies if r.exit_code != 0)
+                return ItemResult(
+                    item="6b RSS delta per 3000-node fat session",
+                    verdict="no",
+                    notes=["fat populate failed"],
+                    wires=err_lines(err.stderr),
+                    gaps=["populate of 3000-node fat fixture failed"],
+                    numbers={"payload_utf8_bytes": payload},
+                )
+            after = _rss_or_zero(svc)
+            deltas.append(after - before)
+            sids.append(sid)
+        mean = int(sum(deltas) / len(deltas)) if deltas else 0
+        return ItemResult(
+            item="6b RSS delta per 3000-node fat session",
+            verdict="yes" if mean > 0 else "note",
+            notes=[
+                "3000 nodes, no edges; 1500 USR values of 2/3/4 KiB.",
+                "1500 x 2-4 KiB is about 3-6 MiB of text (not 1 MiB); "
+                "payload_utf8_bytes is the sum.",
+                "Delta is serve-process RSS after open+populate, sessions still live.",
+            ],
+            numbers={
+                "samples": samples,
+                "n_nodes": n_nodes,
+                "n_fat": n_fat,
+                "payload_utf8_bytes": payload,
+                "payload_mib": round(payload / (1024 * 1024), 3),
+                "deltas_bytes": deltas,
+                "mean_bytes": mean,
+                "mean_mib": round(mean / (1024 * 1024), 3),
+                "baseline_bytes": baseline,
+                "batch_count": len(batches),
+            },
+        )
+    finally:
+        for sid in sids:
+            svc.close(sid)
+
+
+def item_fat_churn(
+    svc: ServeProc,
+    *,
+    cycles: int,
+    n_nodes: int,
+    n_fat: int,
+) -> ItemResult:
+    batches = populate_fat_batches(n_nodes, n_fat)
+    base_n, cap = svc.live_count()
+    base_rss = _rss_or_zero(svc)
+    per: list[dict[str, Any]] = []
+    failed = 0
+    t0 = time.monotonic()
+    for i in range(1, cycles + 1):
+        sid = svc.open_session()
+        replies = svc.populate_stmts(sid, batches)
+        if any(r.exit_code != 0 for r in replies):
+            failed += 1
+        closed = svc.close(sid)
+        if closed.exit_code != 0:
+            failed += 1
+        if i % max(1, min(4, cycles)) == 0 or i == cycles:
+            live, _cap = svc.live_count()
+            rss = _rss_or_zero(svc)
+            per.append(
+                {
+                    "cycle": i,
+                    "rss_bytes": rss,
+                    "rss_delta_from_baseline": rss - base_rss,
+                    "live": live,
+                    "live_delta": live - base_n,
+                }
+            )
+    elapsed = time.monotonic() - t0
+    end_n, _ = svc.live_count()
+    rss_end = _rss_or_zero(svc)
+    deltas = [row["rss_delta_from_baseline"] for row in per]
+    grew = bool(deltas) and deltas[-1] > deltas[0] + 8 * 1024 * 1024
+    live_flat = end_n == base_n
+    gaps = []
+    verdict = "yes" if live_flat and failed == 0 and not grew else "note"
+    if not live_flat:
+        gaps.append(f"live count {base_n} -> {end_n}, not back to baseline")
+        verdict = "no"
+    if failed:
+        gaps.append(f"{failed} open/populate/close failures")
+        verdict = "no"
+    if grew:
+        gaps.append("RSS rose more than 8 MiB across fat churn; not flat")
+        if verdict == "yes":
+            verdict = "note"
+    return ItemResult(
+        item="2b Fat-session churn (3000 nodes, 2–4 KiB text)",
+        verdict=verdict,
+        notes=[
+            "RSS trend after close (allocator may retain pages).",
+            f"elapsed_s={elapsed:.1f}",
+            f"max_sessions_cap={cap}",
+            "110 cycles of this fixture is not feasible in this probe; default is a short run.",
+        ],
+        numbers={
+            "cycles": cycles,
+            "n_nodes": n_nodes,
+            "n_fat": n_fat,
+            "baseline_live": base_n,
+            "end_live": end_n,
+            "baseline_rss_bytes": base_rss,
+            "end_rss_bytes": rss_end,
+            "rss_samples": per,
+            "failed": failed,
+            "elapsed_s": round(elapsed, 2),
+        },
+        gaps=gaps,
+    )
+
+
 def item_admin_live_bug(svc: ServeProc, *, wait_s: float) -> ItemResult:
     live_sids = [svc.open_session(ttl=60, product="docgate") for _ in range(7)]
     expiring = [svc.open_session(ttl=1, product="docgate") for _ in range(5)]
@@ -762,6 +1335,11 @@ def main() -> int:
     parser.add_argument("--churn", type=int, default=110)
     parser.add_argument("--rss-samples", type=int, default=5)
     parser.add_argument("--expire-wait", type=float, default=65.0)
+    parser.add_argument("--load-nodes", type=int, default=LOAD_PROBE_NODES)
+    parser.add_argument("--fat-nodes", type=int, default=FAT_PROBE_NODES)
+    parser.add_argument("--fat-text-nodes", type=int, default=FAT_TEXT_NODES)
+    parser.add_argument("--fat-churn", type=int, default=8)
+    parser.add_argument("--fat-rss-samples", type=int, default=3)
     parser.add_argument(
         "--quick",
         action="store_true",
@@ -772,6 +1350,11 @@ def main() -> int:
     churn = 12 if args.quick else args.churn
     samples = 2 if args.quick else args.rss_samples
     wait_s = 5.0 if args.quick else args.expire_wait
+    load_nodes = 80 if args.quick else args.load_nodes
+    fat_nodes = 40 if args.quick else args.fat_nodes
+    fat_text = 8 if args.quick else args.fat_text_nodes
+    fat_churn = 2 if args.quick else args.fat_churn
+    fat_samples = 1 if args.quick else args.fat_rss_samples
 
     results: list[ItemResult] = [item_cap_contract()]
     header: dict[str, Any] = {
@@ -780,6 +1363,10 @@ def main() -> int:
         "transport": "loopback TCP length-prefixed JSON argv+stdin",
         "nodes": nodes,
         "churn": churn,
+        "load_nodes": load_nodes,
+        "fat_nodes": fat_nodes,
+        "fat_text_nodes": fat_text,
+        "fat_churn": fat_churn,
         "quick": bool(args.quick),
     }
     with tempfile.TemporaryDirectory(prefix="doc-gate-") as raw:
@@ -801,6 +1388,29 @@ def main() -> int:
                 results.append(item3_roundtrip(svc, tmp, n_parts=min(nodes, 1800)))
                 results.append(item5_acl(svc))
                 results.append(item7_gql(svc))
+                if load_nodes > 0:
+                    results.append(item_e11_load_budget(svc, tmp, n_nodes=load_nodes))
+                results.append(item_e12_max_rows(tmp))
+                results.append(item_e13_strings(svc, tmp))
+                results.append(item_e14_lists(svc))
+                if fat_samples > 0:
+                    results.append(
+                        item_fat_rss(
+                            svc,
+                            n_nodes=fat_nodes,
+                            n_fat=fat_text,
+                            samples=fat_samples,
+                        )
+                    )
+                if fat_churn > 0:
+                    results.append(
+                        item_fat_churn(
+                            svc,
+                            cycles=fat_churn,
+                            n_nodes=fat_nodes,
+                            n_fat=fat_text,
+                        )
+                    )
                 if wait_s > 0:
                     results.append(item4_expire(svc, wait_s=wait_s))
                     results.append(item_admin_live_bug(svc, wait_s=wait_s))

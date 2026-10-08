@@ -21,7 +21,7 @@ Settings this gate uses:
 | Concurrent sessions | 1024 (`MEMNET_MAX_SESSIONS`) |
 | Document size | about 1 800 part nodes plus a few opaque `USR` text nodes |
 
-Ingest caps (`max_nodes=2000` / `max_edges=2000`) are Path-B ingest, not this mutate path. Session row cap remains 5000 non-LAW rows.
+Ingest caps (`max_nodes=2000` / `max_edges=2000`) are Path-B ingest, not this mutate path. Session row cap remains 5000 non-LAW rows (**nodes plus edges**). `session load` of a snapshot is **not** bound by ingest budget; it walks leftover `parse_line` + `MemStore.upsert` (`MEMNET_MAX_ROWS`, max sessions, leftover value/line/newline/FIELD_COUNT).
 
 ## Request envelope (direct serve)
 
@@ -45,7 +45,7 @@ Client helper: `memnet.serve.send_command(args, stdin=…, host=…, port=…)`.
 
 `session save --file` writes `# memnet-snapshot-v1` via `Path.write_text` (overwrite). MemNet does **not** make that file write-once (no `O_EXCL`, no `chmod`, no immutable flag). The caller or the filesystem can.
 
-Opaque text must stay on one snapshot line. Newlines inside a property survive GQL mutate in RAM, but leftover `@TAG` emit does not escape them, so `session load` raises `@ERR: FIELD_COUNT`. Unicode, `|`, and quotes on a single line do round-trip.
+Opaque text must stay on one snapshot line. Newlines inside a property survive GQL mutate in RAM, but leftover `@TAG` emit does not escape them, so `session load` raises `@ERR: FIELD_COUNT`. `|` in a value splits leftover fields (`FIELD_COUNT`). A 16 KiB string survives CREATE / SET / `pin_map` in RAM (GQL mutate does not enforce pipe `value_bytes` / `line_bytes` — cap-contract bug 4) but snapshot load of a 16 KiB field refuses `limit_exceeded|value_bytes` (default 4096). Unicode, `|`, and quotes on a **short** single line do round-trip.
 
 Expire: with save-on-expire and a dir, TTL drop writes `{dir}/{sid}.snap` (do not log the name). Next use: `@ERR: session_expired|snap_available`. Restore: `session load --session <id>` (no `--file`).
 
@@ -66,4 +66,15 @@ source .venv/bin/activate
 python scripts/probe_doc_gate_readiness.py --out /opt/cursor/artifacts/doc-gate-readiness-proof.log
 ```
 
-`--quick` shrinks nodes/churn/wait (not the product-gate proof). Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve, smaller graphs).
+`--quick` shrinks nodes/churn/wait (not the product-gate proof). Extra flags: `--load-nodes` (E11, default 3000), `--fat-nodes` / `--fat-text-nodes` / `--fat-rss-samples` / `--fat-churn` (second RSS fixture). Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve; E11 uses 3000 nodes).
+
+## Extra probes (E11–E14)
+
+| Item | What holds on 0.19.18 |
+|------|------------------------|
+| E11 | `session load` of a 3000-node snapshot (mutate batches ≤1000 lines, then save/close/load) is **not** `ingest_budget`. Bound by `MEMNET_MAX_ROWS` (5000) at upsert. Neither batched load nor an ingest exemption is needed at 3000. |
+| E12 | `MEMNET_MAX_ROWS` (default 5000) counts **nodes plus edges** (`row_count_non_law`, every tag except LAW). |
+| E13 | 16 KiB strings with LaTeX / quotes / newline / `\|` / CJK survive GQL CREATE/SET/`pin_map` in RAM. Snapshot save/load does **not** survive byte-for-byte. Pipe leftover: value 4096, line 32768; GQL mutate skips those (bug 4). Escapes: `\\ \' \" \n \r \t` only. |
+| E14 | List literals store as JSON strings and emit as GQL lists. `'k' IN p.citeKeys` is **not** a product filter. Locators are `KEY=VAL` equality on the JSON string; leftover `read list --where` can glob that string. |
+
+Second RSS fixture: 3000 nodes, no edges, 1500 of them with 2/3/4 KiB text (about 4.4 MiB of UTF-8 payload, not 1 MiB). Measure process RSS the same way as the 1800-part fixture. Short fat churn is on (`--fat-churn`, default 8); 110 cycles of this fixture is not the default.

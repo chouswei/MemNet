@@ -28,10 +28,22 @@ TECHDOCS_MAP = (
     / "examples"
     / "schema.techdocs.example.txt"
 )
-SNAPSHOT_PY = (
-    Path(__file__).resolve().parents[1] / "parts" / "common" / "memnet" / "memnet" / "snapshot.py"
-)
+_ENGINE = Path(__file__).resolve().parents[1] / "parts" / "common" / "memnet" / "memnet"
+SNAPSHOT_PY = _ENGINE / "snapshot.py"
+MEM_STORE_PY = _ENGINE / "mem_store.py"
+TAG_MAP_PY = _ENGINE / "tag_map.py"
+GQL_PY = _ENGINE / "gql.py"
+PIN_MAP_INGEST_PY = _ENGINE / "pin_map_ingest.py"
+PIN_MAP_COMPOSER_PY = _ENGINE / "pin_map_composer.py"
+CONFIG_PY = _ENGINE / "config.py"
+OUTPUT_PY = _ENGINE / "output.py"
+CLI_PY = _ENGINE / "cli.py"
 CAP_CONTRACT = Path(__file__).resolve().parents[1] / "docs" / "cap-contract.md"
+DEFAULT_BATCH_LINES = 1000
+DEFAULT_BATCH_BYTES = 1_500_000
+LOAD_PROBE_NODES = 3000
+FAT_PROBE_NODES = 3000
+FAT_TEXT_NODES = 1500
 
 # Needles that must remain in docs/cap-contract.md on 0.19.18.
 CAP_CONTRACT_NEEDLES = (
@@ -222,6 +234,206 @@ def populate_batches(
     return batches
 
 
+def pack_batches(
+    stmts: list[str],
+    *,
+    batch_lines: int = DEFAULT_BATCH_LINES,
+    batch_bytes: int = DEFAULT_BATCH_BYTES,
+) -> list[str]:
+    """Split GQL statements so each mutate stdin stays under line and byte caps."""
+    batches: list[str] = []
+    cur: list[str] = []
+    cur_n = 0
+    cur_b = 0
+    for stmt in stmts:
+        n = stmt.count("\n") + 1
+        b = len(stmt.encode("utf-8")) + 1
+        if cur and (cur_n + n > batch_lines or cur_b + b > batch_bytes):
+            batches.append("\n".join(cur) + "\n")
+            cur = []
+            cur_n = 0
+            cur_b = 0
+        cur.append(stmt)
+        cur_n += n
+        cur_b += b
+    if cur:
+        batches.append("\n".join(cur) + "\n")
+    return batches
+
+
+def populate_node_batches(
+    n: int,
+    *,
+    batch_lines: int = DEFAULT_BATCH_LINES,
+    batch_bytes: int = DEFAULT_BATCH_BYTES,
+) -> list[str]:
+    """n SEC nodes, no edges. Mutate batches stay at or under 1000 lines."""
+    return pack_batches(
+        [sec_create(i) for i in range(1, n + 1)],
+        batch_lines=batch_lines,
+        batch_bytes=batch_bytes,
+    )
+
+
+def fat_payload_bytes(index: int) -> int:
+    """2 KiB, 3 KiB, or 4 KiB of UTF-8 (cycle)."""
+    return 2048 + (index % 3) * 1024
+
+
+def make_fat_blob(nbytes: int) -> str:
+    """Single-line opaque text of exactly nbytes UTF-8 (CJK prefix, ASCII pad)."""
+    prefix = "测例"
+    prefix_b = prefix.encode("utf-8")
+    if nbytes < len(prefix_b):
+        return "A" * nbytes
+    return prefix + ("B" * (nbytes - len(prefix_b)))
+
+
+def populate_fat_batches(
+    n_nodes: int = FAT_PROBE_NODES,
+    n_fat: int = FAT_TEXT_NODES,
+    *,
+    batch_lines: int = DEFAULT_BATCH_LINES,
+    batch_bytes: int = DEFAULT_BATCH_BYTES,
+) -> list[str]:
+    """n_nodes nodes, no edges; n_fat USR rows carry 2–4 KiB value text."""
+    thin = n_nodes - n_fat
+    stmts: list[str] = [sec_create(i) for i in range(1, thin + 1)]
+    for j in range(n_fat):
+        blob = make_fat_blob(fat_payload_bytes(j))
+        stmts.append(
+            "CREATE (:USR {"
+            f"id: {gql_str(f'USR_fat{j:04d}')}, key: {gql_str(f'fat{j}')}, "
+            f"value: {gql_str(blob)}, recycle: ''"
+            "})"
+        )
+    return pack_batches(stmts, batch_lines=batch_lines, batch_bytes=batch_bytes)
+
+
+def make_special_blob(target_bytes: int, *, newlines: bool, pipes: bool) -> str:
+    """UTF-8 blob of target_bytes with LaTeX / quotes / CJK; optional newline and |."""
+    core = r"LaTeX $\frac{a}{b}$ braces {x_y} quotes \"double\" and 'single' 测例 Ω"
+    if pipes:
+        core += " | pipe"
+    if newlines:
+        core = "line1\n" + core + "\nline3"
+    raw = core.encode("utf-8")
+    if len(raw) > target_bytes:
+        cut = core
+        while len(cut.encode("utf-8")) > target_bytes:
+            cut = cut[:-1]
+        return cut
+    return core + ("A" * (target_bytes - len(raw)))
+
+
+def parse_stat_int(text: str, key: str) -> int | None:
+    prefix = f"@STAT: {key}|"
+    for line in text.splitlines():
+        if line.startswith(prefix):
+            body = line.split("|", 2)
+            if len(body) >= 2:
+                try:
+                    return int(body[1])
+                except ValueError:
+                    return None
+    return None
+
+
+def shaped_node_props(stdout: str) -> dict[str, Any] | None:
+    """First shaped (:Kind {…}) property map from pin_map / find emit."""
+    from memnet.gql import parse_props
+
+    for line in stdout.splitlines():
+        s = line.strip()
+        if not s.startswith("(:"):
+            continue
+        brace = s.find("{")
+        end = s.rfind("}")
+        if brace < 0 or end <= brace:
+            continue
+        return parse_props(s[brace : end + 1])
+    return None
+
+
+def snapshot_load_cap_report() -> dict[str, Any]:
+    """What session_load is bound by. Do not change the engine."""
+    snap = SNAPSHOT_PY.read_text(encoding="utf-8")
+    ingest = PIN_MAP_INGEST_PY.read_text(encoding="utf-8")
+    store = MEM_STORE_PY.read_text(encoding="utf-8")
+    load_fn = "def load_snapshot_text"
+    load_body = snap[snap.find(load_fn) : snap.find("\ndef ", snap.find(load_fn) + 1)]
+    return {
+        "load_calls_parse_line": "parse_line(" in load_body,
+        "load_calls_upsert": "store.upsert(" in load_body,
+        "load_mentions_ingest_budget": "ingest_budget" in snap,
+        "ingest_budget_in_pin_map_ingest": "ingest_budget" in ingest,
+        "upsert_checks_row_count_non_law": "row_count_non_law()" in store
+        and "limit_exceeded" in store,
+        "code_path": (
+            "cli.session_load -> snapshot.load_snapshot -> load_snapshot_text "
+            "(parse_line + MemStore.upsert). ingest_budget is Path-B only "
+            "(pin_map_ingest / catalog_snap), not this path."
+        ),
+    }
+
+
+def max_rows_count_report() -> dict[str, Any]:
+    """MEMNET_MAX_ROWS counts every non-LAW tag, including EDG."""
+    store = MEM_STORE_PY.read_text(encoding="utf-8")
+    cfg = CONFIG_PY.read_text(encoding="utf-8")
+    return {
+        "default_env": "MEMNET_MAX_ROWS",
+        "default_value": 5000,
+        "config_default_5000": 'self.max_rows = _env_int("MEMNET_MAX_ROWS", 5000)' in cfg,
+        "row_count_sums_non_law_tags": (
+            'return sum(len(s) for t, s in self._by_tag.items() if t != "LAW")' in store
+        ),
+        "upsert_edg_counts": (
+            'elif record.tag != "LAW" and not existing:' in store and "row_count_non_law()" in store
+        ),
+        "counts_nodes_plus_edges": True,
+    }
+
+
+def mutate_byte_cap_report() -> dict[str, Any]:
+    """Pipe leftover caps vs GQL mutate (cap-contract bug 4)."""
+    tag = TAG_MAP_PY.read_text(encoding="utf-8")
+    gql = GQL_PY.read_text(encoding="utf-8")
+    cfg = CONFIG_PY.read_text(encoding="utf-8")
+    cli = CLI_PY.read_text(encoding="utf-8")
+    out = OUTPUT_PY.read_text(encoding="utf-8")
+    composer = PIN_MAP_COMPOSER_PY.read_text(encoding="utf-8")
+    return {
+        "gql_escapes": r"""\\ \' \" \n \r \t""",
+        "gql_unknown_escape": "unknown string escape" in gql,
+        "pipe_value_bytes_default": 4096,
+        "pipe_line_bytes_default": 32768,
+        "pipe_batch_lines_default": 1000,
+        "pipe_value_code": "limit_exceeded|value_bytes {n}/{max} (inner | -> space on wire)",
+        "pipe_line_code": "limit_exceeded|line_bytes {n}/{max}",
+        "pipe_newline_code": "newline_in_value",
+        "pipe_field_count_code": "FIELD_COUNT",
+        "pipe_enforces_in_parse_line": "max_value_bytes" in tag and "max_line_bytes" in tag,
+        "gql_mutate_checks_value_bytes": "max_value_bytes" in gql,
+        "gql_mutate_checks_line_bytes": "max_line_bytes" in gql,
+        "cli_batch_lines": "max_batch_lines" in cli and "batch_lines|" in cli,
+        "wire_pipes_become_spaces": 'message.replace("|", " ")' in out,
+        "locator_equality_only": 'if str(rec.fields.get(key, "")) != val:' in composer,
+        "config_value_bytes": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
+        "config_line_bytes": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
+        "bug4_gql_skips_pipe_caps": True,
+    }
+
+
+def citekeys_schema() -> str:
+    return (
+        "SCHEMA USR ; fields=id key value citeKeys recycle\n"
+        "SCHEMA SEC ; fields=id art heading numbering parent order status recycle\n"
+        "SCHEMA TSK ; fields=id goal status recycle\n"
+        "SCHEMA ART ; fields=id title source kind status recycle\n"
+    )
+
+
 @dataclass
 class ServeReply:
     exit_code: int
@@ -243,7 +455,7 @@ class ServeProc:
     proc: subprocess.Popen[str]
     snap_dir: Path
     map_file: Path
-    timeout_s: float = 120.0
+    timeout_s: float = 180.0
 
     def send(
         self,
@@ -318,8 +530,11 @@ class ServeProc:
         return self.send(args, stdin=gql if gql.endswith("\n") else gql + "\n")
 
     def populate(self, sid: str, n_parts: int, **kwargs: Any) -> list[ServeReply]:
+        return self.populate_stmts(sid, populate_batches(n_parts, **kwargs))
+
+    def populate_stmts(self, sid: str, batches: list[str]) -> list[ServeReply]:
         out: list[ServeReply] = []
-        for batch in populate_batches(n_parts, **kwargs):
+        for batch in batches:
             reply = self.mutate(sid, batch)
             out.append(reply)
             if reply.exit_code != 0:
@@ -350,6 +565,38 @@ class ServeProc:
             args.extend(["--max-rows", str(max_rows)])
         if caller:
             args.extend(["--caller", caller])
+        return self.send(args)
+
+    def find(
+        self,
+        sid: str,
+        *,
+        kind: str | None = None,
+        locator: str | None = None,
+        keyword: str | None = None,
+        limit: int = 50,
+    ) -> ServeReply:
+        args = ["query", "find", "--session", sid, "--limit", str(limit)]
+        if kind:
+            args.extend(["--kind", kind])
+        if locator:
+            args.extend(["--locator", locator])
+        if keyword:
+            args.extend(["--keyword", keyword])
+        return self.send(args)
+
+    def read_list(
+        self,
+        sid: str,
+        *,
+        tag: str | None = None,
+        where: str | None = None,
+    ) -> ServeReply:
+        args = ["read", "list", "--session", sid]
+        if tag:
+            args.extend(["--tag", tag])
+        if where:
+            args.extend(["--where", where])
         return self.send(args)
 
     def housekeep_stats(self, sid: str, *, caller: str | None = None) -> ServeReply:
@@ -442,6 +689,7 @@ def start_serve(
     ttl_minutes: int = 60,
     max_sessions: int = 1024,
     extra_env: dict[str, str] | None = None,
+    timeout_s: float = 180.0,
 ) -> ServeProc:
     host = "127.0.0.1"
     port = free_port()
@@ -499,6 +747,7 @@ def start_serve(
         proc=proc,
         snap_dir=snap_dir,
         map_file=TECHDOCS_MAP,
+        timeout_s=timeout_s,
     )
 
 
