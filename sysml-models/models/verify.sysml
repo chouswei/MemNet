@@ -54,7 +54,8 @@
   (including SysMLEdge as a distinct pin_map / desk, not MemNet strata;
   overlay family SysMLEdgePrj-*; git sysml-models/ is SSOT);
   operatorCount stays 2; cousin nest cousinNestOwnsLiveNeo4jClaim stays false.
-  Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map.
+  Catalog model Snap (MN-VER-11-S17): package interiors; look = pin_map;
+  grain not per-leaf; budget pre-check; caller-gone rollback; replace.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
   drops; file until user drop; load restores; not Neo4j.
 */
@@ -1727,6 +1728,9 @@ package MemNetVerification {
       (#187; this cut's fence).
       Cross-cut satisfy locators on the catalog (MN-REQ-11.17.1);
       interiors have no dangling dest; SysMLEdge pin_map is not this catalog.
+      Session grain bounded (MN-REQ-11.17.2); budget pre-check and
+      all-or-nothing mint (MN-REQ-11.17.3); caller gone rolls back
+      (MN-REQ-11.17.4); repeat same root replaces (MN-REQ-11.17.5).
     */
     attribute verificationId : String = "MN-VER-11-S17";
 
@@ -1735,6 +1739,10 @@ package MemNetVerification {
     objective catalogSnapPackageGrain {
       verify catalogModelSnapReq;
       verify crossCutSatisfyLocatorsReq;
+      verify snapSessionGrainReq;
+      verify snapBudgetPrecheckReq;
+      verify snapCallerGoneRollbackReq;
+      verify snapReplaceByModelIdentityReq;
       require constraint {
         system.pinMaps.catalog.implemented == true
           and system.pinMaps.catalog.packageGrain == true
@@ -1743,7 +1751,16 @@ package MemNetVerification {
           and system.pinMaps.catalog.absorbWholeS == false
           and system.pinMaps.catalog.dumpModelIntoOneSession == false
           and system.pinMaps.catalog.oneSessionPerReq == false
+          and system.pinMaps.catalog.oneSessionPerPart == false
           and system.pinMaps.catalog.oneSessionPerTsk == false
+          and system.pinMaps.catalog.twoSegmentChildPackage == false
+          and system.pinMaps.catalog.nestedPackageGrain == true
+          and system.pinMaps.catalog.singleLeafInterior == false
+          and system.pinMaps.catalog.sessionBudgetPrecheck == true
+          and system.pinMaps.catalog.allOrNothingMint == true
+          and system.pinMaps.catalog.replaceByModelIdentity == true
+          and system.pinMaps.catalog.callerGoneRollback == true
+          and system.pinMaps.catalog.serveTimeoutNamed == true
           and system.pinMaps.catalog.layerProperty == false
           and system.pinMaps.catalog.annRankSessions == false
           and system.pinMaps.catalog.hiddenHandleOnWire == false
@@ -1757,6 +1774,15 @@ package MemNetVerification {
           and system.core.cli.catalogSnap.crossCutSatisfyOnCatalog == true
           and system.core.cli.catalogSnap.danglingDestInInterior == false
           and system.core.cli.catalogSnap.foreignProductPinMap == false
+          and system.core.cli.catalogSnap.oneSessionPerPart == false
+          and system.core.cli.catalogSnap.twoSegmentChildPackage == false
+          and system.core.cli.catalogSnap.nestedPackageGrain == true
+          and system.core.cli.catalogSnap.singleLeafInterior == false
+          and system.core.cli.catalogSnap.sessionBudgetPrecheck == true
+          and system.core.cli.catalogSnap.allOrNothingMint == true
+          and system.core.cli.catalogSnap.replaceByModelIdentity == true
+          and system.core.cli.catalogSnap.callerGoneRollback == true
+          and system.core.cli.catalogSnap.serveTimeoutNamed == true
           and system.core.cli.catalogSnap.implemented == true
           and system.mcp.tools.catalogSnap.implemented == true
           and system.core.cli.sessionList.listsCatalogSessionPins == true

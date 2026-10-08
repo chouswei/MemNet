@@ -30,6 +30,11 @@
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
+    MN-REQ-11.17.2     Snap session grain is package / kind-band / nested
+                       package; never one session per part or requirement
+    MN-REQ-11.17.3     Snap budget pre-check; refuse named; mint all-or-nothing
+    MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
+    MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -1477,6 +1482,74 @@ package MemNetRequirements {
           */
           attribute requirementId : String = "MN-REQ-11.17.1";
         }
+
+        requirement def MN_REQ_11_17_2_SnapSessionGrain {
+          doc /*
+            Catalog Snap SHALL mint one catalog session plus a bounded
+            number of interiors for one load tree. Grain SHALL be
+            top-level package first; optional kind band (REQ / PRT / POR)
+            when a package exceeds about 2M and each band has at least
+            two non-package nodes; optional nested package (a SysML
+            package def, not a two-segment element qname) when that
+            nested package itself exceeds about 2M and is not a single
+            leaf. SHALL NOT mint one session per part def, per
+            requirement def, or per other leaf. SHALL NOT treat
+            Package::Element qname as a child-package cut. A mid-size
+            model (a few hundred parts and requirements in a handful of
+            packages) SHALL stay a handful of sessions (catalog plus
+            those packages, plus at most a few kind or nested cuts),
+            never hundreds. Single-leaf interiors SHALL NOT be created
+            by a split. Recursing a same-kind package until each
+            interior fits 2M remains TARGET, not this leaf.
+          */
+          attribute requirementId : String = "MN-REQ-11.17.2";
+        }
+
+        requirement def MN_REQ_11_17_3_SnapBudgetPrecheck {
+          doc /*
+            Before Catalog Snap mints any session, it SHALL count the
+            catalog plus planned interiors against remaining session
+            capacity (MEMNET_MAX_SESSIONS unchanged) and SHALL check
+            each planned interior against the ingest node and edge
+            budgets (max_nodes / max_edges unchanged). If the plan
+            does not fit, Snap SHALL refuse with a named @ERR
+            (limit_exceeded sessions, or ingest_budget) and SHALL
+            create nothing. A mid-way failure SHALL close every session
+            this call minted and SHALL leave no partial Snap stack.
+            Caps defaults SHALL NOT change.
+          */
+          attribute requirementId : String = "MN-REQ-11.17.3";
+        }
+
+        requirement def MN_REQ_11_17_4_SnapCallerGoneRollback {
+          doc /*
+            When the serve or IPC caller is gone before Snap finishes
+            (client wait exceeded, or the peer socket closed), serve
+            SHALL stop minting, roll back sessions this call created,
+            and SHALL NOT keep creating strata unseen. The client
+            envelope SHALL name the wait: serve_timeout. Serve-side
+            stop SHALL name caller_gone. A model of a few hundred
+            parts and requirements SHALL finish inside the existing
+            client wait (default 30 s unchanged) once grain is bounded.
+            SHALL NOT return an error while sessions keep appearing.
+          */
+          attribute requirementId : String = "MN-REQ-11.17.4";
+        }
+
+        requirement def MN_REQ_11_17_5_SnapReplaceByModelIdentity {
+          doc /*
+            A second Catalog Snap of the same load-tree identity
+            (resolved root path) SHALL replace the live stack for that
+            identity after the new stack commits, and SHALL NOT leave
+            two catalogs for the same root. Identity is the resolved
+            root, not a session id. SHALL NOT echo a session id on the
+            wire error. Close of the previous stack happens only after
+            the new mint succeeds so a failed retry does not destroy
+            a complete prior Snap. Caller MAY session_close strata
+            first; replace still holds when they do not.
+          */
+          attribute requirementId : String = "MN-REQ-11.17.5";
+        }
       }
     }
 
@@ -1985,6 +2058,14 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
   requirement crossCutSatisfyLocatorsReq
     : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
+  requirement snapSessionGrainReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_2_SnapSessionGrain;
+  requirement snapBudgetPrecheckReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_3_SnapBudgetPrecheck;
+  requirement snapCallerGoneRollbackReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_4_SnapCallerGoneRollback;
+  requirement snapReplaceByModelIdentityReq
+    : MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_5_SnapReplaceByModelIdentity;
 
   requirement multitaskModeReq
     : MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode;
@@ -2170,6 +2251,10 @@ package MemNetRequirements {
     end #derive ::> pinIngestDeterministicIdsReq;
     end #derive ::> catalogModelSnapReq;
     end #derive ::> crossCutSatisfyLocatorsReq;
+    end #derive ::> snapSessionGrainReq;
+    end #derive ::> snapBudgetPrecheckReq;
+    end #derive ::> snapCallerGoneRollbackReq;
+    end #derive ::> snapReplaceByModelIdentityReq;
   }
 
   #derivation connection deriveMultitaskLeaves {

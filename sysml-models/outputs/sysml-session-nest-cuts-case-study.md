@@ -49,9 +49,9 @@ ProjectMemNet                    // one model Snap
 
 | Concern | As-is vs TARGET |
 |---------|-----------------|
-| `snap_model` | As-is: package / kind-band / two-segment child package (`MN-VER-11-S17` `packageGrain`) |
+| `snap_model` | Package / kind-band / nested package (`MN-REQ-11.17.2`); not two-segment element qname; not one session per leaf |
 | Recurse part / req group still over \(M\) | TARGET; not yet Snap law |
-| Reuse `session=` for an already-built `qname=` | TARGET; as-is may re-project |
+| Repeat Snap of the same resolved root | Replace the live stack after the new mint commits (`MN-REQ-11.17.5`) |
 | `context_pack[:max_rows]` | leftover silent clip — **not** teach |
 | `ingest_sysml` | Path-B 1→1; **not** this Snap |
 | `Peak_L` | last-resort cue; not default goldfish |
@@ -192,7 +192,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 
 | Claim | Status |
 |-------|--------|
-| `snap_model` catalog + package interiors | shipped 0.15 (package 0.19.2); `tests/test_catalog_snap.py` |
+| `snap_model` catalog + package interiors | shipped 0.15; grain honesty `MN-REQ-11.17.2`–`11.17.5`; `tests/test_catalog_snap.py` |
 | Cross-cut `satisfies` as catalog locators | shipped honesty `c` (0.19.10 unreleased); MN-REQ-11.17.1; interiors stay free of dest stubs; `@WRN: cross_cut`; SysMLEdge `pin_map` is a different tool |
 | Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
 | Reuse catalog `session=` when already built | TARGET; as-is may re-project |
