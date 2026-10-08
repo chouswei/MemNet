@@ -21,6 +21,7 @@ Do **not** teach Layer / Tier A. **1.0** = claim of 0.5–0.8 (unclaimed).
 | Doc | Role |
 |-----|------|
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
+| [`cap-contract.md`](cap-contract.md) | Hard caps a product gate can hit: refuse vs clip, wire output, integrator checklist |
 | [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.11** |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** |
 
