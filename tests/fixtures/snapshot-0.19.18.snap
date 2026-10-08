@@ -1,0 +1,57 @@
+# memnet-snapshot-v1
+@SNAP: 1|snap_legacy_sid|2026-10-08T13:29:27.826384Z|2026-10-08T14:29:27.826384Z|60|1|2026-10-08T13:29:27.839687Z
+# map
+SCHEMA BIZ ; fields=id name type location profit cashflow employees recycle
+SCHEMA CFG ; fields=id world economy identity core_ability crisis
+SCHEMA EDG ; fields=id src relation dist at attrs recycle
+SCHEMA LAW ; fields=id name cycle mechanism constraint
+SCHEMA NPC ; fields=id name traits corruption craft funding_gap status recycle
+SCHEMA PLR ; fields=id identity wealth cashflow monopoly reputation inventory
+SCHEMA PRD ; fields=id name type cost price status
+SCHEMA SYS ; fields=id round time deficit revenue chaos exchange_rate
+SCHEMA TEC ; fields=id name domain status effect
+SCHEMA TSK ; fields=id goal deadline status recycle
+# relations
+@REL: allocates
+@REL: bind
+@REL: binds
+@REL: calls
+@REL: connects
+@REL: constrained_by
+@REL: contains
+@REL: declaredIn
+@REL: defines
+@REL: delegates
+@REL: dependsOn
+@REL: documents
+@REL: flowOf
+@REL: governs
+@REL: hasPort
+@REL: helps
+@REL: implements
+@REL: inFile
+@REL: includes
+@REL: knows
+@REL: links
+@REL: maps_to
+@REL: memberOf
+@REL: member_of
+@REL: mentions
+@REL: next
+@REL: on_net
+@REL: overrides
+@REL: owns
+@REL: paired_with
+@REL: pipe
+@REL: preempts
+@REL: produces
+@REL: realizes
+@REL: reports_to
+@REL: satisfies
+@REL: seeks_help
+@REL: tests
+@REL: triggers
+@REL: typedBy
+@REL: uses
+# records
+@PLR: PLR_V118|pipe\|slash\\q {x} $ cjk测例|1|0|0|0|bag

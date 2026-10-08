@@ -151,9 +151,13 @@ Raised at map load (`memnet/tag_map.py`). Session open fails; nothing is stored.
 | Limit | Default | Knob | Wire |
 |-------|---------|------|------|
 | Field value | 4096 | `MEMNET_MAX_VALUE_BYTES` | `@ERR: limit_exceeded\|value_bytes {n}/{max}` |
-| Whole pipe line | 32768 | `MEMNET_MAX_LINE_BYTES` | `@ERR: limit_exceeded\|line_bytes {n}/{max}` |
+| Whole pipe / snapshot line | 32768 | `MEMNET_MAX_LINE_BYTES` | `@ERR: limit_exceeded\|line_bytes {n}/{max}` |
 
-Enforced on leftover `@TAG` `parse_line` only. **GQL `mutate` does not check these** (bug list).
+**Value cap** is one hard cap on leftover `@TAG` `parse_line`, GQL `mutate` (CREATE / SET field values), and snapshot load. It is measured as the **UTF-8 byte length of the decoded (raw) property value**, not the escaped wire form. A product MAY raise `MEMNET_MAX_VALUE_BYTES` to `16384`. Over-cap refuses `limit_exceeded|value_bytes {n}/{max}` and does not store the row.
+
+**Line cap** is the decoded line size (tag prefix + decoded fields + `|` separators). Snapshot emit escapes LF / CR / `|` / `\` so a value under the value cap cannot trip `line_bytes` on load because of escaping. GQL statements are not pipe lines.
+
+Snapshot save verifies every emitted row can parse back to the same values. If any row cannot, save refuses `@ERR: snapshot_unsaveable|{tag} nick={nick} …` and writes no file. Expire-save in that case emits `@WRN: expire_snapshot_failed|snapshot_unsaveable`, writes no file, then RAM still drops (`session_expired|snap_missing`). Snapshots written by 0.19.18 (pipe and backslash escapes only) still load.
 
 ## Mutate batch line cap
 
@@ -287,8 +291,10 @@ Source: `memnet/catalog_snap.py` `snap_model` / `_precheck_plan`; `memnet/serve.
 | Expire, save off (default) | Session dropped from memory. First access of the still-registered expired id: `@ERR: session_expired\|snap_missing` (exit 2). After purge already ran: `@ERR: session_not_found\|unknown session` |
 | Expire, `MEMNET_SAVE_ON_EXPIRE` truthy + `MEMNET_EXPIRE_SNAPSHOT_DIR` set | Snapshot `{dir}/{sid}.snap` (filename only; do not log it). Next use: `@ERR: session_expired\|snap_available`. Restore: `session_load` with that id |
 | Save-on-expire on, dir unset | `@WRN: save_on_expire_no_dir\|dir unset`, then drop; `snap_missing` |
+| Save-on-expire on, row not round-trippable | `@WRN: expire_snapshot_failed\|snapshot_unsaveable`, **no file**, then drop; `snap_missing` |
 | `session save` after TTL with save-on-expire | Allowed; `@WRN: session_expired_saved`. Id then gone |
 | `session save` after TTL with save off | `@ERR: session_expired` / `snap_missing`; no file |
+| Unsaveable explicit save | `@ERR: snapshot_unsaveable\|{tag} nick={nick} …`; no file |
 | Status (no paths, no ids) | `@STAT: save_on_expire\|0\|` / `1`; `@STAT: expire_snapshot_dir_set\|0\|` / `1` |
 
 Source: `memnet/session.py`, `memnet/config.py` `save_on_expire` / `expire_snapshot_dir`.
@@ -307,6 +313,8 @@ Off until `session acl-enable`, a grant/bind (which enables), or `MEMNET_ACL=1` 
 | `acl_bind` | Bind set, mission/lease mismatch, `require_bind=True` | `@ERR: acl_bind\|mission_id and lease must match session bind\|pass --mission-id and --lease matching session acl-bind` |
 | `acl_scope` | WorkerWriteScope miss | `@ERR: acl_scope\|id/label outside WorkerWriteScope (GRANT)` or `edge outside …` |
 | `acl_bad_caller` / `acl_bad_bind` / `acl_bad_scope` | Malformed grant/bind/scope | matching `@ERR:` |
+
+When session ACL is enabled, **`session save` / `session load` (into that ACL'd session) / `session close`** accept `--caller` / `MEMNET_CALLER` and enforce `acl_who` / `acl_denied` / `acl_forbidden` (save and load use `pin_map`; close uses `mutate`). MCP `session_save` / `session_load` / `session_close` pass `caller` through. Without ACL, behaviour is unchanged.
 
 Bind is **skipped** when `require_bind=False` and the trusted path is on (`MEMNET_SERVE_INTERNAL` or `MEMNET_TEST_INLINE` or `MEMNET_ACL_SKIP_BIND`). **`memnet serve` sets `MEMNET_SERVE_INTERNAL=1`**, so CLI/MCP through serve does **not** enforce bind today (who and scope still do). Library `MutateGate.apply(..., require_bind=True)` still refuses. Listed as a bug; not fixed in this run.
 
@@ -383,17 +391,24 @@ Default `MEMNET_SAVE_ON_EXPIRE` is off. At TTL:
 3. Caller sees `@ERR: session_expired|snap_missing` (or `session_not_found` if the id was never known)
 4. No snapshot file unless save-on-expire **and** a dir were armed **before** expiry
 
+## MATCH WHERE (honour or refuse)
+
+GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honoured forms: `true` / `false`, property equality / `<>` / `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, and `AND` / `OR` / `NOT` of those. Property-map equality in MATCH still filters. `MATCH (n WHERE true)-[r {id}]->() DELETE r` remains the gated edge-delete spelling.
+
+If lowering cannot honour the predicate, the whole statement refuses and applies nothing:
+
+`@ERR: unsupported_predicate|WHERE {name} is not honoured`
+
 ## Bugs found this run (do not fix here)
 
 1. **leftover `query walk`** (`WalkQuery` / `context_walk_hops`): clips hops at `max_rows` and fan-out **without** Truncation/`@ERR`.
 2. **leftover `query context`**: `context_pack` without `clip_notes` slices `max_rows` silently.
 3. **leftover `query neighbors` / `query path`**: depth `min` without Truncation; path may return empty.
-4. **GQL `mutate`** does not enforce `MEMNET_MAX_VALUE_BYTES` / `MEMNET_MAX_LINE_BYTES` (pipe leftover does).
-5. **`MEMNET_LOCK_TIMEOUT_MS`** is stored on `Caps` and never applied.
-6. **`@WRN` budget**: lines after 12 vanish with no mark.
-7. **Serve bind skip:** `memnet serve` sets `MEMNET_SERVE_INTERNAL=1`, so session **bind** is not enforced on the TCP/IPC product path (who/scope are). Library `require_bind=True` still refuses.
-8. **Serve response frame** over cap raises `ConnectionError` rather than `@ERR: frame_too_large`.
-9. **`max_fanout`** clamps only outgoing `_edges_from`, not inbound `_edges_to`, so a high in-degree hub is not Truncation-marked for fan-out.
+4. **`MEMNET_LOCK_TIMEOUT_MS`** is stored on `Caps` and never applied.
+5. **`@WRN` budget**: lines after 12 vanish with no mark.
+6. **Serve bind skip:** `memnet serve` sets `MEMNET_SERVE_INTERNAL=1`, so session **bind** is not enforced on the TCP/IPC product path (who/scope are). Library `require_bind=True` still refuses.
+7. **Serve response frame** over cap raises `ConnectionError` rather than `@ERR: frame_too_large`.
+8. **`max_fanout`** clamps only outgoing `_edges_from`, not inbound `_edges_to`, so a high in-degree hub is not Truncation-marked for fan-out.
 
 Product `pin_map` Truncation for `max_rows` / `depth` / `fanout` / `shell` **is** signalled. Mutate/ingest row-cap batches **do** roll back.
 
