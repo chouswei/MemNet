@@ -1374,12 +1374,13 @@ def run_fulldoc_e12_e16(
         else:
             refuse = svc5.mutate(sid, "CREATE (:SEC {id: 'SEC_overflow'})\n")
         refuse_err = err_lines(refuse.stderr)
-        wires.extend(refuse_err + err_lines(pin4000.stderr))
+        wires.extend(refuse_err)
         write_refused_rows = refuse.exit_code != 0 and any(
             "limit_exceeded" in e and "rows" in e for e in refuse_err
         )
         pin50 = svc5.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=50)
         pin4000 = svc5.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=4000)
+        wires.extend(err_lines(pin4000.stderr))
         trunc50 = _truncation_lines(pin50.stdout)
         trunc4000 = _truncation_lines(pin4000.stdout)
         read_not_session_refuse = pin50.exit_code == 0
