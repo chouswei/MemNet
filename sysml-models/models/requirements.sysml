@@ -26,6 +26,7 @@
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
     MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
     MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
+    MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -871,6 +872,65 @@ package MemNetRequirements {
           no SemVer bump. Public operator text: InkMirage only.
         */
         attribute requirementId : String = "MN-REQ-06.10";
+      }
+
+      requirement def MN_REQ_06_11_AdminServeUsageReport {
+        doc /*
+          SHALL expose a read-only admin usage report on memnet-serve
+          (TcpServeBridge / LocalIpcGateway argv proxy; optional
+          envelope admin_usage entry). InkMirage admin MCP / face
+          MAY call it later; this repo SHALL NOT nest that admin
+          MCP. Distinct from MN-REQ-06.5 (human dashboard may list
+          live ids; HTTP parked). This report is admin-only.
+          Credential: a serve-process env secret
+          (MEMNET_ADMIN_TOKEN), not CapsPolicy agent ACL and not
+          MEMNET_CALLER. When that env is unset or blank, the call
+          SHALL refuse with named @ERR: admin_unconfigured and
+          SHALL NOT emit a report body (empty or partial MUST NOT
+          look complete). When configured, the caller SHALL present
+          the matching token (--token or envelope admin_token);
+          mismatch or missing token SHALL @ERR: admin_denied.
+          Read-only: SHALL NOT session_open / close / load / save /
+          mutate / purge / slide TTL / touch last-access. Peek the
+          live registry only.
+          Privacy: counts and caps only. SHALL NOT emit graph
+          content, node text, locators, or a real session id
+          (mn_…). Each session SHALL appear as a stable opaque
+          alias (HMAC of the sid keyed by the admin token) plus
+          optional product label. Alias rotation when the token
+          rotates is accepted.
+          Per serve: live registry occupancy against
+          MEMNET_MAX_SESSIONS (default 1024). Per session: row
+          count against MEMNET_MAX_ROWS, relation-type count
+          against MEMNET_MAX_RELATIONS, last access, TTL left,
+          and whether process save-on-expire is armed (process
+          Caps flag repeated on each row; not a per-session
+          arm today). Process: resident memory, uptime, version,
+          configured caps. A field that cannot be computed SHALL
+          be named in unavailable; the report SHALL still say
+          which fields are present. SHALL NOT fill a missing
+          field with zero as if measured.
+          Cap pressure since serve start: counts of hard
+          refusals by @ERR code (limit_exceeded by kind;
+          ingest_budget; frame_too_large; acl_*;
+          reserve_conflict; session_expired) and counts of
+          signalled pin_map Truncation by reason. leftover
+          silent clips SHALL NOT increment Truncation.
+          Surface: CLI `memnet admin usage-report` proxied by
+          serve, plus optional JSON envelope {admin_usage:true,
+          admin_token}. SHALL NOT appear on the agent MCP tool
+          list (onAgentMcp=false; MN-REQ-07.3). Not GQL agent
+          wire. Stdout is one JSON object.
+          Product label: CLI session open MAY take optional
+          --product (gate-side hint; not required of agents).
+          MCP session_open SHALL NOT grow this argument (would
+          appear on the agent tool list). Open question
+          (mcpProductLabelOpen): how an in-process MCP-only
+          gate attaches a product label without changing the
+          agent usage method — unbuilt; MUST NOT invent an MCP
+          arg in this cut. No SemVer bump.
+        */
+        attribute requirementId : String = "MN-REQ-06.11";
       }
     }
 
@@ -1820,6 +1880,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
   requirement sliceHandCarryAcrossServesReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
+  requirement adminServeUsageReportReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -2044,6 +2106,7 @@ package MemNetRequirements {
     end #derive ::> tipMemNetAccessPortalReq;
     end #derive ::> lanMcpFrontSeveralServesReq;
     end #derive ::> sliceHandCarryAcrossServesReq;
+    end #derive ::> adminServeUsageReportReq;
   }
 
   #derivation connection deriveMcpLeaves {
@@ -2302,6 +2365,14 @@ package MemNetRequirements {
     end #original ::> storeResourceCapsReq;
     end #original ::> genericToolSurfaceReq;
     end #derive ::> humanUsageLookReq;
+  }
+
+  #derivation connection deriveAdminServeUsageFromServeAndCaps {
+    end #original ::> tcpServeMigrationReq;
+    end #original ::> sessionTtlAndCapsReq;
+    end #original ::> storeResourceCapsReq;
+    end #original ::> noDomainProductToolsReq;
+    end #derive ::> adminServeUsageReportReq;
   }
 
   #derivation connection deriveWorkerFromPinMap {
