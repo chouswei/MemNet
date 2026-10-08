@@ -525,6 +525,9 @@ def mutate_byte_cap_report() -> dict[str, Any]:
         "cli_batch_lines": "max_batch_lines" in cli and "batch_lines|" in cli,
         "wire_pipes_become_spaces": 'message.replace("|", " ")' in out,
         "locator_equality_only": 'if str(rec.fields.get(key, "")) != val:' in composer,
+        "keyword_is_casefold_substring": (
+            "return any(needle in str(v).lower() for v in rec.fields.values())" in composer
+        ),
         "config_value_bytes": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
         "config_line_bytes": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
         "bug4_gql_skips_pipe_caps": True,
@@ -672,6 +675,7 @@ class ServeProc:
         max_rows: int | None = None,
         caller: str | None = None,
         locator: str | None = None,
+        keyword: str | None = None,
     ) -> ServeReply:
         args = ["query", "pin-map", "--session", sid]
         if cue:
@@ -680,6 +684,8 @@ class ServeProc:
             args.extend(["--kind", kind])
         if locator:
             args.extend(["--locator", locator])
+        if keyword:
+            args.extend(["--keyword", keyword])
         if depth is not None:
             args.extend(["--depth", str(depth)])
         if max_rows is not None:

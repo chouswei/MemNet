@@ -1334,6 +1334,7 @@ def run_fulldoc_e12_e16(
     snap_full = tmp / "fulldoc-7500.snap"
     snap_partial = tmp / "fulldoc-5000.snap"
     e16_result: ItemResult | None = None
+    e17_result: ItemResult | None = None
 
     # --- default 5000: nodes fit; edges refuse ---
     with running_serve(
@@ -1441,6 +1442,13 @@ def run_fulldoc_e12_e16(
             warmup=warmup,
             n_thin=n_nodes - n_fat,
         )
+        e17_result = item_e17(
+            svc10,
+            sid10,
+            n=e16_n,
+            warmup=warmup,
+            rare_kw=f"Part {n_nodes - n_fat}",
+        )
         svc10.close(sid10)
         load10 = svc10.load_file(snap_full)
         ingest_hit = any("ingest_budget" in e for e in err_lines(load10.stderr))
@@ -1535,6 +1543,8 @@ def run_fulldoc_e12_e16(
     out = [e12]
     if e16_result is not None:
         out.append(e16_result)
+    if e17_result is not None:
+        out.append(e17_result)
     return out
 
 
@@ -1700,6 +1710,172 @@ def item_e16(
             "documented_edge_delete_err": documented_edge_err,
             "hub_survived": hub_still,
             "lookup_truncation_sample": _truncation_lines(look.stdout) if look else [],
+        },
+        wires=wires,
+        gaps=gaps,
+    )
+
+
+def _e17_try(svc: ServeProc, sid: str, gql: str) -> dict[str, Any]:
+    reply = svc.mutate(sid, gql if gql.endswith("\n") else gql + "\n")
+    return {
+        "exit": reply.exit_code,
+        "errs": err_lines(reply.stderr),
+        "ok_lines": [ln for ln in reply.stderr.splitlines() if ln.startswith("ok=")],
+    }
+
+
+def item_e17(
+    svc: ServeProc,
+    sid: str,
+    *,
+    n: int,
+    warmup: int,
+    find_limit: int = 50,
+    rare_kw: str = "Part 1500",
+) -> ItemResult:
+    """GQL WHERE n.text CONTAINS is not a product filter; keyword/glob are."""
+    gaps: list[str] = []
+    wires: list[str] = []
+    cpu = cpu_model()
+    forms = {
+        "contains_return": ("MATCH (n:USR) WHERE n.value CONTAINS '测例' RETURN n"),
+        "contains_set_squote_cjk": (
+            "MATCH (n:USR) WHERE n.value CONTAINS '测例' SET n.key = 'hit'"
+        ),
+        "contains_set_dquote_cjk": (
+            'MATCH (n:USR) WHERE n.value CONTAINS "测例" SET n.key = "hit"'
+        ),
+        "contains_dollar": "MATCH (n:USR) WHERE n.value CONTAINS '$' SET n.key = 'hit'",
+        "contains_backslash": (r"MATCH (n:USR) WHERE n.value CONTAINS '\\' SET n.key = 'hit'"),
+        "contains_dquote_in_squote": (
+            "MATCH (n:USR) WHERE n.value CONTAINS '\"' SET n.key = 'hit'"
+        ),
+        "contains_squote_in_dquote": (
+            "MATCH (n:USR) WHERE n.value CONTAINS \"'\" SET n.key = 'hit'"
+        ),
+        "starts_with": ("MATCH (n:USR) WHERE n.value STARTS WITH '测' SET n.key = 'hit'"),
+        "ends_with": "MATCH (n:USR) WHERE n.value ENDS WITH 'B' SET n.key = 'hit'",
+        "regex": "MATCH (n:USR) WHERE n.value =~ '.*测.*' SET n.key = 'hit'",
+        "inline_where_contains": ("MATCH (n WHERE n.value CONTAINS '测例') SET n.key = 'hit'"),
+        "contains_no_verb": "MATCH (n:USR) WHERE n.value CONTAINS '测例'",
+    }
+    form_results: dict[str, Any] = {}
+    for name, gql in forms.items():
+        form_results[name] = _e17_try(svc, sid, gql)
+        wires.extend(form_results[name]["errs"][:1])
+
+    unique_miss = _e17_try(
+        svc,
+        sid,
+        "MATCH (n:SEC {id: 'SEC_0003'}) WHERE n.heading CONTAINS 'ZZZ_NO_MATCH' "
+        "SET n.status = 'e17_ignored'",
+    )
+    after = shaped_node_props(svc.pin_map(sid, cue="SEC_0003").stdout) or {}
+    where_ignored = unique_miss["exit"] == 0 and after.get("status") == "e17_ignored"
+    form_results["unique_match_where_miss_still_sets"] = {
+        **unique_miss,
+        "status_after": after.get("status"),
+        "where_ignored": where_ignored,
+    }
+
+    caps = mutate_byte_cap_report()
+    common_kw = "测例"
+    common_find = svc.find(sid, kind="USR", keyword=common_kw, limit=find_limit)
+    rare_find = svc.find(sid, kind="SEC", keyword=rare_kw, limit=find_limit)
+    leftover = svc.read_list(sid, tag="USR", where=f"value=*{common_kw}*")
+    pin_kw = svc.pin_map(sid, kind="USR", keyword=common_kw, max_rows=8, depth=1)
+
+    def _count_shaped(stdout: str) -> int:
+        return sum(1 for ln in stdout.splitlines() if ln.startswith("(:"))
+
+    common_n = _count_shaped(common_find.stdout)
+    rare_n = _count_shaped(rare_find.stdout)
+    leftover_n = sum(
+        1 for ln in leftover.stdout.splitlines() if ln.strip() and not ln.startswith("@")
+    )
+
+    common_samples: list[float] = []
+    rare_samples: list[float] = []
+    total = warmup + n
+    for i in range(total):
+        dt_c, r_c = _time_call(
+            lambda: svc.find(sid, kind="USR", keyword=common_kw, limit=find_limit)
+        )
+        dt_r, r_r = _time_call(lambda: svc.find(sid, kind="SEC", keyword=rare_kw, limit=find_limit))
+        if i >= warmup:
+            common_samples.append(dt_c)
+            rare_samples.append(dt_r)
+        if i == 0:
+            wires.extend(err_lines(r_c.stderr)[:1] + err_lines(r_r.stderr)[:1])
+
+    common_sum = latency_summary(common_samples)
+    rare_sum = latency_summary(rare_samples)
+    contains_filters = False
+    ret_gate = any(
+        "product_gate" in e and "RETURN" in e for e in form_results["contains_return"]["errs"]
+    )
+    set_conflict = any("cue_conflict" in e for e in form_results["contains_set_squote_cjk"]["errs"])
+    starts_same = any("cue_conflict" in e for e in form_results["starts_with"]["errs"])
+    regex_same = any("cue_conflict" in e for e in form_results["regex"]["errs"])
+    keyword_ok = common_find.exit_code == 0 and common_n > 0 and rare_find.exit_code == 0
+    notes = [
+        f"cpu_model={cpu}",
+        "GQL MATCH … WHERE n.value CONTAINS '…' RETURN n is refused "
+        "(product_gate forbids RETURN). MATCH … WHERE … SET parses, but "
+        "_split_match_body cuts at SET and dropping WHERE; |Q|>1 is cue_conflict; "
+        "a unique MATCH still SET when CONTAINS would miss.",
+        "Needle escaping is GQL string rules only (\\\\ \\' \\\" \\n \\r \\t). "
+        "CJK and $ need no escape. Both '…' and \"…\" parse for the CONTAINS "
+        "operand. A single quote inside a single-quoted needle is \\'; a double "
+        "quote sits in a single-quoted needle as '\"' or a single quote in "
+        'double quotes as "\'". This does not make CONTAINS a filter.',
+        "Working substring: query find --keyword / pin_map --keyword "
+        "(casefold haystack; explicit --limit / --max-rows). leftover "
+        "read list --where field=*glob*. STARTS WITH / ENDS WITH / =~ are "
+        "the same ignored-WHERE SET path, not filters.",
+        "Latency below is find --keyword on the warm fulldoc (not CONTAINS).",
+    ]
+    if not where_ignored:
+        gaps.append("unique MATCH WHERE CONTAINS miss did not SET (WHERE might filter)")
+    if not keyword_ok:
+        gaps.append("find --keyword did not return seeds")
+    if contains_filters:
+        verdict = "yes"
+    elif ret_gate and set_conflict and keyword_ok and where_ignored:
+        verdict = "note"
+    else:
+        verdict = "no"
+        if not ret_gate:
+            gaps.append("CONTAINS RETURN was not product_gate")
+        if not set_conflict:
+            gaps.append("CONTAINS SET was not cue_conflict")
+    return ItemResult(
+        item="E17 GQL WHERE CONTAINS substring",
+        verdict=verdict,
+        notes=notes,
+        numbers={
+            "cpu_model": cpu,
+            "gql_escapes": caps["gql_escapes"],
+            "forms": form_results,
+            "where_ignored_on_unique_match": where_ignored,
+            "find_limit": find_limit,
+            "common_keyword": common_kw,
+            "rare_keyword": rare_kw,
+            "common_find_exit": common_find.exit_code,
+            "common_find_shaped": common_n,
+            "rare_find_exit": rare_find.exit_code,
+            "rare_find_shaped": rare_n,
+            "leftover_glob_exit": leftover.exit_code,
+            "leftover_glob_lines": leftover_n,
+            "pin_map_keyword_exit": pin_kw.exit_code,
+            "pin_map_keyword_truncation": _truncation_lines(pin_kw.stdout),
+            "common_find_latency": common_sum,
+            "rare_find_latency": rare_sum,
+            "starts_with_same_as_contains": starts_same,
+            "regex_same_as_contains": regex_same,
+            "contains_is_product_filter": contains_filters,
+            "keyword_casefold_substring": caps.get("keyword_is_casefold_substring"),
         },
         wires=wires,
         gaps=gaps,

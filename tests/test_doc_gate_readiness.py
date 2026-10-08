@@ -659,3 +659,46 @@ def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
     assert "edited" in pin1.stdout
     assert cpu_model()
     doc_serve.close(sid)
+
+
+def test_e17_contains_is_not_a_filter(doc_serve: ServeProc):
+    sid = _open_ok(doc_serve)
+    blob = gql_str("测例 $ \\ \" '")
+    setup = doc_serve.mutate(
+        sid,
+        "CREATE (:USR {id: 'USR_a', key: 'k', value: " + blob + ", recycle: ''})\n"
+        "CREATE (:USR {id: 'USR_b', key: 'm', value: 'plain', recycle: ''})\n",
+    )
+    assert setup.exit_code == 0, redact(setup.stderr)
+    ret = doc_serve.mutate(sid, "MATCH (n:USR) WHERE n.value CONTAINS '测例' RETURN n\n")
+    assert ret.exit_code != 0
+    joined_ret = "\n".join(err_lines(ret.stderr))
+    assert "product_gate" in joined_ret
+    assert "RETURN" in joined_ret
+    setted = doc_serve.mutate(
+        sid, "MATCH (n:USR) WHERE n.value CONTAINS '测例' SET n.key = 'hit'\n"
+    )
+    assert setted.exit_code != 0
+    assert "cue_conflict" in "\n".join(err_lines(setted.stderr))
+    starts = doc_serve.mutate(
+        sid, "MATCH (n:USR) WHERE n.value STARTS WITH '测' SET n.key = 'hit'\n"
+    )
+    assert "cue_conflict" in "\n".join(err_lines(starts.stderr))
+    regex = doc_serve.mutate(sid, "MATCH (n:USR) WHERE n.value =~ '.*测.*' SET n.key = 'hit'\n")
+    assert "cue_conflict" in "\n".join(err_lines(regex.stderr))
+    miss = doc_serve.mutate(
+        sid,
+        "MATCH (n:USR {id: 'USR_a'}) WHERE n.value CONTAINS 'ZZZ_NO_MATCH' SET n.key = 'ignored'\n",
+    )
+    assert miss.exit_code == 0, redact(miss.stderr)
+    props = shaped_node_props(doc_serve.pin_map(sid, cue="USR_a").stdout)
+    assert props is not None
+    assert props.get("key") == "ignored"
+    found = doc_serve.find(sid, kind="USR", keyword="测例", limit=10)
+    assert found.exit_code == 0, redact(found.stderr)
+    assert "测例" in found.stdout
+    folded = doc_serve.find(sid, kind="USR", keyword="PLAIN", limit=10)
+    assert folded.exit_code == 0
+    leftover = doc_serve.read_list(sid, tag="USR", where="value=*测例*")
+    assert leftover.exit_code == 0, redact(leftover.stderr)
+    doc_serve.close(sid)
