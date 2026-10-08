@@ -26,6 +26,10 @@
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
     MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
     MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
+    MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save
+    MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
+    MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
+    MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
@@ -204,6 +208,34 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-01.8";
       }
+
+      requirement def MN_REQ_01_9_SnapshotLosslessRoundTrip {
+        doc /*
+          Anything the write path accepts SHALL session_save and
+          session_load byte-for-byte as the same property values.
+          That includes LF, CR, backslash, both quote kinds, dollar,
+          braces, pipe, and CJK. Snapshot emit SHALL escape those
+          losslessly; load SHALL decode them. Save SHALL fail closed
+          (snapshot_unsaveable naming the row) rather than write an
+          unloadable file. Expire-save that cannot round-trip SHALL
+          NOT write a file; RAM still drops; next use is
+          session_expired|snap_missing. Snapshots written by 0.19.18
+          (pipe and backslash escapes only) SHALL still load.
+        */
+        attribute requirementId : String = "MN-REQ-01.9";
+      }
+
+      requirement def MN_REQ_01_10_SessionLifecycleAclWho {
+        doc /*
+          When session ACL is enabled, session_save, session_load into
+          that ACL'd session, and session_close SHALL accept --caller /
+          MEMNET_CALLER and enforce CapsPolicy who-check with the same
+          codes as pin_map / mutate (acl_who, acl_denied, acl_forbidden).
+          MCP SHALL pass caller through on those tools. Without ACL,
+          behaviour is unchanged.
+        */
+        attribute requirementId : String = "MN-REQ-01.10";
+      }
     }
 
     // ----- Memory net information model: GQL node, edge, property -----
@@ -380,6 +412,21 @@ package MemNetRequirements {
           Silent upsert SHALL NOT be offered.
         */
         attribute requirementId : String = "MN-REQ-03.3";
+      }
+
+      requirement def MN_REQ_03_4_HonourWherePredicate {
+        doc /*
+          MATCH ... WHERE ... SET and MATCH ... WHERE ... DELETE SHALL
+          NOT ignore the WHERE predicate. If lowering cannot honour it,
+          the whole statement SHALL refuse with unsupported_predicate
+          naming that predicate, and SHALL apply nothing. Forms that
+          work today SHALL remain: MATCH (n WHERE true)-[r {id}]->()
+          DELETE r (edge delete); property-map equality in MATCH.
+          Honoured WHERE forms (equality, CONTAINS, STARTS WITH,
+          ENDS WITH, =~, IN, true/false, AND/OR/NOT of those) SHALL
+          actually filter.
+        */
+        attribute requirementId : String = "MN-REQ-03.4";
       }
     }
 
@@ -603,6 +650,22 @@ package MemNetRequirements {
           cost stays bounded under misuse.
         */
         attribute requirementId : String = "MN-REQ-05.2";
+      }
+
+      requirement def MN_REQ_05_3_ConsistentValueByteCap {
+        doc /*
+          The field-value byte cap SHALL be one hard cap on leftover
+          pipe mutate, GQL mutate, and snapshot load, measured as the
+          UTF-8 byte length of the decoded (raw) property value.
+          Default 4096. Knob MEMNET_MAX_VALUE_BYTES (a product MAY
+          raise it to 16384). Over-cap SHALL refuse
+          limit_exceeded|value_bytes n/max and SHALL NOT accept the
+          write. An escaped snapshot value whose decoded size is under
+          this cap SHALL NOT trip line_bytes on load. line_bytes
+          remains a leftover-pipe / snapshot decoded-line cap
+          (MEMNET_MAX_LINE_BYTES, default 32768).
+        */
+        attribute requirementId : String = "MN-REQ-05.3";
       }
     }
 
@@ -1868,6 +1931,10 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
   requirement noGraphDumpHandoffReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+  requirement snapshotLosslessRoundTripReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+  requirement sessionLifecycleAclWhoReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;
@@ -1898,6 +1965,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
   requirement noSilentUpsertReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+  requirement honourWherePredicateReq
+    : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_4_HonourWherePredicate;
 
   requirement sliceEconomyReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy;
@@ -1930,6 +1999,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
   requirement queryFanoutCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
+  requirement consistentValueByteCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -2132,6 +2203,8 @@ package MemNetRequirements {
     end #derive ::> optionalKeepSessionIdReq;
     end #derive ::> sessionAsSsotHandleReq;
     end #derive ::> noGraphDumpHandoffReq;
+    end #derive ::> snapshotLosslessRoundTripReq;
+    end #derive ::> sessionLifecycleAclWhoReq;
   }
 
   #derivation connection deriveMemoryNetGraphLeaves {
@@ -2152,6 +2225,7 @@ package MemNetRequirements {
     end #derive ::> addFailsIfExistsReq;
     end #derive ::> updateFailsIfAbsentReq;
     end #derive ::> noSilentUpsertReq;
+    end #derive ::> honourWherePredicateReq;
   }
 
   #derivation connection deriveSliceEconomyLeaves {
@@ -2173,6 +2247,7 @@ package MemNetRequirements {
     end #original ::> hardCapsReq;
     end #derive ::> storeResourceCapsReq;
     end #derive ::> queryFanoutCapsReq;
+    end #derive ::> consistentValueByteCapReq;
   }
 
   #derivation connection deriveProcessBoundaryLeaves {
