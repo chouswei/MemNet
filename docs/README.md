@@ -67,6 +67,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 | [`operations/memnet-lan-mcp-front.md`](operations/memnet-lan-mcp-front.md) | Later invent #191: ClusterRoute — one MCP catalogue over N LAN serves (tip≠face; not shipped) |
 | [`operations/cluster-route-vs-slice-hand-carry.md`](operations/cluster-route-vs-slice-hand-carry.md) | Two named moves: ClusterRoute vs SliceHandCarry (#191 / #47 cousin; inventOnly) |
 | [`operations/admin-usage-report.md`](operations/admin-usage-report.md) | Admin-only serve usage JSON for a product-gate admin MCP (opaque alias; not agent MCP) |
+| [`operations/one-session-per-document.md`](operations/one-session-per-document.md) | One MemNet session per document over loopback serve (no MCP front) |
 
 Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 
