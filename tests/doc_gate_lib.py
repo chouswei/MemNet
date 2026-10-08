@@ -38,6 +38,7 @@ PIN_MAP_COMPOSER_PY = _ENGINE / "pin_map_composer.py"
 CONFIG_PY = _ENGINE / "config.py"
 OUTPUT_PY = _ENGINE / "output.py"
 CLI_PY = _ENGINE / "cli.py"
+WIRE_PY = _ENGINE / "wire.py"
 CAP_CONTRACT = Path(__file__).resolve().parents[1] / "docs" / "cap-contract.md"
 DEFAULT_BATCH_LINES = 1000
 DEFAULT_BATCH_BYTES = 1_500_000
@@ -501,6 +502,305 @@ def max_rows_count_report() -> dict[str, Any]:
     }
 
 
+def snapshot_value_cap_report() -> dict[str, Any]:
+    """value_bytes is on the decoded field; line_bytes is the raw snapshot line."""
+    tag = TAG_MAP_PY.read_text(encoding="utf-8")
+    wire = WIRE_PY.read_text(encoding="utf-8")
+    cfg = CONFIG_PY.read_text(encoding="utf-8")
+    snap = SNAPSHOT_PY.read_text(encoding="utf-8")
+    out_src = OUTPUT_PY.read_text(encoding="utf-8")
+    join_at = wire.find("def join_payload")
+    join_end = wire.find("\ndef ", join_at + 1)
+    join_src = wire[join_at:join_end] if join_at >= 0 else ""
+    val_at = tag.find("def validate_values")
+    val_end = tag.find("\ndef ", val_at + 1)
+    val_src = tag[val_at:val_end] if val_at >= 0 else ""
+    parse_at = tag.find("def parse_line")
+    parse_end = tag.find("\ndef ", parse_at + 1)
+    parse_src = tag[parse_at:parse_end] if parse_at >= 0 else ""
+    return {
+        "value_bytes_default": 4096,
+        "line_bytes_default": 32768,
+        "max_fields_default": 32,
+        "value_bytes_on_decoded_field": "len(val.encode(" in val_src
+        and "max_value_bytes" in val_src
+        and ">" in val_src,
+        "value_bytes_gt_not_ge": 'len(val.encode("utf-8")) > caps.max_value_bytes' in val_src,
+        "decoded_after_split_payload": (
+            "values = split_payload(payload)" in parse_src and "validate_values(" in parse_src
+        ),
+        "line_bytes_on_raw_snapshot_line": "max_line_bytes" in parse_src
+        and "len(line.encode(" in parse_src,
+        "join_escapes_backslash_and_pipe": (
+            "def join_payload" in join_src
+            and 'replace("\\\\"' in join_src
+            and 'replace("|",' in join_src
+        ),
+        "split_unescapes_before_validate": "split_payload(payload)" in parse_src,
+        "cr_or_nl_is_newline_in_value": '"\\n" in val or "\\r" in val' in val_src,
+        "tab_not_in_newline_check": '"\\t" in val' not in val_src,
+        "max_fields_on_schema_register": "len(field_names) > caps.max_fields" in tag,
+        "emit_record_schema_columns_only": "values = [record.fields.get(f, " in out_src,
+        "save_write_text_no_value_check": "Path(path).write_text" in snap,
+        "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
+        "config_line": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
+        "config_fields": '_env_int("MEMNET_MAX_FIELDS", 32)' in cfg,
+        "code_path": (
+            "session_save -> snapshot_text -> emit_record -> join_payload "
+            "(escapes \\\\ and | only). session_load -> parse_line: raw line "
+            "vs max_line_bytes, then split_payload unescape, then "
+            "validate_values decoded utf-8 vs max_value_bytes (`>` not `>=`); "
+            "CR/LF -> newline_in_value. SCHEMA register vs max_fields."
+        ),
+    }
+
+
+E18_HAN = "测"
+E18_HAN_ORD = 0x6D4B
+E18_RT_KEEP = (
+    "nid",
+    "kind",
+    "chars",
+    "utf8",
+    "escaped_field_utf8",
+    "uniq_ord",
+    "open_exit",
+    "open_err",
+    "create_exit",
+    "save_exit",
+    "load_exit",
+    "exact",
+    "ram_exact",
+    "fields_exact",
+    "ram_utf8",
+    "loaded_utf8",
+    "create_err",
+    "save_err",
+    "load_err",
+    "snap_line_utf8",
+    "loaded_key_n",
+    "ram_key_n",
+    "wire_shape",
+)
+
+
+def e18_cjk_blob(nbytes: int, *, han: str = E18_HAN) -> str:
+    """nbytes UTF-8 from 3-byte CJK plus ASCII pad."""
+    hb = han.encode("utf-8")
+    if len(hb) != 3:
+        raise ValueError("han must be 3-byte UTF-8")
+    n_han, rem = divmod(nbytes, 3)
+    return han * n_han + ("X" * rem)
+
+
+def e18_cjk_composition(nbytes: int, *, han: str = E18_HAN) -> str:
+    hb = han.encode("utf-8")
+    n_han, rem = divmod(nbytes, 3)
+    pad = f" + {rem} ASCII X" if rem else ""
+    return f"{n_han} × U+{ord(han):04X} ({han}, {len(hb)}-byte UTF-8){pad}"
+
+
+def e18_blob_meta(blob: str) -> dict[str, Any]:
+    from memnet.wire import join_payload
+
+    raw = blob.encode("utf-8")
+    return {
+        "chars": len(blob),
+        "utf8": len(raw),
+        "escaped_field_utf8": len(join_payload([blob]).encode("utf-8")),
+        "uniq_ord": sorted({ord(c) for c in blob})[:8],
+    }
+
+
+def e18_wire_shape(stmt: str, replacements: list[str]) -> str:
+    out = stmt.strip()
+    for blob in replacements:
+        if not blob:
+            continue
+        token = f"<blob utf8={len(blob.encode('utf-8'))} chars={len(blob)}>"
+        g = gql_str(blob)
+        if g in out:
+            out = out.replace(g, token)
+        elif blob in out:
+            out = out.replace(blob, token)
+    if len(out) > 240:
+        return out[:120] + f"…({len(out)} chars)"
+    return out
+
+
+def e18_usr_create(nid: str, blob: str, *, extra: dict[str, str] | None = None) -> str:
+    bits = [
+        f"id: {gql_str(nid)}",
+        "key: 'e18'",
+        f"value: {gql_str(blob)}",
+        "recycle: ''",
+    ]
+    for k, v in (extra or {}).items():
+        bits.append(f"{k}: {gql_str(v)}")
+    return "CREATE (:USR {" + ", ".join(bits) + "})"
+
+
+def e18_schema_fields(n: int, *, tag: str = "WIDE") -> list[str]:
+    names = ["id"] + [f"p{i:03d}" for i in range(n - 1)]
+    return [f"SCHEMA {tag} ; fields={' '.join(names)}"]
+
+
+def e18_fat_schema(n_props: int = 8, *, tag: str = "FAT") -> list[str]:
+    names = ["id"] + [f"p{i:03d}" for i in range(n_props)]
+    return [f"SCHEMA {tag} ; fields={' '.join(names)}"]
+
+
+def e18_fat_create(nid: str, blobs: dict[str, str], *, tag: str = "FAT") -> str:
+    bits = [f"id: {gql_str(nid)}"]
+    for k, v in blobs.items():
+        bits.append(f"{k}: {gql_str(v)}")
+    return f"CREATE (:{tag} {{" + ", ".join(bits) + "})"
+
+
+def e18_public_rt(row: dict[str, Any]) -> dict[str, Any]:
+    return {k: row[k] for k in E18_RT_KEEP if k in row}
+
+
+def _e18_snap_line_bytes(snap: Path, nid: str, kind: str) -> int | None:
+    if not snap.is_file():
+        return None
+    needle = nid.encode("utf-8")
+    prefix = f"@{kind}:".encode("ascii")
+    for ln in snap.read_bytes().split(b"\n"):
+        if ln.startswith(prefix) and needle in ln[:120]:
+            return len(ln)
+    return None
+
+
+def e18_roundtrip(
+    svc: ServeProc,
+    tmp: Path,
+    *,
+    blob: str,
+    nid: str,
+    kind: str = "USR",
+    value_key: str = "value",
+    map_lines: list[str] | None = None,
+    extra_props: dict[str, str] | None = None,
+    create_stmt: str | None = None,
+    expect: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """CREATE via mutate, save, load into a new session, compare value bytes."""
+    snap = tmp / f"{nid}.snap"
+    wanted = dict(expect or {})
+    wanted.setdefault(value_key, blob)
+    stmt = create_stmt or e18_usr_create(nid, blob, extra=extra_props)
+    out: dict[str, Any] = {
+        "nid": nid,
+        "kind": kind,
+        "value_key": value_key,
+        **e18_blob_meta(blob),
+        "wire_shape": e18_wire_shape(stmt, [blob, *wanted.values()]),
+        "create_exit": None,
+        "save_exit": None,
+        "load_exit": None,
+        "exact": False,
+        "ram_utf8": None,
+        "loaded_utf8": None,
+        "create_err": [],
+        "save_err": [],
+        "load_err": [],
+        "snap_line_utf8": None,
+    }
+    sid, open_r = svc.try_open_session(map_lines=map_lines)
+    out["open_exit"] = open_r.exit_code
+    out["open_err"] = err_lines(open_r.stderr)
+    if sid is None:
+        return out
+    created = svc.mutate(sid, stmt if stmt.endswith("\n") else stmt + "\n")
+    out["create_exit"] = created.exit_code
+    out["create_err"] = err_lines(created.stderr)
+    ram_props: dict[str, Any] = {}
+    if created.exit_code == 0:
+        ram_props = shaped_node_props(svc.pin_map(sid, cue=nid).stdout) or {}
+        ram = ram_props.get(value_key)
+        out["ram_utf8"] = len(ram.encode("utf-8")) if isinstance(ram, str) else None
+        out["ram_exact"] = ram == blob
+        out["ram_key_n"] = len(ram_props)
+        out["ram_has_extras"] = any(str(k).startswith("x") for k in ram_props)
+    saved = svc.save(sid, snap)
+    out["save_exit"] = saved.exit_code
+    out["save_err"] = err_lines(saved.stderr)
+    out["snap_line_utf8"] = _e18_snap_line_bytes(snap, nid, kind)
+    svc.close(sid)
+    if saved.exit_code != 0:
+        return out
+    loaded = svc.load_file(snap)
+    out["load_exit"] = loaded.exit_code
+    out["load_err"] = err_lines(loaded.stderr)
+    if loaded.exit_code != 0:
+        return out
+    new = None
+    for line in loaded.stdout.splitlines():
+        if line.startswith("@SESSION:"):
+            new = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+            break
+    if not new:
+        return out
+    props2 = shaped_node_props(svc.pin_map(new, cue=nid).stdout) or {}
+    got = props2.get(value_key)
+    out["loaded_utf8"] = len(got.encode("utf-8")) if isinstance(got, str) else None
+    field_ok = {k: props2.get(k) == v for k, v in wanted.items()}
+    out["fields_exact"] = field_ok
+    out["exact"] = bool(field_ok) and all(field_ok.values())
+    out["loaded_keys"] = sorted(props2)
+    out["loaded_key_n"] = len(props2)
+    out["loaded_has_extras"] = any(str(k).startswith("x") for k in props2)
+    svc.close(new)
+    return out
+
+
+def e18_largest_roundtrip(
+    svc: ServeProc,
+    tmp: Path,
+    *,
+    fill: str,
+    hi: int,
+    prefix: str,
+) -> dict[str, Any]:
+    """Binary search largest raw byte size of `fill` that save/load round-trips."""
+    lo = 0
+    best = 0
+    last: dict[str, Any] = {}
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        blob = fill * mid
+        row = e18_roundtrip(svc, tmp, blob=blob, nid=f"{prefix}{mid}")
+        last = e18_public_rt(row)
+        if row.get("exact"):
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return {"largest_raw": best, "last": last}
+
+
+def e18_instance_width(svc: ServeProc, tmp: Path, n_props: int) -> dict[str, Any]:
+    """n_props keys on 4-field USR SCHEMA. Extras live in RAM; save drops them."""
+    nid = f"USR_w{n_props}"
+    extra_n = max(0, n_props - 4)
+    extras = {f"x{i:03d}": "v" for i in range(extra_n)}
+    row = e18_roundtrip(
+        svc,
+        tmp,
+        blob="w",
+        nid=nid,
+        extra_props=extras,
+        expect={"value": "w", "key": "e18"},
+    )
+    public = e18_public_rt(row)
+    public["n_requested"] = n_props
+    public["extra_n"] = extra_n
+    public["ram_has_extras"] = row.get("ram_has_extras")
+    public["loaded_has_extras"] = row.get("loaded_has_extras")
+    return public
+
+
 def mutate_byte_cap_report() -> dict[str, Any]:
     """Pipe leftover caps vs GQL mutate (cap-contract bug 4)."""
     tag = TAG_MAP_PY.read_text(encoding="utf-8")
@@ -621,6 +921,24 @@ class ServeProc:
         if reply.exit_code != 0:
             raise RuntimeError(redact(reply.stderr) or "session open failed")
         return extract_sid(reply.stdout)
+
+    def try_open_session(self, **kwargs: Any) -> tuple[str | None, ServeReply]:
+        args = ["session", "open"]
+        map_lines = kwargs.get("map_lines")
+        map_file = kwargs.get("map_file")
+        if map_lines:
+            for line in map_lines:
+                args.extend(["--map", line])
+        else:
+            args.extend(["--map-file", str(map_file or self.map_file)])
+        if kwargs.get("ttl") is not None:
+            args.extend(["--ttl", str(kwargs["ttl"])])
+        if kwargs.get("product"):
+            args.extend(["--product", str(kwargs["product"])])
+        reply = self.send(args)
+        if reply.exit_code != 0:
+            return None, reply
+        return extract_sid(reply.stdout), reply
 
     def close(self, sid: str) -> ServeReply:
         return self.send(["session", "close", sid])

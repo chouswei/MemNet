@@ -31,6 +31,7 @@ from doc_gate_lib import (  # noqa: E402
     CAP_CONTRACT_NEEDLES,
     DEFAULT_BATCH_LINES,
     E16_P95_BAR_MS,
+    E18_HAN,
     FAT_PROBE_NODES,
     FAT_TEXT_NODES,
     FULLDOC_FAT,
@@ -45,6 +46,15 @@ from doc_gate_lib import (  # noqa: E402
     canonical_snapshot,
     citekeys_schema,
     cpu_model,
+    e18_cjk_blob,
+    e18_cjk_composition,
+    e18_fat_create,
+    e18_fat_schema,
+    e18_instance_width,
+    e18_largest_roundtrip,
+    e18_public_rt,
+    e18_roundtrip,
+    e18_schema_fields,
     edge_create,
     edge_delete,
     err_lines,
@@ -68,6 +78,7 @@ from doc_gate_lib import (  # noqa: E402
     sec_create,
     shaped_node_props,
     snapshot_load_cap_report,
+    snapshot_value_cap_report,
     snapshot_write_once_report,
     stat_lines,
     wrn_lines,
@@ -1890,6 +1901,205 @@ def item_e17(
     )
 
 
+def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
+    """Snapshot value cap (decoded vs escaped), tab/CR, property-count vs line."""
+    caps = snapshot_value_cap_report()
+    wires: list[str] = []
+    gaps: list[str] = []
+    a_rows: dict[str, Any] = {}
+    blobs: list[tuple[str, str, str]] = [
+        ("a4000_backslash", "\\" * 4000, "USR_a4kbs"),
+        ("b4000_pipe", "|" * 4000, "USR_b4kpp"),
+        ("c4000_dquote", '"' * 4000, "USR_c4kdq"),
+        ("d4000_squote", "'" * 4000, "USR_d4ksq"),
+        ("e4000_cjk", e18_cjk_blob(4000), "USR_e4kcj"),
+        ("a4096_backslash", "\\" * 4096, "USR_a4096bs"),
+        ("b4096_pipe", "|" * 4096, "USR_b4096pp"),
+        ("c4096_dquote", '"' * 4096, "USR_c4096dq"),
+        ("d4096_squote", "'" * 4096, "USR_d4096sq"),
+        ("e4096_cjk", e18_cjk_blob(4096), "USR_e4096cj"),
+    ]
+    for label, blob, nid in blobs:
+        row = e18_roundtrip(svc, tmp, blob=blob, nid=nid)
+        a_rows[label] = e18_public_rt(row)
+        wires.append(row.get("wire_shape") or "")
+        wires.extend(row.get("create_err") or [])
+        wires.extend(row.get("save_err") or [])
+        wires.extend(row.get("load_err") or [])
+
+    largest: dict[str, Any] = {}
+    for label, fill, prefix in (
+        ("a_backslash", "\\", "USR_bsbin"),
+        ("b_pipe", "|", "USR_ppbin"),
+    ):
+        key4 = f"{label[0]}4000_{'backslash' if fill == chr(92) else 'pipe'}"
+        if a_rows.get(key4, {}).get("exact"):
+            largest[label] = {"skipped": True, "reason": "4000 exact"}
+            continue
+        largest[label] = e18_largest_roundtrip(svc, tmp, fill=fill, hi=4000, prefix=prefix)
+
+    b_rows: dict[str, Any] = {}
+    for label, blob, nid in (
+        ("tab_mid", "ab\tcd", "USR_tabm"),
+        ("tab_end", "ab\t", "USR_tabe"),
+        ("cr_mid", "ab\rcd", "USR_crm"),
+        ("cr_end", "ab\r", "USR_cre"),
+        ("nl_mid", "ab\ncd", "USR_nlm"),
+    ):
+        row = e18_roundtrip(svc, tmp, blob=blob, nid=nid)
+        b_rows[label] = e18_public_rt(row)
+        wires.append(row.get("wire_shape") or "")
+        wires.extend(row.get("load_err") or [])
+        wires.extend(row.get("save_err") or [])
+
+    schema_open: dict[str, Any] = {}
+    for n in (32, 64, 128):
+        tag = "PRT" if n == 32 else "WIDE"
+        lines = (
+            [ln for ln in schema_prop32().splitlines() if ln]
+            if n == 32
+            else e18_schema_fields(n, tag=tag)
+        )
+        sid, reply = svc.try_open_session(map_lines=lines)
+        schema_open[str(n)] = {
+            "open_exit": reply.exit_code,
+            "open_err": err_lines(reply.stderr),
+            "wire": lines[0] if n != 32 else "SCHEMA PRT ; fields=id p00 … p30",
+        }
+        wires.extend(err_lines(reply.stderr)[:1])
+        if sid:
+            if n == 32:
+                props = ", ".join(f"{k}: {gql_str('v' if k != 'id' else 'PRT_32')}" for k in PROP32)
+                created = svc.mutate(sid, f"CREATE (:PRT {{{props}}})\n")
+                snap = tmp / "prt32.snap"
+                saved = svc.save(sid, snap)
+                svc.close(sid)
+                loaded = svc.load_file(snap)
+                schema_open["32"].update(
+                    {
+                        "create_exit": created.exit_code,
+                        "save_exit": saved.exit_code,
+                        "load_exit": loaded.exit_code,
+                        "create_err": err_lines(created.stderr),
+                        "load_err": err_lines(loaded.stderr),
+                    }
+                )
+                wires.extend(err_lines(created.stderr)[:1])
+                wires.extend(err_lines(loaded.stderr)[:1])
+                if loaded.exit_code == 0:
+                    for line in loaded.stdout.splitlines():
+                        if line.startswith("@SESSION:"):
+                            nsid = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+                            svc.close(nsid)
+                            break
+            else:
+                svc.close(sid)
+
+    width64 = e18_instance_width(svc, tmp, 64)
+    width128 = e18_instance_width(svc, tmp, 128)
+    wires.extend(width64.get("load_err") or [])
+    wires.extend(width128.get("load_err") or [])
+
+    fat_blobs = {f"p{i:03d}": "A" * 4000 for i in range(8)}
+    fat_stmt = e18_fat_create("FAT_8x4000", fat_blobs)
+    fat_row = e18_roundtrip(
+        svc,
+        tmp,
+        blob=fat_blobs["p000"],
+        nid="FAT_8x4000",
+        kind="FAT",
+        value_key="p000",
+        map_lines=e18_fat_schema(8),
+        create_stmt=fat_stmt,
+        expect=fat_blobs,
+    )
+    wires.append(fat_row.get("wire_shape") or "")
+    wires.extend(fat_row.get("open_err") or [])
+    wires.extend(fat_row.get("create_err") or [])
+    wires.extend(fat_row.get("save_err") or [])
+    wires.extend(fat_row.get("load_err") or [])
+
+    keys_4000 = [k for k in a_rows if k[1:5] == "4000"]
+    keys_4096 = [k for k in a_rows if "4096" in k]
+    a_exact_4000 = all(a_rows[k].get("exact") for k in keys_4000)
+    a_exact_4096 = all(a_rows[k].get("exact") for k in keys_4096)
+    tab_ok = bool(b_rows["tab_mid"].get("exact") and b_rows["tab_end"].get("exact"))
+    cr_breaks = not b_rows["cr_mid"].get("exact") and not b_rows["cr_end"].get("exact")
+    schema_64_refused = schema_open["64"]["open_exit"] != 0
+    schema_128_refused = schema_open["128"]["open_exit"] != 0
+    extras_ram = bool(width64.get("ram_has_extras") and width128.get("ram_has_extras"))
+    extras_dropped = (not width64.get("loaded_has_extras")) and (
+        not width128.get("loaded_has_extras")
+    )
+    fat_ok = bool(fat_row.get("exact"))
+    decoded = bool(caps.get("value_bytes_on_decoded_field") and caps.get("value_bytes_gt_not_ge"))
+
+    if not decoded:
+        gaps.append("code citation did not show decoded value_bytes with `>`")
+    if not a_exact_4000:
+        gaps.append("one or more 4000-byte (a–e) cases failed round-trip")
+    if not schema_64_refused or not schema_128_refused:
+        gaps.append("SCHEMA 64/128 did not refuse max_fields")
+    if not tab_ok:
+        gaps.append("tab did not round-trip")
+    if not cr_breaks:
+        gaps.append("CR unexpectedly round-tripped")
+
+    predicted = (
+        decoded
+        and a_exact_4000
+        and a_exact_4096
+        and tab_ok
+        and cr_breaks
+        and schema_64_refused
+        and schema_128_refused
+    )
+    if predicted:
+        verdict = "yes"
+    elif decoded:
+        verdict = "note"
+    else:
+        verdict = "no"
+
+    notes = [
+        "value_bytes 4096 is measured on the decoded field after split_payload "
+        "(validate_values uses `>` not `>=`). join_payload expands `\\` and `|` "
+        "only; that expansion is not the cap. line_bytes 32768 is the raw "
+        "snapshot line before split. SCHEMA register vs max_fields=32. "
+        "emit_record writes SCHEMA columns only.",
+        "E18e CJK 4000: " + e18_cjk_composition(4000, han=E18_HAN) + ".",
+        "E18e CJK 4096: " + e18_cjk_composition(4096, han=E18_HAN) + ".",
+        "CREATE wires use gql_str (\\\\ \\' \\\" \\n \\r \\t). Proof numbers omit blobs.",
+    ]
+    return ItemResult(
+        item="E18 snapshot value cap / whitespace / property count",
+        verdict=verdict,
+        notes=notes,
+        numbers={
+            "caps": caps,
+            "cjk_4000": e18_cjk_composition(4000),
+            "cjk_4096": e18_cjk_composition(4096),
+            "e18a": a_rows,
+            "e18a_largest_if_4000_failed": largest,
+            "e18b": b_rows,
+            "e18c_schema_open": schema_open,
+            "e18c_instance_64": width64,
+            "e18c_instance_128": width128,
+            "e18c_8x4000": e18_public_rt(fat_row),
+            "a_exact_4000": a_exact_4000,
+            "a_exact_4096": a_exact_4096,
+            "tab_roundtrip": tab_ok,
+            "cr_breaks": cr_breaks,
+            "schema_64_128_refused": schema_64_refused and schema_128_refused,
+            "extras_in_ram": extras_ram,
+            "extras_dropped_on_load": extras_dropped,
+            "fat_8x4000_exact": fat_ok,
+        },
+        wires=[w for w in wires if w],
+        gaps=gaps,
+    )
+
+
 def item_admin_live_bug(svc: ServeProc, *, wait_s: float) -> ItemResult:
     live_sids = [svc.open_session(ttl=60, product="docgate") for _ in range(7)]
     expiring = [svc.open_session(ttl=1, product="docgate") for _ in range(5)]
@@ -2010,6 +2220,7 @@ def main() -> int:
                 results.append(item_e12_max_rows(tmp))
                 results.append(item_e13_strings(svc, tmp))
                 results.append(item_e14_lists(svc))
+                results.append(item_e18(svc, tmp))
                 if fulldoc_nodes > 0:
                     results.extend(
                         run_fulldoc_e12_e16(

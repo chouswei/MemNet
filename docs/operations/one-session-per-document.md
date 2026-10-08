@@ -77,6 +77,7 @@ python scripts/probe_doc_gate_readiness.py --out /opt/cursor/artifacts/doc-gate-
 | E13 | 16 KiB strings with LaTeX / quotes / newline / `\|` / CJK survive GQL CREATE/SET/`pin_map` in RAM. Snapshot save/load does **not** survive byte-for-byte (`FIELD_COUNT` on newlines; `value_bytes 16384/4096` otherwise). Pipe leftover: value 4096, line 32768; GQL mutate skips those (bug 4). Escapes: `\\ \' \" \n \r \t` only. |
 | E14 | List literals store as JSON strings and emit as GQL lists. `'k' IN p.citeKeys` is **not** a product filter (`MATCH (p:USR) WHERE … SET` ignores WHERE and raises `cue_conflict` when \|Q\|>1). Locators are `KEY=VAL` equality on the JSON string; leftover `read list --where` can glob that string. |
 | E17 | **note.** `WHERE n.value CONTAINS` is not a product filter. RETURN → `product_gate`; SET drops WHERE (`cue_conflict` at \|Q\|=1500; unique MATCH still SET on a miss). `STARTS WITH` / `ENDS WITH` / `=~` same. Working: `find`/`pin_map --keyword` (casefold). See paragraph below. |
+| E18 | Snapshot `value_bytes` 4096 is the **decoded** field after `split_payload` (`>` not `>=`); `join_payload` expansion of `\\` / `\|` is not the cap. `line_bytes` 32768 is the raw snapshot line. SCHEMA `max_fields=32`. Tab round-trips; CR/LF do not. Live table below. |
 
 Second RSS fixture: 3000 nodes, no edges, 1500 of them with 2/3/4 KiB text (about 4.4 MiB of UTF-8 payload, not 1 MiB). Measure process RSS the same way as the 1800-part fixture. Short fat churn is on (`--fat-churn`, default 8); 110 cycles of this fixture is not the default.
 
@@ -90,5 +91,22 @@ E16 (on the 10000 fulldoc session, this VM `Intel(R) Xeon(R) Processor` 4-core K
 | (b) reverse `pin_map` hub `M=400` | 113.096 / **129.613** / 163.101 | under bar |
 
 **note:** MemNet has **no** native delete-refused-while-referenced check. `DETACH DELETE` of a node with inbound edges exits 0 and leaves dangling edges. The gate must refuse from the reverse lookup (`## Truncation truncated=true M=400 omitted=2604 reason=max_rows` on the hub). Documented `MATCH ()-[r {id}]-() DELETE r` is lowered as a node DROP with an empty id and refuses `@ERR: not_found|DELETE matched no element` (not a referenced-delete check). The probe's working edge DROP is `MATCH (n WHERE true)-[r {id}]->() DELETE r`.
+
+E18 (loopback mutate CREATE → `session save` → `session load` into a fresh session → `pin_map` cue; blobs omitted from the proof log). Cap citation: `tag_map.validate_values` measures `len(val.encode("utf-8")) > caps.max_value_bytes` **after** `split_payload`; `parse_line` measures raw `line.encode` vs `max_line_bytes` first. `wire.join_payload` escapes `\\` then `|` only. `validate_values` treats `\\n` / `\\r` as `newline_in_value` (tab is not checked). SCHEMA register vs `max_fields=32`; `output.emit_record` writes SCHEMA columns only.
+
+| Case | Wire shape | Save / load | Exact? |
+|------|------------|-------------|--------|
+| E18a 4000 `\\` | `CREATE (:USR {id: 'USR_a4kbs', key: 'e18', value: <blob utf8=4000 chars=4000>, recycle: ''})` | live | live |
+| E18a 4000 `\|` | `CREATE (:USR {id: 'USR_b4kpp', … value: <blob utf8=4000>})` | live | live |
+| E18a 4000 `"` | `CREATE (:USR {id: 'USR_c4kdq', …})` | live | live |
+| E18a 4000 `'` | `CREATE (:USR {id: 'USR_d4ksq', …})` | live | live |
+| E18a 4000 CJK | 1333 × U+6D4B (`测`, 3-byte UTF-8) + 1 ASCII X; `USR_e4kcj` | live | live |
+| E18a 4096 (a–e) | same shapes, utf8=4096 (CJK: 1365 × `测` + 1 X) | live | live |
+| E18b tab mid/end | `value: 'ab\\tcd'` / `'ab\\t'` | live | live |
+| E18b CR mid/end | `value: 'ab\\rcd'` / `'ab\\r'` | live | live |
+| E18c SCHEMA 64/128 | `SCHEMA WIDE ; fields=id p000 …` (64 / 128 names) | open refuse | `fields N/32` |
+| E18c 8 × 4000 ASCII | `CREATE (:FAT {id: 'FAT_8x4000', p000: <4000 A>, … p007: <4000 A>})` | live | live |
+
+Proof: `/opt/cursor/artifacts/doc-gate-readiness-e18.log`.
 
 E17: **note.** GQL `WHERE n.value CONTAINS '…'` is **not** a product substring filter. `MATCH … WHERE … RETURN n` → `@ERR: product_gate|agent surface forbids RETURN …`. `MATCH … WHERE … SET` GraphGlot-parses (single or double quotes; GQL escapes `\\ \' \" \n \r \t`; CJK and `$` unescaped) but lowering drops WHERE at SET: `|Q|=1500` → `@ERR: cue_conflict|SET  Q =1500; SHALL NOT pick one root or absorb`; a unique MATCH still SET when CONTAINS would miss. Inline `MATCH (n WHERE n.value CONTAINS '…')` → `@ERR: parse_error|unsupported MATCH shape`. Bare WHERE without SET/RETURN → `@ERR: parse_error|unsupported MATCH continuation`. `STARTS WITH` / `ENDS WITH` / `=~` are the same ignored-WHERE SET path. Working substring: `query find --keyword` / `pin_map --keyword` (casefold across all fields, hard `--limit` / `--max-rows`). leftover `read list --where value=*测例*` works on a small graph; on this fulldoc it is `@ERR: response_too_large|response 4659616 bytes exceeds cap 4194304`. Substitute latency (n=200, `find --limit 50`, warm 10000-row session, this VM): common `测例` (1500 USR hits, 50 returned) p50 **67.282** / p95 **84.020** / max **94.672** ms; rare `Part 1500` (1 hit) p50 **51.183** / p95 **69.090** / max **85.424** ms.

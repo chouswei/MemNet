@@ -10,6 +10,7 @@ from doc_gate_lib import (
     CAP_CONTRACT,
     CAP_CONTRACT_NEEDLES,
     DEFAULT_BATCH_LINES,
+    E18_HAN,
     HUB_SEC,
     PROP32,
     ServeProc,
@@ -17,6 +18,13 @@ from doc_gate_lib import (
     canonical_snapshot,
     citekeys_schema,
     cpu_model,
+    e18_cjk_blob,
+    e18_cjk_composition,
+    e18_fat_create,
+    e18_fat_schema,
+    e18_instance_width,
+    e18_roundtrip,
+    e18_schema_fields,
     edge_create,
     edge_delete,
     err_lines,
@@ -35,6 +43,7 @@ from doc_gate_lib import (
     sec_create,
     shaped_node_props,
     snapshot_load_cap_report,
+    snapshot_value_cap_report,
     snapshot_write_once_report,
     stat_lines,
 )
@@ -702,3 +711,98 @@ def test_e17_contains_is_not_a_filter(doc_serve: ServeProc):
     leftover = doc_serve.read_list(sid, tag="USR", where="value=*测例*")
     assert leftover.exit_code == 0, redact(leftover.stderr)
     doc_serve.close(sid)
+
+
+def test_snapshot_value_cap_is_decoded_field():
+    report = snapshot_value_cap_report()
+    assert report["value_bytes_default"] == 4096
+    assert report["line_bytes_default"] == 32768
+    assert report["max_fields_default"] == 32
+    assert report["value_bytes_on_decoded_field"] is True
+    assert report["value_bytes_gt_not_ge"] is True
+    assert report["decoded_after_split_payload"] is True
+    assert report["line_bytes_on_raw_snapshot_line"] is True
+    assert report["join_escapes_backslash_and_pipe"] is True
+    assert report["cr_or_nl_is_newline_in_value"] is True
+    assert report["tab_not_in_newline_check"] is True
+    assert report["max_fields_on_schema_register"] is True
+    assert report["emit_record_schema_columns_only"] is True
+
+
+def test_e18_cjk_blob_composition():
+    b4000 = e18_cjk_blob(4000)
+    b4096 = e18_cjk_blob(4096)
+    assert len(b4000.encode("utf-8")) == 4000
+    assert len(b4096.encode("utf-8")) == 4096
+    assert b4000.count(E18_HAN) == 1333
+    assert b4000.endswith("X")
+    assert b4096.count(E18_HAN) == 1365
+    assert "1333" in e18_cjk_composition(4000)
+    assert "U+6D4B" in e18_cjk_composition(4000)
+
+
+def test_e18_schema_64_and_128_refuse_fields(doc_serve: ServeProc):
+    sid64, r64 = doc_serve.try_open_session(map_lines=e18_schema_fields(64))
+    assert sid64 is None
+    joined64 = "\n".join(err_lines(r64.stderr))
+    assert "limit_exceeded" in joined64
+    assert "fields" in joined64
+    assert "64/32" in joined64
+    sid128, r128 = doc_serve.try_open_session(map_lines=e18_schema_fields(128))
+    assert sid128 is None
+    assert "128/32" in "\n".join(err_lines(r128.stderr))
+    assert_sid_free(redact(r64.stderr), redact(r128.stderr))
+
+
+def test_e18_tab_survives_cr_breaks(doc_serve: ServeProc, tmp_path: Path):
+    tab = e18_roundtrip(doc_serve, tmp_path, blob="ab\tcd", nid="USR_tab")
+    assert tab["create_exit"] == 0, tab
+    assert tab["save_exit"] == 0, tab
+    assert tab["load_exit"] == 0, tab
+    assert tab["exact"] is True
+    cr = e18_roundtrip(doc_serve, tmp_path, blob="ab\rcd", nid="USR_cr")
+    assert cr["create_exit"] == 0, cr
+    assert cr["save_exit"] == 0, cr
+    assert cr["load_exit"] != 0
+    joined = "\n".join(cr["load_err"])
+    assert "newline_in_value" in joined or "FIELD_COUNT" in joined
+    assert_sid_free(joined)
+
+
+def test_e18_4000_backslash_and_pipe_roundtrip(doc_serve: ServeProc, tmp_path: Path):
+    bs = e18_roundtrip(doc_serve, tmp_path, blob="\\" * 4000, nid="USR_bs4k")
+    assert bs["utf8"] == 4000
+    assert bs["escaped_field_utf8"] == 8000
+    assert bs["create_exit"] == 0, bs
+    assert bs["save_exit"] == 0, bs
+    assert bs["load_exit"] == 0, bs["load_err"]
+    assert bs["exact"] is True
+    pipe = e18_roundtrip(doc_serve, tmp_path, blob="|" * 4000, nid="USR_pp4k")
+    assert pipe["escaped_field_utf8"] == 8000
+    assert pipe["exact"] is True, pipe["load_err"]
+
+
+def test_e18_8x4000_and_ram_extras(doc_serve: ServeProc, tmp_path: Path):
+    blobs = {f"p{i:03d}": "A" * 4000 for i in range(8)}
+    fat = e18_roundtrip(
+        doc_serve,
+        tmp_path,
+        blob=blobs["p000"],
+        nid="FAT_8x4000",
+        kind="FAT",
+        value_key="p000",
+        map_lines=e18_fat_schema(8),
+        create_stmt=e18_fat_create("FAT_8x4000", blobs),
+        expect=blobs,
+    )
+    assert fat["open_exit"] == 0, fat
+    assert fat["create_exit"] == 0, fat
+    assert fat["save_exit"] == 0, fat
+    assert fat["load_exit"] == 0, fat["load_err"]
+    assert fat["exact"] is True
+    assert fat["snap_line_utf8"] is not None
+    assert fat["snap_line_utf8"] < 32768
+    wide = e18_instance_width(doc_serve, tmp_path, 64)
+    assert wide["ram_has_extras"] is True
+    assert wide["loaded_has_extras"] is False
+    assert wide["load_exit"] == 0, wide
