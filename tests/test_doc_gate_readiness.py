@@ -189,7 +189,7 @@ def test_snapshot_roundtrip_unicode_pipe_quote(doc_serve: ServeProc, tmp_path: P
 
 
 def test_snapshot_multiline_value_breaks_load(doc_serve: ServeProc, tmp_path: Path):
-    """Gap: leftover snapshot emit does not escape newlines in field values."""
+    """Newlines in a property escape on emit and round-trip (MN-REQ-01.9)."""
     sid = _open_ok(doc_serve)
     blob = "Line one.\nLine two."
     mut = doc_serve.mutate(
@@ -202,9 +202,16 @@ def test_snapshot_multiline_value_breaks_load(doc_serve: ServeProc, tmp_path: Pa
     assert save.exit_code == 0, redact(save.stderr)
     doc_serve.close(sid)
     load = doc_serve.load_file(snap)
-    assert load.exit_code != 0
-    joined = "\n".join(err_lines(load.stderr))
-    assert "FIELD_COUNT" in joined
+    assert load.exit_code == 0, redact(load.stderr)
+    new = None
+    for line in load.stdout.splitlines():
+        if line.startswith("@SESSION:"):
+            new = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+    assert new
+    props = shaped_node_props(doc_serve.pin_map(new, cue="USR_nl").stdout)
+    assert props is not None
+    assert props.get("value") == blob
+    doc_serve.close(new)
     assert_sid_free(redact(load.stderr), redact(load.stdout))
 
 
@@ -252,11 +259,11 @@ def test_acl_who_denied_scope_and_skipped_lifecycle(doc_serve: ServeProc, tmp_pa
 
     snap = tmp_path / "acl.snap"
     save = doc_serve.save(sid, snap)
-    assert save.exit_code == 0, redact(save.stderr)
+    assert save.exit_code != 0
+    assert any(e.startswith("@ERR: acl_who|") for e in err_lines(save.stderr))
 
     save_caller = doc_serve.save(sid, tmp_path / "acl2.snap", caller="owner")
-    assert save_caller.exit_code != 0
-    assert not any(e.startswith("@ERR: acl_") for e in err_lines(save_caller.stderr))
+    assert save_caller.exit_code == 0, redact(save_caller.stderr)
 
     bind_mut = doc_serve.mutate(
         sid,
@@ -266,7 +273,10 @@ def test_acl_who_denied_scope_and_skipped_lifecycle(doc_serve: ServeProc, tmp_pa
     assert bind_mut.exit_code == 0, redact(bind_mut.stderr)
     assert not any("acl_bind" in e for e in err_lines(bind_mut.stderr))
 
-    closed = doc_serve.close(sid)
+    closed_who = doc_serve.close(sid)
+    assert closed_who.exit_code != 0
+    assert any(e.startswith("@ERR: acl_who|") for e in err_lines(closed_who.stderr))
+    closed = doc_serve.close(sid, caller="owner")
     assert closed.exit_code == 0, redact(closed.stderr)
 
 
@@ -372,9 +382,9 @@ def test_mutate_byte_cap_report_bug4():
     report = mutate_byte_cap_report()
     assert report["pipe_value_bytes_default"] == 4096
     assert report["pipe_line_bytes_default"] == 32768
-    assert report["gql_mutate_checks_value_bytes"] is False
+    assert report["gql_mutate_checks_value_bytes"] is True
     assert report["gql_mutate_checks_line_bytes"] is False
-    assert report["bug4_gql_skips_pipe_caps"] is True
+    assert report["bug4_gql_skips_pipe_caps"] is False
 
 
 def test_special_blob_has_required_glyphs():
@@ -465,39 +475,33 @@ def test_e13_16kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path
         sid,
         "CREATE (:USR {id: 'USR_big', key: 'blob', value: " + gql_str(blob) + ", recycle: ''})\n",
     )
-    assert create.exit_code == 0, redact(create.stderr)
+    assert create.exit_code != 0
+    joined_c = "\n".join(err_lines(create.stderr))
+    assert "value_bytes" in joined_c
+    assert "16384/4096" in joined_c
     setted = doc_serve.mutate(
         sid,
         "MATCH (n:USR {id: 'USR_big'}) SET n.value = " + gql_str(blob) + "\n",
     )
-    assert setted.exit_code == 0, redact(setted.stderr)
-    pin = doc_serve.pin_map(sid, cue="USR_big")
-    assert pin.exit_code == 0, redact(pin.stderr)
-    props = shaped_node_props(pin.stdout)
-    assert props is not None
-    assert props.get("value") == blob
+    assert setted.exit_code != 0
+    assert "value_bytes" in "\n".join(err_lines(setted.stderr)) or "not_found" in "\n".join(
+        err_lines(setted.stderr)
+    )
     snap = tmp_path / "e13.snap"
     save = doc_serve.save(sid, snap)
     assert save.exit_code == 0, redact(save.stderr)
     doc_serve.close(sid)
-    load = doc_serve.load_file(snap)
-    assert load.exit_code != 0
-    joined = "\n".join(err_lines(load.stderr))
-    assert "FIELD_COUNT" in joined or "value_bytes" in joined or "newline_in_value" in joined
-    assert "ingest_budget" not in joined
 
     sid2 = _open_ok(doc_serve)
     plain = make_special_blob(16 * 1024, newlines=False, pipes=False)
-    doc_serve.mutate(
+    create2 = doc_serve.mutate(
         sid2,
         "CREATE (:USR {id: 'USR_p', key: 'blob', value: " + gql_str(plain) + ", recycle: ''})\n",
     )
-    snap2 = tmp_path / "e13p.snap"
-    doc_serve.save(sid2, snap2)
+    assert create2.exit_code != 0
+    assert "value_bytes" in "\n".join(err_lines(create2.stderr))
+    assert "16384/4096" in "\n".join(err_lines(create2.stderr))
     doc_serve.close(sid2)
-    load2 = doc_serve.load_file(snap2)
-    assert load2.exit_code != 0
-    assert "value_bytes" in "\n".join(err_lines(load2.stderr))
 
 
 def test_e14_list_store_no_in_membership(doc_serve: ServeProc):
@@ -523,7 +527,7 @@ def test_e14_list_store_no_in_membership(doc_serve: ServeProc):
     after = shaped_node_props(doc_serve.pin_map(sid, cue="USR_cite").stdout) or {}
     miss = shaped_node_props(doc_serve.pin_map(sid, cue="USR_miss").stdout) or {}
     membership = in_mut.exit_code == 0 and after.get("key") == "hit" and miss.get("key") != "hit"
-    assert membership is False
+    assert membership is True, redact(in_mut.stderr)
     leftover = doc_serve.read_list(sid, tag="USR", where="citeKeys=*k*")
     assert leftover.exit_code == 0, redact(leftover.stderr)
     doc_serve.close(sid)
@@ -687,22 +691,26 @@ def test_e17_contains_is_not_a_filter(doc_serve: ServeProc):
     setted = doc_serve.mutate(
         sid, "MATCH (n:USR) WHERE n.value CONTAINS '测例' SET n.key = 'hit'\n"
     )
-    assert setted.exit_code != 0
-    assert "cue_conflict" in "\n".join(err_lines(setted.stderr))
+    assert setted.exit_code == 0, redact(setted.stderr)
+    hit = shaped_node_props(doc_serve.pin_map(sid, cue="USR_a").stdout) or {}
+    other = shaped_node_props(doc_serve.pin_map(sid, cue="USR_b").stdout) or {}
+    assert hit.get("key") == "hit"
+    assert other.get("key") == "m"
     starts = doc_serve.mutate(
-        sid, "MATCH (n:USR) WHERE n.value STARTS WITH '测' SET n.key = 'hit'\n"
+        sid, "MATCH (n:USR) WHERE n.value STARTS WITH '测' SET n.key = 'started'\n"
     )
-    assert "cue_conflict" in "\n".join(err_lines(starts.stderr))
-    regex = doc_serve.mutate(sid, "MATCH (n:USR) WHERE n.value =~ '.*测.*' SET n.key = 'hit'\n")
-    assert "cue_conflict" in "\n".join(err_lines(regex.stderr))
+    assert starts.exit_code == 0, redact(starts.stderr)
+    regex = doc_serve.mutate(sid, "MATCH (n:USR) WHERE n.value =~ '.*测.*' SET n.key = 're'\n")
+    assert regex.exit_code == 0, redact(regex.stderr)
     miss = doc_serve.mutate(
         sid,
         "MATCH (n:USR {id: 'USR_a'}) WHERE n.value CONTAINS 'ZZZ_NO_MATCH' SET n.key = 'ignored'\n",
     )
-    assert miss.exit_code == 0, redact(miss.stderr)
+    assert miss.exit_code != 0
+    assert "not_found" in "\n".join(err_lines(miss.stderr))
     props = shaped_node_props(doc_serve.pin_map(sid, cue="USR_a").stdout)
     assert props is not None
-    assert props.get("key") == "ignored"
+    assert props.get("key") != "ignored"
     found = doc_serve.find(sid, kind="USR", keyword="测例", limit=10)
     assert found.exit_code == 0, redact(found.stderr)
     assert "测例" in found.stdout
@@ -723,10 +731,12 @@ def test_snapshot_value_cap_is_decoded_field():
     assert report["decoded_after_split_payload"] is True
     assert report["line_bytes_on_raw_snapshot_line"] is True
     assert report["join_escapes_backslash_and_pipe"] is True
-    assert report["cr_or_nl_is_newline_in_value"] is True
+    assert report["join_escapes_splitlines_separators"] is True
+    assert report["cr_or_nl_is_newline_in_value"] is False
     assert report["tab_not_in_newline_check"] is True
     assert report["max_fields_on_schema_register"] is True
     assert report["emit_record_schema_columns_only"] is True
+    assert report["snapshot_widens_undeclared_schema"] is True
 
 
 def test_e18_cjk_blob_composition():
@@ -763,10 +773,9 @@ def test_e18_tab_survives_cr_breaks(doc_serve: ServeProc, tmp_path: Path):
     cr = e18_roundtrip(doc_serve, tmp_path, blob="ab\rcd", nid="USR_cr")
     assert cr["create_exit"] == 0, cr
     assert cr["save_exit"] == 0, cr
-    assert cr["load_exit"] != 0
-    joined = "\n".join(cr["load_err"])
-    assert "newline_in_value" in joined or "FIELD_COUNT" in joined
-    assert_sid_free(joined)
+    assert cr["load_exit"] == 0, cr["load_err"]
+    assert cr["exact"] is True
+    assert_sid_free("\n".join(cr.get("load_err") or []))
 
 
 def test_e18_4000_backslash_and_pipe_roundtrip(doc_serve: ServeProc, tmp_path: Path):
@@ -804,5 +813,12 @@ def test_e18_8x4000_and_ram_extras(doc_serve: ServeProc, tmp_path: Path):
     assert fat["snap_line_utf8"] < 32768
     wide = e18_instance_width(doc_serve, tmp_path, 64)
     assert wide["ram_has_extras"] is True
+    assert wide["save_exit"] != 0
+    joined = "\n".join(wide.get("save_err") or [])
+    assert "snapshot_unsaveable" in joined or "fields|" in joined
     assert wide["loaded_has_extras"] is False
-    assert wide["load_exit"] == 0, wide
+    fit = e18_instance_width(doc_serve, tmp_path, 8)
+    assert fit["ram_has_extras"] is True
+    assert fit["save_exit"] == 0, fit
+    assert fit["load_exit"] == 0, fit
+    assert fit["loaded_has_extras"] is True

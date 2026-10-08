@@ -33,6 +33,7 @@ SNAPSHOT_PY = _ENGINE / "snapshot.py"
 MEM_STORE_PY = _ENGINE / "mem_store.py"
 TAG_MAP_PY = _ENGINE / "tag_map.py"
 GQL_PY = _ENGINE / "gql.py"
+MUTATE_GATE_PY = _ENGINE / "mutate_gate.py"
 PIN_MAP_INGEST_PY = _ENGINE / "pin_map_ingest.py"
 PIN_MAP_COMPOSER_PY = _ENGINE / "pin_map_composer.py"
 CONFIG_PY = _ENGINE / "config.py"
@@ -522,35 +523,36 @@ def snapshot_value_cap_report() -> dict[str, Any]:
         "value_bytes_default": 4096,
         "line_bytes_default": 32768,
         "max_fields_default": 32,
-        "value_bytes_on_decoded_field": "len(val.encode(" in val_src
-        and "max_value_bytes" in val_src
-        and ">" in val_src,
-        "value_bytes_gt_not_ge": 'len(val.encode("utf-8")) > caps.max_value_bytes' in val_src,
+        "value_bytes_on_decoded_field": "value_utf8_len" in tag and "max_value_bytes" in tag,
+        "value_bytes_gt_not_ge": "n > caps.max_value_bytes" in tag,
         "decoded_after_split_payload": (
             "values = split_payload(payload)" in parse_src and "validate_values(" in parse_src
         ),
         "line_bytes_on_raw_snapshot_line": "max_line_bytes" in parse_src
         and "len(line.encode(" in parse_src,
         "join_escapes_backslash_and_pipe": (
-            "def join_payload" in join_src
-            and 'replace("\\\\"' in join_src
-            and 'replace("|",' in join_src
+            "def join_payload" in join_src and '"\\\\"' in join_src and '"|"' in join_src
         ),
+        "join_escapes_splitlines_separators": "_SPLITLINES_ESC" in wire
+        and "split_snapshot_lines" in wire,
         "split_unescapes_before_validate": "split_payload(payload)" in parse_src,
         "cr_or_nl_is_newline_in_value": '"\\n" in val or "\\r" in val' in val_src,
         "tab_not_in_newline_check": '"\\t" in val' not in val_src,
         "max_fields_on_schema_register": "len(field_names) > caps.max_fields" in tag,
         "emit_record_schema_columns_only": "values = [record.fields.get(f, " in out_src,
+        "snapshot_widens_undeclared_schema": "_snapshot_emit_tag_map" in snap,
         "save_write_text_no_value_check": "Path(path).write_text" in snap,
         "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
         "config_line": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
         "config_fields": '_env_int("MEMNET_MAX_FIELDS", 32)' in cfg,
         "code_path": (
             "session_save -> snapshot_text -> emit_record -> join_payload "
-            "(escapes \\\\ and | only). session_load -> parse_line: raw line "
+            "(escapes splitlines separators plus \\\\ and |). session_load -> "
+            "split_snapshot_lines (LF only) then parse_line: raw escaped line "
             "vs max_line_bytes, then split_payload unescape, then "
-            "validate_values decoded utf-8 vs max_value_bytes (`>` not `>=`); "
-            "CR/LF -> newline_in_value. SCHEMA register vs max_fields."
+            "validate_values decoded utf-8 vs max_value_bytes (`>` not `>=`). "
+            "Undeclared RAM keys widen snapshot SCHEMA. SCHEMA register vs "
+            "max_fields."
         ),
     }
 
@@ -781,7 +783,10 @@ def e18_largest_roundtrip(
 
 
 def e18_instance_width(svc: ServeProc, tmp: Path, n_props: int) -> dict[str, Any]:
-    """n_props keys on 4-field USR SCHEMA. Extras live in RAM; save drops them."""
+    """n_props keys on 4-field USR SCHEMA.
+
+    Extras stay in RAM; save widens SCHEMA or refuses max_fields.
+    """
     nid = f"USR_w{n_props}"
     extra_n = max(0, n_props - 4)
     extras = {f"x{i:03d}": "v" for i in range(extra_n)}
@@ -797,18 +802,24 @@ def e18_instance_width(svc: ServeProc, tmp: Path, n_props: int) -> dict[str, Any
     public["n_requested"] = n_props
     public["extra_n"] = extra_n
     public["ram_has_extras"] = row.get("ram_has_extras")
-    public["loaded_has_extras"] = row.get("loaded_has_extras")
+    public["loaded_has_extras"] = row.get("loaded_has_extras", False)
+    public["save_exit"] = row.get("save_exit")
+    public["save_err"] = row.get("save_err")
+    public["load_exit"] = row.get("load_exit")
     return public
 
 
 def mutate_byte_cap_report() -> dict[str, Any]:
-    """Pipe leftover caps vs GQL mutate (cap-contract bug 4)."""
+    """Pipe leftover caps vs GQL mutate (shared decoded value_bytes)."""
     tag = TAG_MAP_PY.read_text(encoding="utf-8")
     gql = GQL_PY.read_text(encoding="utf-8")
+    gate = MUTATE_GATE_PY.read_text(encoding="utf-8")
     cfg = CONFIG_PY.read_text(encoding="utf-8")
     cli = CLI_PY.read_text(encoding="utf-8")
     out = OUTPUT_PY.read_text(encoding="utf-8")
     composer = PIN_MAP_COMPOSER_PY.read_text(encoding="utf-8")
+    gql_value = "check_value_bytes" in gate
+    gql_line = "max_line_bytes" in gql or "max_line_bytes" in gate
     return {
         "gql_escapes": r"""\\ \' \" \n \r \t""",
         "gql_unknown_escape": "unknown string escape" in gql,
@@ -817,11 +828,11 @@ def mutate_byte_cap_report() -> dict[str, Any]:
         "pipe_batch_lines_default": 1000,
         "pipe_value_code": "limit_exceeded|value_bytes {n}/{max} (inner | -> space on wire)",
         "pipe_line_code": "limit_exceeded|line_bytes {n}/{max}",
-        "pipe_newline_code": "newline_in_value",
+        "pipe_newline_code": "escaped splitlines separators",
         "pipe_field_count_code": "FIELD_COUNT",
         "pipe_enforces_in_parse_line": "max_value_bytes" in tag and "max_line_bytes" in tag,
-        "gql_mutate_checks_value_bytes": "max_value_bytes" in gql,
-        "gql_mutate_checks_line_bytes": "max_line_bytes" in gql,
+        "gql_mutate_checks_value_bytes": gql_value,
+        "gql_mutate_checks_line_bytes": gql_line,
         "cli_batch_lines": "max_batch_lines" in cli and "batch_lines|" in cli,
         "wire_pipes_become_spaces": 'message.replace("|", " ")' in out,
         "locator_equality_only": 'if str(rec.fields.get(key, "")) != val:' in composer,
@@ -830,7 +841,7 @@ def mutate_byte_cap_report() -> dict[str, Any]:
         ),
         "config_value_bytes": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
         "config_line_bytes": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
-        "bug4_gql_skips_pipe_caps": True,
+        "bug4_gql_skips_pipe_caps": not gql_value,
     }
 
 
