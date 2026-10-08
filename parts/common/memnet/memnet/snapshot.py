@@ -9,8 +9,9 @@ from pathlib import Path
 
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
+from memnet.fixed_tags import FIXED_TAGS
 from memnet.mem_store import MemStore
-from memnet.models import Record, SessionMeta
+from memnet.models import Record, SessionMeta, TagDef, TagMap
 from memnet.output import emit_record, emit_wrn
 from memnet.registry import SessionEntry, count, register
 from memnet.session import SessionStore, purge_expired, utc_now
@@ -21,14 +22,12 @@ from memnet.tag_map import (
     tag_map_to_lines,
     validate_id,
 )
+from memnet.wire import split_snapshot_lines
 
 SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
-# Locator keys agents cue with. emit_record persists SCHEMA columns only;
-# extras vanish on session_save unless listed on the map.
-LOCATOR_PERSIST_KEYS = frozenset({"qname", "path", "requirementId", "skill_id"})
 
 
 def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
@@ -47,7 +46,54 @@ def _nick_of(rec: Record) -> str:
     return rec.fields.get("id") or rec.tag
 
 
-def _emit_record_lines(ss: SessionStore) -> tuple[list[str], dict[str, str]]:
+def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
+    """Widen SCHEMA with undeclared RAM keys so extras round-trip (MN-REQ-01.9)."""
+    extras: dict[str, list[str]] = {}
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if not rec:
+            continue
+        td = ss.tag_map.get(rec.tag)
+        base = list(td.fields) if td else ["id"]
+        known = set(base)
+        extra = extras.setdefault(rec.tag, [])
+        for key in rec.fields:
+            if key in known:
+                continue
+            if rec.tag in FIXED_TAGS:
+                raise MemNetError(
+                    "snapshot_unsaveable",
+                    f"{rec.tag} nick={_nick_of(rec)} field={key} fixed_tag extra",
+                )
+            extra.append(key)
+            known.add(key)
+    tags: dict[str, TagDef] = {}
+    max_fields = ss.caps.max_fields
+    for tag, td in ss.tag_map.tags.items():
+        fields = list(td.fields) + extras.get(tag, [])
+        if len(fields) > max_fields:
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{tag} nick=- fields|{len(fields)}/{max_fields}",
+            )
+        tags[tag] = TagDef(tag=td.tag, fields=fields, kind=td.kind)
+    for tag, extra in extras.items():
+        if tag in tags or not extra:
+            continue
+        fields = ["id"] + extra
+        if len(fields) > max_fields:
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{tag} nick=- fields|{len(fields)}/{max_fields}",
+            )
+        tags[tag] = TagDef(tag=tag, fields=fields, kind="node")
+    return TagMap(tags=tags)
+
+
+def _emit_record_lines(
+    ss: SessionStore,
+) -> tuple[list[str], dict[str, str], TagMap]:
+    emit_map = _snapshot_emit_tag_map(ss)
     used: set[str] = set()
     hid_to_nick: dict[str, str] = {}
     for rid in ss.store.write_order:
@@ -67,17 +113,18 @@ def _emit_record_lines(ss: SessionStore) -> tuple[list[str], dict[str, str]]:
                 if token in hid_to_nick:
                     fields[key] = hid_to_nick[token]
         clone = rec.model_copy(update={"fields": fields})
-        rec_lines.append(emit_record(clone, ss.tag_map))
-    return rec_lines, hid_to_nick
+        rec_lines.append(emit_record(clone, emit_map))
+    return rec_lines, hid_to_nick, emit_map
 
 
 def snapshot_text(ss: SessionStore) -> str:
-    rec_lines, hid_to_nick = _emit_record_lines(ss)
-    _verify_emitted_rows(ss, rec_lines, hid_to_nick)
-    return _format_snapshot(ss, rec_lines)
+    rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
+    text = _format_snapshot(ss, rec_lines, emit_map)
+    _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
+    return text
 
 
-def _format_snapshot(ss: SessionStore, rec_lines: list[str]) -> str:
+def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
     hw = "1" if m.has_writes else "0"
@@ -86,7 +133,7 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str]) -> str:
         f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}|{modified}"
     )
     lines.append(_SECTION_MAP)
-    lines.extend(tag_map_to_lines(ss.tag_map))
+    lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
     for rel in sorted(ss.relations):
         lines.append(f"@REL: {rel}")
@@ -95,13 +142,15 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _verify_emitted_rows(
+def _verify_emitted_snapshot(
     ss: SessionStore,
-    rec_lines: list[str],
+    text: str,
     hid_to_nick: dict[str, str],
+    emit_map: TagMap,
 ) -> None:
-    """Refuse save if any emitted row would not load as the same values."""
+    """Refuse save if the formatted blob would not load as the same values."""
     used_nicks: set[str] = set()
+    _, _, _, rec_lines = _parse_sections(split_snapshot_lines(text))
     rec_iter = iter(rec_lines)
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
@@ -115,18 +164,16 @@ def _verify_emitted_rows(
                 f"{rec.tag} nick={_nick_of(rec)} missing emit row",
             ) from exc
         try:
-            parsed = parse_line(line, ss.tag_map, ss.caps, used_nicks=used_nicks)
+            parsed = parse_line(line, emit_map, ss.caps, used_nicks=used_nicks)
         except MemNetError as exc:
             raise MemNetError(
                 "snapshot_unsaveable",
                 f"{rec.tag} nick={_nick_of(rec)} {exc.code} {exc.message}",
             ) from exc
         want_id = hid_to_nick.get(rec.hid) or rec.fields.get("id") or ""
-        tag_def = ss.tag_map.get(rec.tag)
-        if tag_def:
-            keys = list(tag_def.fields)
-        else:
-            keys = ["id"] + [k for k in rec.fields if k != "id"]
+        keys = list(rec.fields.keys())
+        if "id" not in keys:
+            keys = ["id", *keys]
         for key in keys:
             raw = rec.fields.get(key, "")
             if key == "id":
@@ -150,40 +197,35 @@ def _verify_emitted_rows(
 
 
 def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
-    """Warn when RAM locator keys will not appear on SCHEMA-shaped snapshot emit.
+    """Extras persist by widening snapshot SCHEMA. Warn only if save cannot.
 
-    Does not change SCHEMA. Honesty only: session_save otherwise drops extras
-    such as Path-B ``qname`` when the map omitted them.
+    Fixed-tag extras (EDG / LAW) cannot widen; save refuses instead.
     """
-    seen: set[tuple[str, str]] = set()
     msgs: list[str] = []
+    seen: set[tuple[str, str]] = set()
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
-        if not rec:
+        if not rec or rec.tag not in FIXED_TAGS:
             continue
-        tag_def = ss.tag_map.get(rec.tag)
-        schema_fields = set(tag_def.fields) if tag_def else set()
-        for key in LOCATOR_PERSIST_KEYS:
-            val = rec.fields.get(key, "")
-            if not val:
-                continue
-            if key in schema_fields:
+        td = ss.tag_map.get(rec.tag)
+        schema_fields = set(td.fields) if td else set()
+        for key, val in rec.fields.items():
+            if not val or key in schema_fields:
                 continue
             pair = (rec.tag, key)
             if pair in seen:
                 continue
             seen.add(pair)
-            listed = " ".join(tag_def.fields) if tag_def else ""
-            msgs.append(f"{rec.tag}.{key} not in SCHEMA fields={listed}")
+            msgs.append(f"{rec.tag}.{key} fixed_tag extra cannot persist")
     return msgs
 
 
 def write_snapshot(ss: SessionStore, path: str | Path) -> int:
     for msg in snapshot_locator_schema_warnings(ss):
         emit_wrn("snapshot_schema_drop", msg)
-    rec_lines, hid_to_nick = _emit_record_lines(ss)
-    _verify_emitted_rows(ss, rec_lines, hid_to_nick)
-    text = _format_snapshot(ss, rec_lines)
+    rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
+    text = _format_snapshot(ss, rec_lines, emit_map)
+    _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
     Path(path).write_text(text, encoding="utf-8")
     return ss.store.row_count_non_law()
 
@@ -304,7 +346,7 @@ def load_snapshot_text(
     keep_id: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
-    meta, map_lines, rel_lines, rec_lines = _parse_sections(text.splitlines())
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:

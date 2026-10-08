@@ -280,9 +280,9 @@ def parse_line(
 ) -> Record:
     caps = caps or Caps()
     physical = len(line.encode("utf-8"))
-    # Escaped wire may exceed max_line_bytes; decoded size is the documented cap.
-    physical_hard = max(8 * 1024 * 1024, caps.max_line_bytes)
-    if physical > physical_hard:
+    # line_bytes is the escaped/raw pipe or snapshot line (backslash and
+    # pipe count twice). Save verify and load share this check.
+    if physical > caps.max_line_bytes:
         raise MemNetError(
             "limit_exceeded",
             f"line_bytes|{physical}/{caps.max_line_bytes}",
@@ -298,13 +298,6 @@ def parse_line(
         known = ",".join(tag_map.tag_names())
         raise MemNetError("unknown_tag", f"{tag} not in tagMap known: {known}")
     values = split_payload(payload)
-    decoded = len(f"@{tag}: ".encode()) + sum(len(v.encode()) for v in values)
-    decoded += max(0, len(values) - 1)
-    if decoded > caps.max_line_bytes:
-        raise MemNetError(
-            "limit_exceeded",
-            f"line_bytes|{decoded}/{caps.max_line_bytes}",
-        )
     fields = validate_values(tag_def, values, caps)
     nick = fields.get("id", "")
     if nick:
