@@ -383,7 +383,10 @@ def test_explicit_save_unsaveable_names_row(memnet_temp, schema_file, tmp_path: 
 def test_expire_save_unsaveable_writes_no_file(
     memnet_temp, schema_file, tmp_path: Path, monkeypatch
 ):
-    """If round-trip verify fails, expire-save warns and leaves no snap file."""
+    """If round-trip verify fails, expire-save warns, writes no file, keeps RAM."""
+    from memnet.registry import contains
+    from memnet.session import expire_hold_count
+
     monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
     monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(tmp_path))
     ss = open_session(map_file=str(schema_file), caps=Caps())
@@ -393,3 +396,5 @@ def test_expire_save_unsaveable_writes_no_file(
     snapshot_expired_session(ss.session_id, Caps())
     snaps = list(tmp_path.glob("*.snap"))
     assert snaps == []
+    assert contains(ss.session_id)
+    assert expire_hold_count() == 1

@@ -1062,7 +1062,8 @@ def case_where_and_snapshot_honesty() -> list[Case]:
                 wire=format_err(exc.code, exc.message),
                 extra={
                     "expire": (
-                        "@WRN: expire_snapshot_failed|snapshot_unsaveable then snap_missing"
+                        "@WRN: expire_snapshot_failed|snapshot_unsaveable; "
+                        "RAM stays; @ERR: session_expired|overdue"
                     ),
                 },
             )

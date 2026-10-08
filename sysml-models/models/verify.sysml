@@ -1864,7 +1864,8 @@ package MemNetVerification {
       separators (LF/CR/VT/FF/FS/GS/RS/NEL/LS/PS) plus pipe/backslash
       losslessly; undeclared RAM properties persist by snapshot SCHEMA
       widen; line_bytes is the escaped emitted line at save and load;
-      save fails closed; expire-save writes no unloadable file;
+      save fails closed; expire-save writes no unloadable file and
+      keeps RAM on any save failure until explicit save or close;
       0.19.18 snapshots still load; value_bytes is decoded raw UTF-8.
     */
     attribute verificationId : String = "MN-VER-01-S04";
@@ -1881,6 +1882,20 @@ package MemNetVerification {
             .failClosedUnsaveable == true
           and system.core.transport.inProcess.memory.sessions.snap
             .expireSaveUnsaveableNoFile == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureKeepsRam == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureCountsCap == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureWarnRetry == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureOverdueAccess == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureClearedBySaveOrClose == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveOffDropsRam == true
+          and system.core.cli.sessionSave.expireSaveFailureKeepsRam
+            == true
           and system.core.transport.inProcess.memory.sessions.snap
             .legacy01918Load == true
           and system.core.transport.inProcess.memory.sessions.snap

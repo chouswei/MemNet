@@ -38,6 +38,7 @@ def test_snapshot_store_and_caps_default_off():
     assert "attribute loadRestoresRam : Boolean = true;" in text
     assert "attribute notNeo4j : Boolean = true;" in text
     assert "attribute ramDropsAfterExpireSave : Boolean = true;" in text
+    assert "attribute expireSaveFailureKeepsRam : Boolean = true;" in text
     assert "attribute ttlResetsOnLoad : Boolean = true;" in text
     assert "attribute loadByKnownSid : Boolean = true;" in text
     assert "attribute expireSnapKeepId : Boolean = true;" in text

@@ -57,7 +57,7 @@ A refuse MUST NOT look like a complete empty report (`ok` JSON). If a measured f
 ```json
 {
   "ok": true,
-  "sessions": {"live": 2, "max": 1024},
+  "sessions": {"live": 2, "max": 1024, "expire_snapshot_failed": 0},
   "session_rows": [
     {
       "alias": "s_ab12cd34ef56a1b2",
@@ -68,7 +68,8 @@ A refuse MUST NOT look like a complete empty report (`ok` JSON). If a measured f
       "relations_max": 200,
       "last_access": "2026-10-08T02:00:00Z",
       "ttl_left_s": 3510,
-      "save_on_expire_armed": false
+      "save_on_expire_armed": false,
+      "expire_snapshot_failed": false
     }
   ],
   "process": {
@@ -129,7 +130,7 @@ A refuse MUST NOT look like a complete empty report (`ok` JSON). If a measured f
 }
 ```
 
-`alias` is HMAC-SHA256 of the real sid keyed by `MEMNET_ADMIN_TOKEN`, hex-truncated, prefixed `s_`. Stable for that serve credential; rotating the token rotates aliases. `save_on_expire_armed` repeats the **process** Caps flag (not a per-session arm today).
+`alias` is HMAC-SHA256 of the real sid keyed by `MEMNET_ADMIN_TOKEN`, hex-truncated, prefixed `s_`. Stable for that serve credential; rotating the token rotates aliases. `save_on_expire_armed` repeats the **process** Caps flag (not a per-session arm today). `sessions.expire_snapshot_failed` is how many sessions are held in RAM because expire-save could not write; the per-row boolean matches.
 
 Peek only: the report does not `session_open` / close / load / save / mutate / purge or slide TTL.
 

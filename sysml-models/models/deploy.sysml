@@ -1064,11 +1064,13 @@ package MemNet {
       (MN-REQ-01.4--01.6). MUST NOT be taken as MN-REQ-11 pin-map export.
       Expire-time save is configurable (MEMNET_SAVE_ON_EXPIRE default
       off). When on, TTL drops RAM and MAY write a file
-      (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file). The file
-      remains until the user deletes it. session_load restores a live
-      session. Explicit session_save and expire-save write one blob
-      (explicitSaveAndExpireSaveOneBlob). MUST NOT treat this as Neo4j
-      cabinet dump. storageRole file_snapshot.
+      (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file) unless
+      the write fails: then RAM stays (expireSaveFailureKeepsRam),
+      still counts against maxSessions, and retries warn
+      expire_snapshot_failed. The file remains until the user deletes
+      it. session_load restores a live session. Explicit session_save
+      and expire-save write one blob (explicitSaveAndExpireSaveOneBlob).
+      MUST NOT treat this as Neo4j cabinet dump. storageRole file_snapshot.
     */
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
@@ -1089,6 +1091,12 @@ package MemNet {
     attribute losslessPropertyRoundTrip : Boolean = true;
     attribute failClosedUnsaveable : Boolean = true;
     attribute expireSaveUnsaveableNoFile : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
+    attribute expireSaveFailureCountsCap : Boolean = true;
+    attribute expireSaveFailureWarnRetry : Boolean = true;
+    attribute expireSaveFailureOverdueAccess : Boolean = true;
+    attribute expireSaveFailureClearedBySaveOrClose : Boolean = true;
+    attribute expireSaveOffDropsRam : Boolean = true;
     attribute legacy01918Load : Boolean = true;
     attribute escapeLfCrPipeBackslash : Boolean = true;
     attribute splitlinesSeparatorsEscaped : Boolean = true;
@@ -1141,6 +1149,7 @@ package MemNet {
     part snap : SnapshotStore;
     attribute slidingTtl : Boolean = true;
     attribute ramDropsOnTtl : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -1393,7 +1402,9 @@ package MemNet {
   part def CmdSessionSave {
     doc /*
       TARGET: session save. Session handle is not a graph store key.
-      After TTL, save only if MEMNET_SAVE_ON_EXPIRE; then RAM id drops.
+      After TTL, save only if MEMNET_SAVE_ON_EXPIRE; then RAM id drops
+      when the snapshot writes. A failed expire-save keeps RAM until
+      an explicit successful session_save or session_close.
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
@@ -1401,6 +1412,7 @@ package MemNet {
     attribute saveOnExpireConfigurable : Boolean = true;
     attribute saveOnExpireDefault : Boolean = false;
     attribute ramDropsAfterExpireSave : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
     attribute acceptsCaller : Boolean = true;
     attribute aclWhoWhenEnabled : Boolean = true;
     attribute failClosedUnsaveable : Boolean = true;
@@ -2959,11 +2971,14 @@ package MemNet {
   part def ServeStatusLook {
     doc /*
       Display serve_status: up / host / port plus expire-save booleans
-      (save_on_expire, expire_snapshot_dir_set). Path redacted. Look only.
+      (save_on_expire, expire_snapshot_dir_set) and the count of
+      sessions held because expire-save failed
+      (expire_snapshot_failed). Path redacted. Look only.
     */
     attribute lookOnly : Boolean = true;
     attribute saveOnExpireFlag : Boolean = true;
     attribute expireSnapshotDirSetFlag : Boolean = true;
+    attribute expireSnapshotFailedCount : Boolean = true;
     attribute pathRedacted : Boolean = true;
   }
 

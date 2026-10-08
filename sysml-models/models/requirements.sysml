@@ -26,7 +26,8 @@
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
     MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
     MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
-    MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save
+    MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save;
+                       expire-save failure keeps RAM and counts against the session cap
     MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
@@ -148,11 +149,15 @@ package MemNetRequirements {
         doc /*
           SHALL apply configurable session TTL and a cap on concurrent
           sessions. Sliding TTL: live access extends expires_at. After
-          TTL the in-memory session SHALL drop. Optional expire
-          session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
-          off): file snapshot MAY remain on disk until the user deletes
-          it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
-          Explicit session_save and this expire-save write one
+          TTL the in-memory session SHALL drop, except when expire-save
+          is on and the snapshot cannot be written: RAM SHALL stay
+          (MN-REQ-01.9) and the session still counts against
+          MEMNET_MAX_SESSIONS. Optional expire session_save is
+          configurable (MEMNET_SAVE_ON_EXPIRE, default off): file
+          snapshot MAY remain on disk until the user deletes it;
+          session_load restores RAM. When save-on-expire is off, TTL
+          drops RAM as before. SHALL NOT auto-flush Neo4j. Explicit
+          session_save and this expire-save write one
           SessionSnapshotBlob.
         */
         attribute requirementId : String = "MN-REQ-01.3";
@@ -228,9 +233,19 @@ package MemNetRequirements {
           naming the row) rather than write an unloadable file,
           including when extras would exceed max_fields or the
           escaped line exceeds line_bytes. Expire-save that cannot
-          round-trip SHALL NOT write a file; RAM still drops; next
-          use is session_expired|snap_missing. Snapshots written by
-          0.19.18 (pipe and backslash escapes only) SHALL still load.
+          write (snapshot_unsaveable or any other save failure,
+          such as an unwritable disk or directory) SHALL NOT write
+          a file and SHALL NOT drop RAM. The session stays live,
+          still counts against MEMNET_MAX_SESSIONS, and every sweep
+          or access that retries expiry SHALL emit
+          @WRN: expire_snapshot_failed|<code>. Access after TTL
+          SHALL report the session overdue
+          (session_expired|overdue) so the caller can fix and save,
+          or close. An explicit session_save that succeeds, or an
+          explicit session_close, ends that hold. When
+          MEMNET_SAVE_ON_EXPIRE is off, TTL still drops RAM as
+          MN-REQ-01.3. Snapshots written by 0.19.18 (pipe and
+          backslash escapes only) SHALL still load.
         */
         attribute requirementId : String = "MN-REQ-01.9";
       }

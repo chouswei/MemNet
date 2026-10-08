@@ -161,7 +161,7 @@ Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF,
 
 **Undeclared properties.** GQL mutate may store keys that are absent from the live tag SCHEMA (GraphElement extras; Path-B locators such as `qname`). Those keys stay in RAM. Snapshot save persists them by widening the **snapshot** SCHEMA (live session SCHEMA is unchanged). After load, the restored map includes the extra columns. Extras on fixed tags `EDG` / `LAW`, or a widened SCHEMA over `max_fields`, refuse `snapshot_unsaveable` and write no file.
 
-Snapshot save verifies every emitted row can parse back to the same values. If any row cannot, save refuses `@ERR: snapshot_unsaveable|{tag} nick={nick} …` and writes no file. Expire-save in that case emits `@WRN: expire_snapshot_failed|snapshot_unsaveable`, writes no file, then RAM still drops (`session_expired|snap_missing`). Snapshots written by 0.19.18 (pipe and backslash escapes only) still load.
+Snapshot save verifies every emitted row can parse back to the same values. If any row cannot, save refuses `@ERR: snapshot_unsaveable|{tag} nick={nick} …` and writes no file. Expire-save in that case (or any other save failure, such as an unwritable disk or directory) emits `@WRN: expire_snapshot_failed|{code}` on every sweep or access that retries expiry, writes no file, and **keeps the session in RAM**. It still counts against `MEMNET_MAX_SESSIONS`. Access after TTL is `@ERR: session_expired|overdue`. An explicit `session save` that succeeds, or an explicit `session close`, ends that hold. When save-on-expire is off, TTL still drops RAM. Snapshots written by 0.19.18 (pipe and backslash escapes only) still load.
 
 ## Mutate batch line cap
 
@@ -295,11 +295,11 @@ Source: `memnet/catalog_snap.py` `snap_model` / `_precheck_plan`; `memnet/serve.
 | Expire, save off (default) | Session dropped from memory. First access of the still-registered expired id: `@ERR: session_expired\|snap_missing` (exit 2). After purge already ran: `@ERR: session_not_found\|unknown session` |
 | Expire, `MEMNET_SAVE_ON_EXPIRE` truthy + `MEMNET_EXPIRE_SNAPSHOT_DIR` set | Snapshot `{dir}/{sid}.snap` (filename only; do not log it). Next use: `@ERR: session_expired\|snap_available`. Restore: `session_load` with that id |
 | Save-on-expire on, dir unset | `@WRN: save_on_expire_no_dir\|dir unset`, then drop; `snap_missing` |
-| Save-on-expire on, row not round-trippable | `@WRN: expire_snapshot_failed\|snapshot_unsaveable`, **no file**, then drop; `snap_missing` |
+| Save-on-expire on, row not round-trippable or write fails | `@WRN: expire_snapshot_failed\|{code}`, **no file**, RAM **stays**; access `@ERR: session_expired\|overdue`. Still counts against `MEMNET_MAX_SESSIONS`. Cleared by a successful explicit `session save` or `session close` |
 | `session save` after TTL with save-on-expire | Allowed; `@WRN: session_expired_saved`. Id then gone |
 | `session save` after TTL with save off | `@ERR: session_expired` / `snap_missing`; no file |
-| Unsaveable explicit save | `@ERR: snapshot_unsaveable\|{tag} nick={nick} …`; no file |
-| Status (no paths, no ids) | `@STAT: save_on_expire\|0\|` / `1`; `@STAT: expire_snapshot_dir_set\|0\|` / `1` |
+| Unsaveable explicit save | `@ERR: snapshot_unsaveable\|{tag} nick={nick} …`; no file; overdue hold stays if expire-save had already failed |
+| Status (no paths, no ids) | `@STAT: save_on_expire\|0\|` / `1`; `@STAT: expire_snapshot_dir_set\|0\|` / `1`; `@STAT: expire_snapshot_failed\|n\|` |
 
 Source: `memnet/session.py`, `memnet/config.py` `save_on_expire` / `expire_snapshot_dir`.
 

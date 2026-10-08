@@ -133,6 +133,7 @@ def test_serve_envelope_has_no_mcp_errors_field(doc_serve: ServeProc):
     stats = stat_lines(reply.stdout)
     assert any(s.startswith("@STAT: save_on_expire|1|") for s in stats)
     assert any(s.startswith("@STAT: expire_snapshot_dir_set|1|") for s in stats)
+    assert any(s.startswith("@STAT: expire_snapshot_failed|") for s in stats)
     assert_sid_free(redact(reply.stdout), redact(reply.stderr))
 
 

@@ -47,7 +47,7 @@ Client helper: `memnet.serve.send_command(args, stdin=…, host=…, port=…)`.
 
 Anything mutate accepts must save and reload as the same property values. Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF, FS/GS/RS, NEL, LS, PS) plus `\` and `|`; load splits records on LF only. A 16 KiB string is refused at GQL CREATE/SET with `@ERR: limit_exceeded|value_bytes 16384/4096` (one decoded cap with leftover pipe and snapshot load). Unicode, `|`, quotes, CR, and newlines on a value under the cap round-trip. Undeclared RAM keys persist by widening the snapshot SCHEMA; extras over `max_fields` refuse `snapshot_unsaveable`.
 
-Expire: with save-on-expire and a dir, TTL drop writes `{dir}/{sid}.snap` (do not log the name). Next use: `@ERR: session_expired|snap_available`. Restore: `session load --session <id>` (no `--file`).
+Expire: with save-on-expire and a dir, TTL drop writes `{dir}/{sid}.snap` (do not log the name). Next use: `@ERR: session_expired|snap_available`. Restore: `session load --session <id>` (no `--file`). If that write cannot complete (`snapshot_unsaveable`, unwritable disk or directory, or any other save failure), MemNet does **not** drop the session. It stays in RAM, still counts against `MEMNET_MAX_SESSIONS`, and every sweep or access that retries expiry emits `@WRN: expire_snapshot_failed|{code}`. Access after TTL is `@ERR: session_expired|overdue` until an explicit `session save` succeeds or `session close`. `session expire-status`, `session list`, and the admin usage report expose `@STAT: expire_snapshot_failed|n|` / `sessions.expire_snapshot_failed`. When save-on-expire is off, TTL still drops RAM.
 
 ## ACL
 
@@ -55,7 +55,7 @@ CapsPolicy is off until grant/enable. Who and WorkerWriteScope apply to `pin_map
 
 ## Memory figures
 
-Admin `memnet admin usage-report` (not agent MCP) reports **process** `rss_bytes`. `housekeep stats` is per-session row/edge/orphan counts, not bytes. `session expire-status` is flags only. Measure per-document RSS from `/proc/<serve-pid>/statm` by subtracting before/after populate.
+Admin `memnet admin usage-report` (not agent MCP) reports **process** `rss_bytes` and `sessions.expire_snapshot_failed` (sessions held because expire-save failed). `housekeep stats` is per-session row/edge/orphan counts, not bytes. `session expire-status` is flags plus that hold count. Measure per-document RSS from `/proc/<serve-pid>/statm` by subtracting before/after populate.
 
 The usage report `sessions.live` count is `registry_count()` and can include expired-but-unswept entries. `session list` purges first. Do not treat usage `live` as the true live set until that is fixed. Not fixed in the 0.19.18 probe.
 

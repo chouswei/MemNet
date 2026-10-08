@@ -50,14 +50,22 @@ async def _run(argv: list[str], *, stdin: str | None = None, session: str | None
     return _json(resp)
 
 
-def _expire_flags_from_stat(stdout: str) -> dict[str, bool]:
-    flags = expire_save_status()
+def _expire_flags_from_stat(stdout: str) -> dict[str, bool | int]:
+    flags: dict[str, bool | int] = dict(expire_save_status())
+    from memnet.session import expire_hold_count
+
+    flags["expire_snapshot_failed"] = expire_hold_count()
     for line in stdout.splitlines():
         stripped = line.strip()
         if stripped.startswith("@STAT: save_on_expire|"):
             flags["save_on_expire"] = stripped.split("|", 2)[1] == "1"
         elif stripped.startswith("@STAT: expire_snapshot_dir_set|"):
             flags["expire_snapshot_dir_set"] = stripped.split("|", 2)[1] == "1"
+        elif stripped.startswith("@STAT: expire_snapshot_failed|"):
+            try:
+                flags["expire_snapshot_failed"] = int(stripped.split("|", 2)[1])
+            except ValueError:
+                pass
     return flags
 
 
@@ -68,7 +76,10 @@ async def serve_status() -> str:
     Also reports whether expire-save is armed (booleans only; path redacted).
     When TCP serve is up, flags come from the serve process.
     """
-    flags = expire_save_status()
+    from memnet.session import expire_hold_count
+
+    flags: dict[str, bool | int] = dict(expire_save_status())
+    flags["expire_snapshot_failed"] = expire_hold_count()
     running = probe()
     if running:
         raw = send_command(["session", "expire-status"])
@@ -80,6 +91,7 @@ async def serve_status() -> str:
             "port": serve_port(),
             "save_on_expire": flags["save_on_expire"],
             "expire_snapshot_dir_set": flags["expire_snapshot_dir_set"],
+            "expire_snapshot_failed": int(flags.get("expire_snapshot_failed") or 0),
         }
     )
 

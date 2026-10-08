@@ -16,6 +16,8 @@ def test_requirements_ids_present():
     for nid in ("MN-REQ-01.9", "MN-REQ-01.10", "MN-REQ-03.4", "MN-REQ-05.3"):
         assert nid in text
     assert "snapshot_unsaveable" in text
+    assert "expire_snapshot_failed" in text
+    assert "SHALL NOT drop RAM" in text
     assert "unsupported_predicate" in text
     assert "MEMNET_MAX_VALUE_BYTES" in text
     assert "str.splitlines()" in text
@@ -39,6 +41,7 @@ def test_deploy_and_verify_trail_model():
     assert "splitlinesSeparatorsEscaped" in deploy
     assert "recordSplitLfOnly" in deploy
     assert "lineBytesOnEmittedLine" in deploy
+    assert "expireSaveFailureKeepsRam" in deploy
     ver = VERIFY.read_text(encoding="utf-8")
     assert "MN-VER-01-S04" in ver
     assert "MN-VER-01-S05" in ver

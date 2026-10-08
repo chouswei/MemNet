@@ -396,4 +396,5 @@ def test_session_expire_status_booleans(memnet_temp, tmp_path: Path, monkeypatch
     assert on.exit_code == 0, on.output
     assert "@STAT: save_on_expire|1|" in on.stdout
     assert "@STAT: expire_snapshot_dir_set|1|" in on.stdout
+    assert "@STAT: expire_snapshot_failed|0|" in on.stdout
     _assert_err_sid_free(on.stdout, on.stderr)

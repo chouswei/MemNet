@@ -63,14 +63,16 @@ from memnet.session import (
     _session_is_expired,
     close_session,
     count_sessions,
+    expire_hold_count,
+    expire_save_should_drop,
     get_session,
+    get_session_for_close,
     get_session_for_save,
     list_sessions,
     open_session,
     purge_expired,
     resolve_expire_load_path,
     resolve_session_id,
-    snapshot_expired_session,
 )
 from memnet.snapshot import load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
@@ -400,8 +402,9 @@ def session_current(
 def session_list() -> None:
     """List live session ids (named strata; not ANN) with ``sessions|n/max``."""
     caps = _caps()
-    n = count_sessions()
+    n = count_sessions(caps)
     emit_stdout(f"@STAT: sessions|{n}/{caps.max_sessions}")
+    emit_stat("expire_snapshot_failed", expire_hold_count())
     for sid, exp, left, modified in list_sessions(caps):
         emit_session(sid, exp, str(left), modified)
 
@@ -482,8 +485,10 @@ def session_load(
                 ss = get_session(sid, caps)
             else:
                 if entry is not None:
-                    snapshot_expired_session(sid, caps)
-                    remove_entry(sid)
+                    if expire_save_should_drop(sid, caps):
+                        remove_entry(sid)
+                    else:
+                        raise MemNetError("session_expired", "overdue", exit_code=2)
                 path = resolve_expire_load_path(sid, caps)
                 ss = load_snapshot(
                     path,
@@ -527,8 +532,10 @@ def admin_usage_report(
 def session_expire_status() -> None:
     """Booleans for expire-save (serve_status). Path redacted; no sids."""
     flags = expire_save_status()
+    purge_expired(_caps())
     emit_stat("save_on_expire", int(flags["save_on_expire"]))
     emit_stat("expire_snapshot_dir_set", int(flags["expire_snapshot_dir_set"]))
+    emit_stat("expire_snapshot_failed", expire_hold_count())
 
 
 @session_app.command("close")
@@ -540,7 +547,7 @@ def session_close(
     ] = None,
 ) -> None:
     try:
-        ss = get_session(session_id, _caps())
+        ss = get_session_for_close(session_id, _caps())
         _acl_check(ss, caller, "mutate")
         close_session(session_id, _caps())
         emit_session(session_id, "closed")
