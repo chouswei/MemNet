@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from doc_gate_lib import running_serve
 from memnet.cli import app
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
@@ -180,8 +181,6 @@ def _wait_ttl() -> None:
 
 
 def test_live_unsaveable_expiry_keeps_warns_cap_and_close(tmp_path: Path):
-    from tests.doc_gate_lib import running_serve
-
     with running_serve(tmp_path, ttl_minutes=1, max_sessions=1) as svc:
         sid, opened = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
         assert sid, opened.stderr
@@ -202,7 +201,7 @@ def test_live_unsaveable_expiry_keeps_warns_cap_and_close(tmp_path: Path):
         blocked, reply = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
         assert blocked is None
         assert "limit_exceeded" in reply.stderr
-        assert "sessions|" in reply.stderr
+        assert "sessions 2/1" in reply.stderr
         closed = svc.close(sid)
         assert closed.exit_code == 0, closed.stderr
         status2 = svc.expire_status()
@@ -213,8 +212,6 @@ def test_live_unsaveable_expiry_keeps_warns_cap_and_close(tmp_path: Path):
 
 
 def test_live_unwritable_expiry_save_clears_hold(tmp_path: Path):
-    from tests.doc_gate_lib import running_serve
-
     with running_serve(tmp_path, ttl_minutes=1, max_sessions=2) as svc:
         sid = svc.open_session(map_lines=list(_TINY_MAP), ttl=1)
         created = svc.mutate(sid, "CREATE (:N {id: 'N01', name: 'ok'})")
