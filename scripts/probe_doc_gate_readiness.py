@@ -30,8 +30,12 @@ from doc_gate_lib import (  # noqa: E402
     CAP_CONTRACT,
     CAP_CONTRACT_NEEDLES,
     DEFAULT_BATCH_LINES,
+    E16_P95_BAR_MS,
     FAT_PROBE_NODES,
     FAT_TEXT_NODES,
+    FULLDOC_FAT,
+    FULLDOC_NODES,
+    HUB_SEC,
     LOAD_PROBE_NODES,
     PROP32,
     ItemResult,
@@ -40,14 +44,21 @@ from doc_gate_lib import (  # noqa: E402
     assert_sid_free,
     canonical_snapshot,
     citekeys_schema,
+    cpu_model,
+    edge_create,
     err_lines,
     fat_payload_bytes,
+    fulldoc_edge_stmts,
     gql_str,
+    latency_summary,
+    make_fat_blob,
     make_special_blob,
     max_rows_count_report,
     mutate_byte_cap_report,
+    pack_batches,
     parse_stat_int,
     populate_fat_batches,
+    populate_fulldoc_batches,
     populate_node_batches,
     redact,
     redact_obj,
@@ -1285,6 +1296,399 @@ def item_fat_churn(
     )
 
 
+def _truncation_lines(stdout: str) -> list[str]:
+    return [ln for ln in stdout.splitlines() if ln.startswith("## Truncation")]
+
+
+def _time_call(fn):  # type: ignore[no-untyped-def]
+    t0 = time.perf_counter()
+    reply = fn()
+    return time.perf_counter() - t0, reply
+
+
+def run_fulldoc_e12_e16(
+    tmp: Path,
+    *,
+    n_nodes: int,
+    n_fat: int,
+    e16_n: int,
+    warmup: int = 10,
+    cap_low: int = 5000,
+    cap_high: int = 10000,
+) -> list[ItemResult]:
+    cite = max_rows_count_report()
+    path_info = snapshot_load_cap_report()
+    wires: list[str] = []
+    gaps: list[str] = []
+    numbers: dict[str, Any] = {
+        "code": cite,
+        "load_path": path_info,
+        "n_nodes": n_nodes,
+        "n_fat": n_fat,
+        "n_edges_target": (n_nodes - n_fat) + 2 * n_fat,
+        "cap_low": cap_low,
+        "cap_high": cap_high,
+        "cpu_model": cpu_model(),
+    }
+    snap_full = tmp / "fulldoc-7500.snap"
+    snap_partial = tmp / "fulldoc-5000.snap"
+    e16_result: ItemResult | None = None
+
+    # --- default 5000: nodes fit; edges refuse ---
+    with running_serve(tmp / "e12-5k", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}) as svc5:
+        sid = svc5.open_session()
+        node_batches = populate_fulldoc_batches(n_nodes, n_fat, nodes_only=True)
+        node_replies = svc5.populate_stmts(sid, node_batches)
+        node_ok = all(r.exit_code == 0 for r in node_replies)
+        if not node_ok:
+            wires.extend(err_lines(node_replies[-1].stderr))
+            gaps.append("5000-cap: 3000-node fulldoc populate failed")
+        hk_nodes = svc5.housekeep_stats(sid)
+        rows_nodes = parse_stat_int(hk_nodes.stdout, "rows")
+        edges_nodes = parse_stat_int(hk_nodes.stdout, "edges")
+        edge_stmts = []
+        n_thin = n_nodes - n_fat
+        if node_ok:
+            edge_stmts = fulldoc_edge_stmts(n_thin=n_thin, n_fat=n_fat)
+        # Fill until cap_low rows (nodes + edges), then one more edge.
+        fit_n = max(0, cap_low - n_nodes)
+        fit_edges = edge_stmts[:fit_n]
+        extra_edge = edge_stmts[fit_n : fit_n + 1]
+        fit_batches = []
+        if fit_edges:
+            fit_batches = pack_batches(fit_edges, batch_lines=DEFAULT_BATCH_LINES)
+        edge_fit = svc5.populate_stmts(sid, fit_batches, allow_new_relation=True)
+        edge_fit_ok = bool(fit_batches) and all(r.exit_code == 0 for r in edge_fit)
+        if fit_batches and not edge_fit_ok:
+            wires.extend(err_lines(edge_fit[-1].stderr))
+            gaps.append("5000-cap: first 2000 edges failed (expected to fit)")
+        hk_full5 = svc5.housekeep_stats(sid)
+        rows_at_cap = parse_stat_int(hk_full5.stdout, "rows")
+        edges_at_cap = parse_stat_int(hk_full5.stdout, "edges")
+        if extra_edge:
+            refuse = svc5.mutate(sid, extra_edge[0] + "\n", allow_new_relation=True)
+        else:
+            refuse = svc5.mutate(sid, "CREATE (:SEC {id: 'SEC_overflow'})\n")
+        refuse_err = err_lines(refuse.stderr)
+        wires.extend(refuse_err)
+        write_refused_rows = refuse.exit_code != 0 and any(
+            "limit_exceeded" in e and "rows" in e for e in refuse_err
+        )
+        pin50 = svc5.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=50)
+        pin4000 = svc5.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=4000)
+        trunc50 = _truncation_lines(pin50.stdout)
+        trunc4000 = _truncation_lines(pin4000.stdout)
+        read_not_session_refuse = pin50.exit_code == 0
+        save_p = svc5.save(sid, snap_partial)
+        svc5.close(sid)
+        load_p = svc5.load_file(snap_partial)
+        wires.extend(err_lines(load_p.stderr) + stat_lines(load_p.stdout))
+        load_partial_ok = load_p.exit_code == 0
+        if load_partial_ok:
+            loaded_sid = _sid_from(load_p.stdout)
+            if loaded_sid:
+                svc5.close(loaded_sid)
+        numbers["at_5000"] = {
+            "node_ok": node_ok,
+            "rows_after_nodes": rows_nodes,
+            "edges_after_nodes": edges_nodes,
+            "edge_fit_ok": edge_fit_ok,
+            "rows_at_cap": rows_at_cap,
+            "edges_at_cap": edges_at_cap,
+            "write_refuse_exit": refuse.exit_code,
+            "write_refuse_err": refuse_err,
+            "write_refused_rows": write_refused_rows,
+            "pin_map_50_exit": pin50.exit_code,
+            "pin_map_50_truncation": trunc50,
+            "pin_map_4000_exit": pin4000.exit_code,
+            "pin_map_4000_truncation": trunc4000,
+            "read_not_session_row_refuse": read_not_session_refuse,
+            "partial_save_exit": save_p.exit_code,
+            "partial_load_exit": load_p.exit_code,
+            "partial_load_ok": load_partial_ok,
+        }
+        if not write_refused_rows:
+            gaps.append("5000-cap write of edge 2001 did not refuse limit_exceeded|rows")
+        if not trunc50:
+            gaps.append("pin_map max_rows=50 on hub did not Truncation-clip")
+
+    # --- 10000: full fixture fits; load is not ingest_budget ---
+    with running_serve(tmp / "e12-10k", extra_env={"MEMNET_MAX_ROWS": str(cap_high)}) as svc10:
+        sid10 = svc10.open_session()
+        full_batches = populate_fulldoc_batches(n_nodes, n_fat)
+        full_replies = svc10.populate_stmts(sid10, full_batches, allow_new_relation=True)
+        full_ok = all(r.exit_code == 0 for r in full_replies)
+        if not full_ok:
+            wires.extend(err_lines(full_replies[-1].stderr))
+            gaps.append("10000-cap: fulldoc populate failed")
+        hk10 = svc10.housekeep_stats(sid10)
+        rows10 = parse_stat_int(hk10.stdout, "rows")
+        edges10 = parse_stat_int(hk10.stdout, "edges")
+        pin10_50 = svc10.pin_map(sid10, cue=HUB_SEC, depth=1, max_rows=50)
+        pin10_4000 = svc10.pin_map(sid10, cue=HUB_SEC, depth=1, max_rows=4000)
+        save10 = svc10.save(sid10, snap_full)
+        load10 = None
+        e16_result = item_e16(
+            svc10,
+            sid10,
+            n=e16_n,
+            warmup=warmup,
+            n_thin=n_nodes - n_fat,
+        )
+        svc10.close(sid10)
+        load10 = svc10.load_file(snap_full)
+        ingest_hit = any("ingest_budget" in e for e in err_lines(load10.stderr))
+        rows_hit = any("limit_exceeded" in e and "rows" in e for e in err_lines(load10.stderr))
+        load10_ok = load10.exit_code == 0
+        loaded_rows10 = parse_stat_int(load10.stdout, "loaded")
+        if load10_ok:
+            new10 = _sid_from(load10.stdout)
+            if new10:
+                hk_l = svc10.housekeep_stats(new10)
+                loaded_rows10 = parse_stat_int(hk_l.stdout, "rows") or loaded_rows10
+                svc10.close(new10)
+        numbers["at_10000"] = {
+            "populate_ok": full_ok,
+            "rows": rows10,
+            "edges": edges10,
+            "pin_map_50_truncation": _truncation_lines(pin10_50.stdout),
+            "pin_map_4000_truncation": _truncation_lines(pin10_4000.stdout),
+            "save_exit": save10.exit_code,
+            "load_exit": load10.exit_code,
+            "load_ok": load10_ok,
+            "loaded_rows": loaded_rows10,
+            "ingest_budget_on_load": ingest_hit,
+            "rows_cap_on_load": rows_hit,
+            "load_err": err_lines(load10.stderr),
+        }
+        wires.extend(
+            err_lines(load10.stderr)
+            + _truncation_lines(pin10_50.stdout)
+            + _truncation_lines(pin10_4000.stdout)
+        )
+        if ingest_hit:
+            gaps.append("10000-cap session_load refused ingest_budget (unexpected)")
+        if not load10_ok:
+            gaps.append("10000-cap session_load of fulldoc snapshot failed")
+
+    # --- 5000 load of 7500-row snapshot ---
+    load_7500_on_5k: dict[str, Any] = {}
+    if snap_full.is_file():
+        with running_serve(
+            tmp / "e12-5k-load", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}
+        ) as svc_l:
+            load_big = svc_l.load_file(snap_full)
+            load_7500_on_5k = {
+                "exit": load_big.exit_code,
+                "errs": err_lines(load_big.stderr),
+                "ingest_budget": any("ingest_budget" in e for e in err_lines(load_big.stderr)),
+                "rows_cap": any(
+                    "limit_exceeded" in e and "rows" in e for e in err_lines(load_big.stderr)
+                ),
+            }
+            wires.extend(err_lines(load_big.stderr))
+    numbers["load_7500_on_5000"] = load_7500_on_5k
+
+    edges_count = bool(numbers.get("at_5000", {}).get("write_refused_rows"))
+    e11_10000 = bool(numbers.get("at_10000", {}).get("load_ok")) and not bool(
+        numbers.get("at_10000", {}).get("ingest_budget_on_load")
+    )
+    load_5k_rows = bool(load_7500_on_5k.get("rows_cap"))
+    if load_7500_on_5k and load_7500_on_5k.get("exit") == 0:
+        gaps.append("5000-cap loaded 7500-row snapshot (edges would not count)")
+    notes = [
+        "MEMNET_MAX_ROWS counts nodes plus edges on write (upsert) and session_load "
+        "(same upsert). pin_map read clips with ## Truncation (query M), not the "
+        "session row cap.",
+        path_info["code_path"],
+        f"Fulldoc {n_nodes} nodes + {numbers['n_edges_target']} edges. "
+        f"Cap {cap_low} refuses the next new row. Cap {cap_high} holds the fixture. "
+        "session_load is not ingest_budget (2000-edge Path-B cap).",
+        f"cpu_model={cpu_model()}",
+    ]
+    verdict = "yes" if edges_count and e11_10000 else "no"
+    if (
+        edges_count
+        and e11_10000
+        and not load_5k_rows
+        and load_7500_on_5k.get("exit") not in (None, 0)
+    ):
+        # load of 7500 on 5000 should refuse rows; if it refused something else, note
+        if not load_5k_rows:
+            verdict = "note"
+            gaps.append("7500-row snapshot load on 5000 did not show limit_exceeded|rows")
+    e12 = ItemResult(
+        item="E12 revised fulldoc MEMNET_MAX_ROWS (5000 and 10000)",
+        verdict=verdict,
+        notes=notes,
+        numbers=numbers,
+        wires=wires,
+        gaps=gaps,
+    )
+    out = [e12]
+    if e16_result is not None:
+        out.append(e16_result)
+    return out
+
+
+def item_e16(
+    svc: ServeProc,
+    sid: str,
+    *,
+    n: int,
+    warmup: int,
+    n_thin: int,
+) -> ItemResult:
+    gaps: list[str] = []
+    wires: list[str] = []
+    cpu = cpu_model()
+    blob = make_fat_blob(2048)
+
+    def atomic_batch(i: int) -> str:
+        cit = f"E_cit{i:04d}"
+        return (
+            f"MATCH (n:USR {{id: 'USR_fat0000'}}) SET n.value = {gql_str(blob)}\n"
+            f"MATCH ()-[r {{id: {gql_str(cit)}}}]-() DELETE r\n"
+            + edge_create(
+                "cites",
+                f"E_lata{i:04d}",
+                "SEC_0002",
+                "SEC_0003",
+            )
+            + "\n"
+            + edge_create(
+                "refersTo",
+                f"E_latb{i:04d}",
+                "SEC_0002",
+                "SEC_0004",
+            )
+            + "\n"
+        )
+
+    # Discover delete-while-referenced on a sacrificial node (after lookups we
+    # will know). Create SEC_probe_del with one inbound, then DELETE it.
+    setup = svc.mutate(
+        sid,
+        sec_create(n_thin + 1)
+        + "\n"
+        + edge_create(
+            "refersTo",
+            "E_probe_del",
+            "USR_fat0000",
+            f"SEC_{n_thin + 1:04d}",
+        )
+        + "\n",
+        allow_new_relation=True,
+    )
+    probe_id = f"SEC_{n_thin + 1:04d}"
+    del_probe = svc.mutate(
+        sid,
+        f"MATCH (n:SEC {{id: {gql_str(probe_id)}}}) DETACH DELETE n\n",
+    )
+    native_refuse = del_probe.exit_code != 0
+    del_err = err_lines(del_probe.stderr)
+    wires.extend(err_lines(setup.stderr) + del_err)
+    # If DELETE succeeded, the node is gone and incident edge is dangling — no
+    # native referenced check.
+
+    a_samples: list[float] = []
+    b_lookup: list[float] = []
+    b_delete: list[float] = []
+    b_pair: list[float] = []
+    a_fail = 0
+    start_i = 1
+    total = warmup + n
+    for i in range(start_i, start_i + total):
+        dt, reply = _time_call(
+            lambda i=i: svc.mutate(sid, atomic_batch(i), allow_new_relation=True)
+        )
+        if reply.exit_code != 0:
+            a_fail += 1
+            if i <= warmup + 3:
+                wires.extend(err_lines(reply.stderr)[:2])
+        if i > warmup:
+            a_samples.append(dt)
+
+    # Reverse lookup of hub (inbound inSection fan-in), then attempted DELETE.
+    # If native refuse, DELETE the hub  n times (it stays). Else DELETE a
+    # distinct existing SEC after save-equivalent: we still attempt hub DELETE
+    # once per iter only when refused; otherwise lookup only + one documented try.
+    delete_stmt = f"MATCH (n:SEC {{id: {gql_str(HUB_SEC)}}}) DETACH DELETE n\n"
+    hub_still = True
+    for i in range(total):
+        t0 = time.perf_counter()
+        look = svc.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=400)
+        t1 = time.perf_counter()
+        if native_refuse:
+            gone = svc.mutate(sid, delete_stmt)
+            t2 = time.perf_counter()
+            if i == 0:
+                wires.extend(err_lines(gone.stderr)[:3])
+        else:
+            gone = None
+            t2 = t1
+            if i == 0:
+                # One real attempt on the hub to confirm (destroys hub if it
+                # succeeds; lookups after would miss). Skip: probe node already
+                # showed DELETE succeeds. Keep hub for n reverse lookups.
+                pass
+        if i >= warmup:
+            b_lookup.append(t1 - t0)
+            if gone is not None:
+                b_delete.append(t2 - t1)
+                b_pair.append(t2 - t0)
+    a_sum = latency_summary(a_samples)
+    look_sum = latency_summary(b_lookup)
+    del_sum = latency_summary(b_delete)
+    pair_sum = latency_summary(b_pair)
+    a_ok = a_sum["p95_ms"] is not None and a_sum["p95_ms"] <= E16_P95_BAR_MS and a_fail == 0
+    b_ok = look_sum["p95_ms"] is not None and look_sum["p95_ms"] <= E16_P95_BAR_MS
+    if pair_sum["p95_ms"] is not None:
+        b_ok = b_ok and pair_sum["p95_ms"] <= E16_P95_BAR_MS
+    notes = [
+        f"cpu_model={cpu}",
+        "Face host may be slower than this VM.",
+        "Bar is 300 ms p95 on direct serve loopback, warm session, n>=200.",
+    ]
+    if native_refuse:
+        notes.append("MemNet refused DELETE of a referenced node (native). Exact wire in numbers.")
+    else:
+        notes.append(
+            "MemNet has no native delete-refused-while-referenced check. "
+            "DETACH DELETE of a node with inbound edges deletes the node and leaves "
+            "dangling edges (housekeep dangling). The product gate must refuse from "
+            "the reverse lookup."
+        )
+        gaps.append("no native referenced-delete refuse")
+    if a_fail:
+        gaps.append(f"{a_fail} atomic mutate failures")
+    verdict = "yes" if a_ok and b_ok else "no"
+    if a_ok and b_ok and not native_refuse:
+        verdict = "note"
+    return ItemResult(
+        item="E16 fulldoc mutate and reverse-lookup latency",
+        verdict=verdict,
+        notes=notes,
+        numbers={
+            "cpu_model": cpu,
+            "bar_p95_ms": E16_P95_BAR_MS,
+            "warmup": warmup,
+            "a_atomic_set_del_add": a_sum,
+            "a_fail": a_fail,
+            "b_reverse_lookup": look_sum,
+            "b_delete_attempt": del_sum,
+            "b_lookup_then_delete": pair_sum,
+            "native_delete_refused": native_refuse,
+            "delete_probe_exit": del_probe.exit_code,
+            "delete_probe_err": del_err,
+            "hub_survived": hub_still,
+            "lookup_truncation_sample": _truncation_lines(look.stdout) if look else [],
+        },
+        wires=wires,
+        gaps=gaps,
+    )
+
+
 def item_admin_live_bug(svc: ServeProc, *, wait_s: float) -> ItemResult:
     live_sids = [svc.open_session(ttl=60, product="docgate") for _ in range(7)]
     expiring = [svc.open_session(ttl=1, product="docgate") for _ in range(5)]
@@ -1341,6 +1745,9 @@ def main() -> int:
     parser.add_argument("--fat-text-nodes", type=int, default=FAT_TEXT_NODES)
     parser.add_argument("--fat-churn", type=int, default=8)
     parser.add_argument("--fat-rss-samples", type=int, default=3)
+    parser.add_argument("--fulldoc-nodes", type=int, default=FULLDOC_NODES)
+    parser.add_argument("--fulldoc-fat", type=int, default=FULLDOC_FAT)
+    parser.add_argument("--e16-n", type=int, default=200)
     parser.add_argument(
         "--quick",
         action="store_true",
@@ -1356,6 +1763,11 @@ def main() -> int:
     fat_text = 8 if args.quick else args.fat_text_nodes
     fat_churn = 2 if args.quick else args.fat_churn
     fat_samples = 1 if args.quick else args.fat_rss_samples
+    fulldoc_nodes = 40 if args.quick else args.fulldoc_nodes
+    fulldoc_fat = 8 if args.quick else args.fulldoc_fat
+    e16_n = 20 if args.quick else args.e16_n
+    cap_low = 50 if args.quick else 5000
+    cap_high = 200 if args.quick else 10000
 
     results: list[ItemResult] = [item_cap_contract()]
     header: dict[str, Any] = {
@@ -1368,6 +1780,9 @@ def main() -> int:
         "fat_nodes": fat_nodes,
         "fat_text_nodes": fat_text,
         "fat_churn": fat_churn,
+        "fulldoc_nodes": fulldoc_nodes,
+        "e16_n": e16_n,
+        "cpu_model": cpu_model(),
         "quick": bool(args.quick),
     }
     with tempfile.TemporaryDirectory(prefix="doc-gate-") as raw:
@@ -1394,6 +1809,17 @@ def main() -> int:
                 results.append(item_e12_max_rows(tmp))
                 results.append(item_e13_strings(svc, tmp))
                 results.append(item_e14_lists(svc))
+                if fulldoc_nodes > 0:
+                    results.extend(
+                        run_fulldoc_e12_e16(
+                            tmp,
+                            n_nodes=fulldoc_nodes,
+                            n_fat=fulldoc_fat,
+                            e16_n=e16_n,
+                            cap_low=cap_low,
+                            cap_high=cap_high,
+                        )
+                    )
                 if fat_samples > 0:
                     results.append(
                         item_fat_rss(

@@ -66,15 +66,19 @@ source .venv/bin/activate
 python scripts/probe_doc_gate_readiness.py --out /opt/cursor/artifacts/doc-gate-readiness-proof.log
 ```
 
-`--quick` shrinks nodes/churn/wait (not the product-gate proof). Extra flags: `--load-nodes` (E11, default 3000), `--fat-nodes` / `--fat-text-nodes` / `--fat-rss-samples` / `--fat-churn` (second RSS fixture). Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve; E11 uses 3000 nodes).
+`--quick` shrinks nodes/churn/wait (not the product-gate proof). Extra flags: `--load-nodes` (E11, default 3000), `--fat-nodes` / `--fat-text-nodes` / `--fat-rss-samples` / `--fat-churn` (second RSS fixture), `--fulldoc-nodes` / `--fulldoc-fat` / `--e16-n` (third fixture + latency). Tests: `tests/test_doc_gate_readiness.py` (live subprocess serve; E11 uses 3000 nodes).
 
 ## Extra probes (E11–E14)
 
 | Item | What holds on 0.19.18 |
 |------|------------------------|
 | E11 | `session load` of a 3000-node snapshot (mutate batches ≤1000 lines, then save/close/load) is **not** `ingest_budget`. Bound by `MEMNET_MAX_ROWS` (5000) at upsert. Neither batched load nor an ingest exemption is needed at 3000. |
-| E12 | `MEMNET_MAX_ROWS` (default 5000) counts **nodes plus edges** (`row_count_non_law`, every tag except LAW). |
+| E12 | `MEMNET_MAX_ROWS` (default 5000) counts **nodes plus edges** on write and `session_load`. Fulldoc 3000 nodes + 4500 edges = 7500 rows: default 5000 refuses `@ERR: limit_exceeded\|rows 5001/5000`; Pi 10000 holds it. `pin_map` read clips with `## Truncation`, not the session cap. `session_load` is not the 2000-edge ingest budget. |
 | E13 | 16 KiB strings with LaTeX / quotes / newline / `\|` / CJK survive GQL CREATE/SET/`pin_map` in RAM. Snapshot save/load does **not** survive byte-for-byte (`FIELD_COUNT` on newlines; `value_bytes 16384/4096` otherwise). Pipe leftover: value 4096, line 32768; GQL mutate skips those (bug 4). Escapes: `\\ \' \" \n \r \t` only. |
 | E14 | List literals store as JSON strings and emit as GQL lists. `'k' IN p.citeKeys` is **not** a product filter (`MATCH (p:USR) WHERE … SET` ignores WHERE and raises `cue_conflict` when \|Q\|>1). Locators are `KEY=VAL` equality on the JSON string; leftover `read list --where` can glob that string. |
 
 Second RSS fixture: 3000 nodes, no edges, 1500 of them with 2/3/4 KiB text (about 4.4 MiB of UTF-8 payload, not 1 MiB). Measure process RSS the same way as the 1800-part fixture. Short fat churn is on (`--fat-churn`, default 8); 110 cycles of this fixture is not the default.
+
+Third fixture (fulldoc with edges): 3000 nodes (1500 with 2–4 KiB text) plus 4500 edges (`inSection`, `cites`, `refersTo`). Order is `SEC.order`, not an edge. New relation types need mutate `--allow-new-relation`. Default 5000 cannot hold 7500 rows; use 10000 (Pi) or split sessions.
+
+E16 (on the 10000 fulldoc session): p95 latency for (a) atomic SET + delete-one-edge + add-two-edges, and (b) reverse `pin_map` (inbound) then attempted `DETACH DELETE`. Bar 300 ms p95 on this VM; the face host may be slower. MemNet does not refuse delete-while-referenced; the gate must use the reverse lookup.

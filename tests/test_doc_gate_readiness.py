@@ -10,11 +10,14 @@ from doc_gate_lib import (
     CAP_CONTRACT,
     CAP_CONTRACT_NEEDLES,
     DEFAULT_BATCH_LINES,
+    HUB_SEC,
     PROP32,
     ServeProc,
     assert_sid_free,
     canonical_snapshot,
     citekeys_schema,
+    cpu_model,
+    edge_create,
     err_lines,
     gql_str,
     make_special_blob,
@@ -23,10 +26,12 @@ from doc_gate_lib import (
     parse_stat_int,
     populate_batches,
     populate_fat_batches,
+    populate_fulldoc_batches,
     populate_node_batches,
     redact,
     running_serve,
     schema_prop32,
+    sec_create,
     shaped_node_props,
     snapshot_load_cap_report,
     snapshot_write_once_report,
@@ -511,4 +516,139 @@ def test_e14_list_store_no_in_membership(doc_serve: ServeProc):
     assert membership is False
     leftover = doc_serve.read_list(sid, tag="USR", where="citeKeys=*k*")
     assert leftover.exit_code == 0, redact(leftover.stderr)
+    doc_serve.close(sid)
+
+
+def test_fulldoc_batches_shape_and_line_cap():
+    batches = populate_fulldoc_batches(40, 8)
+    joined = "".join(batches)
+    assert joined.count("CREATE (:SEC") == 32
+    assert joined.count("CREATE (:USR") == 8
+    assert joined.count("-[:inSection") == 8
+    assert joined.count("-[:cites") == 32
+    assert joined.count("-[:refersTo") == 8
+    assert "order:" in joined
+    assert "-[:order" not in joined
+    assert all(chunk.count("\n") <= DEFAULT_BATCH_LINES for chunk in batches)
+    assert_sid_free(joined)
+
+
+def test_fulldoc_3000_edge_counts_without_building_fat_text():
+    from doc_gate_lib import fulldoc_edge_stmts
+
+    stmts = fulldoc_edge_stmts()
+    assert len(stmts) == 4500
+    assert sum(1 for s in stmts if ":inSection" in s) == 1500
+    assert sum(1 for s in stmts if ":cites" in s) == 1500
+    assert sum(1 for s in stmts if ":refersTo" in s) == 1500
+    assert all("\n" not in s for s in stmts)
+
+
+def test_e12_fulldoc_scaled_write_read_load(tmp_path: Path):
+    """Scaled fulldoc: 40 nodes + edges at max_rows=50, then overflow load."""
+    n_nodes, n_fat = 40, 8
+    with running_serve(tmp_path / "low", extra_env={"MEMNET_MAX_ROWS": "50"}) as svc:
+        sid = svc.open_session()
+        nodes = populate_fulldoc_batches(n_nodes, n_fat, nodes_only=True)
+        replies = svc.populate_stmts(sid, nodes)
+        assert all(r.exit_code == 0 for r in replies), redact(replies[-1].stderr)
+        fit = populate_fulldoc_batches(n_nodes, n_fat, max_edges=10)
+        # fit includes nodes again — only take edge batches after node batches
+        node_n = len(nodes)
+        edge_fit = fit[node_n:]
+        er = svc.populate_stmts(sid, edge_fit, allow_new_relation=True)
+        assert all(r.exit_code == 0 for r in er), redact(er[-1].stderr)
+        hk = svc.housekeep_stats(sid)
+        assert parse_stat_int(hk.stdout, "rows") == 50
+        extra = svc.mutate(
+            sid,
+            edge_create("cites", "E_overflow", "SEC_0002", "SEC_0003") + "\n",
+            allow_new_relation=True,
+        )
+        assert extra.exit_code != 0
+        joined = "\n".join(err_lines(extra.stderr))
+        assert "limit_exceeded" in joined
+        assert "rows" in joined
+        pin = svc.pin_map(sid, cue=HUB_SEC, depth=1, max_rows=5)
+        assert pin.exit_code == 0, redact(pin.stderr)
+        assert any(ln.startswith("## Truncation") for ln in pin.stdout.splitlines())
+        snap = tmp_path / "partial.snap"
+        assert svc.save(sid, snap).exit_code == 0
+        svc.close(sid)
+        load = svc.load_file(snap)
+        assert load.exit_code == 0, redact(load.stderr)
+        new = None
+        for line in load.stdout.splitlines():
+            if line.startswith("@SESSION:"):
+                new = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+        assert new
+        svc.close(new)
+
+    with running_serve(tmp_path / "high", extra_env={"MEMNET_MAX_ROWS": "200"}) as svc2:
+        sid2 = svc2.open_session()
+        full = svc2.populate_stmts(
+            sid2, populate_fulldoc_batches(n_nodes, n_fat), allow_new_relation=True
+        )
+        assert all(r.exit_code == 0 for r in full), redact(full[-1].stderr)
+        hk2 = svc2.housekeep_stats(sid2)
+        assert parse_stat_int(hk2.stdout, "rows") == 88  # 40 nodes + 48 edges
+        snap2 = tmp_path / "full.snap"
+        assert svc2.save(sid2, snap2).exit_code == 0
+        svc2.close(sid2)
+        load2 = svc2.load_file(snap2)
+        assert load2.exit_code == 0, redact(load2.stderr)
+        assert not any("ingest_budget" in e for e in err_lines(load2.stderr))
+        new2 = None
+        for line in load2.stdout.splitlines():
+            if line.startswith("@SESSION:"):
+                new2 = line.split("|", 1)[0].replace("@SESSION:", "").strip()
+        assert new2
+        svc2.close(new2)
+
+    with running_serve(tmp_path / "reload-low", extra_env={"MEMNET_MAX_ROWS": "50"}) as svc3:
+        boom = svc3.load_file(tmp_path / "full.snap")
+        assert boom.exit_code != 0
+        joined = "\n".join(err_lines(boom.stderr))
+        assert "ingest_budget" not in joined
+        assert "limit_exceeded" in joined
+        assert "rows" in joined
+
+
+def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
+    sid = _open_ok(doc_serve)
+    setup = doc_serve.mutate(
+        sid,
+        sec_create(1)
+        + "\n"
+        + sec_create(2)
+        + "\n"
+        + sec_create(3)
+        + "\n"
+        + edge_create("contains", "E_ref1", "SEC_0001", "SEC_0002")
+        + "\n"
+        + edge_create("contains", "E_drop", "SEC_0001", "SEC_0003")
+        + "\n",
+    )
+    assert setup.exit_code == 0, redact(setup.stderr)
+    pin = doc_serve.pin_map(sid, cue="SEC_0002", depth=1, max_rows=20)
+    assert pin.exit_code == 0, redact(pin.stderr)
+    assert "contains" in pin.stdout
+    gone = doc_serve.mutate(sid, "MATCH (n:SEC {id: 'SEC_0002'}) DETACH DELETE n\n")
+    assert gone.exit_code == 0, redact(gone.stderr)
+    assert not any(e.startswith("@ERR:") for e in err_lines(gone.stderr))
+    hk = doc_serve.housekeep_stats(sid)
+    assert parse_stat_int(hk.stdout, "dangling") == 1
+    batch = doc_serve.mutate(
+        sid,
+        "MATCH (n:SEC {id: 'SEC_0001'}) SET n.status = 'edited'\n"
+        "MATCH ()-[r {id: 'E_drop'}]-() DELETE r\n"
+        + edge_create("contains", "E_new_a", "SEC_0001", "SEC_0003")
+        + "\n"
+        + edge_create("contains", "E_new_b", "SEC_0001", "SEC_0003")
+        + "\n",
+    )
+    assert batch.exit_code == 0, redact(batch.stderr)
+    pin1 = doc_serve.pin_map(sid, cue="SEC_0001")
+    assert "edited" in pin1.stdout
+    assert cpu_model()
     doc_serve.close(sid)

@@ -44,6 +44,12 @@ DEFAULT_BATCH_BYTES = 1_500_000
 LOAD_PROBE_NODES = 3000
 FAT_PROBE_NODES = 3000
 FAT_TEXT_NODES = 1500
+FULLDOC_NODES = 3000
+FULLDOC_FAT = 1500
+FULLDOC_EDGES = 4500
+FULLDOC_EDGE_TYPES = ("inSection", "cites", "refersTo")
+HUB_SEC = "SEC_0001"
+E16_P95_BAR_MS = 300.0
 
 # Needles that must remain in docs/cap-contract.md on 0.19.18.
 CAP_CONTRACT_NEEDLES = (
@@ -310,6 +316,95 @@ def populate_fat_batches(
     return pack_batches(stmts, batch_lines=batch_lines, batch_bytes=batch_bytes)
 
 
+def edge_create(rel: str, eid: str, src: str, dst: str) -> str:
+    """One-line MATCH…CREATE so each edge is one mutate stdin line."""
+    return (
+        f"MATCH (a {{id: {gql_str(src)}}}), (b {{id: {gql_str(dst)}}}) "
+        f"CREATE (a)-[:{rel} {{id: {gql_str(eid)}}}]->(b)"
+    )
+
+
+def fulldoc_edge_stmts(
+    *,
+    n_thin: int = FULLDOC_NODES - FULLDOC_FAT,
+    n_fat: int = FULLDOC_FAT,
+) -> list[str]:
+    """4500 edges: inSection (hub), cites (SEC chain), refersTo (USR→SEC)."""
+    stmts: list[str] = []
+    for j in range(n_fat):
+        stmts.append(edge_create("inSection", f"E_ins{j:04d}", f"USR_fat{j:04d}", HUB_SEC))
+    for i in range(1, n_thin + 1):
+        dst = (i % n_thin) + 1
+        stmts.append(edge_create("cites", f"E_cit{i:04d}", f"SEC_{i:04d}", f"SEC_{dst:04d}"))
+    for j in range(n_fat):
+        dst = (j % n_thin) + 1
+        stmts.append(
+            edge_create(
+                "refersTo",
+                f"E_ref{j:04d}",
+                f"USR_fat{j:04d}",
+                f"SEC_{dst:04d}",
+            )
+        )
+    return stmts
+
+
+def populate_fulldoc_batches(
+    n_nodes: int = FULLDOC_NODES,
+    n_fat: int = FULLDOC_FAT,
+    *,
+    batch_lines: int = DEFAULT_BATCH_LINES,
+    batch_bytes: int = DEFAULT_BATCH_BYTES,
+    nodes_only: bool = False,
+    max_edges: int | None = None,
+) -> list[str]:
+    """Fulldoc with edges: n_nodes (n_fat with 2–4 KiB text) + ~4500 typed edges.
+
+    Order lives on SEC.order, not on an edge. Batches stay at or under 1000 lines.
+    """
+    node_batches = populate_fat_batches(
+        n_nodes, n_fat, batch_lines=batch_lines, batch_bytes=batch_bytes
+    )
+    if nodes_only:
+        return node_batches
+    n_thin = n_nodes - n_fat
+    edges = fulldoc_edge_stmts(n_thin=n_thin, n_fat=n_fat)
+    if max_edges is not None:
+        edges = edges[:max_edges]
+    return node_batches + pack_batches(edges, batch_lines=batch_lines, batch_bytes=batch_bytes)
+
+
+def percentile_ms(samples_s: list[float], p: float) -> float | None:
+    if not samples_s:
+        return None
+    ordered = sorted(samples_s)
+    rank = int((p / 100.0) * (len(ordered) - 1))
+    return round(ordered[rank] * 1000.0, 3)
+
+
+def latency_summary(samples_s: list[float]) -> dict[str, Any]:
+    if not samples_s:
+        return {"n": 0, "p50_ms": None, "p95_ms": None, "max_ms": None}
+    return {
+        "n": len(samples_s),
+        "p50_ms": percentile_ms(samples_s, 50),
+        "p95_ms": percentile_ms(samples_s, 95),
+        "max_ms": round(max(samples_s) * 1000.0, 3),
+        "mean_ms": round(1000.0 * sum(samples_s) / len(samples_s), 3),
+    }
+
+
+def cpu_model() -> str:
+    try:
+        text = Path("/proc/cpuinfo").read_text(encoding="utf-8")
+    except OSError:
+        return "unknown"
+    for line in text.splitlines():
+        if line.lower().startswith("model name"):
+            return line.split(":", 1)[1].strip()
+    return "unknown"
+
+
 def make_special_blob(target_bytes: int, *, newlines: bool, pipes: bool) -> str:
     """UTF-8 blob of target_bytes with LaTeX / quotes / CJK; optional newline and |."""
     core = r"LaTeX $\frac{a}{b}$ braces {x_y} quotes \"double\" and 'single' 测例 Ω"
@@ -523,8 +618,17 @@ class ServeProc:
             raise RuntimeError("no @STAT: sessions on list")
         return parsed
 
-    def mutate(self, sid: str, gql: str, *, caller: str | None = None) -> ServeReply:
+    def mutate(
+        self,
+        sid: str,
+        gql: str,
+        *,
+        caller: str | None = None,
+        allow_new_relation: bool = False,
+    ) -> ServeReply:
         args = ["mutate", "--stdin", "--session", sid]
+        if allow_new_relation:
+            args.append("--allow-new-relation")
         if caller:
             args.extend(["--caller", caller])
         return self.send(args, stdin=gql if gql.endswith("\n") else gql + "\n")
@@ -532,10 +636,16 @@ class ServeProc:
     def populate(self, sid: str, n_parts: int, **kwargs: Any) -> list[ServeReply]:
         return self.populate_stmts(sid, populate_batches(n_parts, **kwargs))
 
-    def populate_stmts(self, sid: str, batches: list[str]) -> list[ServeReply]:
+    def populate_stmts(
+        self,
+        sid: str,
+        batches: list[str],
+        *,
+        allow_new_relation: bool = False,
+    ) -> list[ServeReply]:
         out: list[ServeReply] = []
         for batch in batches:
-            reply = self.mutate(sid, batch)
+            reply = self.mutate(sid, batch, allow_new_relation=allow_new_relation)
             out.append(reply)
             if reply.exit_code != 0:
                 break
