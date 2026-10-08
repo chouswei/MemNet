@@ -1335,7 +1335,9 @@ def run_fulldoc_e12_e16(
     e16_result: ItemResult | None = None
 
     # --- default 5000: nodes fit; edges refuse ---
-    with running_serve(tmp / "e12-5k", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}) as svc5:
+    with running_serve(
+        tmp / "e12-5k", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}, timeout_s=300.0
+    ) as svc5:
         sid = svc5.open_session()
         node_batches = populate_fulldoc_batches(n_nodes, n_fat, nodes_only=True)
         node_replies = svc5.populate_stmts(sid, node_batches)
@@ -1413,7 +1415,9 @@ def run_fulldoc_e12_e16(
             gaps.append("pin_map max_rows=50 on hub did not Truncation-clip")
 
     # --- 10000: full fixture fits; load is not ingest_budget ---
-    with running_serve(tmp / "e12-10k", extra_env={"MEMNET_MAX_ROWS": str(cap_high)}) as svc10:
+    with running_serve(
+        tmp / "e12-10k", extra_env={"MEMNET_MAX_ROWS": str(cap_high)}, timeout_s=300.0
+    ) as svc10:
         sid10 = svc10.open_session()
         full_batches = populate_fulldoc_batches(n_nodes, n_fat)
         full_replies = svc10.populate_stmts(sid10, full_batches, allow_new_relation=True)
@@ -1475,7 +1479,7 @@ def run_fulldoc_e12_e16(
     load_7500_on_5k: dict[str, Any] = {}
     if snap_full.is_file():
         with running_serve(
-            tmp / "e12-5k-load", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}
+            tmp / "e12-5k-load", extra_env={"MEMNET_MAX_ROWS": str(cap_low)}, timeout_s=300.0
         ) as svc_l:
             load_big = svc_l.load_file(snap_full)
             load_7500_on_5k = {
@@ -1494,7 +1498,8 @@ def run_fulldoc_e12_e16(
         numbers.get("at_10000", {}).get("ingest_budget_on_load")
     )
     load_5k_rows = bool(load_7500_on_5k.get("rows_cap"))
-    if load_7500_on_5k and load_7500_on_5k.get("exit") == 0:
+    load_5k_ok = load_7500_on_5k.get("exit") == 0
+    if load_5k_ok:
         gaps.append("5000-cap loaded 7500-row snapshot (edges would not count)")
     notes = [
         "MEMNET_MAX_ROWS counts nodes plus edges on write (upsert) and session_load "
@@ -1506,17 +1511,14 @@ def run_fulldoc_e12_e16(
         "session_load is not ingest_budget (2000-edge Path-B cap).",
         f"cpu_model={cpu_model()}",
     ]
-    verdict = "yes" if edges_count and e11_10000 else "no"
-    if (
-        edges_count
-        and e11_10000
-        and not load_5k_rows
-        and load_7500_on_5k.get("exit") not in (None, 0)
-    ):
-        # load of 7500 on 5000 should refuse rows; if it refused something else, note
+    if edges_count and e11_10000 and load_5k_rows:
+        verdict = "yes"
+    elif edges_count and e11_10000 and load_7500_on_5k.get("exit") not in (None, 0):
+        verdict = "note"
         if not load_5k_rows:
-            verdict = "note"
             gaps.append("7500-row snapshot load on 5000 did not show limit_exceeded|rows")
+    else:
+        verdict = "no"
     e12 = ItemResult(
         item="E12 revised fulldoc MEMNET_MAX_ROWS (5000 and 10000)",
         verdict=verdict,

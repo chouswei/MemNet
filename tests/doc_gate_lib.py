@@ -675,7 +675,17 @@ class ServeProc:
             args.extend(["--max-rows", str(max_rows)])
         if caller:
             args.extend(["--caller", caller])
-        return self.send(args)
+        try:
+            return self.send(args)
+        except (ConnectionError, OSError, TimeoutError) as exc:
+            # Hub neighbourhood of fat USR values can exceed the 4 MiB serve frame.
+            return ServeReply(
+                exit_code=2,
+                stdout="",
+                stderr=f"@ERR: probe_client|{type(exc).__name__} {redact(str(exc))}\n",
+                keys=(),
+                request={"args": args, "stdin": None},
+            )
 
     def find(
         self,
