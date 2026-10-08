@@ -44,6 +44,8 @@
   ClusterRoute vs SliceHandCarry (MN-VER-06-S08): MemNetTwoMoves
   outside MemNetSystem; two named moves; slice is explicit copy
   not a live hop; import_slice same-serve only; inventOnly.
+  Admin serve usage report (MN-VER-06-S09): AdminUsageReport on
+  TcpServeBridge; admin credential; opaque alias; not agent MCP.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1514,6 +1516,58 @@ package MemNetVerification {
           and slice.destAbsorb.importSliceSameServeOnly == true
           and slice.destAbsorb.importSliceAcrossHosts == false
           and slice.exportCarry.clippedMustNotLookComplete == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S09_AdminServeUsageReport {
+    doc /*
+      MN-REQ-06.11 — AdminUsageReport on TcpServeBridge (memnet-serve).
+      Admin credential MEMNET_ADMIN_TOKEN; unset refuses
+      admin_unconfigured with no report body. Peek only; no mn_*
+      ids; no graph content; not on agent MCP. CLI optional
+      --product; MCP session_open MUST NOT grow that arg
+      (mcpProductLabelOpen remains an open question).
+    */
+    attribute verificationId : String = "MN-VER-06-S09";
+
+    subject system : MemNetSystem;
+    subject tcp : TcpServeBridge;
+    subject report : AdminUsageReport;
+    subject mcp : McpFacade;
+    subject cli : CliFacade;
+    subject openCmd : CmdSessionOpen;
+
+    objective adminServeUsageReport {
+      verify adminServeUsageReportReq;
+      require constraint {
+        system.adminUsageOnAgentMcp == false
+          and tcp.adminUsage.lookOnly == true
+          and tcp.adminUsage.onAgentMcp == false
+          and tcp.adminUsage.emitsRealSessionId == false
+          and tcp.adminUsage.emitsGraphContent == false
+          and tcp.adminUsage.emitsLocators == false
+          and tcp.adminUsage.peekOnly == true
+          and tcp.adminUsage.slidesTtl == false
+          and tcp.adminUsage.purgesOnLook == false
+          and tcp.adminUsage.jsonStdout == true
+          and tcp.adminUsage.mcpProductLabelOpen == true
+          and tcp.adminUsage.productLabelOnMcpSessionOpen == false
+          and tcp.adminUsage.productLabelOnCliSessionOpen == true
+          and tcp.adminUsage.implemented == true
+          and tcp.adminUsage.noSemVerBump == true
+          and report.cred.envName == "MEMNET_ADMIN_TOKEN"
+          and report.cred.isAgentAcl == false
+          and report.cred.refuseUnconfigured == true
+          and report.cred.errUnconfigured == "admin_unconfigured"
+          and report.cred.errDenied == "admin_denied"
+          and report.tally.sinceServeStart == true
+          and report.tally.leftoverSilentClipCountsAsTruncation == false
+          and mcp.adminUsageToolNested == false
+          and mcp.productLabelOnSessionOpen == false
+          and cli.adminUsageOnAgentMcp == false
+          and openCmd.productLabelOnMcp == false
+          and openCmd.optionalProductLabel == true
       }
     }
   }

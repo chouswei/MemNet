@@ -18,6 +18,7 @@
 | ipcToMod | `…transport.ipc` | `ipcMod` | `parts/common/memnet/memnet/local_ipc_gateway.py` | `memnet.local_ipc_gateway` | true |
 | tcpToMod | `…transport.tcp` | `tcpMod` | `parts/common/memnet/memnet/tcp_serve_bridge.py` | `memnet.tcp_serve_bridge` | true |
 | tcpDaemonToMod | `…transport.tcp` | `serveDaemonMod` | `parts/common/memnet/memnet/serve.py` | `memnet.serve` | true |
+| adminUsageToMod | `…transport.tcp.adminUsage` | `adminUsageMod` | `parts/common/memnet/memnet/admin_usage.py` | `memnet.admin_usage` | true |
 | cliToMod | `memNetSystem.core.cli` | `cliMod` | `parts/common/memnet/memnet/cli.py` | `memnet.cli` | true |
 | sessionsToMod | `…sessions` | `sessionsMod` | `parts/common/memnet/memnet/session_lifecycle.py` | `memnet.session_lifecycle` | true |
 | storeToMod | `…sessions.store` | `storeMod` | `parts/common/memnet/memnet/graph_store.py` | `memnet.graph_store` | true |

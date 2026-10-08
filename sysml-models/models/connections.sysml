@@ -581,6 +581,65 @@ package MemNetConnections {
     attribute localBindDefault : Boolean = true;
   }
 
+  item def AdminSessionUsageRow {
+    doc /*
+      One session in the admin usage report (MN-REQ-06.11).
+      Opaque alias only — MUST NOT carry mn_* session id, graph
+      content, node text, or locators. productLabel is optional
+      gate-side hint (empty when unset).
+    */
+    attribute alias : String;
+    attribute productLabel : String;
+    attribute rows : Integer;
+    attribute rowsMax : Integer;
+    attribute relations : Integer;
+    attribute relationsMax : Integer;
+    attribute lastAccess : String;
+    attribute ttlLeftS : Integer;
+    attribute saveOnExpireArmed : Boolean;
+  }
+
+  item def CapPressureCounts {
+    doc /*
+      Process tally since serve start: hard @ERR refusals by code
+      (limit_exceeded split by kind; ingest_budget; frame_too_large;
+      acl_*; reserve_conflict; session_expired) and signalled
+      Truncation by reason. leftover silent clips are not Truncation.
+    */
+  }
+
+  item def AdminUsageReportSnapshot {
+    doc /*
+      Read-only admin usage JSON (not GQL agent wire; not 06.5
+      human look). Counts and caps only. MUST NOT carry secrets,
+      graph content, locators, or real session ids. Incomplete
+      fields named in unavailable — never a fake-complete body.
+    */
+    attribute liveSessions : Integer;
+    attribute sessionMax : Integer;
+    attribute version : String;
+    attribute uptimeS : Integer;
+    attribute rssBytes : Integer;
+    attribute lookOnly : Boolean = true;
+  }
+
+  item def AdminCredential {
+    doc /*
+      Serve-process admin secret (MEMNET_ADMIN_TOKEN). Not agent
+      ACL / MEMNET_CALLER. Unset → refuse; never a blank report.
+    */
+    attribute envName : String = "MEMNET_ADMIN_TOKEN";
+    attribute isAgentAcl : Boolean = false;
+  }
+
+  item def AdminUsageCommand {
+    doc /*
+      Serve argv `admin usage-report` or envelope {admin_usage:true,
+      admin_token}. Optional --token. Not an MCP tool.
+    */
+    attribute onAgentMcp : Boolean = false;
+  }
+
   // =====================================================================
   // Ports — GQL primary + Multitask / durable; internal records
   // (Retired TierA / LegacyPipe ports: models/archive.sysml — off ProjectMemNet load)
@@ -850,6 +909,34 @@ package MemNetConnections {
   port def ServeUsageLookInPort {
     doc /* Dashboard accepts a usage snapshot (look only). */
     in item look : ServeUsageLook;
+  }
+
+  port def AdminUsageReportOutPort {
+    doc /*
+      Emit admin usage JSON toward an admin MCP / face (InkMirage
+      later). Counts/caps; opaque aliases. MUST NOT carry mn_*.
+    */
+    out item report : AdminUsageReportSnapshot;
+  }
+  port def AdminUsageReportInPort {
+    doc /* Admin MCP elsewhere accepts the snapshot (not in this repo). */
+    in item report : AdminUsageReportSnapshot;
+  }
+  port def AdminCredentialInPort {
+    doc /* Caller presents admin token; compared to serve env secret. */
+    in item cred : AdminCredential;
+  }
+  port def AdminUsageCommandInPort {
+    doc /* Serve accepts admin usage-report command (argv or envelope). */
+    in item cmd : AdminUsageCommand;
+  }
+  port def AdminUsageCommandOutPort {
+    doc /* Admin MCP / CLI emits usage-report command (not agent MCP). */
+    out item cmd : AdminUsageCommand;
+  }
+  port def CapPressureTallyOutPort {
+    doc /* Process-wide refuse/clip counts since serve start. */
+    out item tally : CapPressureCounts;
   }
 
   port def ImportGuardArmedLookOutPort {
@@ -1184,6 +1271,22 @@ package MemNetConnections {
     */
     end port source : ServeUsageLookOutPort;
     end port sink : ServeUsageLookInPort;
+  }
+
+  connection def AdminUsageReportFlow {
+    doc /*
+      Read-only admin usage snapshot from memnet-serve toward an
+      admin MCP (InkMirage; not this repo). MUST NOT convey graph
+      content, locators, mn_* ids, or mutate. Peek only.
+    */
+    end port source : AdminUsageReportOutPort;
+    end port sink : AdminUsageReportInPort;
+  }
+
+  connection def AdminUsageCommandFlow {
+    doc /* Admin MCP / CLI sends usage-report command into serve. */
+    end port source : AdminUsageCommandOutPort;
+    end port sink : AdminUsageCommandInPort;
   }
 
   connection def ImportGuardArmedLookFlow {

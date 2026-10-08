@@ -188,6 +188,8 @@ def test_mcp_tool_names(monkeypatch):
     assert "session_current" in tool_names
     assert "read_get" not in tool_names
     assert "rag_query" not in tool_names
+    assert "admin_usage_report" not in tool_names
+    assert "usage_report" not in tool_names
     pin_tool = next(t for t in names if t.name == "pin_map")
     props = (pin_tool.inputSchema or {}).get("properties") or {}
     assert "cue" in props

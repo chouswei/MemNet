@@ -104,6 +104,8 @@ export_app = typer.Typer(
 )
 snap_app = typer.Typer(help="Catalog Snap / model Snap (session strata)")
 
+admin_app = typer.Typer(help="Admin-only serve commands (not agent MCP)")
+app.add_typer(admin_app, name="admin")
 app.add_typer(session_app, name="session")
 app.add_typer(tagmap_app, name="tagmap")
 app.add_typer(tagmap_app, name="map")
@@ -323,13 +325,20 @@ def session_open(
     map_file: Annotated[str | None, typer.Option("--map-file")] = None,
     ttl: Annotated[int | None, typer.Option("--ttl")] = None,
     map_line: Annotated[list[str] | None, typer.Option("--map")] = None,
+    product: Annotated[
+        str | None,
+        typer.Option(
+            "--product",
+            help="Optional gate-side product label for admin usage (not agent MCP).",
+        ),
+    ] = None,
 ) -> None:
     purge_expired(_caps())
     try:
         if map_file:
-            ss = open_session(map_file=map_file, ttl_minutes=ttl, caps=_caps())
+            ss = open_session(map_file=map_file, ttl_minutes=ttl, caps=_caps(), product=product)
         elif map_line:
-            ss = open_session(map_lines=map_line, ttl_minutes=ttl, caps=_caps())
+            ss = open_session(map_lines=map_line, ttl_minutes=ttl, caps=_caps(), product=product)
         else:
             raise MemNetError("no_map", "provide --map-file or --map")
         emit_session(ss.session_id, ss.meta.expires_at, str(ss.meta.ttl_minutes))
@@ -452,6 +461,30 @@ def session_load(
         emit_stat("loaded", ss.store.row_count_non_law(), str(file) if file is not None else "-")
     except MemNetError as exc:
         _handle_error(exc)
+
+
+@admin_app.command("usage-report")
+def admin_usage_report(
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            help="Admin token presented by the caller (do not log). Not MEMNET_ADMIN_TOKEN.",
+        ),
+    ] = None,
+) -> None:
+    """Read-only admin usage JSON. Not an agent MCP tool. Peek only; no mn_* ids."""
+    from memnet.admin_usage import caller_token, usage_report_envelope
+
+    presented = token if token else caller_token()
+    result = usage_report_envelope(presented)
+    if result["stdout"]:
+        sys.stdout.write(result["stdout"])
+    if result["stderr"]:
+        sys.stderr.write(result["stderr"])
+    code = int(result["exit_code"] or 0)
+    if code:
+        raise typer.Exit(code)
 
 
 @session_app.command("expire-status")

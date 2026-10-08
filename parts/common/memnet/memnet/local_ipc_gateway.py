@@ -113,6 +113,8 @@ def send_command(
     *,
     stdin: str | None = None,
     path: str | None = None,
+    admin_token: str | None = None,
+    admin_usage: bool = False,
 ) -> dict[str, Any]:
     """Send argv+stdin over AF_UNIX; return the JSON envelope (same as TCP)."""
     _require_af_unix()
@@ -120,6 +122,10 @@ def send_command(
     payload_obj: dict[str, Any] = {"args": args}
     if stdin is not None:
         payload_obj["stdin"] = stdin
+    if admin_token is not None:
+        payload_obj["admin_token"] = admin_token
+    if admin_usage:
+        payload_obj["admin_usage"] = True
     payload = json.dumps(payload_obj).encode("utf-8")
     max_frame = serve_max_frame_bytes()
     if len(payload) + 4 > max_frame:

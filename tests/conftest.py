@@ -12,12 +12,17 @@ from memnet.session import purge_expired, reset_registry, set_now_override
 def memnet_temp(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
     monkeypatch.delenv("MEMNET_SESSION", raising=False)
+    monkeypatch.delenv("MEMNET_ADMIN_TOKEN", raising=False)
     reset_registry()
     purge_expired()
+    from memnet.admin_usage import reset_pressure
+
+    reset_pressure()
     yield
     set_now_override(None)
     reset_registry()
     purge_expired()
+    reset_pressure()
 
 
 @pytest.fixture

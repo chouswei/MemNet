@@ -69,6 +69,10 @@
   ImportGuard armed display). MUST NOT nest manage/mutate ports.
   HTTP/UI parked (httpImplemented=false). tip is not face; not Foam
   product MCP. Manage = Memnetor + Devicor.
+  SERVE ADMIN LOOK (on TcpServeBridge, not agent MCP): AdminUsageReport
+  — admin-credential usage JSON (counts/caps; opaque session alias;
+  MN-REQ-06.11). Distinct from 06.5 listed ids. InkMirage admin MCP
+  is the later caller; not nested here.
   APPLICATION / OPS FLEET (not in MemNetSystem): MemNetOpsFleet —
   device hosts run MemNetCoreLibrary services; the droplet hosts
   the one MemNet MCP (tip/ops engine face; tip≠face). Product invent
@@ -1185,6 +1189,78 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_2_LocalIpcShare;
   }
 
+  part def AdminCredentialGate {
+    doc /*
+      Serve-process admin secret MEMNET_ADMIN_TOKEN. Not CapsPolicy
+      agent ACL. Unset/blank → @ERR: admin_unconfigured (no report
+      body). Present token mismatch → @ERR: admin_denied.
+    */
+    attribute envName : String = "MEMNET_ADMIN_TOKEN";
+    attribute isAgentAcl : Boolean = false;
+    attribute refuseUnconfigured : Boolean = true;
+    attribute errUnconfigured : String = "admin_unconfigured";
+    attribute errDenied : String = "admin_denied";
+  }
+
+  part def CapPressureTally {
+    doc /*
+      Process-wide counts since serve start: hard refusals by @ERR
+      code and signalled Truncation by reason. leftover silent clips
+      SHALL NOT increment Truncation.
+    */
+    port tallyOut : CapPressureTallyOutPort;
+    attribute sinceServeStart : Boolean = true;
+    attribute leftoverSilentClipCountsAsTruncation : Boolean = false;
+  }
+
+  part def AdminUsageReport {
+    doc /*
+      Read-only admin usage snapshot on memnet-serve (MN-REQ-06.11).
+      JSON stdout. Opaque session alias (HMAC keyed by admin token).
+      Peek registry only — SHALL NOT open/close/load/save/mutate/
+      purge/slide TTL. Counts and caps only. Missing fields named
+      in unavailable. SHALL NOT appear on agent MCP tool list.
+      LocalIpcGateway / in-process CLI reuse this command (same argv).
+      mcpProductLabelOpen: in-process MCP-only gates have no shipped
+      product-label attach without growing session_open — unbuilt.
+    */
+    port credIn : AdminCredentialInPort;
+    port cmdIn : AdminUsageCommandInPort;
+    port reportOut : AdminUsageReportOutPort;
+    part cred : AdminCredentialGate;
+    part tally : CapPressureTally;
+    attribute lookOnly : Boolean = true;
+    attribute onAgentMcp : Boolean = false;
+    attribute emitsRealSessionId : Boolean = false;
+    attribute emitsGraphContent : Boolean = false;
+    attribute emitsLocators : Boolean = false;
+    attribute peekOnly : Boolean = true;
+    attribute slidesTtl : Boolean = false;
+    attribute purgesOnLook : Boolean = false;
+    attribute jsonStdout : Boolean = true;
+    attribute mcpProductLabelOpen : Boolean = true;
+    attribute productLabelOnMcpSessionOpen : Boolean = false;
+    attribute productLabelOnCliSessionOpen : Boolean = true;
+    attribute implemented : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+  }
+
+  part def CmdAdminUsageReport {
+    doc /*
+      CLI/serve: memnet admin usage-report. Optional envelope
+      {admin_usage:true, admin_token}. NOT an agent MCP tool.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute onAgentMcp : Boolean = false;
+  }
+
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
@@ -1192,16 +1268,21 @@ package MemNet {
       is the shared-store binding (MN-REQ-12.2).
       usageLookOut = serve_status (up/host/port + expire-save booleans;
       path redacted) for MemNetUsageDashboard.
+      adminUsage = MN-REQ-06.11 admin JSON (opaque aliases; not 06.5).
       Many mn_* sessions in one registry. Not a projectId map.
-      Not a second graph.
+      Not a second graph. Admin report MUST NOT emit those mn_* ids.
     */
     port cmdIn : ServeCommandInPort;
     port envelopeOut : JsonEnvelopeOutPort;
     port usageLookOut : ServeUsageLookOutPort;
+    port adminCmdIn : AdminUsageCommandInPort;
+    port adminReportOut : AdminUsageReportOutPort;
+    part adminUsage : AdminUsageReport;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
@@ -1225,10 +1306,18 @@ package MemNet {
   // =====================================================================
 
   part def CmdSessionOpen {
-    doc /* TARGET: session_open. Session handle is not a graph store key. */
+    doc /*
+      TARGET: session_open. Session handle is not a graph store key.
+      CLI MAY take optional --product (gate-side label for admin
+      usage). MCP session_open SHALL NOT grow this arg
+      (productLabelOnMcp=false; mcpProductLabelOpen remains an
+      open question for in-process MCP-only gates).
+    */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
+    attribute optionalProductLabel : Boolean = true;
+    attribute productLabelOnMcp : Boolean = false;
   }
 
   part def CmdSessionCurrent {
@@ -1488,6 +1577,7 @@ package MemNet {
     part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
     part catalogSnap : CmdCatalogSnap;
+    part adminUsageReport : CmdAdminUsageReport;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1503,8 +1593,10 @@ package MemNet {
     attribute leftoverEmptySeedSkipCommandNested : Boolean = false;
     attribute emptyCueIsOutline : Boolean = true;
     attribute noRequiredIdTools : Boolean = true;
+    attribute adminUsageOnAgentMcp : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
@@ -1593,6 +1685,8 @@ package MemNet {
     attribute leftoverEmptySeedSkipCommandNested : Boolean = false;
     attribute emptyCueIsOutline : Boolean = true;
     attribute noRequiredIdTools : Boolean = true;
+    attribute adminUsageToolNested : Boolean = false;
+    attribute productLabelOnSessionOpen : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -2637,6 +2731,8 @@ package MemNet {
       is outside; inventOnly #191; ClusterRoute, not SliceHandCarry).
       twoMovesInsideSystem=false (ClusterRoute vs SliceHandCarry
       contrast is outside; inventOnly).
+      AdminUsageReport lives on TcpServeBridge (inside transport),
+      not as a second MCP tool (adminUsageOnAgentMcp=false).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
@@ -2644,6 +2740,7 @@ package MemNet {
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
     attribute usageDashboardInsideSystem : Boolean = false;
+    attribute adminUsageOnAgentMcp : Boolean = false;
     attribute opsFleetInsideSystem : Boolean = false;
     attribute tipAccessPortalInsideSystem : Boolean = false;
     attribute lanMcpFrontInsideSystem : Boolean = false;

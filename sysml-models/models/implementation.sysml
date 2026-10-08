@@ -116,6 +116,11 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/serve.py";
     attribute pyName : String = "memnet.serve";
   }
+  part def AdminUsageReportMod {
+    doc /* Admin-only serve usage report (MN-REQ-06.11); not agent MCP. */
+    attribute path : String = "parts/common/memnet/memnet/admin_usage.py";
+    attribute pyName : String = "memnet.admin_usage";
+  }
   part def CliFacadeMod {
     attribute path : String = "parts/common/memnet/memnet/cli.py";
     attribute pyName : String = "memnet.cli";
@@ -259,6 +264,7 @@ package MemNetImplementation {
   part ipcMod : LocalIpcGatewayMod;
   part tcpMod : TcpServeBridgeMod;
   part serveDaemonMod : ServeDaemonMod;
+  part adminUsageMod : AdminUsageReportMod;
   part cliMod : CliFacadeMod;
   part sessionsMod : SessionLifecycleMod;
   part storeMod : GraphStoreMod;
@@ -334,6 +340,10 @@ package MemNetImplementation {
   allocation tcpDaemonToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.transport.tcp;
     end code ::> serveDaemonMod;
+  }
+  allocation adminUsageToMod : SoftwareAllocate {
+    end logical ::> memNetSystem.core.transport.tcp.adminUsage;
+    end code ::> adminUsageMod;
   }
   allocation cliToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.cli;

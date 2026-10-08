@@ -69,3 +69,5 @@ class SessionMeta(BaseModel):
     modified_at: str | None = None
     # CapsPolicy ACL presence flag (detail lives on SessionEntry.acl)
     acl_enabled: bool = False
+    # Optional gate-side product label for admin usage (not agent wire).
+    product: str | None = None
