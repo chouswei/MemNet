@@ -22,12 +22,15 @@ SPLITLINES_SEPARATORS: tuple[str, ...] = tuple(_SPLITLINES_ESC)
 _HEX = frozenset("0123456789abcdefABCDEF")
 
 
-def split_snapshot_lines(text: str) -> list[str]:
-    """Record split for leftover snapshots: LF only, optional CRLF trim.
+def split_lf_lines(text: str) -> list[str]:
+    """Split on LF only and strip one trailing CR from each line.
 
-    MUST NOT use str.splitlines() — that splits on CR / VT / FF / NEL / LS / PS
-    before unescape and yields FIELD_COUNT.
+    Empty text is no lines. MUST NOT use str.splitlines() — that also
+    breaks on CR, VT, FF, FS, GS, RS, NEL, LS, and PS. Snapshot records
+    and mutate statement/stdin lines share this rule.
     """
+    if text == "":
+        return []
     if text.endswith("\n"):
         text = text[:-1]
     lines: list[str] = []
@@ -36,6 +39,17 @@ def split_snapshot_lines(text: str) -> list[str]:
             raw = raw[:-1]
         lines.append(raw)
     return lines
+
+
+def split_snapshot_lines(text: str) -> list[str]:
+    """Record split for leftover snapshots: LF only, optional CRLF trim.
+
+    MUST NOT use str.splitlines() — that splits on CR / VT / FF / NEL / LS / PS
+    before unescape and yields FIELD_COUNT.
+    """
+    if text == "":
+        return [""]
+    return split_lf_lines(text)
 
 
 def split_payload(payload: str) -> list[str]:

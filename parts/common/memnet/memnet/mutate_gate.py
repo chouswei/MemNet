@@ -852,6 +852,8 @@ class MutateGate:
         if kind and not tag_def:
             known = ",".join(self.ss.tag_map.tag_names())
             raise MemNetError("unknown_tag", f"{kind} not in schema known: {known}")
+        if tag_def is not None:
+            kind = tag_def.tag
 
         fields: dict[str, str] = {}
         base = dict(bound.fields) if bound else {}

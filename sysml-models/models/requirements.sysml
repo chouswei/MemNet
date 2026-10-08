@@ -20,6 +20,8 @@
                        never default goldfish
     MN-REQ-04.11       pin_map order is a function of Shape observables,
                        not hid / nickname id / CREATE order (gauge)
+    MN-REQ-04.12       Housekeep orphan/dangling/stale resolve edge ends by
+                       hid and nickname; prune --apply refuses a referenced node
     MN-REQ-06.5        Human usage look (read-only dashboard; not agent wire)
     MN-REQ-06.6        Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge (tip≠face)
     MN-REQ-06.7        Allocate SSOT parts to live code in this checkout (one Hatch wheel, many hosts; sysmledge not in wheel)
@@ -33,6 +35,7 @@
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
+    MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -225,10 +228,19 @@ package MemNetRequirements {
           emit SHALL escape those losslessly; load SHALL decode them.
           Record split SHALL be LF-only (MUST NOT use
           str.splitlines(), which splits on CR/VT/FF/NEL/LS/PS
-          before unescape). Properties mutate stores that are absent
-          from the live tag SCHEMA SHALL persist by widening the
-          snapshot SCHEMA (GraphElement extras and Path-B locators
-          such as qname). Live session SCHEMA is unchanged. Fixed
+          before unescape). Mutate stdin, leftover pipe batches,
+          and GQL statement breaks SHALL use that same LF-only
+          split (optional trailing CR stripped). A raw VT, FF,
+          FS, GS, RS, NEL, LS, or PS inside a value SHALL stay
+          inside that value and SHALL NOT start another statement.
+          Properties mutate stores that are absent from the live
+          tag SCHEMA SHALL persist by widening the snapshot SCHEMA
+          (GraphElement extras and Path-B locators such as qname),
+          including when the CREATE label spelling differs in case
+          from the SCHEMA tag. A live SCHEMA that omits the id
+          column SHALL still save: the snapshot SCHEMA gains an
+          id column and a minted nickname. Live session SCHEMA is
+          unchanged until load. Fixed
           tags EDG/LAW SHALL NOT widen; extras there SHALL fail
           closed. Save SHALL fail closed (snapshot_unsaveable
           naming the row) rather than write an unloadable file,
@@ -651,6 +663,25 @@ package MemNetRequirements {
           slug), never leftover id as the rank key.
         */
         attribute requirementId : String = "MN-REQ-04.11";
+      }
+
+      requirement def MN_REQ_04_12_HousekeepEndpointIdentity {
+        doc /*
+          Housekeep orphan, dangling, and stale counts SHALL resolve
+          each edge endpoint by hidden element id (_elN) and by the
+          optional id nickname. A GQL edge stores _elN. Comparing that
+          token only to the nickname SHALL NOT mark every node an
+          orphan. A node is an orphan only when no edge names it.
+          An edge is dangling only when an end does not resolve.
+          prune orphans and prune stale with --apply SHALL recompute
+          with that rule and SHALL refuse prune_referenced, deleting
+          nothing, when a candidate node is still an edge endpoint.
+          The stale_orphans warning SHALL NOT suggest prune while
+          edges still name those nodes. No sweep, housekeep job, or
+          MCP tool SHALL run prune --apply; only an explicit CLI
+          --apply does.
+        */
+        attribute requirementId : String = "MN-REQ-04.12";
       }
     }
 
@@ -1086,6 +1117,23 @@ package MemNetRequirements {
           (implemented=true).
         */
         attribute requirementId : String = "MN-REQ-06.12";
+      }
+
+      requirement def MN_REQ_06_13_ServeRequestIsolation {
+        doc /*
+          Concurrent memnet serve commands (TCP and the product
+          gateway, which forwards to that serve) SHALL isolate
+          each request's stdout, stderr, and exit_code. One
+          caller's records SHALL NOT appear in another caller's
+          envelope. A failed write SHALL NOT come back with
+          another call's success text or exit_code 0.
+          Capture SHALL be per request (context-local streams).
+          A process-wide swap of sys.stdout / sys.stderr is not
+          sufficient on a threaded serve. Requests on different
+          sessions MAY still run together; isolation SHALL NOT
+          require a serve-wide lock.
+        */
+        attribute requirementId : String = "MN-REQ-06.13";
       }
     }
 
@@ -2079,6 +2127,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
   requirement pinMapOrderFromObservablesReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
+  requirement housekeepEndpointIdentityReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -2115,6 +2165,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
   requirement productGatewayReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_12_ProductGateway;
+  requirement serveRequestIsolationReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_13_ServeRequestIsolation;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;

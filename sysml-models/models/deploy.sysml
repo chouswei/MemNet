@@ -433,6 +433,8 @@ package MemNet {
     port errOut : ErrorSignalOutPort;
     port libraryLocatorIn : LibraryLocatorInPort;
     attribute libraryIngestThisCut : Boolean = true;
+    attribute statementSplitLfOnly : Boolean = true;
+    attribute labelMatchCaseFold : Boolean = true;
     part allocator : IdAllocator;
     part caps : CapsPolicy;
     attribute honourWhereOrRefuse : Boolean = true;
@@ -1053,12 +1055,19 @@ package MemNet {
       not TTL expire-save and not a second store.
       usageLookOut is a read-only stats snapshot for MemNetUsageDashboard
       — not a manage/prune command from the page.
+      Orphan / dangling / stale resolve edge ends by hid and nickname
+      (MN-REQ-04.12). prune --apply recomputes and refuses a node an
+      edge still names.
     */
     port statsOut : GqlWireOutPort;
     port usageLookOut : ServeUsageLookOutPort;
     port errOut : ErrorSignalOutPort;
+    attribute endpointIdentityResolvesHid : Boolean = true;
+    attribute pruneApplyRefusesReferenced : Boolean = true;
+    attribute autoPruneApply : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_2_RecycleHiddenFromPinMap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
   }
 
   part def SnapshotStore {
@@ -1105,6 +1114,7 @@ package MemNet {
     attribute splitlinesSeparatorsEscaped : Boolean = true;
     attribute recordSplitLfOnly : Boolean = true;
     attribute persistUndeclaredProperties : Boolean = true;
+    attribute idColumnWidenedWhenAbsent : Boolean = true;
     attribute lineBytesOnEmittedLine : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
@@ -1317,9 +1327,12 @@ package MemNet {
     part adminUsage : AdminUsageReport;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
+    attribute requestOutputIsolated : Boolean = true;
+    attribute serialisesRequests : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_13_ServeRequestIsolation;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 

@@ -1632,6 +1632,47 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_04_S06_HousekeepEndpointIdentity {
+    doc /*
+      MN-REQ-04.12 — housekeep resolves edge endpoints by hid and
+      nickname. prune orphans / prune stale --apply recomputes and
+      refuses a referenced node. Nothing runs prune --apply by itself.
+    */
+    attribute verificationId : String = "MN-VER-04-S06";
+
+    subject housekeep : HousekeepSettle;
+
+    objective housekeepEndpointIdentity {
+      verify housekeepEndpointIdentityReq;
+      require constraint {
+        housekeep.endpointIdentityResolvesHid == true
+          and housekeep.pruneApplyRefusesReferenced == true
+          and housekeep.autoPruneApply == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S11_ServeRequestIsolation {
+    doc /*
+      MN-REQ-06.13 — each memnet serve command keeps its own
+      stdout, stderr, and exit_code. TCP and the product gateway
+      (which forwards to that serve) share this rule. Capture is
+      per request. Different sessions MAY run together
+      (serialisesRequests=false).
+    */
+    attribute verificationId : String = "MN-VER-06-S11";
+
+    subject tcp : TcpServeBridge;
+
+    objective serveRequestIsolation {
+      verify serveRequestIsolationReq;
+      require constraint {
+        tcp.requestOutputIsolated == true
+          and tcp.serialisesRequests == false
+      }
+    }
+  }
+
   verification def MN_VER_13_S01_RecallCommitTwoOperators {
     doc /*
       MN-REQ-13.1 — two-operator cut (math skeleton; leftover goldfish).
@@ -1961,7 +2002,13 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.snap
             .persistUndeclaredProperties == true
           and system.core.transport.inProcess.memory.sessions.snap
+            .idColumnWidenedWhenAbsent == true
+          and system.core.transport.inProcess.memory.sessions.snap
             .lineBytesOnEmittedLine == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.statementSplitLfOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.labelMatchCaseFold == true
           and system.core.cli.sessionSave.failClosedUnsaveable == true
           and system.core.cli.sessionLoad.legacy01918Load == true
           and system.core.transport.inProcess.memory.sessions.caps
@@ -2148,4 +2195,8 @@ package MemNetVerification {
     : MN_VER_06_S07_LanMcpFrontSeveralServes;
   verification clusterRouteVsSliceHandCarryVerify
     : MN_VER_06_S08_ClusterRouteVsSliceHandCarry;
+  verification serveRequestIsolationVerify
+    : MN_VER_06_S11_ServeRequestIsolation;
+  verification housekeepEndpointIdentityVerify
+    : MN_VER_04_S06_HousekeepEndpointIdentity;
 }

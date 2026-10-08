@@ -21,6 +21,7 @@ from memnet.gql_parse_front import (
 )
 from memnet.models import SHAPE_DROP_KEYS
 from memnet.tier_a import Document, EdgeRec, Field, NodeRec, Op, Section
+from memnet.wire import split_lf_lines
 
 _IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
 _LABEL = r"[A-Za-z_][A-Za-z0-9_]*"
@@ -544,7 +545,8 @@ def _split_statements(text: str) -> list[tuple[int, str]]:
     statements: list[tuple[int, str]] = []
     buf: list[str] = []
     start_line = 1
-    for line_no, raw in enumerate(text.splitlines(), start=1):
+
+    for line_no, raw in enumerate(split_lf_lines(text), start=1):
         s = raw.strip()
         if not s or s.startswith("#"):
             continue
