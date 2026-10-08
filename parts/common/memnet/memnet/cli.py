@@ -1005,22 +1005,33 @@ def relations_list(
             emit_stdout(f"@REL: {rel}")
 
 
+def _decode_ingest_text(raw: str | bytes) -> str:
+    if isinstance(raw, bytes):
+        try:
+            return raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise MemNetError("encoding", "input must be UTF-8") from exc
+    return raw
+
+
 def _read_ingest_input(
     line: str | None,
     file: Path | None,
     stdin: bool,
     caps: Caps,
 ) -> list[str]:
+    from memnet.wire import split_lf_lines
+
     raw_lines: list[str] = []
     if line:
-        raw_lines = [line]
+        raw_lines = split_lf_lines(line) if line else []
     elif file:
-        raw_lines = file.read_bytes().splitlines()
+        raw_lines = split_lf_lines(_decode_ingest_text(file.read_bytes()))
     elif stdin:
         if hasattr(sys.stdin, "buffer"):
-            raw_lines = sys.stdin.buffer.read().splitlines()
+            raw_lines = split_lf_lines(_decode_ingest_text(sys.stdin.buffer.read()))
         else:
-            raw_lines = sys.stdin.read().splitlines()
+            raw_lines = split_lf_lines(sys.stdin.read())
     else:
         raise MemNetError("no_input", "provide line, --file, or --stdin")
     if len(raw_lines) > caps.max_batch_lines:
@@ -1826,7 +1837,10 @@ def prune_orphans(
     ss, lock = _load_session(session, exclusive=apply)
     with lock:
         rows = orphan_rows(ss, tag=tag)
-        _prune_rows(ss, rows, apply, "orphans")
+        try:
+            _prune_rows(ss, rows, apply, "orphans")
+        except MemNetError as exc:
+            _handle_error(exc)
 
 
 @prune_app.command("dangling")
@@ -1848,22 +1862,25 @@ def prune_recyclable(
 def _prune_kind(session: str | None, kind: str, apply: bool) -> None:
     ss, lock = _load_session(session, exclusive=apply)
     with lock:
-        if kind == "stale":
-            rows = stale_rows(ss)
-            if apply:
-                deleted = prune_stale(ss)
+        try:
+            if kind == "stale":
+                rows = stale_rows(ss)
+                if apply:
+                    deleted = prune_stale(ss)
+                else:
+                    deleted = []
+            elif kind == "recyclable":
+                rows = recyclable_rows(ss)
+                deleted = prune_rows(ss, rows) if apply else []
+            elif kind == "dangling":
+                rows = dangling_rows(ss)
+                deleted = prune_rows(ss, rows) if apply else []
             else:
+                rows = []
                 deleted = []
-        elif kind == "recyclable":
-            rows = recyclable_rows(ss)
-            deleted = prune_rows(ss, rows) if apply else []
-        elif kind == "dangling":
-            rows = dangling_rows(ss)
-            deleted = prune_rows(ss, rows) if apply else []
-        else:
-            rows = []
-            deleted = []
-        _prune_rows(ss, rows, apply, kind, deleted=deleted)
+            _prune_rows(ss, rows, apply, kind, deleted=deleted)
+        except MemNetError as exc:
+            _handle_error(exc)
 
 
 def _prune_rows(

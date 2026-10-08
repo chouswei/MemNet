@@ -47,6 +47,8 @@ def emit_stale_warnings(store: SessionStore) -> None:
     if d:
         emit_wrn("stale_dangling", f"{d}|housekeep dangling or prune dangling --apply")
     if o:
+        # Only true orphans (no edge endpoint, hid or nickname) reach here.
+        # Do not suggest prune while edges still name the nodes.
         emit_wrn("stale_orphans", f"{o}|housekeep orphans or prune orphans --apply")
     if r or d or o:
         emit_wrn("stale_graph", f"{r}|{d}|{o}|housekeep stale")

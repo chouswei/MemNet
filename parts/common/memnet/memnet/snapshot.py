@@ -46,6 +46,25 @@ def _nick_of(rec: Record) -> str:
     return rec.fields.get("id") or rec.tag
 
 
+def _canonical_tag(ss: SessionStore, tag: str) -> str:
+    """SCHEMA key for a stored label. TagMap lookup is case-folding."""
+    td = ss.tag_map.get(tag)
+    if td is not None:
+        return td.tag
+    return tag.upper()
+
+
+def _append_id_column(tag: str, fields: list[str]) -> list[str]:
+    """Snapshot SCHEMA gains ``id`` when the live map omitted it (MN-REQ-01.9).
+
+    Live SCHEMA is not rewritten. Fixed tags keep their declared columns.
+    ``id`` is appended, not forced first.
+    """
+    if tag in FIXED_TAGS or "id" in fields:
+        return fields
+    return [*fields, "id"]
+
+
 def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
     """Widen SCHEMA with undeclared RAM keys so extras round-trip (MN-REQ-01.9)."""
     extras: dict[str, list[str]] = {}
@@ -53,14 +72,15 @@ def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
         rec = ss.store._by_hid.get(rid)
         if not rec:
             continue
-        td = ss.tag_map.get(rec.tag)
+        canon = _canonical_tag(ss, rec.tag)
+        td = ss.tag_map.get(canon)
         base = list(td.fields) if td else ["id"]
         known = set(base)
-        extra = extras.setdefault(rec.tag, [])
+        extra = extras.setdefault(canon, [])
         for key in rec.fields:
             if key in known:
                 continue
-            if rec.tag in FIXED_TAGS:
+            if canon in FIXED_TAGS or rec.tag in FIXED_TAGS:
                 raise MemNetError(
                     "snapshot_unsaveable",
                     f"{rec.tag} nick={_nick_of(rec)} field={key} fixed_tag extra",
@@ -70,7 +90,7 @@ def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
     tags: dict[str, TagDef] = {}
     max_fields = ss.caps.max_fields
     for tag, td in ss.tag_map.tags.items():
-        fields = list(td.fields) + extras.get(tag, [])
+        fields = _append_id_column(tag, list(td.fields) + extras.get(tag, []))
         if len(fields) > max_fields:
             raise MemNetError(
                 "snapshot_unsaveable",
@@ -80,7 +100,7 @@ def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
     for tag, extra in extras.items():
         if tag in tags or not extra:
             continue
-        fields = ["id"] + extra
+        fields = _append_id_column(tag, ["id"] + extra)
         if len(fields) > max_fields:
             raise MemNetError(
                 "snapshot_unsaveable",
@@ -112,7 +132,7 @@ def _emit_record_lines(
                 token = fields.get(key, "")
                 if token in hid_to_nick:
                     fields[key] = hid_to_nick[token]
-        clone = rec.model_copy(update={"fields": fields})
+        clone = rec.model_copy(update={"fields": fields, "tag": _canonical_tag(ss, rec.tag)})
         rec_lines.append(emit_record(clone, emit_map))
     return rec_lines, hid_to_nick, emit_map
 
@@ -150,7 +170,23 @@ def _verify_emitted_snapshot(
 ) -> None:
     """Refuse save if the formatted blob would not load as the same values."""
     used_nicks: set[str] = set()
-    _, _, _, rec_lines = _parse_sections(split_snapshot_lines(text))
+    _, map_lines, _, rec_lines = _parse_sections(split_snapshot_lines(text))
+    try:
+        loaded_map = load_persisted_map_from_lines(map_lines, ss.caps)
+    except MemNetError as exc:
+        raise MemNetError(
+            "snapshot_unsaveable",
+            f"map {exc.code} {exc.message}",
+        ) from exc
+    for tag, td in emit_map.tags.items():
+        if tag in FIXED_TAGS:
+            continue
+        loaded = loaded_map.get(tag)
+        if loaded is None or list(loaded.fields) != list(td.fields):
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{tag} nick=- schema not reloadable",
+            )
     rec_iter = iter(rec_lines)
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
@@ -164,7 +200,7 @@ def _verify_emitted_snapshot(
                 f"{rec.tag} nick={_nick_of(rec)} missing emit row",
             ) from exc
         try:
-            parsed = parse_line(line, emit_map, ss.caps, used_nicks=used_nicks)
+            parsed = parse_line(line, loaded_map, ss.caps, used_nicks=used_nicks)
         except MemNetError as exc:
             raise MemNetError(
                 "snapshot_unsaveable",

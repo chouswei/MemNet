@@ -53,7 +53,7 @@ def test_requirement_verify_and_allocate():
 def test_contract_is_not_draft_and_no_semver_bump():
     contract = CONTRACT.read_text(encoding="utf-8")
     assert "MN-REQ-06.12" in contract
-    assert "implemented for the behaviours" in contract
+    assert "implemented and deployed" in contract
     lowered = contract.lower()
     assert "draft" not in lowered
     assert "100.118.79.40" in contract

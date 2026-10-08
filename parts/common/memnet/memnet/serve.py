@@ -11,7 +11,6 @@ which handles inline vs TCP routing, probe, and error surfacing.
 
 from __future__ import annotations
 
-import io
 import ipaddress
 import json
 import logging
@@ -102,28 +101,25 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         }
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     from memnet.cli import app
+    from memnet.output import capture_request_stdio
 
-    out = io.StringIO()
-    err = io.StringIO()
-    old_out, old_err, old_in = sys.stdout, sys.stderr, sys.stdin
-    sys.stdout, sys.stderr = out, err
-    if stdin_text:
-        sys.stdin = io.StringIO(stdin_text)
     code = 0
     token_ctx = set_caller_token(token_s)
-    try:
-        result = app(argv, prog_name="memnet", standalone_mode=False)
-        if isinstance(result, int) and result != 0:
-            code = result
-    except SystemExit as exc:
-        code = int(exc.code) if isinstance(exc.code, int) else 1
-    except Exception as exc:
-        code = 1
-        err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
-    finally:
-        reset_caller_token(token_ctx)
-        sys.stdout, sys.stderr, sys.stdin = old_out, old_err, old_in
-    return {"exit_code": code, "stdout": out.getvalue(), "stderr": err.getvalue()}
+    with capture_request_stdio(stdin_text if isinstance(stdin_text, str) else None) as (out, err):
+        try:
+            result = app(argv, prog_name="memnet", standalone_mode=False)
+            if isinstance(result, int) and result != 0:
+                code = result
+        except SystemExit as exc:
+            code = int(exc.code) if isinstance(exc.code, int) else 1
+        except Exception as exc:
+            code = 1
+            err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
+        finally:
+            reset_caller_token(token_ctx)
+        stdout = out.getvalue()
+        stderr = err.getvalue()
+    return {"exit_code": code, "stdout": stdout, "stderr": stderr}
 
 
 class _Handler(socketserver.BaseRequestHandler):
@@ -226,6 +222,9 @@ class _Handler(socketserver.BaseRequestHandler):
 class _Server(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
     daemon_threads = True
+    # Default listen backlog is 5. A burst of clients (and the gateway's
+    # probe plus command) would be refused before a thread accepts them.
+    request_queue_size = 128
 
 
 def run_serve(host: str | None = None, port: int | None = None) -> None:

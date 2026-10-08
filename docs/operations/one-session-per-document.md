@@ -16,7 +16,7 @@ Settings this gate uses:
 
 | Knob | Value |
 |------|--------|
-| TTL | 60 minutes (`MEMNET_SESSION_TTL_MINUTES` or `session open --ttl 60`) |
+| TTL | 60 **minutes** (`MEMNET_SESSION_TTL_MINUTES` or `session open --ttl 60`). Not 60 seconds. 130 s idle is still inside the window |
 | Save on expire | on (`MEMNET_SAVE_ON_EXPIRE=1`) plus `MEMNET_EXPIRE_SNAPSHOT_DIR` |
 | Concurrent sessions | 1024 (`MEMNET_MAX_SESSIONS`) |
 | Document size | about 1 800 part nodes plus a few opaque `USR` text nodes |
@@ -38,6 +38,10 @@ Length-prefixed UTF-8 JSON on TCP `127.0.0.1` (default port 18765):
 ```
 
 There is no MCP `errors` array and no `session_id` field on this envelope. Session id appears only as `@SESSION:` on stdout. Hard refuse is stderr `@ERR: {code}|{message}` (exit 1 or 2). Mutate also prints `ok=N fail=M` on stderr.
+
+Concurrent commands on one serve do not share that envelope (MN-REQ-06.13). Each request captures its own stdout, stderr, and exit code. A caller does not receive another session's records, and a failed mutate does not come back as `ok=1 fail=0`. Capture is per request. There is no serve-wide lock.
+
+`housekeep stats` counts orphans by resolving each edge end as a hidden element id or a nickname. A linked GQL graph is not a set of orphans. `prune orphans --apply` / `prune stale --apply` refuse `prune_referenced` rather than delete a node an edge still names. Nothing in the serve sweep or MCP calls `prune --apply` on its own.
 
 Client helper: `memnet.serve.send_command(args, stdin=…, host=…, port=…)`. Wait default is 30 s (`SERVE_CLIENT_TIMEOUT_S`); a 1 800-node mutate batch may need a longer `timeout=` from the gate.
 
