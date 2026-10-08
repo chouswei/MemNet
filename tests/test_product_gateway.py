@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from memnet import __version__
 from memnet.serve import probe, send_command
 from memnet_mcp.client import _transport, run_memnet
 from memnet_mcp.product_gateway import (
@@ -47,7 +48,7 @@ def _config(
     port_a: int,
     port_b: int,
     *,
-    pin: str = "0.19.18",
+    pin: str = __version__,
     body_max: int = 4 * 1024 * 1024,
 ) -> None:
     data = {
@@ -76,7 +77,7 @@ def _config(
             "atelier": {
                 "backends": ["b"],
                 "houses": {},
-                "pinned_version": "0.19.18",
+                "pinned_version": __version__,
                 "credentials": [
                     {"id": "atelier-1", "sha256": _sha(ATELIER), "revoked": False},
                 ],
@@ -181,7 +182,7 @@ def test_stdio_unchanged_when_registry_env_is_set(
     assert "gateway" in _parse_args(["--transport", "gateway"]).transport
     resp = run_memnet(["version"])
     assert resp.exit_code == 0
-    assert "0.19.18" in resp.stdout
+    assert __version__ in resp.stdout
 
 
 def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -205,7 +206,7 @@ def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path:
             }
         )
         if args == ["version"]:
-            return {"exit_code": 0, "stdout": "@VER: memnet|0.19.18\n", "stderr": ""}
+            return {"exit_code": 0, "stdout": f"@VER: memnet|{__version__}\n", "stderr": ""}
         return {"exit_code": 0, "stdout": "@SESSION: mn_new|soon|60\n", "stderr": ""}
 
     monkeypatch.setattr("memnet_mcp.product_gateway.probe", fake_probe)
