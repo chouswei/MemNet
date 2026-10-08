@@ -629,6 +629,34 @@ def test_e12_fulldoc_scaled_write_read_load(tmp_path: Path):
         assert "rows" in joined
 
 
+def test_endleaf_where_true_edge_delete(doc_serve: ServeProc):
+    """Endleaf deletes edges with MATCH (n WHERE true)-[r {id:'…'}]->() DELETE r only."""
+    sid = _open_ok(doc_serve)
+    setup = doc_serve.mutate(
+        sid,
+        sec_create(1)
+        + "\n"
+        + sec_create(2)
+        + "\n"
+        + edge_create("contains", "E_endleaf", "SEC_0001", "SEC_0002")
+        + "\n",
+    )
+    assert setup.exit_code == 0, redact(setup.stderr)
+    before = doc_serve.pin_map(sid, cue="SEC_0001", depth=1, max_rows=20)
+    assert before.exit_code == 0, redact(before.stderr)
+    assert "contains" in before.stdout
+    stmt = "MATCH (n WHERE true)-[r {id:'E_endleaf'}]->() DELETE r\n"
+    gone = doc_serve.mutate(sid, stmt)
+    assert gone.exit_code == 0, redact(gone.stderr)
+    joined = "\n".join(err_lines(gone.stderr))
+    assert "unsupported_predicate" not in joined
+    assert "unsupported_predicate" not in gone.stderr
+    after = doc_serve.pin_map(sid, cue="SEC_0001", depth=1, max_rows=20)
+    assert after.exit_code == 0, redact(after.stderr)
+    assert "contains" not in after.stdout
+    doc_serve.close(sid)
+
+
 def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
     sid = _open_ok(doc_serve)
     setup = doc_serve.mutate(

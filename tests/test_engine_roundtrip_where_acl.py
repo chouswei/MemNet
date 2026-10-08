@@ -296,6 +296,7 @@ def test_unsupported_where_refuses_nothing_applied(memnet_temp, schema_file):
 
 
 def test_where_true_edge_delete_still_works(memnet_temp, schema_file):
+    """Endleaf gate spelling: MATCH (n WHERE true)-[r {id:'…'}]->() DELETE r."""
     ss = open_session(map_file=str(schema_file))
     MutateGate(ss).apply([_PLR], mode="add")
     MutateGate(ss).apply(
@@ -310,10 +311,12 @@ def test_where_true_edge_delete_still_works(memnet_temp, schema_file):
         mode="add",
         allow_new_relation=True,
     )
-    MutateGate(ss).apply(
-        ["MATCH (n WHERE true)-[r {id: 'E_k'}]->() DELETE r"],
-        mode="mutate",
-    )
+    stmt = "MATCH (n WHERE true)-[r {id:'E_k'}]->() DELETE r"
+    try:
+        MutateGate(ss).apply([stmt], mode="mutate")
+    except MemNetError as ei:
+        assert ei.value.code != "unsupported_predicate", ei.value.message
+        raise
     assert ss.store.get("E_k") is None
 
 
