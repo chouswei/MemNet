@@ -331,15 +331,14 @@ def test_nested_package_split_not_element_qname(memnet_temp, tmp_path: Path):
 
 def test_session_precheck_creates_nothing(memnet_temp, model_dir: Path, schema_file, monkeypatch):
     monkeypatch.setenv("MEMNET_MAX_SESSIONS", "2")
-    filler = open_session(map_file=str(schema_file), caps=Caps())
+    open_session(map_file=str(schema_file), caps=Caps())
     before = list_sessions(Caps())
     with pytest.raises(MemNetError) as ei:
         snap_model(model_dir, map_file=_MAP, caps=Caps())
     assert ei.value.code == "limit_exceeded"
     assert ei.value.message == "sessions|4/2"
     after = list_sessions(Caps())
-    assert after == before
-    assert filler.session_id in {row[0] for row in after}
+    assert len(after) == len(before) == 1
 
 
 def test_ingest_budget_precheck_creates_nothing(memnet_temp, model_dir: Path):

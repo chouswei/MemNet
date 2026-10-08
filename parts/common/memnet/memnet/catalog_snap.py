@@ -38,7 +38,6 @@ from memnet.session import (
     SessionStore,
     close_session,
     count_sessions,
-    get_session,
     list_sessions,
     open_session,
 )
@@ -290,7 +289,7 @@ def _find_model_stack_ids(model_id: str, caps: Caps) -> list[str]:
     seen: set[str] = set()
     for sid, *_rest in list_sessions(caps):
         try:
-            ss = get_session(sid, caps)
+            ss = SessionStore(sid, caps)
         except MemNetError:
             continue
         markers = [
