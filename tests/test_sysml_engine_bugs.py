@@ -18,6 +18,9 @@ def test_requirements_ids_present():
     assert "snapshot_unsaveable" in text
     assert "unsupported_predicate" in text
     assert "MEMNET_MAX_VALUE_BYTES" in text
+    assert "str.splitlines()" in text
+    assert "widening the" in text
+    assert "escaped/raw leftover-pipe" in text
     assert "snapshotLosslessRoundTripReq" in text
     assert "sessionLifecycleAclWhoReq" in text
     assert "honourWherePredicateReq" in text
@@ -32,8 +35,15 @@ def test_deploy_and_verify_trail_model():
     assert 'envMaxValueBytes : String = "MEMNET_MAX_VALUE_BYTES"' in deploy
     assert "sessionSaveLoadCloseAclWho" in deploy
     assert "acceptsCaller" in deploy
+    assert "persistUndeclaredProperties" in deploy
+    assert "splitlinesSeparatorsEscaped" in deploy
+    assert "recordSplitLfOnly" in deploy
+    assert "lineBytesOnEmittedLine" in deploy
     ver = VERIFY.read_text(encoding="utf-8")
     assert "MN-VER-01-S04" in ver
     assert "MN-VER-01-S05" in ver
     assert "MN-VER-03-S01" in ver
     assert "MN-VER-05-S01" in ver
+    assert "persistUndeclaredProperties" in ver
+    assert "splitlinesSeparatorsEscaped" in ver
+    assert "lineBytesOnEmittedLine" in ver

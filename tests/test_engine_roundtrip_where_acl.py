@@ -13,7 +13,7 @@ from memnet.exceptions import MemNetError
 from memnet.mutate_gate import MutateGate
 from memnet.session import get_session, open_session, snapshot_expired_session
 from memnet.snapshot import load_snapshot, write_snapshot
-from memnet.wire import join_payload, split_payload
+from memnet.wire import SPLITLINES_SEPARATORS, join_payload, split_payload
 
 runner = CliRunner()
 FIXTURE = Path(__file__).parent / "fixtures" / "snapshot-0.19.18.snap"
@@ -32,6 +32,15 @@ def test_split_join_newlines_and_specials():
     raw = "a|b\nc\\d\r测例$\"'{x}"
     wire = join_payload([raw])
     assert "\n" not in wire and "\r" not in wire
+    assert split_payload(wire) == [raw]
+
+
+def test_split_join_all_splitlines_separators():
+    raw = "ab" + "".join(SPLITLINES_SEPARATORS) + "cd\t"
+    wire = join_payload([raw])
+    for sep in SPLITLINES_SEPARATORS:
+        assert sep not in wire
+    assert "\t" in wire
     assert split_payload(wire) == [raw]
 
 
@@ -85,7 +94,7 @@ def test_escaped_under_value_cap_does_not_trip_line_bytes(
     memnet_temp, schema_file, tmp_path: Path, monkeypatch
 ):
     monkeypatch.setenv("MEMNET_MAX_VALUE_BYTES", "64")
-    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "80")
+    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "200")
     ss = open_session(map_file=str(schema_file), caps=Caps())
     blob = "n" * 20 + "\n" * 20
     MutateGate(ss).apply(
@@ -100,6 +109,101 @@ def test_escaped_under_value_cap_does_not_trip_line_bytes(
     write_snapshot(ss, path)
     loaded = load_snapshot(path, caps=Caps())
     assert loaded.store.get("PLR_ESC").fields["identity"] == blob
+
+
+def test_snapshot_roundtrip_all_splitlines_separators(
+    memnet_temp, schema_file, tmp_path: Path
+):
+    ss = open_session(map_file=str(schema_file))
+    blob = "ab\rcd" + "".join(SPLITLINES_SEPARATORS) + "\tab\r"
+    MutateGate(ss).apply(
+        [
+            "CREATE (:PLR {id: 'PLR_CR', identity: 'x', wealth: 1, cashflow: 0, "
+            "monopoly: 0, reputation: 0, inventory: 'bag'})"
+        ],
+        mode="add",
+    )
+    rec = ss.store.get("PLR_CR")
+    assert rec is not None
+    rec.fields["identity"] = blob
+    path = tmp_path / "seps.snap"
+    write_snapshot(ss, path)
+    text = path.read_text(encoding="utf-8")
+    rec_line = next(ln for ln in text.split("\n") if ln.startswith("@PLR:"))
+    for sep in SPLITLINES_SEPARATORS:
+        assert sep not in rec_line
+    loaded = load_snapshot(path)
+    got = loaded.store.get("PLR_CR")
+    assert got is not None
+    assert got.fields["identity"] == blob
+
+
+def test_snapshot_persists_undeclared_properties(memnet_temp, tmp_path: Path):
+    ss = open_session(
+        map_lines=["SCHEMA CST ; fields=id name role"],
+    )
+    MutateGate(ss).apply(
+        ["CREATE (:CST {id: 'N_X', name: 'keep', role: 'r', extra_k: 'extra_v'})"],
+        mode="add",
+    )
+    rec = ss.store.get("N_X")
+    assert rec is not None
+    assert rec.fields.get("extra_k") == "extra_v"
+    path = tmp_path / "extra.snap"
+    write_snapshot(ss, path)
+    text = path.read_text(encoding="utf-8")
+    assert "SCHEMA CST ; fields=id name role extra_k" in text
+    assert "extra_v" in text
+    loaded = load_snapshot(path)
+    got = loaded.store.get("N_X")
+    assert got is not None
+    assert got.fields.get("extra_k") == "extra_v"
+    assert "extra_k" in loaded.tag_map.get("CST").fields
+
+
+def test_snapshot_refuses_extras_over_max_fields(
+    memnet_temp, tmp_path: Path, monkeypatch
+):
+    monkeypatch.setenv("MEMNET_MAX_FIELDS", "4")
+    ss = open_session(
+        map_lines=["SCHEMA CST ; fields=id name role"],
+        caps=Caps(),
+    )
+    MutateGate(ss).apply(
+        [
+            "CREATE (:CST {id: 'N_F', name: 'a', role: 'b', "
+            "extra1: 'x', extra2: 'y'})"
+        ],
+        mode="add",
+    )
+    path = tmp_path / "fields.snap"
+    with pytest.raises(MemNetError) as ei:
+        write_snapshot(ss, path)
+    assert ei.value.code == "snapshot_unsaveable"
+    assert "fields|" in ei.value.message
+    assert not path.exists()
+
+
+def test_snapshot_refuses_escaped_line_over_line_bytes(
+    memnet_temp, schema_file, tmp_path: Path, monkeypatch
+):
+    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "80")
+    ss = open_session(map_file=str(schema_file), caps=Caps())
+    blob = "|" * 40
+    MutateGate(ss).apply(
+        [
+            "CREATE (:PLR {id: 'PLR_LN', identity: '"
+            + _gql_escape(blob)
+            + "', wealth: 1, cashflow: 0, monopoly: 0, reputation: 0, inventory: 'bag'})"
+        ],
+        mode="add",
+    )
+    path = tmp_path / "lineb.snap"
+    with pytest.raises(MemNetError) as ei:
+        write_snapshot(ss, path)
+    assert ei.value.code == "snapshot_unsaveable"
+    assert "line_bytes" in ei.value.message
+    assert not path.exists()
 
 
 def test_where_contains_filters_and_false_set_is_noop(memnet_temp, schema_file):

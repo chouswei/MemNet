@@ -155,7 +155,11 @@ Raised at map load (`memnet/tag_map.py`). Session open fails; nothing is stored.
 
 **Value cap** is one hard cap on leftover `@TAG` `parse_line`, GQL `mutate` (CREATE / SET field values), and snapshot load. It is measured as the **UTF-8 byte length of the decoded (raw) property value**, not the escaped wire form. A product MAY raise `MEMNET_MAX_VALUE_BYTES` to `16384`. Over-cap refuses `limit_exceeded|value_bytes {n}/{max}` and does not store the row.
 
-**Line cap** is the decoded line size (tag prefix + decoded fields + `|` separators). Snapshot emit escapes LF / CR / `|` / `\` so a value under the value cap cannot trip `line_bytes` on load because of escaping. GQL statements are not pipe lines.
+**Line cap** is the **UTF-8 byte length of the escaped/raw leftover-pipe or snapshot line** (backslash and pipe count twice on the wire). Save verify and load share this check. A single field under the value cap still fits default `32768`. Many fields whose escaped form exceeds `line_bytes` refuse at save (`snapshot_unsaveable` wrapping `line_bytes`) rather than write a file load will refuse. GQL statements are not pipe lines.
+
+Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF, FS/GS/RS, NEL, LS, PS) plus `|` and `\`. Load splits records on LF only (not `str.splitlines()`).
+
+**Undeclared properties.** GQL mutate may store keys that are absent from the live tag SCHEMA (GraphElement extras; Path-B locators such as `qname`). Those keys stay in RAM. Snapshot save persists them by widening the **snapshot** SCHEMA (live session SCHEMA is unchanged). After load, the restored map includes the extra columns. Extras on fixed tags `EDG` / `LAW`, or a widened SCHEMA over `max_fields`, refuse `snapshot_unsaveable` and write no file.
 
 Snapshot save verifies every emitted row can parse back to the same values. If any row cannot, save refuses `@ERR: snapshot_unsaveable|{tag} nick={nick} …` and writes no file. Expire-save in that case emits `@WRN: expire_snapshot_failed|snapshot_unsaveable`, writes no file, then RAM still drops (`session_expired|snap_missing`). Snapshots written by 0.19.18 (pipe and backslash escapes only) still load.
 
