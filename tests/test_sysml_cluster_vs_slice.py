@@ -111,5 +111,5 @@ def test_teach_one_screen_contrast():
 
 def test_no_semver_bump_in_this_invent():
     text = _PROJECT.read_text(encoding="utf-8")
-    assert 'version = "0.19.17"' in text
-    assert "0.19.18" not in text
+    assert 'version = "0.19.18"' in text
+    assert "0.19.19" not in text
