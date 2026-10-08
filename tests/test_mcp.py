@@ -127,6 +127,7 @@ def test_serve_status_tool(monkeypatch):
     assert "port" in payload
     assert payload["save_on_expire"] is False
     assert payload["expire_snapshot_dir_set"] is False
+    assert payload["expire_snapshot_failed"] == 0
 
 
 def test_query_warm_tool_envelope(memnet_temp, schema_file, monkeypatch):

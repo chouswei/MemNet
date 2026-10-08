@@ -58,6 +58,11 @@
   grain not per-leaf; budget pre-check; caller-gone rollback; replace.
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
   drops; file until user drop; load restores; not Neo4j.
+  Snapshot lossless round-trip (MN-VER-01-S04): emit escapes LF/CR;
+  fail-closed save; 0.19.18 snapshots still load.
+  Session save/load/close ACL who (MN-VER-01-S05) when session ACL on.
+  Honour WHERE or refuse (MN-VER-03-S01).
+  Consistent decoded value_bytes cap (MN-VER-05-S01).
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -1853,6 +1858,140 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_01_S04_SnapshotLosslessRoundTrip {
+    doc /*
+      MN-REQ-01.9 / MN-REQ-05.3 — snapshot emit escapes splitlines
+      separators (LF/CR/VT/FF/FS/GS/RS/NEL/LS/PS) plus pipe/backslash
+      losslessly; undeclared RAM properties persist by snapshot SCHEMA
+      widen; line_bytes is the escaped emitted line at save and load;
+      save fails closed; expire-save writes no unloadable file and
+      keeps RAM on any save failure until explicit save or close;
+      0.19.18 snapshots still load; value_bytes is decoded raw UTF-8.
+    */
+    attribute verificationId : String = "MN-VER-01-S04";
+
+    subject system : MemNetSystem;
+
+    objective snapshotLosslessRoundTrip {
+      verify snapshotLosslessRoundTripReq;
+      verify consistentValueByteCapReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.snap
+            .losslessPropertyRoundTrip == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .failClosedUnsaveable == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveUnsaveableNoFile == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureKeepsRam == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureCountsCap == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureWarnRetry == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureOverdueAccess == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveFailureClearedBySaveOrClose == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .expireSaveOffDropsRam == true
+          and system.core.cli.sessionSave.expireSaveFailureKeepsRam
+            == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .legacy01918Load == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .escapeLfCrPipeBackslash == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .splitlinesSeparatorsEscaped == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .recordSplitLfOnly == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .persistUndeclaredProperties == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .lineBytesOnEmittedLine == true
+          and system.core.cli.sessionSave.failClosedUnsaveable == true
+          and system.core.cli.sessionLoad.legacy01918Load == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .valueBytesOnDecodedRaw == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .gqlMutateEnforcesValueBytes == true
+      }
+    }
+  }
+
+  verification def MN_VER_01_S05_SessionLifecycleAclWho {
+    doc /*
+      MN-REQ-01.10 — session save / load-into-ACL / close who-check when
+      session ACL is enabled. --caller / MEMNET_CALLER. Same codes.
+    */
+    attribute verificationId : String = "MN-VER-01-S05";
+
+    subject system : MemNetSystem;
+
+    objective sessionLifecycleAclWho {
+      verify sessionLifecycleAclWhoReq;
+      require constraint {
+        system.core.cli.sessionSave.acceptsCaller == true
+          and system.core.cli.sessionSave.aclWhoWhenEnabled == true
+          and system.core.cli.sessionLoad.acceptsCaller == true
+          and system.core.cli.sessionLoad.aclWhoWhenEnabled == true
+          and system.core.cli.sessionClose.acceptsCaller == true
+          and system.core.cli.sessionClose.aclWhoWhenEnabled == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .sessionSaveLoadCloseAclWho == true
+      }
+    }
+  }
+
+  verification def MN_VER_03_S01_HonourWherePredicate {
+    doc /*
+      MN-REQ-03.4 — MATCH WHERE SET/DELETE honours the predicate or
+      refuses unsupported_predicate with nothing applied.
+    */
+    attribute verificationId : String = "MN-VER-03-S01";
+
+    subject system : MemNetSystem;
+
+    objective honourWherePredicate {
+      verify honourWherePredicateReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.honourWhereOrRefuse == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.whereTrueEdgeDeleteKept == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.matchMapEqualityKept == true
+      }
+    }
+  }
+
+  verification def MN_VER_05_S01_ConsistentValueByteCap {
+    doc /*
+      MN-REQ-05.3 — one decoded value_bytes cap; knob MEMNET_MAX_VALUE_BYTES;
+      default 4096; GQL mutate refuses over-cap.
+    */
+    attribute verificationId : String = "MN-VER-05-S01";
+
+    subject system : MemNetSystem;
+
+    objective consistentValueByteCap {
+      verify consistentValueByteCapReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .envMaxValueBytes == "MEMNET_MAX_VALUE_BYTES"
+          and system.core.transport.inProcess.memory.sessions.caps
+            .maxValueBytesDefault == 4096
+          and system.core.transport.inProcess.memory.sessions.caps
+            .valueBytesOnDecodedRaw == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .gqlMutateEnforcesValueBytes == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .lineBytesOnEmittedLine == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.gqlValueBytesHardCap == true
+      }
+    }
+  }
+
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
       storageRole only where bytes outlive the call: working_memory,
@@ -1942,6 +2081,14 @@ package MemNetVerification {
     : MN_VER_06_S04_SsotToCodeAllocate;
   verification expireSaveConfigurableVerify
     : MN_VER_01_S03_ExpireSaveConfigurable;
+  verification snapshotLosslessRoundTripVerify
+    : MN_VER_01_S04_SnapshotLosslessRoundTrip;
+  verification sessionLifecycleAclWhoVerify
+    : MN_VER_01_S05_SessionLifecycleAclWho;
+  verification honourWherePredicateVerify
+    : MN_VER_03_S01_HonourWherePredicate;
+  verification consistentValueByteCapVerify
+    : MN_VER_05_S01_ConsistentValueByteCap;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
   verification lanMcpFrontSeveralServesVerify
     : MN_VER_06_S07_LanMcpFrontSeveralServes;

@@ -38,6 +38,7 @@ from memnet.session import (
     reset_registry,
     set_now_override,
 )
+from memnet.snapshot import write_snapshot
 from memnet.tag_map import load_map_from_lines, load_user_map, parse_line
 from memnet.walk_query import WalkQuery
 
@@ -473,12 +474,32 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                     name="pipe_value_bytes",
                     kind="hard_refuse",
                     default="4096",
-                    knob="MEMNET_MAX_VALUE_BYTES (pipe parse_line only)",
+                    knob="MEMNET_MAX_VALUE_BYTES",
                     library_code=exc.code,
                     library_message=exc.message,
                     wire=format_err(exc.code, exc.message),
-                    extra={"gql_mutate": "does not enforce this cap"},
-                    bug="GQL mutate does not check max_value_bytes",
+                    extra={"measured_on": "decoded raw UTF-8"},
+                )
+            )
+    with env_caps(MEMNET_MAX_VALUE_BYTES="4"):
+        ss = _open()
+        try:
+            MutateGate(ss).apply(
+                ["CREATE (:CST {id: 'N09', name: 'toolong', role: 'x'})"],
+                mode="add",
+            )
+            raise AssertionError("expected gql value_bytes")
+        except MemNetError as exc:
+            out.append(
+                Case(
+                    name="gql_mutate_value_bytes",
+                    kind="hard_refuse",
+                    default="4096",
+                    knob="MEMNET_MAX_VALUE_BYTES",
+                    library_code=exc.code,
+                    library_message=exc.message,
+                    wire=format_err(exc.code, exc.message),
+                    extra={"measured_on": "decoded raw UTF-8"},
                 )
             )
     with env_caps(MEMNET_MAX_LINE_BYTES="8"):
@@ -492,12 +513,11 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                     name="pipe_line_bytes",
                     kind="hard_refuse",
                     default="32768",
-                    knob="MEMNET_MAX_LINE_BYTES (pipe parse_line only)",
+                    knob="MEMNET_MAX_LINE_BYTES (escaped/raw leftover pipe / snapshot line)",
                     library_code=exc.code,
                     library_message=exc.message,
                     wire=format_err(exc.code, exc.message),
-                    extra={"gql_mutate": "does not enforce this cap"},
-                    bug="GQL mutate does not check max_line_bytes",
+                    extra={"gql_mutate": "GQL statements are not pipe lines"},
                 )
             )
     return out
@@ -930,6 +950,124 @@ def case_acl() -> list[Case]:
                 extra={"partial": "first in-scope write stayed; second refused (separate batches)"},
             )
         )
+    ss3 = _open()
+    ss3.grant_caller("owner", can_pin_map=True, can_mutate=True)
+    denied_save = _cli(
+        ["session", "save", "--file", str(Path("/tmp/acl-save.snap")), "--session", ss3.session_id]
+    )
+    out.append(
+        Case(
+            name="acl_who_session_save",
+            kind="hard_refuse",
+            default="ACL off until session acl-enable / grant",
+            knob="session save --caller / MEMNET_CALLER",
+            library_code="acl_who",
+            library_message="caller id required when session ACL is enabled",
+            wire=redact(denied_save.stderr or ""),
+            extra={"exit_code": str(denied_save.exit_code)},
+        )
+    )
+    denied_close = _cli(["session", "close", ss3.session_id])
+    out.append(
+        Case(
+            name="acl_who_session_close",
+            kind="hard_refuse",
+            default="ACL off until session acl-enable / grant",
+            knob="session close --caller / MEMNET_CALLER",
+            library_code="acl_who",
+            library_message="caller id required when session ACL is enabled",
+            wire=redact(denied_close.stderr or ""),
+            extra={"exit_code": str(denied_close.exit_code)},
+        )
+    )
+    denied_load = _cli(["session", "load", "--session", ss3.session_id])
+    out.append(
+        Case(
+            name="acl_who_session_load",
+            kind="hard_refuse",
+            default="ACL off until session acl-enable / grant",
+            knob="session load --caller / MEMNET_CALLER",
+            library_code="acl_who",
+            library_message="caller id required when session ACL is enabled",
+            wire=redact(denied_load.stderr or ""),
+            extra={"exit_code": str(denied_load.exit_code)},
+        )
+    )
+    return out
+
+
+def case_where_and_snapshot_honesty() -> list[Case]:
+    """MN-REQ-03.4 / MN-REQ-01.9 — WHERE honour-or-refuse; fail-closed snapshot."""
+    _clean()
+    out: list[Case] = []
+    ss = _open()
+    MutateGate(ss).apply([_cst(1)], mode="add")
+    try:
+        MutateGate(ss).apply(
+            ["MATCH (n:CST) WHERE n.role > 0 SET n.role = 'x'"],
+            mode="mutate",
+        )
+        raise AssertionError("expected unsupported_predicate")
+    except MemNetError as exc:
+        out.append(
+            Case(
+                name="unsupported_predicate",
+                kind="hard_refuse",
+                default="honour WHERE or refuse",
+                knob="GQL MATCH WHERE SET/DELETE",
+                library_code=exc.code,
+                library_message=exc.message,
+                wire=format_err(exc.code, exc.message),
+                extra={
+                    "applied": "false",
+                    "wealth_or_role": ss.store.get("N01").fields.get("role", ""),
+                },
+            )
+        )
+    try:
+        MutateGate(ss).apply(
+            ["MATCH (n:CST {id: 'N01'}) WHERE n.name CONTAINS 'nope' SET n.role = 'x'"],
+            mode="mutate",
+        )
+        raise AssertionError("expected not_found")
+    except MemNetError as exc:
+        out.append(
+            Case(
+                name="where_false_unique_set",
+                kind="hard_refuse",
+                default="WHERE filters unique MATCH",
+                knob="GQL MATCH WHERE SET",
+                library_code=exc.code,
+                library_message=exc.message,
+                wire=format_err(exc.code, exc.message),
+                extra={"role_unchanged": ss.store.get("N01").fields.get("role", "")},
+            )
+        )
+    ss2 = _open()
+    MutateGate(ss2).apply([_cst(1, name="n1")], mode="add")
+    rec = ss2.store.get("N01")
+    rec.fields["name"] = "x" * 9000
+    try:
+        write_snapshot(ss2, Path("/tmp/unsaveable.snap"))
+        raise AssertionError("expected snapshot_unsaveable")
+    except MemNetError as exc:
+        out.append(
+            Case(
+                name="snapshot_unsaveable",
+                kind="hard_refuse",
+                default="save fail-closed",
+                knob="session save / write_snapshot",
+                library_code=exc.code,
+                library_message=exc.message,
+                wire=format_err(exc.code, exc.message),
+                extra={
+                    "expire": (
+                        "@WRN: expire_snapshot_failed|snapshot_unsaveable; "
+                        "RAM stays; @ERR: session_expired|overdue"
+                    ),
+                },
+            )
+        )
     return out
 
 
@@ -1113,6 +1251,7 @@ def collect_all(tmp_path: Path) -> list[Case]:
         case_snap_session_precheck(tmp_path),
         *case_ttl_and_expire(tmp_path),
         *case_acl(),
+        *case_where_and_snapshot_honesty(),
         case_reserve(),
         case_slice_budget(),
         case_frame_too_large(),

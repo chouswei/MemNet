@@ -97,6 +97,219 @@ class _NodePattern:
     var: str | None = None
     label: str | None = None
     props: dict[str, Any] = field(default_factory=dict)
+    where: WherePred | None = None
+
+
+@dataclass
+class WherePred:
+    """Honoured MATCH WHERE tree. Unknown ops refuse at parse (MN-REQ-03.4)."""
+
+    op: str
+    key: str = ""
+    value: str = ""
+    var: str = ""
+    children: list[WherePred] = field(default_factory=list)
+
+
+def _unsupported_pred(name: str, line_no: int | None = None) -> None:
+    raise ParseError(f"WHERE {name} is not honoured", line_no, code="unsupported_predicate")
+
+
+def parse_where_clause(text: str, line_no: int | None = None) -> WherePred:
+    parser = _WhereParser(text, line_no)
+    pred = parser.parse()
+    parser.skip_ws()
+    if parser.i < len(parser.s):
+        _unsupported_pred(parser.s[parser.i : parser.i + 24].strip() or "clause", line_no)
+    return pred
+
+
+class _WhereParser:
+    def __init__(self, text: str, line_no: int | None) -> None:
+        self.s = text
+        self.i = 0
+        self.line_no = line_no
+
+    def skip_ws(self) -> None:
+        self.i = _skip_ws(self.s, self.i)
+
+    def peek_kw(self, word: str) -> bool:
+        self.skip_ws()
+        n = len(word)
+        if self.s[self.i : self.i + n].upper() != word.upper():
+            return False
+        end = self.i + n
+        if end < len(self.s) and (self.s[end].isalnum() or self.s[end] == "_"):
+            return False
+        return True
+
+    def take_kw(self, word: str) -> bool:
+        if not self.peek_kw(word):
+            return False
+        self.i += len(word)
+        return True
+
+    def parse(self) -> WherePred:
+        return self._or()
+
+    def _or(self) -> WherePred:
+        left = self._and()
+        while self.take_kw("OR"):
+            right = self._and()
+            left = WherePred(op="OR", children=[left, right])
+        return left
+
+    def _and(self) -> WherePred:
+        left = self._not()
+        while self.take_kw("AND"):
+            right = self._not()
+            left = WherePred(op="AND", children=[left, right])
+        return left
+
+    def _not(self) -> WherePred:
+        if self.take_kw("NOT"):
+            return WherePred(op="NOT", children=[self._not()])
+        if self.take_kw("XOR"):
+            _unsupported_pred("XOR", self.line_no)
+        return self._primary()
+
+    def _primary(self) -> WherePred:
+        self.skip_ws()
+        if self.i < len(self.s) and self.s[self.i] == "(":
+            self.i += 1
+            inner = self.parse()
+            self.skip_ws()
+            if self.i >= len(self.s) or self.s[self.i] != ")":
+                _unsupported_pred("parenthesis", self.line_no)
+            self.i += 1
+            return inner
+        if self.take_kw("TRUE"):
+            return WherePred(op="TRUE")
+        if self.take_kw("FALSE"):
+            return WherePred(op="FALSE")
+        return self._comparison()
+
+    def _prop_ref(self) -> tuple[str, str] | None:
+        self.skip_ws()
+        m = re.match(rf"({_IDENT})\.({_IDENT})", self.s[self.i :])
+        if not m:
+            return None
+        self.i += m.end()
+        return m.group(1), m.group(2)
+
+    def _comparison(self) -> WherePred:
+        self.skip_ws()
+        start = self.i
+        # value IN n.key
+        try:
+            val, j = _parse_value(self.s, self.i)
+            saved = self.i
+            self.i = j
+            if self.take_kw("IN"):
+                pref = self._prop_ref()
+                if pref is None:
+                    _unsupported_pred("IN", self.line_no)
+                assert pref is not None
+                var, key = pref
+                return WherePred(op="IN", var=var, key=key, value=_value_to_store(val))
+            self.i = saved
+        except ParseError:
+            self.i = start
+        pref = self._prop_ref()
+        if pref is None:
+            snippet = self.s[self.i : self.i + 24].strip() or "predicate"
+            _unsupported_pred(snippet, self.line_no)
+            raise AssertionError("unreachable")
+        var, key = pref
+        self.skip_ws()
+        if self.take_kw("STARTS"):
+            if not self.take_kw("WITH"):
+                _unsupported_pred("STARTS", self.line_no)
+            op = "STARTS"
+        elif self.take_kw("ENDS"):
+            if not self.take_kw("WITH"):
+                _unsupported_pred("ENDS", self.line_no)
+            op = "ENDS"
+        elif self.take_kw("CONTAINS"):
+            op = "CONTAINS"
+        elif self.s[self.i : self.i + 2] == "=~":
+            self.i += 2
+            op = "REGEX"
+        elif self.s[self.i : self.i + 2] == "<>":
+            self.i += 2
+            op = "NE"
+        elif self.s[self.i : self.i + 2] == "!=":
+            self.i += 2
+            op = "NE"
+        elif self.i < len(self.s) and self.s[self.i] == "=":
+            self.i += 1
+            op = "EQ"
+        elif self.i < len(self.s) and self.s[self.i] in "<>":
+            _unsupported_pred(self.s[self.i], self.line_no)
+            raise AssertionError("unreachable")
+        else:
+            snippet = self.s[self.i : self.i + 16].strip() or "predicate"
+            _unsupported_pred(snippet, self.line_no)
+            raise AssertionError("unreachable")
+        val, self.i = _parse_value(self.s, self.i)
+        if op == "REGEX":
+            pattern = _value_to_store(val)
+            try:
+                re.compile(pattern)
+            except re.error:
+                _unsupported_pred("=~", self.line_no)
+        return WherePred(op=op, var=var, key=key, value=_value_to_store(val))
+
+
+def eval_where(rec: Any, pred: WherePred) -> bool:
+    """Whether *rec* satisfies a honoured WHERE tree."""
+    op = pred.op
+    if op == "TRUE":
+        return True
+    if op == "FALSE":
+        return False
+    if op == "AND":
+        return all(eval_where(rec, c) for c in pred.children)
+    if op == "OR":
+        return any(eval_where(rec, c) for c in pred.children)
+    if op == "NOT":
+        return not eval_where(rec, pred.children[0])
+    raw = str(rec.fields.get(pred.key, ""))
+    if op == "EQ":
+        return raw == pred.value
+    if op == "NE":
+        return raw != pred.value
+    if op == "CONTAINS":
+        return pred.value in raw
+    if op == "STARTS":
+        return raw.startswith(pred.value)
+    if op == "ENDS":
+        return raw.endswith(pred.value)
+    if op == "REGEX":
+        return re.search(pred.value, raw) is not None
+    if op == "IN":
+        return pred.value in _field_as_list(raw)
+    return False
+
+
+def _field_as_list(raw: str) -> list[str]:
+    text = raw.strip()
+    if text.startswith("["):
+        try:
+            val = json.loads(text)
+            if isinstance(val, list):
+                return [str(x) for x in val]
+        except json.JSONDecodeError:
+            pass
+    if not text:
+        return []
+    return [p.strip() for p in text.split(",") if p.strip()]
+
+
+def _where_true_only(stmt: str) -> bool:
+    """True when every WHERE in *stmt* is the tautology ``true``."""
+    stripped = re.sub(r"\bWHERE\s+true\b", " ", stmt, flags=re.IGNORECASE)
+    return re.search(r"\bWHERE\b", stripped, re.IGNORECASE) is None
 
 
 def looks_like_gql(line: str) -> bool:
@@ -405,10 +618,19 @@ def _parse_node_patterns(chunk: str) -> tuple[list[_NodePattern], int, str]:
         if i < len(s) and s[i] == "{":
             props, i = _parse_map(s, i)
             i = _skip_ws(s, i)
+        inline_where: WherePred | None = None
+        if re.match(r"WHERE\b", s[i:], re.IGNORECASE):
+            mw = re.match(r"WHERE\b", s[i:], re.IGNORECASE)
+            assert mw is not None
+            wp = _WhereParser(s, None)
+            wp.i = i + mw.end()
+            inline_where = wp.parse()
+            i = wp.i
+            i = _skip_ws(s, i)
         if i >= len(s) or s[i] != ")":
             raise ParseError("expected ')' after node pattern")
         i += 1
-        patterns.append(_NodePattern(var=var, label=label, props=props))
+        patterns.append(_NodePattern(var=var, label=label, props=props, where=inline_where))
         i = _skip_ws(s, i)
         if i < len(s) and s[i] == ",":
             i += 1
@@ -638,10 +860,28 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
         raise ParseError("bad MATCH", line_no)
     patterns_chunk, rest = _split_match_body(m.group(1))
     try:
-        patterns, _consumed, _full = _parse_node_patterns(patterns_chunk)
+        patterns, consumed, full = _parse_node_patterns(patterns_chunk)
     except ParseError:
         # Relationship MATCH for delete: ()-[r {id:…}]-()
         return _parse_match_rel_delete(s, line_no, rest)
+    tail = full[consumed:].strip()
+    if tail.startswith("-") or tail.startswith("<-"):
+        return _parse_match_rel_delete(s, line_no, rest)
+    where_pred: WherePred | None = None
+    if tail.upper().startswith("WHERE"):
+        where_pred = parse_where_clause(tail[5:].strip(), line_no)
+    elif tail:
+        raise ParseError(f"unsupported MATCH continuation: {tail[:60]!r}", line_no)
+    inline_preds = [p.where for p in patterns if p.where is not None]
+    if inline_preds:
+        combined = inline_preds[0]
+        for extra in inline_preds[1:]:
+            combined = WherePred(op="AND", children=[combined, extra])
+        where_pred = (
+            WherePred(op="AND", children=[combined, where_pred])
+            if where_pred is not None
+            else combined
+        )
     if not patterns and not rest:
         raise ParseError("MATCH needs node patterns", line_no)
 
@@ -657,6 +897,8 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
 
     rest_u = rest.upper()
     if rest_u.startswith("CREATE"):
+        if where_pred is not None and where_pred.op != "TRUE":
+            _unsupported_pred("predicate on MATCH CREATE", line_no)
         cm = _RE_CREATE_REL.match(rest)
         if not cm:
             raise ParseError(
@@ -689,6 +931,8 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
     if rest_u.startswith("SET"):
         absorb = _parse_same_thing_set(s, rest, patterns, var_pat, line_no)
         if absorb is not None:
+            if where_pred is not None and where_pred.op != "TRUE":
+                _unsupported_pred("predicate on SameThingAbsorb", line_no)
             return [absorb]
         if len(patterns) != 1:
             raise ParseError(
@@ -707,6 +951,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
                 fields=fields,
                 raw=s,
                 match_props=_props_as_str(p.props),
+                where=where_pred,
             )
         ]
 
@@ -723,6 +968,7 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
                 fields=[],
                 raw=s,
                 match_props=_props_as_str(p.props),
+                where=where_pred,
             )
         ]
 
@@ -780,6 +1026,8 @@ def _parse_same_thing_set(
 
 def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
     """MATCH ()-[r {id:'E1'}]-() DELETE r  (simplified gated form)."""
+    if not _where_true_only(s):
+        _unsupported_pred("predicate on relationship DELETE", line_no)
     m = re.search(
         rf"\[\s*(?:({_IDENT})\s*)?(?::({_RELTYPE}))?\s*(\{{[^{{}}]*\}})?\s*\]",
         s,

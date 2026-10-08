@@ -92,9 +92,12 @@ package MemNetBehaviour {
   }
   attribute def EvExpireTtl {
     doc /*
-      Sliding TTL elapsed. RAM drop. Optional SnapshotStore file only
-      when saveOnExpire is configured (MEMNET_SAVE_ON_EXPIRE). File stays
-      until the user deletes it. Not Neo4j.
+      Sliding TTL elapsed. RAM drop unless expire-save is on and the
+      snapshot cannot be written: then RAM stays, counts against the
+      session cap, and retries warn expire_snapshot_failed until an
+      explicit successful save or close. Optional SnapshotStore file
+      only when saveOnExpire is configured (MEMNET_SAVE_ON_EXPIRE).
+      File stays until the user deletes it. Not Neo4j.
     */
   }
   attribute def EvCloseOrExpire {

@@ -32,11 +32,18 @@ def format_err(code: str, message: str, example: str | None = None) -> str:
     return f"@ERR: {code}|{msg}"
 
 
-def format_wrn(code: str, message: str, example: str | None = None) -> str | None:
+def format_wrn(
+    code: str,
+    message: str,
+    example: str | None = None,
+    *,
+    force: bool = False,
+) -> str | None:
     global _WARN_EMITTED
-    if _WARN_EMITTED >= _MAX_WRN:
-        return None
-    _WARN_EMITTED += 1
+    if not force:
+        if _WARN_EMITTED >= _MAX_WRN:
+            return None
+        _WARN_EMITTED += 1
     msg = message.replace("|", " ")
     if example:
         return f"@WRN: {code}|{msg}|{example}"
@@ -47,8 +54,14 @@ def emit_err(error: MemNetError) -> None:
     emit_stderr(format_err(error.code, error.message, error.example))
 
 
-def emit_wrn(code: str, message: str, example: str | None = None) -> None:
-    line = format_wrn(code, message, example)
+def emit_wrn(
+    code: str,
+    message: str,
+    example: str | None = None,
+    *,
+    force: bool = False,
+) -> None:
+    line = format_wrn(code, message, example, force=force)
     if line:
         emit_stderr(line)
 

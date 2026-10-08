@@ -26,6 +26,11 @@
     MN-REQ-06.8        Tip MemNet access portal (ops): admin invite, Google login, Bearer for keyed tip MCP; tip≠face
     MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
     MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
+    MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save;
+                       expire-save failure keeps RAM and counts against the session cap
+    MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
+    MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
+    MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
@@ -144,11 +149,15 @@ package MemNetRequirements {
         doc /*
           SHALL apply configurable session TTL and a cap on concurrent
           sessions. Sliding TTL: live access extends expires_at. After
-          TTL the in-memory session SHALL drop. Optional expire
-          session_save is configurable (MEMNET_SAVE_ON_EXPIRE, default
-          off): file snapshot MAY remain on disk until the user deletes
-          it; session_load restores RAM. SHALL NOT auto-flush Neo4j.
-          Explicit session_save and this expire-save write one
+          TTL the in-memory session SHALL drop, except when expire-save
+          is on and the snapshot cannot be written: RAM SHALL stay
+          (MN-REQ-01.9) and the session still counts against
+          MEMNET_MAX_SESSIONS. Optional expire session_save is
+          configurable (MEMNET_SAVE_ON_EXPIRE, default off): file
+          snapshot MAY remain on disk until the user deletes it;
+          session_load restores RAM. When save-on-expire is off, TTL
+          drops RAM as before. SHALL NOT auto-flush Neo4j. Explicit
+          session_save and this expire-save write one
           SessionSnapshotBlob.
         */
         attribute requirementId : String = "MN-REQ-01.3";
@@ -203,6 +212,54 @@ package MemNetRequirements {
           Mutate still hits CapsPolicy (who / what / bind).
         */
         attribute requirementId : String = "MN-REQ-01.8";
+      }
+
+      requirement def MN_REQ_01_9_SnapshotLosslessRoundTrip {
+        doc /*
+          Anything the write path accepts SHALL session_save and
+          session_load byte-for-byte as the same property values.
+          That includes LF, CR, tab, VT, FF, file/group/record
+          separators, NEL, line/paragraph separators, backslash,
+          both quote kinds, dollar, braces, pipe, and CJK. Snapshot
+          emit SHALL escape those losslessly; load SHALL decode them.
+          Record split SHALL be LF-only (MUST NOT use
+          str.splitlines(), which splits on CR/VT/FF/NEL/LS/PS
+          before unescape). Properties mutate stores that are absent
+          from the live tag SCHEMA SHALL persist by widening the
+          snapshot SCHEMA (GraphElement extras and Path-B locators
+          such as qname). Live session SCHEMA is unchanged. Fixed
+          tags EDG/LAW SHALL NOT widen; extras there SHALL fail
+          closed. Save SHALL fail closed (snapshot_unsaveable
+          naming the row) rather than write an unloadable file,
+          including when extras would exceed max_fields or the
+          escaped line exceeds line_bytes. Expire-save that cannot
+          write (snapshot_unsaveable or any other save failure,
+          such as an unwritable disk or directory) SHALL NOT write
+          a file and SHALL NOT drop RAM. The session stays live,
+          still counts against MEMNET_MAX_SESSIONS, and every sweep
+          or access that retries expiry SHALL emit
+          @WRN: expire_snapshot_failed|<code>. Access after TTL
+          SHALL report the session overdue
+          (session_expired|overdue) so the caller can fix and save,
+          or close. An explicit session_save that succeeds, or an
+          explicit session_close, ends that hold. When
+          MEMNET_SAVE_ON_EXPIRE is off, TTL still drops RAM as
+          MN-REQ-01.3. Snapshots written by 0.19.18 (pipe and
+          backslash escapes only) SHALL still load.
+        */
+        attribute requirementId : String = "MN-REQ-01.9";
+      }
+
+      requirement def MN_REQ_01_10_SessionLifecycleAclWho {
+        doc /*
+          When session ACL is enabled, session_save, session_load into
+          that ACL'd session, and session_close SHALL accept --caller /
+          MEMNET_CALLER and enforce CapsPolicy who-check with the same
+          codes as pin_map / mutate (acl_who, acl_denied, acl_forbidden).
+          MCP SHALL pass caller through on those tools. Without ACL,
+          behaviour is unchanged.
+        */
+        attribute requirementId : String = "MN-REQ-01.10";
       }
     }
 
@@ -380,6 +437,21 @@ package MemNetRequirements {
           Silent upsert SHALL NOT be offered.
         */
         attribute requirementId : String = "MN-REQ-03.3";
+      }
+
+      requirement def MN_REQ_03_4_HonourWherePredicate {
+        doc /*
+          MATCH ... WHERE ... SET and MATCH ... WHERE ... DELETE SHALL
+          NOT ignore the WHERE predicate. If lowering cannot honour it,
+          the whole statement SHALL refuse with unsupported_predicate
+          naming that predicate, and SHALL apply nothing. Forms that
+          work today SHALL remain: MATCH (n WHERE true)-[r {id}]->()
+          DELETE r (edge delete); property-map equality in MATCH.
+          Honoured WHERE forms (equality, CONTAINS, STARTS WITH,
+          ENDS WITH, =~, IN, true/false, AND/OR/NOT of those) SHALL
+          actually filter.
+        */
+        attribute requirementId : String = "MN-REQ-03.4";
       }
     }
 
@@ -603,6 +675,26 @@ package MemNetRequirements {
           cost stays bounded under misuse.
         */
         attribute requirementId : String = "MN-REQ-05.2";
+      }
+
+      requirement def MN_REQ_05_3_ConsistentValueByteCap {
+        doc /*
+          The field-value byte cap SHALL be one hard cap on leftover
+          pipe mutate, GQL mutate, and snapshot load, measured as the
+          UTF-8 byte length of the decoded (raw) property value.
+          Default 4096. Knob MEMNET_MAX_VALUE_BYTES (a product MAY
+          raise it to 16384). Over-cap SHALL refuse
+          limit_exceeded|value_bytes n/max and SHALL NOT accept the
+          write. line_bytes is the UTF-8 byte length of the
+          escaped/raw leftover-pipe or snapshot line (backslash and
+          pipe count twice). Save verify and load SHALL use the same
+          check (MEMNET_MAX_LINE_BYTES, default 32768). A single
+          field under value_bytes still fits default line_bytes;
+          many fields whose escaped form exceeds line_bytes SHALL
+          fail closed at save (snapshot_unsaveable wrapping
+          line_bytes) rather than write a file load will refuse.
+        */
+        attribute requirementId : String = "MN-REQ-05.3";
       }
     }
 
@@ -1868,6 +1960,10 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_7_SessionAsSsotHandle;
   requirement noGraphDumpHandoffReq
     : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_8_NoGraphDumpHandoff;
+  requirement snapshotLosslessRoundTripReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+  requirement sessionLifecycleAclWhoReq
+    : MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
 
   requirement memoryNetGraphReq
     : MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph;
@@ -1898,6 +1994,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
   requirement noSilentUpsertReq
     : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+  requirement honourWherePredicateReq
+    : MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_4_HonourWherePredicate;
 
   requirement sliceEconomyReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy;
@@ -1930,6 +2028,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
   requirement queryFanoutCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
+  requirement consistentValueByteCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -2132,6 +2232,8 @@ package MemNetRequirements {
     end #derive ::> optionalKeepSessionIdReq;
     end #derive ::> sessionAsSsotHandleReq;
     end #derive ::> noGraphDumpHandoffReq;
+    end #derive ::> snapshotLosslessRoundTripReq;
+    end #derive ::> sessionLifecycleAclWhoReq;
   }
 
   #derivation connection deriveMemoryNetGraphLeaves {
@@ -2152,6 +2254,7 @@ package MemNetRequirements {
     end #derive ::> addFailsIfExistsReq;
     end #derive ::> updateFailsIfAbsentReq;
     end #derive ::> noSilentUpsertReq;
+    end #derive ::> honourWherePredicateReq;
   }
 
   #derivation connection deriveSliceEconomyLeaves {
@@ -2173,6 +2276,7 @@ package MemNetRequirements {
     end #original ::> hardCapsReq;
     end #derive ::> storeResourceCapsReq;
     end #derive ::> queryFanoutCapsReq;
+    end #derive ::> consistentValueByteCapReq;
   }
 
   #derivation connection deriveProcessBoundaryLeaves {

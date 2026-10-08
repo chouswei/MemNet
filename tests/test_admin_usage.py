@@ -73,6 +73,7 @@ def test_alias_not_real_session_id(memnet_temp, monkeypatch, schema_file):
     assert report["ok"] is True
     assert report["sessions"]["live"] == 1
     assert report["sessions"]["max"] == Caps().max_sessions
+    assert report["sessions"]["expire_snapshot_failed"] == 0
     rows = report["session_rows"]
     assert len(rows) == 1
     alias = rows[0]["alias"]
@@ -85,6 +86,7 @@ def test_alias_not_real_session_id(memnet_temp, monkeypatch, schema_file):
     assert rows[0]["relations_max"] == Caps().max_relations
     assert rows[0]["ttl_left_s"] >= 0
     assert isinstance(rows[0]["save_on_expire_armed"], bool)
+    assert rows[0]["expire_snapshot_failed"] is False
     assert ss.meta.expires_at == expires_before
     assert "process" in report
     assert report["process"]["version"]
