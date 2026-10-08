@@ -1013,8 +1013,9 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
         verdict = "note"
         notes.append(
             "16 KiB survives CREATE/SET/pin_map in RAM (bug 4). Snapshot save/load does not "
-            "round-trip: newlines split leftover pipe lines (FIELD_COUNT); pipe | splits fields; "
-            "a 16 KiB value without those still hits value_bytes 4096."
+            "round-trip byte-for-byte. Newlines split leftover pipe lines (FIELD_COUNT). "
+            "Leftover emit escapes | as \\| so a 16 KiB value with pipes still hits "
+            "value_bytes 16384/4096, same as a plain 16 KiB value."
         )
     elif ram_ok and snap_ok:
         verdict = "yes"
