@@ -91,6 +91,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
 | [`docs/operations/multi-agent-sessions.md`](docs/operations/multi-agent-sessions.md) | Multitask ops |
 | [`docs/README.md`](docs/README.md) | Full docs index |
+| [`docs/cap-contract.md`](docs/cap-contract.md) | Caps a product gate can hit (refuse vs clip, exact wire) |
 
 Layout: [`LAYOUT.md`](LAYOUT.md) · [`AGENTS.md`](AGENTS.md). Novel-writer is out: [`DROP-NOVEL-WRITER.md`](DROP-NOVEL-WRITER.md).
 
