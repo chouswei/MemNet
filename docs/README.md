@@ -21,7 +21,7 @@ Do **not** teach Layer / Tier A. **1.0** = claim of 0.5–0.8 (unclaimed).
 | Doc | Role |
 |-----|------|
 | [`SHAPE.md`](SHAPE.md) | Product shape from the problem (0.8 teach) |
-| [`cap-contract.md`](cap-contract.md) | Hard caps a product gate can hit: refuse vs clip, wire output, integrator checklist |
+| [`cap-contract.md`](cap-contract.md) | Hard caps a product gate can hit: refuse vs clip, wire output, integrator checklist; admin usage report pointer (MN-REQ-06.11) |
 | [`ROADMAP.md`](ROADMAP.md) | **SemVer SSOT** — locked `a.b.c`; extras 0.10–0.19 in Hatch **0.19.11** |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | Accepted: GQL wire; **no Layer** |
 
@@ -66,6 +66,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 | [`operations/tip-memnet-access-portal.md`](operations/tip-memnet-access-portal.md) | Sidecar: keyed tip MemNet MCP access (invite, Google, Bearer; tip≠face; not sysmledge) |
 | [`operations/memnet-lan-mcp-front.md`](operations/memnet-lan-mcp-front.md) | Later invent #191: ClusterRoute — one MCP catalogue over N LAN serves (tip≠face; not shipped) |
 | [`operations/cluster-route-vs-slice-hand-carry.md`](operations/cluster-route-vs-slice-hand-carry.md) | Two named moves: ClusterRoute vs SliceHandCarry (#191 / #47 cousin; inventOnly) |
+| [`operations/admin-usage-report.md`](operations/admin-usage-report.md) | Admin-only serve usage JSON for a product-gate admin MCP (opaque alias; not agent MCP) |
 
 Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
 

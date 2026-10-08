@@ -136,6 +136,12 @@ def emit_truncation(
     """Shaped emit mark when a hard cap clipped the neighbourhood. Not a command."""
     if not notes:
         return ""
+    try:
+        from memnet.admin_usage import note_truncation
+
+        note_truncation([str(note.get("reason") or "max_rows") for note in notes])
+    except Exception:  # noqa: BLE001 — tally must not change emit
+        pass
     reasons: list[str] = []
     omitted = 0
     for note in notes:

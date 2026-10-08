@@ -17,3 +17,9 @@ class MemNetError(Exception):
         self.example = example
         self.exit_code = exit_code
         super().__init__(message)
+        try:
+            from memnet.admin_usage import note_error
+
+            note_error(code, message)
+        except Exception:  # noqa: BLE001 — tally must not change refuse behaviour
+            pass

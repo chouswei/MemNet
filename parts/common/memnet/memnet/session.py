@@ -270,6 +270,7 @@ def open_session(
     map_file: str | None = None,
     ttl_minutes: int | None = None,
     caps: Caps | None = None,
+    product: str | None = None,
 ) -> SessionStore:
     caps = caps or Caps()
     purge_expired(caps)
@@ -288,6 +289,9 @@ def open_session(
         tag_map = load_map_from_lines(map_lines, caps)
     else:
         raise MemNetError("no_map", "provide --map-file or --map")
+    from memnet.admin_usage import validate_product_label
+
+    product_label = validate_product_label(product)
     session_id = f"mn_{secrets.token_hex(4)}"
     now = utc_now()
     expires = now + timedelta(minutes=ttl_minutes)
@@ -299,6 +303,7 @@ def open_session(
         expires_at=expires.isoformat().replace("+00:00", "Z"),
         ttl_minutes=ttl_minutes,
         acl_enabled=acl.enabled,
+        product=product_label,
     )
     entry = SessionEntry(
         meta=meta,

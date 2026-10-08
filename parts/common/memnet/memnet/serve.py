@@ -74,6 +74,17 @@ def _protocol_envelope(code: str, detail: str) -> dict[str, Any]:
 
 
 def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
+    from memnet.admin_usage import (
+        reset_caller_token,
+        set_caller_token,
+        usage_report_envelope,
+    )
+
+    admin_token = payload.get("admin_token")
+    token_s = admin_token if isinstance(admin_token, str) else None
+    if payload.get("admin_usage") is True:
+        return usage_report_envelope(token_s)
+
     argv = payload.get("args", [])
     if not isinstance(argv, list):
         return {"exit_code": 1, "stdout": "", "stderr": "@ERR: bad_request|args must be a list\n"}
@@ -94,6 +105,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     if stdin_text:
         sys.stdin = io.StringIO(stdin_text)
     code = 0
+    token_ctx = set_caller_token(token_s)
     try:
         result = app(argv, prog_name="memnet", standalone_mode=False)
         if isinstance(result, int) and result != 0:
@@ -104,6 +116,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         code = 1
         err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
     finally:
+        reset_caller_token(token_ctx)
         sys.stdout, sys.stderr, sys.stdin = old_out, old_err, old_in
     return {"exit_code": code, "stdout": out.getvalue(), "stderr": err.getvalue()}
 
@@ -117,6 +130,12 @@ class _Handler(socketserver.BaseRequestHandler):
             (length,) = struct.unpack(">I", raw_len)
             max_frame = serve_max_frame_bytes()
             if length > max_frame:
+                try:
+                    from memnet.admin_usage import note_error
+
+                    note_error("frame_too_large", "")
+                except Exception:  # noqa: BLE001
+                    pass
                 self._send_envelope(
                     _protocol_envelope(
                         "frame_too_large",
@@ -182,6 +201,12 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
     port = port or serve_port()
     validate_serve_bind_host(host)
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
+    try:
+        from memnet.admin_usage import mark_serve_start
+
+        mark_serve_start()
+    except Exception:  # noqa: BLE001 — serve must start even if tally origin fails
+        pass
     # Optional CheapLlmImportGuard when MEMNET_IMPORT_GUARD_API_KEY is set (#63).
     try:
         from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
@@ -209,12 +234,18 @@ def send_command(
     stdin: str | None = None,
     host: str | None = None,
     port: int | None = None,
+    admin_token: str | None = None,
+    admin_usage: bool = False,
 ) -> dict[str, Any]:
     host = host or serve_host()
     port = port or serve_port()
     payload_obj: dict[str, Any] = {"args": args}
     if stdin is not None:
         payload_obj["stdin"] = stdin
+    if admin_token is not None:
+        payload_obj["admin_token"] = admin_token
+    if admin_usage:
+        payload_obj["admin_usage"] = True
     payload = json.dumps(payload_obj).encode("utf-8")
     max_frame = serve_max_frame_bytes()
     if len(payload) + 4 > max_frame:
