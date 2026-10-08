@@ -1772,12 +1772,15 @@ def item_e17(
         "MATCH (n:SEC {id: 'SEC_0003'}) WHERE n.heading CONTAINS 'ZZZ_NO_MATCH' "
         "SET n.status = 'e17_ignored'",
     )
-    after = shaped_node_props(svc.pin_map(sid, cue="SEC_0003").stdout) or {}
+    # pin_map --cue walks neighbours; the first shaped line may not be SEC_0003.
+    check = svc.find(sid, kind="SEC", locator="id=SEC_0003", limit=1)
+    after = shaped_node_props(check.stdout) or {}
     where_ignored = unique_miss["exit"] == 0 and after.get("status") == "e17_ignored"
     form_results["unique_match_where_miss_still_sets"] = {
         **unique_miss,
         "status_after": after.get("status"),
         "where_ignored": where_ignored,
+        "find_exit": check.exit_code,
     }
 
     caps = mutate_byte_cap_report()
@@ -1785,6 +1788,8 @@ def item_e17(
     common_find = svc.find(sid, kind="USR", keyword=common_kw, limit=find_limit)
     rare_find = svc.find(sid, kind="SEC", keyword=rare_kw, limit=find_limit)
     leftover = svc.read_list(sid, tag="USR", where=f"value=*{common_kw}*")
+    leftover_err = err_lines(leftover.stderr)
+    wires.extend(leftover_err[:1])
     pin_kw = svc.pin_map(sid, kind="USR", keyword=common_kw, max_rows=8, depth=1)
 
     def _count_shaped(stdout: str) -> int:
@@ -1833,8 +1838,9 @@ def item_e17(
         'double quotes as "\'". This does not make CONTAINS a filter.',
         "Working substring: query find --keyword / pin_map --keyword "
         "(casefold haystack; explicit --limit / --max-rows). leftover "
-        "read list --where field=*glob*. STARTS WITH / ENDS WITH / =~ are "
-        "the same ignored-WHERE SET path, not filters.",
+        "read list --where field=*glob* works on a small graph; listing "
+        "1500 fat USR values can hit the 4 MiB serve frame. STARTS WITH / "
+        "ENDS WITH / =~ are the same ignored-WHERE SET path, not filters.",
         "Latency below is find --keyword on the warm fulldoc (not CONTAINS).",
     ]
     if not where_ignored:
@@ -1869,6 +1875,7 @@ def item_e17(
             "rare_find_shaped": rare_n,
             "leftover_glob_exit": leftover.exit_code,
             "leftover_glob_lines": leftover_n,
+            "leftover_glob_err": leftover_err,
             "pin_map_keyword_exit": pin_kw.exit_code,
             "pin_map_keyword_truncation": _truncation_lines(pin_kw.stdout),
             "common_find_latency": common_sum,
