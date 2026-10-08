@@ -553,8 +553,11 @@ def test_serve_timeout_named_and_rolls_back(memnet_temp, model_dir: Path, monkey
     import time
 
     from memnet.catalog_snap import raise_if_snap_cancelled
-    from memnet.serve import probe, run_serve, send_command
+    from memnet.catalog_snap import snap_model as real_snap
+    from memnet.serve import _Handler, _Server, probe, send_command
     from memnet.session import open_session as real_open
+
+    finished = threading.Event()
 
     def slow_open(*args, **kwargs):
         for _ in range(40):
@@ -562,36 +565,41 @@ def test_serve_timeout_named_and_rolls_back(memnet_temp, model_dir: Path, monkey
             raise_if_snap_cancelled()
         return real_open(*args, **kwargs)
 
+    def wrapped_snap(*args, **kwargs):
+        try:
+            return real_snap(*args, **kwargs)
+        finally:
+            finished.set()
+
     monkeypatch.setattr("memnet.catalog_snap.open_session", slow_open)
+    monkeypatch.setattr("memnet.catalog_snap.snap_model", wrapped_snap)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
         port = int(sock.getsockname()[1])
     monkeypatch.setenv("MEMNET_SERVE_PORT", str(port))
     monkeypatch.setenv("MEMNET_SERVE_HOST", "127.0.0.1")
-    thread = threading.Thread(
-        target=run_serve,
-        kwargs={"host": "127.0.0.1", "port": port},
-        daemon=True,
-    )
+    monkeypatch.setenv("MEMNET_SERVE_INTERNAL", "1")
+    server = _Server(("127.0.0.1", port), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    for _ in range(100):
-        if probe(host="127.0.0.1", port=port):
-            break
-        time.sleep(0.05)
-    else:
-        pytest.fail("memnet serve did not start")
-    before = len(list_sessions())
-    raw = send_command(
-        ["snap", "model", "--root", str(model_dir), "--map-file", str(_MAP)],
-        host="127.0.0.1",
-        port=port,
-        timeout=0.25,
-    )
-    assert raw["exit_code"] == 1
-    assert "@ERR: serve_timeout|wait exceeded" in (raw.get("stderr") or "")
-    deadline = time.time() + 3.0
-    while time.time() < deadline:
-        if len(list_sessions()) == before:
-            break
-        time.sleep(0.05)
-    assert len(list_sessions()) == before
+    try:
+        for _ in range(100):
+            if probe(host="127.0.0.1", port=port):
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("memnet serve did not start")
+        before = len(list_sessions())
+        raw = send_command(
+            ["snap", "model", "--root", str(model_dir), "--map-file", str(_MAP)],
+            host="127.0.0.1",
+            port=port,
+            timeout=0.25,
+        )
+        assert raw["exit_code"] == 1
+        assert "@ERR: serve_timeout|wait exceeded" in (raw.get("stderr") or "")
+        assert finished.wait(timeout=5.0)
+        assert len(list_sessions()) == before
+    finally:
+        server.shutdown()
+        server.server_close()
