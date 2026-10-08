@@ -1860,8 +1860,11 @@ package MemNetVerification {
 
   verification def MN_VER_01_S04_SnapshotLosslessRoundTrip {
     doc /*
-      MN-REQ-01.9 / MN-REQ-05.3 — snapshot emit escapes LF/CR/pipe/backslash
-      losslessly; save fails closed; expire-save writes no unloadable file;
+      MN-REQ-01.9 / MN-REQ-05.3 — snapshot emit escapes splitlines
+      separators (LF/CR/VT/FF/FS/GS/RS/NEL/LS/PS) plus pipe/backslash
+      losslessly; undeclared RAM properties persist by snapshot SCHEMA
+      widen; line_bytes is the escaped emitted line at save and load;
+      save fails closed; expire-save writes no unloadable file;
       0.19.18 snapshots still load; value_bytes is decoded raw UTF-8.
     */
     attribute verificationId : String = "MN-VER-01-S04";
@@ -1882,6 +1885,14 @@ package MemNetVerification {
             .legacy01918Load == true
           and system.core.transport.inProcess.memory.sessions.snap
             .escapeLfCrPipeBackslash == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .splitlinesSeparatorsEscaped == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .recordSplitLfOnly == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .persistUndeclaredProperties == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .lineBytesOnEmittedLine == true
           and system.core.cli.sessionSave.failClosedUnsaveable == true
           and system.core.cli.sessionLoad.legacy01918Load == true
           and system.core.transport.inProcess.memory.sessions.caps
@@ -1958,6 +1969,8 @@ package MemNetVerification {
             .valueBytesOnDecodedRaw == true
           and system.core.transport.inProcess.memory.sessions.caps
             .gqlMutateEnforcesValueBytes == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .lineBytesOnEmittedLine == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.gqlValueBytesHardCap == true
       }

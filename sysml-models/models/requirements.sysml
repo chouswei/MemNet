@@ -213,14 +213,24 @@ package MemNetRequirements {
         doc /*
           Anything the write path accepts SHALL session_save and
           session_load byte-for-byte as the same property values.
-          That includes LF, CR, backslash, both quote kinds, dollar,
-          braces, pipe, and CJK. Snapshot emit SHALL escape those
-          losslessly; load SHALL decode them. Save SHALL fail closed
-          (snapshot_unsaveable naming the row) rather than write an
-          unloadable file. Expire-save that cannot round-trip SHALL
-          NOT write a file; RAM still drops; next use is
-          session_expired|snap_missing. Snapshots written by 0.19.18
-          (pipe and backslash escapes only) SHALL still load.
+          That includes LF, CR, tab, VT, FF, file/group/record
+          separators, NEL, line/paragraph separators, backslash,
+          both quote kinds, dollar, braces, pipe, and CJK. Snapshot
+          emit SHALL escape those losslessly; load SHALL decode them.
+          Record split SHALL be LF-only (MUST NOT use
+          str.splitlines(), which splits on CR/VT/FF/NEL/LS/PS
+          before unescape). Properties mutate stores that are absent
+          from the live tag SCHEMA SHALL persist by widening the
+          snapshot SCHEMA (GraphElement extras and Path-B locators
+          such as qname). Live session SCHEMA is unchanged. Fixed
+          tags EDG/LAW SHALL NOT widen; extras there SHALL fail
+          closed. Save SHALL fail closed (snapshot_unsaveable
+          naming the row) rather than write an unloadable file,
+          including when extras would exceed max_fields or the
+          escaped line exceeds line_bytes. Expire-save that cannot
+          round-trip SHALL NOT write a file; RAM still drops; next
+          use is session_expired|snap_missing. Snapshots written by
+          0.19.18 (pipe and backslash escapes only) SHALL still load.
         */
         attribute requirementId : String = "MN-REQ-01.9";
       }
@@ -660,10 +670,14 @@ package MemNetRequirements {
           Default 4096. Knob MEMNET_MAX_VALUE_BYTES (a product MAY
           raise it to 16384). Over-cap SHALL refuse
           limit_exceeded|value_bytes n/max and SHALL NOT accept the
-          write. An escaped snapshot value whose decoded size is under
-          this cap SHALL NOT trip line_bytes on load. line_bytes
-          remains a leftover-pipe / snapshot decoded-line cap
-          (MEMNET_MAX_LINE_BYTES, default 32768).
+          write. line_bytes is the UTF-8 byte length of the
+          escaped/raw leftover-pipe or snapshot line (backslash and
+          pipe count twice). Save verify and load SHALL use the same
+          check (MEMNET_MAX_LINE_BYTES, default 32768). A single
+          field under value_bytes still fits default line_bytes;
+          many fields whose escaped form exceeds line_bytes SHALL
+          fail closed at save (snapshot_unsaveable wrapping
+          line_bytes) rather than write a file load will refuse.
         */
         attribute requirementId : String = "MN-REQ-05.3";
       }

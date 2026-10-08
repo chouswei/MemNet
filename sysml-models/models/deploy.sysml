@@ -171,6 +171,7 @@ package MemNet {
     attribute maxValueBytesDefault : Integer = 4096;
     attribute valueBytesOnDecodedRaw : Boolean = true;
     attribute gqlMutateEnforcesValueBytes : Boolean = true;
+    attribute lineBytesOnEmittedLine : Boolean = true;
     attribute sessionSaveLoadCloseAclWho : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
@@ -1090,6 +1091,10 @@ package MemNet {
     attribute expireSaveUnsaveableNoFile : Boolean = true;
     attribute legacy01918Load : Boolean = true;
     attribute escapeLfCrPipeBackslash : Boolean = true;
+    attribute splitlinesSeparatorsEscaped : Boolean = true;
+    attribute recordSplitLfOnly : Boolean = true;
+    attribute persistUndeclaredProperties : Boolean = true;
+    attribute lineBytesOnEmittedLine : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
