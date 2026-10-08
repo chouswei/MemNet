@@ -7,12 +7,18 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
-### Added
-- **Product gateway on memnet-mcp (MN-REQ-06.12)** — `memnet-mcp --transport gateway` routes by product, house, or session to one owning `memnet serve`. Hashed per-product credentials, namespace isolation, verbatim GQL / stdin / `@ERR` `@WRN` `@STAT` pass-through, gateway refusals, health with failover only for a new unpinned session, version pin, loopback or tailnet bind, per-product admin counts. Single-backend stdio and streamable-http stay unchanged when no registry is configured. No SemVer bump. Not deployed. Wire: [`docs/operations/product-gateway-contract.md`](docs/operations/product-gateway-contract.md).
-
 ### Changed
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
 - **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
+
+## [0.19.20] - 2026-10-08
+
+### Added
+- **Product gateway on memnet-mcp (MN-REQ-06.12)** — `memnet-mcp --transport gateway` routes by product, house, or session to one owning `memnet serve`. Hashed per-product credentials, namespace isolation, verbatim GQL / stdin / `@ERR` `@WRN` `@STAT` pass-through, gateway refusals, health with failover only for a new unpinned session, version pin, loopback or tailnet bind, per-product admin counts. Single-backend stdio and streamable-http stay unchanged when no registry is configured. Shipped in 0.19.20 (#203). Not deployed. Wire: [`docs/operations/product-gateway-contract.md`](docs/operations/product-gateway-contract.md).
+
+### Changed
+- **Honesty `c` — product gateway summary (#203)** — `memnet-mcp --transport gateway` reads `MEMNET_GATEWAY_CONFIG` (JSON backend registry: backend id → tailnet `host:port`; products with ordered `backends`, `houses`, `pinned_version`, credentials). `POST /gateway` with `Authorization: Bearer <product credential>`; credentials are stored as SHA-256 only, per product, revocable. Namespace isolation: a product only reaches its own backends and sessions; `session list` is filtered to that product. Only `args` and `stdin` are forwarded, byte for byte; engine `@ERR` / `@WRN` / `@STAT` come back verbatim. Gateway refusals are `@ERR: gateway_<code>|<detail>` (`auth`, `forbidden_session`, `forbidden`, `backend_unreachable`, `backend_version_mismatch`, `body_too_large`, `bad_request`, `unconfigured`) with `exit_code` 2. Version pin: every forward checks `@VER: memnet|<pinned_version>` (cache `version_cache_s`). Health and failover: TCP + version probe; a new session with no `house`/`backend` walks the product's backends in order; a pinned or owned session never moves. Bind is loopback (default `127.0.0.1`) or tailnet (`100.64.0.0/10`, `fd7a:115c:a1e0::/48`); public bind is refused unless `MEMNET_GATEWAY_ALLOW_PUBLIC=1`. Admin counts at `GET /gateway/admin/counts`. stdio and streamable-http are unchanged. MN-REQ-06.12. Not deployed.
+- **Package identity 0.19.20** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Agent loop (`cue → pin_map → mutate`) unchanged.
 
 ## [0.19.19] - 2026-10-08
 
