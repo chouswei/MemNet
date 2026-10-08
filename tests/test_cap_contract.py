@@ -142,6 +142,12 @@ def test_every_cap_and_write_proof(memnet_temp, tmp_path: Path):
     sess = by_name["max_sessions"]
     assert sess.wire == "@ERR: limit_exceeded|sessions 2/1"
 
+    snap_pre = by_name["snap_model_session_precheck"]
+    assert snap_pre.library_code == "limit_exceeded"
+    assert snap_pre.wire.startswith("@ERR: limit_exceeded|sessions")
+    assert snap_pre.extra["rollback"] == "nothing-created"
+    assert snap_pre.extra["sessions_after"] == snap_pre.extra["sessions_before"]
+
     expired = by_name["ttl_expire_unsaved"]
     assert expired.library_code == "session_expired"
     assert expired.library_message == "snap_missing"
@@ -218,6 +224,9 @@ def test_doc_lists_live_defaults_and_wires():
         "all-or-nothing",
         "Never treat a clipped read as complete",
         "Never retry a hard refuse unchanged",
+        "serve_timeout",
+        "snap_model",
+        "1 catalog + N interiors",
     ):
         assert needle in text, needle
 

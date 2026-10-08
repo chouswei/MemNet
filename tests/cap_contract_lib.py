@@ -13,6 +13,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from memnet.acl import check_permission
+from memnet.catalog_snap import snap_model
 from memnet.cli import app
 from memnet.config import (
     DEFAULT_INGEST_MAX_EDGES,
@@ -30,6 +31,7 @@ from memnet.pin_map_composer import PinMapComposer
 from memnet.pin_map_ingest import ingest_sysml
 from memnet.session import (
     _seed_relations,
+    count_sessions,
     get_session,
     open_session,
     purge_expired,
@@ -694,6 +696,39 @@ def case_session_count() -> Case:
             )
 
 
+def case_snap_session_precheck(tmp_path: Path) -> Case:
+    _clean()
+    root = tmp_path / "snap_pre"
+    root.mkdir()
+    (root / "root.sysml").write_text(
+        "package DemoRoot {\n  private import PkgA::*;\n}\n",
+        encoding="utf-8",
+    )
+    (root / "a.sysml").write_text("package PkgA { part def P1 { } }\n", encoding="utf-8")
+    with env_caps(MEMNET_MAX_SESSIONS="1"):
+        open_session(map_file=str(_SYSML_MAP), caps=Caps())
+        before = count_sessions()
+        try:
+            snap_model(root, map_file=_SYSML_MAP, caps=Caps())
+            raise AssertionError("expected snap session refuse")
+        except MemNetError as exc:
+            after = count_sessions()
+            return Case(
+                name="snap_model_session_precheck",
+                kind="hard_refuse",
+                default="1 catalog + N interiors (never per leaf)",
+                knob="MEMNET_MAX_SESSIONS; snap_model max_nodes / max_edges",
+                library_code=exc.code,
+                library_message=exc.message,
+                wire=format_err(exc.code, exc.message),
+                extra={
+                    "sessions_before": str(before),
+                    "sessions_after": str(after),
+                    "rollback": "nothing-created" if after == before else "partial",
+                },
+            )
+
+
 def case_ttl_and_expire(tmp_path: Path) -> list[Case]:
     _clean()
     out: list[Case] = []
@@ -1075,6 +1110,7 @@ def collect_all(tmp_path: Path) -> list[Case]:
         case_outline_clip(),
         case_find_cue_conflict(),
         case_session_count(),
+        case_snap_session_precheck(tmp_path),
         *case_ttl_and_expire(tmp_path),
         *case_acl(),
         case_reserve(),

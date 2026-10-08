@@ -916,6 +916,8 @@ def snap_model_cmd(
 
     List interiors as session= locators. Look = query pin-map --session.
     Join = import-slice (Path-B), never Absorb of a whole S. Not Layer.
+    Grain is package / kind-band / nested package, never one session per
+    leaf. Same root replaces. Caller gone rolls back.
     """
     from memnet.catalog_snap import snap_model
 

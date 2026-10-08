@@ -3,13 +3,17 @@
 Snap(one model) → catalog session + package interiors. Look = pin_map.
 Join = Path-B Absorb of a slice. Not Layer; not ANN; not one session per REQ.
 Hid stays off the wire. Locators are properties.
+Grain: package / kind-band / nested package (MN-REQ-11.17.2). Not a
+two-segment element qname. Pre-check then all-or-nothing mint (11.17.3).
+Caller gone rolls back (11.17.4). Same resolved root replaces (11.17.5).
 """
 
 from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -30,7 +34,19 @@ from memnet.pin_map_ingest import (
     _strip_comments,
     project_sysml_parts,
 )
-from memnet.session import SessionStore, close_session, list_sessions, open_session
+from memnet.session import (
+    SessionStore,
+    close_session,
+    count_sessions,
+    get_session,
+    list_sessions,
+    open_session,
+)
+
+_CANCEL_CHECK: ContextVar[Callable[[], bool] | None] = ContextVar(
+    "snap_cancel_check",
+    default=None,
+)
 
 _PKG_HEAD = re.compile(
     r"^[ \t]*package\s+(?P<name>[A-Za-z_][\w]*)",
@@ -104,6 +120,21 @@ def default_sysml_map_file() -> Path:
     return examples_dir() / "schema.sysml.example.txt"
 
 
+def set_snap_cancel_check(fn: Callable[[], bool] | None) -> Token:
+    """Install a serve-side cancel probe for this Snap (MN-REQ-11.17.4)."""
+    return _CANCEL_CHECK.set(fn)
+
+
+def reset_snap_cancel_check(token: Token) -> None:
+    _CANCEL_CHECK.reset(token)
+
+
+def raise_if_snap_cancelled() -> None:
+    fn = _CANCEL_CHECK.get()
+    if fn and fn():
+        raise MemNetError("caller_gone", "snap_model stopped; sessions rolled back")
+
+
 def snap_model(
     root: str | Path,
     *,
@@ -119,8 +150,9 @@ def snap_model(
     """Snap one SysML load tree into a catalog + package interiors.
 
     Empty catalog seed → skip (no sessions minted). Package grain first;
-    optional kind-band / child-package split when an interior exceeds ~2M.
-    SHALL NOT mint a session per requirement def. SHALL NOT Commit the
+    optional kind-band / nested-package split when an interior exceeds ~2M.
+    SHALL NOT mint a session per requirement or part def. SHALL NOT treat
+    Package::Element qname as a child-package cut. SHALL NOT Commit the
     whole model into one session. Absorb of a whole S is not this path.
     """
     caps = caps or Caps()
@@ -142,6 +174,7 @@ def snap_model(
     projected_edges: list[tuple[str, str, str, str]] = []
     band_limit = max(1, 2 * goldfish_m)
     for qname, pkg_files in packages:
+        raise_if_snap_cancelled()
         nodes, edges = _project_package(
             pkg_files,
             root_dir=root_dir,
@@ -160,13 +193,24 @@ def snap_model(
             "no package interiors to Snap; skip catalog seed",
         )
 
+    model_id = _model_identity(root_dir)
+    old_ids = _find_model_stack_ids(model_id, caps)
+    _precheck_plan(
+        interiors_plan,
+        max_nodes=max_nodes,
+        max_edges=max_edges,
+        caps=caps,
+    )
+
     map_kw = _map_kwargs(map_file, map_lines)
     before = {row[0] for row in list_sessions(caps)}
     try:
+        raise_if_snap_cancelled()
         catalog = open_session(ttl_minutes=ttl_minutes, caps=caps, **map_kw)
         refs: list[InteriorRef] = []
         ingest = PinMapIngest_Sysml()
         for draft, nodes, edges in interiors_plan:
+            raise_if_snap_cancelled()
             interior = open_session(ttl_minutes=ttl_minutes, caps=caps, **map_kw)
             gql = _nodes_edges_to_gql(nodes, edges)
             ingest.commit(
@@ -192,13 +236,17 @@ def snap_model(
             refs,
             cross_cuts=cuts,
             end_locator_limit=goldfish_m,
+            model_id=model_id,
+            model_root=str(root_dir),
         )
-        return CatalogSnapResult(
+        result = CatalogSnapResult(
             catalog_session_id=catalog.session_id,
             interiors=refs,
             cross_cuts=cuts,
             cross_cut_misses=misses,
         )
+        _close_replaced_stack(old_ids, keep=set(result.session_ids), caps=caps)
+        return result
     except Exception:
         _rollback_new_sessions(before, caps)
         raise
@@ -230,6 +278,80 @@ def _rollback_new_sessions(before: set[str], caps: Caps) -> None:
                 close_session(sid, caps)
             except MemNetError:
                 continue
+
+
+def _model_identity(root_dir: Path) -> str:
+    return hashlib.sha256(str(root_dir.resolve()).encode("utf-8")).hexdigest()[:16]
+
+
+def _find_model_stack_ids(model_id: str, caps: Caps) -> list[str]:
+    """Live catalog + interiors for this resolved root. Ids stay off the wire."""
+    found: list[str] = []
+    seen: set[str] = set()
+    for sid, *_rest in list_sessions(caps):
+        try:
+            ss = get_session(sid, caps)
+        except MemNetError:
+            continue
+        markers = [
+            rec
+            for rec in ss.store.list_records("PKG")
+            if rec.fields.get("grain") == "catalog" and rec.fields.get("model_id") == model_id
+        ]
+        if not markers:
+            continue
+        if sid not in seen:
+            seen.add(sid)
+            found.append(sid)
+        for rec in ss.store.list_records("PKG"):
+            other = rec.fields.get("session") or ""
+            if other and other not in seen:
+                seen.add(other)
+                found.append(other)
+    return found
+
+
+def _close_replaced_stack(old_ids: Sequence[str], *, keep: set[str], caps: Caps) -> None:
+    for sid in old_ids:
+        if sid in keep:
+            continue
+        try:
+            close_session(sid, caps)
+        except MemNetError:
+            continue
+
+
+def _precheck_plan(
+    interiors_plan: Sequence[SlicePlan],
+    *,
+    max_nodes: int,
+    max_edges: int,
+    caps: Caps,
+) -> None:
+    """Refuse before mint when the plan cannot fit (MN-REQ-11.17.3)."""
+    for _draft, nodes, edges in interiors_plan:
+        if len(nodes) > max_nodes:
+            raise MemNetError(
+                "ingest_budget",
+                f"pin budget exceeded (max_nodes={max_nodes})",
+            )
+        if len(edges) > max_edges:
+            raise MemNetError(
+                "ingest_budget",
+                f"edge budget exceeded (max_edges={max_edges})",
+            )
+    needed = 1 + len(interiors_plan)
+    live = count_sessions()
+    projected = live + needed
+    if projected > caps.max_sessions:
+        raise MemNetError(
+            "limit_exceeded",
+            f"sessions|{projected}/{caps.max_sessions}",
+        )
+
+
+def _non_pkg_nodes(nodes: Sequence[dict[str, str]]) -> list[dict[str, str]]:
+    return [n for n in nodes if (n.get("_kind") or "PRT") != "PKG"]
 
 
 def _interior_packages(files: Sequence[Path]) -> list[tuple[str, list[Path]]]:
@@ -305,7 +427,7 @@ def _split_interior(
     *,
     band_limit: int,
 ) -> list[SlicePlan]:
-    """Split a fat package by kind band or child package — never per REQ."""
+    """Split a fat package by kind band or nested package — never per leaf."""
     path = next((n.get("path", "") for n in nodes if n.get("path")), "")
 
     def _row(
@@ -333,13 +455,18 @@ def _split_interior(
     for n in nodes:
         by_kind.setdefault(n.get("_kind") or "PRT", []).append(n)
     non_pkg = {k: v for k, v in by_kind.items() if k != "PKG"}
-    if len(non_pkg) >= 2:
+    fat_bands = {k: v for k, v in non_pkg.items() if len(v) >= 2}
+    thin_nodes: list[dict[str, str]] = []
+    for kind, group in non_pkg.items():
+        if kind not in fat_bands:
+            thin_nodes.extend(group)
+    if len(fat_bands) >= 2 and len(_non_pkg_nodes(thin_nodes)) != 1:
         pkg_nodes = by_kind.get("PKG", [])
         bands = []
         for kind in _KIND_BAND_ORDER:
             if kind == "PKG":
                 continue
-            band_nodes = by_kind.get(kind, [])
+            band_nodes = fat_bands.get(kind, [])
             if not band_nodes:
                 continue
             bands.append(
@@ -350,21 +477,75 @@ def _split_interior(
                     slice_nodes=pkg_nodes + band_nodes,
                 )
             )
+        if thin_nodes and len(_non_pkg_nodes(thin_nodes)) >= 2:
+            bands.append(
+                _row(
+                    grain="package",
+                    slice_qname=qname,
+                    kind_band="",
+                    slice_nodes=pkg_nodes + thin_nodes,
+                )
+            )
         if bands:
             return bands
-    children: dict[str, list[dict[str, str]]] = {}
-    for n in nodes:
-        nq = n.get("qname") or qname
-        parts = nq.split("::")
-        key = "::".join(parts[:2]) if len(parts) >= 2 else qname
-        children.setdefault(key, []).append(n)
-    if len(children) >= 2:
+    nested = _nested_package_groups(qname, nodes, band_limit=band_limit)
+    if nested:
         return [
-            _row(grain="child_package", slice_qname=key, kind_band="", slice_nodes=group)
-            for key, group in children.items()
-            if group
+            _row(
+                grain="nested_package",
+                slice_qname=key,
+                kind_band="",
+                slice_nodes=group,
+            )
+            for key, group in nested
         ]
     return [_row(grain="package", slice_qname=qname, kind_band="", slice_nodes=nodes)]
+
+
+def _nested_package_groups(
+    top_qname: str,
+    nodes: list[dict[str, str]],
+    *,
+    band_limit: int,
+) -> list[tuple[str, list[dict[str, str]]]]:
+    """Group by nested SysML package defs, never by Package::Element qname."""
+    pkg_qnames = [
+        n.get("qname") or ""
+        for n in nodes
+        if (n.get("_kind") or "") == "PKG" and (n.get("qname") or "") not in {"", top_qname}
+    ]
+    pkg_qnames = sorted({p for p in pkg_qnames if p}, key=len, reverse=True)
+    if not pkg_qnames:
+        return []
+    groups: dict[str, list[dict[str, str]]] = {p: [] for p in pkg_qnames}
+    remainder: list[dict[str, str]] = []
+    for node in nodes:
+        nq = node.get("qname") or ""
+        assigned = next(
+            (p for p in pkg_qnames if nq == p or nq.startswith(p + "::")),
+            None,
+        )
+        if assigned:
+            groups[assigned].append(node)
+        else:
+            remainder.append(node)
+    kept: list[tuple[str, list[dict[str, str]]]] = []
+    folded: list[dict[str, str]] = []
+    for key, group in groups.items():
+        if len(group) > band_limit and len(_non_pkg_nodes(group)) >= 2:
+            kept.append((key, group))
+        else:
+            folded.extend(group)
+    parent_nodes = remainder + folded
+    if not kept:
+        return []
+    if len(_non_pkg_nodes(parent_nodes)) == 1:
+        return []
+    out: list[tuple[str, list[dict[str, str]]]] = []
+    if len(_non_pkg_nodes(parent_nodes)) >= 2:
+        out.append((top_qname, parent_nodes))
+    out.extend(kept)
+    return out
 
 
 def _edges_in(
@@ -565,9 +746,23 @@ def _commit_catalog(
     *,
     cross_cuts: Sequence[CrossCutRef] = (),
     end_locator_limit: int = DEFAULT_QUERY_MAX_ROWS,
+    model_id: str = "",
+    model_root: str = "",
 ) -> None:
     lines: list[str] = []
     used: set[str] = set()
+    if model_id:
+        nick = leftover_catalog_pkg_nick("Catalog", grain="catalog", used=used)
+        marker = {
+            "id": nick,
+            "qname": "Catalog",
+            "grain": "catalog",
+            "model_id": model_id,
+            "recycle": "persistent",
+        }
+        if model_root:
+            marker["model_root"] = model_root
+        lines.append(f"CREATE (:PKG {_emit_props(marker)})")
     for ref in refs:
         nick = leftover_catalog_pkg_nick(
             ref.qname,

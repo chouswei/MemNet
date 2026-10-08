@@ -194,8 +194,8 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 |-------|--------|
 | `snap_model` catalog + package interiors | shipped 0.15; grain honesty `MN-REQ-11.17.2`–`11.17.5`; `tests/test_catalog_snap.py` |
 | Cross-cut `satisfies` as catalog locators | shipped honesty `c` (0.19.10 unreleased); MN-REQ-11.17.1; interiors stay free of dest stubs; `@WRN: cross_cut`; SysMLEdge `pin_map` is a different tool |
-| Recurse part-root / requirement-group over \(M\) | TARGET; engine leftover two-segment child package |
-| Reuse catalog `session=` when already built | TARGET; as-is may re-project |
+| Recurse part-root / requirement-group over \(M\) | TARGET; same-kind package over 2M stays one interior (not per-leaf) |
+| Repeat Snap of the same resolved root | Replace after the new stack commits (MN-REQ-11.17.5) |
 | Parallel interiors once the parent shell is clear | Application of Multitask + separate \(S_i\); engine does not schedule workers |
 | Ingest `max_nodes=2000` / `max_edges=2000` | covers this house and `deploy.sysml` (504); a ~10k file still hits `ingest_budget` before a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still `[:max_rows]` |
