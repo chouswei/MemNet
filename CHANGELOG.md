@@ -7,12 +7,17 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
-### Fixed
-- **Catalog Snap session grain** — `snap_model` no longer treats `Package::Element` qname as a child-package cut (that minted one session per part/requirement). Grain is package, then kind-band or nested `package` when over about 2M; never a single-leaf split. Pre-check session capacity and ingest budgets before mint (`limit_exceeded|sessions` / `ingest_budget`); mid-way failure rolls back. Same resolved root replaces after the new stack commits. Serve/IPC client wait exceeded is `@ERR: serve_timeout|wait exceeded`; serve stops and rolls back (`caller_gone`). Caps defaults unchanged. No SemVer bump. MN-REQ-11.17.2–11.17.5.
-
 ### Changed
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
 - **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
+
+## [0.19.18] - 2026-10-08
+
+### Fixed
+- **Honesty `c` — snap_model bounded session grain (#199)** — Package, then kind-band or nested `package` when over about 2M; never a `Package::Element` child-package cut and never a single-leaf split. Budget pre-check (`limit_exceeded|sessions` / `ingest_budget`) creates nothing. Caller-gone and mid-way failure roll back every session this call minted. Repeat Snap of the same resolved root replaces after the new stack commits. Serve/IPC wait exceeded is `@ERR: serve_timeout|wait exceeded`. Caps defaults unchanged. MN-REQ-11.17.2–11.17.5.
+
+### Changed
+- **Package identity 0.19.18** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Catalog Snap session grain (#199) does not change how agents use MemNet.
 
 ## [0.19.17] - 2026-10-08
 
