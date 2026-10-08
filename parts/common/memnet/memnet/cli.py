@@ -128,6 +128,20 @@ def _handle_error(exc: MemNetError) -> None:
     raise typer.Exit(exc.exit_code) from exc
 
 
+def _acl_check(ss, caller: str | None, permission: str) -> None:
+    from memnet.acl import check_permission
+
+    try:
+        check_permission(
+            ss.acl,
+            caller=caller or os.environ.get("MEMNET_CALLER"),
+            permission=permission,  # type: ignore[arg-type]
+            agent=os.environ.get("MEMNET_AGENT"),
+        )
+    except MemNetError as exc:
+        _handle_error(exc)
+
+
 def _load_session(session: str | None, *, exclusive: bool = False):
     purge_expired(_caps())
     try:
@@ -396,6 +410,10 @@ def session_list() -> None:
 def session_save(
     file: Annotated[Path, typer.Option("--file", help="User snapshot path (wire format)")],
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     """Write the session graph. After TTL, only if MEMNET_SAVE_ON_EXPIRE."""
     try:
@@ -404,9 +422,14 @@ def session_save(
     except MemNetError as exc:
         _handle_error(exc)
         raise AssertionError("unreachable") from exc
+    _acl_check(ss, caller, "pin_map")
     reset_warn_budget()
     with ss.lock(exclusive=True):
-        rows = write_snapshot(ss, file)
+        try:
+            rows = write_snapshot(ss, file)
+        except MemNetError as exc:
+            _handle_error(exc)
+            raise AssertionError("unreachable") from exc
     if expired:
         remove_entry(sid)
         emit_wrn("session_expired_saved", str(file))
@@ -426,9 +449,22 @@ def session_load(
         typer.Option("--keep-id", help="Reuse session id from snapshot"),
     ] = False,
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     """Load a snapshot. ``--file`` or expire-dir load by ``--session`` (known sid)."""
     caps = _caps()
+    if file is None:
+        sid_hint = session or os.environ.get("MEMNET_SESSION")
+        if sid_hint:
+            entry = get_entry(sid_hint)
+            acl = getattr(entry, "acl", None) if entry is not None else None
+            if acl is not None and acl.enabled:
+                from types import SimpleNamespace
+
+                _acl_check(SimpleNamespace(acl=acl), caller, "pin_map")
     purge_expired(caps)
     try:
         if file is not None:
@@ -496,8 +532,16 @@ def session_expire_status() -> None:
 
 
 @session_app.command("close")
-def session_close(session_id: str) -> None:
+def session_close(
+    session_id: str,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
     try:
+        ss = get_session(session_id, _caps())
+        _acl_check(ss, caller, "mutate")
         close_session(session_id, _caps())
         emit_session(session_id, "closed")
     except MemNetError as exc:

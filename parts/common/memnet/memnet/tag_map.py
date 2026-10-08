@@ -226,6 +226,21 @@ def _coerce_edg_values(values: list[str], nfields: int) -> list[str]:
     return values
 
 
+def value_utf8_len(val: str) -> int:
+    """Decoded (raw) UTF-8 byte length of a property value (MN-REQ-05.3)."""
+    return len(val.encode("utf-8"))
+
+
+def check_value_bytes(val: str, caps: Caps) -> None:
+    """Hard cap on decoded property values. Shared by pipe, GQL, and snapshot load."""
+    n = value_utf8_len(val)
+    if n > caps.max_value_bytes:
+        raise MemNetError(
+            "limit_exceeded",
+            f"value_bytes|{n}/{caps.max_value_bytes}",
+        )
+
+
 def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str, str]:
     if tag_def.tag == "EDG":
         values = _coerce_edg_values(values, len(tag_def.fields))
@@ -241,16 +256,8 @@ def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str,
         )
     result: dict[str, str] = {}
     for name, val in zip(tag_def.fields, values, strict=True):
-        if "\n" in val or "\r" in val:
-            raise MemNetError(
-                "newline_in_value",
-                "newline in field split into two records",
-            )
-        if len(val.encode("utf-8")) > caps.max_value_bytes:
-            raise MemNetError(
-                "limit_exceeded",
-                f"value_bytes|{len(val.encode('utf-8'))}/{caps.max_value_bytes}",
-            )
+        # Newlines are legal once escaped on the snapshot/pipe wire.
+        check_value_bytes(val, caps)
         result[name] = val
     if result.get("id"):
         validate_id(result["id"])
@@ -272,10 +279,13 @@ def parse_line(
     used_nicks: set[str] | None = None,
 ) -> Record:
     caps = caps or Caps()
-    if len(line.encode("utf-8")) > caps.max_line_bytes:
+    physical = len(line.encode("utf-8"))
+    # Escaped wire may exceed max_line_bytes; decoded size is the documented cap.
+    physical_hard = max(8 * 1024 * 1024, caps.max_line_bytes)
+    if physical > physical_hard:
         raise MemNetError(
             "limit_exceeded",
-            f"line_bytes|{len(line.encode('utf-8'))}/{caps.max_line_bytes}",
+            f"line_bytes|{physical}/{caps.max_line_bytes}",
         )
     try:
         tag, payload = parse_tag_line(line.strip())
@@ -288,6 +298,13 @@ def parse_line(
         known = ",".join(tag_map.tag_names())
         raise MemNetError("unknown_tag", f"{tag} not in tagMap known: {known}")
     values = split_payload(payload)
+    decoded = len(f"@{tag}: ".encode()) + sum(len(v.encode()) for v in values)
+    decoded += max(0, len(values) - 1)
+    if decoded > caps.max_line_bytes:
+        raise MemNetError(
+            "limit_exceeded",
+            f"line_bytes|{decoded}/{caps.max_line_bytes}",
+        )
     fields = validate_values(tag_def, values, caps)
     nick = fields.get("id", "")
     if nick:

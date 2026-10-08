@@ -43,7 +43,41 @@ def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
     return leftover_wire_nick(rec.hid, kind=rec.tag, used=used)
 
 
+def _nick_of(rec: Record) -> str:
+    return rec.fields.get("id") or rec.tag
+
+
+def _emit_record_lines(ss: SessionStore) -> tuple[list[str], dict[str, str]]:
+    used: set[str] = set()
+    hid_to_nick: dict[str, str] = {}
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if rec:
+            hid_to_nick[rec.hid] = _snapshot_emit_nick(rec, used)
+    rec_lines: list[str] = []
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if not rec:
+            continue
+        fields = dict(rec.fields)
+        fields["id"] = hid_to_nick[rec.hid]
+        if rec.tag == "EDG":
+            for key in ("src", "dist"):
+                token = fields.get(key, "")
+                if token in hid_to_nick:
+                    fields[key] = hid_to_nick[token]
+        clone = rec.model_copy(update={"fields": fields})
+        rec_lines.append(emit_record(clone, ss.tag_map))
+    return rec_lines, hid_to_nick
+
+
 def snapshot_text(ss: SessionStore) -> str:
+    rec_lines, hid_to_nick = _emit_record_lines(ss)
+    _verify_emitted_rows(ss, rec_lines, hid_to_nick)
+    return _format_snapshot(ss, rec_lines)
+
+
+def _format_snapshot(ss: SessionStore, rec_lines: list[str]) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
     hw = "1" if m.has_writes else "0"
@@ -57,26 +91,62 @@ def snapshot_text(ss: SessionStore) -> str:
     for rel in sorted(ss.relations):
         lines.append(f"@REL: {rel}")
     lines.append(_SECTION_REC)
-    used: set[str] = set()
-    hid_to_nick: dict[str, str] = {}
-    for rid in ss.store.write_order:
-        rec = ss.store._by_hid.get(rid)
-        if rec:
-            hid_to_nick[rec.hid] = _snapshot_emit_nick(rec, used)
+    lines.extend(rec_lines)
+    return "\n".join(lines) + "\n"
+
+
+def _verify_emitted_rows(
+    ss: SessionStore,
+    rec_lines: list[str],
+    hid_to_nick: dict[str, str],
+) -> None:
+    """Refuse save if any emitted row would not load as the same values."""
+    used_nicks: set[str] = set()
+    rec_iter = iter(rec_lines)
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
         if not rec:
             continue
-        fields = dict(rec.fields)
-        fields["id"] = hid_to_nick[rec.hid]
-        if rec.tag == "EDG":
-            for key in ("src", "dist"):
-                token = fields.get(key, "")
-                if token in hid_to_nick:
-                    fields[key] = hid_to_nick[token]
-        clone = rec.model_copy(update={"fields": fields})
-        lines.append(emit_record(clone, ss.tag_map))
-    return "\n".join(lines) + "\n"
+        try:
+            line = next(rec_iter)
+        except StopIteration as exc:
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{rec.tag} nick={_nick_of(rec)} missing emit row",
+            ) from exc
+        try:
+            parsed = parse_line(line, ss.tag_map, ss.caps, used_nicks=used_nicks)
+        except MemNetError as exc:
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{rec.tag} nick={_nick_of(rec)} {exc.code} {exc.message}",
+            ) from exc
+        want_id = hid_to_nick.get(rec.hid) or rec.fields.get("id") or ""
+        tag_def = ss.tag_map.get(rec.tag)
+        if tag_def:
+            keys = list(tag_def.fields)
+        else:
+            keys = ["id"] + [k for k in rec.fields if k != "id"]
+        for key in keys:
+            raw = rec.fields.get(key, "")
+            if key == "id":
+                expected = want_id
+            elif rec.tag == "EDG" and key in ("src", "dist"):
+                expected = hid_to_nick.get(raw, raw)
+            else:
+                expected = raw
+            got = parsed.fields.get(key, "")
+            if got != expected:
+                raise MemNetError(
+                    "snapshot_unsaveable",
+                    f"{rec.tag} nick={_nick_of(rec)} field={key}",
+                )
+    leftover = list(rec_iter)
+    if leftover:
+        raise MemNetError(
+            "snapshot_unsaveable",
+            f"extra emit rows {len(leftover)}",
+        )
 
 
 def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
@@ -111,7 +181,9 @@ def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
 def write_snapshot(ss: SessionStore, path: str | Path) -> int:
     for msg in snapshot_locator_schema_warnings(ss):
         emit_wrn("snapshot_schema_drop", msg)
-    text = snapshot_text(ss)
+    rec_lines, hid_to_nick = _emit_record_lines(ss)
+    _verify_emitted_rows(ss, rec_lines, hid_to_nick)
+    text = _format_snapshot(ss, rec_lines)
     Path(path).write_text(text, encoding="utf-8")
     return ss.store.row_count_non_law()
 

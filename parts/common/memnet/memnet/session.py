@@ -247,6 +247,9 @@ def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str |
     except OSError as exc:
         emit_wrn("expire_snapshot_failed", type(exc).__name__)
         return None
+    except MemNetError as exc:
+        emit_wrn("expire_snapshot_failed", exc.code)
+        return None
     emit_wrn("expire_snapshot", "written")
     return str(path)
 

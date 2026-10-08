@@ -146,9 +146,12 @@ async def session_list() -> str:
 
 
 @mcp.tool()
-async def session_close(session: str) -> str:
+async def session_close(session: str, caller: str | None = None) -> str:
     """Close that session id (SessionLifecycle; does not dump S)."""
-    return await _run(["session", "close", session])
+    argv = ["session", "close", session]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv)
 
 
 @mcp.tool()
@@ -202,6 +205,7 @@ async def session_load(
     keep_id: bool = True,
     ttl: int | None = None,
     session: str | None = None,
+    caller: str | None = None,
 ) -> str:
     """Load a snapshot file into the MemNet graph (restores session state).
 
@@ -223,6 +227,8 @@ async def session_load(
         argv.append("--keep-id")
     if ttl is not None:
         argv.extend(["--ttl", str(ttl)])
+    if caller:
+        argv.extend(["--caller", caller])
     resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv))
     return _json(resp)
 
@@ -231,13 +237,17 @@ async def session_load(
 async def session_save(
     file: str,
     session: str | None = None,
+    caller: str | None = None,
 ) -> str:
     """Write the current session graph to a snapshot file.
 
     After TTL, only if ``MEMNET_SAVE_ON_EXPIRE`` (then the id is dropped).
     Auto-dir: ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Not Neo4j.
     """
-    return await _run(["session", "save", "--file", file], session=session)
+    argv = ["session", "save", "--file", file]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
 
 
 async def _pin_map(

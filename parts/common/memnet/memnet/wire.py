@@ -19,6 +19,14 @@ def split_payload(payload: str) -> list[str]:
                 current.append(nxt)
                 i += 2
                 continue
+            if nxt == "n":
+                current.append("\n")
+                i += 2
+                continue
+            if nxt == "r":
+                current.append("\r")
+                i += 2
+                continue
         if ch == "|":
             fields.append("".join(current))
             current = []
@@ -33,7 +41,12 @@ def split_payload(payload: str) -> list[str]:
 def join_payload(fields: list[str]) -> str:
     out: list[str] = []
     for field in fields:
-        escaped = field.replace("\\", "\\\\").replace("|", "\\|")
+        escaped = (
+            field.replace("\\", "\\\\")
+            .replace("|", "\\|")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+        )
         out.append(escaped)
     return "|".join(out)
 

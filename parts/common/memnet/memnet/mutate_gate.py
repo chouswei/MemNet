@@ -18,6 +18,7 @@ from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
 from memnet.same_thing_absorb import absorb_same_thing
+from memnet.tag_map import check_value_bytes
 from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
 
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
@@ -689,19 +690,27 @@ class MutateGate:
 
     def _pattern_hits(self, it: NodeRec) -> list[Record]:
         store = self.ss.store
+        hits: list[Record] | None = None
         if it.id and it.id in store._by_hid:
-            return [store._by_hid[it.id]]
-        props = dict(it.match_props or {})
-        if it.id and "id" not in props:
-            one = store.resolve_one(it.id)
-            if one is not None and not props:
-                return [one]
-            if it.id:
-                props["id"] = it.id
-        tag = it.kind or None
-        if not tag and not props:
-            return []
-        return store.match_nodes(tag=tag, props=props)
+            hits = [store._by_hid[it.id]]
+        else:
+            props = dict(it.match_props or {})
+            if it.id and "id" not in props:
+                one = store.resolve_one(it.id)
+                if one is not None and not props:
+                    hits = [one]
+                elif it.id:
+                    props["id"] = it.id
+            if hits is None:
+                tag = it.kind or None
+                if not tag and not props and it.where is None:
+                    return []
+                hits = store.match_nodes(tag=tag, props=props)
+        if it.where is not None:
+            from memnet.gql import eval_where
+
+            hits = [h for h in hits if eval_where(h, it.where)]
+        return hits
 
     def _same_thing_pair(self, it: NodeRec) -> tuple[Record, Record]:
         keep_hits = self._pattern_hits(
@@ -876,6 +885,11 @@ class MutateGate:
                 fields.setdefault(fname, base.get(fname, ""))
             if not fields.get("id"):
                 fields.pop("id", None)
+        caps = getattr(self.ss, "caps", None)
+        if caps is not None:
+            for val in fields.values():
+                if val:
+                    check_value_bytes(val, caps)
         rec = Record(tag=kind, fields=fields)
         if bound is not None:
             rec.hid = bound.hid
@@ -921,6 +935,11 @@ class MutateGate:
             fields.setdefault(fname, "")
         if not fields.get("id"):
             fields.pop("id", None)
+        caps = getattr(self.ss, "caps", None)
+        if caps is not None:
+            for val in fields.values():
+                if val:
+                    check_value_bytes(val, caps)
         rec = Record(tag="EDG", fields=fields)
         if existing is not None:
             rec.hid = existing.hid
