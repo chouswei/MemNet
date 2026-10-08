@@ -327,12 +327,10 @@ def edge_create(rel: str, eid: str, src: str, dst: str) -> str:
 
 
 def edge_delete(eid: str) -> str:
-    """Product edge DROP that actually reaches EdgeRec on 0.19.18.
+    """Product edge DROP that reaches EdgeRec.
 
-    Documented ``MATCH ()-[r {id}]-() DELETE r`` lowers as a node DROP with an
-    empty id and refuses ``@ERR: not_found|DELETE matched no element``. A node
-    WHERE filter makes ``_parse_node_patterns`` fail, so lowering takes the
-    relationship-DELETE path. GraphGlot still accepts this form.
+    ``MATCH ()-[r {id}]-() DELETE r`` now honours the relationship DELETE.
+    ``MATCH (n WHERE true)-[r {id}]->() DELETE r`` remains a valid spelling.
     """
     return f"MATCH (n WHERE true)-[r {{id: {gql_str(eid)}}}]->() DELETE r"
 
@@ -951,8 +949,11 @@ class ServeProc:
             return None, reply
         return extract_sid(reply.stdout), reply
 
-    def close(self, sid: str) -> ServeReply:
-        return self.send(["session", "close", sid])
+    def close(self, sid: str, *, caller: str | None = None) -> ServeReply:
+        args = ["session", "close", sid]
+        if caller:
+            args.extend(["--caller", caller])
+        return self.send(args)
 
     def live_count(self) -> tuple[int, int]:
         reply = self.send(["session", "list"])

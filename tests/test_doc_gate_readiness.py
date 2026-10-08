@@ -648,10 +648,12 @@ def test_e16_delete_not_refused_while_referenced(doc_serve: ServeProc):
     assert pin.exit_code == 0, redact(pin.stderr)
     assert "contains" in pin.stdout
     documented = doc_serve.mutate(sid, "MATCH ()-[r {id: 'E_drop'}]-() DELETE r\n")
-    assert documented.exit_code != 0
-    joined_doc = "\n".join(err_lines(documented.stderr))
-    assert "not_found" in joined_doc
-    assert "DELETE matched no element" in joined_doc
+    assert documented.exit_code == 0, redact(documented.stderr)
+    recreate = doc_serve.mutate(
+        sid,
+        edge_create("contains", "E_drop", "SEC_0001", "SEC_0003") + "\n",
+    )
+    assert recreate.exit_code == 0, redact(recreate.stderr)
     gone = doc_serve.mutate(sid, "MATCH (n:SEC {id: 'SEC_0002'}) DETACH DELETE n\n")
     assert gone.exit_code == 0, redact(gone.stderr)
     assert not any(e.startswith("@ERR:") for e in err_lines(gone.stderr))

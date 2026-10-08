@@ -1697,9 +1697,8 @@ def item_e16(
         )
         gaps.append("no native referenced-delete refuse")
     notes.append(
-        "Documented MATCH ()-[r {id}]-() DELETE r lowers as a node DROP with empty id "
-        "and refuses @ERR: not_found|DELETE matched no element. Atomic (a) uses "
-        "MATCH (n WHERE true)-[r {id}]->() DELETE r, which reaches EdgeRec DROP."
+        "MATCH ()-[r {id}]-() DELETE r honours relationship DELETE. Atomic (a) also "
+        "uses MATCH (n WHERE true)-[r {id}]->() DELETE r."
     )
     if a_fail:
         gaps.append(f"{a_fail} atomic mutate failures")
