@@ -1373,7 +1373,7 @@ def run_fulldoc_e12_e16(
         else:
             refuse = svc5.mutate(sid, "CREATE (:SEC {id: 'SEC_overflow'})\n")
         refuse_err = err_lines(refuse.stderr)
-        wires.extend(refuse_err)
+        wires.extend(refuse_err + err_lines(pin4000.stderr))
         write_refused_rows = refuse.exit_code != 0 and any(
             "limit_exceeded" in e and "rows" in e for e in refuse_err
         )
@@ -1405,6 +1405,7 @@ def run_fulldoc_e12_e16(
             "pin_map_50_truncation": trunc50,
             "pin_map_4000_exit": pin4000.exit_code,
             "pin_map_4000_truncation": trunc4000,
+            "pin_map_4000_err": err_lines(pin4000.stderr),
             "read_not_session_row_refuse": read_not_session_refuse,
             "partial_save_exit": save_p.exit_code,
             "partial_load_exit": load_p.exit_code,
@@ -1456,8 +1457,11 @@ def run_fulldoc_e12_e16(
             "populate_ok": full_ok,
             "rows": rows10,
             "edges": edges10,
+            "pin_map_50_exit": pin10_50.exit_code,
             "pin_map_50_truncation": _truncation_lines(pin10_50.stdout),
+            "pin_map_4000_exit": pin10_4000.exit_code,
             "pin_map_4000_truncation": _truncation_lines(pin10_4000.stdout),
+            "pin_map_4000_err": err_lines(pin10_4000.stderr),
             "save_exit": save10.exit_code,
             "load_exit": load10.exit_code,
             "load_ok": load10_ok,

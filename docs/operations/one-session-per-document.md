@@ -73,7 +73,7 @@ python scripts/probe_doc_gate_readiness.py --out /opt/cursor/artifacts/doc-gate-
 | Item | What holds on 0.19.18 |
 |------|------------------------|
 | E11 | `session load` of a 3000-node snapshot (mutate batches ≤1000 lines, then save/close/load) is **not** `ingest_budget`. Bound by `MEMNET_MAX_ROWS` (5000) at upsert. Neither batched load nor an ingest exemption is needed at 3000. |
-| E12 | `MEMNET_MAX_ROWS` (default 5000) counts **nodes plus edges** on write and `session_load`. Fulldoc 3000 nodes + 4500 edges = 7500 rows: default 5000 refuses `@ERR: limit_exceeded\|rows 5001/5000`; Pi 10000 holds it. `pin_map` read clips with `## Truncation`, not the session cap. `session_load` is not the 2000-edge ingest budget. |
+| E12 | **yes** (revised, fulldoc). Counts **nodes plus edges** on write and `session_load`. 3000 nodes then 2000 edges fill default 5000; next edge `@ERR: limit_exceeded\|rows 5001/5000`. Pi 10000 holds 7500 (`rows=7500` `edges=4500`) and `session load` of that snapshot is **not** `ingest_budget` (loaded 7500). Same 7500 snapshot on 5000: `@ERR: limit_exceeded\|rows 5001/5000`. `pin_map` read is **not** the session cap: hub `M=50` → `## Truncation truncated=true M=50 omitted=2956 reason=max_rows`; hub `M=4000` → `@ERR: response_too_large\|response 9491260 bytes exceeds cap 4194304` (4 MiB serve frame). |
 | E13 | 16 KiB strings with LaTeX / quotes / newline / `\|` / CJK survive GQL CREATE/SET/`pin_map` in RAM. Snapshot save/load does **not** survive byte-for-byte (`FIELD_COUNT` on newlines; `value_bytes 16384/4096` otherwise). Pipe leftover: value 4096, line 32768; GQL mutate skips those (bug 4). Escapes: `\\ \' \" \n \r \t` only. |
 | E14 | List literals store as JSON strings and emit as GQL lists. `'k' IN p.citeKeys` is **not** a product filter (`MATCH (p:USR) WHERE … SET` ignores WHERE and raises `cue_conflict` when \|Q\|>1). Locators are `KEY=VAL` equality on the JSON string; leftover `read list --where` can glob that string. |
 
@@ -81,4 +81,11 @@ Second RSS fixture: 3000 nodes, no edges, 1500 of them with 2/3/4 KiB text (abou
 
 Third fixture (fulldoc with edges): 3000 nodes (1500 with 2–4 KiB text) plus 4500 edges (`inSection`, `cites`, `refersTo`). Order is `SEC.order`, not an edge. New relation types need mutate `--allow-new-relation`. Default 5000 cannot hold 7500 rows; use 10000 (Pi) or split sessions.
 
-E16 (on the 10000 fulldoc session): p95 latency for (a) atomic SET + delete-one-edge + add-two-edges, and (b) reverse `pin_map` (inbound) then attempted `DETACH DELETE`. Bar 300 ms p95 on this VM; the face host may be slower. MemNet does not refuse delete-while-referenced; the gate must use the reverse lookup. Documented `MATCH ()-[r {id}]-() DELETE r` is lowered as a node DROP with an empty id and refuses `@ERR: not_found|DELETE matched no element` (not a referenced-delete check). The probe’s working edge DROP is `MATCH (n WHERE true)-[r {id}]->() DELETE r`.
+E16 (on the 10000 fulldoc session, this VM `Intel(R) Xeon(R) Processor` 4-core KVM; the face host may be slower). Bar 300 ms p95, n=200, direct serve loopback, warm session.
+
+| Leg | p50 / p95 / max (ms) | Versus 300 ms |
+|-----|----------------------|---------------|
+| (a) atomic SET 2 KiB + delete 1 edge + add 2 | 115.686 / **133.181** / 155.571 | under bar |
+| (b) reverse `pin_map` hub `M=400` | 113.096 / **129.613** / 163.101 | under bar |
+
+**note:** MemNet has **no** native delete-refused-while-referenced check. `DETACH DELETE` of a node with inbound edges exits 0 and leaves dangling edges. The gate must refuse from the reverse lookup (`## Truncation truncated=true M=400 omitted=2604 reason=max_rows` on the hub). Documented `MATCH ()-[r {id}]-() DELETE r` is lowered as a node DROP with an empty id and refuses `@ERR: not_found|DELETE matched no element` (not a referenced-delete check). The probe's working edge DROP is `MATCH (n WHERE true)-[r {id}]->() DELETE r`.
