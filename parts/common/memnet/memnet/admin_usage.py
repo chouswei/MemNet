@@ -22,7 +22,7 @@ from memnet import __version__
 from memnet.config import Caps, expire_save_status, serve_max_frame_bytes
 from memnet.exceptions import MemNetError
 from memnet.registry import count as registry_count
-from memnet.registry import list_entries
+from memnet.registry import count_expire_snapshot_failed, list_entries
 
 ENV_ADMIN_TOKEN = "MEMNET_ADMIN_TOKEN"
 ERR_UNCONFIGURED = "admin_unconfigured"
@@ -159,10 +159,15 @@ def build_report(token: str) -> dict[str, Any]:
     if rss is None:
         unavailable.append("rss_bytes")
     live = registry_count()
+    expire_failed = count_expire_snapshot_failed()
     session_rows = _peek_session_rows(token, caps, flags["save_on_expire"], unavailable)
     report = {
         "ok": True,
-        "sessions": {"live": live, "max": caps.max_sessions},
+        "sessions": {
+            "live": live,
+            "max": caps.max_sessions,
+            "expire_snapshot_failed": expire_failed,
+        },
         "session_rows": session_rows,
         "process": {
             "version": __version__,
@@ -295,6 +300,7 @@ def _peek_session_rows(
             "last_access": last,
             "ttl_left_s": ttl_left,
             "save_on_expire_armed": save_on_expire,
+            "expire_snapshot_failed": bool(entry.expire_save_failed),
         }
         rows.append(row)
     rows.sort(key=lambda r: str(r.get("alias") or ""))

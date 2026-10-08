@@ -45,6 +45,7 @@ class NodeRec:
     same_thing: bool = False
     absorb_kind: str = ""
     absorb_match_props: dict[str, str] = field(default_factory=dict)
+    where: object | None = None
 
 
 @dataclass

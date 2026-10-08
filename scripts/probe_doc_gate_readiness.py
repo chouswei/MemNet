@@ -337,21 +337,20 @@ def item3_roundtrip(svc: ServeProc, tmp: Path, *, n_parts: int) -> ItemResult:
     load_nl = svc.load_file(snap_nl)
     wires.extend(err_lines(extra.stderr) + err_lines(save_nl.stderr) + err_lines(load_nl.stderr))
     multiline_field_count = any("FIELD_COUNT" in e for e in err_lines(load_nl.stderr))
-    if load_nl.exit_code == 0:
-        gaps.append("multi-line text unexpectedly loaded")
-    elif not multiline_field_count:
-        gaps.append("multi-line load failed but not FIELD_COUNT")
+    multiline_ok = load_nl.exit_code == 0 and extra.exit_code == 0 and save_nl.exit_code == 0
+    if not multiline_ok:
+        gaps.append("multi-line text failed to save/load")
+        if multiline_field_count:
+            gaps.append("multi-line load still FIELD_COUNT")
     else:
         notes.append(
-            "Raw newlines in a property survive mutate in RAM; leftover snapshot "
-            "emit does not escape them, so load raises FIELD_COUNT."
+            "Newlines in a property escape on snapshot emit; load splits LF-only "
+            "and round-trips the value."
         )
 
     if not exact:
         gaps.append("canonical dump differed after save/load (single-line text)")
-    verdict = "note" if exact and multiline_field_count else ("yes" if exact else "no")
-    if exact and multiline_field_count:
-        verdict = "note"
+    verdict = "yes" if exact and multiline_ok else "no"
     return ItemResult(
         item="3 Snapshot round-trip",
         verdict=verdict,
@@ -363,6 +362,7 @@ def item3_roundtrip(svc: ServeProc, tmp: Path, *, n_parts: int) -> ItemResult:
             "exact_canonical_single_line": exact,
             "multiline_load_exit": load_nl.exit_code,
             "multiline_field_count": multiline_field_count,
+            "multiline_ok": multiline_ok,
             "src_bytes": len(src_text),
             "write_once": wo,
         },
@@ -443,12 +443,14 @@ def item5_acl(svc: ServeProc) -> ItemResult:
     bind = svc.acl_bind(sid, "mission-a", "lease-a")
     checks: dict[str, dict[str, Any]] = {}
 
-    lifecycle = {
+    lifecycle_must_acl = {
         "save missing caller",
+        "close missing caller",
+    }
+    lifecycle_must_ok = {
         "save with caller",
         "load with caller",
-        "close missing caller",
-        "bind mutate without mission/lease",
+        "close with caller",
     }
 
     def rec(name: str, reply: ServeReply, *, expect_acl: bool) -> None:
@@ -459,7 +461,7 @@ def item5_acl(svc: ServeProc) -> ItemResult:
             for ln in (reply.stderr or "").splitlines()
         )
         acl_hit = any(e.startswith("@ERR: acl_") for e in errs)
-        skipped = name in lifecycle and not acl_hit
+        skipped = name in lifecycle_must_acl and not acl_hit
         checks[name] = {
             "exit": reply.exit_code,
             "acl_hit": acl_hit,
@@ -530,12 +532,13 @@ def item5_acl(svc: ServeProc) -> ItemResult:
         svc.save(sid, svc.snap_dir / "acl-save2.snap", caller="owner"),
         expect_acl=True,
     )
-    rec(
-        "load with caller",
-        svc.load_file(svc.snap_dir / "acl-save.snap", caller="owner"),
-        expect_acl=True,
-    )
+    load_acl = svc.load_file(svc.snap_dir / "acl-save2.snap", caller="owner")
+    rec("load with caller", load_acl, expect_acl=True)
+    loaded_sid = _sid_from(load_acl.stdout)
+    if loaded_sid:
+        svc.close(loaded_sid)
     rec("close missing caller", svc.close(sid), expect_acl=True)
+    rec("close with caller", svc.close(sid, caller="owner"), expect_acl=True)
 
     # Bind skip: reopen, grant+bind, mutate without mission/lease through serve.
     sid2 = svc.open_session()
@@ -555,9 +558,14 @@ def item5_acl(svc: ServeProc) -> ItemResult:
     skipped = [k for k, v in checks.items() if v.get("skipped")]
     checked = [k for k, v in checks.items() if v.get("acl_hit")]
     gaps = [f"ACL not checked: {k}" for k in skipped]
+    for name in lifecycle_must_ok:
+        row = checks.get(name) or {}
+        if row.get("exit") != 0:
+            gaps.append(f"ACL lifecycle should succeed: {name}")
     notes = [
         f"grant exit={grant.exit_code} bind exit={bind.exit_code}",
         "Bind is skipped on serve (MEMNET_SERVE_INTERNAL=1) — confirmed below.",
+        "session save / close who-check when ACL is enabled (`--caller`).",
         f"bind_skipped={bind_skipped}",
     ]
     wires = []
@@ -567,9 +575,11 @@ def item5_acl(svc: ServeProc) -> ItemResult:
     who_ok = any("acl_who" in e for row in checks.values() for e in row["errs"])
     denied_ok = any("acl_denied" in e for row in checks.values() for e in row["errs"])
     scope_ok = any("acl_scope" in e for row in checks.values() for e in row["errs"])
-    verdict = "note" if skipped else "yes"
+    lifecycle_ok = not skipped and all(
+        (checks.get(k) or {}).get("exit") == 0 for k in lifecycle_must_ok
+    )
+    verdict = "yes" if (who_ok and denied_ok and lifecycle_ok) else "no"
     if not (who_ok and denied_ok):
-        verdict = "no"
         gaps.append("missing acl_who and/or acl_denied on pin_map/mutate")
     return ItemResult(
         item="5 Per-session ACL over serve",
@@ -958,12 +968,16 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     props = shaped_node_props(pin.stdout) or {}
     got = props.get("value")
     ram_ok = create.exit_code == 0 and setted.exit_code == 0 and got == blob
+    over_cap = any("value_bytes" in e for e in err_lines(create.stderr))
     cases["pin_map_roundtrip"] = ram_ok
     cases["pin_map_exit"] = pin.exit_code
     cases["pin_map_value_bytes"] = len(got.encode("utf-8")) if isinstance(got, str) else None
-    if not ram_ok:
-        gaps.append("16 KiB special blob did not round-trip CREATE/SET/pin_map")
+    cases["create_value_bytes"] = over_cap
+    if ram_ok:
+        gaps.append("16 KiB special blob was accepted by GQL mutate (value_bytes should refuse)")
         wires.extend(err_lines(pin.stderr))
+    elif not over_cap:
+        gaps.append("16 KiB CREATE refused but not value_bytes")
 
     bad_esc = svc.mutate(
         sid,
@@ -1020,28 +1034,20 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     }
     wires.extend(err_lines(load3.stderr))
 
-    snap_ok = load.exit_code == 0 and load2.exit_code == 0 and load3.exit_code == 0
-    if snap_ok:
-        gaps.append("16 KiB snapshot load unexpectedly succeeded for all variants")
     notes = [
         "GQL string literals: single or double quotes; escapes are \\\\ \\' \\\" \\n \\r \\t only. "
-        "Unknown escape -> parse_error (GraphGlot/ParseError). gql mutate does not enforce "
-        "MEMNET_MAX_VALUE_BYTES=4096 or MEMNET_MAX_LINE_BYTES=32768 (cap-contract bug 4).",
-        "Leftover parse_line: value_bytes 4096 -> @ERR: limit_exceeded|value_bytes {n}/{max} "
-        "(inner pipe becomes space); line_bytes 32768 -> limit_exceeded|line_bytes; "
-        "newline_in_value; FIELD_COUNT. Mutate stdin: batch_lines 1000. Serve frame 4 MiB.",
+        "Unknown escape -> parse_error (GraphGlot/ParseError). GQL mutate, leftover pipe, "
+        "and snapshot load share decoded MEMNET_MAX_VALUE_BYTES=4096 "
+        "(`limit_exceeded|value_bytes n/max`). line_bytes 32768 is leftover-pipe / "
+        "snapshot escaped line, not a GQL statement cap.",
         "ISO INSERT is not the mutate spelling (CREATE is).",
     ]
-    if ram_ok and not snap_ok:
-        verdict = "note"
-        notes.append(
-            "16 KiB survives CREATE/SET/pin_map in RAM (bug 4). Snapshot save/load does not "
-            "round-trip byte-for-byte. Newlines split leftover pipe lines (FIELD_COUNT). "
-            "Leftover emit escapes | as \\| so a 16 KiB value with pipes still hits "
-            "value_bytes 16384/4096, same as a plain 16 KiB value."
-        )
-    elif ram_ok and snap_ok:
+    if not ram_ok and over_cap:
         verdict = "yes"
+        notes.append(
+            "16 KiB CREATE/SET refuse at write time with value_bytes 16384/4096. "
+            "Nothing is stored; snapshot save of that session does not write the blob."
+        )
     else:
         verdict = "no"
     return ItemResult(
@@ -1136,24 +1142,22 @@ def item_e14_lists(svc: ServeProc) -> ItemResult:
     notes = [
         "GQL parser accepts [a, b] lists; _value_to_store json.dumps them into a string field. "
         "pin_map re-parses JSON-looking [ ] on emit.",
-        "pin_map / find locators are KEY=VAL exact equality (no IN membership). leftover "
+        "pin_map / find locators are KEY=VAL exact equality. leftover "
         "read list --where is field=value with * ? glob on the JSON string.",
-        "MATCH…WHERE is not a product mutate form; leftover lowering has no IN operator.",
+        "MATCH WHERE 'k' IN p.citeKeys SET honours membership; a miss is not SET.",
     ]
     if membership_works:
         verdict = "yes"
-        notes.append("WHERE 'k' IN p.citeKeys unexpectedly filtered (product IN).")
     elif store_ok and not membership_works:
-        verdict = "note"
+        verdict = "no"
         if where_ignored:
             notes.append(
                 "WHERE 'k' IN p.citeKeys SET applied to every matched USR (WHERE ignored)."
             )
             gaps.append("WHERE IN is ignored on leftover MATCH…SET (not membership filter)")
         elif in_mut.exit_code != 0:
-            notes.append(
-                "WHERE IN mutate refused (see wire). Lists store; membership filter does not."
-            )
+            notes.append("WHERE IN mutate refused (see wire).")
+            gaps.append("WHERE IN did not filter")
         if not loc_hit:
             notes.append("locator equality on the JSON string is the only pin_map list lookup.")
     else:
@@ -1693,9 +1697,8 @@ def item_e16(
         )
         gaps.append("no native referenced-delete refuse")
     notes.append(
-        "Documented MATCH ()-[r {id}]-() DELETE r lowers as a node DROP with empty id "
-        "and refuses @ERR: not_found|DELETE matched no element. Atomic (a) uses "
-        "MATCH (n WHERE true)-[r {id}]->() DELETE r, which reaches EdgeRec DROP."
+        "MATCH ()-[r {id}]-() DELETE r honours relationship DELETE. Atomic (a) also "
+        "uses MATCH (n WHERE true)-[r {id}]->() DELETE r."
     )
     if a_fail:
         gaps.append(f"{a_fail} atomic mutate failures")
@@ -1828,46 +1831,42 @@ def item_e17(
 
     common_sum = latency_summary(common_samples)
     rare_sum = latency_summary(rare_samples)
-    contains_filters = False
+    contains_filters = not where_ignored
     ret_gate = any(
         "product_gate" in e and "RETURN" in e for e in form_results["contains_return"]["errs"]
     )
-    set_conflict = any("cue_conflict" in e for e in form_results["contains_set_squote_cjk"]["errs"])
     starts_same = any("cue_conflict" in e for e in form_results["starts_with"]["errs"])
     regex_same = any("cue_conflict" in e for e in form_results["regex"]["errs"])
     keyword_ok = common_find.exit_code == 0 and common_n > 0 and rare_find.exit_code == 0
     notes = [
         f"cpu_model={cpu}",
         "GQL MATCH … WHERE n.value CONTAINS '…' RETURN n is refused "
-        "(product_gate forbids RETURN). MATCH … WHERE … SET parses, but "
-        "_split_match_body cuts at SET and dropping WHERE; |Q|>1 is cue_conflict; "
-        "a unique MATCH still SET when CONTAINS would miss.",
+        "(product_gate forbids RETURN). MATCH … WHERE … SET honours the "
+        "predicate; a unique MATCH miss is not_found and does not SET. "
+        "SET of |Q|>1 after WHERE is still cue_conflict (unique-SET law), "
+        "not a dropped WHERE.",
         "Needle escaping is GQL string rules only (\\\\ \\' \\\" \\n \\r \\t). "
         "CJK and $ need no escape. Both '…' and \"…\" parse for the CONTAINS "
-        "operand. A single quote inside a single-quoted needle is \\'; a double "
-        "quote sits in a single-quoted needle as '\"' or a single quote in "
-        'double quotes as "\'". This does not make CONTAINS a filter.',
-        "Working substring: query find --keyword / pin_map --keyword "
+        "operand.",
+        "Keyword substring: query find --keyword / pin_map --keyword "
         "(casefold haystack; explicit --limit / --max-rows). leftover "
         "read list --where field=*glob* works on a small graph; listing "
-        "1500 fat USR values can hit the 4 MiB serve frame. STARTS WITH / "
-        "ENDS WITH / =~ are the same ignored-WHERE SET path, not filters.",
-        "Latency below is find --keyword on the warm fulldoc (not CONTAINS).",
+        "1500 fat USR values can hit the 4 MiB serve frame.",
+        "Latency below is find --keyword on the warm fulldoc.",
     ]
-    if not where_ignored:
-        gaps.append("unique MATCH WHERE CONTAINS miss did not SET (WHERE might filter)")
+    if where_ignored:
+        gaps.append("unique MATCH WHERE CONTAINS miss still SET (WHERE ignored)")
     if not keyword_ok:
         gaps.append("find --keyword did not return seeds")
-    if contains_filters:
+    where_honoured = not where_ignored
+    if where_honoured and ret_gate and keyword_ok:
         verdict = "yes"
-    elif ret_gate and set_conflict and keyword_ok and where_ignored:
-        verdict = "note"
     else:
         verdict = "no"
         if not ret_gate:
             gaps.append("CONTAINS RETURN was not product_gate")
-        if not set_conflict:
-            gaps.append("CONTAINS SET was not cue_conflict")
+        if not where_honoured:
+            gaps.append("WHERE CONTAINS miss still SET")
     return ItemResult(
         item="E17 GQL WHERE CONTAINS substring",
         verdict=verdict,
@@ -2024,13 +2023,14 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
     a_exact_4000 = all(a_rows[k].get("exact") for k in keys_4000)
     a_exact_4096 = all(a_rows[k].get("exact") for k in keys_4096)
     tab_ok = bool(b_rows["tab_mid"].get("exact") and b_rows["tab_end"].get("exact"))
-    cr_breaks = not b_rows["cr_mid"].get("exact") and not b_rows["cr_end"].get("exact")
+    cr_ok = bool(b_rows["cr_mid"].get("exact") and b_rows["cr_end"].get("exact"))
+    nl_ok = bool(b_rows.get("nl_mid", {}).get("exact"))
     schema_64_refused = schema_open["64"]["open_exit"] != 0
     schema_128_refused = schema_open["128"]["open_exit"] != 0
     extras_ram = bool(width64.get("ram_has_extras") and width128.get("ram_has_extras"))
-    extras_dropped = (not width64.get("loaded_has_extras")) and (
-        not width128.get("loaded_has_extras")
-    )
+    extras_save_refused = width64.get("save_exit") not in (0, None) and width128.get(
+        "save_exit"
+    ) not in (0, None)
     fat_ok = bool(fat_row.get("exact"))
     decoded = bool(caps.get("value_bytes_on_decoded_field") and caps.get("value_bytes_gt_not_ge"))
 
@@ -2042,17 +2042,20 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         gaps.append("SCHEMA 64/128 did not refuse max_fields")
     if not tab_ok:
         gaps.append("tab did not round-trip")
-    if not cr_breaks:
-        gaps.append("CR unexpectedly round-tripped")
+    if not cr_ok:
+        gaps.append("CR did not round-trip")
+    if not extras_save_refused:
+        gaps.append("64/128 extras on 4-field USR did not refuse at save (max_fields)")
 
     predicted = (
         decoded
         and a_exact_4000
         and a_exact_4096
         and tab_ok
-        and cr_breaks
+        and cr_ok
         and schema_64_refused
         and schema_128_refused
+        and extras_save_refused
     )
     if predicted:
         verdict = "yes"
@@ -2063,10 +2066,11 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
 
     notes = [
         "value_bytes 4096 is measured on the decoded field after split_payload "
-        "(validate_values uses `>` not `>=`). join_payload expands `\\` and `|` "
-        "only; that expansion is not the cap. line_bytes 32768 is the raw "
-        "snapshot line before split. SCHEMA register vs max_fields=32. "
-        "emit_record writes SCHEMA columns only.",
+        "(check_value_bytes uses `>` not `>=`). join_payload escapes splitlines "
+        "separators plus `\\` and `|`; that expansion is not the value cap. "
+        "line_bytes 32768 is the escaped/raw snapshot line. SCHEMA register vs "
+        "max_fields=32. Snapshot save widens SCHEMA for undeclared RAM keys; "
+        "extras over max_fields refuse snapshot_unsaveable.",
         "E18e CJK 4000: " + e18_cjk_composition(4000, han=E18_HAN) + ".",
         "E18e CJK 4096: " + e18_cjk_composition(4096, han=E18_HAN) + ".",
         "CREATE wires use gql_str (\\\\ \\' \\\" \\n \\r \\t). Proof numbers omit blobs.",
@@ -2089,10 +2093,11 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
             "a_exact_4000": a_exact_4000,
             "a_exact_4096": a_exact_4096,
             "tab_roundtrip": tab_ok,
-            "cr_breaks": cr_breaks,
+            "cr_roundtrip": cr_ok,
+            "nl_roundtrip": nl_ok,
             "schema_64_128_refused": schema_64_refused and schema_128_refused,
             "extras_in_ram": extras_ram,
-            "extras_dropped_on_load": extras_dropped,
+            "extras_save_refused_over_max_fields": extras_save_refused,
             "fat_8x4000_exact": fat_ok,
         },
         wires=[w for w in wires if w],

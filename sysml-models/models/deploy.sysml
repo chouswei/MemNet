@@ -170,9 +170,17 @@ package MemNet {
     attribute saveOnExpireConfigurable : Boolean = true;
     attribute envSaveOnExpire : String = "MEMNET_SAVE_ON_EXPIRE";
     attribute envExpireSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";
+    attribute envMaxValueBytes : String = "MEMNET_MAX_VALUE_BYTES";
+    attribute maxValueBytesDefault : Integer = 4096;
+    attribute valueBytesOnDecodedRaw : Boolean = true;
+    attribute gqlMutateEnforcesValueBytes : Boolean = true;
+    attribute lineBytesOnEmittedLine : Boolean = true;
+    attribute sessionSaveLoadCloseAclWho : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
   }
@@ -427,10 +435,16 @@ package MemNet {
     attribute libraryIngestThisCut : Boolean = true;
     part allocator : IdAllocator;
     part caps : CapsPolicy;
+    attribute honourWhereOrRefuse : Boolean = true;
+    attribute whereTrueEdgeDeleteKept : Boolean = true;
+    attribute matchMapEqualityKept : Boolean = true;
+    attribute gqlValueBytesHardCap : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_4_HonourWherePredicate;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
@@ -1053,11 +1067,13 @@ package MemNet {
       (MN-REQ-01.4--01.6). MUST NOT be taken as MN-REQ-11 pin-map export.
       Expire-time save is configurable (MEMNET_SAVE_ON_EXPIRE default
       off). When on, TTL drops RAM and MAY write a file
-      (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file). The file
-      remains until the user deletes it. session_load restores a live
-      session. Explicit session_save and expire-save write one blob
-      (explicitSaveAndExpireSaveOneBlob). MUST NOT treat this as Neo4j
-      cabinet dump. storageRole file_snapshot.
+      (MEMNET_EXPIRE_SNAPSHOT_DIR and/or session save --file) unless
+      the write fails: then RAM stays (expireSaveFailureKeepsRam),
+      still counts against maxSessions, and retries warn
+      expire_snapshot_failed. The file remains until the user deletes
+      it. session_load restores a live session. Explicit session_save
+      and expire-save write one blob (explicitSaveAndExpireSaveOneBlob).
+      MUST NOT treat this as Neo4j cabinet dump. storageRole file_snapshot.
     */
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
@@ -1075,11 +1091,28 @@ package MemNet {
     attribute notWholeCabinetDump : Boolean = true;
     attribute loadByKnownSid : Boolean = true;
     attribute expireMissHonest : Boolean = true;
+    attribute losslessPropertyRoundTrip : Boolean = true;
+    attribute failClosedUnsaveable : Boolean = true;
+    attribute expireSaveUnsaveableNoFile : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
+    attribute expireSaveFailureCountsCap : Boolean = true;
+    attribute expireSaveFailureWarnRetry : Boolean = true;
+    attribute expireSaveFailureOverdueAccess : Boolean = true;
+    attribute expireSaveFailureClearedBySaveOrClose : Boolean = true;
+    attribute expireSaveOffDropsRam : Boolean = true;
+    attribute legacy01918Load : Boolean = true;
+    attribute escapeLfCrPipeBackslash : Boolean = true;
+    attribute splitlinesSeparatorsEscaped : Boolean = true;
+    attribute recordSplitLfOnly : Boolean = true;
+    attribute persistUndeclaredProperties : Boolean = true;
+    attribute lineBytesOnEmittedLine : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_3_SessionTtlAndCaps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
   }
 
@@ -1119,6 +1152,7 @@ package MemNet {
     part snap : SnapshotStore;
     attribute slidingTtl : Boolean = true;
     attribute ramDropsOnTtl : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
 
     connection gqlParseToMutate : GraphRecordFlow {
       end port source ::> gqlWire.recordsOut;
@@ -1360,15 +1394,20 @@ package MemNet {
     attribute implemented : Boolean = true;
     attribute productCommand : Boolean = true;
     attribute dumpsS : Boolean = false;
+    attribute acceptsCaller : Boolean = true;
+    attribute aclWhoWhenEnabled : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
   part def CmdSessionSave {
     doc /*
       TARGET: session save. Session handle is not a graph store key.
-      After TTL, save only if MEMNET_SAVE_ON_EXPIRE; then RAM id drops.
+      After TTL, save only if MEMNET_SAVE_ON_EXPIRE; then RAM id drops
+      when the snapshot writes. A failed expire-save keeps RAM until
+      an explicit successful session_save or session_close.
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute implemented : Boolean = true;
@@ -1376,6 +1415,14 @@ package MemNet {
     attribute saveOnExpireConfigurable : Boolean = true;
     attribute saveOnExpireDefault : Boolean = false;
     attribute ramDropsAfterExpireSave : Boolean = true;
+    attribute expireSaveFailureKeepsRam : Boolean = true;
+    attribute acceptsCaller : Boolean = true;
+    attribute aclWhoWhenEnabled : Boolean = true;
+    attribute failClosedUnsaveable : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
   }
 
   part def CmdSessionLoad {
@@ -1395,6 +1442,13 @@ package MemNet {
     attribute loadByKnownSid : Boolean = true;
     attribute expireSnapKeepId : Boolean = true;
     attribute mustNotEchoSid : Boolean = true;
+    attribute acceptsCaller : Boolean = true;
+    attribute aclWhoWhenEnabled : Boolean = true;
+    attribute legacy01918Load : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
   }
 
   part def CmdFind {
@@ -1621,6 +1675,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
@@ -1712,6 +1768,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_1_InProcessPrimary;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_1_GenericToolSurface;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_2_StructuredToolEnvelope;
@@ -2916,11 +2974,14 @@ package MemNet {
   part def ServeStatusLook {
     doc /*
       Display serve_status: up / host / port plus expire-save booleans
-      (save_on_expire, expire_snapshot_dir_set). Path redacted. Look only.
+      (save_on_expire, expire_snapshot_dir_set) and the count of
+      sessions held because expire-save failed
+      (expire_snapshot_failed). Path redacted. Look only.
     */
     attribute lookOnly : Boolean = true;
     attribute saveOnExpireFlag : Boolean = true;
     attribute expireSnapshotDirSetFlag : Boolean = true;
+    attribute expireSnapshotFailedCount : Boolean = true;
     attribute pathRedacted : Boolean = true;
   }
 

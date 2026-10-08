@@ -166,10 +166,9 @@ def test_mission_empty_nick_infile_save_load(memnet_temp, tmp_path: Path):
     assert "invalid_relation" not in load.stderr
 
 
-def test_session_save_warns_when_qname_not_in_schema(memnet_temp, tmp_path: Path):
-    """H2: RAM qname is dropped on emit_record if SCHEMA omits it — warn, do not rewrite SCHEMA."""
+def test_session_save_qname_not_in_schema_persists(memnet_temp, tmp_path: Path):
+    """Undeclared RAM extras persist by widening snapshot SCHEMA (MN-REQ-01.9)."""
     del memnet_temp
-    from memnet.output import reset_warn_budget
     from memnet.snapshot import snapshot_locator_schema_warnings
 
     narrow = [
@@ -185,11 +184,8 @@ def test_session_save_warns_when_qname_not_in_schema(memnet_temp, tmp_path: Path
     )
     prt = ss.store.list_records("PRT")[0]
     assert prt.fields.get("qname") == "Pkg::Valve"
-    warns = snapshot_locator_schema_warnings(ss)
-    assert any("PRT.qname" in w for w in warns)
-    assert not any("PRT.path" in w for w in warns)
+    assert snapshot_locator_schema_warnings(ss) == []
 
-    reset_warn_budget()
     snap_path = tmp_path / "narrow.snap"
     save = runner.invoke(
         app,
@@ -197,10 +193,13 @@ def test_session_save_warns_when_qname_not_in_schema(memnet_temp, tmp_path: Path
     )
     assert save.exit_code == 0, save.stderr
     mixed = save.stderr + save.stdout
-    assert "snapshot_schema_drop" in mixed
-    assert "PRT.qname" in mixed
+    assert "snapshot_schema_drop" not in mixed
     text = snap_path.read_text(encoding="utf-8")
-    assert "Pkg::Valve" not in text
+    assert "Pkg::Valve" in text
+    assert "qname" in text
+    loaded = load_snapshot(snap_path)
+    got = next(r for r in loaded.store.list_records("PRT") if r.fields.get("name") == "Valve")
+    assert got.fields.get("qname") == "Pkg::Valve"
 
     wide = open_session(map_lines=_MISSION_MAP)
     _mission_graph(wide)
@@ -397,4 +396,5 @@ def test_session_expire_status_booleans(memnet_temp, tmp_path: Path, monkeypatch
     assert on.exit_code == 0, on.output
     assert "@STAT: save_on_expire|1|" in on.stdout
     assert "@STAT: expire_snapshot_dir_set|1|" in on.stdout
+    assert "@STAT: expire_snapshot_failed|0|" in on.stdout
     _assert_err_sid_free(on.stdout, on.stderr)

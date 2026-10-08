@@ -102,8 +102,27 @@ def test_every_cap_and_write_proof(memnet_temp, tmp_path: Path):
     val = by_name["pipe_value_bytes"]
     assert val.library_code == "limit_exceeded"
     assert val.wire.startswith("@ERR: limit_exceeded|value_bytes")
+    assert not val.bug
+    gql_val = by_name["gql_mutate_value_bytes"]
+    assert gql_val.library_code == "limit_exceeded"
+    assert gql_val.wire.startswith("@ERR: limit_exceeded|value_bytes")
+    assert not gql_val.bug
+    unpred = by_name["unsupported_predicate"]
+    assert unpred.library_code == "unsupported_predicate"
+    assert unpred.wire.startswith("@ERR: unsupported_predicate|WHERE")
+    assert "is not honoured" in unpred.wire
+    unsave = by_name["snapshot_unsaveable"]
+    assert unsave.library_code == "snapshot_unsaveable"
+    assert unsave.wire.startswith("@ERR: snapshot_unsaveable|")
+    who_save = by_name["acl_who_session_save"]
+    assert "acl_who" in who_save.wire
+    who_close = by_name["acl_who_session_close"]
+    assert "acl_who" in who_close.wire
+    who_load = by_name["acl_who_session_load"]
+    assert "acl_who" in who_load.wire
     lineb = by_name["pipe_line_bytes"]
     assert lineb.wire.startswith("@ERR: limit_exceeded|line_bytes")
+    assert not lineb.bug
 
     batch = by_name["mutate_batch_lines"]
     assert batch.wire == "@ERR: limit_exceeded|batch_lines 3/2"
@@ -227,6 +246,9 @@ def test_doc_lists_live_defaults_and_wires():
         "serve_timeout",
         "snap_model",
         "1 catalog + N interiors",
+        "MEMNET_MAX_VALUE_BYTES",
+        "unsupported_predicate",
+        "snapshot_unsaveable",
     ):
         assert needle in text, needle
 

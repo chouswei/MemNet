@@ -27,6 +27,7 @@ from memnet.registry import (
     SessionEntry,
     clear_all,
     count,
+    count_expire_snapshot_failed,
     get_entry,
     list_entries,
     list_expired_ids,
@@ -217,12 +218,33 @@ def resolve_expire_load_path(session_id: str, caps: Caps | None = None) -> Path:
     raise MemNetError("session_expired", "snap_missing", exit_code=2)
 
 
+def _mark_expire_save_failed(session_id: str, code: str) -> None:
+    entry = get_entry(session_id)
+    if entry is None:
+        return
+    entry.expire_save_failed = code
+    emit_wrn("expire_snapshot_failed", code, force=True)
+
+
+def _clear_expire_save_failed(session_id: str) -> None:
+    entry = get_entry(session_id)
+    if entry is not None:
+        entry.expire_save_failed = None
+
+
+def expire_save_enabled(caps: Caps | None = None) -> bool:
+    if caps is not None:
+        return bool(getattr(caps, "save_on_expire", False))
+    return save_on_expire()
+
+
 def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str | None:
     """Configurable expire ``session_save``. Off unless ``MEMNET_SAVE_ON_EXPIRE``.
 
     Auto path also needs ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Entry must remain.
+    On write failure the session stays live and ``expire_save_failed`` is set.
     """
-    enabled = bool(getattr(caps, "save_on_expire", False)) if caps is not None else save_on_expire()
+    enabled = expire_save_enabled(caps)
     if not enabled:
         return None
     dest_dir = getattr(caps, "expire_snapshot_dir", None) if caps is not None else None
@@ -235,20 +257,39 @@ def snapshot_expired_session(session_id: str, caps: Caps | None = None) -> str |
         return None
     name = expire_snap_filename(session_id)
     if name is None:
-        emit_wrn("expire_snapshot_failed", "unsafe_sid")
+        _mark_expire_save_failed(session_id, "unsafe_sid")
         return None
     from memnet.snapshot import write_snapshot
 
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        _mark_expire_save_failed(session_id, type(exc).__name__)
+        return None
     path = dest_dir / name
     ss = SessionStore(session_id, caps)
     try:
         write_snapshot(ss, path)
     except OSError as exc:
-        emit_wrn("expire_snapshot_failed", type(exc).__name__)
+        _mark_expire_save_failed(session_id, type(exc).__name__)
         return None
+    except MemNetError as exc:
+        _mark_expire_save_failed(session_id, exc.code)
+        return None
+    _clear_expire_save_failed(session_id)
     emit_wrn("expire_snapshot", "written")
     return str(path)
+
+
+def expire_save_should_drop(session_id: str, caps: Caps | None = None) -> bool:
+    """Try expire-save. True means drop RAM; False means keep live after a write failure."""
+    if not expire_save_enabled(caps):
+        return True
+    path = snapshot_expired_session(session_id, caps)
+    if path is not None:
+        return True
+    entry = get_entry(session_id)
+    return not (entry is not None and entry.expire_save_failed)
 
 
 def purge_expired(caps: Caps | None = None, *, keep: str | None = None) -> None:
@@ -256,13 +297,18 @@ def purge_expired(caps: Caps | None = None, *, keep: str | None = None) -> None:
     for sid in list_expired_ids(now):
         if keep is not None and sid == keep:
             continue
-        snapshot_expired_session(sid, caps)
-        remove_entry(sid)
+        if expire_save_should_drop(sid, caps):
+            remove_entry(sid)
 
 
-def count_sessions() -> int:
-    purge_expired()
+def count_sessions(caps: Caps | None = None) -> int:
+    purge_expired(caps)
     return count()
+
+
+def expire_hold_count() -> int:
+    """Sessions kept in RAM because expire-save failed. Peek; does not purge."""
+    return count_expire_snapshot_failed()
 
 
 def open_session(
@@ -274,10 +320,10 @@ def open_session(
 ) -> SessionStore:
     caps = caps or Caps()
     purge_expired(caps)
-    if count_sessions() >= caps.max_sessions:
+    if count_sessions(caps) >= caps.max_sessions:
         raise MemNetError(
             "limit_exceeded",
-            f"sessions|{count_sessions() + 1}/{caps.max_sessions}",
+            f"sessions|{count_sessions(caps) + 1}/{caps.max_sessions}",
         )
     if ttl_minutes is None:
         ttl_minutes = default_ttl_minutes()
@@ -326,10 +372,12 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
         raise_session_miss(session_id, caps, saw_expire=False)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
-        snapshot_expired_session(session_id, caps)
-        remove_entry(session_id)
-        purge_expired(caps)
-        raise_session_miss(session_id, caps, saw_expire=True)
+        if expire_save_should_drop(session_id, caps):
+            remove_entry(session_id)
+            purge_expired(caps)
+            raise_session_miss(session_id, caps, saw_expire=True)
+        purge_expired(caps, keep=session_id)
+        raise MemNetError("session_expired", "overdue", exit_code=2)
     # Sliding TTL: extend on access (avoids silent expiry for long sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
@@ -372,18 +420,30 @@ def list_sessions(caps: Caps | None = None) -> list[tuple[str, str, int, str]]:
     out: list[tuple[str, str, int, str]] = []
     for entry in list_entries():
         expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
-        if expires < now:
+        overdue = expires < now
+        if overdue and not entry.expire_save_failed:
             continue
-        ttl_left = max(0, int((expires - now).total_seconds() // 60))
+        ttl_left = 0 if overdue else max(0, int((expires - now).total_seconds() // 60))
         modified = entry.meta.modified_at or "-"
         out.append((entry.meta.session_id, entry.meta.expires_at, ttl_left, modified))
     out.sort(key=lambda row: row[0])
     return out
 
 
+def get_session_for_close(session_id: str, caps: Caps | None = None) -> SessionStore:
+    """Load a session for ``session_close``, including overdue expire-save holds."""
+    caps = caps or Caps()
+    entry = get_entry(session_id)
+    if entry is None:
+        purge_expired(caps)
+        raise_session_miss(session_id, caps, saw_expire=False)
+    purge_expired(caps, keep=session_id)
+    return SessionStore(session_id, caps)
+
+
 def close_session(session_id: str, caps: Caps | None = None) -> None:
     caps = caps or Caps()
-    ss = get_session(session_id, caps)
+    ss = get_session_for_close(session_id, caps)
     with ss.lock(exclusive=True):
         if not remove_entry(session_id):
             raise MemNetError("session_not_found", "unknown session", exit_code=2)

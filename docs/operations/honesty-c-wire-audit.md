@@ -26,9 +26,9 @@ Regression: `tests/test_catalog_snap.py` (`test_cross_cut_satisfy_is_catalog_loc
 | CLI `query pin-map` / leftover `query warm` / MCP `pin_map` | Same composer text. |
 | `query find` / MCP `find` | Still seed-only; codebook miss stays empty skip (no Peak_L). CueConflict only when `total>1`. |
 | `export_pin_map` `conflict=` | Still true only when body contains `## CueConflict`. Peak_L miss is not `conflict=1`. |
-| `write_snapshot` / `session_save` | `@WRN: snapshot_schema_drop` when RAM locator keys (`qname`, `path`, `requirementId`, `skill_id`) are absent from SCHEMA columns. SCHEMA unchanged. Path-B ingest not refused. |
+| `write_snapshot` / `session_save` | **0.19.10:** `@WRN: snapshot_schema_drop` when RAM locator keys (`qname`, `path`, `requirementId`, `skill_id`) are absent from SCHEMA columns; extras vanished. **Later honesty `c` (MN-REQ-01.9):** extras persist by widening the snapshot SCHEMA; live SCHEMA unchanged; `snapshot_schema_drop` remains only for fixed-tag extras that cannot persist. |
 
-Regression: `tests/test_peak_l.py` (`test_two_peaks_cue_miss_not_cue_conflict`); `tests/test_bounded_match_find.py` / `tests/test_honesty_c_wire.py` CueConflict; `tests/test_snapshot.py` (`test_session_save_warns_when_qname_not_in_schema`).
+Regression: `tests/test_peak_l.py` (`test_two_peaks_cue_miss_not_cue_conflict`); `tests/test_bounded_match_find.py` / `tests/test_honesty_c_wire.py` CueConflict; `tests/test_snapshot.py` (`test_session_save_qname_not_in_schema_persists`).
 
 **H2 hypothesis:** warn on `write_snapshot` is enough. Foam bind used a narrow SCHEMA without `PRT.qname`; save dropped RAM `qname`; keep-id reload then missed `qname=` and Peak_L looked like CueConflict. Fix the lie on emit + warn on save. Do not silently widen SCHEMA. Nest SysML still says “two peaks → CueConflict” until a later nest pass — engine wire is Peak_L.
 

@@ -63,14 +63,16 @@ from memnet.session import (
     _session_is_expired,
     close_session,
     count_sessions,
+    expire_hold_count,
+    expire_save_should_drop,
     get_session,
+    get_session_for_close,
     get_session_for_save,
     list_sessions,
     open_session,
     purge_expired,
     resolve_expire_load_path,
     resolve_session_id,
-    snapshot_expired_session,
 )
 from memnet.snapshot import load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
@@ -126,6 +128,20 @@ def _caps() -> Caps:
 def _handle_error(exc: MemNetError) -> None:
     emit_err(exc)
     raise typer.Exit(exc.exit_code) from exc
+
+
+def _acl_check(ss, caller: str | None, permission: str) -> None:
+    from memnet.acl import check_permission
+
+    try:
+        check_permission(
+            ss.acl,
+            caller=caller or os.environ.get("MEMNET_CALLER"),
+            permission=permission,  # type: ignore[arg-type]
+            agent=os.environ.get("MEMNET_AGENT"),
+        )
+    except MemNetError as exc:
+        _handle_error(exc)
 
 
 def _load_session(session: str | None, *, exclusive: bool = False):
@@ -386,8 +402,9 @@ def session_current(
 def session_list() -> None:
     """List live session ids (named strata; not ANN) with ``sessions|n/max``."""
     caps = _caps()
-    n = count_sessions()
+    n = count_sessions(caps)
     emit_stdout(f"@STAT: sessions|{n}/{caps.max_sessions}")
+    emit_stat("expire_snapshot_failed", expire_hold_count())
     for sid, exp, left, modified in list_sessions(caps):
         emit_session(sid, exp, str(left), modified)
 
@@ -396,6 +413,10 @@ def session_list() -> None:
 def session_save(
     file: Annotated[Path, typer.Option("--file", help="User snapshot path (wire format)")],
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     """Write the session graph. After TTL, only if MEMNET_SAVE_ON_EXPIRE."""
     try:
@@ -404,9 +425,14 @@ def session_save(
     except MemNetError as exc:
         _handle_error(exc)
         raise AssertionError("unreachable") from exc
+    _acl_check(ss, caller, "pin_map")
     reset_warn_budget()
     with ss.lock(exclusive=True):
-        rows = write_snapshot(ss, file)
+        try:
+            rows = write_snapshot(ss, file)
+        except MemNetError as exc:
+            _handle_error(exc)
+            raise AssertionError("unreachable") from exc
     if expired:
         remove_entry(sid)
         emit_wrn("session_expired_saved", str(file))
@@ -426,9 +452,22 @@ def session_load(
         typer.Option("--keep-id", help="Reuse session id from snapshot"),
     ] = False,
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     """Load a snapshot. ``--file`` or expire-dir load by ``--session`` (known sid)."""
     caps = _caps()
+    if file is None:
+        sid_hint = session or os.environ.get("MEMNET_SESSION")
+        if sid_hint:
+            entry = get_entry(sid_hint)
+            acl = getattr(entry, "acl", None) if entry is not None else None
+            if acl is not None and acl.enabled:
+                from types import SimpleNamespace
+
+                _acl_check(SimpleNamespace(acl=acl), caller, "pin_map")
     purge_expired(caps)
     try:
         if file is not None:
@@ -446,8 +485,10 @@ def session_load(
                 ss = get_session(sid, caps)
             else:
                 if entry is not None:
-                    snapshot_expired_session(sid, caps)
-                    remove_entry(sid)
+                    if expire_save_should_drop(sid, caps):
+                        remove_entry(sid)
+                    else:
+                        raise MemNetError("session_expired", "overdue", exit_code=2)
                 path = resolve_expire_load_path(sid, caps)
                 ss = load_snapshot(
                     path,
@@ -491,13 +532,23 @@ def admin_usage_report(
 def session_expire_status() -> None:
     """Booleans for expire-save (serve_status). Path redacted; no sids."""
     flags = expire_save_status()
+    purge_expired(_caps())
     emit_stat("save_on_expire", int(flags["save_on_expire"]))
     emit_stat("expire_snapshot_dir_set", int(flags["expire_snapshot_dir_set"]))
+    emit_stat("expire_snapshot_failed", expire_hold_count())
 
 
 @session_app.command("close")
-def session_close(session_id: str) -> None:
+def session_close(
+    session_id: str,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
     try:
+        ss = get_session_for_close(session_id, _caps())
+        _acl_check(ss, caller, "mutate")
         close_session(session_id, _caps())
         emit_session(session_id, "closed")
     except MemNetError as exc:

@@ -27,6 +27,8 @@ class SessionEntry:
     lock: threading.RLock = field(default_factory=threading.RLock)
     acl: SessionAcl | None = None
     reserves: NeighbourhoodReserveTable | None = None
+    # Last expire-save failure code while RAM is held past TTL; None if not held.
+    expire_save_failed: str | None = None
 
     def ensure_reserves(self) -> NeighbourhoodReserveTable:
         from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
@@ -59,6 +61,11 @@ def contains(session_id: str) -> bool:
 def count() -> int:
     with _registry_lock:
         return len(_sessions)
+
+
+def count_expire_snapshot_failed() -> int:
+    with _registry_lock:
+        return sum(1 for entry in _sessions.values() if entry.expire_save_failed)
 
 
 def list_entries() -> list[SessionEntry]:
