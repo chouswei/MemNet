@@ -27,6 +27,7 @@
     MN-REQ-06.9        LAN MCP front invent (#191): ClusterRoute — where the session lives; one MCP catalogue, N LAN serves; cousin of #47; inventOnly
     MN-REQ-06.10       SliceHandCarry invent (#47 cousin): bounded WorkingMemorySlice copy into another session; not a live hop; inventOnly
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
+    MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -936,6 +937,63 @@ package MemNetRequirements {
           arg in this cut. No SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.11";
+      }
+
+      requirement def MN_REQ_06_12_ProductGateway {
+        doc /*
+          SHALL provide MemNetProductGateway as a capability of
+          memnet-mcp (MemNetLanMcpFront), not a separate droplet
+          shim. Online products (Endleaf now; Atelier and
+          SysMLEdge later) SHALL reach a memnet serve only
+          through this gateway. tip≠face. SHALL NOT nest under
+          MemNetSystem. SHALL NOT bump SemVer for this cut.
+          When MEMNET_GATEWAY_CONFIG is unset, memnet-mcp SHALL
+          keep today's single backend: in-process by default,
+          or one MEMNET_SERVE_HOST and MEMNET_SERVE_PORT when
+          MEMNET_MCP_TRANSPORT=tcp.
+          Registry: a config file SHALL map each backend id to
+          a tailnet host and port. No host literal in code.
+          Route by product (the credential), optional house,
+          and session. SessionOwnerRegistry row SHALL be the
+          one owner. SHALL NOT move a live session onto another
+          backend. Failover SHALL apply only when placing a
+          new session (session open, or session load from a
+          file) and the request names neither house nor
+          backend. A named house or backend that is down SHALL
+          refuse gateway_backend_unreachable. Owner down on a
+          later call SHALL refuse the same way.
+          Auth: one credential set per product, stored as sha256
+          only, scoped to that product's backends, rotatable by
+          adding a hash and revocable by flag. SHALL NOT accept
+          mn_tip_ portal keys or MEMNET_MCP_HTTP_TOKEN as this
+          credential (MN-REQ-06.8 is a different hop).
+          Pass-through: args and stdin SHALL be forwarded
+          unchanged. Engine @ERR, @WRN, @STAT and exit_code
+          SHALL return as the backend wrote them, except the
+          session-list membership filter (filtered n in
+          @STAT: sessions|n/max). The gateway SHALL NOT enforce
+          MAX_ROWS, mutate batch lines, or value bytes below
+          the backend. The only gateway size cap is the
+          request-body ceiling (default 4 MiB, contract).
+          Each product SHALL pin a backend version. Mismatch
+          SHALL refuse gateway_backend_version_mismatch and
+          SHALL NOT forward.
+          Session open, load, save, close and list SHALL stay
+          inside the product namespace. List SHALL omit another
+          product's sessions. A foreign or unknown session
+          SHALL refuse gateway_forbidden_session.
+          Listener SHALL bind loopback or tailnet (100.64.0.0/10
+          or Tailscale IPv6) by default. A public bind SHALL
+          be refused unless MEMNET_GATEWAY_ALLOW_PUBLIC=1.
+          Gateway refusals SHALL be @ERR: gateway_<code>|…
+          distinct from engine @ERR. Admin counts SHALL be per
+          product and SHALL omit graph content and session ids.
+          The #191 catalogue (MCP tool union across backends,
+          SnapshotHandCarry) stays inventOnly on
+          MemNetLanMcpFront. This leaf is the shipped cut
+          (implemented=true).
+        */
+        attribute requirementId : String = "MN-REQ-06.12";
       }
     }
 
@@ -1955,6 +2013,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_10_SliceHandCarryAcrossServes;
   requirement adminServeUsageReportReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
+  requirement productGatewayReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_12_ProductGateway;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;
@@ -2188,6 +2248,7 @@ package MemNetRequirements {
     end #derive ::> lanMcpFrontSeveralServesReq;
     end #derive ::> sliceHandCarryAcrossServesReq;
     end #derive ::> adminServeUsageReportReq;
+    end #derive ::> productGatewayReq;
   }
 
   #derivation connection deriveMcpLeaves {

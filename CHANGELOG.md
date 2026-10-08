@@ -8,6 +8,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ## [Unreleased]
 
 ### Added
+- **Product gateway on memnet-mcp (MN-REQ-06.12)** — `memnet-mcp --transport gateway` routes by product, house, or session to one owning `memnet serve`. Hashed per-product credentials, namespace isolation, verbatim GQL / stdin / `@ERR` `@WRN` `@STAT` pass-through, gateway refusals, health with failover only for a new unpinned session, version pin, loopback or tailnet bind, per-product admin counts. Single-backend stdio and streamable-http stay unchanged when no registry is configured. No SemVer bump. Not deployed. Wire: [`docs/operations/product-gateway-contract.md`](docs/operations/product-gateway-contract.md).
 - **Honesty `c` — one session per document over serve (probe)** — Loopback `memnet-serve` readiness for a product gate that keeps one session per document (TTL 60, save-on-expire, `MEMNET_MAX_SESSIONS=1024`, ~1 800 parts). Extra probes E11–E14, E12 on a fulldoc-with-edges fixture (3000 nodes + 4500 edges at 5000 and 10000), E16 latency, E17 `WHERE CONTAINS`, E18 snapshot `value_bytes` (decoded vs escaped) / tab-CR / `max_fields` vs `line_bytes`, and RSS fixtures. Probe and tests; no engine or cap-default change. No SemVer bump. Wire: [`docs/operations/one-session-per-document.md`](docs/operations/one-session-per-document.md).
 
 ### Changed

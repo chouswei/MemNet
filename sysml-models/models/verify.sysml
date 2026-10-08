@@ -46,6 +46,10 @@
   not a live hop; import_slice same-serve only; inventOnly.
   Admin serve usage report (MN-VER-06-S09): AdminUsageReport on
   TcpServeBridge; admin credential; opaque alias; not agent MCP.
+  Product gateway (MN-VER-06-S10): MemNetProductGateway on
+  memnet-mcp; per-product sha256 credential; one owning serve;
+  no mn_tip_ reuse; pass-through; implemented. Parent #191
+  catalogue stays inventOnly.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1569,6 +1573,56 @@ package MemNetVerification {
           and cli.adminUsageOnAgentMcp == false
           and openCmd.productLabelOnMcp == false
           and openCmd.optionalProductLabel == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S10_ProductGateway {
+    doc /*
+      MN-REQ-06.12 — MemNetProductGateway on memnet-mcp.
+      Outside MemNetSystem. tip≠face. Hashed per-product
+      credentials, not mn_tip_. One owner. No silent move.
+      Pass-through of GQL and stdin. No caps below the
+      backend. Body ceiling declared. Version pin. Filtered
+      list. Loopback or tailnet by default. Admin counts omit
+      content and session ids. Single-backend memnet-mcp
+      unchanged when no registry is configured. No SemVer bump.
+    */
+    attribute verificationId : String = "MN-VER-06-S10";
+
+    subject gateway : MemNetProductGateway;
+
+    objective productGateway {
+      verify productGatewayReq;
+      require constraint {
+        gateway.insideMemNetSystem == false
+          and gateway.tipIsFace == false
+          and gateway.isSysmlEdgeProduct == false
+          and gateway.inventOnly == false
+          and gateway.implemented == true
+          and gateway.codeApproved == true
+          and gateway.noSemVerBump == true
+          and gateway.reusesTipBearer == false
+          and gateway.hashedCredentials == true
+          and gateway.credentialScopedToProductBackends == true
+          and gateway.rotateAndRevoke == true
+          and gateway.oneOwnerPerSession == true
+          and gateway.silentCrossBackendMove == false
+          and gateway.failoverOnlyForNewSession == true
+          and gateway.passThroughGql == true
+          and gateway.passThroughStdin == true
+          and gateway.verbatimEngineControlLines == true
+          and gateway.gatewayCapsBelowBackend == false
+          and gateway.bodyCeilingDeclared == true
+          and gateway.versionPinPerProduct == true
+          and gateway.listFilteredByProduct == true
+          and gateway.foreignSessionGatewayErr == true
+          and gateway.publicBindDefault == false
+          and gateway.loopbackOrTailnetOnly == true
+          and gateway.adminCountsOmitContent == true
+          and gateway.adminCountsOmitSessionId == true
+          and gateway.singleBackendUnchanged == true
+          and gateway.hardcodedHost == false
       }
     }
   }

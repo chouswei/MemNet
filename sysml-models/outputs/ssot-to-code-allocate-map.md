@@ -49,6 +49,7 @@
 | mcpBridgeToMod | `memNetSystem.mcp.bridge` | `mcpBridgeMod` | `parts/memnet-mcp/software/memnet_mcp/serve_bridge.py` | `memnet_mcp.serve_bridge` | true |
 | mcpHttpToMod | `memNetSystem.multitask.sharedStore` | `mcpHttpMod` | `parts/memnet-mcp/software/memnet_mcp/http_transport.py` | `memnet_mcp.http_transport` | true |
 | lawSeedToMod | `memNetSystem.mcp.seed` | `lawSeedMod` | `parts/memnet-mcp/software/memnet_mcp/law_seed_helper.py` | `memnet_mcp.law_seed_helper` | true |
+| productGatewayToMod | `lanMcpFront.productGateway` | `productGatewayMod` | `parts/memnet-mcp/software/memnet_mcp/product_gateway.py` | `memnet_mcp.product_gateway` | true |
 
 Ellipsis `…` shortens `memNetSystem.core.transport.inProcess.memory.sessions` (and RecallCommit under that). Full qnames live on the `end logical` lines in `implementation.sysml`.
 

@@ -921,9 +921,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--transport",
-        choices=("stdio", "streamable-http"),
+        choices=("stdio", "streamable-http", "gateway"),
         default="stdio",
-        help="MCP transport (default: stdio; streamable-http is opt-in remote)",
+        help=(
+            "MCP transport (default: stdio; streamable-http is opt-in remote; "
+            "gateway is the product serve router)"
+        ),
     )
     parser.add_argument(
         "--host",
@@ -972,6 +975,12 @@ def main(argv: list[str] | None = None) -> None:
     _bind_durable_sync_owner()
     if args.transport == "stdio":
         mcp.run(transport="stdio")
+        return
+
+    if args.transport == "gateway":
+        from memnet_mcp.product_gateway import serve_from_env
+
+        serve_from_env(host=args.host, port=args.port)
         return
 
     host = args.host if args.host is not None else mcp_http_host()

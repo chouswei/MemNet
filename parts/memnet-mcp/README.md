@@ -29,6 +29,9 @@ empty q = outline; ingest is not export). See `docs/grammar/gql-wire-profile.md`
 |-----------|------|---------|
 | **stdio** (default) | Local Cursor `command` | `memnet-mcp` |
 | **streamable-http** (opt-in) | Remote Cursor `"url"` | `memnet-mcp --transport streamable-http` |
+| **gateway** (opt-in) | Product HTTP in front of N serves | `memnet-mcp --transport gateway` |
+
+`--transport gateway` is the product gateway (MN-REQ-06.12). It is off unless `MEMNET_GATEWAY_CONFIG` points at a registry JSON. stdio and streamable-http ignore that file and keep today's single backend (`MEMNET_SERVE_HOST` / `MEMNET_SERVE_PORT`). Contract: [`docs/operations/product-gateway-contract.md`](../../docs/operations/product-gateway-contract.md).
 
 HTTP is **not** the default. Doctrine remains **in-process first**; HTTP is for a dedicated remote MCP endpoint (e.g. Pi) without touching Inventree on `:80` / `:443`.
 

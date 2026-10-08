@@ -19,7 +19,9 @@ model_files:
   #    TipMemNetAccessPortal nests in deploy.sysml (outside MemNetSystem;
   #    same load as MemNetUsageDashboard / MemNetOpsFleet). No extra file.
   #    MemNetLanMcpFront nests in deploy.sysml (outside MemNetSystem;
-  #    same load; invent-only #191; ClusterRoute). No extra file.
+  #    same load; invent-only #191 catalogue; ClusterRoute).
+  #    MemNetProductGateway nests on that front (MN-REQ-06.12; shipped).
+  #    No extra file.
   #    MemNetTwoMoves / SliceHandCarry nests in deploy.sysml
   #    (outside MemNetSystem; invent-only #47 cousin). No extra file.
   - implementation.sysml

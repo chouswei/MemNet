@@ -4,10 +4,11 @@
   One Hatch wheel (memnet-llm) for many hosts (droplet + devices).
   MemNet MCP module = tip/ops (tip≠face). Cousin sysmledge is NOT
   allocated here (thisRepoHasProductFace=false; mustNotInventUploadBind).
-  Not N-server federation (#47). LAN MCP front (#191) is invent-only
-  in deploy.sysml (MemNetLanMcpFront / ClusterRoute); SliceHandCarry
-  (#47 cousin / MN-REQ-06.10) is invent-only; MUST NOT allocate a
-  Python path from this package.
+  Not N-server federation (#47). LAN MCP front catalogue (#191) stays
+  invent-only (MemNetLanMcpFront / ClusterRoute / SnapshotHandCarry).
+  SliceHandCarry (#47 cousin / MN-REQ-06.10) is invent-only; MUST NOT
+  allocate a Python path for that copy. MemNetProductGateway
+  (MN-REQ-06.12) is the shipped memnet-mcp capability and IS allocated.
 */
 package MemNetImplementation {
   private import ScalarValues::*;
@@ -242,6 +243,13 @@ package MemNetImplementation {
     attribute path : String = "parts/memnet-mcp/software/memnet_mcp/http_transport.py";
     attribute pyName : String = "memnet_mcp.http_transport";
   }
+  part def ProductGatewayMod {
+    doc /* Product gateway on memnet-mcp (MN-REQ-06.12). Not mn_tip_. */
+    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/product_gateway.py";
+    attribute pyName : String = "memnet_mcp.product_gateway";
+    attribute tipIsFace : Boolean = false;
+    attribute reusesTipBearer : Boolean = false;
+  }
 
   // ----- Cousin product face: NOT in this repo -----
 
@@ -293,6 +301,7 @@ package MemNetImplementation {
   part mcpBridgeMod : McpServeBridgeMod;
   part lawSeedMod : LawSeedHelperMod;
   part mcpHttpMod : McpHttpTransportMod;
+  part productGatewayMod : ProductGatewayMod;
   part sysmlEdgeAbsent : CousinSysMLEdgeNotInRepo;
   part tracker : ImplementationTracker;
 
@@ -465,6 +474,11 @@ package MemNetImplementation {
   allocation lawSeedToMod : SoftwareAllocate {
     end logical ::> memNetSystem.mcp.seed;
     end code ::> lawSeedMod;
+  }
+  allocation productGatewayToMod : SoftwareAllocate {
+    doc /* Shipped product gateway. Parent #191 catalogue stays invent-only. */
+    end logical ::> lanMcpFront.productGateway;
+    end code ::> productGatewayMod;
   }
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
