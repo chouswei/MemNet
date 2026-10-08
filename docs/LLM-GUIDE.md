@@ -166,7 +166,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 - One big job → one session id.
 - `session_open` at start; `MEMNET_SESSION` env for CLI follow-ups.
-- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + interiors that **stay live**; close unused strata rather than filling the serve registry.
+- Registry: `session_list` shows `@STAT: sessions|n/max` then ids; `session_close` frees a slot (default cap **1024**; `MEMNET_MAX_SESSIONS` overrides). `snap_model` mints catalog + package interiors that **stay live** (never one session per leaf); a second Snap of the same root replaces after commit. Close unused strata rather than filling the serve registry.
 - Milestones: `session_save` / `session_load` (MCP or CLI). After TTL with expire-save armed, `session_load(session=<sid>)` restores `{expire_dir}/{sid}.snap` (`keep_id`); no client-supplied serve path.
 - Default TTL 60 minutes; override with `ttl` on open/load.
 - After `session_load`, existing elements need `MATCH…SET` via `mutate` (leftover `update`, not leftover `add`).
@@ -179,7 +179,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 | Engine | CLI | MCP | Locators (examples) |
 |--------|-----|-----|---------------------|
 | Sysml | `memnet ingest sysml --path …` | `ingest_sysml` | `path=`, `qname=`, `requirementId=` |
-| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (cuts that **fit \(M\)**; reuse already-built `session=`; look loop = one `pin_map` per generate). Application: `llm-sysml-v2-modeling.md` |
+| **Model Snap (0.15)** | `memnet snap model --root …` | `snap_model` | catalog `session=` + `qname=` (package / kind-band / nested package; never one session per leaf; same root replaces; look loop = one `pin_map` per generate). Application: `llm-sysml-v2-modeling.md` |
 | Codebase | `memnet ingest codebase --path …` | `ingest_codebase` | `path=`, `line=`, `signature=` |
 | PCBA `.ato` | `memnet ingest pcba --path …` | `ingest_pcba` | `refdes=`, `net=`, `pin=`, `path=` |
 | Skills/rules | `memnet ingest skills --path …` | `ingest_skills` | `skill_id=`, `phrase=` |

@@ -135,6 +135,17 @@ package MemNetBehaviour {
     doc /*
       0.15 Snap(model): mint catalog + package interiors; Commit locators.
       Look remains pin_map. Join remains Path-B Absorb slice. Not Layer.
+      Pre-check session and ingest budgets before mint (MN-REQ-11.17.3).
+      Grain is package / kind-band / nested package (MN-REQ-11.17.2).
+      Same root replaces after commit (MN-REQ-11.17.5).
+    */
+  }
+  attribute def EvCallerGone {
+    doc /*
+      Serve or IPC peer closed, or client wait exceeded, while Catalog
+      Snap is still minting. Stop; roll back sessions this call created
+      (MN-REQ-11.17.4). Named refuse: caller_gone on serve, serve_timeout
+      on the client envelope.
     */
   }
   attribute def EvHandoffSessionId {
@@ -720,6 +731,8 @@ package MemNetBehaviour {
         by labels+properties. leftover_allocate_from_locator / MERGE-by-id
         is leftover 0.9 engine, not a TARGET command (MN-REQ-07.5 / 11.16).
         Reject client NEW / [NEW] for source elements.
+        Catalog Snap: plan interiors, pre-check budgets, then mint;
+        on EvError or EvCallerGone close every session this call minted.
       */
     }
     transition project_commit
@@ -733,6 +746,10 @@ package MemNetBehaviour {
     transition project_error
       first projecting
       accept EvError
+      then pinIdle;
+    transition project_caller_gone
+      first projecting
+      accept EvCallerGone
       then pinIdle;
   }
 

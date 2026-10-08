@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from memnet.catalog_snap import leftover_catalog_pkg_nick, snap_model
+from memnet.catalog_snap import (
+    leftover_catalog_pkg_nick,
+    reset_snap_cancel_check,
+    set_snap_cancel_check,
+    snap_model,
+)
 from memnet.cli import app
 from memnet.config import Caps, examples_dir
 from memnet.exceptions import MemNetError
@@ -256,6 +261,149 @@ def test_kind_band_when_package_over_two_m(memnet_temp, tmp_path: Path):
     assert len(req_ss.store.list_records("REQ")) == 3
 
 
+def _midsize_sysml(root: Path, *, n_prt: int = 201, n_req: int = 125) -> Path:
+    root.mkdir()
+    parts = "\n".join(f"  part def Part{i} {{ }}" for i in range(n_prt))
+    reqs = "\n".join(
+        f'  requirement def Req{i} {{ attribute requirementId : String = "R{i}"; }}'
+        for i in range(n_req)
+    )
+    (root / "root.sysml").write_text(
+        "package FoamRoot {\n  private import FoamReq::*;\n  private import FoamPart::*;\n}\n",
+        encoding="utf-8",
+    )
+    (root / "req.sysml").write_text(f"package FoamReq {{\n{reqs}\n}}\n", encoding="utf-8")
+    (root / "part.sysml").write_text(f"package FoamPart {{\n{parts}\n}}\n", encoding="utf-8")
+    return root
+
+
+def test_midsize_model_stays_package_grain(memnet_temp, tmp_path: Path):
+    """A few hundred parts and requirements: catalog + 2 packages, not per leaf."""
+    del memnet_temp
+    root = _midsize_sysml(tmp_path / "foam")
+    result = snap_model(root, map_file=_MAP)
+    assert len(result.interiors) == 2
+    assert len(result.session_ids) == 3
+    assert {row.qname for row in result.interiors} == {"FoamReq", "FoamPart"}
+    assert all(row.grain == "package" for row in result.interiors)
+    assert "child_package" not in {row.grain for row in result.interiors}
+    for row in result.interiors:
+        ss = get_session(row.session_id)
+        prt = ss.store.list_records("PRT")
+        req = ss.store.list_records("REQ")
+        assert len(prt) != 1 or len(req) > 0
+        assert len(req) != 1 or len(prt) > 0
+        assert len(prt) + len(req) > 1
+    assert len(list_sessions()) == 3
+
+
+def test_same_kind_over_two_m_does_not_split_per_element(memnet_temp, tmp_path: Path):
+    del memnet_temp
+    root = tmp_path / "parts_only"
+    root.mkdir()
+    parts = "\n".join(f"  part def Part{i} {{ }}" for i in range(120))
+    (root / "parts.sysml").write_text(f"package OnlyParts {{\n{parts}\n}}\n", encoding="utf-8")
+    result = snap_model(root, map_file=_MAP)
+    assert len(result.interiors) == 1
+    assert result.interiors[0].grain == "package"
+    assert result.interiors[0].node_count > 100
+
+
+def test_nested_package_split_not_element_qname(memnet_temp, tmp_path: Path):
+    del memnet_temp
+    root = tmp_path / "nested"
+    root.mkdir()
+    child_a = "\n".join(f"    part def A{i} {{ }}" for i in range(5))
+    child_b = "\n".join(f"    part def B{i} {{ }}" for i in range(5))
+    (root / "nest.sysml").write_text(
+        "package FatPkg {\n"
+        f"  package ChildA {{\n{child_a}\n  }}\n"
+        f"  package ChildB {{\n{child_b}\n  }}\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    result = snap_model(root, map_file=_MAP, goldfish_m=2)
+    assert {row.grain for row in result.interiors} == {"nested_package"}
+    assert {row.qname for row in result.interiors} == {"FatPkg::ChildA", "FatPkg::ChildB"}
+    for row in result.interiors:
+        assert row.node_count > 1
+
+
+def test_session_precheck_creates_nothing(memnet_temp, model_dir: Path, schema_file, monkeypatch):
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "2")
+    open_session(map_file=str(schema_file), caps=Caps())
+    before = list_sessions(Caps())
+    with pytest.raises(MemNetError) as ei:
+        snap_model(model_dir, map_file=_MAP, caps=Caps())
+    assert ei.value.code == "limit_exceeded"
+    assert ei.value.message == "sessions|4/2"
+    after = list_sessions(Caps())
+    assert len(after) == len(before) == 1
+
+
+def test_ingest_budget_precheck_creates_nothing(memnet_temp, model_dir: Path):
+    del memnet_temp
+    before = list_sessions()
+    with pytest.raises(MemNetError) as ei:
+        snap_model(model_dir, map_file=_MAP, max_nodes=2)
+    assert ei.value.code == "ingest_budget"
+    assert list_sessions() == before
+
+
+def test_midway_failure_leaves_no_sessions(memnet_temp, model_dir: Path, monkeypatch):
+    del memnet_temp
+    before = list_sessions()
+    real = open_session
+    n = {"opens": 0}
+
+    def boom(*args, **kwargs):
+        n["opens"] += 1
+        if n["opens"] >= 2:
+            raise MemNetError("internal", "forced mid-way failure")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("memnet.catalog_snap.open_session", boom)
+    with pytest.raises(MemNetError) as ei:
+        snap_model(model_dir, map_file=_MAP)
+    assert ei.value.code == "internal"
+    assert list_sessions() == before
+
+
+def test_repeat_snap_replaces_same_root(memnet_temp, model_dir: Path):
+    del memnet_temp
+    first = snap_model(model_dir, map_file=_MAP)
+    n1 = len(list_sessions())
+    assert n1 == 3
+    second = snap_model(model_dir, map_file=_MAP)
+    assert len(list_sessions()) == n1
+    assert second.catalog_session_id != first.catalog_session_id
+    with pytest.raises(MemNetError) as ei:
+        get_session(first.catalog_session_id)
+    assert ei.value.code in {"session_not_found", "session_expired"}
+
+
+def test_caller_gone_rolls_back_partial_mint(memnet_temp, model_dir: Path, monkeypatch):
+    del memnet_temp
+    before = list_sessions()
+    minted = {"yes": False}
+    real = open_session
+
+    def wrap(*args, **kwargs):
+        ss = real(*args, **kwargs)
+        minted["yes"] = True
+        return ss
+
+    monkeypatch.setattr("memnet.catalog_snap.open_session", wrap)
+    token = set_snap_cancel_check(lambda: minted["yes"])
+    try:
+        with pytest.raises(MemNetError) as ei:
+            snap_model(model_dir, map_file=_MAP)
+        assert ei.value.code == "caller_gone"
+        assert list_sessions() == before
+    finally:
+        reset_snap_cancel_check(token)
+
+
 def test_empty_catalog_skips(memnet_temp, tmp_path: Path):
     del memnet_temp
     empty = tmp_path / "empty"
@@ -396,3 +544,62 @@ def test_cli_snap_model_and_session_list(memnet_temp, model_dir: Path):
     assert look.exit_code == 0, look.stderr
     assert "PkgReq" in look.stdout or "session" in look.stdout
     assert "_el" not in look.stdout
+
+
+def test_serve_timeout_named_and_rolls_back(memnet_temp, model_dir: Path, monkeypatch):
+    """Client wait exceeded names serve_timeout; serve stops and rolls back."""
+    import socket
+    import threading
+    import time
+
+    from memnet.catalog_snap import raise_if_snap_cancelled
+    from memnet.catalog_snap import snap_model as real_snap
+    from memnet.serve import _Handler, _Server, probe, send_command
+    from memnet.session import open_session as real_open
+
+    finished = threading.Event()
+
+    def slow_open(*args, **kwargs):
+        for _ in range(40):
+            time.sleep(0.05)
+            raise_if_snap_cancelled()
+        return real_open(*args, **kwargs)
+
+    def wrapped_snap(*args, **kwargs):
+        try:
+            return real_snap(*args, **kwargs)
+        finally:
+            finished.set()
+
+    monkeypatch.setattr("memnet.catalog_snap.open_session", slow_open)
+    monkeypatch.setattr("memnet.catalog_snap.snap_model", wrapped_snap)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = int(sock.getsockname()[1])
+    monkeypatch.setenv("MEMNET_SERVE_PORT", str(port))
+    monkeypatch.setenv("MEMNET_SERVE_HOST", "127.0.0.1")
+    monkeypatch.setenv("MEMNET_SERVE_INTERNAL", "1")
+    server = _Server(("127.0.0.1", port), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        for _ in range(100):
+            if probe(host="127.0.0.1", port=port):
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("memnet serve did not start")
+        before = len(list_sessions())
+        raw = send_command(
+            ["snap", "model", "--root", str(model_dir), "--map-file", str(_MAP)],
+            host="127.0.0.1",
+            port=port,
+            timeout=0.25,
+        )
+        assert raw["exit_code"] == 1
+        assert "@ERR: serve_timeout|wait exceeded" in (raw.get("stderr") or "")
+        assert finished.wait(timeout=5.0)
+        assert len(list_sessions()) == before
+    finally:
+        server.shutdown()
+        server.server_close()

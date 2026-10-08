@@ -1520,6 +1520,11 @@ package MemNet {
       look = pin_map; join = ImportAbsorb slice. Locators are properties.
       SHALL NOT require a store-key id. Not a third operator.
       Cross-cut satisfy: catalog locators (MN-REQ-11.17.1); not SysMLEdge.
+      Session grain: package / kind-band / nested package (MN-REQ-11.17.2);
+      not two-segment element qname; not one session per leaf.
+      Budget pre-check all-or-nothing (MN-REQ-11.17.3). Caller gone
+      rolls back (MN-REQ-11.17.4). Repeat same root replaces
+      (MN-REQ-11.17.5).
     */
     attribute requiresStoreKeyId : Boolean = false;
     attribute locatorsAreProperties : Boolean = true;
@@ -1528,6 +1533,15 @@ package MemNet {
     attribute joinIsAbsorbSlice : Boolean = true;
     attribute absorbWholeS : Boolean = false;
     attribute oneSessionPerReq : Boolean = false;
+    attribute oneSessionPerPart : Boolean = false;
+    attribute twoSegmentChildPackage : Boolean = false;
+    attribute nestedPackageGrain : Boolean = true;
+    attribute singleLeafInterior : Boolean = false;
+    attribute sessionBudgetPrecheck : Boolean = true;
+    attribute allOrNothingMint : Boolean = true;
+    attribute replaceByModelIdentity : Boolean = true;
+    attribute callerGoneRollback : Boolean = true;
+    attribute serveTimeoutNamed : Boolean = true;
     attribute layerProperty : Boolean = false;
     attribute annRankSessions : Boolean = false;
     attribute implemented : Boolean = true;
@@ -1539,6 +1553,10 @@ package MemNet {
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_2_SnapSessionGrain;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_3_SnapBudgetPrecheck;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_4_SnapCallerGoneRollback;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_5_SnapReplaceByModelIdentity;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
@@ -2039,6 +2057,13 @@ package MemNet {
       qname= / requirementId=) when unique ends fit M; else package-pair
       + cross_cut warn. Interiors have no dangling dest. SysMLEdge
       pin_map is a different tool — not this catalog (MN-REQ-11.17.1).
+      Grain: package, then kind-band or nested package — never
+      Package::Element as a child cut and never one session per leaf
+      (MN-REQ-11.17.2). Pre-check session capacity and ingest budgets
+      before mint; refuse named; all-or-nothing (MN-REQ-11.17.3).
+      Caller gone / wait exceeded rolls back (MN-REQ-11.17.4). Repeat
+      same resolved root replaces after the new stack commits
+      (MN-REQ-11.17.5).
     */
     attribute implemented : Boolean = true;
     attribute packageGrain : Boolean = true;
@@ -2047,7 +2072,16 @@ package MemNet {
     attribute absorbWholeS : Boolean = false;
     attribute dumpModelIntoOneSession : Boolean = false;
     attribute oneSessionPerReq : Boolean = false;
+    attribute oneSessionPerPart : Boolean = false;
     attribute oneSessionPerTsk : Boolean = false;
+    attribute twoSegmentChildPackage : Boolean = false;
+    attribute nestedPackageGrain : Boolean = true;
+    attribute singleLeafInterior : Boolean = false;
+    attribute sessionBudgetPrecheck : Boolean = true;
+    attribute allOrNothingMint : Boolean = true;
+    attribute replaceByModelIdentity : Boolean = true;
+    attribute callerGoneRollback : Boolean = true;
+    attribute serveTimeoutNamed : Boolean = true;
     attribute layerProperty : Boolean = false;
     attribute annRankSessions : Boolean = false;
     attribute hiddenHandleOnWire : Boolean = false;
@@ -2063,6 +2097,10 @@ package MemNet {
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_2_SnapSessionGrain;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_3_SnapBudgetPrecheck;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_4_SnapCallerGoneRollback;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_5_SnapReplaceByModelIdentity;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;

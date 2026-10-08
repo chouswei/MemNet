@@ -257,6 +257,26 @@ Empty cue is session outline (`OUTLINE_EXEMPLAR_LIMIT=3` per kind, still one `ma
 | List | `@STAT: sessions\|{n}/{max}` |
 | Gate should | Close unused sessions |
 
+## Model Snap (`snap_model`) session cost
+
+Catalog Snap is **1 catalog + N interiors** for one load tree. N is the number of top-level packages, plus at most a few kind-band or nested-package cuts when a package exceeds about \(2M\) (\(M=50\), so about 100 pins). **Never** one session per part or requirement. Default caps are unchanged (`MEMNET_MAX_SESSIONS=1024`, ingest `max_nodes=2000`, `max_edges=2000`). Client wait for a serve/IPC reply stays **30 s** (`SERVE_CLIENT_TIMEOUT_S`); that is a client wait, not a resource cap.
+
+| | |
+|--|--|
+| Session cost | 1 catalog + N package interiors (kind-band / nested `package` only when over ~2M and the cut is not a single leaf) |
+| Mid-size model | A few hundred parts and requirements in two packages → **3** live sessions |
+| Pre-check | Before mint: `1+N` against remaining session slots; each interior against `max_nodes` / `max_edges` |
+| Session refuse | `@ERR: limit_exceeded\|sessions {n}/{max}` — **nothing created** |
+| Ingest refuse | `@ERR: ingest_budget\|pin budget exceeded (max_nodes={N})` (or edge) — **nothing created** |
+| Mid-way failure | All sessions this call minted are closed |
+| Repeat same root | Replace: new stack commits, then the previous stack for that resolved root is closed. Live count does not double. Needs headroom for the new stack while the old one is still live |
+| Client wait exceeded | `@ERR: serve_timeout\|wait exceeded` (exit 1). Serve stops Snap and rolls back (`caller_gone`) |
+| Caller socket gone | Serve-side `@ERR: caller_gone\|snap_model stopped; sessions rolled back` if the peer is still there to read it |
+| Gate should | On refuse, do not retry the same payload unchanged. Close unused strata before Snap if the registry is near cap |
+| Gate must not | Treat a `serve_timeout` as “Snap is still running for us”. After timeout the serve rolls back or the retry replaces |
+
+Source: `memnet/catalog_snap.py` `snap_model` / `_precheck_plan`; `memnet/serve.py` `SERVE_CLIENT_TIMEOUT_S`.
+
 ## Session TTL and expiry
 
 | | |

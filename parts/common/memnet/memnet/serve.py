@@ -16,10 +16,12 @@ import ipaddress
 import json
 import logging
 import os
+import select
 import socket
 import socketserver
 import struct
 import sys
+import threading
 from typing import Any
 
 from memnet.config import (
@@ -30,6 +32,9 @@ from memnet.config import (
 )
 
 _LOG = logging.getLogger(__name__)
+
+# Client wait for one serve/IPC reply. Not a resource cap. Do not change.
+SERVE_CLIENT_TIMEOUT_S = 30.0
 
 
 class ServeBindError(RuntimeError):
@@ -156,7 +161,9 @@ class _Handler(socketserver.BaseRequestHandler):
                     _protocol_envelope("bad_request", "payload must be a JSON object")
                 )
                 return
-            response = _handle_request(payload)
+            response = self._run_request(payload)
+            if response is None:
+                return
             self._send_envelope(response)
         except Exception as exc:
             _LOG.exception("memnet serve handler error")
@@ -166,6 +173,31 @@ class _Handler(socketserver.BaseRequestHandler):
                 )
             except OSError:
                 pass
+
+    def _run_request(self, payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Run the CLI request; cancel Snap if the caller socket is gone."""
+        from memnet.catalog_snap import reset_snap_cancel_check, set_snap_cancel_check
+
+        cancel = threading.Event()
+        stop_watch = threading.Event()
+
+        def _watch() -> None:
+            while not stop_watch.wait(0.05):
+                if _peer_gone(self.request):
+                    cancel.set()
+                    return
+
+        watcher = threading.Thread(target=_watch, daemon=True)
+        token = set_snap_cancel_check(cancel.is_set)
+        watcher.start()
+        try:
+            response = _handle_request(payload)
+            if _peer_gone(self.request):
+                return None
+            return response
+        finally:
+            stop_watch.set()
+            reset_snap_cancel_check(token)
 
     def _send_envelope(self, response: dict[str, Any]) -> None:
         data = json.dumps(response).encode("utf-8")
@@ -236,9 +268,11 @@ def send_command(
     port: int | None = None,
     admin_token: str | None = None,
     admin_usage: bool = False,
+    timeout: float | None = None,
 ) -> dict[str, Any]:
     host = host or serve_host()
     port = port or serve_port()
+    wait = SERVE_CLIENT_TIMEOUT_S if timeout is None else timeout
     payload_obj: dict[str, Any] = {"args": args}
     if stdin is not None:
         payload_obj["stdin"] = stdin
@@ -254,14 +288,34 @@ def send_command(
             f"request payload {len(payload)} bytes exceeds cap {max_frame}",
         )
     frame = struct.pack(">I", len(payload)) + payload
-    with socket.create_connection((host, port), timeout=30.0) as sock:
-        sock.sendall(frame)
-        raw_len = _recv_exact(sock, 4)
-        (length,) = struct.unpack(">I", raw_len)
-        if length > max_frame:
-            raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
-        body = _recv_exact(sock, length)
+    try:
+        with socket.create_connection((host, port), timeout=wait) as sock:
+            sock.sendall(frame)
+            raw_len = _recv_exact(sock, 4)
+            (length,) = struct.unpack(">I", raw_len)
+            if length > max_frame:
+                raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
+            body = _recv_exact(sock, length)
+    except TimeoutError:
+        return _protocol_envelope("serve_timeout", "wait exceeded")
     return json.loads(body.decode("utf-8"))
+
+
+def _peer_gone(sock: socket.socket) -> bool:
+    """True when the caller closed the serve/IPC socket (MN-REQ-11.17.4)."""
+    try:
+        ready, _, _ = select.select([sock], [], [], 0)
+    except (OSError, ValueError):
+        return True
+    if not ready:
+        return False
+    try:
+        data = sock.recv(1, socket.MSG_PEEK)
+    except BlockingIOError:
+        return False
+    except OSError:
+        return True
+    return data == b""
 
 
 def _recv_exact(sock: socket.socket, n: int) -> bytes:

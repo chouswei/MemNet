@@ -23,7 +23,12 @@ from memnet.config import (
     ipc_socket_path,
     serve_max_frame_bytes,
 )
-from memnet.serve import _Handler, _protocol_envelope, _recv_exact
+from memnet.serve import (
+    SERVE_CLIENT_TIMEOUT_S,
+    _Handler,
+    _protocol_envelope,
+    _recv_exact,
+)
 
 _LOG = logging.getLogger(__name__)
 
@@ -115,10 +120,12 @@ def send_command(
     path: str | None = None,
     admin_token: str | None = None,
     admin_usage: bool = False,
+    timeout: float | None = None,
 ) -> dict[str, Any]:
     """Send argv+stdin over AF_UNIX; return the JSON envelope (same as TCP)."""
     _require_af_unix()
     sock_path = resolve_ipc_path(path)
+    wait = SERVE_CLIENT_TIMEOUT_S if timeout is None else timeout
     payload_obj: dict[str, Any] = {"args": args}
     if stdin is not None:
         payload_obj["stdin"] = stdin
@@ -134,15 +141,18 @@ def send_command(
             f"request payload {len(payload)} bytes exceeds cap {max_frame}",
         )
     frame = struct.pack(">I", len(payload)) + payload
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-        sock.settimeout(30.0)
-        sock.connect(sock_path)
-        sock.sendall(frame)
-        raw_len = _recv_exact(sock, 4)
-        (length,) = struct.unpack(">I", raw_len)
-        if length > max_frame:
-            raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
-        body = _recv_exact(sock, length)
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.settimeout(wait)
+            sock.connect(sock_path)
+            sock.sendall(frame)
+            raw_len = _recv_exact(sock, 4)
+            (length,) = struct.unpack(">I", raw_len)
+            if length > max_frame:
+                raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
+            body = _recv_exact(sock, length)
+    except TimeoutError:
+        return _protocol_envelope("serve_timeout", "wait exceeded")
     return json.loads(body.decode("utf-8"))
 
 
