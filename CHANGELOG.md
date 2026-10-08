@@ -11,6 +11,13 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
 - **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
 
+## [0.19.17] - 2026-10-08
+
+### Changed
+- **Honesty `c` — product-gate cap contract (#196)** — Developer-facing contract for a product gate: every default, hard refuse, Truncation clip, and `@ERR` wire string, re-hit by `tests/test_cap_contract.py`. Does not change the agent loop (`cue → pin_map → mutate`). No 0.20. Wire: [`docs/cap-contract.md`](docs/cap-contract.md).
+- **Honesty `c` — admin-only serve usage report (#197)** — Read-only `memnet admin usage-report` on serve for an owner/admin MCP. Credential is `MEMNET_ADMIN_TOKEN` (not CapsPolicy). Opaque session aliases; no graph content; not on the agent MCP tool list. Unconfigured refuses `@ERR: admin_unconfigured`. Same goldfish loop. No 0.20. Teach: [`docs/operations/admin-usage-report.md`](docs/operations/admin-usage-report.md).
+- **Package identity 0.19.17** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Cap contract and admin usage report do not change how agents use MemNet.
+
 ## [0.19.16] - 2026-10-04
 
 ### Changed
