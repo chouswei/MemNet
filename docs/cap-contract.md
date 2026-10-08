@@ -383,6 +383,6 @@ Live output: `scripts/probe_cap_contract.py` (sid-free log) and `tests/test_cap_
 
 ## Admin usage report (owner / admin MCP)
 
-Hard refusals and Truncation above are what a **product gate** maps for agents. The **owner** look at live sessions, RSS, configured caps, and those same refuse/clip **counts** is a separate, read-only, admin-only serve command: [`operations/admin-usage-report.md`](operations/admin-usage-report.md) (MN-REQ-06.11). It is **not** on the agent MCP tool list. It never emits a real session id (`mn_…`). Unset `MEMNET_ADMIN_TOKEN` refuses with `@ERR: admin_unconfigured` and no report body.
+Hard refusals and Truncation above are what a **product gate** maps for agents. The **owner** look at live sessions, RSS, configured caps, and those same refuse/clip **counts** is a separate, read-only, admin-only serve command: [`operations/admin-usage-report.md`](operations/admin-usage-report.md) (MN-REQ-06.11). It is **not** on the agent MCP tool list. It never emits a real session id. Unset `MEMNET_ADMIN_TOKEN` refuses with `@ERR: admin_unconfigured` and no report body.
 
 Call: `memnet admin usage-report --token …` via the existing serve envelope, or `{ "admin_usage": true, "admin_token": "…" }`.
