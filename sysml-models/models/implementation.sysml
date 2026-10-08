@@ -122,6 +122,21 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/admin_usage.py";
     attribute pyName : String = "memnet.admin_usage";
   }
+  part def SafeUpgradeMod {
+    doc /* Serve drain, manifest, and startup restore (MN-REQ-06.14). */
+    attribute path : String = "parts/common/memnet/memnet/upgrade.py";
+    attribute pyName : String = "memnet.upgrade";
+  }
+  part def UpgradeRetryMod {
+    doc /* Bounded retry for serve_draining and a brief connection refusal. */
+    attribute path : String = "parts/common/memnet/memnet/upgrade_retry.py";
+    attribute pyName : String = "memnet.upgrade_retry";
+  }
+  part def UpgradeHelperMod {
+    doc /* Side-by-side venv helper: preflight, drain, swap, verify, rollback. */
+    attribute path : String = "parts/common/memnet/memnet/upgrade_run.py";
+    attribute pyName : String = "memnet.upgrade_run";
+  }
   part def CliFacadeMod {
     attribute path : String = "parts/common/memnet/memnet/cli.py";
     attribute pyName : String = "memnet.cli";
@@ -273,6 +288,9 @@ package MemNetImplementation {
   part tcpMod : TcpServeBridgeMod;
   part serveDaemonMod : ServeDaemonMod;
   part adminUsageMod : AdminUsageReportMod;
+  part safeUpgradeMod : SafeUpgradeMod;
+  part upgradeRetryMod : UpgradeRetryMod;
+  part upgradeHelperMod : UpgradeHelperMod;
   part cliMod : CliFacadeMod;
   part sessionsMod : SessionLifecycleMod;
   part storeMod : GraphStoreMod;
@@ -353,6 +371,26 @@ package MemNetImplementation {
   allocation adminUsageToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.transport.tcp.adminUsage;
     end code ::> adminUsageMod;
+  }
+  allocation safeUpgradeToMod : SoftwareAllocate {
+    doc /* Drain, manifest, and startup restore on memnet-serve. */
+    end logical ::> memNetSystem.core.transport.tcp.safeUpgrade;
+    end code ::> safeUpgradeMod;
+  }
+  allocation upgradeRetryToMod : SoftwareAllocate {
+    doc /* Gateway retry across serve_draining and a brief refusal. */
+    end logical ::> lanMcpFront.productGateway;
+    end code ::> upgradeRetryMod;
+  }
+  allocation mcpUpgradeRetryToMod : SoftwareAllocate {
+    doc /* memnet-mcp TCP client retry; same helper as the gateway. */
+    end logical ::> memNetSystem.mcp.bridge;
+    end code ::> upgradeRetryMod;
+  }
+  allocation upgradeHelperToMod : SoftwareAllocate {
+    doc /* Operator helper memnet-upgrade. Not an agent MCP tool. */
+    end logical ::> memNetSystem.core.cli;
+    end code ::> upgradeHelperMod;
   }
   allocation cliToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.cli;

@@ -336,6 +336,7 @@ def load_snapshot(
     ttl_minutes: int | None = None,
     keep_id: bool = False,
     hide_path: bool = False,
+    preserve_clocks: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
     purge_expired(caps)
@@ -371,6 +372,7 @@ def load_snapshot(
         caps=caps,
         ttl_minutes=ttl_minutes,
         keep_id=keep_id,
+        preserve_clocks=preserve_clocks,
     )
 
 
@@ -380,6 +382,7 @@ def load_snapshot_text(
     caps: Caps | None = None,
     ttl_minutes: int | None = None,
     keep_id: bool = False,
+    preserve_clocks: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
     meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
@@ -395,11 +398,16 @@ def load_snapshot_text(
     ttl = ttl_minutes if ttl_minutes is not None else meta.ttl_minutes
     if ttl < 1 or ttl > 1440:
         raise MemNetError("bad_ttl", "ttl must be 1..1440")
-    expires = now + timedelta(minutes=ttl)
+    if preserve_clocks:
+        created_at = meta.created_at
+        expires_at = meta.expires_at
+    else:
+        created_at = now.isoformat().replace("+00:00", "Z")
+        expires_at = (now + timedelta(minutes=ttl)).isoformat().replace("+00:00", "Z")
     new_meta = SessionMeta(
         session_id=session_id,
-        created_at=now.isoformat().replace("+00:00", "Z"),
-        expires_at=expires.isoformat().replace("+00:00", "Z"),
+        created_at=created_at,
+        expires_at=expires_at,
         ttl_minutes=ttl,
         has_writes=meta.has_writes,
         modified_at=meta.modified_at,

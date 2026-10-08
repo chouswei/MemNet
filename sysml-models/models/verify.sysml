@@ -50,6 +50,10 @@
   memnet-mcp; per-product sha256 credential; one owning serve;
   no mn_tip_ reuse; pass-through; implemented. Parent #191
   catalogue stays inventOnly.
+  Safe serve upgrade (MN-VER-06-S12): SafeServeUpgrade on
+  TcpServeBridge; admin drain; manifest; startup restore;
+  client retry on MCP and the product gateway; no silent
+  session loss; no SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1628,6 +1632,70 @@ package MemNetVerification {
           and gateway.adminCountsOmitSessionId == true
           and gateway.singleBackendUnchanged == true
           and gateway.hardcodedHost == false
+          and gateway.upgradeRetry == true
+          and gateway.retryServeDraining == true
+          and gateway.retryConnectionRefusal == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S12_SafeServeUpgrade {
+    doc /*
+      MN-REQ-06.14 — drain, manifest, and startup restore.
+      Admin credential. New session_open refuses
+      serve_draining. Unsaveable sessions block ready_to_stop
+      unless allow-unsaved. Restore checks counts and
+      checksums. Corrupt snapshots stay on disk. Same session
+      id, ACL, TTL clock, and house. MCP and gateway retry
+      (default 30s) ship before the serve swap. Helper rolls
+      back. Not an agent MCP tool. No SemVer bump.
+    */
+    attribute verificationId : String = "MN-VER-06-S12";
+
+    subject tcp : TcpServeBridge;
+    subject mcp : McpFacade;
+    subject cli : CliFacade;
+    subject gateway : MemNetProductGateway;
+
+    objective safeServeUpgrade {
+      verify safeServeUpgradeReq;
+      require constraint {
+        tcp.safeUpgrade.implemented == true
+          and tcp.safeUpgrade.noSemVerBump == true
+          and tcp.safeUpgrade.onAgentMcp == false
+          and tcp.safeUpgrade.adminCredEnv == "MEMNET_ADMIN_TOKEN"
+          and tcp.safeUpgrade.refusesNewSessionOpen == true
+          and tcp.safeUpgrade.errDraining == "serve_draining"
+          and tcp.safeUpgrade.finishesInFlight == true
+          and tcp.safeUpgrade.usesLosslessSnapshot == true
+          and tcp.safeUpgrade.manifestBeforeStop == true
+          and tcp.safeUpgrade.blocksOnUnsaveable == true
+          and tcp.safeUpgrade.allowUnsavedOverride == true
+          and tcp.safeUpgrade.silentSessionLoss == false
+          and tcp.safeUpgrade.restoreVerifiesChecksum == true
+          and tcp.safeUpgrade.restoreVerifiesCounts == true
+          and tcp.safeUpgrade.keepsFilesUntilVerified == true
+          and tcp.safeUpgrade.olderPatchSnapshotLoads == true
+          and tcp.safeUpgrade.corruptFailsLoud == true
+          and tcp.safeUpgrade.corruptDeletesSnapshots == false
+          and tcp.safeUpgrade.preservesSessionId == true
+          and tcp.safeUpgrade.preservesAcl == true
+          and tcp.safeUpgrade.preservesTtlClock == true
+          and tcp.safeUpgrade.preservesHouse == true
+          and tcp.safeUpgrade.retryDefaultS == 30
+          and tcp.safeUpgrade.clientsBeforeServe == true
+          and tcp.safeUpgrade.helperRollsBack == true
+          and mcp.upgradeRetry == true
+          and mcp.upgradeRetryDefaultS == 30
+          and mcp.retryServeDraining == true
+          and mcp.retryConnectionRefusal == true
+          and mcp.adminUsageToolNested == false
+          and cli.upgradePrepareOnAgentMcp == false
+          and cli.upgradePrepare.onAgentMcp == false
+          and gateway.upgradeRetry == true
+          and gateway.upgradeRetryDefaultS == 30
+          and gateway.retryServeDraining == true
+          and gateway.retryConnectionRefusal == true
       }
     }
   }
@@ -2197,6 +2265,8 @@ package MemNetVerification {
     : MN_VER_06_S08_ClusterRouteVsSliceHandCarry;
   verification serveRequestIsolationVerify
     : MN_VER_06_S11_ServeRequestIsolation;
+  verification safeServeUpgradeVerify
+    : MN_VER_06_S12_SafeServeUpgrade;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
 }

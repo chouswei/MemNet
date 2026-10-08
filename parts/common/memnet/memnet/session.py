@@ -318,6 +318,9 @@ def open_session(
     caps: Caps | None = None,
     product: str | None = None,
 ) -> SessionStore:
+    from memnet.upgrade import refuse_new_session
+
+    refuse_new_session()
     caps = caps or Caps()
     purge_expired(caps)
     if count_sessions(caps) >= caps.max_sessions:

@@ -68,6 +68,7 @@ Multitask MUST for this product. Index: [`operations/README.md`](operations/READ
 | [`operations/product-gateway-contract.md`](operations/product-gateway-contract.md) | Product gateway on memnet-mcp (MN-REQ-06.12): route by product, house, or session |
 | [`operations/cluster-route-vs-slice-hand-carry.md`](operations/cluster-route-vs-slice-hand-carry.md) | Two named moves: ClusterRoute vs SliceHandCarry (#191 / #47 cousin; inventOnly) |
 | [`operations/admin-usage-report.md`](operations/admin-usage-report.md) | Admin-only serve usage JSON for a product-gate admin MCP (opaque alias; not agent MCP) |
+| [`operations/safe-upgrade.md`](operations/safe-upgrade.md) | Drain and restore a live serve without dropping sessions (MN-REQ-06.14) |
 | [`operations/one-session-per-document.md`](operations/one-session-per-document.md) | One MemNet session per document over loopback serve (no MCP front) |
 
 Product skill: [`.cursor/skills/memnet-reference/`](../.cursor/skills/memnet-reference/). SysML trail: MN-REQ-12 → [`sysml-models/outputs/multitask-case-study.md`](../sysml-models/outputs/multitask-case-study.md).
