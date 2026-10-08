@@ -111,9 +111,7 @@ def test_escaped_under_value_cap_does_not_trip_line_bytes(
     assert loaded.store.get("PLR_ESC").fields["identity"] == blob
 
 
-def test_snapshot_roundtrip_all_splitlines_separators(
-    memnet_temp, schema_file, tmp_path: Path
-):
+def test_snapshot_roundtrip_all_splitlines_separators(memnet_temp, schema_file, tmp_path: Path):
     ss = open_session(map_file=str(schema_file))
     blob = "ab\rcd" + "".join(SPLITLINES_SEPARATORS) + "\tab\r"
     MutateGate(ss).apply(
@@ -161,19 +159,14 @@ def test_snapshot_persists_undeclared_properties(memnet_temp, tmp_path: Path):
     assert "extra_k" in loaded.tag_map.get("CST").fields
 
 
-def test_snapshot_refuses_extras_over_max_fields(
-    memnet_temp, tmp_path: Path, monkeypatch
-):
+def test_snapshot_refuses_extras_over_max_fields(memnet_temp, tmp_path: Path, monkeypatch):
     monkeypatch.setenv("MEMNET_MAX_FIELDS", "4")
     ss = open_session(
         map_lines=["SCHEMA CST ; fields=id name role"],
         caps=Caps(),
     )
     MutateGate(ss).apply(
-        [
-            "CREATE (:CST {id: 'N_F', name: 'a', role: 'b', "
-            "extra1: 'x', extra2: 'y'})"
-        ],
+        ["CREATE (:CST {id: 'N_F', name: 'a', role: 'b', extra1: 'x', extra2: 'y'})"],
         mode="add",
     )
     path = tmp_path / "fields.snap"
