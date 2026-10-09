@@ -1323,11 +1323,12 @@ package MemNet {
 
   part def SafeServeUpgrade {
     doc /*
-      Drain, manifest, and startup restore for a live memnet-serve
+      Drain, manifest, and startup restore inside memnet serve
       (MN-REQ-06.14). Lossless snapshot path. No silent session
       loss. Older patch snapshot format v1 loads. Corrupt restore
-      fails loud and leaves snapshot files in place. Client retry
-      is on memnet-mcp and the product gateway, deployed first.
+      fails loud and leaves snapshot files in place. A clean
+      restore retires the manifest in that same startup. No
+      client retry. No systemd or gateway-pin helper.
     */
     attribute implemented : Boolean = true;
     attribute noSemVerBump : Boolean = true;
@@ -1351,9 +1352,7 @@ package MemNet {
     attribute preservesAcl : Boolean = true;
     attribute preservesTtlClock : Boolean = true;
     attribute preservesHouse : Boolean = true;
-    attribute retryDefaultS : Integer = 30;
-    attribute clientsBeforeServe : Boolean = true;
-    attribute helperRollsBack : Boolean = true;
+    attribute retiresAfterCleanRestore : Boolean = true;
     attribute statUpgradeRestore : String = "upgrade_restore";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
@@ -1836,10 +1835,6 @@ package MemNet {
     attribute noRequiredIdTools : Boolean = true;
     attribute adminUsageToolNested : Boolean = false;
     attribute productLabelOnSessionOpen : Boolean = false;
-    attribute upgradeRetry : Boolean = true;
-    attribute upgradeRetryDefaultS : Integer = 30;
-    attribute retryServeDraining : Boolean = true;
-    attribute retryConnectionRefusal : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -1864,7 +1859,6 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
   }
 
   part def MemNetCoreLibrary {
@@ -3641,13 +3635,8 @@ package MemNet {
     attribute adminCountsOmitSessionId : Boolean = true;
     attribute singleBackendUnchanged : Boolean = true;
     attribute hardcodedHost : Boolean = false;
-    attribute upgradeRetry : Boolean = true;
-    attribute upgradeRetryDefaultS : Integer = 30;
-    attribute retryServeDraining : Boolean = true;
-    attribute retryConnectionRefusal : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_12_ProductGateway;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
   }
 

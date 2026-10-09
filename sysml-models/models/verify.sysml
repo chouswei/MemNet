@@ -52,7 +52,7 @@
   catalogue stays inventOnly.
   Safe serve upgrade (MN-VER-06-S12): SafeServeUpgrade on
   TcpServeBridge; admin drain; manifest; startup restore;
-  client retry on MCP and the product gateway; no silent
+  retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
@@ -1632,30 +1632,25 @@ package MemNetVerification {
           and gateway.adminCountsOmitSessionId == true
           and gateway.singleBackendUnchanged == true
           and gateway.hardcodedHost == false
-          and gateway.upgradeRetry == true
-          and gateway.retryServeDraining == true
-          and gateway.retryConnectionRefusal == true
       }
     }
   }
 
   verification def MN_VER_06_S12_SafeServeUpgrade {
     doc /*
-      MN-REQ-06.14 — drain, manifest, and startup restore.
-      Admin credential. New session_open refuses
-      serve_draining. Unsaveable sessions block ready_to_stop
-      unless allow-unsaved. Restore checks counts and
-      checksums. Corrupt snapshots stay on disk. Same session
-      id, ACL, TTL clock, and house. MCP and gateway retry
-      (default 30s) ship before the serve swap. Helper rolls
-      back. Not an agent MCP tool. No SemVer bump.
+      MN-REQ-06.14 — drain, manifest, and startup restore
+      inside memnet serve. Admin credential. Quiesce refuses
+      new commands with serve_draining. Unsaveable sessions
+      block ready_to_stop unless allow-unsaved. Restore checks
+      counts and checksums. Corrupt snapshots stay on disk.
+      A clean restore retires the manifest in that startup.
+      Same session id, ACL, TTL clock, and house. Not an
+      agent MCP tool. No client retry. No SemVer bump.
     */
     attribute verificationId : String = "MN-VER-06-S12";
 
     subject tcp : TcpServeBridge;
-    subject mcp : McpFacade;
     subject cli : CliFacade;
-    subject gateway : MemNetProductGateway;
 
     objective safeServeUpgrade {
       verify safeServeUpgradeReq;
@@ -1682,20 +1677,10 @@ package MemNetVerification {
           and tcp.safeUpgrade.preservesAcl == true
           and tcp.safeUpgrade.preservesTtlClock == true
           and tcp.safeUpgrade.preservesHouse == true
-          and tcp.safeUpgrade.retryDefaultS == 30
-          and tcp.safeUpgrade.clientsBeforeServe == true
-          and tcp.safeUpgrade.helperRollsBack == true
-          and mcp.upgradeRetry == true
-          and mcp.upgradeRetryDefaultS == 30
-          and mcp.retryServeDraining == true
-          and mcp.retryConnectionRefusal == true
-          and mcp.adminUsageToolNested == false
+          and tcp.safeUpgrade.retiresAfterCleanRestore == true
+          and tcp.safeUpgrade.statUpgradeRestore == "upgrade_restore"
           and cli.upgradePrepareOnAgentMcp == false
           and cli.upgradePrepare.onAgentMcp == false
-          and gateway.upgradeRetry == true
-          and gateway.upgradeRetryDefaultS == 30
-          and gateway.retryServeDraining == true
-          and gateway.retryConnectionRefusal == true
       }
     }
   }

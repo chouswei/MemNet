@@ -23,13 +23,16 @@ def test_safe_upgrade_parts():
     assert "part safeUpgrade : SafeServeUpgrade" in text
     assert "attribute silentSessionLoss : Boolean = false" in text
     assert 'attribute errDraining : String = "serve_draining"' in text
-    assert "attribute retryDefaultS : Integer = 30" in text
-    assert "attribute clientsBeforeServe : Boolean = true" in text
+    assert "attribute retiresAfterCleanRestore : Boolean = true" in text
+    assert "attribute retryDefaultS" not in text
+    assert "attribute clientsBeforeServe" not in text
+    assert "attribute helperRollsBack" not in text
     mcp = text.split("part def McpFacade", 1)[1].split("part def ", 1)[0]
     assert "part upgradePrepare" not in mcp
-    assert "attribute upgradeRetry : Boolean = true" in mcp
+    assert "upgradeRetry" not in mcp
     gateway = text.split("part def MemNetProductGateway", 1)[1].split("part def ", 1)[0]
-    assert "attribute retryConnectionRefusal : Boolean = true" in gateway
+    assert "upgradeRetry" not in gateway
+    assert "MN_REQ_06_14_SafeServeUpgrade" not in gateway
 
 
 def test_requirement_verify_allocate():
@@ -47,11 +50,13 @@ def test_requirement_verify_allocate():
     assert "part def SafeUpgradeMod" in impl
     assert "allocation safeUpgradeToMod" in impl
     assert "memnet.upgrade" in impl
-    assert "memnet.upgrade_retry" in impl
-    assert "memnet.upgrade_run" in impl
+    assert "memnet.upgrade_retry" not in impl
+    assert "memnet.upgrade_run" not in impl
+    assert "retiresAfterCleanRestore == true" in ver
     ledger = MAP.read_text(encoding="utf-8")
     assert "| safeUpgradeToMod |" in ledger
-    assert "| upgradeHelperToMod |" in ledger
+    assert "upgradeHelperToMod" not in ledger
+    assert "upgradeRetryToMod" not in ledger
 
 
 def test_outputs_and_docs():
@@ -61,7 +66,9 @@ def test_outputs_and_docs():
     nest = NEST.read_text(encoding="utf-8")
     assert "SafeServeUpgrade" in nest
     teach = TEACH.read_text(encoding="utf-8")
-    assert "memnet-upgrade" in teach
+    assert "memnet-upgrade" not in teach
+    assert "MEMNET_UPGRADE_RETRY_S" not in teach
+    assert "upgrade-prepare" in teach
     assert "MEMNET_ADMIN_TOKEN" in teach
     assert "18765" in teach
     assert "18766" in teach

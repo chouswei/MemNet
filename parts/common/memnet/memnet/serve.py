@@ -92,10 +92,6 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         from memnet.upgrade import upgrade_prepare_envelope
 
         return upgrade_prepare_envelope(token_s, allow_unsaved=bool(payload.get("allow_unsaved")))
-    if payload.get("upgrade_retire") is True:
-        from memnet.upgrade import upgrade_retire_envelope
-
-        return upgrade_retire_envelope(token_s)
 
     argv = payload.get("args", [])
     if not isinstance(argv, list):
