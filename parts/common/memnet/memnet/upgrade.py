@@ -1,8 +1,9 @@
 """Safe serve upgrade: drain, manifest, and startup restore (MN-REQ-06.14).
 
 Admin-only. Not an agent MCP tool. A session that cannot be snapshotted
-blocks ready-to-stop unless the operator passes allow-unsaved. Snapshot
-files are not deleted when restore fails.
+blocks ready-to-stop unless the operator passes allow-unsaved. A clean
+restore retires the manifest in that same startup. Snapshot files are
+not deleted, and a failed restore does not retire.
 """
 
 from __future__ import annotations
@@ -80,10 +81,7 @@ def _drain_wait_s() -> float:
 def _is_upgrade_argv(argv: list[Any]) -> bool:
     if len(argv) < 2:
         return False
-    return str(argv[0]) == "admin" and str(argv[1]) in {
-        "upgrade-prepare",
-        "upgrade-retire",
-    }
+    return str(argv[0]) == "admin" and str(argv[1]) == "upgrade-prepare"
 
 
 class DrainGate:
@@ -581,6 +579,7 @@ def startup_restore_or_exit(directory: Path | None = None) -> RestoreReport:
     sys.stderr.write(line)
     if report.failed:
         raise SystemExit(3)
+    retire_manifest(directory)
     return report
 
 
@@ -627,20 +626,3 @@ def upgrade_prepare_envelope(
     else:
         stderr = result.stat + "\n"
     return {"exit_code": result.exit_code, "stdout": result.stdout_json(), "stderr": stderr}
-
-
-def upgrade_retire_envelope(token: str | None) -> dict[str, Any]:
-    try:
-        authenticate(token)
-        retire_manifest()
-    except MemNetError as exc:
-        return {
-            "exit_code": exc.exit_code,
-            "stdout": "",
-            "stderr": f"@ERR: {exc.code}|{exc.message}\n",
-        }
-    return {
-        "exit_code": 0,
-        "stdout": json.dumps({"ok": True, "retired": True}) + "\n",
-        "stderr": "@STAT: upgrade_retire|1|-\n",
-    }

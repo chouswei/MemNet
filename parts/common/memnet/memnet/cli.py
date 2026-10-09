@@ -569,30 +569,6 @@ def admin_upgrade_prepare(
         raise typer.Exit(result.exit_code)
 
 
-@admin_app.command("upgrade-retire")
-def admin_upgrade_retire(
-    token: Annotated[
-        str | None,
-        typer.Option("--token", help="Admin token presented by the caller (do not log)."),
-    ] = None,
-    state_dir: Annotated[str | None, typer.Option("--state-dir")] = None,
-) -> None:
-    """Stop replaying an upgrade manifest after a verified restore. Keeps the files."""
-    from pathlib import Path
-
-    from memnet.admin_usage import authenticate, caller_token
-    from memnet.upgrade import retire_manifest
-
-    presented = token if token else caller_token()
-    try:
-        authenticate(presented)
-        retire_manifest(Path(state_dir) if state_dir else None)
-    except MemNetError as exc:
-        _handle_error(exc)
-    emit_stdout('{"ok": true, "retired": true}')
-    emit_stderr("@STAT: upgrade_retire|1|-")
-
-
 @session_app.command("expire-status")
 def session_expire_status() -> None:
     """Booleans for expire-save (serve_status). Path redacted; no sids."""
