@@ -1,4 +1,4 @@
-"""Safe serve upgrade: drain, manifest, restore, retry, rollback (MN-REQ-06.14)."""
+"""Safe serve upgrade: drain, manifest, restore, and retire (MN-REQ-06.14)."""
 
 from __future__ import annotations
 
@@ -25,9 +25,8 @@ from memnet.upgrade import (
     prepare_upgrade,
     reset_drain_gate,
     restore_manifest,
+    startup_restore_or_exit,
 )
-from memnet.upgrade_retry import call_with_upgrade_retry
-from memnet.upgrade_run import UpgradeRunError, run_upgrade, set_pinned_version, swap_execstart
 
 TOKEN = "test-admin-token"
 
@@ -151,11 +150,13 @@ def test_corrupt_snapshot_fails_loud_and_keeps_bytes(
     corrupt = snap.read_bytes()
     reset_registry()
     reset_drain_gate()
-    report = restore_manifest(tmp_path)
-    assert report.failed == 1
-    assert report.ok == 0
+    with pytest.raises(SystemExit) as exc:
+        startup_restore_or_exit(tmp_path)
+    assert exc.value.code == 3
     assert snap.read_bytes() == corrupt
     assert snap.is_file()
+    manifest = json.loads((tmp_path / MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest.get("retired") is not True
 
 
 def test_older_patch_snapshot_loads(memnet_temp, monkeypatch, tmp_path, schema_file):
@@ -255,146 +256,28 @@ def test_inflight_blocks_ready_until_finished():
     reset_drain_gate()
 
 
-def test_client_retries_connection_refusal_and_draining(monkeypatch):
-    monkeypatch.setenv("MEMNET_UPGRADE_RETRY_S", "2")
-    state = {"n": 0}
-
-    def flaky() -> dict:
-        state["n"] += 1
-        if state["n"] < 3:
-            raise ConnectionRefusedError("down")
-        return {"exit_code": 0, "stdout": "", "stderr": ""}
-
-    raw = call_with_upgrade_retry(flaky)
-    assert raw["exit_code"] == 0
-    assert state["n"] == 3
-
-    state["n"] = 0
-
-    def draining() -> dict:
-        state["n"] += 1
-        if state["n"] < 3:
-            return {
-                "exit_code": 2,
-                "stdout": "",
-                "stderr": "@ERR: serve_draining|retry_after_s=5\n",
-            }
-        return {"exit_code": 0, "stdout": "ok\n", "stderr": ""}
-
-    raw = call_with_upgrade_retry(draining)
-    assert raw["stdout"] == "ok\n"
-    assert state["n"] == 3
-
-
-def test_client_no_retry_when_window_disabled(monkeypatch):
-    monkeypatch.setenv("MEMNET_UPGRADE_RETRY_S", "0")
-
-    def down() -> dict:
-        raise ConnectionRefusedError("down")
-
-    with pytest.raises(ConnectionRefusedError):
-        call_with_upgrade_retry(down)
-
-
-def test_mcp_tcp_retries_until_serve_accepts(monkeypatch):
-    monkeypatch.setenv("MEMNET_UPGRADE_RETRY_S", "2")
-    monkeypatch.setenv("MEMNET_MCP_TRANSPORT", "tcp")
-    monkeypatch.delenv("MEMNET_TEST_INLINE", raising=False)
-    calls = {"n": 0}
-
-    def fake_probe(*_a, **_k) -> bool:
-        calls["n"] += 1
-        return calls["n"] >= 3
-
-    def fake_send(*_a, **_k) -> dict:
-        return {"exit_code": 0, "stdout": "@STAT: sessions|0|1024\n", "stderr": ""}
-
-    monkeypatch.setattr("memnet_mcp.client.probe", fake_probe)
-    monkeypatch.setattr("memnet_mcp.client.send_command", fake_send)
-    from memnet_mcp.client import run_memnet
-
-    resp = run_memnet(["session", "list"])
-    assert resp.exit_code == 0
-    assert calls["n"] >= 3
-
-
-def test_rollback_restores_unit_and_pin(memnet_temp, tmp_path):
-    unit = tmp_path / "memnet-serve.service"
-    unit.write_text("[Service]\nExecStart=/old/venv/bin/memnet serve\n", encoding="utf-8")
-    gateway = tmp_path / "gateway.json"
-    gateway.write_text(
-        json.dumps({"products": {"endleaf": {"pinned_version": "0.19.19", "backends": []}}}),
-        encoding="utf-8",
-    )
-    state = tmp_path / "state"
-    state.mkdir()
-    calls = {"n": 0}
-
-    def drainer() -> None:
-        manifest = {
-            "ready_to_stop": True,
-            "retired": False,
-            "snapshot_format": 1,
-            "sessions": [],
-            "unsaved": [],
-        }
-        (state / MANIFEST_NAME).write_text(json.dumps(manifest), encoding="utf-8")
-
-    def restarter() -> None:
-        calls["n"] += 1
-        if calls["n"] == 1:
-            (state / "upgrade-restore.json").write_text(
-                json.dumps({"ok": 0, "failed": 1, "skipped": False, "errors": []}),
-                encoding="utf-8",
-            )
-
-    with pytest.raises(UpgradeRunError) as exc:
-        run_upgrade(
-            new_python=sys.executable,
-            new_exec="/new/venv/bin/memnet serve",
-            state=state,
-            clients_ready=True,
-            unit_path=unit,
-            gateway_config=gateway,
-            product="endleaf",
-            drainer=drainer,
-            restarter=restarter,
-            verify_wait_s=1,
-        )
-    assert exc.value.code == "upgrade_verify"
-    assert "ExecStart=/old/venv/bin/memnet serve" in unit.read_text(encoding="utf-8")
-    pin = json.loads(gateway.read_text(encoding="utf-8"))
-    assert pin["products"]["endleaf"]["pinned_version"] == "0.19.19"
-    assert (unit.with_suffix(".service.bak")).is_file()
-    assert calls["n"] == 2
-
-
-def test_clients_must_be_ready_before_swap(tmp_path):
-    unit = tmp_path / "memnet-serve.service"
-    unit.write_text("ExecStart=/old/venv/bin/memnet serve\n", encoding="utf-8")
-    with pytest.raises(UpgradeRunError) as exc:
-        run_upgrade(
-            new_python=sys.executable,
-            new_exec="/new/venv/bin/memnet serve",
-            state=tmp_path,
-            clients_ready=False,
-            unit_path=unit,
-            drainer=lambda: None,
-            restarter=lambda: None,
-        )
-    assert exc.value.code == "upgrade_clients"
-    assert unit.read_text(encoding="utf-8").startswith("ExecStart=/old")
-
-
-def test_swap_and_pin_helpers():
-    swapped = swap_execstart("ExecStart=/old/bin/memnet serve\n", "/new/bin/memnet serve")
-    assert swapped == "ExecStart=/new/bin/memnet serve\n"
-    pinned = set_pinned_version(
-        json.dumps({"products": {"endleaf": {"pinned_version": "0.19.19"}}}),
-        "endleaf",
-        "0.19.20",
-    )
-    assert json.loads(pinned)["products"]["endleaf"]["pinned_version"] == "0.19.20"
+def test_clean_restore_retires_so_a_later_start_does_not_replay(
+    memnet_temp, monkeypatch, tmp_path, schema_file
+):
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", TOKEN)
+    monkeypatch.setenv("MEMNET_STATE_DIR", str(tmp_path))
+    ss = open_session(map_file=str(schema_file))
+    _mutate(ss.session_id, "CREATE (:TSK {id: 'TSK_once', goal: 'once', status: 'open'})\n")
+    sid = ss.session_id
+    assert prepare_upgrade(TOKEN, directory=tmp_path).ready_to_stop is True
+    reset_registry()
+    reset_drain_gate()
+    report = startup_restore_or_exit(tmp_path)
+    assert report.failed == 0
+    assert report.ok == 1
+    assert get_entry(sid) is not None
+    manifest = json.loads((tmp_path / MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["retired"] is True
+    reset_registry()
+    again = startup_restore_or_exit(tmp_path)
+    assert again.skipped is True
+    assert get_entry(sid) is None
+    assert (tmp_path / "upgrade-snapshots").is_dir()
 
 
 def _free_port() -> int:
@@ -426,7 +309,6 @@ def test_tcp_restart_restores_same_sessions(memnet_temp, monkeypatch, tmp_path, 
             "MEMNET_SERVE_HOST": "127.0.0.1",
             "MEMNET_SERVE_PORT": str(port),
             "MEMNET_MAX_ROWS": "80",
-            "MEMNET_UPGRADE_RETRY_S": "0",
         }
     )
     env.pop("MEMNET_TEST_INLINE", None)
@@ -545,6 +427,20 @@ def test_tcp_restart_restores_same_sessions(memnet_temp, monkeypatch, tmp_path, 
         assert "kept-fact" in found["stdout"]
         assert (state / "upgrade-snapshots").is_dir()
         assert list((state / "upgrade-snapshots").glob("*.snap"))
+        manifest = json.loads((state / MANIFEST_NAME).read_text(encoding="utf-8"))
+        assert manifest["retired"] is True
+    finally:
+        stop(proc)
+
+    proc = start()
+    try:
+        replayed = send_command(
+            ["query", "find", "--kind", "TSK", "--limit", "5", "--session", sid],
+            host="127.0.0.1",
+            port=port,
+        )
+        assert replayed["exit_code"] != 0
+        assert "kept-fact" not in replayed["stdout"]
     finally:
         stop(proc)
 
@@ -554,3 +450,7 @@ def test_upgrade_doc_has_no_session_id():
         encoding="utf-8"
     )
     assert "mn_" not in text
+    assert "memnet-upgrade" not in text
+    assert "MEMNET_UPGRADE_RETRY_S" not in text
+    assert "upgrade-prepare" in text
+    assert "ready_to_stop" in text or "ready-to-stop" in text
