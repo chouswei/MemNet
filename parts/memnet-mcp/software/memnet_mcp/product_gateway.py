@@ -526,29 +526,24 @@ class ProductGateway:
             ):
                 return hit[1]
         version: str | None = None
-        if probe(host=backend.host, port=backend.port):
-            try:
-                raw = send_command(
-                    ["version"],
-                    host=backend.host,
-                    port=backend.port,
-                    timeout=self.timeout_s,
-                )
-            except (OSError, json.JSONDecodeError):
-                raw = None
-            if isinstance(raw, dict):
-                for line in (raw.get("stdout") or "").splitlines():
-                    if line.startswith("@VER: memnet|"):
-                        version = line.split("|", 1)[1].strip()
-                        break
+        raw = self._command_with_retry(backend, ["version"], None)
+        if isinstance(raw, dict):
+            for line in (raw.get("stdout") or "").splitlines():
+                if line.startswith("@VER: memnet|"):
+                    version = line.split("|", 1)[1].strip()
+                    break
         with self._lock:
             self._ver_cache[backend.id] = (now, version)
         return version
 
-    def _forward(
+    def _command_with_retry(
         self, backend: Backend, argv: list[str], stdin: str | None
     ) -> dict[str, Any] | None:
-        try:
+        from memnet.upgrade_retry import call_with_upgrade_retry
+
+        def _once() -> dict[str, Any]:
+            if not probe(host=backend.host, port=backend.port):
+                raise ConnectionRefusedError("backend down")
             raw = send_command(
                 list(argv),
                 stdin=stdin,
@@ -556,9 +551,20 @@ class ProductGateway:
                 port=backend.port,
                 timeout=self.timeout_s,
             )
-        except (OSError, json.JSONDecodeError):
+            if not isinstance(raw, dict):
+                raise ConnectionError("bad envelope")
+            return raw
+
+        try:
+            return call_with_upgrade_retry(_once)
+        except (OSError, json.JSONDecodeError, ConnectionError):
             return None
-        if not isinstance(raw, dict):
+
+    def _forward(
+        self, backend: Backend, argv: list[str], stdin: str | None
+    ) -> dict[str, Any] | None:
+        raw = self._command_with_retry(backend, argv, stdin)
+        if raw is None:
             return None
         err = (raw.get("stderr") or "").strip()
         if err == _CLIENT_TIMEOUT and not (raw.get("stdout") or "").strip():

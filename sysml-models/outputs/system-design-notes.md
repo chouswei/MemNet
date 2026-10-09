@@ -56,6 +56,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Multitask transport | [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) |
 | Lead imports member WM (path B) | [session-import-case-study.md](session-import-case-study.md) |
 | Snapshot passport | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
+| Safe serve upgrade | [safe-upgrade-case-study.md](safe-upgrade-case-study.md) |
 | Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 | Human usage look (parked HTTP) | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |

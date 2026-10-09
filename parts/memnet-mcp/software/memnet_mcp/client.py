@@ -131,10 +131,18 @@ def run_memnet(
     mode = _transport()
 
     if mode == "tcp":
-        if probe():
-            raw = send_command(full_argv, stdin=stdin)
-            return MemNetResponse.from_raw(raw, session_hint=session)
-        return MemNetResponse.serve_required(session_hint=session)
+        from memnet.upgrade_retry import call_with_upgrade_retry
+
+        def _once() -> dict:
+            if not probe():
+                raise ConnectionRefusedError("serve down")
+            return send_command(full_argv, stdin=stdin)
+
+        try:
+            raw = call_with_upgrade_retry(_once)
+        except (ConnectionError, OSError, TimeoutError):
+            return MemNetResponse.serve_required(session_hint=session)
+        return MemNetResponse.from_raw(raw, session_hint=session)
 
     raw = run_argv(full_argv, stdin=stdin)
     return MemNetResponse.from_raw(raw, session_hint=session)

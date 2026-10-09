@@ -78,6 +78,9 @@ def run_ipc_serve(path: str | None = None) -> None:
     sock_path = resolve_ipc_path(path)
     os.environ["MEMNET_IPC_SOCKET"] = sock_path
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
+    from memnet.upgrade import startup_restore_or_exit
+
+    startup_restore_or_exit()
     try:
         from memnet.cheap_llm_import_guard import maybe_install_cheap_llm_import_guard
 

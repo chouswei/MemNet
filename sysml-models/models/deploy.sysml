@@ -1308,6 +1308,59 @@ package MemNet {
     attribute onAgentMcp : Boolean = false;
   }
 
+  part def CmdAdminUpgradePrepare {
+    doc /*
+      CLI/serve: memnet admin upgrade-prepare. Optional envelope
+      {upgrade_prepare:true, admin_token}. NOT an agent MCP tool.
+      Allow-unsaved is an explicit operator override.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute onAgentMcp : Boolean = false;
+    attribute allowUnsavedOverride : Boolean = true;
+  }
+
+  part def SafeServeUpgrade {
+    doc /*
+      Drain, manifest, and startup restore for a live memnet-serve
+      (MN-REQ-06.14). Lossless snapshot path. No silent session
+      loss. Older patch snapshot format v1 loads. Corrupt restore
+      fails loud and leaves snapshot files in place. Client retry
+      is on memnet-mcp and the product gateway, deployed first.
+    */
+    attribute implemented : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+    attribute onAgentMcp : Boolean = false;
+    attribute adminCredEnv : String = "MEMNET_ADMIN_TOKEN";
+    attribute refusesNewSessionOpen : Boolean = true;
+    attribute errDraining : String = "serve_draining";
+    attribute finishesInFlight : Boolean = true;
+    attribute usesLosslessSnapshot : Boolean = true;
+    attribute manifestBeforeStop : Boolean = true;
+    attribute blocksOnUnsaveable : Boolean = true;
+    attribute allowUnsavedOverride : Boolean = true;
+    attribute silentSessionLoss : Boolean = false;
+    attribute restoreVerifiesChecksum : Boolean = true;
+    attribute restoreVerifiesCounts : Boolean = true;
+    attribute keepsFilesUntilVerified : Boolean = true;
+    attribute olderPatchSnapshotLoads : Boolean = true;
+    attribute corruptFailsLoud : Boolean = true;
+    attribute corruptDeletesSnapshots : Boolean = false;
+    attribute preservesSessionId : Boolean = true;
+    attribute preservesAcl : Boolean = true;
+    attribute preservesTtlClock : Boolean = true;
+    attribute preservesHouse : Boolean = true;
+    attribute retryDefaultS : Integer = 30;
+    attribute clientsBeforeServe : Boolean = true;
+    attribute helperRollsBack : Boolean = true;
+    attribute statUpgradeRestore : String = "upgrade_restore";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
+  }
+
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
@@ -1316,6 +1369,7 @@ package MemNet {
       usageLookOut = serve_status (up/host/port + expire-save booleans;
       path redacted) for MemNetUsageDashboard.
       adminUsage = MN-REQ-06.11 admin JSON (opaque aliases; not 06.5).
+      safeUpgrade = MN-REQ-06.14 drain, manifest, and startup restore.
       Many mn_* sessions in one registry. Not a projectId map.
       Not a second graph. Admin report MUST NOT emit those mn_* ids.
     */
@@ -1325,6 +1379,7 @@ package MemNet {
     port adminCmdIn : AdminUsageCommandInPort;
     port adminReportOut : AdminUsageReportOutPort;
     part adminUsage : AdminUsageReport;
+    part safeUpgrade : SafeServeUpgrade;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
     attribute requestOutputIsolated : Boolean = true;
@@ -1333,6 +1388,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_3_TcpServeMigration;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_13_ServeRequestIsolation;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
@@ -1666,6 +1722,7 @@ package MemNet {
     part importSlice : CmdPathBImport;
     part catalogSnap : CmdCatalogSnap;
     part adminUsageReport : CmdAdminUsageReport;
+    part upgradePrepare : CmdAdminUpgradePrepare;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1682,9 +1739,11 @@ package MemNet {
     attribute emptyCueIsOutline : Boolean = true;
     attribute noRequiredIdTools : Boolean = true;
     attribute adminUsageOnAgentMcp : Boolean = false;
+    attribute upgradePrepareOnAgentMcp : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
@@ -1777,6 +1836,10 @@ package MemNet {
     attribute noRequiredIdTools : Boolean = true;
     attribute adminUsageToolNested : Boolean = false;
     attribute productLabelOnSessionOpen : Boolean = false;
+    attribute upgradeRetry : Boolean = true;
+    attribute upgradeRetryDefaultS : Integer = 30;
+    attribute retryServeDraining : Boolean = true;
+    attribute retryConnectionRefusal : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
@@ -1801,6 +1864,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
   }
 
   part def MemNetCoreLibrary {
@@ -3577,8 +3641,13 @@ package MemNet {
     attribute adminCountsOmitSessionId : Boolean = true;
     attribute singleBackendUnchanged : Boolean = true;
     attribute hardcodedHost : Boolean = false;
+    attribute upgradeRetry : Boolean = true;
+    attribute upgradeRetryDefaultS : Integer = 30;
+    attribute retryServeDraining : Boolean = true;
+    attribute retryConnectionRefusal : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_12_ProductGateway;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_9_LanMcpFrontSeveralServes;
   }
 

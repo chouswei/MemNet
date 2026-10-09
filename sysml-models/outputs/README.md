@@ -31,6 +31,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) | Human look at serve n/max + housekeep; manage = Memnetor+Devicor | MN-REQ-06.5; MN-VER-06-S02; HTTP parked |
 | [admin-usage-report-case-study.md](admin-usage-report-case-study.md) | Admin-only serve usage JSON; opaque alias; not agent MCP | MN-REQ-06.11; MN-VER-06-S09 |
+| [safe-upgrade-case-study.md](safe-upgrade-case-study.md) | Drain, manifest, and startup restore so a serve swap does not drop sessions | MN-REQ-06.14; MN-VER-06-S12 |
 | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) | Device MemNet services; one MemNet MCP (tip/ops) at the droplet; product face is sysmledge | MN-REQ-06.6; MN-VER-06-S03; tip≠face; not #47 |
 | [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) | Admin invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused | MN-REQ-06.8; MN-VER-06-S05; tip≠face; portal sidecar |
 | [lan-mcp-front-case-study.md](lan-mcp-front-case-study.md) | One MCP catalogue over N LAN serves; ClusterRoute; registry owner; not shipped | MN-REQ-06.9; MN-VER-06-S07; tip≠face; inventOnly #191 |

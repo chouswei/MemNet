@@ -528,6 +528,71 @@ def admin_usage_report(
         raise typer.Exit(code)
 
 
+@admin_app.command("upgrade-prepare")
+def admin_upgrade_prepare(
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            help="Admin token presented by the caller (do not log). Not MEMNET_ADMIN_TOKEN.",
+        ),
+    ] = None,
+    allow_unsaved: Annotated[
+        bool,
+        typer.Option(
+            "--allow-unsaved",
+            help="Reach ready-to-stop even when a session could not be snapshotted.",
+        ),
+    ] = False,
+    state_dir: Annotated[
+        str | None,
+        typer.Option("--state-dir", help="Manifest directory (default MEMNET_STATE_DIR)."),
+    ] = None,
+) -> None:
+    """Snapshot every loaded session and write an upgrade manifest. Not agent MCP."""
+    from pathlib import Path
+
+    from memnet.admin_usage import caller_token
+    from memnet.upgrade import prepare_upgrade
+
+    presented = token if token else caller_token()
+    directory = Path(state_dir) if state_dir else None
+    try:
+        result = prepare_upgrade(presented, allow_unsaved=allow_unsaved, directory=directory)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    sys.stdout.write(result.stdout_json())
+    sys.stderr.write(result.stat + "\n")
+    if result.exit_code:
+        sys.stderr.write(f"@ERR: upgrade_blocked|unsaved|{len(result.unsaved)}\n")
+        raise typer.Exit(result.exit_code)
+
+
+@admin_app.command("upgrade-retire")
+def admin_upgrade_retire(
+    token: Annotated[
+        str | None,
+        typer.Option("--token", help="Admin token presented by the caller (do not log)."),
+    ] = None,
+    state_dir: Annotated[str | None, typer.Option("--state-dir")] = None,
+) -> None:
+    """Stop replaying an upgrade manifest after a verified restore. Keeps the files."""
+    from pathlib import Path
+
+    from memnet.admin_usage import authenticate, caller_token
+    from memnet.upgrade import retire_manifest
+
+    presented = token if token else caller_token()
+    try:
+        authenticate(presented)
+        retire_manifest(Path(state_dir) if state_dir else None)
+    except MemNetError as exc:
+        _handle_error(exc)
+    emit_stdout('{"ok": true, "retired": true}')
+    emit_stderr("@STAT: upgrade_retire|1|-")
+
+
 @session_app.command("expire-status")
 def session_expire_status() -> None:
     """Booleans for expire-save (serve_status). Path redacted; no sids."""

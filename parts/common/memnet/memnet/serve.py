@@ -88,6 +88,14 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     token_s = admin_token if isinstance(admin_token, str) else None
     if payload.get("admin_usage") is True:
         return usage_report_envelope(token_s)
+    if payload.get("upgrade_prepare") is True:
+        from memnet.upgrade import upgrade_prepare_envelope
+
+        return upgrade_prepare_envelope(token_s, allow_unsaved=bool(payload.get("allow_unsaved")))
+    if payload.get("upgrade_retire") is True:
+        from memnet.upgrade import upgrade_retire_envelope
+
+        return upgrade_retire_envelope(token_s)
 
     argv = payload.get("args", [])
     if not isinstance(argv, list):
@@ -99,26 +107,39 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
             "stdout": "",
             "stderr": "@ERR: bad_request|stdin must be a string\n",
         }
+    from memnet.upgrade import drain_gate, draining_envelope
+
+    counted, refuse = drain_gate.begin(argv)
+    if refuse:
+        return draining_envelope()
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     from memnet.cli import app
     from memnet.output import capture_request_stdio
 
     code = 0
+    stdout = ""
+    stderr = ""
     token_ctx = set_caller_token(token_s)
-    with capture_request_stdio(stdin_text if isinstance(stdin_text, str) else None) as (out, err):
-        try:
-            result = app(argv, prog_name="memnet", standalone_mode=False)
-            if isinstance(result, int) and result != 0:
-                code = result
-        except SystemExit as exc:
-            code = int(exc.code) if isinstance(exc.code, int) else 1
-        except Exception as exc:
-            code = 1
-            err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
-        finally:
-            reset_caller_token(token_ctx)
-        stdout = out.getvalue()
-        stderr = err.getvalue()
+    try:
+        with capture_request_stdio(stdin_text if isinstance(stdin_text, str) else None) as (
+            out,
+            err,
+        ):
+            try:
+                result = app(argv, prog_name="memnet", standalone_mode=False)
+                if isinstance(result, int) and result != 0:
+                    code = result
+            except SystemExit as exc:
+                code = int(exc.code) if isinstance(exc.code, int) else 1
+            except Exception as exc:
+                code = 1
+                err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")
+            finally:
+                reset_caller_token(token_ctx)
+            stdout = out.getvalue()
+            stderr = err.getvalue()
+    finally:
+        drain_gate.end(counted)
     return {"exit_code": code, "stdout": stdout, "stderr": stderr}
 
 
@@ -232,6 +253,9 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
     port = port or serve_port()
     validate_serve_bind_host(host)
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
+    from memnet.upgrade import startup_restore_or_exit
+
+    startup_restore_or_exit()
     try:
         from memnet.admin_usage import mark_serve_start
 
