@@ -11,6 +11,20 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
 - **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
 
+## [0.19.22] - 2026-10-09
+
+### Added
+- **Safe serve upgrade (MN-REQ-06.14, #208)** — `memnet admin upgrade-prepare --state-dir "$MEMNET_STATE_DIR"` (admin credential `MEMNET_ADMIN_TOKEN`; not an agent MCP tool) drains a running serve: new `session_open` gets the retryable refusal `@ERR: serve_draining|retry_after_s=<seconds>`, in-flight commands finish, then every loaded session is written with the lossless snapshot writer. Ready only on `@STAT: upgrade_prepare|ready|`. If any session cannot be saved (`snapshot_unsaveable` or another save error), it is named in `upgrade-blocked.json`, no ready manifest is written, and the serve keeps working; `--allow-unsaved` is an explicit override.
+- **Upgrade manifest** — `upgrade-manifest.json` and `upgrade-snapshots/` under `MEMNET_STATE_DIR` record session ids, row and edge counts, sha256 checksums, the serve version, and snapshot format `1`. An ACL and clock passport rides as a `# upgrade-passport` line that older v1 loaders skip, so a rollback can still read the graph.
+- **Startup restore** — a new serve reads the manifest, reloads each session under the same id (ACL bindings, expiry instant, and house kept), checks counts and checksums, and prints `@STAT: upgrade_restore|ok|<n>|failed|<m>`. An unsupported format or checksum/parse failure exits `3` without touching the files. `memnet admin upgrade-retire` removes the snapshots after a clean restore.
+- **Client retry** — memnet-mcp and the product gateway retry `serve_draining` and a brief connection refusal for `MEMNET_UPGRADE_RETRY_S` (default 30 s; `0` disables). A command the serve already accepted is not retried on timeout.
+- **`memnet-upgrade` helper** — side-by-side venv swap: refuses without `--clients-ready`, preflights the new interpreter's snapshot formats, runs the drain, swaps `ExecStart=` (with `.bak`), optionally moves a gateway product's `pinned_version` after the drain and before the new process listens, restarts, and on any restore failure automatically puts back the previous unit and pin and restarts again.
+- **Operations doc** — [`docs/operations/safe-upgrade.md`](docs/operations/safe-upgrade.md) (order: clients first, then serve; rpi5-syson, Endleaf engine, droplet gateway; rollback).
+
+### Changed
+- **Upgrading from 0.19.21 still uses a manual save and reload** — 0.19.21 has no drain command, so the move from 0.19.21 to 0.19.22 must save every session, swap the venv, and reload by hand as before. The built-in `upgrade-prepare` → restore path applies to upgrades from 0.19.22 onward.
+- **Package identity 0.19.22** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Agent loop (`cue → pin_map → mutate`) unchanged.
+
 ## [0.19.21] - 2026-10-09
 
 ### Fixed
