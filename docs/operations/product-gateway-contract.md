@@ -4,7 +4,7 @@
 
 The gateway is `memnet-mcp --transport gateway`. It is not a separate droplet shim. The #191 catalogue (MCP tool union, SnapshotHandCarry) stays invent-only on the parent part.
 
-Online products reach a `memnet serve` only through this process. Sample pin below is **0.19.20**. Backend ids are arbitrary strings. The live Endleaf backend id is `pi-endleaf`.
+Online products reach a `memnet serve` only through this process. Sample pin below is **0.19.21**. Backend ids are arbitrary strings. The live Endleaf backend id is `pi-endleaf`.
 
 stdio and streamable-http do not read the registry. With no `MEMNET_GATEWAY_CONFIG`, one memnet-mcp process stays a single in-process or streamable-http server.
 
@@ -91,7 +91,7 @@ The gateway body ceiling is `body_max_bytes`, default **4194304** (4 MiB), the s
 
 ## Version pin
 
-Each product has `pinned_version` (sample below, `0.19.20`). Before a forward, the gateway calls `version` on that backend and requires `@VER: memnet|<pin>`. A mismatch is `gateway_backend_version_mismatch` and the argv is not sent. Upgrading a serve without changing the pin refuses the product. Changing the pin is how the owner is notified: edit the config and restart the gateway.
+Each product has `pinned_version` (sample below, `0.19.21`). Before a forward, the gateway calls `version` on that backend and requires `@VER: memnet|<pin>`. A mismatch is `gateway_backend_version_mismatch` and the argv is not sent. Upgrading a serve without changing the pin refuses the product. Changing the pin is how the owner is notified: edit the config and restart the gateway.
 
 `version_cache_s` defaults to 15. Set `0` to check every call. A serve upgraded inside a non-zero window can still be reached until the cache expires.
 
@@ -190,7 +190,7 @@ The product host exports the plaintext bearer as `MEMNET_GATEWAY_TOKEN` (for exa
     "endleaf": {
       "backends": ["pi-endleaf"],
       "houses": {"syson": "pi-endleaf"},
-      "pinned_version": "0.19.20",
+      "pinned_version": "0.19.21",
       "credentials": [
         {"id": "endleaf-1", "sha256": "<sha256 hex>", "revoked": false}
       ]

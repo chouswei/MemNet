@@ -7,6 +7,12 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Changed
+- **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
+- **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
+
+## [0.19.21] - 2026-10-09
+
 ### Fixed
 - **Serve request isolation (MN-REQ-06.13)** — concurrent `memnet serve` commands no longer share a process-global stdout/stderr swap. Each request captures its own streams on contextvars. A caller cannot receive another session's records, and a failed mutate cannot come back as another call's success. No serve-wide lock. TCP listen backlog is 128 so a burst is queued rather than refused.
 - **Mutate line split** — leftover pipe stdin and GQL statement breaks split on LF only (optional trailing CR stripped), the same rule as snapshot load. VT, FF, FS, GS, RS, NEL, LS, and PS stay inside the value.
@@ -15,8 +21,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 - **Housekeep endpoints (MN-REQ-04.12)** — orphan, dangling, and stale counts resolve edge ends by hidden element id and by nickname. A GQL graph is not reported as all orphans. `prune orphans` and `prune stale` with `--apply` recompute and refuse `prune_referenced` when a node is still an endpoint. No automatic `prune --apply`.
 
 ### Changed
-- **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
-- **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
+- **Honesty `c` — release summary for product gates (#206)** — (1) Serve per-request output isolation: each `memnet serve` request captures its own stdout/stderr, so concurrent callers cannot receive each other's records and a failed mutate cannot come back as another call's success. (2) Mutate and pipe statements split on LF only (optional trailing CR stripped). (3) Undeclared properties save through the snapshot SCHEMA, including a map without `id`. (4) `MATCH (n:Label {…}) SET` case-folds the label to the SCHEMA tag. (5) Housekeep resolves GQL edge endpoints by hidden element id and nickname, so a GQL-built graph is not counted as all orphans; `prune orphans` / `prune stale --apply` refuse `prune_referenced` while a node is still an endpoint. (6) Product gateway contract doc synced to shipped behaviour.
+- **Package identity 0.19.21** — Hatch / `project.toml` / `memnet.__version__` honesty cut on **0.19**. Agent loop (`cue → pin_map → mutate`) unchanged.
 
 ## [0.19.20] - 2026-10-08
 
