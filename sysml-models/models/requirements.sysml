@@ -36,7 +36,7 @@
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
-    MN-REQ-06.14       Safe serve upgrade: drain, manifest, restore; no silent session loss
+    MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1139,18 +1139,24 @@ package MemNetRequirements {
 
       requirement def MN_REQ_06_14_SafeServeUpgrade {
         doc /*
-          SHALL upgrade a live memnet-serve (and the memnet-mcp /
-          product gateway in front of it) without silently dropping
-          a loaded session. Same usage method (cue then pin_map,
-          mutate). No SemVer bump. Patch-level c on 0.19.
+          SHALL upgrade a live memnet-serve without silently
+          dropping a loaded session. The procedure stays inside
+          memnet serve: snapshot every loaded session, restart
+          on the new version, reload every session. Same usage
+          method (cue then pin_map, mutate). No SemVer bump.
+          Patch-level c on 0.19. memnet-mcp and the product
+          gateway are outside this procedure. During the restart
+          they see serve_draining or a connection error. There
+          is no client retry window and no helper that edits a
+          systemd unit or a gateway version pin.
           Admin drain: credential MEMNET_ADMIN_TOKEN (same gate as
           MN-REQ-06.11; unset admin_unconfigured; mismatch
           admin_denied). Command `memnet admin upgrade-prepare`
           and envelope {upgrade_prepare:true, admin_token}. Not an
           agent MCP tool (onAgentMcp=false).
-          Drain refuses a new session_open with
-          @ERR: serve_draining|retry_after_s=<seconds> (retryable).
-          It finishes commands already in flight, then snapshots
+          Drain enters quiesce. It refuses a new command with
+          @ERR: serve_draining|retry_after_s=<seconds>. It
+          finishes commands already in flight, then snapshots
           every loaded session through the lossless snapshot path
           (MN-REQ-01.9). It writes a manifest in the state dir
           (MEMNET_STATE_DIR): session ids, row and edge counts,
@@ -1163,31 +1169,22 @@ package MemNetRequirements {
           New serve startup reads that manifest, reloads every
           saved session, and checks counts and checksums. It
           reports @STAT: upgrade_restore|ok|n|failed|m. It keeps
-          the manifest and snapshot files until that restore is
-          verified. A snapshot written by an older patch (format
-          v1) SHALL load. If the format is unsupported or a
-          snapshot is corrupt, startup SHALL fail loudly and
-          SHALL NOT delete or rewrite the snapshot files, so a
-          rollback to the old venv can still reload them.
+          the snapshot files. A snapshot written by an older patch
+          (format v1) SHALL load. If the format is unsupported or
+          a snapshot is corrupt, startup SHALL fail loudly and
+          SHALL NOT delete or rewrite the snapshot files.
+          A clean restore (failed = 0) SHALL retire the manifest
+          inside that same startup, before the process accepts
+          work. The operator does not run a separate retire
+          command. A later restart SHALL NOT replay those
+          snapshots. A failed restore SHALL NOT retire.
           Restored sessions keep the same session id, CapsPolicy
           ACL bindings, TTL expiry clock, and house (the session
           tag map). Product label is kept with the passport.
-          memnet-mcp (TCP) and the product gateway SHALL treat
-          serve_draining and a brief connection refusal as
-          retryable with bounded backoff for MEMNET_UPGRADE_RETRY_S
-          (default 30 seconds). Order: deploy that client
-          tolerance first, then drain and swap the serve. The
-          gateway backend version pin is updated in the same
-          procedure, after the old serve has stopped and before
-          the new serve listens.
-          Helper `memnet-upgrade` encodes the side-by-side venv
-          procedure: preflight the new interpreter against the
-          snapshot format, drain, swap the systemd ExecStart from
-          a unit backup, restore, verify, and roll back to the
-          backup unit and the previous pin if verification fails.
-          Hosts: rpi5-syson (serve 18765, mcp 18766), the Endleaf
-          engine serve named by the gateway registry, and the
-          droplet gateway. No real session id in docs or tests.
+          Operator: install the new venv, run upgrade-prepare,
+          check ready_to_stop, restart the unit on the new venv,
+          read the restore stat. To roll back, point the unit at
+          the old venv. No real session id in docs or tests.
         */
         attribute requirementId : String = "MN-REQ-06.14";
       }

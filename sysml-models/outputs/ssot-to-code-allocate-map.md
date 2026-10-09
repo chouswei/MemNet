@@ -20,9 +20,6 @@
 | tcpDaemonToMod | `…transport.tcp` | `serveDaemonMod` | `parts/common/memnet/memnet/serve.py` | `memnet.serve` | true |
 | adminUsageToMod | `…transport.tcp.adminUsage` | `adminUsageMod` | `parts/common/memnet/memnet/admin_usage.py` | `memnet.admin_usage` | true |
 | safeUpgradeToMod | `…transport.tcp.safeUpgrade` | `safeUpgradeMod` | `parts/common/memnet/memnet/upgrade.py` | `memnet.upgrade` | true |
-| upgradeRetryToMod | `lanMcpFront.productGateway` | `upgradeRetryMod` | `parts/common/memnet/memnet/upgrade_retry.py` | `memnet.upgrade_retry` | true |
-| mcpUpgradeRetryToMod | `memNetSystem.mcp.bridge` | `upgradeRetryMod` | `parts/common/memnet/memnet/upgrade_retry.py` | `memnet.upgrade_retry` | true |
-| upgradeHelperToMod | `memNetSystem.core.cli` | `upgradeHelperMod` | `parts/common/memnet/memnet/upgrade_run.py` | `memnet.upgrade_run` | true |
 | cliToMod | `memNetSystem.core.cli` | `cliMod` | `parts/common/memnet/memnet/cli.py` | `memnet.cli` | true |
 | sessionsToMod | `…sessions` | `sessionsMod` | `parts/common/memnet/memnet/session_lifecycle.py` | `memnet.session_lifecycle` | true |
 | storeToMod | `…sessions.store` | `storeMod` | `parts/common/memnet/memnet/graph_store.py` | `memnet.graph_store` | true |
