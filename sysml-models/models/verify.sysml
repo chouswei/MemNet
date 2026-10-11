@@ -54,6 +54,10 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
+  Serve checkpoint (MN-VER-06-S13): ServeCheckpoint on
+  TcpServeBridge; admin credential; per-session lock; lossless
+  atomic snaps; skip unsaveable; no drain; no live load; no
+  SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1685,6 +1689,50 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S13_ServeCheckpoint {
+    doc /*
+      MN-REQ-06.15 — checkpoint every loaded session without
+      draining or refusing traffic. Per-session lock only.
+      Lossless atomic snapshot. Unsaveable sessions are named
+      and skipped. Exit is non-zero when any were skipped.
+      TTL, id, ACL, and live state stay put. A checkpoint does
+      not retire or load. checkpoint-verify checks a restored
+      directory. Not an agent MCP tool. No SemVer bump.
+    */
+    attribute verificationId : String = "MN-VER-06-S13";
+
+    subject tcp : TcpServeBridge;
+    subject cli : CliFacade;
+
+    objective serveCheckpoint {
+      verify serveCheckpointReq;
+      require constraint {
+        tcp.serveCheckpoint.implemented == true
+          and tcp.serveCheckpoint.noSemVerBump == true
+          and tcp.serveCheckpoint.onAgentMcp == false
+          and tcp.serveCheckpoint.adminCredEnv == "MEMNET_ADMIN_TOKEN"
+          and tcp.serveCheckpoint.refusesNewSessionOpen == false
+          and tcp.serveCheckpoint.drainsServe == false
+          and tcp.serveCheckpoint.sessionLockOnly == true
+          and tcp.serveCheckpoint.usesLosslessSnapshot == true
+          and tcp.serveCheckpoint.atomicWrite == true
+          and tcp.serveCheckpoint.skipsUnsaveable == true
+          and tcp.serveCheckpoint.unsaveableFatal == false
+          and tcp.serveCheckpoint.exitNonZeroWhenSkipped == true
+          and tcp.serveCheckpoint.removesStale == true
+          and tcp.serveCheckpoint.preservesSessionId == true
+          and tcp.serveCheckpoint.preservesAcl == true
+          and tcp.serveCheckpoint.preservesTtlClock == true
+          and tcp.serveCheckpoint.retiresOrLoads == false
+          and tcp.serveCheckpoint.statCheckpoint == "checkpoint"
+          and tcp.serveCheckpoint.statCheckpointVerify == "checkpoint_verify"
+          and cli.checkpointOnAgentMcp == false
+          and cli.checkpoint.onAgentMcp == false
+          and cli.checkpointVerify.onAgentMcp == false
+      }
+    }
+  }
+
   verification def MN_VER_04_S06_HousekeepEndpointIdentity {
     doc /*
       MN-REQ-04.12 — housekeep resolves edge endpoints by hid and
@@ -2252,6 +2300,8 @@ package MemNetVerification {
     : MN_VER_06_S11_ServeRequestIsolation;
   verification safeServeUpgradeVerify
     : MN_VER_06_S12_SafeServeUpgrade;
+  verification serveCheckpointVerify
+    : MN_VER_06_S13_ServeCheckpoint;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
 }

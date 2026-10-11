@@ -37,6 +37,7 @@
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
     MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
+    MN-REQ-06.15       Admin checkpoint of every loaded session: lossless snaps, no drain, no traffic refuse
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1188,6 +1189,58 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-06.14";
       }
+
+      requirement def MN_REQ_06_15_ServeCheckpoint {
+        doc /*
+          SHALL checkpoint every loaded session to disk without
+          draining the serve and without refusing traffic.
+          Patch-level c on 0.19. Same usage method (cue then
+          pin_map, mutate). No SemVer bump.
+          Admin credential MEMNET_ADMIN_TOKEN (same gate as
+          MN-REQ-06.11 and MN-REQ-06.14; unset
+          admin_unconfigured; mismatch admin_denied).
+          Command `memnet admin checkpoint` and envelope
+          {checkpoint:true, admin_token}. Restore-test helper
+          `memnet admin checkpoint-verify <dir>`. Neither is an
+          agent MCP tool (onAgentMcp=false).
+          For each loaded session, take that session's lock only
+          long enough to serialise a consistent copy. Other
+          sessions keep serving. A new session open SHALL NOT
+          be refused (refusesNewSessionOpen=false). The serve
+          SHALL NOT enter quiesce (drainsServe=false).
+          Write the copy through the lossless snapshot path
+          (MN-REQ-01.9), atomically (temp file, fsync, rename),
+          to <MEMNET_STATE_DIR>/checkpoint/<session>.snap.
+          Overwrite the previous checkpoint for that session.
+          Remove checkpoint files for sessions that are no
+          longer loaded. A skipped session SHALL NOT keep an
+          older snap in that directory: the directory after a
+          run holds one snap per session saved in that run.
+          Write checkpoint-manifest.json in that directory.
+          Reuse the upgrade manifest row (session, rows, edges,
+          checksum) plus serve version, snapshot format version,
+          and a timestamp.
+          A session that cannot be saved (snapshot_unsaveable
+          and the reason) SHALL be named and skipped. It SHALL
+          NOT fail the other sessions. The exit code SHALL be
+          non-zero when any session was skipped. Print
+          @STAT: checkpoint|ok|n|skipped|m|bytes|b.
+          SHALL NOT slide TTL or expiry clocks, and SHALL NOT
+          change session ids, CapsPolicy ACL, or live state.
+          A checkpoint SHALL NOT retire a manifest and SHALL
+          NOT load a snapshot into the live registry.
+          checkpoint-verify loads every snapshot in the given
+          directory into a throwaway in-process store and
+          checks row counts, edge counts, and checksums against
+          the manifest. It prints
+          @STAT: checkpoint_verify|ok|n|failed|m.
+          A corrupt or missing snapshot file SHALL fail that
+          check. The weekly restore test runs this helper on a
+          restic-restored copy. No real session id in docs or
+          tests.
+        */
+        attribute requirementId : String = "MN-REQ-06.15";
+      }
     }
 
     // ----- MCP agent boundary -----
@@ -2222,6 +2275,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_13_ServeRequestIsolation;
   requirement safeServeUpgradeReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
+  requirement serveCheckpointReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_15_ServeCheckpoint;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;

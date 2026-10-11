@@ -13,6 +13,7 @@ Agent operating doctrine for this product (not domain recipes).
 | [`cluster-route-vs-slice-hand-carry.md`](cluster-route-vs-slice-hand-carry.md) | Two named moves: ClusterRoute vs SliceHandCarry (#191 / #47 cousin; inventOnly) |
 | [`admin-usage-report.md`](admin-usage-report.md) | Admin-only serve usage JSON (opaque alias; not agent MCP; MN-REQ-06.11) |
 | [`safe-upgrade.md`](safe-upgrade.md) | Drain and restore a live serve from inside memnet serve (MN-REQ-06.14) |
+| [`backup.md`](backup.md) | Hourly checkpoint of loaded sessions, restic to R2, weekly checkpoint-verify (MN-REQ-06.15) |
 | [`one-session-per-document.md`](one-session-per-document.md) | Product gate: one serve session per document over loopback (no MCP); 0.19.18 probe |
 
 Application pattern for `modelbasedPrj-*` / `SysMLEdgePrj-*`: [`../application-notes/system/llm-system-dev-multitask.md`](../application-notes/system/llm-system-dev-multitask.md). Index: [`../README.md`](../README.md).

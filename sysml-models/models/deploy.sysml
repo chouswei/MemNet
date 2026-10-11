@@ -1360,6 +1360,62 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
   }
 
+  part def CmdAdminCheckpoint {
+    doc /*
+      CLI/serve: memnet admin checkpoint. Envelope
+      {checkpoint:true, admin_token}. NOT an agent MCP tool.
+      Does not drain and does not refuse a new session open.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute onAgentMcp : Boolean = false;
+  }
+
+  part def CmdAdminCheckpointVerify {
+    doc /*
+      CLI/serve: memnet admin checkpoint-verify <dir>. Loads
+      snapshots into a throwaway store and checks the manifest.
+      NOT an agent MCP tool. Does not load the live registry.
+    */
+    attribute requiresStoreKeyId : Boolean = false;
+    attribute implemented : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute onAgentMcp : Boolean = false;
+  }
+
+  part def ServeCheckpoint {
+    doc /*
+      Admin checkpoint of every loaded session (MN-REQ-06.15).
+      Per-session lock, lossless atomic snapshot under
+      MEMNET_STATE_DIR/checkpoint. Unsaveable sessions are
+      named and skipped. Does not drain, retire, or load.
+    */
+    attribute implemented : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+    attribute onAgentMcp : Boolean = false;
+    attribute adminCredEnv : String = "MEMNET_ADMIN_TOKEN";
+    attribute refusesNewSessionOpen : Boolean = false;
+    attribute drainsServe : Boolean = false;
+    attribute sessionLockOnly : Boolean = true;
+    attribute usesLosslessSnapshot : Boolean = true;
+    attribute atomicWrite : Boolean = true;
+    attribute skipsUnsaveable : Boolean = true;
+    attribute unsaveableFatal : Boolean = false;
+    attribute exitNonZeroWhenSkipped : Boolean = true;
+    attribute removesStale : Boolean = true;
+    attribute preservesSessionId : Boolean = true;
+    attribute preservesAcl : Boolean = true;
+    attribute preservesTtlClock : Boolean = true;
+    attribute retiresOrLoads : Boolean = false;
+    attribute statCheckpoint : String = "checkpoint";
+    attribute statCheckpointVerify : String = "checkpoint_verify";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_15_ServeCheckpoint;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
+  }
+
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
@@ -1369,6 +1425,7 @@ package MemNet {
       path redacted) for MemNetUsageDashboard.
       adminUsage = MN-REQ-06.11 admin JSON (opaque aliases; not 06.5).
       safeUpgrade = MN-REQ-06.14 drain, manifest, and startup restore.
+      serveCheckpoint = MN-REQ-06.15 per-session checkpoint; no drain.
       Many mn_* sessions in one registry. Not a projectId map.
       Not a second graph. Admin report MUST NOT emit those mn_* ids.
     */
@@ -1379,6 +1436,7 @@ package MemNet {
     port adminReportOut : AdminUsageReportOutPort;
     part adminUsage : AdminUsageReport;
     part safeUpgrade : SafeServeUpgrade;
+    part serveCheckpoint : ServeCheckpoint;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
     attribute requestOutputIsolated : Boolean = true;
@@ -1388,6 +1446,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_13_ServeRequestIsolation;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_15_ServeCheckpoint;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_2_SharedStoreTransport;
   }
 
@@ -1722,6 +1781,8 @@ package MemNet {
     part catalogSnap : CmdCatalogSnap;
     part adminUsageReport : CmdAdminUsageReport;
     part upgradePrepare : CmdAdminUpgradePrepare;
+    part checkpoint : CmdAdminCheckpoint;
+    part checkpointVerify : CmdAdminCheckpointVerify;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1739,10 +1800,12 @@ package MemNet {
     attribute noRequiredIdTools : Boolean = true;
     attribute adminUsageOnAgentMcp : Boolean = false;
     attribute upgradePrepareOnAgentMcp : Boolean = false;
+    attribute checkpointOnAgentMcp : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_2_SessionLifecycleOps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_11_AdminServeUsageReport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_15_ServeCheckpoint;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_4_SaveSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_5_LoadSessionSnapshot;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_6_OptionalKeepSessionId;
