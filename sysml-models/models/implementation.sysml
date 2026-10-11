@@ -127,6 +127,11 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/upgrade.py";
     attribute pyName : String = "memnet.upgrade";
   }
+  part def ServeCheckpointMod {
+    doc /* Admin checkpoint of loaded sessions without drain (MN-REQ-06.15). */
+    attribute path : String = "parts/common/memnet/memnet/checkpoint.py";
+    attribute pyName : String = "memnet.checkpoint";
+  }
   part def CliFacadeMod {
     attribute path : String = "parts/common/memnet/memnet/cli.py";
     attribute pyName : String = "memnet.cli";
@@ -279,6 +284,7 @@ package MemNetImplementation {
   part serveDaemonMod : ServeDaemonMod;
   part adminUsageMod : AdminUsageReportMod;
   part safeUpgradeMod : SafeUpgradeMod;
+  part serveCheckpointMod : ServeCheckpointMod;
   part cliMod : CliFacadeMod;
   part sessionsMod : SessionLifecycleMod;
   part storeMod : GraphStoreMod;
@@ -364,6 +370,11 @@ package MemNetImplementation {
     doc /* Drain, manifest, startup restore, and retire on memnet-serve. */
     end logical ::> memNetSystem.core.transport.tcp.safeUpgrade;
     end code ::> safeUpgradeMod;
+  }
+  allocation serveCheckpointToMod : SoftwareAllocate {
+    doc /* Per-session checkpoint snaps on memnet-serve. Not agent MCP. */
+    end logical ::> memNetSystem.core.transport.tcp.serveCheckpoint;
+    end code ::> serveCheckpointMod;
   }
   allocation cliToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.cli;

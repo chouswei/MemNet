@@ -569,6 +569,66 @@ def admin_upgrade_prepare(
         raise typer.Exit(result.exit_code)
 
 
+@admin_app.command("checkpoint")
+def admin_checkpoint(
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            help="Admin token presented by the caller (do not log). Not MEMNET_ADMIN_TOKEN.",
+        ),
+    ] = None,
+    state_dir: Annotated[
+        str | None,
+        typer.Option("--state-dir", help="State directory (default MEMNET_STATE_DIR)."),
+    ] = None,
+) -> None:
+    """Save every loaded session without draining. Not an agent MCP tool."""
+    from memnet.admin_usage import caller_token
+    from memnet.checkpoint import run_checkpoint
+
+    presented = token if token else caller_token()
+    directory = Path(state_dir) if state_dir else None
+    try:
+        result = run_checkpoint(presented, directory=directory)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    sys.stdout.write(result.stdout_text())
+    if result.stderr_text():
+        sys.stderr.write(result.stderr_text())
+    if result.exit_code:
+        raise typer.Exit(result.exit_code)
+
+
+@admin_app.command("checkpoint-verify")
+def admin_checkpoint_verify(
+    directory: Annotated[Path, typer.Argument(help="Checkpoint directory to check.")],
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            help="Admin token presented by the caller (do not log). Not MEMNET_ADMIN_TOKEN.",
+        ),
+    ] = None,
+) -> None:
+    """Check a checkpoint directory in a throwaway store. Not an agent MCP tool."""
+    from memnet.admin_usage import caller_token
+    from memnet.checkpoint import verify_checkpoint
+
+    presented = token if token else caller_token()
+    try:
+        result = verify_checkpoint(directory, presented)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    sys.stdout.write(result.stdout_text())
+    if result.stderr_text():
+        sys.stderr.write(result.stderr_text())
+    if result.exit_code:
+        raise typer.Exit(result.exit_code)
+
+
 @session_app.command("expire-status")
 def session_expire_status() -> None:
     """Booleans for expire-save (serve_status). Path redacted; no sids."""

@@ -425,3 +425,30 @@ def load_snapshot_text(
     )
     register(session_id, entry)
     return SessionStore(session_id, caps)
+
+
+def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> SessionEntry:
+    """Parse a snapshot into a store that is not registered.
+
+    Checkpoint verify uses this throwaway store. It does not mint an id,
+    slide clocks, or touch the live registry.
+    """
+    caps = caps or Caps()
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
+    tag_map = load_persisted_map_from_lines(map_lines, caps)
+    relations = _parse_relations(rel_lines)
+    if not relations:
+        from memnet.session import _seed_relations
+
+        relations = set(_seed_relations())
+    store = MemStore(tag_map, caps)
+    used_nicks: set[str] = set()
+    for line in rec_lines:
+        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
+        store.upsert(rec, relations=relations)
+    return SessionEntry(
+        meta=meta,
+        tag_map=tag_map,
+        store=store,
+        relations=relations,
+    )
