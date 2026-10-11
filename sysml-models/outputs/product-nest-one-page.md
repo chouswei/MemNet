@@ -27,6 +27,7 @@ ARCHIVE LOOK       MemNetArchive (models/archive.sysml) — leftover_* /
 OPS LOOK           MemNetUsageDashboard — human look only; not agent wire
 SERVE ADMIN LOOK   AdminUsageReport on TcpServeBridge — admin JSON; opaque alias; not agent MCP (MN-REQ-06.11)
 SERVE UPGRADE      SafeServeUpgrade on TcpServeBridge — drain, manifest, restore, retire (MN-REQ-06.14)
+SERVE CHECKPOINT   ServeCheckpoint on TcpServeBridge — loaded sessions to disk, no drain (MN-REQ-06.15)
 OPS FLEET          MemNetOpsFleet — device MemNet services; one MemNet MCP at droplet (tip/ops; tip≠face; product face is sysmledge)
 OPS ACCESS         TipMemNetAccessPortal — Szu-Wei invite, Google login, Bearer for keyed tip MCP at droplet WWW (tip≠face; not sysmledge; portal sidecar; look-only service/client status)
 OPS LAN FRONT      MemNetLanMcpFront — ClusterRoute: one MCP catalogue over N LAN serves (inventOnly #191; tip≠face; not shipped)
