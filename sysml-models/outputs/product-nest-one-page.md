@@ -2,6 +2,8 @@
 
 Mission working memory: hand off by **session id**; GQL ask/commit; no graph dump in chat.
 
+Requirements spine is the same two operators: MN-REQ-13 Recall(q) / Commit(Δ). Mapping: [mn-req-13-spine-mapping.md](mn-req-13-spine-mapping.md). Agent surface verbs: recall, commit, session open, save, close.
+
 ```text
 MemNetSystem                          // SharedLlmMemory product
 ├── Core

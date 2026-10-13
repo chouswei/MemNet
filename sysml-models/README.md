@@ -21,7 +21,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | File | Package | Role |
 |------|---------|------|
 | `models/connections.sysml` | `MemNetConnections` | SharedLlmMemory, SessionHandoff (+ CallerId / SessionBind / SessionCapability), WorkingMemorySlice, SessionImportRequest, optional ImportGuardDecision; ServeUsageLook / ImportGuardArmedLook / HumanUsagePage (ops look); application `CompanyAnalyticalSsot` / `HostSearchBridge` / `DeviceMemNetFleet` / `TipMemNetAccess` / `MemNetLanMcpCluster` / `MemNetTwoMovesContrast` |
-| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13 (01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** ClusterRoute LAN MCP front invent #191, **06.10** SliceHandCarry invent #47 cousin, **06.12** product gateway on memnet-mcp, 12.9–12.13, 13.1 Recall/Commit; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline) |
+| `models/requirements.sysml` | `MemNetRequirements` | MN-REQ-00…13. **Spine = MN-REQ-13** Recall(q)/Commit(Δ) (`13.Recall` / `13.Commit`; mapping [outputs/mn-req-13-spine-mapping.md](outputs/mn-req-13-spine-mapping.md)). Agent surface: recall, commit, session open, save, close. 01.7/01.8, 06.4, **06.5** human usage look, **06.6** device services / one droplet MemNet MCP tip/ops, product face sysmledge, **06.7** SSOT → code allocate, **06.8** tip MemNet access portal, **06.9** ClusterRoute LAN MCP front invent #191, **06.10** SliceHandCarry invent #47 cousin, **06.12** product gateway on memnet-mcp, 12.9–12.13, 13.1 two operators; 02.9 cousin store-key; 04.8 cue \|Q\|>1; 04.9 empty-q outline |
 | `models/cousins.sysml` | `MemNetCousinContrast` | TARGET vs eight cousin pointing/identity designs (not a product switch; SysMLEdge is a distinct pin_map; overlay family `SysMLEdgePrj-*`; this engine repo and `modelbasedPrj-*` are repo-based — MUST NOT use SysMLEdge as model SSOT; `SysMLEdgePrj-*` bound desk is working model SSOT) |
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` / `MemNetProductGateway` / `MemNetTwoMoves` outside `MemNetSystem` |
 | `models/implementation.sysml` | `MemNetImplementation` | `SoftwareAllocate` logical → live modules; one Hatch wheel many hosts; sysmledge not in wheel |
@@ -31,6 +31,19 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe* / retired Neo4j). **Off** `config.yaml` load |
 
 **One-page nest:** [outputs/product-nest-one-page.md](outputs/product-nest-one-page.md).
+
+## Requirements spine (MN-REQ-13)
+
+Agent-facing graph I/O hangs on **Recall(q)** and **Commit(Δ)**. Organisational groups MN-REQ-01…12 stay nested under MN-REQ-00 this cut (ops, importers, cousins, archive not moved). Mapping: [outputs/mn-req-13-spine-mapping.md](outputs/mn-req-13-spine-mapping.md).
+
+```text
+MN-REQ-00
+├── MN-REQ-13 RecallCommit          // spine
+│   ├── 13.Recall  pin_map          // empty q = outline
+│   └── 13.Commit  mutate           // 13.2 SameThingAbsorb nested
+├── MN-REQ-01 Session               // open / save / close
+└── MN-REQ-06 ops                   // later PR may split
+```
 
 ## Nesting outline (target)
 
