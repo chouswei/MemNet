@@ -74,6 +74,10 @@
   fail-closed save; 0.19.18 snapshots still load.
   Session save/load/close ACL who (MN-VER-01-S05) when session ACL on.
   Honour WHERE or refuse (MN-VER-03-S01).
+  Merge-and-report default Commit (MN-VER-03-S02); strict add/update
+  is opt-in. Deciding test planned, not yet implemented.
+  Playbooks as Recall option (MN-VER-04-S07); listPlaybooks /
+  getPlaybook on paper. Deciding test planned, not yet implemented.
   Consistent decoded value_bytes cap (MN-VER-05-S01).
 */
 package MemNetVerification {
@@ -1753,6 +1757,68 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_04_S07_PlaybooksAsRecallOption {
+    doc /*
+      MN-REQ-04.13 — playbooks are a Recall option, not a new verb.
+      listPlaybooks (omit topic) and getPlaybook (topic required)
+      teach MemNet tools. Read-only. SHALL NOT mutate S, SHALL NOT
+      bind a desk, SHALL NOT be a third operator or a sixth agent
+      verb. productCommand=false. On paper this cut
+      (implemented=false). Modelled on Endleaf listPlaybooks /
+      getPlaybook.
+      Planned deciding test (not yet implemented):
+      pytest tests/test_memnet_playbooks.py::test_list_playbooks_and_get_playbook
+    */
+    attribute verificationId : String = "MN-VER-04-S07";
+    attribute decidingTest : String
+      = "tests/test_memnet_playbooks.py::test_list_playbooks_and_get_playbook";
+    attribute decidingCommand : String
+      = "pytest tests/test_memnet_playbooks.py::test_list_playbooks_and_get_playbook";
+    attribute decidingTestImplemented : Boolean = false;
+
+    subject system : MemNetSystem;
+
+    objective playbooksReadOnlyRecallOption {
+      verify playbooksAsRecallOptionReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.listPlaybooks == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.getPlaybook == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.readOnly == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.mutatesSession == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.bindsDesk == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.notAThirdOperator == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.notASixthVerb == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.productCommand == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.implemented == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.teachesMemNetTools == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .recall.playbooks.endleafLike == true
+          and system.mcp.tools.listPlaybooks.productCommand == false
+          and system.mcp.tools.listPlaybooks.implemented == false
+          and system.mcp.tools.listPlaybooks.readOnly == true
+          and system.mcp.tools.getPlaybook.productCommand == false
+          and system.mcp.tools.getPlaybook.implemented == false
+          and system.mcp.tools.getPlaybook.readOnly == true
+          and system.mcp.tools.getPlaybook.topicRequired == true
+          and system.core.cli.listPlaybooks.productCommand == false
+          and system.core.cli.listPlaybooks.implemented == false
+          and system.core.cli.getPlaybook.productCommand == false
+          and system.core.cli.getPlaybook.implemented == false
+          and system.core.cli.getPlaybook.topicRequired == true
+      }
+    }
+  }
+
   verification def MN_VER_06_S11_ServeRequestIsolation {
     doc /*
       MN-REQ-06.13 — each memnet serve command keeps its own
@@ -2166,6 +2232,60 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_03_S02_MergeAndReport {
+    doc /*
+      MN-REQ-03.1 / 03.2 / 03.3 — default Commit merges by GraphElement
+      identity and reports created, updated, or unchanged for each item
+      in Δ. The merge is never silent. Strict AddFailsIfExists /
+      UpdateFailsIfAbsent is an opt-in Commit mode. leftover add /
+      update façades MAY select that mode.
+      Planned deciding test (not yet implemented):
+      pytest tests/test_mutate_merge_report.py::test_commit_reports_created_updated_unchanged
+    */
+    attribute verificationId : String = "MN-VER-03-S02";
+    attribute decidingTest : String
+      = "tests/test_mutate_merge_report.py::test_commit_reports_created_updated_unchanged";
+    attribute decidingCommand : String
+      = "pytest tests/test_mutate_merge_report.py::test_commit_reports_created_updated_unchanged";
+    attribute decidingTestImplemented : Boolean = false;
+
+    subject system : MemNetSystem;
+
+    objective mergeAndReportNeverSilent {
+      verify addFailsIfExistsReq;
+      verify updateFailsIfAbsentReq;
+      verify noSilentUpsertReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.defaultMode == "merge_and_report"
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mergeByIdentity == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.reportCreatedUpdatedUnchanged == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.silentUpsert == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.defaultAddFailsIfExists == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.defaultUpdateFailsIfAbsent == false
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.optInStrictAddFailsIfExists == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.optInStrictUpdateFailsIfAbsent == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.defaultMode == "merge_and_report"
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.reportCreatedUpdatedUnchanged == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.silentUpsert == false
+          and system.core.transport.inProcess.memory.sessions.store
+            .defaultCommitMergeAndReport == true
+          and system.core.transport.inProcess.memory.sessions.store
+            .silentUpsert == false
+      }
+    }
+  }
+
   verification def MN_VER_05_S01_ConsistentValueByteCap {
     doc /*
       MN-REQ-05.3 — one decoded value_bytes cap; knob MEMNET_MAX_VALUE_BYTES;
@@ -2289,6 +2409,8 @@ package MemNetVerification {
     : MN_VER_01_S05_SessionLifecycleAclWho;
   verification honourWherePredicateVerify
     : MN_VER_03_S01_HonourWherePredicate;
+  verification mergeAndReportVerify
+    : MN_VER_03_S02_MergeAndReport;
   verification consistentValueByteCapVerify
     : MN_VER_05_S01_ConsistentValueByteCap;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
@@ -2304,4 +2426,6 @@ package MemNetVerification {
     : MN_VER_06_S13_ServeCheckpoint;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
+  verification playbooksAsRecallOptionVerify
+    : MN_VER_04_S07_PlaybooksAsRecallOption;
 }

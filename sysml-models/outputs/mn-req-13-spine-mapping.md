@@ -15,7 +15,17 @@ Source of the table: `agentSurface` on each requirement def in
 - Split deploy/ops out of MN-REQ-06 / `deploy.sysml` ops parts.
 - Move Path-B importers (MN-REQ-11.6…11.16) to a dedicated ingest nest.
 - Move `cousins.sysml` / `archive.sysml` (or rename leftover coinages).
-- Merge-and-report as a Commit rule (owner decision; 03.1–03.3 stay strict).
+- Engine/MCP for merge-and-report (MN-REQ-03.3) and playbooks (MN-REQ-04.13).
+
+## Contract change this cut (ids stable)
+
+- **MN-REQ-03.1 / 03.2 / 03.3** keep the same ids. Default Commit is
+  merge-by-identity and reports created / updated / unchanged per item
+  (never silent). AddFailsIfExists / UpdateFailsIfAbsent become an
+  **opt-in Commit mode**. This replaces the earlier “do not change
+  strict add/update” instruction.
+- **MN-REQ-04.13** is a new leaf (playbooks as a Recall option). Not a
+  rename of an existing id.
 
 ## Spine tree
 
@@ -26,12 +36,12 @@ MN-REQ-00 Mission
 │   ├── MN-REQ-13.Recall   Recall(q) = pin_map
 │   │   └── agent-facing read leaves via #derivation
 │   │       (04.* minus housekeep, 02.4, 05.2, 08.7/08.9,
-│   │        10.2/10.3/10.6, find/export options, 12.4 pin_map)
+│   │        10.2/10.3/10.6, find/export/playbooks options, 12.4 pin_map)
 │   └── MN-REQ-13.Commit   Commit(Δ) = mutate
 │       ├── MN-REQ-13.2 SameThingAbsorb            nested
 │       └── agent-facing write leaves via #derivation
-│           (03.* strict mutate unchanged, ingest/snap options,
-│            Absorb / RSV options)
+│           (03.* merge-and-report default; 03.1/03.2 opt-in strict,
+│            ingest/snap options, Absorb / RSV options)
 ├── MN-REQ-01 SessionLifecycle   open / save / close
 ├── MN-REQ-02, 05, 07–12         organisational groups (importers stay)
 └── MN-REQ-06 ProcessBoundary    ops (later PR may split)
@@ -41,15 +51,17 @@ Agent surface verbs: **recall**, **commit**, **session open**, **save**, **close
 
 ## Counts
 
-- Requirement defs / usages: **132** (130 at ab0d2db plus spine arms `MN-REQ-13.Recall` and `MN-REQ-13.Commit`).
-- Under Recall (`Recall` + `option:Recall`): **26**
+- Requirement defs / usages: **133** (132 at e518e9a plus `MN-REQ-04.13`).
+- Under Recall (`Recall` + `option:Recall`): **27**
 - Under Commit (`Commit` + `option:Commit`): **30**
 - Session surface (`session` + `option:session`): **10**
 - Internal: **44**
 - Ops: **17**
 - Other (mission / spine / surface listing): **5**
-- Named by some `verify`: **52**; still unverified: **80** (the previous 78 plus the two new arms).
-- `agentSurface` breakdown: mission 1, session 7, option:session 3, Recall 19, option:Recall 7, Commit 8, option:Commit 22, internal 44, ops 17, surface 2, spine 2.
+- Named by some `verify`: **56**; still unverified: **77**
+  (MN-VER-03-S02 binds 03.1–03.3; MN-VER-04-S07 binds 04.13;
+  deciding tests planned, `decidingTestImplemented=false`).
+- `agentSurface` breakdown: mission 1, session 7, option:session 3, Recall 19, option:Recall 8, Commit 8, option:Commit 22, internal 44, ops 17, surface 2, spine 2.
 
 ## Mapping (old organisational parent → new spine parent)
 
@@ -77,10 +89,10 @@ Agent surface verbs: **recall**, **commit**, **session open**, **save**, **close
 | `MN-REQ-02.7` | `MN-REQ-02` | `MN-REQ-13.Commit` | `option:Commit` | schema-validated ingest — option of Commit |
 | `MN-REQ-02.8` | `MN-REQ-02` | `internal (stays under organisational group)` | `internal` | id not required on the wire |
 | `MN-REQ-02.9` | `MN-REQ-02` | `internal (stays under organisational group)` | `internal` | MUST NOT copy cousin store-key / embedding Recall |
-| `MN-REQ-03` | `MN-REQ-00` | `MN-REQ-13.Commit` | `Commit` | strict mutate group; spine parent Commit |
-| `MN-REQ-03.1` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | AddFailsIfExists; unchanged; merge-and-report pending |
-| `MN-REQ-03.2` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | UpdateFailsIfAbsent; unchanged |
-| `MN-REQ-03.3` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | no silent upsert; unchanged; merge-and-report is owner-pending |
+| `MN-REQ-03` | `MN-REQ-00` | `MN-REQ-13.Commit` | `Commit` | Commit group; default merge-and-report |
+| `MN-REQ-03.1` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | AddFailsIfExists; **opt-in** Commit mode (id stable; contract changed) |
+| `MN-REQ-03.2` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | UpdateFailsIfAbsent; **opt-in** Commit mode (id stable; contract changed) |
+| `MN-REQ-03.3` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | merge-and-report is never silent; created / updated / unchanged per item (id stable; contract changed) |
 | `MN-REQ-03.4` | `MN-REQ-03` | `MN-REQ-13.Commit` | `Commit` | honour WHERE or refuse |
 | `MN-REQ-04` | `MN-REQ-00` | `MN-REQ-13.Recall` | `Recall` | slice economy / pin_map group; spine parent Recall |
 | `MN-REQ-04.1` | `MN-REQ-04` | `MN-REQ-13.Recall` | `Recall` | bounded live pin_map |
@@ -95,6 +107,7 @@ Agent surface verbs: **recall**, **commit**, **session open**, **save**, **close
 | `MN-REQ-04.10` | `MN-REQ-04` | `MN-REQ-13.Recall` | `Recall` | Peak_L last-resort cue |
 | `MN-REQ-04.11` | `MN-REQ-04` | `MN-REQ-13.Recall` | `Recall` | pin_map order from Shape observables |
 | `MN-REQ-04.12` | `MN-REQ-04` | `internal (stays under organisational group)` | `internal` | housekeep endpoint identity; not an agent verb |
+| `MN-REQ-04.13` | `MN-REQ-04` | `MN-REQ-13.Recall` | `option:Recall` | playbooks — Recall option (listPlaybooks / getPlaybook; not a new verb); on paper |
 | `MN-REQ-05` | `MN-REQ-00` | `internal (stays under organisational group)` | `internal` | hard caps group; leaves split across Recall / Commit / internal |
 | `MN-REQ-05.1` | `MN-REQ-05` | `internal (stays under organisational group)` | `internal` | store resource caps |
 | `MN-REQ-05.2` | `MN-REQ-05` | `MN-REQ-13.Recall` | `Recall` | query fan-out caps; truncation flagged on the wire |
@@ -198,5 +211,6 @@ Agent surface verbs: **recall**, **commit**, **session open**, **save**, **close
 - **MN-REQ-11** Path-B importers stay nested here; marked option of Commit (move importers = later PR).
 - **MN-REQ-12** Multitask is host protocol: workers Recall then Commit; 12.4 is dual; 12.2 is ops transport.
 - **MN-REQ-04.12** housekeep sits in the slice-economy group but is internal, not Recall.
+- **MN-REQ-04.13** playbooks fit as an option of Recall (Endleaf list/get; not a sixth verb).
 - **MN-REQ-13.1** is the two-operator law itself (spine, not a leaf of one arm).
 

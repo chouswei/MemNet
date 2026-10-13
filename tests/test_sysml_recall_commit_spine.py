@@ -42,7 +42,7 @@ def _pairs(text: str) -> list[tuple[str, str]]:
 
 def test_every_requirement_has_closed_agent_surface():
     pairs = _pairs(_req())
-    assert len(pairs) == 132
+    assert len(pairs) == 133
     unknown = sorted({s for _, s in pairs if s not in CLOSED_SURFACES})
     assert unknown == []
     by_id = dict(pairs)
@@ -54,6 +54,7 @@ def test_every_requirement_has_closed_agent_surface():
     assert by_id["MN-REQ-03.2"] == "Commit"
     assert by_id["MN-REQ-03.3"] == "Commit"
     assert by_id["MN-REQ-04.9"] == "Recall"
+    assert by_id["MN-REQ-04.13"] == "option:Recall"
     assert by_id["MN-REQ-09.1"] == "internal"
     assert by_id["MN-REQ-01.7"] == "session"
     assert by_id["MN-REQ-01.8"] == "session"
@@ -79,6 +80,7 @@ def test_spine_nest_and_usages():
     assert "end #original ::> commitSpineReq" in text
     assert "end #derive ::> addFailsIfExistsReq" in text
     assert "end #derive ::> sessionOutlineEmptyCueReq" in text
+    assert "end #derive ::> playbooksAsRecallOptionReq" in text
 
 
 def test_agent_surface_five_verbs_and_kept_laws():
@@ -86,15 +88,23 @@ def test_agent_surface_five_verbs_and_kept_laws():
     assert "verbs are exactly five: recall (pin_map), commit (mutate)" in text
     assert "session_open, session_save, and session_close" in text
     assert "Silent upsert SHALL NOT be offered" in text
-    assert "Merge-and-report is an" in text
-    assert "owner decision and is pending" in text
+    assert "opt-in Commit mode" in text
+    assert "created, updated, or unchanged" in text
+    assert "The merge is never silent" in text
+    assert "owner decision and is pending" not in text
     assert "truncated=true" in text
     assert "Empty q SHALL be" in text or "empty q SHALL return" in text
     assert "canonical parser" in text.lower() or "Canonical parser" in text
+    three_three = text.split("requirement def MN_REQ_03_3_NoSilentUpsert", 1)[1]
+    three_three = three_three.split("requirement def MN_REQ_03_4_HonourWherePredicate", 1)[0]
+    assert "report created, updated, or unchanged" in three_three
+    assert "never silent" in three_three
     seven = text.split("requirement def MN_REQ_07_1_GenericToolSurface", 1)[1]
     seven = seven.split("requirement def MN_REQ_07_2_StructuredToolEnvelope", 1)[0]
     assert "Options of Recall: find" in seven
+    assert "list_playbooks / get_playbook" in seven
     assert "Options of Commit: leftover add / update" in seven
+    assert "merge-by-identity" in seven
     assert "Internal: housekeep_stats" in seven
 
 
@@ -115,11 +125,16 @@ def test_mapping_table_and_verify_coverage():
     assert "MN-REQ-13.Recall" in md
     assert "MN-REQ-13.Commit" in md
     assert "old organisational parent" in md.lower() or "Old parent" in md
+    assert "MN-REQ-04.13" in md
+    assert "opt-in" in md.lower()
+    assert "never silent" in md
+    assert "ids stable" in md
     assert "mn_" not in md
+    assert "03.1–03.3 stay strict" not in md
     text = _req()
     pairs = _pairs(text)
     counts = Counter(s for _, s in pairs)
-    assert counts["Recall"] + counts["option:Recall"] == 26
+    assert counts["Recall"] + counts["option:Recall"] == 27
     assert counts["Commit"] + counts["option:Commit"] == 30
     assert counts["internal"] == 44
     assert counts["ops"] == 17
@@ -127,15 +142,47 @@ def test_mapping_table_and_verify_coverage():
     assert "missionReq" in usages
     assert "recallSpineReq" in usages
     assert "commitSpineReq" in usages
-    assert len(usages) == 132
+    assert "playbooksAsRecallOptionReq" in usages
+    assert len(usages) == 133
     verified = set(re.findall(r"verify (\w+);", VERIFY.read_text(encoding="utf-8")))
     unverified = [u for u in usages if u not in verified]
-    assert len(verified & set(usages)) == 52
-    assert len(unverified) == 80
+    assert len(verified & set(usages)) == 56
+    assert len(unverified) == 77
     assert "recallSpineReq" in unverified
     assert "commitSpineReq" in unverified
+    assert "playbooksAsRecallOptionReq" in verified
+    assert "noSilentUpsertReq" in verified
+    assert "addFailsIfExistsReq" in verified
+    assert "updateFailsIfAbsentReq" in verified
 
 
 def test_brace_balance_requirements():
     text = _req()
     assert text.count("{") == text.count("}")
+
+
+def test_merge_and_report_and_playbooks_on_paper():
+    deploy = DEPLOY.read_text(encoding="utf-8")
+    verify = VERIFY.read_text(encoding="utf-8")
+    assert 'attribute defaultMode : String = "merge_and_report"' in deploy
+    assert "attribute reportCreatedUpdatedUnchanged : Boolean = true" in deploy
+    assert "attribute silentUpsert : Boolean = false" in deploy
+    assert "attribute optInStrictAddFailsIfExists : Boolean = true" in deploy
+    assert "part def PlaybookGuide" in deploy
+    assert "part listPlaybooks : CmdListPlaybooks" in deploy
+    assert "part getPlaybook : CmdGetPlaybook" in deploy
+    assert deploy.count("part listPlaybooks : CmdListPlaybooks") == 2
+    assert deploy.count("part getPlaybook : CmdGetPlaybook") == 2
+    assert (
+        "attribute implemented : Boolean = false"
+        in deploy.split("part def PlaybookGuide {", 1)[1].split("part def Commit {", 1)[0]
+    )
+    assert "MN-VER-03-S02" in verify
+    assert "MN-VER-04-S07" in verify
+    assert (
+        "tests/test_mutate_merge_report.py::test_commit_reports_created_updated_unchanged" in verify
+    )
+    assert "tests/test_memnet_playbooks.py::test_list_playbooks_and_get_playbook" in verify
+    assert verify.count("attribute decidingTestImplemented : Boolean = false") == 2
+    assert "playbooksAsRecallOptionReq" in verify
+    assert "noSilentUpsertReq" in verify

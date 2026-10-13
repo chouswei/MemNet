@@ -41,7 +41,11 @@
     MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save;
                        expire-save failure keeps RAM and counts against the session cap
     MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
+    MN-REQ-03.1        AddFailsIfExists — opt-in Commit mode (default is merge-and-report)
+    MN-REQ-03.2        UpdateFailsIfAbsent — opt-in Commit mode
+    MN-REQ-03.3        Merge-and-report is never silent (created / updated / unchanged)
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
+    MN-REQ-04.13       Playbooks — Recall option (listPlaybooks / getPlaybook; not a new verb)
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
@@ -480,21 +484,25 @@ package MemNetRequirements {
 
     requirement def MN_REQ_03_StrictMutate {
       doc /*
-        Agent surface: Commit (mutate). strict mutate group; spine parent Commit.
-        Group: explicit create vs replace; no silent upsert.
+        Agent surface: Commit (mutate). Commit group; spine parent Commit.
+        Default Commit merges by GraphElement identity and reports
+        created, updated, or unchanged for each item. Strict
+        AddFailsIfExists / UpdateFailsIfAbsent is an opt-in Commit
+        mode. The merge is never silent (MN-REQ-03.3).
       */
       attribute requirementId : String = "MN-REQ-03";
       attribute agentSurface : String = "Commit";
 
       requirement def MN_REQ_03_1_AddFailsIfExists {
         doc /*
-          Agent surface: Commit (mutate). AddFailsIfExists; unchanged; merge-and-report pending.
-          When an optional nickname id is present on create, SHALL fail with
-          an id-exists error if that nickname is already taken. SHALL NOT
+          Agent surface: Commit (mutate). AddFailsIfExists is an opt-in
+          Commit mode, not the default. When that mode is selected and an
+          optional nickname id is present on create, SHALL fail with an
+          id-exists error if that nickname is already taken. SHALL NOT
           require id on create. TARGET create is CREATE () / CREATE
           (:Label {props}) without id; properties MAY be empty.
           leftover_NEW_mint / leftover_by_id is 0.9 as-is, not this
-          contract.
+          contract. Default Commit is merge-and-report (MN-REQ-03.3).
         */
         attribute requirementId : String = "MN-REQ-03.1";
         attribute agentSurface : String = "Commit";
@@ -502,11 +510,13 @@ package MemNetRequirements {
 
       requirement def MN_REQ_03_2_UpdateFailsIfAbsent {
         doc /*
-          Agent surface: Commit (mutate). UpdateFailsIfAbsent; unchanged.
-          When an optional nickname id is present on replace (update), SHALL
-          fail with a not-found error if that nickname is absent. Ends MATCH
+          Agent surface: Commit (mutate). UpdateFailsIfAbsent is an opt-in
+          Commit mode, not the default. When that mode is selected and an
+          optional nickname id is present on replace (update), SHALL fail
+          with a not-found error if that nickname is absent. Ends MATCH
           by label + properties when no nickname. SHALL NOT treat missing id
-          as not-found of identity.
+          as not-found of identity. Default Commit is merge-and-report
+          (MN-REQ-03.3).
         */
         attribute requirementId : String = "MN-REQ-03.2";
         attribute agentSurface : String = "Commit";
@@ -514,10 +524,15 @@ package MemNetRequirements {
 
       requirement def MN_REQ_03_3_NoSilentUpsert {
         doc /*
-          Agent surface: Commit (mutate). no silent upsert; unchanged; merge-and-report is owner-pending.
-          Silent upsert SHALL NOT be offered. Merge-and-report is an
-          owner decision and is pending; this leaf stays under Commit
-          as no-silent-upsert.
+          Agent surface: Commit (mutate). Default Commit SHALL merge by
+          GraphElement identity (labels + properties; edge = type + ends)
+          and SHALL report created, updated, or unchanged for each item
+          in Δ. The merge is never silent: every item carries an outcome
+          on the wire. Silent upsert SHALL NOT be offered. Opt-in strict
+          AddFailsIfExists / UpdateFailsIfAbsent (MN-REQ-03.1 / 03.2)
+          remains available as a Commit mode; leftover add / update
+          façades MAY select that mode. SameThingAbsorb stays a distinct
+          in-session collapse rule, not this per-item report.
         */
         attribute requirementId : String = "MN-REQ-03.3";
         attribute agentSurface : String = "Commit";
@@ -783,6 +798,23 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-04.12";
         attribute agentSurface : String = "internal";
+      }
+
+      requirement def MN_REQ_04_13_PlaybooksAsRecallOption {
+        doc /*
+          Agent surface: option of Recall. listPlaybooks / getPlaybook —
+          read-only guides that teach an agent how to use MemNet's tools.
+          SHALL expose a Recall option modelled on Endleaf listPlaybooks /
+          getPlaybook: list the playbook topics (no topic) and fetch one
+          guide (topic required). Read-only. SHALL NOT mutate the session
+          graph, SHALL NOT bind a desk, SHALL NOT be a third operator
+          beside Recall and Commit, and SHALL NOT be a sixth agent verb.
+          Product read remains pin_map. Playbooks teach the five surface
+          verbs (recall, commit, session open, save, close) and the
+          named options. On paper this cut; engine/MCP not claimed.
+        */
+        attribute requirementId : String = "MN-REQ-04.13";
+        attribute agentSurface : String = "option:Recall";
       }
     }
 
@@ -1412,10 +1444,13 @@ package MemNetRequirements {
           (load is an option of save), keep_id.
           Options of Recall: find (bounded MATCH seed, hard LIMIT);
           leftover query_warm (alias of pin_map); leftover query_walk;
-          export_pin_map (GQL write-out of a cue pin_map, not SysML reverse).
-          Options of Commit: leftover add / update (façades; AddFailsIfExists
-          / UpdateFailsIfAbsent / no-silent-upsert unchanged; merge-and-report
-          pending); Path-B ingest (locators are properties, not PK);
+          export_pin_map (GQL write-out of a cue pin_map, not SysML reverse);
+          list_playbooks / get_playbook (read-only guides; MN-REQ-04.13;
+          not a third verb).
+          Options of Commit: leftover add / update (façades of the opt-in
+          strict mode AddFailsIfExists / UpdateFailsIfAbsent); default
+          mutate is merge-by-identity and reports created / updated /
+          unchanged (never silent; MN-REQ-03.3); Path-B ingest (locators are properties, not PK);
           snap_model; import_slice / Absorb (match by labels+properties,
           not MERGE-by-id remint); RSV reserve / extend / release.
           Internal: housekeep_stats, serve_status, session_acl_*,
@@ -2423,10 +2458,12 @@ package MemNetRequirements {
           Spine arm Recall(q): product read. TARGET verb is pin_map.
           Empty q SHALL return the session outline (MN-REQ-04.9).
           find is an option of Recall (seed). leftover query_warm is a
-          leftover alias of pin_map. leftover query_walk / read_list /
+          leftover alias of pin_map.           leftover query_walk / read_list /
           --anchor are leftover options or leftover nicknames, not
           product verbs. export_pin_map is an option of Recall (GQL
-          write-out of a cue pin_map; not SysML reverse). Hard caps
+          write-out of a cue pin_map; not SysML reverse). list_playbooks
+          / get_playbook are a Recall option (MN-REQ-04.13; not a third
+          verb). Hard caps
           stay hard; a clipped neighbourhood SHALL flag Truncation on
           the wire.
         */
@@ -2438,9 +2475,10 @@ package MemNetRequirements {
         doc /*
           Agent surface: Commit (mutate). spine arm Commit(Δ).
           Spine arm Commit(Δ): product write. TARGET verb is mutate.
-          leftover add / update remain leftover façades of Commit
-          (AddFailsIfExists / UpdateFailsIfAbsent / no-silent-upsert
-          unchanged; merge-and-report is owner-pending). Path-B ingest
+          leftover add / update remain leftover façades of the opt-in
+          strict Commit mode (AddFailsIfExists / UpdateFailsIfAbsent).
+          Default Commit merges by identity and reports created, updated,
+          or unchanged (MN-REQ-03.3; never silent). Path-B ingest
           (ingest_sysml / ingest_codebase / ingest_pcba / ingest_skills),
           snap_model, import_slice / Absorb, and RSV (reserve / extend /
           release) are options of Commit, not third operators.
@@ -2565,6 +2603,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
   requirement housekeepEndpointIdentityReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
+  requirement playbooksAsRecallOptionReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -2826,6 +2866,8 @@ package MemNetRequirements {
     end #derive ::> sessionOutlineEmptyCueReq;
     end #derive ::> peakLLastResortReq;
     end #derive ::> pinMapOrderFromObservablesReq;
+    end #derive ::> housekeepEndpointIdentityReq;
+    end #derive ::> playbooksAsRecallOptionReq;
   }
 
   #derivation connection deriveHardCapsLeaves {
@@ -2964,6 +3006,7 @@ package MemNetRequirements {
     end #derive ::> sessionOutlineEmptyCueReq;
     end #derive ::> peakLLastResortReq;
     end #derive ::> pinMapOrderFromObservablesReq;
+    end #derive ::> playbooksAsRecallOptionReq;
     end #derive ::> queryFanoutCapsReq;
     end #derive ::> writeApproxDisplayReq;
     end #derive ::> pinMapEmitSameAsMutateReq;

@@ -10,8 +10,8 @@ MemNetSystem                          // SharedLlmMemory product
 │   ├── Session                       // session id = SSOT handle
 │   ├── GQL                           // GqlCodec + ProductGqlGate (reject Layer)
 │   └── RecallCommit                  // TWO operators only
-│       ├── Recall                    // cue → pin_map (outline / Peak_L honesty)
-│       └── Commit                    // mutate (+ RSV lease)
+│       ├── Recall                    // cue → pin_map (outline / Peak_L / playbooks option)
+│       └── Commit                    // mutate (+ RSV; merge-and-report default)
 ├── Multitask
 │   ├── Path A                        // shared session → re-pin (no import nest)
 │   └── Path B                        // slice → ImportGuard (optional soft)
