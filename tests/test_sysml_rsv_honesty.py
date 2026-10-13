@@ -13,6 +13,7 @@ DEPLOY = MODELS / "deploy.sysml"
 REQUIREMENTS = MODELS / "requirements.sysml"
 VERIFY = MODELS / "verify.sysml"
 IMPLEMENTATION = MODELS / "implementation.sysml"
+NOTES = ROOT / "sysml-models" / "outputs" / "system-design-notes.md"
 ASYNC_STUDY = ROOT / "sysml-models" / "outputs" / "async-parallel-conflict-case-study.md"
 MAP = ROOT / "sysml-models" / "outputs" / "ssot-to-code-allocate-map.md"
 
@@ -82,3 +83,10 @@ def test_requirement_and_allocate_still_claim_rsv():
     assert "| rsvToMod |" in ledger
     study = ASYNC_STUDY.read_text(encoding="utf-8")
     assert "12.13" in study
+
+
+def test_design_notes_retire_neo4j_live_claim():
+    notes = NOTES.read_text(encoding="utf-8")
+    assert "liveNeo4jClaimed=true" not in notes
+    assert "MemNetArchive" in notes
+    assert "Retired (#187)" in notes

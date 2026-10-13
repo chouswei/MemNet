@@ -9,6 +9,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ### Fixed
 - **Honesty `c` — RSV as-is in behaviour/verify (#67)** — `behaviour.sysml` (`ParentTaskLifecycle`, `EvOverlapScopeForbidden`, `WorkerScopedTurn`), `AsyncTaskDispatch` / `WorkerPool` / `SessionHandoffEmit`, and MN-VER-12-S13 no longer deny shipped NeighbourhoodReserve. Engine unchanged (`memnet.neighbourhood_reserve`; CLI/MCP `reserve` / `extend` / `release`). Same goldfish loop. No SemVer bump.
+- **Honesty `c` — Neo4j live-claim notes** — `system-design-notes.md` and companion studies no longer teach extra 0.14 `liveNeo4jClaimed=true`. Match `MemNetArchive` (#187). Same goldfish loop. No SemVer bump.
 
 ### Changed
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).

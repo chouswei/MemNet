@@ -200,7 +200,7 @@ If the parent is still inventing those usages, **do not** spawn: write the shell
 | Ingest `max_nodes=2000` / `max_edges=2000` | covers this house and `deploy.sysml` (504); a ~10k file still hits `ingest_budget` before a recurse cut |
 | Complete Shape or refuse | TARGET; as-is `context_pack` still `[:max_rows]` |
 | VehicleUsages `interface` / `subsets` / `redefines` / `flow` | not in `_DEF_HEAD`; `.sysml` SSOT |
-| `liveNeo4jClaimed` | extra **0.14**; not this Snap’s fence |
+| `liveNeo4jClaimed` | retired on `MemNetArchive` (#187); not this Snap’s fence |
 | Operator count | stays 2 |
 
 ## 6. Related
