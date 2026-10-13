@@ -2763,7 +2763,9 @@ package MemNet {
       queue, MissionDock, or HTTP body (EvDumpGraphInChat forbidden).
       As-is NOW: the CapsPolicy ACL cut is shipped for the downstream
       pin_map/mutate and WorkerWriteScope hard-reject gates when session ACL
-      is enabled; reserve/lease remains doctrine. engineAclShipped=true.
+      is enabled. NeighbourhoodReserve (RSV) is shipped (optional use).
+      SessionBind lease is shipped when configured. Full session_token
+      modes remain deferred. engineAclShipped=true.
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffOut : SessionHandoffOutPort;
@@ -2784,9 +2786,11 @@ package MemNet {
       ids (MN-REQ-12.5 / 12.12). Overlapping shared-session scopes →
       serial / single writer (MUST NOT dual-write).
       As-is NOW: CapsPolicy.aclWorkerWriteScopeHardReject is shipped and
-      hard-rejects out-of-scope mutate when session ACL is enabled. The
-      neighbourhood reserve and overlap-coordination doctrine remain
-      host-controlled; no RSV engine is claimed.
+      hard-rejects out-of-scope mutate when session ACL is enabled.
+      NeighbourhoodReserve (RSV, MN-REQ-12.13) is shipped: overlapping
+      shared-session writers MAY lease ego scopes; overlap with another
+      holder fails reserve_conflict. Parallel without RSV still requires
+      disjoint anchors OR serial / single writer (MUST NOT dual-write).
       EvWorkerReturn is host-driven async completion on a later turn.
     */
     attribute doctrineAsIs : Boolean = true;
@@ -2881,8 +2885,10 @@ package MemNet {
       single writer (MN-REQ-12.5 / 12.12). Fan-in WorkingMemorySlice for
       path B lead import.
       CapsPolicy WorkerWriteScope hard reject is shipped when session ACL is
-      enabled. Pool coordination for reserve/overlap remains doctrineAsIs;
-      no neighbourhood reserve or Path-B PinMapIngest is claimed shipped.
+      enabled. NeighbourhoodReserve (RSV) is shipped: overlapping writers
+      MAY take an RSV lease (reserve_conflict rather than last-write-wins).
+      Path-B PinMapIngest_* domains are shipped. Full session_token modes
+      are not claimed.
     */
     attribute doctrineAsIs : Boolean = true;
     port handoffIn : SessionHandoffInPort;

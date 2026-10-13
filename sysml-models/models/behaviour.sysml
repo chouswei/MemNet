@@ -287,12 +287,13 @@ package MemNetBehaviour {
   attribute def EvOverlapScopeForbidden {
     doc /*
       Two workers would mutate overlapping WorkerWriteScope anchors on one
-      shared session without serialisation (MN-REQ-12.5 / 12.12). MUST NOT
-      dual-write in parallel; prefer one worker, disjoint anchors, separate
-      session ids, or serial dispatch. The shipped CapsPolicy ACL
-      hard-rejects an individual out-of-scope mutate when session ACL is
-      enabled; overlapping writers still require doctrine-level
-      serialisation because no neighbourhood reserve is shipped.
+      shared session without serialisation or an RSV lease (MN-REQ-12.5 /
+      12.12 / 12.13). MUST NOT dual-write in parallel; prefer one worker,
+      disjoint anchors, separate session ids, serial dispatch, or a
+      NeighbourhoodReserve lease. The shipped CapsPolicy ACL hard-rejects
+      an individual out-of-scope mutate when session ACL is enabled.
+      Overlapping writers on one session MAY take RSV (llm_id + TTL);
+      without a lease, last-write-wins unless the host serialises.
     */
   }
   attribute def EvWorkerReturn {
@@ -766,7 +767,7 @@ package MemNetBehaviour {
       MultitaskCoordinator. As-is: CapsPolicy ACL who / pin_map-vs-mutate /
       WorkerWriteScope hard reject / optional SessionBind is shipped when
       session ACL is enabled (CapsPolicy.engineAclShipped=true; MN-REQ-12.7
-      ACL cut). Neighbourhood reserve remains not shipped.
+      ACL cut). NeighbourhoodReserve (MN-REQ-12.13) is shipped.
     */
     entry;
     then taskAbsent;
@@ -912,8 +913,8 @@ package MemNetBehaviour {
         Mutate under WorkerWriteScope only. MUST NOT invent parent-minted
         ids; MUST NOT settle parent TSK_* / USR_* unless delegated.
         CapsPolicy hard-rejects out-of-scope mutate when session ACL is
-        enabled. Reserve/overlap coordination remains host doctrine
-        (MN-REQ-12.7 — reserve is not shipped).
+        enabled. Overlap on the same ego MAY take NeighbourhoodReserve
+        (MN-REQ-12.13); without a lease, host doctrine serialises.
       */
     }
     transition worker_mutate_ok
