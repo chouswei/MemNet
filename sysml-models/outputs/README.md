@@ -6,6 +6,7 @@ Derived views from `sysml-models/models/`. Model-first; sync here after structur
 
 - [system-design-notes.md](system-design-notes.md) - SharedLlmMemory, handoff, happy-path A re-pin, optional ImportGuard (path B), AsyncTaskDispatch / WorkerPool, M2.5, CIP/oC9
 - [product-nest-one-page.md](product-nest-one-page.md) - Core session/GQL/RecallCommit + Multitask Path A/B + DurableBuffer; APPLICATION/ARCHIVE/OPS LOOK + IMPLEMENTATION allocate
+- [mn-req-13-spine-mapping.md](mn-req-13-spine-mapping.md) - MN-REQ-13 Recall/Commit spine: old organisational parent → new spine parent; agentSurface counts
 
 ## Principles (once)
 

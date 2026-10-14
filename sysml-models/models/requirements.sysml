@@ -8,8 +8,18 @@
     MN-REQ-10          LLM assumed properties + limitation leaves
     MN-REQ-11          Snapshot / interoperability (map of pins)
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
-    MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
+    MN-REQ-13          0.5 Recall/Commit SPINE (Recall(q) + Commit(Δ))
+    MN-REQ-13.Recall   spine arm: Recall(q) = pin_map (empty q = outline)
+    MN-REQ-13.Commit   spine arm: Commit(Δ) = mutate (leftover add/update stay façades)
     MN-REQ-13.2        SameThingAbsorb — in-session Commit rule (not ImportAbsorb)
+                       nested under MN-REQ-13.Commit
+
+    Spine: agent-facing leaves reparent to 13.Recall or 13.Commit via
+    #derivation (deriveReqt). Organisational groups MN-REQ-01…12 stay
+    nested under MN-REQ-00 this cut (do not split deploy/ops, do not
+    move importers, cousins, or archive). Agent surface verbs:
+    recall, commit, session open, save, close. Other agent-visible
+    operations are options of those or internal; see agentSurface.
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
@@ -31,7 +41,11 @@
     MN-REQ-01.9        Snapshot save/load lossless property round-trip; fail-closed save;
                        expire-save failure keeps RAM and counts against the session cap
     MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
+    MN-REQ-03.1        AddFailsIfExists — opt-in Commit mode (default is merge-and-report)
+    MN-REQ-03.2        UpdateFailsIfAbsent — opt-in Commit mode
+    MN-REQ-03.3        Merge-and-report is never silent (created / updated / unchanged)
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
+    MN-REQ-04.13       Playbooks — Recall option (listPlaybooks / getPlaybook; not a new verb)
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
@@ -50,7 +64,10 @@
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
-  requirement structure.
+  requirement structure. Organisational groups MN-REQ-01…12 remain nested
+  under MN-REQ-00. MN-REQ-13 is the product spine: nested arms
+  MN-REQ-13.Recall and MN-REQ-13.Commit. SameThingAbsorb nests under
+  Commit. Mapping: sysml-models/outputs/mn-req-13-spine-mapping.md.
 
   Formal derivation (SysML v2 idiom for SysML 1.x deriveReqt):
     import RequirementDerivation::*; then
@@ -58,8 +75,10 @@
       end #original ::> <parent usage>;
       end #derive ::> <child usage>;
     }
-    Groups derive from MN-REQ-00; leaves derive from their group.
-    Nesting = structure; #derivation = formal deriveReqt edge.
+    Groups derive from MN-REQ-00; leaves derive from their organisational
+    group. Agent-facing leaves also derive from 13.Recall or 13.Commit
+    (spine reparent). Nesting = organisational structure; #derivation =
+    formal deriveReqt edge, including the Recall/Commit spine.
 
   Breaking rename: MN-R1...MN-R9 retired. Do not map old numbers 1:1.
 
@@ -110,6 +129,7 @@ package MemNetRequirements {
 
   requirement def MN_REQ_00_MissionBridge {
     doc /*
+      Agent surface: mission root. mission root; not an operator.
       SHALL provide a Net of Memory (MemNet): an in-memory working-memory
       network of facts and relations -- not a chat notepad and not the
       search corpus -- that sits between pipelines of LLM calls and data
@@ -124,11 +144,13 @@ package MemNetRequirements {
       on SysMLEdgePrj-*.
     */
     attribute requirementId : String = "MN-REQ-00";
+    attribute agentSurface : String = "mission";
 
     // ----- Session lifecycle -----
 
     requirement def MN_REQ_01_SessionLifecycle {
       doc /*
+        Agent surface: session (open / save / close). session open / save / close (agent surface beside Recall and Commit).
         Group: named session working memory across pipeline turns.
         The live graph is working memory. The session id is the mission
         handle, not the model SSOT. Durability is the file snapshot
@@ -136,24 +158,30 @@ package MemNetRequirements {
         cabinet ego slice.
       */
       attribute requirementId : String = "MN-REQ-01";
+      attribute agentSurface : String = "session";
 
       requirement def MN_REQ_01_1_NamedSessions {
         doc /*
+          Agent surface: session (open / save / close). named sessions; session id is the mission handle.
           SHALL provide named sessions that retain working-memory state across
           turns so pipeline facts outlive chat context.
         */
         attribute requirementId : String = "MN-REQ-01.1";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_01_2_SessionLifecycleOps {
         doc /*
+          Agent surface: session (open / save / close). open, resume, and close.
           SHALL support open, resume, and close for each named session.
         */
         attribute requirementId : String = "MN-REQ-01.2";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_01_3_SessionTtlAndCaps {
         doc /*
+          Agent surface: internal. TTL and concurrent-session caps; not an agent verb.
           SHALL apply configurable session TTL and a cap on concurrent
           sessions. Sliding TTL: live access extends expires_at. After
           TTL the in-memory session SHALL drop, except when expire-save
@@ -168,36 +196,44 @@ package MemNetRequirements {
           SessionSnapshotBlob.
         */
         attribute requirementId : String = "MN-REQ-01.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_01_4_SaveSessionSnapshot {
         doc /*
+          Agent surface: session (open / save / close). session_save.
           SHALL persist a named session to one durable file snapshot so
           working-memory state can outlive the process (schema, records,
           relations). Explicit session_save and expire-save write that
           same blob. The file is not the cabinet and not the model SSOT.
         */
         attribute requirementId : String = "MN-REQ-01.4";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_01_5_LoadSessionSnapshot {
         doc /*
+          Agent surface: option of session open / save / close. session_load — option of save.
           SHALL restore a named session from a durable snapshot into an active
           working-memory session.
         */
         attribute requirementId : String = "MN-REQ-01.5";
+        attribute agentSurface : String = "option:session";
       }
 
       requirement def MN_REQ_01_6_OptionalKeepSessionId {
         doc /*
+          Agent surface: option of session open / save / close. keep_id on load — option of save.
           On load, SHALL allow the caller to optionally keep the session id
           from the snapshot (keep_id); otherwise assign a new id.
         */
         attribute requirementId : String = "MN-REQ-01.6";
+        attribute agentSurface : String = "option:session";
       }
 
       requirement def MN_REQ_01_7_SessionAsSsotHandle {
         doc /*
+          Agent surface: session (open / save / close). session id is the handoff capability and secret; keep unchanged.
           A named session MAY be the SSOT for a mission SOMETHING
           (MissionWorkingSet). When so, an LLM SHALL pass that SOMETHING by
           delivering the session id only (SessionHandoff; module A → B pipe).
@@ -208,10 +244,12 @@ package MemNetRequirements {
           modelbasedPrj-*; a bound SysMLEdge desk only on SysMLEdgePrj-*).
         */
         attribute requirementId : String = "MN-REQ-01.7";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_01_8_NoGraphDumpHandoff {
         doc /*
+          Agent surface: session (open / save / close). no graph dump on handoff; keep unchanged.
           Session handoff SHALL NOT carry a full graph dump (or mission SSOT
           prose blob) as the handoff payload. SessionHandoff carries sessionId
           and caller, plus optional missionId, lease, anchors, and writeScope.
@@ -219,10 +257,12 @@ package MemNetRequirements {
           Mutate still hits CapsPolicy (who / what / bind).
         */
         attribute requirementId : String = "MN-REQ-01.8";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_01_9_SnapshotLosslessRoundTrip {
         doc /*
+          Agent surface: internal. snapshot lossless round-trip; save integrity.
           Anything the write path accepts SHALL session_save and
           session_load byte-for-byte as the same property values.
           That includes LF, CR, tab, VT, FF, file/group/record
@@ -264,10 +304,12 @@ package MemNetRequirements {
           backslash escapes only) SHALL still load.
         */
         attribute requirementId : String = "MN-REQ-01.9";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_01_10_SessionLifecycleAclWho {
         doc /*
+          Agent surface: internal. ACL who-check on save / load / close.
           When session ACL is enabled, session_save, session_load into
           that ACL'd session, and session_close SHALL accept --caller /
           MEMNET_CALLER and enforce CapsPolicy who-check with the same
@@ -276,6 +318,7 @@ package MemNetRequirements {
           behaviour is unchanged.
         */
         attribute requirementId : String = "MN-REQ-01.10";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -283,6 +326,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_02_MemoryNetGraph {
       doc /*
+        Agent surface: internal. graph identity / grammar; organisational.
         Group: the Net of Memory is a GQL property graph whose three elements
         are node (ISO synonym vertex), edge (ISO synonym relationship), and
         property (ADR-001; gql-wire-profile). GraphElement is the identity
@@ -297,9 +341,11 @@ package MemNetRequirements {
         remains import-once only.
       */
       attribute requirementId : String = "MN-REQ-02";
+      attribute agentSurface : String = "internal";
 
       requirement def MN_REQ_02_1_ExactlyNodeAndEdge {
         doc /*
+          Agent surface: internal. exactly node and edge.
           SHALL model the Net of Memory as a GQL property graph with three
           elements: node (vertex), edge (relationship), and property. Topology
           is node--edge--node; property values attach to nodes and to edges.
@@ -309,27 +355,33 @@ package MemNetRequirements {
           SHALL NOT invent an application store key in place of the element.
         */
         attribute requirementId : String = "MN-REQ-02.1";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_2_NodesHoldAtomisedFacts {
         doc /*
+          Agent surface: internal. nodes hold atomised facts.
           Nodes SHALL hold atomised facts as property values --
           one idea per property -- not free-form prose or merged
           multi-idea blobs.
         */
         attribute requirementId : String = "MN-REQ-02.2";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_3_EdgesAreFirstClass {
         doc /*
+          Agent surface: internal. edges are first class.
           Edges (relationships) SHALL be first-class links between nodes,
           not buried in node property values or narrative.
         */
         attribute requirementId : String = "MN-REQ-02.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_4_QueryOverNodeEdgeGraph {
         doc /*
+          Agent surface: Recall (pin_map). query over the node/edge graph is Recall.
           Pin map, walk, bounded MATCH find, and query SHALL operate over the
           node/edge graph (property values included). Recall SHALL seed from
           a cue or pattern (find); pin_map then walks a shape. An optional
@@ -340,10 +392,12 @@ package MemNetRequirements {
           seeds are one Recall operator (MN-REQ-13).
         */
         attribute requirementId : String = "MN-REQ-02.4";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_02_5_GrammarExpressesNodeAndEdge {
         doc /*
+          Agent surface: internal. grammar expresses node and edge.
           Agent-facing grammar and I/O SHALL express node, edge, and property as
           openCypher-shaped GQL (labels, edge/relationship types, property maps).
           Spelling/identity SSOT is the vendored official BNF
@@ -353,19 +407,23 @@ package MemNetRequirements {
           Layer / Tier A SHALL NOT be accepted on the product mutate path.
         */
         attribute requirementId : String = "MN-REQ-02.5";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_6_ParserRecoversNodeAndEdge {
         doc /*
+          Agent surface: internal. parser recovers node and edge; parser is SSOT.
           The canonical parser SHALL recover node, edge, and property structure for
           human inspection. Grammar parse front is GraphGlot (official grammar);
           MemNet product gate is a separate part after parse.
         */
         attribute requirementId : String = "MN-REQ-02.6";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_7_SchemaValidatedIngest {
         doc /*
+          Agent surface: option of Commit. schema-validated ingest — option of Commit.
           SHALL validate ingest against the session schema and reject unknown
           or reserved surface kinds. Tags MAY realise node labels; GQL
           elements remain node (vertex), edge (relationship), and property.
@@ -373,10 +431,12 @@ package MemNetRequirements {
           tag_map id_first remains engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-02.7";
+        attribute agentSurface : String = "option:Commit";
       }
 
           requirement def MN_REQ_02_8_IdNotRequiredOnWire {
         doc /*
+          Agent surface: internal. id not required on the wire.
           Headline: GraphElement is identity. CREATE () is legal.
           properties() MAY be empty. Later MATCH/MERGE looks up labels +
           properties; an edge is type + end elements. HiddenStoreHandle
@@ -393,10 +453,12 @@ package MemNetRequirements {
           pin_map require_anchor.
         */
         attribute requirementId : String = "MN-REQ-02.8";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_02_9_MustNotCopyCousinStoreKey {
         doc /*
+          Agent surface: internal. MUST NOT copy cousin store-key / embedding Recall.
           Cousin pointing contrast (not a product switch). SHALL keep
           GraphElement identity and TARGET cue → RelativeSeed → ShapeWalk
           → pin_map emit. MAY copy cue-without-store-key and neighbourhood
@@ -415,6 +477,7 @@ package MemNetRequirements {
           TARGET; they SHALL NOT force a store-key back onto the wire.
         */
         attribute requirementId : String = "MN-REQ-02.9";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -422,41 +485,63 @@ package MemNetRequirements {
 
     requirement def MN_REQ_03_StrictMutate {
       doc /*
-        Group: explicit create vs replace; no silent upsert.
+        Agent surface: Commit (mutate). Commit group; spine parent Commit.
+        Default Commit merges by GraphElement identity and reports
+        created, updated, or unchanged for each item. Strict
+        AddFailsIfExists / UpdateFailsIfAbsent is an opt-in Commit
+        mode. The merge is never silent (MN-REQ-03.3).
       */
       attribute requirementId : String = "MN-REQ-03";
+      attribute agentSurface : String = "Commit";
 
       requirement def MN_REQ_03_1_AddFailsIfExists {
         doc /*
-          When an optional nickname id is present on create, SHALL fail with
-          an id-exists error if that nickname is already taken. SHALL NOT
+          Agent surface: Commit (mutate). AddFailsIfExists is an opt-in
+          Commit mode, not the default. When that mode is selected and an
+          optional nickname id is present on create, SHALL fail with an
+          id-exists error if that nickname is already taken. SHALL NOT
           require id on create. TARGET create is CREATE () / CREATE
           (:Label {props}) without id; properties MAY be empty.
           leftover_NEW_mint / leftover_by_id is 0.9 as-is, not this
-          contract.
+          contract. Default Commit is merge-and-report (MN-REQ-03.3).
         */
         attribute requirementId : String = "MN-REQ-03.1";
+        attribute agentSurface : String = "Commit";
       }
 
       requirement def MN_REQ_03_2_UpdateFailsIfAbsent {
         doc /*
-          When an optional nickname id is present on replace (update), SHALL
-          fail with a not-found error if that nickname is absent. Ends MATCH
+          Agent surface: Commit (mutate). UpdateFailsIfAbsent is an opt-in
+          Commit mode, not the default. When that mode is selected and an
+          optional nickname id is present on replace (update), SHALL fail
+          with a not-found error if that nickname is absent. Ends MATCH
           by label + properties when no nickname. SHALL NOT treat missing id
-          as not-found of identity.
+          as not-found of identity. Default Commit is merge-and-report
+          (MN-REQ-03.3).
         */
         attribute requirementId : String = "MN-REQ-03.2";
+        attribute agentSurface : String = "Commit";
       }
 
       requirement def MN_REQ_03_3_NoSilentUpsert {
         doc /*
-          Silent upsert SHALL NOT be offered.
+          Agent surface: Commit (mutate). Default Commit SHALL merge by
+          GraphElement identity (labels + properties; edge = type + ends)
+          and SHALL report created, updated, or unchanged for each item
+          in Δ. The merge is never silent: every item carries an outcome
+          on the wire. Silent upsert SHALL NOT be offered. Opt-in strict
+          AddFailsIfExists / UpdateFailsIfAbsent (MN-REQ-03.1 / 03.2)
+          remains available as a Commit mode; leftover add / update
+          façades MAY select that mode. SameThingAbsorb stays a distinct
+          in-session collapse rule, not this per-item report.
         */
         attribute requirementId : String = "MN-REQ-03.3";
+        attribute agentSurface : String = "Commit";
       }
 
       requirement def MN_REQ_03_4_HonourWherePredicate {
         doc /*
+          Agent surface: Commit (mutate). honour WHERE or refuse.
           MATCH ... WHERE ... SET and MATCH ... WHERE ... DELETE SHALL
           NOT ignore the WHERE predicate. If lowering cannot honour it,
           the whole statement SHALL refuse with unsupported_predicate
@@ -468,6 +553,7 @@ package MemNetRequirements {
           actually filter.
         */
         attribute requirementId : String = "MN-REQ-03.4";
+        attribute agentSurface : String = "Commit";
       }
     }
 
@@ -475,6 +561,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_04_SliceEconomy {
       doc /*
+        Agent surface: Recall (pin_map). slice economy / pin_map group; spine parent Recall.
         Group: bounded live pin map for LLM turns (not the whole net);
         hide recyclable rows; optional relation walk; bounded MATCH find
         as cue/pattern seed (MN-REQ-04.6; shipped seed-only). Dark session
@@ -487,9 +574,11 @@ package MemNetRequirements {
         pin map (deprecated alias).
       */
       attribute requirementId : String = "MN-REQ-04";
+      attribute agentSurface : String = "Recall";
 
       requirement def MN_REQ_04_1_AnchoredPinMap {
         doc /*
+          Agent surface: Recall (pin_map). bounded live pin_map.
           SHALL return a bounded live pin map for each turn -- a shaped
           neighbourhood digest of pins -- not the full session or a raw
           search dump. Goldfish seeds from a cue or pattern (find); pin_map
@@ -501,41 +590,53 @@ package MemNetRequirements {
           by_id is engine as-is, not TARGET.
         */
         attribute requirementId : String = "MN-REQ-04.1";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_2_RecycleHiddenFromPinMap {
         doc /*
+          Agent surface: Recall (pin_map). hide recycled rows from pin_map.
           SHALL hide rows marked for settle or expire recycle from the live
           pin map.
         */
         attribute requirementId : String = "MN-REQ-04.2";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_3_PinMapDepthAndRowCaps {
         doc /*
-          SHALL cap live pin map depth and row count.
+          Agent surface: Recall (pin_map). hard depth/row caps; truncation flagged on the wire.
+          SHALL cap live pin map depth and row count. Caps are hard:
+          when a neighbourhood is clipped the wire SHALL flag Truncation
+          (truncated=true). SHALL NOT silent-clip.
         */
         attribute requirementId : String = "MN-REQ-04.3";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_4_EngineLawPrepend {
         doc /*
+          Agent surface: Recall (pin_map). prepend engine-law rows on pin_map.
           SHALL prepend session engine-law rows to the live pin map when
           those rows are present in the store.
         */
         attribute requirementId : String = "MN-REQ-04.4";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_5_AnchoredWalk {
         doc /*
+          Agent surface: option of Recall. query_walk / anchored walk — leftover option of Recall.
           Anchored walk hop lines over the NODE and EDGE graph SHOULD be
           available for relation enumeration without loading the whole graph.
         */
         attribute requirementId : String = "MN-REQ-04.5";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_04_6_BoundedMatchFind {
         doc /*
+          Agent surface: option of Recall. find — bounded MATCH seed; option of Recall.
           When no nickname id is known, or when pin_map caps dropped a
           needed row, the agent surface SHOULD offer a bounded MATCH find:
           label and/or property/locator predicates with LIMIT required
@@ -549,10 +650,12 @@ package MemNetRequirements {
           pin_map k-hop, not copy-id then --anchor.
         */
         attribute requirementId : String = "MN-REQ-04.6";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_04_7_RelativeSeedThenShapeWalk {
         doc /*
+          Agent surface: Recall (pin_map). RelativeSeed then ShapeWalk.
           Goldfish query SHALL be discrete codebook tokens (kind / primary
           label, properties including locators, keyword; optional nickname
           id only if already set) — not a store-key id, not elementId, not
@@ -574,10 +677,12 @@ package MemNetRequirements {
           Still ONE Recall operator (MN-REQ-13.1).
         */
         attribute requirementId : String = "MN-REQ-04.7";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_8_CueMultiRootHonest {
         doc /*
+          Agent surface: Recall (pin_map). CueConflict when |Q|>1; no absorb in Recall.
           Open hard part without a third operator: a codebook cue MAY hit
           several relative roots (|Q| > 1). RelativeSeed SHALL stay
           bounded (hard LIMIT L) and honest — emit Q as walk roots, do
@@ -600,10 +705,12 @@ package MemNetRequirements {
           records this; Recall/Commit operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.8";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_9_SessionOutlineEmptyCue {
         doc /*
+          Agent surface: Recall (pin_map). empty cue returns the session outline; keep unchanged.
           Teach name = outline. A dark session SHALL join the handed
           session id and ask the session, not a node. Empty q SHALL be
           Recall of S: a census of kinds that exist plus a few real
@@ -624,10 +731,12 @@ package MemNetRequirements {
           revive Layer; restore the retired Neo4j cabinet.
         */
         attribute requirementId : String = "MN-REQ-04.9";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_10_PeakLLastResort {
         doc /*
+          Agent surface: Recall (pin_map). Peak_L last-resort cue.
           Peak_L is a cue under RelativeSeed, not a third operator.
           When seed MATCH_L is empty and q is a non-empty codebook token
           (kind / props / keyword present, no hit), Recall SHALL seed from
@@ -643,10 +752,12 @@ package MemNetRequirements {
           stays off the wire. operatorCount stays 2.
         */
         attribute requirementId : String = "MN-REQ-04.10";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_11_PinMapOrderFromObservables {
         doc /*
+          Agent surface: Recall (pin_map). pin_map order from Shape observables.
           Gauge honesty (0.19.c; not a usage-method b, not 0.20, not 1.0).
           The emitted order of a live pin_map SHALL be a function of the
           Recall Shape's observables: kind (primary label) plus the
@@ -666,10 +777,12 @@ package MemNetRequirements {
           slug), never leftover id as the rank key.
         */
         attribute requirementId : String = "MN-REQ-04.11";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_04_12_HousekeepEndpointIdentity {
         doc /*
+          Agent surface: internal. housekeep endpoint identity; not an agent verb.
           Housekeep orphan, dangling, and stale counts SHALL resolve
           each edge endpoint by hidden element id (_elN) and by the
           optional id nickname. A GQL edge stores _elN. Comparing that
@@ -685,6 +798,24 @@ package MemNetRequirements {
           --apply does.
         */
         attribute requirementId : String = "MN-REQ-04.12";
+        attribute agentSurface : String = "internal";
+      }
+
+      requirement def MN_REQ_04_13_PlaybooksAsRecallOption {
+        doc /*
+          Agent surface: option of Recall. listPlaybooks / getPlaybook —
+          read-only guides that teach an agent how to use MemNet's tools.
+          SHALL expose a Recall option modelled on Endleaf listPlaybooks /
+          getPlaybook: list the playbook topics (no topic) and fetch one
+          guide (topic required). Read-only. SHALL NOT mutate the session
+          graph, SHALL NOT bind a desk, SHALL NOT be a third operator
+          beside Recall and Commit, and SHALL NOT be a sixth agent verb.
+          Product read remains pin_map. Playbooks teach the five surface
+          verbs (recall, commit, session open, save, close) and the
+          named options. On paper this cut; engine/MCP not claimed.
+        */
+        attribute requirementId : String = "MN-REQ-04.13";
+        attribute agentSurface : String = "option:Recall";
       }
     }
 
@@ -692,28 +823,37 @@ package MemNetRequirements {
 
     requirement def MN_REQ_05_HardCaps {
       doc /*
+        Agent surface: internal. hard caps group; leaves split across Recall / Commit / internal.
         Group: bounded resource use under misuse.
       */
       attribute requirementId : String = "MN-REQ-05";
+      attribute agentSurface : String = "internal";
 
       requirement def MN_REQ_05_1_StoreResourceCaps {
         doc /*
+          Agent surface: internal. store resource caps.
           SHALL enforce hard caps on rows, law rows, relations, tags, fields,
           and value/line/batch bytes so the store cannot grow unbounded.
         */
         attribute requirementId : String = "MN-REQ-05.1";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_05_2_QueryFanoutCaps {
         doc /*
+          Agent surface: Recall (pin_map). query fan-out caps; truncation flagged on the wire.
           SHALL enforce hard caps on pin-map/walk depth and fanout so token
-          cost stays bounded under misuse.
+          cost stays bounded under misuse. Caps are hard: when a walk is
+          clipped the wire SHALL flag Truncation (truncated=true). SHALL
+          NOT silent-clip.
         */
         attribute requirementId : String = "MN-REQ-05.2";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_05_3_ConsistentValueByteCap {
         doc /*
+          Agent surface: Commit (mutate). one value-byte cap on mutate and snapshot load.
           The field-value byte cap SHALL be one hard cap on leftover
           pipe mutate, GQL mutate, and snapshot load, measured as the
           UTF-8 byte length of the decoded (raw) property value.
@@ -730,6 +870,7 @@ package MemNetRequirements {
           line_bytes) rather than write a file load will refuse.
         */
         attribute requirementId : String = "MN-REQ-05.3";
+        attribute agentSurface : String = "Commit";
       }
     }
 
@@ -737,40 +878,49 @@ package MemNetRequirements {
 
     requirement def MN_REQ_06_ProcessBoundary {
       doc /*
+        Agent surface: ops (later PR may split deploy/ops). process / transport / fleet; later PR may split deploy/ops.
         Group: how clients bind to GraphStore and the session registry.
         Locked preference: in-process primary, local IPC for multi-process
         share, TCP localhost only as migration / fallback (not the core).
       */
       attribute requirementId : String = "MN-REQ-06";
+      attribute agentSurface : String = "ops";
 
       requirement def MN_REQ_06_1_InProcessPrimary {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). in-process primary binding.
           SHALL provide in-process GraphStore and session APIs as the primary
           binding for MCP and library users (lowest latency; no network hop).
         */
         attribute requirementId : String = "MN-REQ-06.1";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_2_LocalIpcShare {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). local IPC share.
           SHALL support a local IPC gateway when CLI and MCP must share one
           session registry across processes (prefer named pipe on Windows /
           AF_UNIX on POSIX).
         */
         attribute requirementId : String = "MN-REQ-06.2";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_3_TcpServeMigration {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). TCP serve migration.
           MAY expose TCP localhost length-prefixed serve as a migration or
           multi-process fallback; it SHALL NOT be treated as the conceptual
           core binding.
         */
         attribute requirementId : String = "MN-REQ-06.3";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_4_DurableStoreBehindMemNet {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). durable store behind MemNet.
           When a durable online GQL store (AgensGraph-class) is present,
           MemNet SHALL remain the sole agent-facing shared memory. The
           store SHALL sit behind MemNet (hydrate/flush). LLM ↔ store
@@ -798,10 +948,12 @@ package MemNetRequirements {
           SHALL NOT add rag_query MCP. SHALL NOT read a Neo4j library.
         */
         attribute requirementId : String = "MN-REQ-06.4";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_5_HumanUsageLook {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). human usage look; not agent wire.
           SHALL provide a read-only human look at live serve usage:
           serve_status (up / host / port), session census
           (@STAT sessions|n/max plus listed ids), housekeep_stats
@@ -818,10 +970,12 @@ package MemNetRequirements {
           shipped without teaching agents the page as wire.
         */
         attribute requirementId : String = "MN-REQ-06.5";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_6_DeviceServicesOneDropletMcp {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). device services / one droplet MemNet MCP.
           A droplet-centred ops fleet SHALL run MemNet engine/serve
           (MemNetCoreLibrary) on one or more device hosts (Pi,
           workstation, SBC) as separate services, each with its own
@@ -850,10 +1004,12 @@ package MemNetRequirements {
           per MN-REQ-12.2.
         */
         attribute requirementId : String = "MN-REQ-06.6";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_7_SsotToCodeAllocate {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). SSOT → code allocate.
           SHALL allocate shipped logical SSOT parts (MemNetCoreLibrary,
           MemNetMcpServer, transport, session, RecallCommit, MCP, durable,
           pin-map, host-search) to live Python modules in this checkout
@@ -877,10 +1033,12 @@ package MemNetRequirements {
           satisfy this allocate. Hatch stays 0.19.11 honesty c.
         */
         attribute requirementId : String = "MN-REQ-06.7";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_8_TipMemNetAccessPortal {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). tip MemNet access portal.
           SHALL provide an ops access portal for gated tip MemNet MCP
           keys. This portal is tip/ops access control (tip≠face). It
           SHALL NOT be the SysMLEdge product, a sysmledge key page, or
@@ -911,10 +1069,12 @@ package MemNetRequirements {
           session_close from the page.
         */
         attribute requirementId : String = "MN-REQ-06.8";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_9_LanMcpFrontSeveralServes {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). LAN MCP front; inventOnly.
           OPTIONAL Later invent (#191): named move ClusterRoute —
           where the session lives. One MemNet MCP front MAY
           catalogue sessions across several LAN memnet serve
@@ -971,10 +1131,12 @@ package MemNetRequirements {
           false; no SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.9";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_10_SliceHandCarryAcrossServes {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). SliceHandCarry; inventOnly.
           OPTIONAL Later invent (#47 cousin; contrast to #191):
           named move SliceHandCarry — a bounded WorkingMemorySlice
           MAY leave one memnet serve and be absorbed into a
@@ -1004,10 +1166,12 @@ package MemNetRequirements {
           no SemVer bump. Public operator text: InkMirage only.
         */
         attribute requirementId : String = "MN-REQ-06.10";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_11_AdminServeUsageReport {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). admin serve usage report.
           SHALL expose a read-only admin usage report on memnet-serve
           (TcpServeBridge / LocalIpcGateway argv proxy; optional
           envelope admin_usage entry). InkMirage admin MCP / face
@@ -1063,10 +1227,12 @@ package MemNetRequirements {
           arg in this cut. No SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.11";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_12_ProductGateway {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). product gateway.
           SHALL provide MemNetProductGateway as a capability of
           memnet-mcp (MemNetLanMcpFront), not a separate droplet
           shim. Online products (Endleaf now; Atelier and
@@ -1120,10 +1286,12 @@ package MemNetRequirements {
           (implemented=true).
         */
         attribute requirementId : String = "MN-REQ-06.12";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_13_ServeRequestIsolation {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). serve request isolation.
           Concurrent memnet serve commands (TCP and the product
           gateway, which forwards to that serve) SHALL isolate
           each request's stdout, stderr, and exit_code. One
@@ -1137,10 +1305,12 @@ package MemNetRequirements {
           require a serve-wide lock.
         */
         attribute requirementId : String = "MN-REQ-06.13";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_14_SafeServeUpgrade {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). safe serve upgrade.
           SHALL upgrade a live memnet-serve without silently
           dropping a loaded session. The procedure stays inside
           memnet serve: snapshot every loaded session, restart
@@ -1189,10 +1359,12 @@ package MemNetRequirements {
           the old venv. No real session id in docs or tests.
         */
         attribute requirementId : String = "MN-REQ-06.14";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_15_ServeCheckpoint {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). admin checkpoint.
           SHALL checkpoint every loaded session to disk without
           draining the serve and without refusing traffic.
           Patch-level c on 0.19. Same usage method (cue then
@@ -1241,6 +1413,7 @@ package MemNetRequirements {
           tests.
         */
         attribute requirementId : String = "MN-REQ-06.15";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_06_16_SnapshotAcl {
@@ -1281,65 +1454,86 @@ package MemNetRequirements {
 
     requirement def MN_REQ_07_McpAgentBoundary {
       doc /*
+        Agent surface: names the five product verbs (recall, commit, session open, save, close). MCP/CLI boundary group; names the agent surface.
         Group: generic MCP/CLI tool surface for MemNet; TARGET is
         cue/pattern only (no store-key id); leftover id tools are not
         product commands; no domain-product tools.
       */
       attribute requirementId : String = "MN-REQ-07";
+      attribute agentSurface : String = "surface";
 
       requirement def MN_REQ_07_1_GenericToolSurface {
         doc /*
-          SHALL expose a TARGET generic MCP/CLI tool surface (same two
-          operators: Recall + Commit): session_open / current / save / load /
-          list / close
-          (session handle is not a graph store key); find (bounded MATCH by
-          kind / labels / properties / keyword, hard LIMIT — the cue when
-          no nickname exists); pin_map as a shaped neighbourhood walk from
-          a cue/pattern (labels+props; optional nickname id if the agent
-          set one — SHALL NOT require a store-key anchor); mutate as one
-          Commit of GQL (CREATE () legal; MERGE/SET/DELETE by
-          labels+properties; edge = type + two end elements; no NEW; no
-          AssignedIdMap); Path-B ingest (locators qname/path/refdes/… are
-          properties, not PK; no client NEW; no allocate_from_locator as
-          identity); Path-B import (match by labels+properties, not
-          MERGE-by-id remint). SHALL NOT nest leftover 0.9 read_get(id),
-          NEW / [NEW], AssignedIdMap, add/update that fail without a
-          ground store-key, pin_map(anchor=<required id>) as the only pin
-          form, allocate_from_locator, import_slice id_policy
+          Agent surface: names the five product verbs (recall, commit, session open, save, close). agent surface is exactly recall, commit, session open, save, and close.
+          SHALL expose a TARGET generic MCP/CLI tool surface whose agent
+          verbs are exactly five: recall (pin_map), commit (mutate),
+          session_open, session_save, and session_close. Session handle
+          is not a graph store key. pin_map is Recall (shaped neighbourhood
+          from a cue/pattern; empty q = outline; optional nickname id if
+          the agent set one — SHALL NOT require a store-key anchor).
+          mutate is one Commit of GQL (CREATE () legal; MERGE/SET/DELETE
+          by labels+properties; edge = type + two end elements; no NEW;
+          no AssignedIdMap).
+          Options of session: session_current, session_list, session_load
+          (load is an option of save), keep_id.
+          Options of Recall: find (bounded MATCH seed, hard LIMIT);
+          leftover query_warm (alias of pin_map); leftover query_walk;
+          export_pin_map (GQL write-out of a cue pin_map, not SysML reverse);
+          list_playbooks / get_playbook (read-only guides; MN-REQ-04.13;
+          not a third verb).
+          Options of Commit: leftover add / update (façades of the opt-in
+          strict mode AddFailsIfExists / UpdateFailsIfAbsent); default
+          mutate is merge-by-identity and reports created / updated /
+          unchanged (never silent; MN-REQ-03.3); Path-B ingest (locators are properties, not PK);
+          snap_model; import_slice / Absorb (match by labels+properties,
+          not MERGE-by-id remint); RSV reserve / extend / release.
+          Internal: housekeep_stats, serve_status, session_acl_*,
+          leftover read_list / read_get(id).
+          SHALL NOT nest leftover 0.9 read_get(id), NEW / [NEW],
+          AssignedIdMap, add/update that fail without a ground store-key,
+          pin_map(anchor=<required id>) as the only pin form,
+          allocate_from_locator, import_slice id_policy
           keep|reject|remint keyed on store-key, or elementId/handle on
           the wire as product commands (those remain leftover_* engine
-          honesty). Optional engine/status probe and housekeep stats MAY
-          remain. In-process by default (MN-REQ-06.1).
+          honesty). In-process by default (MN-REQ-06.1).
         */
         attribute requirementId : String = "MN-REQ-07.1";
+        attribute agentSurface : String = "surface";
       }
 
       requirement def MN_REQ_07_2_StructuredToolEnvelope {
         doc /*
+          Agent surface: internal. structured tool envelope.
           SHALL return each MCP tool result in a structured envelope carrying
           exit status, stdout payload, and stderr/error lines.
         */
         attribute requirementId : String = "MN-REQ-07.2";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_07_3_NoDomainProductTools {
         doc /*
+          Agent surface: internal. no domain-product tools on generic MCP.
           Domain-product tools SHALL NOT be embedded in the generic MemNet MCP
           boundary.
         */
         attribute requirementId : String = "MN-REQ-07.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_07_4_McpLawSeedOnOpen {
         doc /*
+          Agent surface: option of session open / save / close. law-seed on session_open — option of open.
           MCP session_open SHALL auto-seed engine-law rows when they are
           missing from the session.
         */
         attribute requirementId : String = "MN-REQ-07.4";
+        attribute agentSurface : String = "option:session";
       }
 
       requirement def MN_REQ_07_5_NoStoreKeyToolSurface {
         doc /*
+          Agent surface: internal. no store-key tool surface.
           TARGET agent/CLI/MCP I/O SHALL NOT key tools on a store-key id.
           Optional NicknameIdProperty MAY seed find/pin_map/mutate when
           the agent set one — it is not identity (MN-REQ-02.8).
@@ -1356,6 +1550,7 @@ package MemNetRequirements {
           mint laws are not TARGET commands.
         */
         attribute requirementId : String = "MN-REQ-07.5";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -1363,6 +1558,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_08_AgentIoGrammar {
       doc /*
+        Agent surface: internal. agent I/O grammar; applies to both operators.
         Group: LLM-friendly grammar on agent-facing I/O. MemNet agent I/O
         (stdio pin-map emit; MCP tool args/results that carry memory language)
         is produced and consumed by an LLM, so presentation SHALL follow
@@ -1373,34 +1569,42 @@ package MemNetRequirements {
         import-once only.
       */
       attribute requirementId : String = "MN-REQ-08";
+      attribute agentSurface : String = "internal";
 
       requirement def MN_REQ_08_1_LlmFriendlyStdio {
         doc /*
+          Agent surface: internal. LLM-friendly stdio.
           SHALL present an LLM-friendly grammar on CLI/stdio agent I/O:
           low-noise, learnable, and accurate when presenting facts.
         */
         attribute requirementId : String = "MN-REQ-08.1";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_2_LlmFriendlyMcp {
         doc /*
+          Agent surface: internal. LLM-friendly MCP.
           SHALL present an LLM-friendly grammar on MCP tool payloads that
           agents read or write.
         */
         attribute requirementId : String = "MN-REQ-08.2";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_3_NoHostilePositionalDump {
         doc /*
+          Agent surface: internal. no hostile positional dump.
           Agent-facing I/O SHALL NOT rely on hostile positional dumps that
           burn tokens or invite routine field-count and escape errors,
           contradicting MN-REQ-00 token economy and factual accuracy.
         */
         attribute requirementId : String = "MN-REQ-08.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_4_BoundaryFriendlyIfInternalDiffers {
         doc /*
+          Agent surface: internal. boundary-friendly if internal differs.
           Store-internal representation MAY differ from the agent grammar only
           if every agent boundary still presents the friendly surface.
           Internal store records MAY differ; legacy pipe import-once is allowed. Pipe
@@ -1408,18 +1612,22 @@ package MemNetRequirements {
           or mutate/write.
         */
         attribute requirementId : String = "MN-REQ-08.4";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_5_IoActorIsLlm {
         doc /*
+          Agent surface: internal. I/O actor is the LLM.
           Agent-facing MemNet I/O SHALL be designed as produced and consumed
           by an LLM (not primarily by hand-written UI forms).
         */
         attribute requirementId : String = "MN-REQ-08.5";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_6_FollowPromptRules {
         doc /*
+          Agent surface: internal. follow prompt rules.
           Agent-facing I/O grammar and presentation SHALL follow prompt rules:
           low-noise; accurate, precise, consistent, and coherent fact
           presentation; template-copyable shapes; write equals display.
@@ -1427,34 +1635,41 @@ package MemNetRequirements {
           prompt-rule doctrines; not a novel-writer product dependency.
         */
         attribute requirementId : String = "MN-REQ-08.6";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_7_WriteApproxDisplay {
         doc /*
+          Agent surface: Recall (pin_map). Write = display = shaped pin_map emit.
           Agent-facing emit and accept shapes SHALL be the same dialect:
           what the LLM writes is what it (and humans) read back -- Write =
           display -- so prompts need not teach a second grammar.
         */
         attribute requirementId : String = "MN-REQ-08.7";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_08_8_TemplateCopyableShapes {
         doc /*
+          Agent surface: internal. template-copyable shapes.
           Agent-facing records SHALL use template-copyable shapes the LLM can
           imitate from few examples without inventing column order or escape
           tricks.
         */
         attribute requirementId : String = "MN-REQ-08.8";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_08_9_PinMapEmitSameAsMutate {
         doc /*
+          Agent surface: Recall (pin_map). pin_map emit same family as mutate; Commit shares the grammar.
           Live pin map emit SHALL be a shaped subgraph in the same GQL /
           property-graph family as accepted mutate input (redefined Write =
           display). SHALL NOT present raw tabular RETURN as primary read, nor
           a second peer dialect on read vs GQL on write.
         */
         attribute requirementId : String = "MN-REQ-08.9";
+        attribute agentSurface : String = "Recall";
       }
     }
 
@@ -1462,13 +1677,16 @@ package MemNetRequirements {
 
     requirement def MN_REQ_09_HumanInspect {
       doc /*
+        Agent surface: internal. human inspect; parser is SSOT.
         Group: humans and tools recover structure from the grammar via one
         canonical parser (grammar = language; parser = structure recovery).
       */
       attribute requirementId : String = "MN-REQ-09";
+      attribute agentSurface : String = "internal";
 
       requirement def MN_REQ_09_1_CanonicalParserSsot {
         doc /*
+          Agent surface: internal. canonical parser SSOT; keep unchanged.
           SHALL provide a single canonical parser (one SSOT parse path) that
           recovers NODE and EDGE structure (kind, optional nickname id,
           fields, endpoints) from the agent-facing grammar, including
@@ -1479,34 +1697,42 @@ package MemNetRequirements {
           id_first / NEW.
         */
         attribute requirementId : String = "MN-REQ-09.1";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_09_2_RejectInvalidWire {
         doc /*
+          Agent surface: internal. reject invalid wire.
           The canonical parser SHALL reject invalid wire rather than silently
           mis-split fields.
         */
         attribute requirementId : String = "MN-REQ-09.2";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_09_3_ParseFaithfulInspect {
         doc /*
+          Agent surface: internal. parse-faithful inspect.
           Humans and tools SHALL be able to inspect what MemNet knows via a
           parse-faithful render or read path that uses the canonical parser.
         */
         attribute requirementId : String = "MN-REQ-09.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_09_4_NoAdHocConsumerSplits {
         doc /*
+          Agent surface: internal. no ad-hoc consumer splits.
           Ad-hoc consumer splits (e.g. naive delimiter split) SHALL NOT be the
           supported inspection or ingest path.
         */
         attribute requirementId : String = "MN-REQ-09.4";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_09_5_GraphGlotParseThenProductGate {
         doc /*
+          Agent surface: internal. GraphGlot parse then product gate.
           Accept SHALL parse agent GQL with GraphGlot (PyPI graphglot; official
           grammar front), then run a separate MemNet product gate that rejects
           Layer / Tier A and free WITH / UNWIND / CALL / unbounded MATCH…RETURN
@@ -1516,6 +1742,7 @@ package MemNetRequirements {
           calls graphglot on the accept path.
         */
         attribute requirementId : String = "MN-REQ-09.5";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -1523,6 +1750,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_10_LlmPropertiesAndLimits {
       doc /*
+        Agent surface: internal. LLM assumed properties and limits.
         Group: assumed properties of the LLM agents MemNet serves, and the
         MemNet limitations that follow. Attribute values document assumed
         properties (true = property is assumed to hold for design). Nested
@@ -1530,6 +1758,7 @@ package MemNetRequirements {
         These underpin MN-REQ-00 token economy and factual accuracy.
       */
       attribute requirementId : String = "MN-REQ-10";
+      attribute agentSurface : String = "internal";
 
       // Assumed LLM properties (design assumptions -- not product SHALLs)
       attribute unreliableCrossTurnMemory : Boolean = true;
@@ -1541,59 +1770,73 @@ package MemNetRequirements {
 
       requirement def MN_REQ_10_1_NoChatAsDurableStore {
         doc /*
+          Agent surface: internal. chat is not durable store.
           SHALL NOT treat chat context as the durable store of pipeline facts
           (LLMs have unreliable cross-turn working memory).
         */
         attribute requirementId : String = "MN-REQ-10.1";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_10_2_PinMapMustFitContext {
         doc /*
+          Agent surface: Recall (pin_map). pin_map must fit context.
           Re-injected live pin maps SHALL be sized to fit a finite context
           window.
           window and token budget.
         */
         attribute requirementId : String = "MN-REQ-10.2";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_10_3_MinimiseTokenRoundTrips {
         doc /*
+          Agent surface: Recall (pin_map). minimise token round-trips.
           Agent-facing I/O SHALL minimise unnecessary token burn and tool
           round-trips when re-presenting the same facts.
         */
         attribute requirementId : String = "MN-REQ-10.3";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_10_4_ExternalGroundTruthRequired {
         doc /*
+          Agent surface: internal. external ground truth required.
           Facts that must stay accurate SHALL be grounded in MemNet (or via
           MemNet from search), not invented ids or claims in chat alone.
         */
         attribute requirementId : String = "MN-REQ-10.4";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_10_5_GrammarMustBeLlmLearnable {
         doc /*
+          Agent surface: internal. grammar must be LLM-learnable.
           Agent-facing grammar SHALL be LLM-learnable: low noise, not a brittle
           positional or escape-heavy formalism that invites routine errors.
         */
         attribute requirementId : String = "MN-REQ-10.5";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_10_6_PreferTemplateFriendlyPins {
         doc /*
+          Agent surface: Recall (pin_map). prefer template-friendly pins.
           Agent-facing presentation SHOULD favour English or structured
           low-noise pins with clear templates where the LLM is strong.
         */
         attribute requirementId : String = "MN-REQ-10.6";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_10_7_HumanVerifyViaParser {
         doc /*
+          Agent surface: internal. human verify via parser.
           Humans SHALL be able to verify what MemNet knows via the canonical
           parser path, compensating for LLM invention without ground truth.
         */
         attribute requirementId : String = "MN-REQ-10.7";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -1602,6 +1845,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_11_SnapshotInterop {
       doc /*
+        Agent surface: option of Commit. snapshot / ingest interop; importers stay here this cut.
         Group: a map of pins -- short accurate anchors and locators into
         SysML v2, codebase, PCBA schematics (Atopile .ato), and agent
         skills/rules, linked as NODE and EDGE so the LLM can navigate without
@@ -1610,29 +1854,35 @@ package MemNetRequirements {
         through MN-REQ-01.6).
       */
       attribute requirementId : String = "MN-REQ-11";
+      attribute agentSurface : String = "option:Commit";
 
       requirement def MN_REQ_11_13_MapOfPins {
         doc /*
+          Agent surface: option of Recall. map of pins; emit economy shared with Recall.
           Every MN-REQ-11 snapshot or export SHALL be a map of pins: short
           accurate anchors and locators linked as NODE and EDGE, sufficient
           for LLM navigation. SHALL NOT be a complete copy of the source
           artefact or a bulky corpus dump (same spirit as pin-map economy).
         */
         attribute requirementId : String = "MN-REQ-11.13";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_11_1_ExportGraphToSysmlV2 {
         doc /*
+          Agent surface: option of Recall. export_pin_map is a GQL write-out of a cue pin_map (option of Recall); SysML v2 reverse is not claimed.
           SHALL support exporting a pin map of in-memory NODE and EDGE facts
           into a SysML v2 model representation for the in-repo model-based
           workflow (sysml-models). SHALL NOT require dumping the entire
           session graph.
         */
         attribute requirementId : String = "MN-REQ-11.1";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_11_2_NodeMapsToSysmlStructure {
         doc /*
+          Agent surface: option of Recall. SysML node mapping of export; live code is GQL pin_map write-out, not .sysml reverse.
           On SysML export, each MemNet NODE included in the pin map SHALL map
           to a SysML v2 structural element analogue (e.g. part, item, or
           attribute usage) -- an isomorphic projection of the pins, not a
@@ -1640,20 +1890,24 @@ package MemNetRequirements {
           a requirement to export every store row.
         */
         attribute requirementId : String = "MN-REQ-11.2";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_11_3_EdgeMapsToSysmlConnection {
         doc /*
+          Agent surface: option of Recall. SysML edge mapping of export; live code is GQL pin_map write-out, not .sysml reverse.
           On SysML export, each MemNet EDGE included in the pin map SHALL map
           to a SysML v2 connection or relationship analogue between the
           mapped structural elements -- projection of the pins only, not
           literal EDGE metamodel types.
         */
         attribute requirementId : String = "MN-REQ-11.3";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_11_4_DistinctFromSessionSnapshot {
         doc /*
+          Agent surface: internal. pin-map export/ingest distinct from session snapshot.
           Pin maps (SysML export, codebase, PCBA schematics via Atopile .ato,
           skills/rules) SHALL be distinct from named-session file save and
           load (MN-REQ-01.4 through MN-REQ-01.6), which persist
@@ -1662,48 +1916,58 @@ package MemNetRequirements {
           taken as a full-fidelity session backup or corpus dump.
         */
         attribute requirementId : String = "MN-REQ-11.4";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_11_5_SysmlRoundTripShould {
         doc /*
+          Agent surface: option of Recall. SysML round-trip SHOULD; not claimed from ingest or export_pin_map.
           Round-trip of the SysML pin map back into MemNet NODE and EDGE form
           SHOULD be supported where practical. Full-fidelity recovery of
           original SysML sources from the pins SHALL NOT be required; lossy
           cases SHALL be documented.
         */
         attribute requirementId : String = "MN-REQ-11.5";
+        attribute agentSurface : String = "option:Recall";
       }
 
       requirement def MN_REQ_11_6_SnapshotCodebaseIntoGraph {
         doc /*
+          Agent surface: option of Commit. ingest_codebase — option of Commit.
           SHALL support ingesting a pin map of a codebase into the Net of
           Memory as NODE and EDGE locators so agents can fetch a pin map, walk, and
           navigate purpose-relevant structure without swallowing the tree.
           SHALL NOT require indexing every file, symbol, or line.
         */
         attribute requirementId : String = "MN-REQ-11.6";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_7_CodebaseNodesAreModulesSymbols {
         doc /*
+          Agent surface: option of Commit. codebase nodes; option of Commit.
           A codebase pin map SHALL represent selected files or modules and
           symbols (functions, variables, types, and similar) as NODE pins --
           short anchors, not free prose blobs or an exhaustive inventory.
         */
         attribute requirementId : String = "MN-REQ-11.7";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_8_CodebaseEdgesAreRelations {
         doc /*
+          Agent surface: option of Commit. codebase edges; option of Commit.
           A codebase pin map SHALL represent selected relations among those
           pins (defines, calls, includes, owns, uses, and similar) as
           first-class EDGEs -- not every possible edge in the corpus.
         */
         attribute requirementId : String = "MN-REQ-11.8";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_9_SnapshotAtoIntoGraph {
         doc /*
+          Agent surface: option of Commit. ingest_pcba / .ato — option of Commit.
           SHALL support ingesting a pin map of PCBA schematics from Atopile
           (.ato projects or files) into the Net of Memory as NODE and EDGE
           locators so agents can fetch a pin map, walk, and navigate purpose-relevant
@@ -1713,58 +1977,70 @@ package MemNetRequirements {
           every .ato artefact.
         */
         attribute requirementId : String = "MN-REQ-11.9";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_10_SnapshotSkillsAndRulesIntoGraph {
         doc /*
+          Agent surface: option of Commit. ingest_skills — option of Commit.
           SHALL support ingesting a pin map of agent skills and rules
           (Cursor/agent SKILL.md packs, .mdc rules, and similar) into the Net
           of Memory as NODE and EDGE locators. SHALL NOT require copying
           every skill body or rule file verbatim into the graph.
         */
         attribute requirementId : String = "MN-REQ-11.10";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_11_SkillsAndRulesAreNodes {
         doc /*
+          Agent surface: option of Commit. skills/rules nodes; option of Commit.
           A skills/rules pin map SHALL represent selected skill packs and
           rules as NODE pins -- short anchors, not free prose blobs or an
           exhaustive catalogue of every installed pack.
         */
         attribute requirementId : String = "MN-REQ-11.11";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_12_SkillsRulesEdgesAreRelations {
         doc /*
+          Agent surface: option of Commit. skills/rules edges; option of Commit.
           A skills/rules pin map SHALL represent selected relations among
           those pins (paired_with, triggers, governs, and similar) as
           first-class EDGEs.
         */
         attribute requirementId : String = "MN-REQ-11.12";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_14_PcbaAtoNodesAreNetsComponentsPins {
         doc /*
+          Agent surface: option of Commit. PCBA nodes; option of Commit.
           A PCBA schematic (Atopile .ato) pin map SHALL represent selected
           nets, components, and pins as NODE pins -- short anchors into the
           schematic, not free prose blobs or an exhaustive inventory of every
           symbol and wire.
         */
         attribute requirementId : String = "MN-REQ-11.14";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_15_PcbaAtoEdgesAreConnectivity {
         doc /*
+          Agent surface: option of Commit. PCBA edges; option of Commit.
           A PCBA schematic (Atopile .ato) pin map SHALL represent selected
           connectivity among those pins (pin-to-net, component-owns-pin, and
           similar) as first-class EDGEs -- not every possible connection in
           the schematic.
         */
         attribute requirementId : String = "MN-REQ-11.15";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_16_PinIngestDeterministicIds {
         doc /*
+          Agent surface: option of Commit. Path-B ingest locators; option of Commit.
           Pin-map ingest (SysML, codebase, PCBA/.ato, skills) SHALL Commit
           create of GraphElement from the source. Locators (path, refdes,
           net, pin, qname, skill_id, and similar) SHALL be properties on
@@ -1780,10 +2056,12 @@ package MemNetRequirements {
           SysML v2 parser and has no grammar.
         */
         attribute requirementId : String = "MN-REQ-11.16";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_11_17_CatalogModelSnap {
         doc /*
+          Agent surface: option of Commit. snap_model — option of Commit (locator mint, not a third operator).
           0.15 Catalog Snap + session strata + model Snap. SHALL Snap one
           SysML load tree into a catalog session plus package interiors
           (optional kind band or child package when an interior exceeds
@@ -1800,9 +2078,11 @@ package MemNetRequirements {
           Cross-cut satisfy: MN-REQ-11.17.1.
         */
         attribute requirementId : String = "MN-REQ-11.17";
+        attribute agentSurface : String = "option:Commit";
 
         requirement def MN_REQ_11_17_1_CrossCutSatisfyLocators {
           doc /*
+            Agent surface: option of Commit. cross-cut satisfy locators on catalog Snap.
             When Snap drops a satisfy whose ends live in two interiors of
             the same model Snap, the catalog SHALL Commit locator stubs
             (session= + qname= / requirementId=) and a satisfies edge when
@@ -1819,10 +2099,12 @@ package MemNetRequirements {
             generate; join remains Path-B slice.
           */
           attribute requirementId : String = "MN-REQ-11.17.1";
+          attribute agentSurface : String = "option:Commit";
         }
 
         requirement def MN_REQ_11_17_2_SnapSessionGrain {
           doc /*
+            Agent surface: option of Commit. Snap session grain.
             Catalog Snap SHALL mint one catalog session plus a bounded
             number of interiors for one load tree. Grain SHALL be
             top-level package first; optional kind band (REQ / PRT / POR)
@@ -1841,10 +2123,12 @@ package MemNetRequirements {
             interior fits 2M remains TARGET, not this leaf.
           */
           attribute requirementId : String = "MN-REQ-11.17.2";
+          attribute agentSurface : String = "option:Commit";
         }
 
         requirement def MN_REQ_11_17_3_SnapBudgetPrecheck {
           doc /*
+            Agent surface: option of Commit. Snap budget pre-check.
             Before Catalog Snap mints any session, it SHALL count the
             catalog plus planned interiors against remaining session
             capacity (MEMNET_MAX_SESSIONS unchanged) and SHALL check
@@ -1857,10 +2141,12 @@ package MemNetRequirements {
             Caps defaults SHALL NOT change.
           */
           attribute requirementId : String = "MN-REQ-11.17.3";
+          attribute agentSurface : String = "option:Commit";
         }
 
         requirement def MN_REQ_11_17_4_SnapCallerGoneRollback {
           doc /*
+            Agent surface: option of Commit. Snap caller-gone rollback.
             When the serve or IPC caller is gone before Snap finishes
             (client wait exceeded, or the peer socket closed), serve
             SHALL stop minting, roll back sessions this call created,
@@ -1872,10 +2158,12 @@ package MemNetRequirements {
             SHALL NOT return an error while sessions keep appearing.
           */
           attribute requirementId : String = "MN-REQ-11.17.4";
+          attribute agentSurface : String = "option:Commit";
         }
 
         requirement def MN_REQ_11_17_5_SnapReplaceByModelIdentity {
           doc /*
+            Agent surface: option of Commit. Snap replace by model identity.
             A second Catalog Snap of the same load-tree identity
             (resolved root path) SHALL replace the live stack for that
             identity after the new stack commits, and SHALL NOT leave
@@ -1887,6 +2175,7 @@ package MemNetRequirements {
             first; replace still holds when they do not.
           */
           attribute requirementId : String = "MN-REQ-11.17.5";
+          attribute agentSurface : String = "option:Commit";
         }
       }
     }
@@ -1901,6 +2190,7 @@ package MemNetRequirements {
 
     requirement def MN_REQ_12_MultitaskMode {
       doc /*
+        Agent surface: internal. Multitask protocol; workers use Recall then Commit; not one operator.
         Group: when Multitask Mode (or Task sub-agents) is active, MemNet
         SHALL be operated as a shared mission store with a parent coordinator
         and scoped workers. Chat is never mission SSOT. As-is product
@@ -1909,9 +2199,11 @@ package MemNetRequirements {
         private/shared/open + session_token modes deferred.
       */
       attribute requirementId : String = "MN-REQ-12";
+      attribute agentSurface : String = "internal";
 
       requirement def MN_REQ_12_1_SharedSessionMissionSsot {
         doc /*
+          Agent surface: session (open / save / close). shared session id is mission SSOT handle.
           Under Multitask, SHALL use one shared named MemNet session id as the
           mission source of truth for ids, paths, and task state (session as
           SSOT handle for the MissionWorkingSet). Handoff SHALL be by session
@@ -1920,10 +2212,12 @@ package MemNetRequirements {
           (extends MN-REQ-10.1 / MN-REQ-01.7 / MN-REQ-01.8).
         */
         attribute requirementId : String = "MN-REQ-12.1";
+        attribute agentSurface : String = "session";
       }
 
       requirement def MN_REQ_12_2_SharedStoreTransport {
         doc /*
+          Agent surface: ops (later PR may split deploy/ops). shared store transport (TCP / streamable-http).
           Under Multitask, parent and workers SHALL bind to the same shared
           GraphStore/session registry via TCP serve, streamable-http MCP, or
           local IPC when available. Default isolated in-process MCP (one
@@ -1931,10 +2225,12 @@ package MemNetRequirements {
           missions. Single-agent goldfish MAY still use in-process (MN-REQ-06.1).
         */
         attribute requirementId : String = "MN-REQ-12.2";
+        attribute agentSurface : String = "ops";
       }
 
       requirement def MN_REQ_12_3_ParentOwnsTaskLifecycle {
         doc /*
+          Agent surface: internal. parent owns task lifecycle.
           The parent coordinator SHALL mint and own house task and user-
           constraint lifecycle rows (TSK_* / USR_*): create, status=active,
           status=settled, and optional led_to_success edges. Workers SHALL NOT
@@ -1942,10 +2238,12 @@ package MemNetRequirements {
           delegated that settle.
         */
         attribute requirementId : String = "MN-REQ-12.3";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_12_4_WorkerPinMapAndScopedWrite {
         doc /*
+          Agent surface: Recall (pin_map). worker pin_map first; scoped write is Commit under the same mission.
           Each worker turn SHALL begin with a live pin map on the shared
           session, copy assigned ids from that pin map, and mutate only under
           the parent-assigned subgraph (anchors and relation scope). Workers
@@ -1953,10 +2251,12 @@ package MemNetRequirements {
           different session id unless the parent assigned a separate mission.
         */
         attribute requirementId : String = "MN-REQ-12.4";
+        attribute agentSurface : String = "Recall";
       }
 
       requirement def MN_REQ_12_5_PreferOneWorkerOrDisjoint {
         doc /*
+          Agent surface: internal. prefer one worker or disjoint scopes.
           Multitask missions SHOULD prefer one worker per coherent workstream.
           Asynchronous parallel workers SHALL use disjoint anchor subtrees on
           one shared session OR separate parent-assigned session ids.
@@ -1968,10 +2268,12 @@ package MemNetRequirements {
           last-write-wins.
         */
         attribute requirementId : String = "MN-REQ-12.5";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_12_6_ParentEndTurnNoPoll {
         doc /*
+          Agent surface: internal. parent ends turn; no poll.
           After AsyncTaskDispatch (spawning background workers via
           EvDelegateWorker), the parent SHALL EvEndCoordinatorTurn
           (Multitask gate). The parent SHALL NOT poll or await worker
@@ -1981,10 +2283,12 @@ package MemNetRequirements {
           (or SessionImportReceive when sessions were separate).
         */
         attribute requirementId : String = "MN-REQ-12.6";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_12_7_NoAssumeAclReserveIngest {
         doc /*
+          Agent surface: internal. MUST NOT assume full ACL / reserve / ingest.
           As-is NOW: the CapsPolicy ACL cut IS shipped (engineAclShipped=true)
           when session ACL is enabled. Neighbourhood reserve (RSV, llm_id +
           TTL) IS shipped as NeighbourhoodReserve / MN-REQ-12.13. Path-B
@@ -1996,10 +2300,12 @@ package MemNetRequirements {
           from ingest alone.
         */
         attribute requirementId : String = "MN-REQ-12.7";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_12_8_AppliesToRelevantTasks {
         doc /*
+          Agent surface: internal. applies to relevant tasks.
           Multitask Mode (MN-REQ-12.1 through 12.7) SHALL apply when mission
           work is multi-step, coordinator-delegated to workers, or
           parallelisable across disjoint workers. Trivial one-shot
@@ -2007,10 +2313,12 @@ package MemNetRequirements {
           Multitask shared-store or parent/worker obligations.
         */
         attribute requirementId : String = "MN-REQ-12.8";
+        attribute agentSurface : String = "internal";
       }
 
       requirement def MN_REQ_12_13_NeighbourhoodReserve {
         doc /*
+          Agent surface: option of Commit. RSV lease — option of Commit, not a third operator.
           SHALL provide neighbourhood reserve (RSV) so parallel agents on one
           shared session_id can hold disjoint pin-map ego scopes: required
           llm_id holder, required ttl_s lease, scope = anchor + depth matching
@@ -2021,10 +2329,12 @@ package MemNetRequirements {
           extend / release (MCP/CLI) — not + RSV graph mutate.
         */
         attribute requirementId : String = "MN-REQ-12.13";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_12_9_LeadOwnsSessionImport {
         doc /*
+          Agent surface: option of Commit. lead-owned import_slice / Absorb — option of Commit.
           When a team lead imports a member's working memory
           (SessionImportReceive), the lead / parent SHALL own the import into
           the mission session. Path A (prefer shared mission sessionId):
@@ -2050,10 +2360,12 @@ package MemNetRequirements {
           Distinct from micro merge=true (in-session re-id).
         */
         attribute requirementId : String = "MN-REQ-12.9";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_12_10_NoChatOrWholeStoreImport {
         doc /*
+          Agent surface: option of Commit. no chat or whole-store import.
           Session import (SessionImportReceive) SHALL NOT use chat or tool
           transcripts as the import payload (EvImportFromChat forbidden).
           Engine SHALL require anchors on WorkingMemorySliceExport, enforce
@@ -2062,10 +2374,12 @@ package MemNetRequirements {
           last-write-wins; MN-REQ-12.7).
         */
         attribute requirementId : String = "MN-REQ-12.10";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_12_11_CheapLlmImportGuardSoft {
         doc /*
+          Agent surface: option of Commit. optional ImportGuard on Absorb.
           OPTIONAL soft policy (never mandatory LLM): Path B
           WorkingMemorySlice import SHOULD pass ImportGuard soft review
           before ImportAbsorb (allow / trim / reject + short reason; trim
@@ -2086,10 +2400,12 @@ package MemNetRequirements {
           Satisfied by CheapLlmImportGuard part (not the hook alone).
         */
         attribute requirementId : String = "MN-REQ-12.11";
+        attribute agentSurface : String = "option:Commit";
       }
 
       requirement def MN_REQ_12_12_HostDrivenAsyncParallel {
         doc /*
+          Agent surface: internal. host-driven async parallel.
           Asynchronous parallel Multitask: parent opens/loads one mission
           session (or explicitly separate sessions), mints TSK_*, assigns
           WorkerWriteScope, emits SessionHandoff, spawns workers via
@@ -2103,6 +2419,7 @@ package MemNetRequirements {
           (MN-REQ-12.13) sits under Commit — not a third operator.
         */
         attribute requirementId : String = "MN-REQ-12.12";
+        attribute agentSurface : String = "internal";
       }
     }
 
@@ -2110,15 +2427,27 @@ package MemNetRequirements {
 
     requirement def MN_REQ_13_RecallCommit {
       doc /*
-        Group (thin 0.5): agent surface is two operators only — Recall(q)
+        Agent surface: spine (Recall(q) and Commit(Δ)). spine group: Recall(q) and Commit(Δ).
+        SPINE (0.5): agent-facing graph I/O is two operators only — Recall(q)
         and Commit(Δ) — over session graph S with rate cap R. Grammar SSOT:
-        docs/grammar/math-skeleton.md. Does not replace MN-REQ-02.4 / 04.*.
-        Engine/MCP cut SHALL NOT be claimed from this group alone.
+        docs/grammar/math-skeleton.md. Agent surface verbs are exactly
+        recall (pin_map), commit (mutate), session open, save, and close
+        (session verbs live on MN-REQ-01). Every other agent-visible
+        operation is an option of Recall, an option of Commit, an option
+        of session, or internal — named on agentSurface and in the leaf
+        doc. Organisational groups MN-REQ-01…12 stay nested under
+        MN-REQ-00 this cut; spine parentage is #derivation to the nested
+        arms MN-REQ-13.Recall / MN-REQ-13.Commit. Does not replace
+        MN-REQ-02.4 / 04.*. Engine/MCP cut SHALL NOT be claimed from this
+        group alone. Mapping table:
+        sysml-models/outputs/mn-req-13-spine-mapping.md.
       */
       attribute requirementId : String = "MN-REQ-13";
+      attribute agentSurface : String = "spine";
 
       requirement def MN_REQ_13_1_TwoOperators {
         doc /*
+          Agent surface: spine (Recall(q) and Commit(Δ)). exactly two product operators; RSV is a Commit lease.
           SHALL model exactly two product operators: Recall(q) (seed then
           bounded k-hop reconstruct; empty q ⇒ session outline census of
           S — leftover empty-seed skip is leftover, not TARGET) and Commit(Δ)
@@ -2154,31 +2483,70 @@ package MemNetRequirements {
           LangChain / HiGram as agent wire.
         */
         attribute requirementId : String = "MN-REQ-13.1";
+        attribute agentSurface : String = "spine";
       }
 
-      requirement def MN_REQ_13_2_SameThingAbsorb {
+      requirement def MN_REQ_13_Recall {
         doc /*
-          Second absorb case under Commit, distinct from ImportAbsorb.
-          SameThingAbsorb SHALL collapse two live session elements only
-          when the agent judges they are one world-thing. It is a Commit
-          rule, not a product verb, not Recall, not RelativeSeed /
-          ShapeWalk / pin_map. Pattern match is labels + properties (and
-          relationship type + ends); SHALL NOT leftover MERGE-by-id /
-          store-key / elementId. Same name (or any shared cue) is a
-          candidate only. Two same-name nodes that are different
-          world-things SHALL remain two (two "First National Bank"s stay
-          two) and SHALL appear on Recall as CueConflict (two roots), not
-          as one merged node. Collapse SHALL wait until the agent has
-          seen that conflict on find / pin_map emit. Name is a handle, not the thing: a name-change SHALL NOT
-          mint a second thing-node; optional aka (or name tokens pointing
-          at one element) is enough; name-token history is optional.
-          CHANGED between two thing-nodes only if the world actually split.
-          ImportAbsorb SHALL remain Path-B WorkingMemorySlice + leftover
-          id_policy and SHALL NOT do this entity resolution. Goldfish
-          writeback SHALL still not be called Absorb (MN-REQ-13.1).
-          operatorCount stays 2.
+          Agent surface: Recall (pin_map). spine arm Recall(q).
+          Spine arm Recall(q): product read. TARGET verb is pin_map.
+          Empty q SHALL return the session outline (MN-REQ-04.9).
+          find is an option of Recall (seed). leftover query_warm is a
+          leftover alias of pin_map.           leftover query_walk / read_list /
+          --anchor are leftover options or leftover nicknames, not
+          product verbs. export_pin_map is an option of Recall (GQL
+          write-out of a cue pin_map; not SysML reverse). list_playbooks
+          / get_playbook are a Recall option (MN-REQ-04.13; not a third
+          verb). Hard caps
+          stay hard; a clipped neighbourhood SHALL flag Truncation on
+          the wire.
         */
-        attribute requirementId : String = "MN-REQ-13.2";
+        attribute requirementId : String = "MN-REQ-13.Recall";
+        attribute agentSurface : String = "Recall";
+      }
+
+      requirement def MN_REQ_13_Commit {
+        doc /*
+          Agent surface: Commit (mutate). spine arm Commit(Δ).
+          Spine arm Commit(Δ): product write. TARGET verb is mutate.
+          leftover add / update remain leftover façades of the opt-in
+          strict Commit mode (AddFailsIfExists / UpdateFailsIfAbsent).
+          Default Commit merges by identity and reports created, updated,
+          or unchanged (MN-REQ-03.3; never silent). Path-B ingest
+          (ingest_sysml / ingest_codebase / ingest_pcba / ingest_skills),
+          snap_model, import_slice / Absorb, and RSV (reserve / extend /
+          release) are options of Commit, not third operators.
+          SameThingAbsorb is a Commit rule nested here.
+        */
+        attribute requirementId : String = "MN-REQ-13.Commit";
+        attribute agentSurface : String = "Commit";
+
+        requirement def MN_REQ_13_2_SameThingAbsorb {
+          doc /*
+            Agent surface: Commit (mutate). SameThingAbsorb is a Commit rule, not Recall.
+            Second absorb case under Commit, distinct from ImportAbsorb.
+            SameThingAbsorb SHALL collapse two live session elements only
+            when the agent judges they are one world-thing. It is a Commit
+            rule, not a product verb, not Recall, not RelativeSeed /
+            ShapeWalk / pin_map. Pattern match is labels + properties (and
+            relationship type + ends); SHALL NOT leftover MERGE-by-id /
+            store-key / elementId. Same name (or any shared cue) is a
+            candidate only. Two same-name nodes that are different
+            world-things SHALL remain two (two "First National Bank"s stay
+            two) and SHALL appear on Recall as CueConflict (two roots), not
+            as one merged node. Collapse SHALL wait until the agent has
+            seen that conflict on find / pin_map emit. Name is a handle, not the thing: a name-change SHALL NOT
+            mint a second thing-node; optional aka (or name tokens pointing
+            at one element) is enough; name-token history is optional.
+            CHANGED between two thing-nodes only if the world actually split.
+            ImportAbsorb SHALL remain Path-B WorkingMemorySlice + leftover
+            id_policy and SHALL NOT do this entity resolution. Goldfish
+            writeback SHALL still not be called Absorb (MN-REQ-13.1).
+            operatorCount stays 2.
+          */
+          attribute requirementId : String = "MN-REQ-13.2";
+          attribute agentSurface : String = "Commit";
+        }
       }
     }
   }
@@ -2269,6 +2637,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_11_PinMapOrderFromObservables;
   requirement housekeepEndpointIdentityReq
     : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
+  requirement playbooksAsRecallOptionReq
+    : MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
 
   requirement hardCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps;
@@ -2458,8 +2828,12 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit;
   requirement twoOperatorsReq
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  requirement recallSpineReq
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_Recall;
+  requirement commitSpineReq
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_Commit;
   requirement sameThingAbsorbReq
-    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+    : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_Commit::MN_REQ_13_2_SameThingAbsorb;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -2528,6 +2902,8 @@ package MemNetRequirements {
     end #derive ::> sessionOutlineEmptyCueReq;
     end #derive ::> peakLLastResortReq;
     end #derive ::> pinMapOrderFromObservablesReq;
+    end #derive ::> housekeepEndpointIdentityReq;
+    end #derive ::> playbooksAsRecallOptionReq;
   }
 
   #derivation connection deriveHardCapsLeaves {
@@ -2640,7 +3016,77 @@ package MemNetRequirements {
   #derivation connection deriveRecallCommitLeaves {
     end #original ::> recallCommitReq;
     end #derive ::> twoOperatorsReq;
+    end #derive ::> recallSpineReq;
+    end #derive ::> commitSpineReq;
+  }
+
+  #derivation connection deriveSameThingUnderCommit {
+    end #original ::> commitSpineReq;
     end #derive ::> sameThingAbsorbReq;
+  }
+
+  // Spine reparent: agent-facing leaves derive from Recall or Commit.
+  // Organisational group→leaf derivation above is unchanged.
+  #derivation connection deriveRecallSpineLeaves {
+    end #original ::> recallSpineReq;
+    end #derive ::> sliceEconomyReq;
+    end #derive ::> queryOverNodeEdgeGraphReq;
+    end #derive ::> anchoredPinMapReq;
+    end #derive ::> recycleHiddenFromPinMapReq;
+    end #derive ::> pinMapDepthAndRowCapsReq;
+    end #derive ::> engineLawPrependReq;
+    end #derive ::> anchoredWalkReq;
+    end #derive ::> boundedMatchFindReq;
+    end #derive ::> relativeSeedThenShapeWalkReq;
+    end #derive ::> cueMultiRootHonestReq;
+    end #derive ::> sessionOutlineEmptyCueReq;
+    end #derive ::> peakLLastResortReq;
+    end #derive ::> pinMapOrderFromObservablesReq;
+    end #derive ::> playbooksAsRecallOptionReq;
+    end #derive ::> queryFanoutCapsReq;
+    end #derive ::> writeApproxDisplayReq;
+    end #derive ::> pinMapEmitSameAsMutateReq;
+    end #derive ::> pinMapMustFitContextReq;
+    end #derive ::> minimiseTokenRoundTripsReq;
+    end #derive ::> preferTemplateFriendlyPinsReq;
+    end #derive ::> mapOfPinsReq;
+    end #derive ::> exportGraphToSysmlV2Req;
+    end #derive ::> nodeMapsToSysmlStructureReq;
+    end #derive ::> edgeMapsToSysmlConnectionReq;
+    end #derive ::> sysmlRoundTripShouldReq;
+    end #derive ::> workerPinMapAndScopedWriteReq;
+  }
+
+  #derivation connection deriveCommitSpineLeaves {
+    end #original ::> commitSpineReq;
+    end #derive ::> strictMutateReq;
+    end #derive ::> addFailsIfExistsReq;
+    end #derive ::> updateFailsIfAbsentReq;
+    end #derive ::> noSilentUpsertReq;
+    end #derive ::> honourWherePredicateReq;
+    end #derive ::> schemaValidatedIngestReq;
+    end #derive ::> consistentValueByteCapReq;
+    end #derive ::> snapshotInteropReq;
+    end #derive ::> snapshotCodebaseIntoGraphReq;
+    end #derive ::> codebaseNodesAreModulesSymbolsReq;
+    end #derive ::> codebaseEdgesAreRelationsReq;
+    end #derive ::> snapshotAtoIntoGraphReq;
+    end #derive ::> snapshotSkillsAndRulesIntoGraphReq;
+    end #derive ::> skillsAndRulesAreNodesReq;
+    end #derive ::> skillsRulesEdgesAreRelationsReq;
+    end #derive ::> pcbaAtoNodesAreNetsComponentsPinsReq;
+    end #derive ::> pcbaAtoEdgesAreConnectivityReq;
+    end #derive ::> pinIngestDeterministicIdsReq;
+    end #derive ::> catalogModelSnapReq;
+    end #derive ::> crossCutSatisfyLocatorsReq;
+    end #derive ::> snapSessionGrainReq;
+    end #derive ::> snapBudgetPrecheckReq;
+    end #derive ::> snapCallerGoneRollbackReq;
+    end #derive ::> snapReplaceByModelIdentityReq;
+    end #derive ::> leadOwnsSessionImportReq;
+    end #derive ::> noChatOrWholeStoreImportReq;
+    end #derive ::> cheapLlmImportGuardSoftReq;
+    end #derive ::> neighbourhoodReserveReq;
   }
 
   #derivation connection deriveSameThingFromCueHonesty {

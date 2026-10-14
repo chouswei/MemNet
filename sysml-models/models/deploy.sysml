@@ -19,11 +19,12 @@
     │       │   │   ├── RelativeSeed     // MATCH_L → Q walk roots; Peak_L last-resort cue
     │       │   │   │     └── Peak_L     // ρ* residual local max; never default goldfish
     │       │   │   ├── SessionOutline   // empty q = census of S (0.11 TARGET)
+    │       │   │   ├── PlaybookGuide    // Recall option; list/get on paper
     │       │   │   └── AgentShapedRead
     │       │   │       ├── RelativeSeed + ShapeWalk  // seedToWalk: Q → k-hop
     │       │   │       ├── PinMapShapedRead    // ShapeWalk emit; CueConflict when |Q|>1
     │       │   │       └── BoundedMatchFind    // RelativeSeed MATCH_L; CueConflict on emit
-    │       │   └── Commit          // ONE gate; TARGET GraphElement identity
+    │       │   └── Commit          // ONE gate; merge-and-report default
     │       │       ├── MutateGate
     │       │       ├── IdAllocator // leftover mint honesty flags; leftover_* parts off this nest
     │       │       ├── NeighbourhoodReserve // RSV lease — not a third API
@@ -355,7 +356,9 @@ package MemNet {
   part def GraphStore {
     doc /*
       In-memory Net of Memory: property-graph working set with Node and
-      Edge indexes, adjacency, properties, labels; strict create/replace.
+      Edge indexes, adjacency, properties, labels; default Commit is
+      merge-and-report (created / updated / unchanged); strict
+      add/update is an opt-in Commit mode.
       Dual EDGE: bind vs relation as relationship types / endpoint grain.
       Law-on-node as node properties (+ port structure). Agent wire is GQL
       via GqlCodec. Realises session-scoped SharedLlmMemory content.
@@ -395,6 +398,13 @@ package MemNet {
     attribute nicknameIdIsRankingKey : Boolean = false;
     attribute createOrderIsRankingKey : Boolean = false;
     attribute storageRole : String = "working_memory";
+    attribute defaultCommitMergeAndReport : Boolean = true;
+    attribute reportCreatedUpdatedUnchanged : Boolean = true;
+    attribute silentUpsert : Boolean = false;
+    attribute defaultAddFailsIfExists : Boolean = false;
+    attribute defaultUpdateFailsIfAbsent : Boolean = false;
+    attribute optInStrictAddFailsIfExists : Boolean = true;
+    attribute optInStrictUpdateFailsIfAbsent : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_1_ExactlyNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_2_NodesHoldAtomisedFacts;
@@ -412,7 +422,11 @@ package MemNet {
   part def MutateGate {
     doc /*
       Orchestrates GQL parse -> schema validate -> leftover_NEW_mint ->
-      strict add/update into GraphStore -> ack.
+      merge-and-report into GraphStore -> ack. Default Commit merges
+      by GraphElement identity and reports created / updated /
+      unchanged per item (never silent). Strict AddFailsIfExists /
+      UpdateFailsIfAbsent is an opt-in Commit mode (leftover add /
+      update façades MAY select it).
       TARGET create: CREATE () is legal; CREATE (:Label {props}) with no
       required id; properties MAY be empty. MERGE is a per-write lookup
       of labels + properties, not a primary key. Ends MATCH by label +
@@ -441,6 +455,14 @@ package MemNet {
     attribute whereTrueEdgeDeleteKept : Boolean = true;
     attribute matchMapEqualityKept : Boolean = true;
     attribute gqlValueBytesHardCap : Boolean = true;
+    attribute defaultMode : String = "merge_and_report";
+    attribute mergeByIdentity : Boolean = true;
+    attribute reportCreatedUpdatedUnchanged : Boolean = true;
+    attribute silentUpsert : Boolean = false;
+    attribute defaultAddFailsIfExists : Boolean = false;
+    attribute defaultUpdateFailsIfAbsent : Boolean = false;
+    attribute optInStrictAddFailsIfExists : Boolean = true;
+    attribute optInStrictUpdateFailsIfAbsent : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
@@ -791,6 +813,7 @@ package MemNet {
     part outline : SessionOutline;
     part pinMap : PinMapShapedRead;
     part find : BoundedMatchFind;
+    part playbooks : PlaybookGuide;
     connection seedToWalk : SeedSetFlow {
       end port source ::> seed.seedOut;
       end port sink ::> walk.seedIn;
@@ -885,7 +908,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_Commit::MN_REQ_13_2_SameThingAbsorb;
   }
 
   part def Recall {
@@ -911,6 +934,8 @@ package MemNet {
       SHALL NOT absorb / MERGE-by-name / LLM-collapse Q. Same name is a
       candidate only; agent may later SameThingAbsorb under Commit
       after CueConflict is visible on the emit.
+      PlaybookGuide is a Recall option (listPlaybooks / getPlaybook);
+      not a third operator.
     */
     port cueIn : CueInPort;
     port shapedOut : ShapedSubgraphOutPort;
@@ -933,6 +958,7 @@ package MemNet {
     attribute codebookMissOnly : Boolean = true;
     part seed : RelativeSeed;
     part outline : SessionOutline;
+    part playbooks : PlaybookGuide;
     attribute leftoverEmptySkipProductCommand : Boolean = false;
     attribute leftoverEmptySkipTargetImplemented : Boolean = false;
     part shapedRead : AgentShapedRead;
@@ -949,6 +975,32 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_8_CueMultiRootHonest;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_10_PeakLLastResort;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
+  }
+
+  part def PlaybookGuide {
+    doc /*
+      Recall option (MN-REQ-04.13): read-only guides that teach an
+      agent how to use MemNet's tools. Modelled on Endleaf
+      listPlaybooks / getPlaybook: omit topic to list; pass topic to
+      fetch one guide. SHALL NOT mutate S, SHALL NOT bind a desk,
+      SHALL NOT be a third operator or a sixth agent verb. Product
+      read remains pin_map. On paper this cut (implemented=false).
+    */
+    attribute listPlaybooks : Boolean = true;
+    attribute getPlaybook : Boolean = true;
+    attribute readOnly : Boolean = true;
+    attribute mutatesSession : Boolean = false;
+    attribute bindsDesk : Boolean = false;
+    attribute notAThirdOperator : Boolean = true;
+    attribute notASixthVerb : Boolean = true;
+    attribute productCommand : Boolean = false;
+    attribute implemented : Boolean = false;
+    attribute teachesMemNetTools : Boolean = true;
+    attribute endleafLike : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   }
 
@@ -967,6 +1019,9 @@ package MemNet {
       leftover id_policy (absorbPathBOnly — goldfish writeback is still
       not called Absorb; ImportAbsorb SHALL NOT entity-resolve); SameThingAbsorb
       is in-session collapse, nested here. Python cut not this PR.
+      Default Commit merges by identity and reports created / updated
+      / unchanged per item (never silent; MN-REQ-03.3). Strict
+      AddFailsIfExists / UpdateFailsIfAbsent is opt-in.
       Recall/Commit operatorCount stays 2.
     */
     port gqlIn : GqlWireInPort;
@@ -989,18 +1044,27 @@ package MemNet {
     attribute mergeIsPerWriteLookup : Boolean = true;
     attribute noReplacementStoreKey : Boolean = true;
     attribute sameThingAbsorbIsCommitRule : Boolean = true;
+    attribute defaultMode : String = "merge_and_report";
+    attribute mergeByIdentity : Boolean = true;
+    attribute reportCreatedUpdatedUnchanged : Boolean = true;
+    attribute silentUpsert : Boolean = false;
+    attribute defaultAddFailsIfExists : Boolean = false;
+    attribute defaultUpdateFailsIfAbsent : Boolean = false;
+    attribute optInStrictAddFailsIfExists : Boolean = true;
+    attribute optInStrictUpdateFailsIfAbsent : Boolean = true;
     part mutate : MutateGate;
     part reserve : NeighbourhoodReserve;
     part sameThing : SameThingAbsorb;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_8_IdNotRequiredOnWire;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_1_AddFailsIfExists;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_2_UpdateFailsIfAbsent;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_03_StrictMutate::MN_REQ_03_3_NoSilentUpsert;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_16_PinIngestDeterministicIds;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_13_NeighbourhoodReserve;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_Commit::MN_REQ_13_2_SameThingAbsorb;
   }
 
   part def RecallCommit {
@@ -1647,6 +1711,37 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_5_NoStoreKeyToolSurface;
   }
 
+  part def CmdListPlaybooks {
+    doc /*
+      Recall option: list playbook topics (Endleaf listPlaybooks).
+      Omit topic. Read-only. Not a product verb. implemented=false
+      this cut (on paper).
+    */
+    attribute productCommand : Boolean = false;
+    attribute implemented : Boolean = false;
+    attribute readOnly : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+    part guide : PlaybookGuide;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
+  }
+
+  part def CmdGetPlaybook {
+    doc /*
+      Recall option: fetch one playbook by topic (Endleaf getPlaybook).
+      Read-only. Not a product verb. implemented=false this cut
+      (on paper).
+    */
+    attribute productCommand : Boolean = false;
+    attribute implemented : Boolean = false;
+    attribute readOnly : Boolean = true;
+    attribute topicRequired : Boolean = true;
+    attribute notAThirdOperator : Boolean = true;
+    part guide : PlaybookGuide;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
+  }
+
   part def CmdPinMap {
     doc /*
       TARGET command realizing ShapeWalk from seed set Q (not a required
@@ -1799,7 +1894,9 @@ package MemNet {
       leftover_require_anchor, leftover_allocate_from_locator, or
       leftover id_policy as product commands. MUST NOT nest name_conflict /
       merge / absorb as product commands (CueConflict is an emit mark;
-      SameThingAbsorb is a Commit rule). TierA / Layer line codecs
+      SameThingAbsorb is a Commit rule). list_playbooks / get_playbook
+      are Recall options (MN-REQ-04.13; productCommand=false;
+      implemented=false this cut). TierA / Layer line codecs
       are RETIRED on product path (M2 done). As-is: memnet.cli
       (+ serve_client). Python rewrite out of scope.
     */
@@ -1823,6 +1920,8 @@ package MemNet {
     part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
     part catalogSnap : CmdCatalogSnap;
+    part listPlaybooks : CmdListPlaybooks;
+    part getPlaybook : CmdGetPlaybook;
     part adminUsageReport : CmdAdminUsageReport;
     part upgradePrepare : CmdAdminUpgradePrepare;
     part checkpoint : CmdAdminCheckpoint;
@@ -1865,6 +1964,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_6_FollowPromptRules;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_08_AgentIoGrammar::MN_REQ_08_7_WriteApproxDisplay;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
@@ -1903,7 +2003,9 @@ package MemNet {
       leftover_allocate_from_locator, or leftover id_policy as product
       commands. MUST NOT nest name_conflict / merge / absorb as product
       commands (CueConflict is an emit mark; SameThingAbsorb is a Commit
-      rule). Agent memory payloads: GQL mutate + shaped pin_map.
+      rule). list_playbooks / get_playbook are Recall options
+      (MN-REQ-04.13; productCommand=false; implemented=false this cut).
+      Agent memory payloads: GQL mutate + shaped pin_map.
       Structured JSON envelopes. No domain-product tools. LLM agents
       connect here to MemNet — not to DurableBuffer. Python rewrite
       out of scope.
@@ -1925,6 +2027,8 @@ package MemNet {
     part exportPinMap : CmdPinMapExport;
     part importSlice : CmdPathBImport;
     part catalogSnap : CmdCatalogSnap;
+    part listPlaybooks : CmdListPlaybooks;
+    part getPlaybook : CmdGetPlaybook;
     attribute leftoverReadGetNested : Boolean = false;
     attribute leftoverNewNested : Boolean = false;
     attribute leftoverAssignedIdMapNested : Boolean = false;
@@ -1964,6 +2068,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_09_HumanInspect::MN_REQ_09_3_ParseFaithfulInspect;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_5_GrammarMustBeLlmLearnable;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_9_SessionOutlineEmptyCue;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_13_PlaybooksAsRecallOption;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_17_CatalogModelSnap::MN_REQ_11_17_1_CrossCutSatisfyLocators;
   }
