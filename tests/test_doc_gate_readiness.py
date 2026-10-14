@@ -86,7 +86,9 @@ def test_canonical_snapshot_drops_snap_meta_and_sids(tmp_path: Path):
 
 def test_write_snapshot_is_not_write_once():
     report = snapshot_write_once_report()
-    assert report["write_snapshot_uses_path_write_text"] is True
+    assert report["write_snapshot_uses_path_write_text"] is False
+    assert report["write_snapshot_uses_atomic_private_write"] is True
+    assert report["temp_file_mkstemp_0600"] is True
     assert report["engine_o_excl"] is False
     assert report["engine_chmod"] is False
     assert report["caller_or_filesystem_only"] is True

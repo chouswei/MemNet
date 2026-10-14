@@ -32,6 +32,7 @@
 | productGateToMod | `…gqlWire.productGate` | `gqlPyMod` | `parts/common/memnet/memnet/gql.py` | `memnet.gql` | true |
 | schemaToMod | `…sessions.schema` | `schemaMod` | `parts/common/memnet/memnet/schema_registry.py` | `memnet.schema_registry` | true |
 | snapToMod | `…sessions.snap` | `snapMod` | `parts/common/memnet/memnet/snapshot_store.py` | `memnet.snapshot_store` | true |
+| snapshotAclToMod | `…sessions.snap` | `snapAclMod` | `parts/common/memnet/memnet/snapshot.py` | `memnet.snapshot` | true |
 | housekeepToMod | `…sessions.housekeep` | `housekeepMod` | `parts/common/memnet/memnet/housekeep_settle.py` | `memnet.housekeep_settle` | true |
 | mutateToMod | `…commit.mutate` | `mutateMod` | `parts/common/memnet/memnet/mutate_gate.py` | `memnet.mutate_gate` | true |
 | rsvToMod | `…commit.reserve` | `rsvMod` | `parts/common/memnet/memnet/neighbourhood_reserve.py` | `memnet.neighbourhood_reserve` | true |

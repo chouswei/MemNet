@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,9 +16,11 @@ from typing import Any
 
 from memnet import __version__
 from memnet.admin_usage import authenticate
+from memnet.atomic_file import atomic_write_bytes
 from memnet.exceptions import MemNetError
 from memnet.registry import list_entries
 from memnet.session import iso_timestamp
+from memnet.snapshot import backup_v1_before_v2
 from memnet.upgrade import snapshot_format_version, state_dir
 
 CHECKPOINT_DIRNAME = "checkpoint"
@@ -27,43 +28,6 @@ MANIFEST_NAME = "checkpoint-manifest.json"
 MANIFEST_FORMAT = 1
 _PHASE_OPEN = "open"
 _checkpoint_lock = threading.Lock()
-
-
-def _fsync_fd(fd: int) -> None:
-    os.fsync(fd)
-
-
-def atomic_write_bytes(path: Path, data: bytes) -> None:
-    """Write ``data`` via a temp file, fsync, and rename.
-
-    A failure before rename leaves the destination untouched and removes
-    the temp file. The destination is never a partial write.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    try:
-        with tmp.open("wb") as handle:
-            handle.write(data)
-            handle.flush()
-            _fsync_fd(handle.fileno())
-        os.replace(tmp, path)
-    except OSError:
-        try:
-            tmp.unlink(missing_ok=True)
-        except OSError:
-            pass
-        raise
-    try:
-        dir_fd = os.open(path.parent, os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        try:
-            _fsync_fd(dir_fd)
-        except OSError:
-            return
-    finally:
-        os.close(dir_fd)
 
 
 def _safe_name(session_id: str) -> str:
@@ -180,6 +144,7 @@ def _checkpoint_locked(directory: Path | None) -> CheckpointResult:
         name = f"{_safe_name(sid)}.snap"
         path = dest / name
         try:
+            backup_v1_before_v2(path)
             atomic_write_bytes(path, payload)
         except OSError as exc:
             skipped.append(

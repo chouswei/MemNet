@@ -18,13 +18,19 @@ from pathlib import Path
 from typing import Any
 
 from memnet import __version__
-from memnet.acl import SessionAcl, parse_write_scope
+from memnet.acl import acl_from_dict, acl_to_dict
 from memnet.admin_usage import authenticate
+from memnet.atomic_file import atomic_write_bytes
 from memnet.exceptions import MemNetError
 from memnet.registry import count, get_entry, list_entries
-from memnet.snapshot import SNAPSHOT_MAGIC, load_snapshot_text, write_snapshot
+from memnet.snapshot import (
+    SNAPSHOT_FORMAT,
+    SNAPSHOT_MAGIC,
+    SUPPORTED_SNAPSHOT_FORMATS,
+    load_snapshot_text,
+    write_snapshot,
+)
 
-SUPPORTED_SNAPSHOT_FORMATS = (1,)
 MANIFEST_FORMAT = 1
 MANIFEST_NAME = "upgrade-manifest.json"
 RESTORE_NAME = "upgrade-restore.json"
@@ -43,10 +49,8 @@ _PHASE_READY = "ready"
 
 
 def snapshot_format_version() -> int:
-    """Format written by this patch. Older v1 snapshots still load."""
-    if not SNAPSHOT_MAGIC.endswith("v1"):
-        raise MemNetError("bad_snapshot", "snapshot magic is not v1")
-    return 1
+    """Format written by this patch (@SNAP version 2). Format 1 files still load, ACL off."""
+    return SNAPSHOT_FORMAT
 
 
 def state_dir() -> Path:
@@ -198,44 +202,11 @@ def _house_tags(tag_map: Any) -> list[str]:
     return sorted(tag_map.tags.keys())
 
 
-def _acl_to_dict(acl: SessionAcl | None) -> dict[str, Any]:
-    if acl is None:
-        return {"enabled": False, "callers": [], "bind": None}
-    callers = []
-    for grant in acl.callers.values():
-        scope = grant.write_scope.to_wire() if grant.write_scope else None
-        callers.append(
-            {
-                "caller": grant.caller,
-                "can_pin_map": grant.can_pin_map,
-                "can_mutate": grant.can_mutate,
-                "write_scope": scope,
-            }
-        )
-    bind = None
-    if acl.bind is not None:
-        bind = {"mission_id": acl.bind.mission_id, "lease": acl.bind.lease}
-    return {"enabled": acl.enabled, "callers": callers, "bind": bind}
-
-
 def _apply_acl(entry: Any, data: dict[str, Any] | None) -> None:
     if not data:
         return
-    acl = SessionAcl(enabled=bool(data.get("enabled")))
-    for row in data.get("callers") or []:
-        acl.grant(
-            str(row.get("caller") or ""),
-            can_pin_map=bool(row.get("can_pin_map", True)),
-            can_mutate=bool(row.get("can_mutate", True)),
-            write_scope=parse_write_scope(row.get("write_scope")),
-        )
-    bind = data.get("bind")
-    if isinstance(bind, dict) and bind.get("mission_id") and bind.get("lease"):
-        acl.set_bind(str(bind["mission_id"]), str(bind["lease"]))
-    if data.get("enabled"):
-        acl.enabled = True
-    entry.acl = acl
-    entry.meta.acl_enabled = acl.enabled
+    entry.acl = acl_from_dict(data)
+    entry.meta.acl_enabled = entry.acl.enabled
 
 
 def _sha256(path: Path) -> str:
@@ -245,16 +216,14 @@ def _sha256(path: Path) -> str:
 
 
 def _atomic_write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
+    """Manifest and report writes: 0600 temp file, fsync, rename (MN-REQ-06.16)."""
+    atomic_write_bytes(path, text.encode("utf-8"))
 
 
 def _passport(entry: Any) -> dict[str, Any]:
     meta = entry.meta
     return {
-        "acl": _acl_to_dict(entry.acl),
+        "acl": acl_to_dict(entry.acl),
         "product": meta.product,
         "created_at": meta.created_at,
         "expires_at": meta.expires_at,
@@ -263,10 +232,9 @@ def _passport(entry: Any) -> dict[str, Any]:
     }
 
 
-def _append_passport(path: Path, payload: dict[str, Any]) -> None:
-    line = PASSPORT_PREFIX + json.dumps(payload, separators=(",", ":"), sort_keys=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(line + "\n")
+def _passport_line(payload: dict[str, Any]) -> str:
+    """Trailing ``#`` line written in the same atomic snapshot write."""
+    return PASSPORT_PREFIX + json.dumps(payload, separators=(",", ":"), sort_keys=True) + "\n"
 
 
 def split_passport(text: str) -> tuple[str, dict[str, Any] | None]:
@@ -312,8 +280,11 @@ def _snapshot_one(entry: Any, snap_dir: Path) -> dict[str, Any]:
         edges = _edge_count(entry.store)
         house = _house_tags(entry.tag_map)
         passport = _passport(entry)
-        write_snapshot(SessionStore(sid, entry.store.caps), path)
-        _append_passport(path, passport)
+        write_snapshot(
+            SessionStore(sid, entry.store.caps),
+            path,
+            trailer=_passport_line(passport),
+        )
         checksum = _sha256(path)
     return {
         "session_id": sid,
@@ -517,7 +488,7 @@ def _restore_one(root: Path, row: dict[str, Any], report: RestoreReport) -> None
         _fail_session(report, sid, exc.code, exc.message)
     finally:
         if before is not None and path.is_file() and path.read_bytes() != before:
-            path.write_bytes(before)
+            atomic_write_bytes(path, before)
 
 
 def restore_manifest(directory: Path | None = None) -> RestoreReport:

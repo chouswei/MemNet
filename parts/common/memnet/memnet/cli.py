@@ -469,9 +469,11 @@ def session_load(
 
                 _acl_check(SimpleNamespace(acl=acl), caller, "pin_map")
     purge_expired(caps)
+    from_snapshot = False
     try:
         if file is not None:
             ss = load_snapshot(file, caps=caps, ttl_minutes=ttl, keep_id=keep_id)
+            from_snapshot = True
         else:
             sid = session or os.environ.get("MEMNET_SESSION")
             if not sid:
@@ -497,11 +499,26 @@ def session_load(
                     keep_id=True,
                     hide_path=True,
                 )
+                from_snapshot = True
         emit_session(ss.session_id, ss.meta.expires_at, str(ss.meta.ttl_minutes))
         emit_stderr(f"MEMNET_SESSION={ss.session_id}")
         emit_stat("loaded", ss.store.row_count_non_law(), str(file) if file is not None else "-")
+        if from_snapshot:
+            _emit_loaded_acl(ss.session_id)
     except MemNetError as exc:
         _handle_error(exc)
+
+
+def _emit_loaded_acl(session_id: str) -> None:
+    """Say what the snapshot's ACL restored. Absent means an older snapshot (ACL off)."""
+    entry = get_entry(session_id)
+    acl = entry.acl if entry is not None else None
+    if acl is None:
+        emit_stdout("@ACL: absent|off")
+        return
+    enabled = 1 if acl.enabled else 0
+    bind = 1 if acl.bind is not None else 0
+    emit_stdout(f"@ACL: loaded|enabled={enabled}|callers={len(acl.callers)}|bind={bind}")
 
 
 @admin_app.command("usage-report")

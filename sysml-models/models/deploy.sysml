@@ -1070,6 +1070,48 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
   }
 
+  part def SnapshotAcl {
+    doc /*
+      Session ACL in the snapshot (MN-REQ-06.16). @SNAP version 2
+      carries one comment line #@ACL: after @SNAP. Version 2 without
+      the line fails bad_snapshot. Version 1 loads ACL off and prints
+      @ACL: absent|off. A malformed line fails the load. The bind
+      stores the SHA-256 of the lease only; the lease is never printed.
+      Snapshot and manifest files are written atomically at mode 0600.
+      The first format 2 write over a format 1 file first copies the v1
+      bytes once to <file>.v1.bak (mode 0600, atomic); an existing backup
+      is never overwritten; no dual write (the file itself is always v2).
+      Rollback to 0.19.23 restores the .v1.bak files over the snapshots;
+      writes made after the upgrade are lost; a v2 file with no backup is
+      refused by an old build. No SemVer bump.
+    */
+    attribute aclLinePersisted : Boolean = true;
+    attribute aclLineCommentPrefix : String = "#@ACL:";
+    attribute snapshotFormatVersion : Integer = 2;
+    attribute snapshotFormatV1Loads : Boolean = true;
+    attribute aclRestoredOnLoad : Boolean = true;
+    attribute aclRestoredOnKeepIdLoad : Boolean = true;
+    attribute aclAbsentLoadsOff : Boolean = true;
+    attribute aclAbsentStat : String = "@ACL: absent|off";
+    attribute v2MissingAclFailsBadSnapshot : Boolean = true;
+    attribute aclMalformedFailsClosed : Boolean = true;
+    attribute aclLeaseNotPrinted : Boolean = true;
+    attribute bindStoresLeaseDigestOnly : Boolean = true;
+    attribute leaseDigestAlgorithm : String = "sha256";
+    attribute snapshotFileMode : String = "0600";
+    attribute atomicPrivateWrite : Boolean = true;
+    attribute v1BackupBeforeFirstV2Write : Boolean = true;
+    attribute v1BackupOnlyWhenFormat1 : Boolean = true;
+    attribute v1BackupName : String = ".v1.bak";
+    attribute v1BackupMode : String = "0600";
+    attribute v1BackupNeverOverwritten : Boolean = true;
+    attribute dualWriteV1 : Boolean = false;
+    attribute rollbackRestoresV1Backup : Boolean = true;
+    attribute rollbackLosesPostUpgradeWrites : Boolean = true;
+    attribute v2RefusedByOldBuild : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+  }
+
   part def SnapshotStore {
     doc /*
       Named-session durable file: save/load schema + records + relations
@@ -1124,6 +1166,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
+
+    part snapshotAcl : SnapshotAcl;
   }
 
   // =====================================================================

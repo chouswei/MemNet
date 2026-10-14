@@ -38,6 +38,7 @@
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
     MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
     MN-REQ-06.15       Admin checkpoint of every loaded session: lossless snaps, no drain, no traffic refuse
+    MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600; first v2 write over v1 keeps <file>.v1.bak once (0600); no dual write
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1241,6 +1242,39 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-06.15";
       }
+
+      requirement def MN_REQ_06_16_SnapshotAcl {
+        doc /*
+          SHALL persist the session CapsPolicy ACL in every session
+          snapshot written by session save, expire save, checkpoint,
+          and safe upgrade: enabled flag, per-caller grants (pin_map,
+          mutate, WorkerWriteScope), and optional bind. session_load
+          SHALL restore it, including the keep_id reload path.
+          The ACL SHALL be one comment line (#@ACL:) after @SNAP.
+          @SNAP is version 2 for every snapshot this patch writes.
+          A version 2 snapshot with no ACL line SHALL fail the load
+          with bad_snapshot. Only a version 1 snapshot (written before
+          the ACL was persisted) SHALL load with ACL off, and the load
+          output SHALL say so (@ACL: absent|off). Loaders SHALL still
+          accept version 1. A malformed ACL line SHALL fail the load;
+          it SHALL NOT silently load with ACL off. The load output
+          SHALL NOT print the bind lease. The bind SHALL store only the
+          SHA-256 of the lease, and the caller re-presents the lease to
+          mutate; the snapshot and the upgrade passport SHALL NOT hold
+          the raw lease. Snapshot files and the upgrade and checkpoint
+          manifests SHALL be written atomically (0600 temp file, fsync,
+          rename) at mode 0600. The snapshot and the upgrade passport
+          share one ACL serialiser. A save SHALL refuse when the ACL
+          does not reload to the same grants. Malformed bind (no lease
+          digest, not a dict, or no mission_id) SHALL fail bad_snapshot.
+          The first format 2 write over a format 1 file SHALL first copy
+          the v1 bytes once to <file>.v1.bak at mode 0600; an existing
+          backup SHALL NOT be overwritten; no dual write. Rollback to
+          0.19.23 restores the .v1.bak files; writes after the upgrade
+          are lost, and an old build refuses v2 loudly. No SemVer bump.
+        */
+        attribute requirementId : String = "MN-REQ-06.16";
+      }
     }
 
     // ----- MCP agent boundary -----
@@ -2277,6 +2311,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_14_SafeServeUpgrade;
   requirement serveCheckpointReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_15_ServeCheckpoint;
+  requirement snapshotAclReq
+    : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_16_SnapshotAcl;
 
   requirement mcpAgentBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary;

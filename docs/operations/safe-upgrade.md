@@ -35,6 +35,23 @@ A clean stat retires the manifest inside that process. A later restart does not 
 
 Point the unit `ExecStart` back at the old venv and start it when the restore stat is not clean. After a clean stat the manifest is retired, so a later start does not reload those snapshots.
 
+From the build after 0.19.23 the first write of each snapshot in format 2 keeps the old bytes once. A format 1 file that is overwritten by a format 2 write is copied to `<file>.v1.bak` (mode `0600`, same directory) before the replace. A later save never overwrites that backup.
+
+Rolling back to 0.19.23 (which reads format 1 only) means restoring those backups:
+
+1. Stop the new serve. It must not write during the rollback.
+2. For each snapshot that has a `.v1.bak`, rename the backup over the snapshot, for example `mv -f upgrade-snapshots/<sid>.snap.v1.bak upgrade-snapshots/<sid>.snap`. Do the same under `checkpoint/` and for any expire or session save file.
+3. Start the old venv.
+
+**This loses every write made after the upgrade.** The session state returns to the bytes saved before the upgrade, and nothing else is merged back.
+
+Two things an old build does loudly by design:
+
+- A format 2 snapshot with no `.v1.bak` (a file first written by the new build) is refused with `bad_snapshot` (`unsupported snapshot version 2`). It is not loaded as an empty or partial session.
+- A format 2 upgrade manifest is refused by the old serve (`upgrade_snapshot_format`, exit `3`).
+
+Keep the `.v1.bak` files until the new build has run cleanly. They are not removed by the new build.
+
 ## Hosts
 
 On rpi5-syson the serve listens on `18765` (`memnet-serve.service`). `memnet-mcp` on `18766` is not part of this procedure. The Endleaf engine serve is the backend named in the gateway registry; use that unit's port and state directory. The droplet gateway is unchanged: do not edit its version pin as part of this restart.

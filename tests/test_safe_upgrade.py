@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -12,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from memnet.acl import lease_digest
 from memnet.exceptions import MemNetError
 from memnet.in_process_engine import run_argv
 from memnet.registry import get_entry
@@ -96,7 +98,7 @@ def test_round_trip_keeps_id_acl_ttl_and_near_cap(memnet_temp, monkeypatch, tmp_
     assert acl_back.acl is not None and acl_back.acl.enabled is True
     assert acl_back.acl.bind is not None
     assert acl_back.acl.bind.mission_id == "mission-demo"
-    assert acl_back.acl.bind.lease == "lease-demo"
+    assert acl_back.acl.bind.lease_sha256 == lease_digest("lease-demo")
     grant = acl_back.acl.callers["caller-demo"]
     assert grant.can_pin_map is True
     assert grant.can_mutate is False
@@ -105,6 +107,12 @@ def test_round_trip_keeps_id_acl_ttl_and_near_cap(memnet_temp, monkeypatch, tmp_
     assert wide_back.store.row_count_non_law() == wide_rows
     snaps = list((tmp_path / "upgrade-snapshots").glob("*.snap"))
     assert len(snaps) == 3
+    assert stat.S_IMODE((tmp_path / MANIFEST_NAME).stat().st_mode) == 0o600
+    for snap in snaps:
+        assert stat.S_IMODE(snap.stat().st_mode) == 0o600
+    for written in tmp_path.rglob("*"):
+        if written.is_file():
+            assert b"lease-demo" not in written.read_bytes()  # the digest only, never the lease
 
 
 def test_unsaveable_blocks_ready_unless_override(memnet_temp, monkeypatch, tmp_path, schema_file):
@@ -454,3 +462,41 @@ def test_upgrade_doc_has_no_session_id():
     assert "MEMNET_UPGRADE_RETRY_S" not in text
     assert "upgrade-prepare" in text
     assert "ready_to_stop" in text or "ready-to-stop" in text
+
+
+def test_rollback_restore_rewrites_original_bytes_atomically(
+    memnet_temp, monkeypatch, tmp_path, schema_file
+):
+    import memnet.upgrade as upgrade_mod
+
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", TOKEN)
+    ss = open_session(map_file=str(schema_file))
+    _mutate(ss.session_id, "CREATE (:TSK {id: 'TSK_r', goal: 'r', status: 'open'})\n")
+    assert prepare_upgrade(TOKEN, directory=tmp_path).ready_to_stop is True
+    snap = next((tmp_path / "upgrade-snapshots").glob("*.snap"))
+    original = snap.read_bytes()
+    reset_registry()
+    reset_drain_gate()
+
+    writes: list[Path] = []
+    real_write = upgrade_mod.atomic_write_bytes
+
+    def spy_write(path, data):
+        writes.append(Path(path))
+        real_write(path, data)
+
+    def tamper_then_fail(text, **kwargs):
+        # A loose-mode file changes under the restore; the restore must put back the bytes.
+        snap.write_bytes(b"tampered")
+        snap.chmod(0o644)
+        raise MemNetError("bad_snapshot", "forced after tamper")
+
+    monkeypatch.setattr(upgrade_mod, "atomic_write_bytes", spy_write)
+    monkeypatch.setattr(upgrade_mod, "load_snapshot_text", tamper_then_fail)
+    report = restore_manifest(tmp_path)
+
+    assert report.failed == 1
+    assert snap in writes  # the rollback put the bytes back through the atomic writer
+    assert snap.read_bytes() == original
+    assert stat.S_IMODE(snap.stat().st_mode) == 0o600
+    assert list(snap.parent.glob("*.tmp")) == []

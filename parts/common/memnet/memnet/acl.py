@@ -24,11 +24,13 @@ when bind is configured on the session.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from memnet.exceptions import MemNetError
 
@@ -40,6 +42,7 @@ _SCOPE_KV = re.compile(
     r"^(anchors|ids|labels|relations)=(.+)$",
     re.IGNORECASE,
 )
+_HEX64 = re.compile(r"[0-9a-f]{64}")
 
 
 def _env_truthy(name: str) -> bool:
@@ -55,6 +58,15 @@ def acl_globally_enabled() -> bool:
 def in_process_trusted() -> bool:
     """True when running the in-process / serve-internal trusted path."""
     return _env_truthy("MEMNET_SERVE_INTERNAL") or _env_truthy("MEMNET_TEST_INLINE")
+
+
+def lease_digest(lease: str) -> str:
+    """SHA-256 hex of the stripped lease. The raw lease is never stored (MN-REQ-06.16).
+
+    SHA-256 is not a password KDF, so the lease MUST be a high-entropy secret
+    (for example 128 random bits or more).
+    """
+    return hashlib.sha256(lease.strip().encode("utf-8")).hexdigest()
 
 
 def skip_bind_allowed() -> bool:
@@ -100,11 +112,13 @@ class WorkerWriteScope:
 class SessionBind:
     """Optional missionId + lease bind; when set, mutate must match.
 
-    MemNet-only (not a Neo4j/AgensGraph privilege).
+    Holds ``lease_digest(lease)``, not the lease. The caller re-presents the
+    lease on each mutate and it is hashed before comparison. MemNet-only (not a
+    Neo4j/AgensGraph privilege).
     """
 
     mission_id: str
-    lease: str
+    lease_sha256: str
 
 
 @dataclass(frozen=True)
@@ -155,11 +169,62 @@ class SessionAcl:
                 "acl_bad_bind",
                 "mission_id and lease required together",
             )
-        self.bind = SessionBind(mission_id=mid, lease=lid)
+        self.bind = SessionBind(mission_id=mid, lease_sha256=lease_digest(lid))
         self.enabled = True
 
     def clear_bind(self) -> None:
         self.bind = None
+
+
+def acl_to_dict(acl: SessionAcl | None) -> dict[str, Any]:
+    """Serialise session ACL for snapshot ``#@ACL:`` and upgrade passport (MN-REQ-06.16)."""
+    if acl is None:
+        return {"enabled": False, "callers": [], "bind": None}
+    callers = []
+    for grant in acl.callers.values():
+        scope = grant.write_scope.to_wire() if grant.write_scope else None
+        callers.append(
+            {
+                "caller": grant.caller,
+                "can_pin_map": grant.can_pin_map,
+                "can_mutate": grant.can_mutate,
+                "write_scope": scope,
+            }
+        )
+    bind = None
+    if acl.bind is not None:
+        bind = {"mission_id": acl.bind.mission_id, "lease_sha256": acl.bind.lease_sha256}
+    return {"enabled": acl.enabled, "callers": callers, "bind": bind}
+
+
+def acl_from_dict(data: dict[str, Any]) -> SessionAcl:
+    """Rebuild a session ACL from ``acl_to_dict`` output; the enabled flag is kept as written."""
+    acl = SessionAcl()
+    for row in data.get("callers") or []:
+        acl.grant(
+            str(row.get("caller") or ""),
+            can_pin_map=bool(row.get("can_pin_map", True)),
+            can_mutate=bool(row.get("can_mutate", True)),
+            write_scope=parse_write_scope(row.get("write_scope")),
+        )
+    bind = data.get("bind")
+    if bind is not None:
+        if not isinstance(bind, dict) or not str(bind.get("mission_id") or "").strip():
+            raise MemNetError("bad_snapshot", "malformed ACL bind")
+        digest = str(bind.get("lease_sha256") or "")
+        if digest:
+            if not _HEX64.fullmatch(digest):
+                raise MemNetError("bad_snapshot", "malformed ACL bind digest")
+            acl.bind = SessionBind(mission_id=str(bind["mission_id"]).strip(), lease_sha256=digest)
+        elif bind.get("lease"):
+            # Written before the digest: hash the raw lease on load.
+            acl.set_bind(str(bind["mission_id"]), str(bind["lease"]))
+        else:
+            # Dropping the bind would silently loosen the ACL.
+            raise MemNetError("bad_snapshot", "ACL bind has no lease digest")
+    # grant() and set_bind() both force enabled; the stored flag wins.
+    acl.enabled = bool(data.get("enabled"))
+    return acl
 
 
 def parse_write_scope(raw: str | None) -> WorkerWriteScope | None:
@@ -280,7 +345,11 @@ def check_bind(
 
     mid = (mission_id or os.environ.get("MEMNET_MISSION_ID") or "").strip()
     lid = (lease or os.environ.get("MEMNET_LEASE") or "").strip()
-    if mid == acl.bind.mission_id and lid == acl.bind.lease:
+    if (
+        mid == acl.bind.mission_id
+        and lid
+        and hmac.compare_digest(lease_digest(lid), acl.bind.lease_sha256)
+    ):
         return
 
     if not require and skip_bind_allowed():

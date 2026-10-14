@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 from datetime import timedelta
 from pathlib import Path
 
+from memnet.acl import SessionAcl, acl_from_dict, acl_to_dict
+from memnet.atomic_file import atomic_write_bytes
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
@@ -25,6 +28,14 @@ from memnet.tag_map import (
 from memnet.wire import split_snapshot_lines
 
 SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
+# @SNAP format version (MN-REQ-06.16). 2 = carries the #@ACL: line, which is required.
+# 1 = written before the ACL was persisted; it loads with ACL off (@ACL: absent|off).
+SNAPSHOT_FORMAT = 2
+SUPPORTED_SNAPSHOT_FORMATS = (1, 2)
+# Copy of a format 1 file, kept once before the first format 2 write (MN-REQ-06.16).
+V1_BACKUP_SUFFIX = ".v1.bak"
+# Session ACL line. A ``#`` line, so readers that predate it skip it.
+_ACL_PREFIX = "#@ACL:"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
@@ -144,14 +155,21 @@ def snapshot_text(ss: SessionStore) -> str:
     return text
 
 
+def _acl_line(acl: SessionAcl) -> str:
+    payload = json.dumps(acl_to_dict(acl), sort_keys=True, separators=(",", ":"))
+    return f"{_ACL_PREFIX}{payload}"
+
+
 def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
     hw = "1" if m.has_writes else "0"
     modified = m.modified_at or "-"
     lines.append(
-        f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}|{modified}"
+        f"@SNAP: {SNAPSHOT_FORMAT}|{m.session_id}|{m.created_at}|{m.expires_at}|"
+        f"{m.ttl_minutes}|{hw}|{modified}"
     )
+    lines.append(_acl_line(ss.acl))
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
@@ -170,7 +188,11 @@ def _verify_emitted_snapshot(
 ) -> None:
     """Refuse save if the formatted blob would not load as the same values."""
     used_nicks: set[str] = set()
-    _, map_lines, _, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    reloaded_acl = _parse_acl(lines)
+    if reloaded_acl is None or acl_to_dict(reloaded_acl) != acl_to_dict(ss.acl):
+        raise MemNetError("snapshot_unsaveable", "acl not reloadable")
+    _, map_lines, _, rec_lines = _parse_sections(lines)
     try:
         loaded_map = load_persisted_map_from_lines(map_lines, ss.caps)
     except MemNetError as exc:
@@ -256,13 +278,49 @@ def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
     return msgs
 
 
-def write_snapshot(ss: SessionStore, path: str | Path) -> int:
+def _snap_format_of(raw: bytes) -> int | None:
+    """@SNAP version of a snapshot blob, or None when there is no readable @SNAP line."""
+    for line in raw.decode("utf-8", errors="replace").splitlines():
+        if line.startswith("@SNAP:"):
+            head = line.removeprefix("@SNAP:").strip().split("|", 1)[0]
+            return int(head) if head.isdigit() else None
+    return None
+
+
+def backup_v1_before_v2(path: Path) -> None:
+    """Keep the format 1 bytes once, before the first format 2 write over them (MN-REQ-06.16).
+
+    Only a file whose @SNAP version is 1 is copied, to ``<file>.v1.bak`` at
+    mode 0600. An existing backup is never overwritten. Nothing is dual-written:
+    the snapshot itself is always format 2. A failed backup raises, so the v1
+    file is not replaced without its copy.
+    """
+    if not path.is_file():
+        return
+    bak = path.with_name(path.name + V1_BACKUP_SUFFIX)
+    if bak.exists():
+        return
+    raw = path.read_bytes()
+    if _snap_format_of(raw) != 1:
+        return
+    atomic_write_bytes(bak, raw)
+
+
+def write_snapshot(ss: SessionStore, path: str | Path, *, trailer: str = "") -> int:
+    """Write the snapshot atomically at mode 0600 (MN-REQ-06.16).
+
+    ``trailer`` is appended after the verified body. The caller passes only
+    ``#`` lines (the upgrade passport), which readers skip. A format 1 file
+    at ``path`` is backed up once to ``<file>.v1.bak`` before it is replaced.
+    """
     for msg in snapshot_locator_schema_warnings(ss):
         emit_wrn("snapshot_schema_drop", msg)
     rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
     text = _format_snapshot(ss, rec_lines, emit_map)
     _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
-    Path(path).write_text(text, encoding="utf-8")
+    dest = Path(path)
+    backup_v1_before_v2(dest)
+    atomic_write_bytes(dest, (text + trailer).encode("utf-8"))
     return ss.store.row_count_non_law()
 
 
@@ -294,20 +352,24 @@ def _parse_sections(lines: list[str]) -> tuple[SessionMeta, list[str], list[str]
             rec_lines.append(line)
     if not snap_line:
         raise MemNetError("bad_snapshot", "missing @SNAP line")
-    return _parse_snap(snap_line), map_lines, rel_lines, rec_lines
+    meta, version = _parse_snap(snap_line)
+    # Format 2 always carries the ACL line. Its absence is a corrupt file, not ACL off.
+    if version >= 2 and not any(raw.strip().startswith(_ACL_PREFIX) for raw in lines):
+        raise MemNetError("bad_snapshot", "format 2 snapshot is missing the #@ACL line")
+    return meta, map_lines, rel_lines, rec_lines
 
 
-def _parse_snap(line: str) -> SessionMeta:
+def _parse_snap(line: str) -> tuple[SessionMeta, int]:
     payload = line.removeprefix("@SNAP:").strip()
     parts = payload.split("|")
     if len(parts) < 5:
         raise MemNetError("bad_snapshot", "malformed @SNAP line")
     version = int(parts[0])
-    if version != 1:
+    if version not in SUPPORTED_SNAPSHOT_FORMATS:
         raise MemNetError("bad_snapshot", f"unsupported snapshot version {version}")
     has_writes = len(parts) > 5 and parts[5] == "1"
     modified_at = parts[6] if len(parts) > 6 and parts[6] not in ("", "-") else None
-    return SessionMeta(
+    meta = SessionMeta(
         session_id=parts[1],
         created_at=parts[2],
         expires_at=parts[3],
@@ -315,6 +377,26 @@ def _parse_snap(line: str) -> SessionMeta:
         has_writes=has_writes,
         modified_at=modified_at,
     )
+    return meta, version
+
+
+def _parse_acl(lines: list[str]) -> SessionAcl | None:
+    """Session ACL from the ``#@ACL:`` header line. None when the snapshot has none.
+
+    A malformed line fails the load. Dropping it would silently turn ACL off.
+    """
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith(_ACL_PREFIX):
+            continue
+        try:
+            data = json.loads(line.removeprefix(_ACL_PREFIX))
+        except json.JSONDecodeError as exc:
+            raise MemNetError("bad_snapshot", "malformed ACL line") from exc
+        if not isinstance(data, dict):
+            raise MemNetError("bad_snapshot", "ACL line must be an object")
+        return acl_from_dict(data)
+    return None
 
 
 def _parse_relations(rel_lines: list[str]) -> set[str]:
@@ -385,7 +467,9 @@ def load_snapshot_text(
     preserve_clocks: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
-    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
+    acl = _parse_acl(lines)
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:
@@ -411,6 +495,7 @@ def load_snapshot_text(
         ttl_minutes=ttl,
         has_writes=meta.has_writes,
         modified_at=meta.modified_at,
+        acl_enabled=bool(acl and acl.enabled),
     )
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
@@ -422,6 +507,7 @@ def load_snapshot_text(
         tag_map=tag_map,
         store=store,
         relations=relations,
+        acl=acl,
     )
     register(session_id, entry)
     return SessionStore(session_id, caps)
@@ -434,7 +520,10 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
     slide clocks, or touch the live registry.
     """
     caps = caps or Caps()
-    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
+    # Parsed so checkpoint-verify fails on a corrupt ACL line; the throwaway entry keeps it.
+    acl = _parse_acl(lines)
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:
@@ -451,4 +540,5 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
         tag_map=tag_map,
         store=store,
         relations=relations,
+        acl=acl,
     )

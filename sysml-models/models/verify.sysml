@@ -58,6 +58,12 @@
   TcpServeBridge; admin credential; per-session lock; lossless
   atomic snaps; skip unsaveable; no drain; no live load; no
   SemVer bump.
+  Snapshot ACL (MN-VER-06-S14): SnapshotStore / SnapshotAcl; #@ACL:
+  line after @SNAP version 2; version 2 without the line fails
+  bad_snapshot; version 1 loads ACL off with @ACL: absent|off;
+  malformed fails closed; bind stores a SHA-256 digest only; bind lease
+  not printed; snapshot and manifest files mode 0600; first v2 write
+  over v1 keeps <file>.v1.bak once (0600), no dual write; no SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1733,6 +1739,72 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S14_SnapshotAcl {
+    doc /*
+      MN-REQ-06.16 — the session ACL persists in the snapshot as one
+      comment line (#@ACL:) after @SNAP, and session_load restores it
+      (including keep_id). @SNAP is version 2. A version 2 snapshot with
+      no ACL line fails bad_snapshot. A version 1 snapshot loads ACL off
+      and says so (@ACL: absent|off). A malformed ACL line fails the load.
+      The bind stores a SHA-256 digest of the lease only, and the lease
+      is never printed. Snapshot and manifest files are mode 0600 and are
+      written atomically. A v1 file is backed up once to <file>.v1.bak
+      (0600) before the first v2 write; the backup is never overwritten;
+      v2 over v2 and first writes make no backup. No dual write. Rollback
+      to 0.19.23 restores the .v1.bak files: writes after the upgrade are
+      lost. A malformed bind (no lease digest, non-dict, no mission_id)
+      fails bad_snapshot. No SemVer bump.
+      Tests: tests/test_acl_snapshot.py::test_round_trip_keeps_enable_flag_grants_and_bind;
+      ::test_format_1_snapshot_loads_with_acl_off;
+      ::test_format_2_missing_acl_line_fails_bad_snapshot;
+      ::test_snapshot_files_are_mode_0600_and_replace_loose_modes;
+      ::test_bind_stores_only_a_digest_of_the_lease;
+      ::test_reader_only_caller_is_refused_after_reload;
+      ::test_keep_id_reload_restores_acl_and_fresh_id_does_too;
+      ::test_malformed_acl_line_fails_closed;
+      ::test_v1_file_is_backed_up_once_before_first_v2_write;
+      ::test_v2_over_v2_and_first_write_create_no_backup;
+      ::test_malformed_bind_in_file_fails_closed_bad_snapshot;
+      tests/test_safe_upgrade.py::test_round_trip_keeps_id_acl_ttl_and_near_cap (manifest mode, no raw lease).
+      tests/test_safe_upgrade.py::test_rollback_restore_rewrites_original_bytes_atomically (restore writes 0600, original bytes).
+      Model: tests/test_sysml_acl_snapshot.py.
+    */
+    attribute verificationId : String = "MN-VER-06-S14";
+
+    subject snap : SnapshotStore;
+
+    objective snapshotAcl {
+      verify snapshotAclReq;
+      require constraint {
+        snap.snapshotAcl.aclLinePersisted == true
+          and snap.snapshotAcl.aclLineCommentPrefix == "#@ACL:"
+          and snap.snapshotAcl.snapshotFormatVersion == 2
+          and snap.snapshotAcl.snapshotFormatV1Loads == true
+          and snap.snapshotAcl.aclRestoredOnLoad == true
+          and snap.snapshotAcl.aclRestoredOnKeepIdLoad == true
+          and snap.snapshotAcl.aclAbsentLoadsOff == true
+          and snap.snapshotAcl.aclAbsentStat == "@ACL: absent|off"
+          and snap.snapshotAcl.v2MissingAclFailsBadSnapshot == true
+          and snap.snapshotAcl.aclMalformedFailsClosed == true
+          and snap.snapshotAcl.aclLeaseNotPrinted == true
+          and snap.snapshotAcl.bindStoresLeaseDigestOnly == true
+          and snap.snapshotAcl.leaseDigestAlgorithm == "sha256"
+          and snap.snapshotAcl.snapshotFileMode == "0600"
+          and snap.snapshotAcl.atomicPrivateWrite == true
+          and snap.snapshotAcl.v1BackupBeforeFirstV2Write == true
+          and snap.snapshotAcl.v1BackupOnlyWhenFormat1 == true
+          and snap.snapshotAcl.v1BackupName == ".v1.bak"
+          and snap.snapshotAcl.v1BackupMode == "0600"
+          and snap.snapshotAcl.v1BackupNeverOverwritten == true
+          and snap.snapshotAcl.dualWriteV1 == false
+          and snap.snapshotAcl.rollbackRestoresV1Backup == true
+          and snap.snapshotAcl.rollbackLosesPostUpgradeWrites == true
+          and snap.snapshotAcl.v2RefusedByOldBuild == true
+          and snap.snapshotAcl.noSemVerBump == true
+      }
+    }
+  }
+
   verification def MN_VER_04_S06_HousekeepEndpointIdentity {
     doc /*
       MN-REQ-04.12 — housekeep resolves edge endpoints by hid and
@@ -2302,6 +2374,8 @@ package MemNetVerification {
     : MN_VER_06_S12_SafeServeUpgrade;
   verification serveCheckpointVerify
     : MN_VER_06_S13_ServeCheckpoint;
+  verification snapshotAclVerify
+    : MN_VER_06_S14_SnapshotAcl;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
 }
