@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -12,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from memnet.acl import lease_digest
 from memnet.exceptions import MemNetError
 from memnet.in_process_engine import run_argv
 from memnet.registry import get_entry
@@ -96,7 +98,7 @@ def test_round_trip_keeps_id_acl_ttl_and_near_cap(memnet_temp, monkeypatch, tmp_
     assert acl_back.acl is not None and acl_back.acl.enabled is True
     assert acl_back.acl.bind is not None
     assert acl_back.acl.bind.mission_id == "mission-demo"
-    assert acl_back.acl.bind.lease == "lease-demo"
+    assert acl_back.acl.bind.lease_sha256 == lease_digest("lease-demo")
     grant = acl_back.acl.callers["caller-demo"]
     assert grant.can_pin_map is True
     assert grant.can_mutate is False
@@ -105,6 +107,12 @@ def test_round_trip_keeps_id_acl_ttl_and_near_cap(memnet_temp, monkeypatch, tmp_
     assert wide_back.store.row_count_non_law() == wide_rows
     snaps = list((tmp_path / "upgrade-snapshots").glob("*.snap"))
     assert len(snaps) == 3
+    assert stat.S_IMODE((tmp_path / MANIFEST_NAME).stat().st_mode) == 0o600
+    for snap in snaps:
+        assert stat.S_IMODE(snap.stat().st_mode) == 0o600
+    for written in tmp_path.rglob("*"):
+        if written.is_file():
+            assert b"lease-demo" not in written.read_bytes()  # the digest only, never the lease
 
 
 def test_unsaveable_blocks_ready_unless_override(memnet_temp, monkeypatch, tmp_path, schema_file):

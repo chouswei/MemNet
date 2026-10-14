@@ -173,10 +173,17 @@ def canonical_snapshot(text: str) -> str:
 
 
 def snapshot_write_once_report() -> dict[str, Any]:
-    """What exists today. Do not invent write-once in the engine."""
+    """What exists today. Do not invent write-once in the engine.
+
+    Writes go through atomic_file (0600 temp via mkstemp, fsync, rename). The
+    destination is still overwritten, not write-once.
+    """
     src = SNAPSHOT_PY.read_text(encoding="utf-8")
+    atomic = (_ENGINE / "atomic_file.py").read_text(encoding="utf-8")
     return {
         "write_snapshot_uses_path_write_text": "Path(path).write_text(" in src,
+        "write_snapshot_uses_atomic_private_write": "atomic_write_bytes(" in src,
+        "temp_file_mkstemp_0600": "mkstemp(" in atomic and "os.replace(" in atomic,
         "engine_o_excl": "O_EXCL" in src,
         "engine_chmod": "chmod" in src,
         "engine_immutable_flag": "immutable" in src.lower() or "chattr" in src,
@@ -539,7 +546,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
         "max_fields_on_schema_register": "len(field_names) > caps.max_fields" in tag,
         "emit_record_schema_columns_only": "values = [record.fields.get(f, " in out_src,
         "snapshot_widens_undeclared_schema": "_snapshot_emit_tag_map" in snap,
-        "save_write_text_no_value_check": "Path(path).write_text" in snap,
+        "save_atomic_write_no_value_check": "atomic_write_bytes(" in snap,
         "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
         "config_line": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
         "config_fields": '_env_int("MEMNET_MAX_FIELDS", 32)' in cfg,

@@ -38,7 +38,7 @@
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
     MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
     MN-REQ-06.15       Admin checkpoint of every loaded session: lossless snaps, no drain, no traffic refuse
-    MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, bind); session_load restores it; absent ACL loads off and says so
+    MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1251,12 +1251,19 @@ package MemNetRequirements {
           mutate, WorkerWriteScope), and optional bind. session_load
           SHALL restore it, including the keep_id reload path.
           The ACL SHALL be one comment line (#@ACL:) after @SNAP.
-          @SNAP stays version 1, so a reader that predates the line
-          skips it. A snapshot with no ACL line SHALL load with ACL
-          off, and the load output SHALL say so (@ACL: absent|off).
-          A malformed ACL line SHALL fail the load; it SHALL NOT
-          silently load with ACL off. The load output SHALL NOT print
-          the bind lease. The snapshot and the upgrade passport SHALL
+          @SNAP is version 2 for every snapshot this patch writes.
+          A version 2 snapshot with no ACL line SHALL fail the load
+          with bad_snapshot. Only a version 1 snapshot (written before
+          the ACL was persisted) SHALL load with ACL off, and the load
+          output SHALL say so (@ACL: absent|off). Loaders SHALL still
+          accept version 1. A malformed ACL line SHALL fail the load;
+          it SHALL NOT silently load with ACL off. The load output
+          SHALL NOT print the bind lease. The bind SHALL store only the
+          SHA-256 of the lease, and the caller re-presents the lease to
+          mutate; the snapshot and the upgrade passport SHALL NOT hold
+          the raw lease. Snapshot files and the upgrade and checkpoint
+          manifests SHALL be written atomically (0600 temp file, fsync,
+          rename) at mode 0600. The snapshot and the upgrade passport
           share one ACL serialiser. A save SHALL refuse when the ACL
           does not reload to the same grants. No SemVer bump.
         */

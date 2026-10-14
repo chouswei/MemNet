@@ -47,7 +47,7 @@ Client helper: `memnet.serve.send_command(args, stdin=…, host=…, port=…)`.
 
 ## Snapshot
 
-`session save --file` writes `# memnet-snapshot-v1` via `Path.write_text` (overwrite). MemNet does **not** make that file write-once (no `O_EXCL`, no `chmod`, no immutable flag). The caller or the filesystem can.
+`session save --file` writes `# memnet-snapshot-v1` (`@SNAP` version 2) through a temp file created `0600`, fsynced, then renamed over the target (overwrite, atomic). MemNet does **not** make that file write-once (no `O_EXCL` on the target, no immutable flag). The caller or the filesystem can.
 
 Anything mutate accepts must save and reload as the same property values. Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF, FS/GS/RS, NEL, LS, PS) plus `\` and `|`; load splits records on LF only. A 16 KiB string is refused at GQL CREATE/SET with `@ERR: limit_exceeded|value_bytes 16384/4096` (one decoded cap with leftover pipe and snapshot load). Unicode, `|`, quotes, CR, and newlines on a value under the cap round-trip. Undeclared RAM keys persist by widening the snapshot SCHEMA; extras over `max_fields` refuse `snapshot_unsaveable`.
 

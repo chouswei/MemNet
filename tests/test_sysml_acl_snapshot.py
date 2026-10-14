@@ -27,7 +27,11 @@ def test_deploy_attributes():
     assert "part def SnapshotAcl" in text
     assert "part snapshotAcl : SnapshotAcl" in text
     assert 'attribute aclLineCommentPrefix : String = "#@ACL:"' in text
-    assert "attribute oldReaderSkipsAclLine : Boolean = true" in text
+    assert "attribute snapshotFormatVersion : Integer = 2" in text
+    assert "attribute v2MissingAclFailsBadSnapshot : Boolean = true" in text
+    assert "attribute bindStoresLeaseDigestOnly : Boolean = true" in text
+    assert 'attribute snapshotFileMode : String = "0600"' in text
+    assert "oldReaderSkipsAclLine" not in text
     assert 'attribute aclAbsentStat : String = "@ACL: absent|off"' in text
 
 
@@ -37,8 +41,12 @@ def test_verify_case_names_real_tests():
     assert 'attribute verificationId : String = "MN-VER-06-S14"' in ver
     assert "verify snapshotAclReq" in ver
     assert "snap.snapshotAcl.aclMalformedFailsClosed == true" in ver
+    assert "snap.snapshotAcl.v2MissingAclFailsBadSnapshot == true" in ver
+    assert 'snap.snapshotAcl.snapshotFileMode == "0600"' in ver
     assert "verification snapshotAclVerify" in ver
     assert "tests/test_acl_snapshot.py" in ver
+    assert "::test_format_2_missing_acl_line_fails_bad_snapshot" in ver
+    assert "::test_snapshot_files_are_mode_0600_and_replace_loose_modes" in ver
 
 
 def test_implementation_satisfy_and_allocation():

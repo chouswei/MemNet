@@ -9,6 +9,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from memnet.acl import SessionAcl, acl_from_dict, acl_to_dict
+from memnet.atomic_file import atomic_write_bytes
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
@@ -27,8 +28,11 @@ from memnet.tag_map import (
 from memnet.wire import split_snapshot_lines
 
 SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
-# Session ACL (MN-REQ-06.16). A ``#`` line, so readers that predate it skip it.
-# Absent means a snapshot from before the ACL was persisted: loads with ACL off.
+# @SNAP format version (MN-REQ-06.16). 2 = carries the #@ACL: line, which is required.
+# 1 = written before the ACL was persisted; it loads with ACL off (@ACL: absent|off).
+SNAPSHOT_FORMAT = 2
+SUPPORTED_SNAPSHOT_FORMATS = (1, 2)
+# Session ACL line. A ``#`` line, so readers that predate it skip it.
 _ACL_PREFIX = "#@ACL:"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
@@ -160,7 +164,8 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -
     hw = "1" if m.has_writes else "0"
     modified = m.modified_at or "-"
     lines.append(
-        f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}|{modified}"
+        f"@SNAP: {SNAPSHOT_FORMAT}|{m.session_id}|{m.created_at}|{m.expires_at}|"
+        f"{m.ttl_minutes}|{hw}|{modified}"
     )
     lines.append(_acl_line(ss.acl))
     lines.append(_SECTION_MAP)
@@ -271,13 +276,18 @@ def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
     return msgs
 
 
-def write_snapshot(ss: SessionStore, path: str | Path) -> int:
+def write_snapshot(ss: SessionStore, path: str | Path, *, trailer: str = "") -> int:
+    """Write the snapshot atomically at mode 0600 (MN-REQ-06.16).
+
+    ``trailer`` is appended after the verified body. The caller passes only
+    ``#`` lines (the upgrade passport), which readers skip.
+    """
     for msg in snapshot_locator_schema_warnings(ss):
         emit_wrn("snapshot_schema_drop", msg)
     rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
     text = _format_snapshot(ss, rec_lines, emit_map)
     _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
-    Path(path).write_text(text, encoding="utf-8")
+    atomic_write_bytes(Path(path), (text + trailer).encode("utf-8"))
     return ss.store.row_count_non_law()
 
 
@@ -309,20 +319,24 @@ def _parse_sections(lines: list[str]) -> tuple[SessionMeta, list[str], list[str]
             rec_lines.append(line)
     if not snap_line:
         raise MemNetError("bad_snapshot", "missing @SNAP line")
-    return _parse_snap(snap_line), map_lines, rel_lines, rec_lines
+    meta, version = _parse_snap(snap_line)
+    # Format 2 always carries the ACL line. Its absence is a corrupt file, not ACL off.
+    if version >= 2 and not any(raw.strip().startswith(_ACL_PREFIX) for raw in lines):
+        raise MemNetError("bad_snapshot", "format 2 snapshot is missing the #@ACL line")
+    return meta, map_lines, rel_lines, rec_lines
 
 
-def _parse_snap(line: str) -> SessionMeta:
+def _parse_snap(line: str) -> tuple[SessionMeta, int]:
     payload = line.removeprefix("@SNAP:").strip()
     parts = payload.split("|")
     if len(parts) < 5:
         raise MemNetError("bad_snapshot", "malformed @SNAP line")
     version = int(parts[0])
-    if version != 1:
+    if version not in SUPPORTED_SNAPSHOT_FORMATS:
         raise MemNetError("bad_snapshot", f"unsupported snapshot version {version}")
     has_writes = len(parts) > 5 and parts[5] == "1"
     modified_at = parts[6] if len(parts) > 6 and parts[6] not in ("", "-") else None
-    return SessionMeta(
+    meta = SessionMeta(
         session_id=parts[1],
         created_at=parts[2],
         expires_at=parts[3],
@@ -330,6 +344,7 @@ def _parse_snap(line: str) -> SessionMeta:
         has_writes=has_writes,
         modified_at=modified_at,
     )
+    return meta, version
 
 
 def _parse_acl(lines: list[str]) -> SessionAcl | None:

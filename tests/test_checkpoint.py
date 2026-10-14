@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import threading
 from pathlib import Path
 
@@ -119,7 +120,10 @@ def test_checkpoint_during_other_session_mutates(memnet_temp, monkeypatch, tmp_p
     assert get_entry(other.session_id).meta.expires_at == other_expires
     manifest = json.loads((tmp_path / "checkpoint" / MANIFEST_NAME).read_text(encoding="utf-8"))
     assert manifest["manifest_format"] == 1
-    assert manifest["snapshot_format"] == 1
+    assert manifest["snapshot_format"] == 2
+    assert stat.S_IMODE((tmp_path / "checkpoint" / MANIFEST_NAME).stat().st_mode) == 0o600
+    for row in manifest["sessions"]:
+        assert stat.S_IMODE((tmp_path / "checkpoint" / row["file"]).stat().st_mode) == 0o600
     assert manifest["serve_version"]
     assert manifest["timestamp"].endswith("Z")
     assert manifest["unsaved"] == []
@@ -188,7 +192,7 @@ def test_atomic_write_never_leaves_a_partial_file(tmp_path, monkeypatch):
     def _boom(_fd: int) -> None:
         raise OSError("fsync failed")
 
-    monkeypatch.setattr("memnet.checkpoint._fsync_fd", _boom)
+    monkeypatch.setattr("memnet.atomic_file._fsync_fd", _boom)
     with pytest.raises(OSError):
         atomic_write_bytes(dest, b"PARTIAL-NEW-BYTES")
     assert dest.read_bytes() == original

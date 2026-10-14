@@ -135,8 +135,10 @@ package MemNetImplementation {
   part def SnapshotAclMod {
     doc /*
       Session ACL in session save / load (MN-REQ-06.16): the #@ACL:
-      line in snapshot.py. The shared ACL serialiser is acl.py
-      (also used by the upgrade passport).
+      line and @SNAP version 2 in snapshot.py. The shared ACL serialiser
+      is acl.py (also used by the upgrade passport); the bind stores a
+      SHA-256 lease digest there. Snapshot and manifest writes go through
+      atomic_file.py (0600 temp, fsync, rename).
     */
     attribute path : String = "parts/common/memnet/memnet/snapshot.py";
     attribute pyName : String = "memnet.snapshot";

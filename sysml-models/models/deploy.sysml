@@ -1072,21 +1072,29 @@ package MemNet {
 
   part def SnapshotAcl {
     doc /*
-      Session ACL in the snapshot (MN-REQ-06.16). One comment line
-      #@ACL: after @SNAP. Absent line loads ACL off and prints
-      @ACL: absent|off. Malformed line fails the load. Bind lease
-      is not printed. No SemVer bump.
+      Session ACL in the snapshot (MN-REQ-06.16). @SNAP version 2
+      carries one comment line #@ACL: after @SNAP. Version 2 without
+      the line fails bad_snapshot. Version 1 loads ACL off and prints
+      @ACL: absent|off. A malformed line fails the load. The bind
+      stores the SHA-256 of the lease only; the lease is never printed.
+      Snapshot and manifest files are written atomically at mode 0600.
+      No SemVer bump.
     */
     attribute aclLinePersisted : Boolean = true;
     attribute aclLineCommentPrefix : String = "#@ACL:";
-    attribute snapshotFormatVersion : Integer = 1;
+    attribute snapshotFormatVersion : Integer = 2;
+    attribute snapshotFormatV1Loads : Boolean = true;
     attribute aclRestoredOnLoad : Boolean = true;
     attribute aclRestoredOnKeepIdLoad : Boolean = true;
     attribute aclAbsentLoadsOff : Boolean = true;
     attribute aclAbsentStat : String = "@ACL: absent|off";
+    attribute v2MissingAclFailsBadSnapshot : Boolean = true;
     attribute aclMalformedFailsClosed : Boolean = true;
     attribute aclLeaseNotPrinted : Boolean = true;
-    attribute oldReaderSkipsAclLine : Boolean = true;
+    attribute bindStoresLeaseDigestOnly : Boolean = true;
+    attribute leaseDigestAlgorithm : String = "sha256";
+    attribute snapshotFileMode : String = "0600";
+    attribute atomicPrivateWrite : Boolean = true;
     attribute noSemVerBump : Boolean = true;
   }
 

@@ -59,8 +59,10 @@
   atomic snaps; skip unsaveable; no drain; no live load; no
   SemVer bump.
   Snapshot ACL (MN-VER-06-S14): SnapshotStore / SnapshotAcl; #@ACL:
-  line after @SNAP; absent loads off with @ACL: absent|off;
-  malformed fails closed; bind lease not printed; no SemVer bump.
+  line after @SNAP version 2; version 2 without the line fails
+  bad_snapshot; version 1 loads ACL off with @ACL: absent|off;
+  malformed fails closed; bind stores a SHA-256 digest only; bind lease
+  not printed; snapshot and manifest files mode 0600; no SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1740,15 +1742,22 @@ package MemNetVerification {
     doc /*
       MN-REQ-06.16 — the session ACL persists in the snapshot as one
       comment line (#@ACL:) after @SNAP, and session_load restores it
-      (including keep_id). A snapshot with no ACL line loads ACL off
-      and says so (@ACL: absent|off). A malformed ACL line fails the
-      load. The bind lease is never printed. @SNAP stays version 1,
-      so older readers skip the line. No SemVer bump.
+      (including keep_id). @SNAP is version 2. A version 2 snapshot with
+      no ACL line fails bad_snapshot. A version 1 snapshot loads ACL off
+      and says so (@ACL: absent|off). A malformed ACL line fails the load.
+      The bind stores a SHA-256 digest of the lease only, and the lease
+      is never printed. Snapshot and manifest files are mode 0600 and are
+      written atomically. No SemVer bump.
       Tests: tests/test_acl_snapshot.py::test_round_trip_keeps_enable_flag_grants_and_bind;
-      ::test_snapshot_without_acl_loads_with_acl_off;
+      ::test_format_1_snapshot_loads_with_acl_off;
+      ::test_format_2_missing_acl_line_fails_bad_snapshot;
+      ::test_snapshot_files_are_mode_0600_and_replace_loose_modes;
+      ::test_bind_stores_only_a_digest_of_the_lease;
       ::test_reader_only_caller_is_refused_after_reload;
       ::test_keep_id_reload_restores_acl_and_fresh_id_does_too;
-      ::test_malformed_acl_line_fails_closed. Model: tests/test_sysml_acl_snapshot.py.
+      ::test_malformed_acl_line_fails_closed;
+      tests/test_safe_upgrade.py::test_round_trip_keeps_id_acl_ttl_and_near_cap (manifest mode, no raw lease).
+      Model: tests/test_sysml_acl_snapshot.py.
     */
     attribute verificationId : String = "MN-VER-06-S14";
 
@@ -1759,14 +1768,19 @@ package MemNetVerification {
       require constraint {
         snap.snapshotAcl.aclLinePersisted == true
           and snap.snapshotAcl.aclLineCommentPrefix == "#@ACL:"
-          and snap.snapshotAcl.snapshotFormatVersion == 1
+          and snap.snapshotAcl.snapshotFormatVersion == 2
+          and snap.snapshotAcl.snapshotFormatV1Loads == true
           and snap.snapshotAcl.aclRestoredOnLoad == true
           and snap.snapshotAcl.aclRestoredOnKeepIdLoad == true
           and snap.snapshotAcl.aclAbsentLoadsOff == true
           and snap.snapshotAcl.aclAbsentStat == "@ACL: absent|off"
+          and snap.snapshotAcl.v2MissingAclFailsBadSnapshot == true
           and snap.snapshotAcl.aclMalformedFailsClosed == true
           and snap.snapshotAcl.aclLeaseNotPrinted == true
-          and snap.snapshotAcl.oldReaderSkipsAclLine == true
+          and snap.snapshotAcl.bindStoresLeaseDigestOnly == true
+          and snap.snapshotAcl.leaseDigestAlgorithm == "sha256"
+          and snap.snapshotAcl.snapshotFileMode == "0600"
+          and snap.snapshotAcl.atomicPrivateWrite == true
           and snap.snapshotAcl.noSemVerBump == true
       }
     }
