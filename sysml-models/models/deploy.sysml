@@ -1070,6 +1070,26 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_12_HousekeepEndpointIdentity;
   }
 
+  part def SnapshotAcl {
+    doc /*
+      Session ACL in the snapshot (MN-REQ-06.16). One comment line
+      #@ACL: after @SNAP. Absent line loads ACL off and prints
+      @ACL: absent|off. Malformed line fails the load. Bind lease
+      is not printed. No SemVer bump.
+    */
+    attribute aclLinePersisted : Boolean = true;
+    attribute aclLineCommentPrefix : String = "#@ACL:";
+    attribute snapshotFormatVersion : Integer = 1;
+    attribute aclRestoredOnLoad : Boolean = true;
+    attribute aclRestoredOnKeepIdLoad : Boolean = true;
+    attribute aclAbsentLoadsOff : Boolean = true;
+    attribute aclAbsentStat : String = "@ACL: absent|off";
+    attribute aclMalformedFailsClosed : Boolean = true;
+    attribute aclLeaseNotPrinted : Boolean = true;
+    attribute oldReaderSkipsAclLine : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+  }
+
   part def SnapshotStore {
     doc /*
       Named-session durable file: save/load schema + records + relations
@@ -1124,6 +1144,8 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_9_SnapshotLosslessRoundTrip;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_4_DistinctFromSessionSnapshot;
+
+    part snapshotAcl : SnapshotAcl;
   }
 
   // =====================================================================

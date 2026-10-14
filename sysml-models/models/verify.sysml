@@ -58,6 +58,9 @@
   TcpServeBridge; admin credential; per-session lock; lossless
   atomic snaps; skip unsaveable; no drain; no live load; no
   SemVer bump.
+  Snapshot ACL (MN-VER-06-S14): SnapshotStore / SnapshotAcl; #@ACL:
+  line after @SNAP; absent loads off with @ACL: absent|off;
+  malformed fails closed; bind lease not printed; no SemVer bump.
   Optional id nickname TARGET (MN-VER-02-S01): GraphElement identity;
   CREATE () legal; HiddenStoreHandle off-wire; 0.9 leftover_by_id store.
   TARGET command list cue/pattern only (MN-VER-07-S01): no required-id
@@ -1733,6 +1736,42 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_06_S14_SnapshotAcl {
+    doc /*
+      MN-REQ-06.16 — the session ACL persists in the snapshot as one
+      comment line (#@ACL:) after @SNAP, and session_load restores it
+      (including keep_id). A snapshot with no ACL line loads ACL off
+      and says so (@ACL: absent|off). A malformed ACL line fails the
+      load. The bind lease is never printed. @SNAP stays version 1,
+      so older readers skip the line. No SemVer bump.
+      Tests: tests/test_acl_snapshot.py::test_round_trip_keeps_enable_flag_grants_and_bind;
+      ::test_snapshot_without_acl_loads_with_acl_off;
+      ::test_reader_only_caller_is_refused_after_reload;
+      ::test_keep_id_reload_restores_acl_and_fresh_id_does_too;
+      ::test_malformed_acl_line_fails_closed. Model: tests/test_sysml_acl_snapshot.py.
+    */
+    attribute verificationId : String = "MN-VER-06-S14";
+
+    subject snap : SnapshotStore;
+
+    objective snapshotAcl {
+      verify snapshotAclReq;
+      require constraint {
+        snap.snapshotAcl.aclLinePersisted == true
+          and snap.snapshotAcl.aclLineCommentPrefix == "#@ACL:"
+          and snap.snapshotAcl.snapshotFormatVersion == 1
+          and snap.snapshotAcl.aclRestoredOnLoad == true
+          and snap.snapshotAcl.aclRestoredOnKeepIdLoad == true
+          and snap.snapshotAcl.aclAbsentLoadsOff == true
+          and snap.snapshotAcl.aclAbsentStat == "@ACL: absent|off"
+          and snap.snapshotAcl.aclMalformedFailsClosed == true
+          and snap.snapshotAcl.aclLeaseNotPrinted == true
+          and snap.snapshotAcl.oldReaderSkipsAclLine == true
+          and snap.snapshotAcl.noSemVerBump == true
+      }
+    }
+  }
+
   verification def MN_VER_04_S06_HousekeepEndpointIdentity {
     doc /*
       MN-REQ-04.12 — housekeep resolves edge endpoints by hid and
@@ -2302,6 +2341,8 @@ package MemNetVerification {
     : MN_VER_06_S12_SafeServeUpgrade;
   verification serveCheckpointVerify
     : MN_VER_06_S13_ServeCheckpoint;
+  verification snapshotAclVerify
+    : MN_VER_06_S14_SnapshotAcl;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
 }

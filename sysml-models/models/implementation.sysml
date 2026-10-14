@@ -132,6 +132,17 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/checkpoint.py";
     attribute pyName : String = "memnet.checkpoint";
   }
+  part def SnapshotAclMod {
+    doc /*
+      Session ACL in session save / load (MN-REQ-06.16): the #@ACL:
+      line in snapshot.py. The shared ACL serialiser is acl.py
+      (also used by the upgrade passport).
+    */
+    attribute path : String = "parts/common/memnet/memnet/snapshot.py";
+    attribute pyName : String = "memnet.snapshot";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_16_SnapshotAcl;
+  }
   part def CliFacadeMod {
     attribute path : String = "parts/common/memnet/memnet/cli.py";
     attribute pyName : String = "memnet.cli";
@@ -285,6 +296,7 @@ package MemNetImplementation {
   part adminUsageMod : AdminUsageReportMod;
   part safeUpgradeMod : SafeUpgradeMod;
   part serveCheckpointMod : ServeCheckpointMod;
+  part snapAclMod : SnapshotAclMod;
   part cliMod : CliFacadeMod;
   part sessionsMod : SessionLifecycleMod;
   part storeMod : GraphStoreMod;
@@ -375,6 +387,11 @@ package MemNetImplementation {
     doc /* Per-session checkpoint snaps on memnet-serve. Not agent MCP. */
     end logical ::> memNetSystem.core.transport.tcp.serveCheckpoint;
     end code ::> serveCheckpointMod;
+  }
+  allocation snapshotAclToMod : SoftwareAllocate {
+    doc /* Session ACL in snapshot save / load (MN-REQ-06.16). */
+    end logical ::> memNetSystem.core.transport.inProcess.memory.sessions.snap;
+    end code ::> snapAclMod;
   }
   allocation cliToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.cli;

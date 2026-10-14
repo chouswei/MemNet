@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 from datetime import timedelta
 from pathlib import Path
 
+from memnet.acl import SessionAcl, acl_from_dict, acl_to_dict
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
@@ -25,6 +27,9 @@ from memnet.tag_map import (
 from memnet.wire import split_snapshot_lines
 
 SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
+# Session ACL (MN-REQ-06.16). A ``#`` line, so readers that predate it skip it.
+# Absent means a snapshot from before the ACL was persisted: loads with ACL off.
+_ACL_PREFIX = "#@ACL:"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
@@ -144,6 +149,11 @@ def snapshot_text(ss: SessionStore) -> str:
     return text
 
 
+def _acl_line(acl: SessionAcl) -> str:
+    payload = json.dumps(acl_to_dict(acl), sort_keys=True, separators=(",", ":"))
+    return f"{_ACL_PREFIX}{payload}"
+
+
 def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
@@ -152,6 +162,7 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -
     lines.append(
         f"@SNAP: 1|{m.session_id}|{m.created_at}|{m.expires_at}|{m.ttl_minutes}|{hw}|{modified}"
     )
+    lines.append(_acl_line(ss.acl))
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
@@ -170,7 +181,11 @@ def _verify_emitted_snapshot(
 ) -> None:
     """Refuse save if the formatted blob would not load as the same values."""
     used_nicks: set[str] = set()
-    _, map_lines, _, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    reloaded_acl = _parse_acl(lines)
+    if reloaded_acl is None or acl_to_dict(reloaded_acl) != acl_to_dict(ss.acl):
+        raise MemNetError("snapshot_unsaveable", "acl not reloadable")
+    _, map_lines, _, rec_lines = _parse_sections(lines)
     try:
         loaded_map = load_persisted_map_from_lines(map_lines, ss.caps)
     except MemNetError as exc:
@@ -317,6 +332,25 @@ def _parse_snap(line: str) -> SessionMeta:
     )
 
 
+def _parse_acl(lines: list[str]) -> SessionAcl | None:
+    """Session ACL from the ``#@ACL:`` header line. None when the snapshot has none.
+
+    A malformed line fails the load. Dropping it would silently turn ACL off.
+    """
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith(_ACL_PREFIX):
+            continue
+        try:
+            data = json.loads(line.removeprefix(_ACL_PREFIX))
+        except json.JSONDecodeError as exc:
+            raise MemNetError("bad_snapshot", "malformed ACL line") from exc
+        if not isinstance(data, dict):
+            raise MemNetError("bad_snapshot", "ACL line must be an object")
+        return acl_from_dict(data)
+    return None
+
+
 def _parse_relations(rel_lines: list[str]) -> set[str]:
     relations: set[str] = set()
     for line in rel_lines:
@@ -385,7 +419,9 @@ def load_snapshot_text(
     preserve_clocks: bool = False,
 ) -> SessionStore:
     caps = caps or Caps()
-    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
+    acl = _parse_acl(lines)
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:
@@ -411,6 +447,7 @@ def load_snapshot_text(
         ttl_minutes=ttl,
         has_writes=meta.has_writes,
         modified_at=meta.modified_at,
+        acl_enabled=bool(acl and acl.enabled),
     )
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
@@ -422,6 +459,7 @@ def load_snapshot_text(
         tag_map=tag_map,
         store=store,
         relations=relations,
+        acl=acl,
     )
     register(session_id, entry)
     return SessionStore(session_id, caps)
@@ -434,7 +472,10 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
     slide clocks, or touch the live registry.
     """
     caps = caps or Caps()
-    meta, map_lines, rel_lines, rec_lines = _parse_sections(split_snapshot_lines(text))
+    lines = split_snapshot_lines(text)
+    meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
+    # Parsed so checkpoint-verify fails on a corrupt ACL line; the throwaway entry keeps it.
+    acl = _parse_acl(lines)
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:
@@ -451,4 +492,5 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
         tag_map=tag_map,
         store=store,
         relations=relations,
+        acl=acl,
     )

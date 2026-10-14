@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from memnet import __version__
-from memnet.acl import SessionAcl, parse_write_scope
+from memnet.acl import acl_from_dict, acl_to_dict
 from memnet.admin_usage import authenticate
 from memnet.exceptions import MemNetError
 from memnet.registry import count, get_entry, list_entries
@@ -198,44 +198,11 @@ def _house_tags(tag_map: Any) -> list[str]:
     return sorted(tag_map.tags.keys())
 
 
-def _acl_to_dict(acl: SessionAcl | None) -> dict[str, Any]:
-    if acl is None:
-        return {"enabled": False, "callers": [], "bind": None}
-    callers = []
-    for grant in acl.callers.values():
-        scope = grant.write_scope.to_wire() if grant.write_scope else None
-        callers.append(
-            {
-                "caller": grant.caller,
-                "can_pin_map": grant.can_pin_map,
-                "can_mutate": grant.can_mutate,
-                "write_scope": scope,
-            }
-        )
-    bind = None
-    if acl.bind is not None:
-        bind = {"mission_id": acl.bind.mission_id, "lease": acl.bind.lease}
-    return {"enabled": acl.enabled, "callers": callers, "bind": bind}
-
-
 def _apply_acl(entry: Any, data: dict[str, Any] | None) -> None:
     if not data:
         return
-    acl = SessionAcl(enabled=bool(data.get("enabled")))
-    for row in data.get("callers") or []:
-        acl.grant(
-            str(row.get("caller") or ""),
-            can_pin_map=bool(row.get("can_pin_map", True)),
-            can_mutate=bool(row.get("can_mutate", True)),
-            write_scope=parse_write_scope(row.get("write_scope")),
-        )
-    bind = data.get("bind")
-    if isinstance(bind, dict) and bind.get("mission_id") and bind.get("lease"):
-        acl.set_bind(str(bind["mission_id"]), str(bind["lease"]))
-    if data.get("enabled"):
-        acl.enabled = True
-    entry.acl = acl
-    entry.meta.acl_enabled = acl.enabled
+    entry.acl = acl_from_dict(data)
+    entry.meta.acl_enabled = entry.acl.enabled
 
 
 def _sha256(path: Path) -> str:
@@ -254,7 +221,7 @@ def _atomic_write(path: Path, text: str) -> None:
 def _passport(entry: Any) -> dict[str, Any]:
     meta = entry.meta
     return {
-        "acl": _acl_to_dict(entry.acl),
+        "acl": acl_to_dict(entry.acl),
         "product": meta.product,
         "created_at": meta.created_at,
         "expires_at": meta.expires_at,

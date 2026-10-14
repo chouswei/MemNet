@@ -28,7 +28,7 @@ import os
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from memnet.exceptions import MemNetError
 
@@ -160,6 +160,45 @@ class SessionAcl:
 
     def clear_bind(self) -> None:
         self.bind = None
+
+
+def acl_to_dict(acl: SessionAcl | None) -> dict[str, Any]:
+    """Serialise session ACL for snapshot ``#@ACL:`` and upgrade passport (MN-REQ-06.16)."""
+    if acl is None:
+        return {"enabled": False, "callers": [], "bind": None}
+    callers = []
+    for grant in acl.callers.values():
+        scope = grant.write_scope.to_wire() if grant.write_scope else None
+        callers.append(
+            {
+                "caller": grant.caller,
+                "can_pin_map": grant.can_pin_map,
+                "can_mutate": grant.can_mutate,
+                "write_scope": scope,
+            }
+        )
+    bind = None
+    if acl.bind is not None:
+        bind = {"mission_id": acl.bind.mission_id, "lease": acl.bind.lease}
+    return {"enabled": acl.enabled, "callers": callers, "bind": bind}
+
+
+def acl_from_dict(data: dict[str, Any]) -> SessionAcl:
+    """Rebuild a session ACL from ``acl_to_dict`` output; the enabled flag is kept as written."""
+    acl = SessionAcl()
+    for row in data.get("callers") or []:
+        acl.grant(
+            str(row.get("caller") or ""),
+            can_pin_map=bool(row.get("can_pin_map", True)),
+            can_mutate=bool(row.get("can_mutate", True)),
+            write_scope=parse_write_scope(row.get("write_scope")),
+        )
+    bind = data.get("bind")
+    if isinstance(bind, dict) and bind.get("mission_id") and bind.get("lease"):
+        acl.set_bind(str(bind["mission_id"]), str(bind["lease"]))
+    # grant() and set_bind() both force enabled; the stored flag wins.
+    acl.enabled = bool(data.get("enabled"))
+    return acl
 
 
 def parse_write_scope(raw: str | None) -> WorkerWriteScope | None:
