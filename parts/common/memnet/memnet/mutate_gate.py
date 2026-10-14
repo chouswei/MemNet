@@ -626,6 +626,7 @@ class MutateGate:
                     orig_nick = source_backup.fields.get("id") or ""
                     if orig_nick != new_id:
                         applied_renames.append((old.hid, new_id, False, source_backup, ep_changes))
+            self._refuse_over_field_cap()
             self.ss.mark_written()
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
@@ -682,6 +683,11 @@ class MutateGate:
             warnings=warnings,
             dialect="gql",
         )
+
+    def _refuse_over_field_cap(self) -> None:
+        from memnet.snapshot import refuse_mutate_field_cap
+
+        refuse_mutate_field_cap(self.ss)
 
     def _item_to_record(self, it: NodeRec | EdgeRec) -> Record:
         if isinstance(it, EdgeRec):
@@ -991,6 +997,7 @@ class MutateGate:
                     warnings.append(
                         f"mission_settled|{rec.id or rec.tag}|next read use query pin-map from cue"
                     )
+            self._refuse_over_field_cap()
             self.ss.mark_written()
         except MemNetError:
             for rid in added:

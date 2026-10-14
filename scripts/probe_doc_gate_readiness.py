@@ -2025,12 +2025,17 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
     tab_ok = bool(b_rows["tab_mid"].get("exact") and b_rows["tab_end"].get("exact"))
     cr_ok = bool(b_rows["cr_mid"].get("exact") and b_rows["cr_end"].get("exact"))
     nl_ok = bool(b_rows.get("nl_mid", {}).get("exact"))
-    schema_64_refused = schema_open["64"]["open_exit"] != 0
+    schema_64_ok = schema_open["64"]["open_exit"] == 0
     schema_128_refused = schema_open["128"]["open_exit"] != 0
-    extras_ram = bool(width64.get("ram_has_extras") and width128.get("ram_has_extras"))
-    extras_save_refused = width64.get("save_exit") not in (0, None) and width128.get(
-        "save_exit"
-    ) not in (0, None)
+    extras_64_ok = (
+        width64.get("create_exit") == 0
+        and width64.get("ram_has_extras")
+        and width64.get("save_exit") == 0
+        and width64.get("loaded_has_extras")
+    )
+    extras_128_refused = width128.get("create_exit") not in (0, None)
+    extras_128_wire = "\n".join(width128.get("create_err") or [])
+    extras_128_loud = "limit_exceeded" in extras_128_wire and "fields" in extras_128_wire
     fat_ok = bool(fat_row.get("exact"))
     decoded = bool(caps.get("value_bytes_on_decoded_field") and caps.get("value_bytes_gt_not_ge"))
 
@@ -2038,14 +2043,16 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         gaps.append("code citation did not show decoded value_bytes with `>`")
     if not a_exact_4000:
         gaps.append("one or more 4000-byte (a–e) cases failed round-trip")
-    if not schema_64_refused or not schema_128_refused:
-        gaps.append("SCHEMA 64/128 did not refuse max_fields")
+    if not schema_64_ok or not schema_128_refused:
+        gaps.append("SCHEMA 64 did not open or SCHEMA 128 did not refuse max_fields=64")
     if not tab_ok:
         gaps.append("tab did not round-trip")
     if not cr_ok:
         gaps.append("CR did not round-trip")
-    if not extras_save_refused:
-        gaps.append("64/128 extras on 4-field USR did not refuse at save (max_fields)")
+    if not extras_64_ok:
+        gaps.append("64 extras on 4-field USR did not save/load at max_fields=64")
+    if not extras_128_refused or not extras_128_loud:
+        gaps.append("128 extras on 4-field USR did not refuse at mutate (max_fields)")
 
     predicted = (
         decoded
@@ -2053,9 +2060,11 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         and a_exact_4096
         and tab_ok
         and cr_ok
-        and schema_64_refused
+        and schema_64_ok
         and schema_128_refused
-        and extras_save_refused
+        and extras_64_ok
+        and extras_128_refused
+        and extras_128_loud
     )
     if predicted:
         verdict = "yes"
@@ -2069,8 +2078,8 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         "(check_value_bytes uses `>` not `>=`). join_payload escapes splitlines "
         "separators plus `\\` and `|`; that expansion is not the value cap. "
         "line_bytes 32768 is the escaped/raw snapshot line. SCHEMA register vs "
-        "max_fields=32. Snapshot save widens SCHEMA for undeclared RAM keys; "
-        "extras over max_fields refuse snapshot_unsaveable.",
+        "max_fields=64. Mutate and snapshot save share one effective-field count; "
+        "extras over max_fields refuse limit_exceeded|fields n/max at mutate.",
         "E18e CJK 4000: " + e18_cjk_composition(4000, han=E18_HAN) + ".",
         "E18e CJK 4096: " + e18_cjk_composition(4096, han=E18_HAN) + ".",
         "CREATE wires use gql_str (\\\\ \\' \\\" \\n \\r \\t). Proof numbers omit blobs.",
@@ -2095,9 +2104,10 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
             "tab_roundtrip": tab_ok,
             "cr_roundtrip": cr_ok,
             "nl_roundtrip": nl_ok,
-            "schema_64_128_refused": schema_64_refused and schema_128_refused,
-            "extras_in_ram": extras_ram,
-            "extras_save_refused_over_max_fields": extras_save_refused,
+            "schema_64_open": schema_64_ok,
+            "schema_128_refused": schema_128_refused,
+            "extras_64_saved": extras_64_ok,
+            "extras_128_mutate_refused": extras_128_refused and extras_128_loud,
             "fat_8x4000_exact": fat_ok,
         },
         wires=[w for w in wires if w],

@@ -142,9 +142,9 @@ Path-B ingest commits with `allow_new_relation=True`.
 | Limit | Default | Knob | Wire |
 |-------|---------|------|------|
 | User tags | 64 | `MEMNET_MAX_TAGS` | `@ERR: limit_exceeded\|tags {n}/{max}` |
-| Fields per tag | 32 | `MEMNET_MAX_FIELDS` | `@ERR: limit_exceeded\|fields {n}/{max}` |
+| Fields per tag | 64 | `MEMNET_MAX_FIELDS` | `@ERR: limit_exceeded\|fields {n}/{max}` |
 
-Raised at map load (`memnet/tag_map.py`). Session open fails; nothing is stored.
+SCHEMA register refuses a declared map over the cap (`memnet/tag_map.py`). Mutate uses the same cap on the **effective** field set: declared SCHEMA fields, plus undeclared extras on any row of that tag, plus the `id` column snapshot save appends. Over-cap CREATE/SET/MERGE refuses `limit_exceeded|fields {n}/{max}` and writes nothing. Snapshot save uses that same helper (`memnet.snapshot.effective_snapshot_fields`); it is never stricter than a mutate that succeeded. Snapshot load of a SCHEMA over the cap refuses the same `fields {n}/{max}` code. `snapshot_unsaveable` stays the fail-closed save backstop when RAM still exceeds the cap.
 
 ## Pipe value / line bytes
 
@@ -161,9 +161,9 @@ Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF,
 
 Mutate stdin, leftover pipe batches, and GQL statement breaks use that same LF-only split (one optional trailing CR is stripped). A raw VT, FF, FS, GS, RS, NEL, LS, or PS inside a value stays inside the value. It does not start another statement. An embedded CR is not a break. A raw LF still separates statements. This matches snapshot load (#202): the separator is kept literally, not refused.
 
-**Undeclared properties.** GQL mutate may store keys that are absent from the live tag SCHEMA (GraphElement extras; Path-B locators such as `qname`). Those keys stay in RAM. Snapshot save persists them by widening the **snapshot** SCHEMA (live session SCHEMA is unchanged). The widen keys extras by the canonical SCHEMA tag, so a CREATE label whose spelling differs in case from the SCHEMA tag still persists. After load, the restored map includes the extra columns. Extras on fixed tags `EDG` / `LAW`, or a widened SCHEMA over `max_fields`, refuse `snapshot_unsaveable` and write no file.
+**Undeclared properties.** GQL mutate may store keys that are absent from the live tag SCHEMA (GraphElement extras; Path-B locators such as `qname`). Those keys stay in RAM. Snapshot save persists them by widening the **snapshot** SCHEMA (live session SCHEMA is unchanged). The widen keys extras by the canonical SCHEMA tag, so a CREATE label whose spelling differs in case from the SCHEMA tag still persists. After load, the restored map includes the extra columns. Extras on fixed tags `EDG` / `LAW` refuse `snapshot_unsaveable` and write no file. A mutate that would widen a tag over `max_fields` refuses `limit_exceeded|fields {n}/{max}` and writes nothing. Save uses the same effective-field count; `snapshot_unsaveable` wrapping `fields|{n}/{max}` remains the backstop if RAM still exceeds the cap.
 
-A live SCHEMA that omits `id` is accepted at open (`id` need not be present or first). Save still succeeds: the snapshot SCHEMA appends an `id` column and the row gets a minted nickname. The live map is unchanged until that snapshot is loaded. A property key that does not survive the SCHEMA whitespace split (for example `foo bar`) cannot reload, so save refuses `snapshot_unsaveable` and writes no file. A 32-field map with no `id` becomes 33 columns and refuses `fields|33/32`.
+A live SCHEMA that omits `id` is accepted at open (`id` need not be present or first). Save still succeeds: the snapshot SCHEMA appends an `id` column and the row gets a minted nickname. The live map is unchanged until that snapshot is loaded. A property key that does not survive the SCHEMA whitespace split (for example `foo bar`) cannot reload, so save refuses `snapshot_unsaveable` and writes no file. A 64-field map with no `id` becomes 65 columns and refuses `fields|65/64`.
 
 **Labelled MATCH and edge create.** `MATCH (n:Label {…}) SET` is intended to match. The label is case-folded to the SCHEMA tag (`cst`, `Cst`, and `CST` are the same tag). A label that is a different known tag and matches nothing is `@ERR: not_found`, not a silent success. `MATCH (a) MATCH (b) CREATE (a)-[:rel]->(b)` is `@ERR: parse_error` (`unsupported MATCH continuation`). The comma form `MATCH (a), (b) CREATE (a)-[:rel]->(b)` with `--allow-new-relation` creates the edge. The MATCH-MATCH form is not implemented.
 

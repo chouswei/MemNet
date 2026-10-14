@@ -166,9 +166,13 @@ def test_snapshot_refuses_extras_over_max_fields(memnet_temp, tmp_path: Path, mo
         caps=Caps(),
     )
     MutateGate(ss).apply(
-        ["CREATE (:CST {id: 'N_F', name: 'a', role: 'b', extra1: 'x', extra2: 'y'})"],
+        ["CREATE (:CST {id: 'N_F', name: 'a', role: 'b'})"],
         mode="add",
     )
+    rec = ss.store.get("N_F")
+    assert rec is not None
+    rec.fields["extra1"] = "x"
+    rec.fields["extra2"] = "y"
     path = tmp_path / "fields.snap"
     with pytest.raises(MemNetError) as ei:
         write_snapshot(ss, path)

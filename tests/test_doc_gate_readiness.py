@@ -758,7 +758,7 @@ def test_snapshot_value_cap_is_decoded_field():
     report = snapshot_value_cap_report()
     assert report["value_bytes_default"] == 4096
     assert report["line_bytes_default"] == 32768
-    assert report["max_fields_default"] == 32
+    assert report["max_fields_default"] == 64
     assert report["value_bytes_on_decoded_field"] is True
     assert report["value_bytes_gt_not_ge"] is True
     assert report["decoded_after_split_payload"] is True
@@ -784,17 +784,20 @@ def test_e18_cjk_blob_composition():
     assert "U+6D4B" in e18_cjk_composition(4000)
 
 
-def test_e18_schema_64_and_128_refuse_fields(doc_serve: ServeProc):
+def test_e18_schema_64_opens_and_128_refuses_fields(doc_serve: ServeProc):
     sid64, r64 = doc_serve.try_open_session(map_lines=e18_schema_fields(64))
-    assert sid64 is None
-    joined64 = "\n".join(err_lines(r64.stderr))
-    assert "limit_exceeded" in joined64
-    assert "fields" in joined64
-    assert "64/32" in joined64
+    assert sid64 is not None, redact(r64.stderr)
+    doc_serve.close(sid64)
+    sid65, r65 = doc_serve.try_open_session(map_lines=e18_schema_fields(65))
+    assert sid65 is None
+    joined65 = "\n".join(err_lines(r65.stderr))
+    assert "limit_exceeded" in joined65
+    assert "fields" in joined65
+    assert "65/64" in joined65
     sid128, r128 = doc_serve.try_open_session(map_lines=e18_schema_fields(128))
     assert sid128 is None
-    assert "128/32" in "\n".join(err_lines(r128.stderr))
-    assert_sid_free(redact(r64.stderr), redact(r128.stderr))
+    assert "128/64" in "\n".join(err_lines(r128.stderr))
+    assert_sid_free(redact(r64.stderr), redact(r65.stderr), redact(r128.stderr))
 
 
 def test_e18_tab_survives_cr_breaks(doc_serve: ServeProc, tmp_path: Path):
@@ -845,11 +848,18 @@ def test_e18_8x4000_and_ram_extras(doc_serve: ServeProc, tmp_path: Path):
     assert fat["snap_line_utf8"] is not None
     assert fat["snap_line_utf8"] < 32768
     wide = e18_instance_width(doc_serve, tmp_path, 64)
+    assert wide["create_exit"] == 0, wide
     assert wide["ram_has_extras"] is True
-    assert wide["save_exit"] != 0
-    joined = "\n".join(wide.get("save_err") or [])
-    assert "snapshot_unsaveable" in joined or "fields|" in joined
-    assert wide["loaded_has_extras"] is False
+    assert wide["save_exit"] == 0, wide
+    assert wide["load_exit"] == 0, wide
+    assert wide["loaded_has_extras"] is True
+    over = e18_instance_width(doc_serve, tmp_path, 128)
+    assert over["create_exit"] != 0
+    joined = "\n".join(over.get("create_err") or [])
+    assert "limit_exceeded" in joined
+    assert "fields" in joined
+    assert over["ram_has_extras"] is not True
+    assert over["loaded_has_extras"] is False
     fit = e18_instance_width(doc_serve, tmp_path, 8)
     assert fit["ram_has_extras"] is True
     assert fit["save_exit"] == 0, fit
