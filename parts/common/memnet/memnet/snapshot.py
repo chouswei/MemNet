@@ -76,8 +76,11 @@ def _append_id_column(tag: str, fields: list[str]) -> list[str]:
     return [*fields, "id"]
 
 
-def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
-    """Widen SCHEMA with undeclared RAM keys so extras round-trip (MN-REQ-01.9)."""
+def collect_undeclared_extras(ss: SessionStore) -> dict[str, list[str]]:
+    """Undeclared RAM keys per canonical tag, first-seen order (MN-REQ-01.9).
+
+    Fixed-tag extras fail closed (``snapshot_unsaveable``), same as save.
+    """
     extras: dict[str, list[str]] = {}
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
@@ -98,26 +101,70 @@ def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
                 )
             extra.append(key)
             known.add(key)
-    tags: dict[str, TagDef] = {}
-    max_fields = ss.caps.max_fields
+    return extras
+
+
+def effective_snapshot_fields(ss: SessionStore) -> dict[str, list[str]]:
+    """Field lists snapshot save would emit (MN-REQ-05.4).
+
+    Declared SCHEMA fields, plus undeclared extras on any row of that tag,
+    plus ``id`` when save appends it. Mutate and save MUST share this helper.
+    """
+    extras = collect_undeclared_extras(ss)
+    fields_by_tag: dict[str, list[str]] = {}
     for tag, td in ss.tag_map.tags.items():
-        fields = _append_id_column(tag, list(td.fields) + extras.get(tag, []))
-        if len(fields) > max_fields:
-            raise MemNetError(
-                "snapshot_unsaveable",
-                f"{tag} nick=- fields|{len(fields)}/{max_fields}",
-            )
-        tags[tag] = TagDef(tag=td.tag, fields=fields, kind=td.kind)
+        fields_by_tag[tag] = _append_id_column(tag, list(td.fields) + extras.get(tag, []))
     for tag, extra in extras.items():
-        if tag in tags or not extra:
+        if tag in fields_by_tag or not extra:
             continue
-        fields = _append_id_column(tag, ["id"] + extra)
+        fields_by_tag[tag] = _append_id_column(tag, ["id"] + extra)
+    return fields_by_tag
+
+
+def first_over_field_cap(
+    ss: SessionStore,
+    *,
+    skip_fixed: bool = False,
+) -> tuple[str, int, int] | None:
+    """First tag whose effective field count exceeds ``max_fields``, else None.
+
+    Mutate skips fixed tags (EDG/LAW): their declared width is engine-defined
+    and is not a write the caller made. Save still checks every tag.
+    """
+    max_fields = ss.caps.max_fields
+    for tag, fields in effective_snapshot_fields(ss).items():
+        if skip_fixed and tag in FIXED_TAGS:
+            continue
+        if len(fields) > max_fields:
+            return tag, len(fields), max_fields
+    return None
+
+
+def refuse_mutate_field_cap(ss: SessionStore) -> None:
+    """Mutate: refuse when a user tag's effective fields could not save."""
+    over = first_over_field_cap(ss, skip_fixed=True)
+    if over is None:
+        return
+    _tag, n, cap = over
+    raise MemNetError("limit_exceeded", f"fields|{n}/{cap}")
+
+
+def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
+    """Widen SCHEMA with undeclared RAM keys so extras round-trip (MN-REQ-01.9)."""
+    field_lists = effective_snapshot_fields(ss)
+    max_fields = ss.caps.max_fields
+    tags: dict[str, TagDef] = {}
+    for tag, fields in field_lists.items():
         if len(fields) > max_fields:
             raise MemNetError(
                 "snapshot_unsaveable",
                 f"{tag} nick=- fields|{len(fields)}/{max_fields}",
             )
-        tags[tag] = TagDef(tag=tag, fields=fields, kind="node")
+        td = ss.tag_map.get(tag)
+        if td is not None:
+            tags[tag] = TagDef(tag=td.tag, fields=fields, kind=td.kind)
+        else:
+            tags[tag] = TagDef(tag=tag, fields=fields, kind="node")
     return TagMap(tags=tags)
 
 

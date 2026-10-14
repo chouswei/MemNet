@@ -449,7 +449,7 @@ def case_tag_and_field_caps() -> list[Case]:
                 Case(
                     name="fields_per_tag",
                     kind="hard_refuse",
-                    default="32",
+                    default="64",
                     knob="MEMNET_MAX_FIELDS",
                     library_code=exc.code,
                     library_message=exc.message,

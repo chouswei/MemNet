@@ -527,7 +527,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
     return {
         "value_bytes_default": 4096,
         "line_bytes_default": 32768,
-        "max_fields_default": 32,
+        "max_fields_default": 64,
         "value_bytes_on_decoded_field": "value_utf8_len" in tag and "max_value_bytes" in tag,
         "value_bytes_gt_not_ge": "n > caps.max_value_bytes" in tag,
         "decoded_after_split_payload": (
@@ -549,7 +549,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
         "save_atomic_write_no_value_check": "atomic_write_bytes(" in snap,
         "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
         "config_line": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
-        "config_fields": '_env_int("MEMNET_MAX_FIELDS", 32)' in cfg,
+        "config_fields": '_env_int("MEMNET_MAX_FIELDS", 64)' in cfg,
         "code_path": (
             "session_save -> snapshot_text -> emit_record -> join_payload "
             "(escapes splitlines separators plus \\\\ and |). session_load -> "
@@ -557,7 +557,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
             "vs max_line_bytes, then split_payload unescape, then "
             "validate_values decoded utf-8 vs max_value_bytes (`>` not `>=`). "
             "Undeclared RAM keys widen snapshot SCHEMA. SCHEMA register vs "
-            "max_fields."
+            "max_fields. Mutate uses the same effective-field count as save."
         ),
     }
 
@@ -790,7 +790,8 @@ def e18_largest_roundtrip(
 def e18_instance_width(svc: ServeProc, tmp: Path, n_props: int) -> dict[str, Any]:
     """n_props keys on 4-field USR SCHEMA.
 
-    Extras stay in RAM; save widens SCHEMA or refuses max_fields.
+    Extras at or under max_fields persist; over-cap mutate refuses
+    limit_exceeded|fields n/max and writes nothing.
     """
     nid = f"USR_w{n_props}"
     extra_n = max(0, n_props - 4)
@@ -806,6 +807,8 @@ def e18_instance_width(svc: ServeProc, tmp: Path, n_props: int) -> dict[str, Any
     public = e18_public_rt(row)
     public["n_requested"] = n_props
     public["extra_n"] = extra_n
+    public["create_exit"] = row.get("create_exit")
+    public["create_err"] = row.get("create_err")
     public["ram_has_extras"] = row.get("ram_has_extras")
     public["loaded_has_extras"] = row.get("loaded_has_extras", False)
     public["save_exit"] = row.get("save_exit")

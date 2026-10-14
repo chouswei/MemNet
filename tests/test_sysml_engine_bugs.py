@@ -13,13 +13,20 @@ VERIFY = MODELS / "verify.sysml"
 
 def test_requirements_ids_present():
     text = REQ.read_text(encoding="utf-8")
-    for nid in ("MN-REQ-01.9", "MN-REQ-01.10", "MN-REQ-03.4", "MN-REQ-05.3"):
+    for nid in (
+        "MN-REQ-01.9",
+        "MN-REQ-01.10",
+        "MN-REQ-03.4",
+        "MN-REQ-05.3",
+        "MN-REQ-05.4",
+    ):
         assert nid in text
     assert "snapshot_unsaveable" in text
     assert "expire_snapshot_failed" in text
     assert "SHALL NOT drop RAM" in text
     assert "unsupported_predicate" in text
     assert "MEMNET_MAX_VALUE_BYTES" in text
+    assert "MEMNET_MAX_FIELDS" in text
     assert "str.splitlines()" in text
     assert "widening the" in text
     assert "escaped/raw leftover-pipe" in text
@@ -27,6 +34,7 @@ def test_requirements_ids_present():
     assert "sessionLifecycleAclWhoReq" in text
     assert "honourWherePredicateReq" in text
     assert "consistentValueByteCapReq" in text
+    assert "consistentFieldCapReq" in text
 
 
 def test_deploy_and_verify_trail_model():
@@ -35,6 +43,11 @@ def test_deploy_and_verify_trail_model():
     assert "failClosedUnsaveable" in deploy
     assert "honourWhereOrRefuse" in deploy
     assert 'envMaxValueBytes : String = "MEMNET_MAX_VALUE_BYTES"' in deploy
+    assert 'envMaxFields : String = "MEMNET_MAX_FIELDS"' in deploy
+    assert "maxFieldsDefault : Integer = 64" in deploy
+    assert "gqlMutateEnforcesMaxFields" in deploy
+    assert "saveNeverStricterThanMutate" in deploy
+    assert "gqlFieldsHardCap" in deploy
     assert "sessionSaveLoadCloseAclWho" in deploy
     assert "acceptsCaller" in deploy
     assert "persistUndeclaredProperties" in deploy
@@ -47,6 +60,7 @@ def test_deploy_and_verify_trail_model():
     assert "MN-VER-01-S05" in ver
     assert "MN-VER-03-S01" in ver
     assert "MN-VER-05-S01" in ver
+    assert "MN-VER-05-S02" in ver
     assert "persistUndeclaredProperties" in ver
     assert "splitlinesSeparatorsEscaped" in ver
     assert "lineBytesOnEmittedLine" in ver

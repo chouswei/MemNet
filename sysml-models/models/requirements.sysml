@@ -33,6 +33,7 @@
     MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
+    MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -245,8 +246,18 @@ package MemNetRequirements {
           id column and a minted nickname. Live session SCHEMA is
           unchanged until load. Fixed
           tags EDG/LAW SHALL NOT widen; extras there SHALL fail
-          closed. Save SHALL fail closed (snapshot_unsaveable
-          naming the row) rather than write an unloadable file,
+          closed. A CREATE, SET, or MERGE that would make a tag's
+          effective field set (declared SCHEMA fields, undeclared
+          extras on any row of that tag, and the id column save
+          appends) exceed max_fields SHALL refuse
+          limit_exceeded|fields n/max and SHALL NOT write
+          (MN-REQ-05.4). Mutate and snapshot save SHALL share one
+          effective-field count so save is never stricter than a
+          mutate that succeeded. Default max_fields is 64
+          (MEMNET_MAX_FIELDS). Snapshot load SHALL refuse a SCHEMA
+          over that cap with the same fields n/max code. Save SHALL
+          fail closed (snapshot_unsaveable naming the row) as a
+          backstop rather than write an unloadable file,
           including when extras would exceed max_fields or the
           escaped line exceeds line_bytes. Expire-save that cannot
           write (snapshot_unsaveable or any other save failure,
@@ -730,6 +741,26 @@ package MemNetRequirements {
           line_bytes) rather than write a file load will refuse.
         */
         attribute requirementId : String = "MN-REQ-05.3";
+      }
+
+      requirement def MN_REQ_05_4_ConsistentFieldCap {
+        doc /*
+          The fields-per-tag cap SHALL be one hard cap on SCHEMA
+          register, GQL mutate, leftover pipe mutate, and snapshot
+          save/load. The effective count is declared SCHEMA fields
+          plus undeclared extras stored on any row of that tag,
+          plus the id column snapshot save appends when the live
+          SCHEMA omitted it. Default 64. Knob MEMNET_MAX_FIELDS.
+          Over-cap mutate SHALL refuse limit_exceeded|fields n/max
+          and SHALL NOT accept the write. Save SHALL use the same
+          count (one shared helper) so anything mutate accepts can
+          save and reload. Snapshot load SHALL refuse a SCHEMA over
+          the cap with that same fields n/max code.
+          snapshot_unsaveable remains the fail-closed save backstop
+          when RAM still exceeds the cap (MN-REQ-01.9). Verify:
+          MN-VER-05-S02 (tests/test_field_cap.py).
+        */
+        attribute requirementId : String = "MN-REQ-05.4";
       }
     }
 
@@ -2278,6 +2309,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
   requirement consistentValueByteCapReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
+  requirement consistentFieldCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -2535,6 +2568,7 @@ package MemNetRequirements {
     end #derive ::> storeResourceCapsReq;
     end #derive ::> queryFanoutCapsReq;
     end #derive ::> consistentValueByteCapReq;
+    end #derive ::> consistentFieldCapReq;
   }
 
   #derivation connection deriveProcessBoundaryLeaves {

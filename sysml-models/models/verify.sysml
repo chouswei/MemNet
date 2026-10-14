@@ -77,10 +77,12 @@
   Expire session_save (MN-VER-01-S03): configurable; default off; RAM
   drops; file until user drop; load restores; not Neo4j.
   Snapshot lossless round-trip (MN-VER-01-S04): emit escapes LF/CR;
-  fail-closed save; 0.19.18 snapshots still load.
+  fail-closed save; 0.19.18 snapshots still load; mutate field cap.
   Session save/load/close ACL who (MN-VER-01-S05) when session ACL on.
   Honour WHERE or refuse (MN-VER-03-S01).
   Consistent decoded value_bytes cap (MN-VER-05-S01).
+  Consistent effective-field cap (MN-VER-05-S02): default 64;
+  mutate refuses over-cap; save uses the same helper.
 */
 package MemNetVerification {
   private import ScalarValues::*;
@@ -2128,13 +2130,16 @@ package MemNetVerification {
 
   verification def MN_VER_01_S04_SnapshotLosslessRoundTrip {
     doc /*
-      MN-REQ-01.9 / MN-REQ-05.3 — snapshot emit escapes splitlines
-      separators (LF/CR/VT/FF/FS/GS/RS/NEL/LS/PS) plus pipe/backslash
-      losslessly; undeclared RAM properties persist by snapshot SCHEMA
-      widen; line_bytes is the escaped emitted line at save and load;
-      save fails closed; expire-save writes no unloadable file and
-      keeps RAM on any save failure until explicit save or close;
-      0.19.18 snapshots still load; value_bytes is decoded raw UTF-8.
+      MN-REQ-01.9 / MN-REQ-05.3 / MN-REQ-05.4 — snapshot emit escapes
+      splitlines separators (LF/CR/VT/FF/FS/GS/RS/NEL/LS/PS) plus
+      pipe/backslash losslessly; undeclared RAM properties persist by
+      snapshot SCHEMA widen; line_bytes is the escaped emitted line at
+      save and load; mutate refuses a tag whose effective fields
+      exceed max_fields (limit_exceeded|fields n/max) so save is never
+      stricter than write; save fails closed; expire-save writes no
+      unloadable file and keeps RAM on any save failure until explicit
+      save or close; 0.19.18 snapshots still load; value_bytes is
+      decoded raw UTF-8.
     */
     attribute verificationId : String = "MN-VER-01-S04";
 
@@ -2143,6 +2148,7 @@ package MemNetVerification {
     objective snapshotLosslessRoundTrip {
       verify snapshotLosslessRoundTripReq;
       verify consistentValueByteCapReq;
+      verify consistentFieldCapReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.snap
             .losslessPropertyRoundTrip == true
@@ -2188,6 +2194,14 @@ package MemNetVerification {
             .valueBytesOnDecodedRaw == true
           and system.core.transport.inProcess.memory.sessions.caps
             .gqlMutateEnforcesValueBytes == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .gqlMutateEnforcesMaxFields == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .saveUsesSameFieldCountAsMutate == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .saveNeverStricterThanMutate == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.gqlFieldsHardCap == true
       }
     }
   }
@@ -2262,6 +2276,41 @@ package MemNetVerification {
             .lineBytesOnEmittedLine == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.gqlValueBytesHardCap == true
+      }
+    }
+  }
+
+  verification def MN_VER_05_S02_ConsistentFieldCap {
+    doc /*
+      MN-REQ-05.4 / MN-REQ-01.9 — one effective-field cap; default 64;
+      knob MEMNET_MAX_FIELDS; mutate refuses over-cap with
+      limit_exceeded|fields n/max and writes nothing; save uses the
+      same helper (save never stricter than write); snapshot load of
+      a SCHEMA over the cap refuses loudly; snapshot_unsaveable stays
+      the save backstop. Tests: tests/test_field_cap.py.
+    */
+    attribute verificationId : String = "MN-VER-05-S02";
+
+    subject system : MemNetSystem;
+
+    objective consistentFieldCap {
+      verify consistentFieldCapReq;
+      verify snapshotLosslessRoundTripReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .envMaxFields == "MEMNET_MAX_FIELDS"
+          and system.core.transport.inProcess.memory.sessions.caps
+            .maxFieldsDefault == 64
+          and system.core.transport.inProcess.memory.sessions.caps
+            .gqlMutateEnforcesMaxFields == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .saveUsesSameFieldCountAsMutate == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .saveNeverStricterThanMutate == true
+          and system.core.transport.inProcess.memory.sessions.snap
+            .sharedEffectiveFieldCount == true
+          and system.core.transport.inProcess.memory.sessions.recallCommit
+            .commit.mutate.gqlFieldsHardCap == true
       }
     }
   }
@@ -2363,6 +2412,8 @@ package MemNetVerification {
     : MN_VER_03_S01_HonourWherePredicate;
   verification consistentValueByteCapVerify
     : MN_VER_05_S01_ConsistentValueByteCap;
+  verification consistentFieldCapVerify
+    : MN_VER_05_S02_ConsistentFieldCap;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
   verification lanMcpFrontSeveralServesVerify
     : MN_VER_06_S07_LanMcpFrontSeveralServes;
