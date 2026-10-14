@@ -38,7 +38,7 @@
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
     MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
     MN-REQ-06.15       Admin checkpoint of every loaded session: lossless snaps, no drain, no traffic refuse
-    MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600
+    MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600; first v2 write over v1 keeps <file>.v1.bak once (0600); no dual write
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1265,7 +1265,13 @@ package MemNetRequirements {
           manifests SHALL be written atomically (0600 temp file, fsync,
           rename) at mode 0600. The snapshot and the upgrade passport
           share one ACL serialiser. A save SHALL refuse when the ACL
-          does not reload to the same grants. No SemVer bump.
+          does not reload to the same grants. Malformed bind (no lease
+          digest, not a dict, or no mission_id) SHALL fail bad_snapshot.
+          The first format 2 write over a format 1 file SHALL first copy
+          the v1 bytes once to <file>.v1.bak at mode 0600; an existing
+          backup SHALL NOT be overwritten; no dual write. Rollback to
+          0.19.23 restores the .v1.bak files; writes after the upgrade
+          are lost, and an old build refuses v2 loudly. No SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.16";
       }

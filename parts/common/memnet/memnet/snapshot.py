@@ -32,6 +32,8 @@ SNAPSHOT_MAGIC = "# memnet-snapshot-v1"
 # 1 = written before the ACL was persisted; it loads with ACL off (@ACL: absent|off).
 SNAPSHOT_FORMAT = 2
 SUPPORTED_SNAPSHOT_FORMATS = (1, 2)
+# Copy of a format 1 file, kept once before the first format 2 write (MN-REQ-06.16).
+V1_BACKUP_SUFFIX = ".v1.bak"
 # Session ACL line. A ``#`` line, so readers that predate it skip it.
 _ACL_PREFIX = "#@ACL:"
 _SECTION_MAP = "# map"
@@ -276,18 +278,49 @@ def snapshot_locator_schema_warnings(ss: SessionStore) -> list[str]:
     return msgs
 
 
+def _snap_format_of(raw: bytes) -> int | None:
+    """@SNAP version of a snapshot blob, or None when there is no readable @SNAP line."""
+    for line in raw.decode("utf-8", errors="replace").splitlines():
+        if line.startswith("@SNAP:"):
+            head = line.removeprefix("@SNAP:").strip().split("|", 1)[0]
+            return int(head) if head.isdigit() else None
+    return None
+
+
+def backup_v1_before_v2(path: Path) -> None:
+    """Keep the format 1 bytes once, before the first format 2 write over them (MN-REQ-06.16).
+
+    Only a file whose @SNAP version is 1 is copied, to ``<file>.v1.bak`` at
+    mode 0600. An existing backup is never overwritten. Nothing is dual-written:
+    the snapshot itself is always format 2. A failed backup raises, so the v1
+    file is not replaced without its copy.
+    """
+    if not path.is_file():
+        return
+    bak = path.with_name(path.name + V1_BACKUP_SUFFIX)
+    if bak.exists():
+        return
+    raw = path.read_bytes()
+    if _snap_format_of(raw) != 1:
+        return
+    atomic_write_bytes(bak, raw)
+
+
 def write_snapshot(ss: SessionStore, path: str | Path, *, trailer: str = "") -> int:
     """Write the snapshot atomically at mode 0600 (MN-REQ-06.16).
 
     ``trailer`` is appended after the verified body. The caller passes only
-    ``#`` lines (the upgrade passport), which readers skip.
+    ``#`` lines (the upgrade passport), which readers skip. A format 1 file
+    at ``path`` is backed up once to ``<file>.v1.bak`` before it is replaced.
     """
     for msg in snapshot_locator_schema_warnings(ss):
         emit_wrn("snapshot_schema_drop", msg)
     rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
     text = _format_snapshot(ss, rec_lines, emit_map)
     _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
-    atomic_write_bytes(Path(path), (text + trailer).encode("utf-8"))
+    dest = Path(path)
+    backup_v1_before_v2(dest)
+    atomic_write_bytes(dest, (text + trailer).encode("utf-8"))
     return ss.store.row_count_non_law()
 
 

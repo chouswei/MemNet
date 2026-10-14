@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import stat
 
 import pytest
@@ -272,3 +273,82 @@ def test_malformed_acl_line_fails_closed(memnet_temp, schema_file, tmp_path):
         load_snapshot(path, keep_id=True)
     assert exc.value.code == "bad_snapshot"
     assert get_entry(ss.session_id) is None  # never loaded with ACL silently off
+
+
+def _write_as_v1(ss, path) -> bytes:
+    """Leave a format 1 file at ``path`` (the same body, no ACL line, @SNAP version 1)."""
+    write_snapshot(ss, path)
+    v1 = _as_format_1(path.read_text(encoding="utf-8")).encode("utf-8")
+    path.write_bytes(v1)
+    return v1
+
+
+def test_v1_file_is_backed_up_once_before_first_v2_write(memnet_temp, schema_file, tmp_path):
+    ss = open_session(map_file=str(schema_file))
+    _grants(ss)
+    path = tmp_path / "old.snap"
+    bak = tmp_path / "old.snap.v1.bak"
+    v1_bytes = _write_as_v1(ss, path)
+    path.chmod(0o644)
+
+    write_snapshot(ss, path)  # first v2 write over a v1 file
+
+    assert bak.read_bytes() == v1_bytes
+    assert stat.S_IMODE(bak.stat().st_mode) == 0o600
+    assert "\n@SNAP: 2|" in path.read_text(encoding="utf-8")  # no dual write: the file is v2
+    assert list(tmp_path.glob("*.tmp")) == []
+
+    # A later v1 file at the same path must not replace the first backup.
+    ss.grant_caller("late", can_pin_map=True, can_mutate=False)
+    _write_as_v1(ss, path)
+    write_snapshot(ss, path)
+    assert bak.read_bytes() == v1_bytes
+
+
+def test_v2_over_v2_and_first_write_create_no_backup(memnet_temp, schema_file, tmp_path):
+    ss = open_session(map_file=str(schema_file))
+    _grants(ss)
+    path = tmp_path / "new.snap"
+    write_snapshot(ss, path)  # no file yet
+    assert not (tmp_path / "new.snap.v1.bak").exists()
+    write_snapshot(ss, path)  # v2 over v2
+    assert not (tmp_path / "new.snap.v1.bak").exists()
+
+
+@pytest.mark.parametrize(
+    "bind",
+    [
+        {"mission_id": "mission-demo"},  # no lease digest and no lease
+        "mission-demo",  # not a dict
+        {"lease_sha256": "a" * 64},  # missing mission_id
+    ],
+)
+def test_malformed_bind_in_file_fails_closed_bad_snapshot(memnet_temp, schema_file, tmp_path, bind):
+    ss = open_session(map_file=str(schema_file))
+    _grants(ss)
+    path = tmp_path / "bind.snap"
+    write_snapshot(ss, path)
+    acl = acl_to_dict(ss.acl) | {"bind": bind}
+    text = path.read_text(encoding="utf-8")
+    payload = json.dumps(acl, sort_keys=True, separators=(",", ":"))
+    lines = [f"#@ACL:{payload}" if ln.startswith("#@ACL:") else ln for ln in text.splitlines()]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    remove_entry(ss.session_id)
+    with pytest.raises(MemNetError) as exc:
+        load_snapshot(path, keep_id=True)
+    assert exc.value.code == "bad_snapshot"
+    assert get_entry(ss.session_id) is None  # nothing restored: fail closed
+
+
+def test_checkpoint_backs_up_v1_file_once(memnet_temp, schema_file, tmp_path, monkeypatch):
+    from memnet.checkpoint import run_checkpoint
+
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", "tok")
+    ss = open_session(map_file=str(schema_file))
+    old = tmp_path / "checkpoint" / f"{ss.session_id}.snap"
+    write_snapshot(ss, old)
+    v1 = _as_format_1(old.read_text(encoding="utf-8")).encode("utf-8")
+    old.write_bytes(v1)
+    run_checkpoint("tok", directory=tmp_path)
+    assert (old.parent / f"{old.name}.v1.bak").read_bytes() == v1

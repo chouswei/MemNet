@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,11 @@ def test_deploy_attributes():
     assert 'attribute snapshotFileMode : String = "0600"' in text
     assert "oldReaderSkipsAclLine" not in text
     assert 'attribute aclAbsentStat : String = "@ACL: absent|off"' in text
+    assert "attribute v1BackupBeforeFirstV2Write : Boolean = true" in text
+    assert 'attribute v1BackupName : String = ".v1.bak"' in text
+    assert 'attribute v1BackupMode : String = "0600"' in text
+    assert "attribute dualWriteV1 : Boolean = false" in text
+    assert "attribute rollbackLosesPostUpgradeWrites : Boolean = true" in text
 
 
 def test_verify_case_names_real_tests():
@@ -43,10 +49,22 @@ def test_verify_case_names_real_tests():
     assert "snap.snapshotAcl.aclMalformedFailsClosed == true" in ver
     assert "snap.snapshotAcl.v2MissingAclFailsBadSnapshot == true" in ver
     assert 'snap.snapshotAcl.snapshotFileMode == "0600"' in ver
+    assert "snap.snapshotAcl.dualWriteV1 == false" in ver
+    assert 'snap.snapshotAcl.v1BackupMode == "0600"' in ver
     assert "verification snapshotAclVerify" in ver
     assert "tests/test_acl_snapshot.py" in ver
     assert "::test_format_2_missing_acl_line_fails_bad_snapshot" in ver
     assert "::test_snapshot_files_are_mode_0600_and_replace_loose_modes" in ver
+    rollback_test = "test_rollback_restore_rewrites_original_bytes_atomically"
+    assert f"tests/test_safe_upgrade.py::{rollback_test}" in ver
+    # Every test name the verify case cites must exist in its file.
+    current = ""
+    for file_part, name in re.findall(r"(tests/[\w/]+\.py)|::(test_\w+)", ver):
+        if file_part:
+            current = file_part
+        elif current:
+            src = (ROOT / current).read_text(encoding="utf-8")
+            assert f"def {name}(" in src, f"{current}::{name} is not defined"
 
 
 def test_implementation_satisfy_and_allocation():

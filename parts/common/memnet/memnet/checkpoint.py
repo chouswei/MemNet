@@ -20,6 +20,7 @@ from memnet.atomic_file import atomic_write_bytes
 from memnet.exceptions import MemNetError
 from memnet.registry import list_entries
 from memnet.session import iso_timestamp
+from memnet.snapshot import backup_v1_before_v2
 from memnet.upgrade import snapshot_format_version, state_dir
 
 CHECKPOINT_DIRNAME = "checkpoint"
@@ -143,6 +144,7 @@ def _checkpoint_locked(directory: Path | None) -> CheckpointResult:
         name = f"{_safe_name(sid)}.snap"
         path = dest / name
         try:
+            backup_v1_before_v2(path)
             atomic_write_bytes(path, payload)
         except OSError as exc:
             skipped.append(
