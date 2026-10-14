@@ -51,8 +51,8 @@ from memnet import __version__
 from memnet.snapshot import SNAPSHOT_MAGIC
 
 
-def test_version_is_0_19_23():
-    assert __version__ == "0.19.23"
+def test_version_is_0_19_24():
+    assert __version__ == "0.19.24"
 
 
 def test_cap_contract_needles_unchanged():
