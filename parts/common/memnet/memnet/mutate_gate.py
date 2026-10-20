@@ -116,8 +116,10 @@ class MutateGate:
         write_scope: str | None = None,
         require_bind: bool = True,
         llm_id: str | None = None,
+        rid: str | None = None,
     ) -> MutateResult:
         from memnet.acl import check_bind, check_permission, parse_write_scope
+        from memnet.neighbourhood_reserve import check_commit_rid
 
         acl = getattr(self.ss, "acl", None)
         check_permission(acl, caller=caller, permission="mutate", agent=agent)
@@ -127,6 +129,8 @@ class MutateGate:
             lease=lease,
             require=require_bind,
         )
+        if rid:
+            check_commit_rid(self.ss.reserves, rid=rid.strip(), llm_id=llm_id)
         override = parse_write_scope(write_scope)
         dialect = classify_batch(lines)
         if dialect == "empty":

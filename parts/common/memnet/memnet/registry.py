@@ -29,6 +29,12 @@ class SessionEntry:
     reserves: NeighbourhoodReserveTable | None = None
     # Last expire-save failure code while RAM is held past TTL; None if not held.
     expire_save_failed: str | None = None
+    # MN-REQ-05.5: process-wide touch counter value of the last touch (tie order).
+    touch_seq: int = 0
+    # Set while a cap eviction holds this session as its victim.
+    evicting: bool = False
+    # Set when an eviction save of this session failed; it stays live (sessions_unsaveable_held).
+    evict_unsaveable: bool = False
 
     def ensure_reserves(self) -> NeighbourhoodReserveTable:
         from memnet.neighbourhood_reserve import NeighbourhoodReserveTable

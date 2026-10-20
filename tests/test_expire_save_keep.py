@@ -131,7 +131,7 @@ def test_unsaveable_expiry_counts_against_session_cap(
     with pytest.raises(MemNetError) as exc:
         open_session(map_file=str(schema_file), ttl_minutes=1, caps=Caps())
     assert exc.value.code == "limit_exceeded"
-    assert "sessions|" in exc.value.message
+    assert exc.value.message == "all sessions are in use"
     set_now_override(None)
 
 
@@ -203,7 +203,7 @@ def test_live_unsaveable_expiry_keeps_warns_cap_and_close(tmp_path: Path):
         blocked, reply = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
         assert blocked is None
         assert "limit_exceeded" in reply.stderr
-        assert "sessions 2/1" in reply.stderr
+        assert "all sessions are in use" in reply.stderr
         closed = svc.close(sid)
         assert closed.exit_code == 0, closed.stderr
         status2 = svc.expire_status()

@@ -102,7 +102,7 @@ package MemNetBehaviour {
   }
   attribute def EvEvictForCap {
     doc /*
-      MN-REQ-05.5 (proposed, not shipped): session cap full on open or
+      MN-REQ-05.5 (shipped, unreleased): session cap full on open or
       load, after purge_expired; this live session is the oldest-touched
       evictable victim. The victim lock is taken at pick and held through
       save, drop and registry removal. Save first, then drop from RAM.
@@ -110,7 +110,7 @@ package MemNetBehaviour {
   }
   attribute def EvEvictSaved {
     doc /*
-      MN-REQ-05.5 (proposed, not shipped): the victim's snapshot is complete
+      MN-REQ-05.5 (shipped, unreleased): the victim's snapshot is complete
       (temp file, fsync, rename, fsync dir). Only this event drops the victim
       from RAM. Runtime check: tests/test_session_evict.py.
     */
@@ -455,7 +455,7 @@ package MemNetBehaviour {
 
     state evictSaving {
       doc /*
-        MN-REQ-05.5 (proposed): cap eviction of the oldest-touched saveable
+        MN-REQ-05.5 (shipped): cap eviction of the oldest-touched saveable
         session. Write its snapshot first (fsync, atomic 0600, @SNAP v2);
         save ok drops RAM to closed, save failure keeps the session active.
         Never entered for the session being opened or loaded, or for a

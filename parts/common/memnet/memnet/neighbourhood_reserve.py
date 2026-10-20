@@ -240,6 +240,34 @@ def release(
     return lease.rid
 
 
+def check_commit_rid(
+    table: NeighbourhoodReserveTable,
+    *,
+    rid: str,
+    llm_id: str | None,
+    now: datetime | None = None,
+) -> None:
+    """A commit that names a lease (mutate rid=) must hold that lease (MN-REQ-05.5).
+
+    A lease the caller no longer holds (dropped by eviction, expired or released)
+    is lease_lost. A live lease held by another llm_id is reserved. Nothing is written.
+    """
+    table.purge_expired(_now(now))
+    lease = table.get(rid)
+    if lease is None:
+        raise MemNetError("lease_lost", "lease no longer held; nothing written")
+    holder = (llm_id or "").strip()
+    if not holder:
+        raise MemNetError("no_llm_id", f"llm_id required to commit under anchor={lease.anchor}")
+    if holder != lease.llm_id:
+        raise MemNetError(
+            "reserved",
+            f"neighbourhood held by llm_id={lease.llm_id} "
+            f"anchor={lease.anchor} until={_iso(lease.until)} "
+            f"(caller llm_id={holder})",
+        )
+
+
 def check_mutate_ids(
     table: NeighbourhoodReserveTable,
     *,

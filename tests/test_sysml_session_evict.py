@@ -1,17 +1,19 @@
-"""MN-REQ-05.5 model presence: the SysML cites runtime tests (proposed, not shipped).
+"""MN-REQ-05.5 model sync: the SysML cites runtime tests (shipped, unreleased).
 
-Runtime behaviour lives in tests/test_session_evict.py. This file only checks
-that the model points at those tests, that every cited test exists, that the
-runtime module stays xfail until the engine ships, and that the READ-SURFACES,
-NON-TOUCH-READS and MAINTENANCE-SAVES blocks match the shared surface lists in
-tests/evict_surfaces.py and cover every registered MCP tool and every
-session-scoped CLI command in cli.py. It makes no claim that a flag is true.
+Runtime behaviour lives in tests/test_session_evict.py. This file checks that the
+model points at those tests, that every cited test exists, that the status flags
+and satisfy link agree, that the READ-SURFACES, NON-TOUCH-READS and
+MAINTENANCE-SAVES blocks match the shared surface lists in tests/evict_surfaces.py
+and cover every registered MCP tool and every session-scoped CLI command in cli.py,
+that each engine save maps to a real function, and that engine code never reads the
+rule flags (the flags are spec records, not runtime switches).
 """
 
 from __future__ import annotations
 
 import ast
 import asyncio
+import importlib
 import re
 from pathlib import Path
 
@@ -20,6 +22,7 @@ from evict_surfaces import (
     CLI_ONLY_NON_READ,
     CLI_READ_ARGV,
     CLI_SURFACE_ALIAS,
+    ENGINE_SAVE_FUNCS,
     ENGINE_SAVES,
     MAINTENANCE_SAVES,
     MCP_NON_READ_TOOLS,
@@ -385,6 +388,32 @@ def test_every_cli_session_command_is_classified():
     assert (reads - {"get_session"} - registered) == cli_only, (
         "a READ_SURFACES entry that is not an MCP tool must be in CLI_READ_ARGV"
     )
+
+
+def test_engine_saves_map_to_real_functions():
+    assert set(ENGINE_SAVE_FUNCS) == set(ENGINE_SAVES), "every engine save needs a function"
+    for save, dotted in ENGINE_SAVE_FUNCS.items():
+        module_name, attr = dotted.rsplit(".", 1)
+        fn = getattr(importlib.import_module(module_name), attr, None)
+        assert callable(fn), f"engine save {save} must name a real function"
+
+
+def _rule_flag_names() -> set[str]:
+    """Spec flags of MN-REQ-05.5 in deploy.sysml: evict*, touchSeq*, commitRefusesLostLease."""
+    names = set(re.findall(r"attribute (\w+) : Boolean", _read(DEPLOY)))
+    return {n for n in names if n.startswith(("evict", "touchSeq", "commitRefuses"))}
+
+
+def test_engine_code_reads_no_rule_flag():
+    flags = _rule_flag_names()
+    assert "evictShipped" in flags and "commitRefusesLostLease" in flags
+    hits = []
+    for path in sorted((ROOT / "parts").rglob("*.py")):
+        text = _read(path)
+        for flag in sorted(flags):
+            if flag in text:
+                hits.append(f"{path.relative_to(ROOT)} names {flag}")
+    assert not hits, f"engine code must not read deploy rule flags: {hits}"
 
 
 def test_no_lease_carried_wording_anywhere_in_models():

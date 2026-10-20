@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import itertools
 import re
 import secrets
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -39,6 +41,15 @@ from memnet.tag_map import TagMap, load_map_from_file, load_map_from_lines
 _now_override: datetime | None = None
 # Session id is a capability secret. Filename stem only; no path separators.
 _EXPIRE_SID_SAFE = re.compile(r"^[A-Za-z0-9_.-]+$")
+# MN-REQ-05.5 cap state. _cap_lock covers the count, the victim pick and the slot claim.
+# _pending_slots counts opens that hold a claimed slot and are not yet registered. A
+# victim stays in the registry until it is dropped, so its picking open holds a pending slot.
+_cap_lock = threading.Lock()
+_pending_slots = 0
+_evicted_total = 0
+_last_evicted_product: str | None = None
+_touch_seq_counter = itertools.count(1)
+_touch_seq_lock = threading.Lock()
 
 
 def set_now_override(dt: datetime | None) -> None:
@@ -68,6 +79,9 @@ def _seed_relations() -> list[str]:
 
 
 class SessionStore:
+    # True when this handle came from a snapshot load (MN-REQ-05.5 reopen).
+    restored: bool = False
+
     def __init__(self, session_id: str, caps: Caps | None = None) -> None:
         self.session_id = session_id
         self.caps = caps or Caps()
@@ -107,8 +121,9 @@ class SessionStore:
         return self._entry.ensure_reserves()
 
     def touch(self) -> None:
-        """Record last activity time (reads and writes)."""
+        """Record a touch: last activity time and a fresh touch_seq (MN-REQ-05.5)."""
         self.meta.modified_at = iso_timestamp()
+        self._entry.touch_seq = _next_touch_seq()
 
     def mark_written(self) -> None:
         self.meta.has_writes = True
@@ -311,6 +326,125 @@ def expire_hold_count() -> int:
     return count_expire_snapshot_failed()
 
 
+def _next_touch_seq() -> int:
+    with _touch_seq_lock:
+        return next(_touch_seq_counter)
+
+
+def _instant(text: str) -> datetime:
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
+def _victim_key(entry: SessionEntry) -> tuple[datetime, int]:
+    """LRU order: last touch as a parsed instant, then touch_seq (oldest first)."""
+    return (_instant(entry.meta.modified_at or entry.meta.created_at), entry.touch_seq)
+
+
+def _exempt_from_eviction(entry: SessionEntry) -> bool:
+    """An open bind exempts its session. A reserve lease alone does not."""
+    return entry.evicting or (entry.acl is not None and entry.acl.bind is not None)
+
+
+def _pick_victim_locked(skipped: set[str]) -> SessionEntry | None:
+    """Oldest-touched evictable session, with its victim lock taken. Caller holds _cap_lock.
+
+    A session whose lock is held by live writes is exempt: another thread's hold fails
+    the try-lock, and a hold by the calling thread is refused by _is_owned (RLock re-entry).
+    """
+    candidates = [
+        entry
+        for entry in list_entries()
+        if entry.meta.session_id not in skipped and not _exempt_from_eviction(entry)
+    ]
+    candidates.sort(key=_victim_key)
+    for entry in candidates:
+        if not entry.lock._is_owned() and entry.lock.acquire(blocking=False):
+            entry.evicting = True
+            return entry
+    return None
+
+
+def save_evict_victim(session_id: str, caps: Caps) -> None:
+    """MAINTENANCE-SAVES evict_save: write the victim's snapshot. Not a touch."""
+    from memnet.snapshot import write_snapshot
+
+    dest = expire_snap_path(session_id, caps)
+    if dest is None:
+        raise MemNetError("snapshot_unsaveable", "evict dir")
+    write_snapshot(SessionStore(session_id, caps), dest)
+
+
+def _evict_victim(entry: SessionEntry, caps: Caps) -> bool:
+    """Save, then drop, one victim. Caller holds its victim lock. True when dropped."""
+    global _evicted_total, _last_evicted_product
+    sid = entry.meta.session_id
+    try:
+        save_evict_victim(sid, caps)
+    except (MemNetError, OSError):
+        entry.evict_unsaveable = True
+        return False
+    remove_entry(sid)
+    with _cap_lock:
+        _evicted_total += 1
+        _last_evicted_product = entry.meta.product
+    return True
+
+
+def claim_slot(caps: Caps) -> None:
+    """Claim one slot for an open or load; at cap, evict the oldest saveable session.
+
+    Returns with the slot claimed. The caller registers it with register_claimed.
+    Raises limit_exceeded "all sessions are in use" when nothing can be evicted;
+    nothing is dropped and nothing is written then.
+    """
+    global _pending_slots
+    skipped: set[str] = set()
+    while True:
+        with _cap_lock:
+            if count() + _pending_slots < caps.max_sessions:
+                _pending_slots += 1
+                return
+            victim = None
+            if caps.expire_snapshot_dir is not None:
+                victim = _pick_victim_locked(skipped)
+            if victim is None:
+                raise MemNetError("limit_exceeded", "all sessions are in use")
+            _pending_slots += 1
+        dropped = False
+        try:
+            dropped = _evict_victim(victim, caps)
+        finally:
+            victim.evicting = False
+            victim.lock.release()
+            if not dropped:
+                with _cap_lock:
+                    _pending_slots -= 1
+        if dropped:
+            return  # the victim's slot is ours; the caller registers it
+        skipped.add(victim.meta.session_id)
+
+
+def register_claimed(session_id: str, entry: SessionEntry) -> None:
+    """Register an entry whose slot came from claim_slot, and release that claim."""
+    global _pending_slots
+    with _cap_lock:
+        _pending_slots -= 1
+        register(session_id, entry)
+
+
+def eviction_status() -> dict[str, int | str | None]:
+    """Admin counters for serve_status. Names only: never a session id."""
+    with _cap_lock:
+        evicted = _evicted_total
+        last_product = _last_evicted_product
+    held = sum(1 for entry in list_entries() if entry.evict_unsaveable)
+    return {
+        "sessions_evicted": evicted,
+        "sessions_unsaveable_held": held,
+        "last_evicted_product": last_product,
+    }
+
+
 def open_session(
     map_lines: list[str] | None = None,
     map_file: str | None = None,
@@ -323,11 +457,6 @@ def open_session(
     refuse_new_session()
     caps = caps or Caps()
     purge_expired(caps)
-    if count_sessions(caps) >= caps.max_sessions:
-        raise MemNetError(
-            "limit_exceeded",
-            f"sessions|{count_sessions(caps) + 1}/{caps.max_sessions}",
-        )
     if ttl_minutes is None:
         ttl_minutes = default_ttl_minutes()
     if ttl_minutes < 1 or ttl_minutes > 1440:
@@ -346,13 +475,16 @@ def open_session(
     expires = now + timedelta(minutes=ttl_minutes)
     acl_default = bool(getattr(caps, "acl_default_enabled", False) or acl_globally_enabled())
     acl = SessionAcl(enabled=acl_default)
+    created = now.isoformat().replace("+00:00", "Z")
     meta = SessionMeta(
         session_id=session_id,
-        created_at=now.isoformat().replace("+00:00", "Z"),
+        created_at=created,
         expires_at=expires.isoformat().replace("+00:00", "Z"),
         ttl_minutes=ttl_minutes,
         acl_enabled=acl.enabled,
         product=product_label,
+        # Open is the first touch: a never-read session has a defined last touch.
+        modified_at=created,
     )
     entry = SessionEntry(
         meta=meta,
@@ -361,12 +493,15 @@ def open_session(
         relations=set(_seed_relations()),
         acl=acl,
         reserves=NeighbourhoodReserveTable(),
+        touch_seq=_next_touch_seq(),
     )
-    register(session_id, entry)
+    claim_slot(caps)
+    register_claimed(session_id, entry)
     return SessionStore(session_id, caps)
 
 
-def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
+def get_session(session_id: str, caps: Caps | None = None, *, touch: bool = True) -> SessionStore:
+    """Live session by id. A read is a touch unless ``touch`` is False (a refused write)."""
     caps = caps or Caps()
     entry = get_entry(session_id)
     if entry is None:
@@ -386,7 +521,10 @@ def get_session(session_id: str, caps: Caps | None = None) -> SessionStore:
     new_expires = utc_now() + timedelta(minutes=original_ttl)
     entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
     purge_expired(caps)
-    return SessionStore(session_id, caps)
+    ss = SessionStore(session_id, caps)
+    if touch:
+        ss.touch()
+    return ss
 
 
 def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[SessionStore, bool]:
@@ -464,5 +602,10 @@ def resolve_session_id(cli_session: str | None) -> str:
 
 
 def reset_registry() -> None:
-    """Test helper — drop all in-memory sessions."""
+    """Test helper — drop all in-memory sessions and the eviction counters."""
+    global _pending_slots, _evicted_total, _last_evicted_product
+    with _cap_lock:
+        _pending_slots = 0
+        _evicted_total = 0
+        _last_evicted_product = None
     clear_all()

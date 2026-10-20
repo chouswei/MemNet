@@ -16,8 +16,15 @@ from memnet.fixed_tags import FIXED_TAGS
 from memnet.mem_store import MemStore
 from memnet.models import Record, SessionMeta, TagDef, TagMap
 from memnet.output import emit_record, emit_wrn
-from memnet.registry import SessionEntry, count, register
-from memnet.session import SessionStore, purge_expired, utc_now
+from memnet.registry import SessionEntry
+from memnet.session import (
+    SessionStore,
+    _next_touch_seq,
+    claim_slot,
+    purge_expired,
+    register_claimed,
+    utc_now,
+)
 from memnet.tag_map import (
     leftover_wire_nick,
     load_persisted_map_from_lines,
@@ -469,11 +476,6 @@ def load_snapshot(
 ) -> SessionStore:
     caps = caps or Caps()
     purge_expired(caps)
-    if count() >= caps.max_sessions:
-        raise MemNetError(
-            "limit_exceeded",
-            f"sessions|{count() + 1}/{caps.max_sessions}",
-        )
     try:
         text = Path(path).read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -529,19 +531,22 @@ def load_snapshot_text(
     ttl = ttl_minutes if ttl_minutes is not None else meta.ttl_minutes
     if ttl < 1 or ttl > 1440:
         raise MemNetError("bad_ttl", "ttl must be 1..1440")
+    # A load is a touch with a fresh TTL (MN-REQ-05.5). Upgrade restore keeps its clocks.
     if preserve_clocks:
         created_at = meta.created_at
         expires_at = meta.expires_at
+        modified_at = meta.modified_at
     else:
         created_at = now.isoformat().replace("+00:00", "Z")
         expires_at = (now + timedelta(minutes=ttl)).isoformat().replace("+00:00", "Z")
+        modified_at = created_at
     new_meta = SessionMeta(
         session_id=session_id,
         created_at=created_at,
         expires_at=expires_at,
         ttl_minutes=ttl,
         has_writes=meta.has_writes,
-        modified_at=meta.modified_at,
+        modified_at=modified_at,
         acl_enabled=bool(acl and acl.enabled),
     )
     store = MemStore(tag_map, caps)
@@ -555,9 +560,13 @@ def load_snapshot_text(
         store=store,
         relations=relations,
         acl=acl,
+        touch_seq=_next_touch_seq(),
     )
-    register(session_id, entry)
-    return SessionStore(session_id, caps)
+    claim_slot(caps)
+    register_claimed(session_id, entry)
+    loaded = SessionStore(session_id, caps)
+    loaded.restored = True
+    return loaded
 
 
 def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> SessionEntry:

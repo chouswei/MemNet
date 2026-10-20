@@ -144,15 +144,14 @@ def _acl_check(ss, caller: str | None, permission: str) -> None:
         _handle_error(exc)
 
 
-def _load_session(session: str | None, *, exclusive: bool = False):
+def _load_session(session: str | None, *, exclusive: bool = False, touch: bool = True):
     purge_expired(_caps())
     try:
         sid = resolve_session_id(session)
-        ss = get_session(sid, _caps())
+        ss = get_session(sid, _caps(), touch=touch)
     except MemNetError as exc:
         _handle_error(exc)
         raise AssertionError("unreachable") from exc
-    ss.touch()
     reset_warn_budget()
     emit_session_warnings(ss, _caps())
     if exclusive:
@@ -173,6 +172,7 @@ def _ingest_lines(
     lease: str | None = None,
     write_scope: str | None = None,
     llm_id: str | None = None,
+    rid: str | None = None,
 ) -> int:
     agent = agent or os.environ.get("MEMNET_AGENT")
     caller = caller or os.environ.get("MEMNET_CALLER")
@@ -198,6 +198,7 @@ def _ingest_lines(
             write_scope=write_scope,
             require_bind=require_bind,
             llm_id=llm_id,
+            rid=rid,
         )
     except MemNetError as exc:
         emit_err(exc)
@@ -368,7 +369,6 @@ def session_resume(session_id: str) -> None:
     purge_expired(_caps())
     try:
         ss = get_session(session_id, _caps())
-        ss.touch()
         emit_session(ss.session_id, ss.meta.expires_at, str(ss.meta.ttl_minutes))
         emit_stderr(f"MEMNET_SESSION={ss.session_id}")
     except MemNetError as exc:
@@ -385,7 +385,6 @@ def session_current(
         return
     try:
         ss = get_session(sid, _caps())
-        ss.touch()
         from datetime import datetime
 
         expires = datetime.fromisoformat(ss.meta.expires_at.replace("Z", "+00:00"))
@@ -1180,8 +1179,10 @@ def _ingest_cmd(
     lease: str | None = None,
     write_scope: str | None = None,
     llm_id: str | None = None,
+    rid: str | None = None,
 ) -> None:
-    ss, lock = _load_session(session, exclusive=not dry_run)
+    # Not a touch here: the gate touches on a committed write (MN-REQ-05.5 lost lease).
+    ss, lock = _load_session(session, exclusive=not dry_run, touch=False)
     caps = _caps()
     lines = _read_ingest_input(line, file, stdin, caps)
     with lock:
@@ -1197,6 +1198,7 @@ def _ingest_cmd(
             lease=lease,
             write_scope=write_scope,
             llm_id=llm_id,
+            rid=rid,
         )
 
 
@@ -1231,6 +1233,10 @@ def mutate_cmd(
         str | None,
         typer.Option("--llm-id", help="Neighbourhood reserve holder (MN-REQ-12.13)"),
     ] = None,
+    rid: Annotated[
+        str | None,
+        typer.Option("--rid", help="Reserve lease this commit relies on (lease_lost if gone)"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
     """Product GQL Commit (CREATE / MERGE / SET / DELETE). Does not mint NEW."""
@@ -1248,6 +1254,7 @@ def mutate_cmd(
         lease=lease,
         write_scope=write_scope,
         llm_id=llm_id,
+        rid=rid,
     )
 
 

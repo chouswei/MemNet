@@ -1,7 +1,6 @@
 """MN-REQ-05.5 session cap LRU evict — runtime checks on the in-process engine.
 
-Proposed, not shipped. Every test here is xfail until the engine ships the
-eviction path (module-level mark below). Test names are cited by the
+Shipped in the unreleased engine (no xfail). Test names are cited by the
 MN-VER-05-S03..S09 verify defs in sysml-models/models/verify.sysml; the
 presence check in tests/test_sysml_session_evict.py keeps the two in sync.
 
@@ -16,16 +15,15 @@ import os
 import re
 import stat
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
-from typer.testing import CliRunner
 
 import memnet.registry as registry_mod
 import memnet.session as session_mod
 import memnet.snapshot as snapshot_mod
-from evict_surfaces import CLI_READ_ARGV, NON_TOUCH_READS, READ_SURFACES
+from evict_surfaces import BASE, NON_TOUCH_READS, READ_SURFACES, caller_read, runner
 from memnet.acl import acl_to_dict
 from memnet.admin_usage import build_report  # noqa: F401  (admin read surface)
 from memnet.checkpoint import checkpoint_dir, run_checkpoint, verify_checkpoint
@@ -45,16 +43,11 @@ from memnet.session import (
 )
 from memnet.snapshot import load_snapshot
 
-pytestmark = pytest.mark.xfail(reason="MN-REQ-05.5 not shipped; engine pending", strict=False)
-
-runner = CliRunner()
-
 ENV_MAX = "MEMNET_MAX_SESSIONS"
 ENV_DIR = "MEMNET_EXPIRE_SNAPSHOT_DIR"  # reused; no second eviction knob
 ENV_ALIAS = "MEMNET_SNAPSHOT_DIR"  # optional neutral alias; conflicting paths refuse start
 ENV_ADMIN = "MEMNET_ADMIN_TOKEN"
 ADMIN_TOKEN = "test-admin-token"  # dummy value for the in-process admin read
-BASE = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
 _MN_ID = re.compile(r"mn_[0-9a-fA-F]+")
 _PLR = (
     "CREATE (:PLR {id: 'PLR01', identity: 'Hero', wealth: 1, cashflow: 0, "
@@ -62,12 +55,6 @@ _PLR = (
 )
 
 
-# Arguments beyond the session for the MCP caller reads that need them.
-_READ_ARGS = {
-    "find": {"limit": 5, "kind": "PLR"},
-    "query_walk": {"cue": "PLR01"},
-    "read_list": {"tag": "PLR"},
-}
 # Saves that SHALL NOT touch, reachable from tests. evict_save runs inside the
 # eviction itself, so it is covered once the engine ships (see MAINTENANCE-SAVES).
 MAINTENANCE_SAVES_REACHABLE = ("session_save", "expire_save", "admin_checkpoint")
@@ -147,25 +134,6 @@ def _advanced(before: str | None, after: str | None) -> bool:
     if after is None:
         return False
     return before is None or _instant(after) > _instant(before)
-
-
-def caller_read(surface: str, sid: str) -> int:
-    """One session-scoped caller read through the surface named in READ_SURFACES.
-
-    Returns the exit code. The text of a failure is not returned: it can name ids.
-    get_session() raises on failure, so its exit code is 0 or the call raises.
-    """
-    if surface == "get_session":
-        get_session(sid)
-        return 0
-    if surface in CLI_READ_ARGV:
-        argv = [a.format(sid=sid) for a in CLI_READ_ARGV[surface]]
-        return runner.invoke(app, argv).exit_code
-    from memnet_mcp import server as mcp_server
-
-    call = getattr(mcp_server, surface)
-    resp = json.loads(asyncio.run(call(session=sid, **_READ_ARGS.get(surface, {}))))
-    return resp["exit_code"]
 
 
 def _non_touch_read(surface: str, ckpt_dir) -> None:
@@ -726,7 +694,7 @@ def test_reserve_lease_is_not_an_exemption(evict, schema_file, workflow_file):
     _seed(a.session_id, workflow_file)
     b = _open(schema_file, 1)
     _open(schema_file, 2)
-    live = get_session(a.session_id)
+    live = SessionStore(a.session_id)  # a handle, not a read: a stays at its minute-0 touch
     lease = reserve(
         live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(3)
     )
@@ -983,14 +951,37 @@ def test_touch_seq_not_in_snapshot_fresh_on_load(evict, schema_file, workflow_fi
     a = _open(schema_file, 0)
     _seed(a.session_id, workflow_file)
     victim = a.session_id
-    b = _open(schema_file, 1)
+    _open(schema_file, 1)
     c = _open(schema_file, 2)
-    _open(schema_file, 4)  # evicts a
+    d = _open(schema_file, 4)  # evicts a
     snap = _snapshot_of(evict, victim)
     assert "touch_seq" not in snap.read_text(encoding="utf-8"), "snapshot must not carry touch_seq"
     set_now_override(_at(5))
-    loaded = load_snapshot(snap)
+    loaded = load_snapshot(snap)  # cap full: the load evicts the oldest live session (b)
     assert loaded.store.get("PLR01") is not None, "round trip must keep the rows"
     seq_loaded = get_entry(loaded.session_id).touch_seq
-    others = [get_entry(s.session_id).touch_seq for s in (b, c)]
+    others = [get_entry(s.session_id).touch_seq for s in (c, d)]
     assert seq_loaded > max(others), "a loaded session must get a fresh touch_seq above all others"
+
+
+def test_failed_evict_save_is_not_a_touch(evict, schema_file, workflow_file, monkeypatch):
+    # A victim whose eviction save fails stays live: its last touch and touch_seq are unchanged.
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)  # a's last touch is the write at minute 0
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    before = _last_touch(a.session_id)
+    before_seq = get_entry(a.session_id).touch_seq
+    real_write = snapshot_mod.write_snapshot
+
+    def failing_write(ss, path, **kwargs):
+        if ss.session_id == a.session_id:
+            raise OSError("simulated disk full")
+        return real_write(ss, path, **kwargs)
+
+    monkeypatch.setattr(snapshot_mod, "write_snapshot", failing_write)
+    set_now_override(_at(3))
+    _open(schema_file, 4)  # a is the oldest, its save fails; the next-oldest is evicted
+    assert contains(a.session_id), "a failed evict-save must keep the victim live"
+    assert _last_touch(a.session_id) == before, "a failed evict-save must not move modified_at"
+    assert get_entry(a.session_id).touch_seq == before_seq, "a failed evict-save takes no touch_seq"

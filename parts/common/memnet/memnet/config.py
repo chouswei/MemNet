@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from memnet.exceptions import MemNetError
+
 RESERVED_TAGS = frozenset({"SESSION", "ERR", "WRN", "STAT", "REL", "DEL"})
 ORPHAN_EXEMPT_TAGS = frozenset({"LAW", "CFG", "SYS", "PLR"})
 RECYCLE_INACTIVE = frozenset({"delete_on_settle", "delete_on_expire"})
@@ -145,11 +147,20 @@ def save_on_expire() -> bool:
 
 
 def expire_snapshot_dir() -> Path | None:
-    """Directory for auto TTL-expire snapshots. Used only when ``save_on_expire()``.
+    """Snapshot directory: expire-save, cap eviction and session load by sid (MN-REQ-05.5).
 
-    ``MEMNET_EXPIRE_SNAPSHOT_DIR``. Unset with save-on-expire on: warn, drop, no file.
+    ``MEMNET_EXPIRE_SNAPSHOT_DIR``, read whether or not save-on-expire is on. The
+    neutral alias ``MEMNET_SNAPSHOT_DIR`` may name the same directory. Two different
+    paths refuse with ``config_conflict``; the message names neither path.
     """
-    raw = (os.environ.get("MEMNET_EXPIRE_SNAPSHOT_DIR") or "").strip()
+    primary = (os.environ.get("MEMNET_EXPIRE_SNAPSHOT_DIR") or "").strip()
+    alias = (os.environ.get("MEMNET_SNAPSHOT_DIR") or "").strip()
+    if primary and alias and os.path.realpath(primary) != os.path.realpath(alias):
+        raise MemNetError(
+            "config_conflict",
+            "MEMNET_EXPIRE_SNAPSHOT_DIR and MEMNET_SNAPSHOT_DIR name different directories",
+        )
+    raw = primary or alias
     if not raw:
         return None
     return Path(raw)
