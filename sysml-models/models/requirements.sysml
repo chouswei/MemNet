@@ -34,6 +34,7 @@
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
+    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (proposed, not shipped); save victim first; none evictable keeps limit_exceeded|sessions refusal
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -761,6 +762,29 @@ package MemNetRequirements {
           MN-VER-05-S02 (tests/test_field_cap.py).
         */
         attribute requirementId : String = "MN-REQ-05.4";
+      }
+
+      requirement def MN_REQ_05_5_SessionCapEvictLru {
+        doc /*
+          Proposed, not shipped. When the session cap (MEMNET_MAX_SESSIONS,
+          default 1024) is reached on session open or load, after
+          purge_expired, the engine SHALL evict the live session with the
+          oldest last-touch time; any read or write counts as a touch.
+          Before the RAM drop the victim SHALL be saved to its snapshot
+          first (fsync, atomic 0600 write, @SNAP version 2 with the ACL
+          and lease digest kept). An unsaveable victim (snapshot_unsaveable,
+          over cap, or no snapshot dir) SHALL be skipped, stay in RAM, and
+          the next-oldest SHALL be tried. If no session is evictable the
+          limit_exceeded|sessions n/cap refusal SHALL stand and nothing
+          SHALL be dropped. The session being opened or loaded SHALL NOT be
+          evicted, nor any session holding an active write lock (RSV lease
+          or in-flight commit). The result SHALL report the evicted session
+          by name or tag only, never a real mn_ id; serve_status SHALL carry
+          a sessions_evicted counter. A later session_load SHALL restore the
+          evicted session from its snapshot with the same ACL and lease.
+          Verify: MN-VER-05-S03 to MN-VER-05-S09.
+        */
+        attribute requirementId : String = "MN-REQ-05.5";
       }
     }
 
@@ -2311,6 +2335,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
   requirement consistentFieldCapReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
+  requirement sessionCapEvictLruReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -2569,6 +2595,14 @@ package MemNetRequirements {
     end #derive ::> queryFanoutCapsReq;
     end #derive ::> consistentValueByteCapReq;
     end #derive ::> consistentFieldCapReq;
+    end #derive ::> sessionCapEvictLruReq;
+  }
+
+  #derivation connection deriveSessionCapEvictFromCapsAndSnapshot {
+    end #original ::> sessionTtlAndCapsReq;
+    end #original ::> snapshotLosslessRoundTripReq;
+    end #original ::> snapshotAclReq;
+    end #derive ::> sessionCapEvictLruReq;
   }
 
   #derivation connection deriveProcessBoundaryLeaves {

@@ -156,6 +156,20 @@ package MemNet {
     attribute maxLaw : Integer = 100;
     attribute maxRelations : Integer = 200;
     attribute maxSessions : Integer = 1024;
+    // MN-REQ-05.5 session cap LRU evict: proposed design flags, not shipped.
+    attribute evictOnSessionCap : Boolean = true;
+    attribute envMaxSessions : String = "MEMNET_MAX_SESSIONS";
+    attribute evictPicksOldestTouch : Boolean = true;
+    attribute evictTouchOnReadOrWrite : Boolean = true;
+    attribute evictSavesFirstFsync : Boolean = true;
+    attribute evictSkipsUnsaveable : Boolean = true;
+    attribute evictRefusesWhenNoneEvictable : Boolean = true;
+    attribute evictNeverSelf : Boolean = true;
+    attribute evictNeverWriteLocked : Boolean = true;
+    attribute evictReportsNameNotId : Boolean = true;
+    attribute evictLoadRestores : Boolean = true;
+    attribute evictKeepsAclLease : Boolean = true;
+    attribute evictShipped : Boolean = false;
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;
@@ -185,6 +199,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
@@ -3165,11 +3180,14 @@ package MemNet {
       (save_on_expire, expire_snapshot_dir_set) and the count of
       sessions held because expire-save failed
       (expire_snapshot_failed). Path redacted. Look only.
+      MN-REQ-05.5 (proposed): sessions_evicted counter for cap evictions;
+      the evicted session is named by name or tag, never a real mn_ id.
     */
     attribute lookOnly : Boolean = true;
     attribute saveOnExpireFlag : Boolean = true;
     attribute expireSnapshotDirSetFlag : Boolean = true;
     attribute expireSnapshotFailedCount : Boolean = true;
+    attribute sessionsEvictedCounter : Boolean = true;
     attribute pathRedacted : Boolean = true;
   }
 

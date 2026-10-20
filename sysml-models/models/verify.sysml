@@ -54,6 +54,11 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
+  Session cap LRU evict (MN-VER-05-S03..S09, proposed, not shipped):
+  MN-REQ-05.5 — oldest-touch pick; save first then drop; skip
+  unsaveable; none evictable refuses limit_exceeded|sessions; self and
+  write-locked exempt; name not mn_ id plus serve_status counter;
+  later load restores with ACL and lease (@SNAP v2).
   Serve checkpoint (MN-VER-06-S13): ServeCheckpoint on
   TcpServeBridge; admin credential; per-session lock; lossless
   atomic snaps; skip unsaveable; no drain; no live load; no
@@ -2315,6 +2320,175 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_05_S03_SessionCapEvictOldestTouch {
+    doc /*
+      MN-REQ-05.5 R1 (proposed, not shipped) — at MEMNET_MAX_SESSIONS
+      (default 1024) on open or load, after purge_expired, evict the live
+      session with the oldest last-touch time; any read or write is a
+      touch. Knob MEMNET_MAX_SESSIONS.
+    */
+    attribute verificationId : String = "MN-VER-05-S03";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictOldestTouch {
+      verify sessionCapEvictLruReq;
+      verify sessionTtlAndCapsReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictOnSessionCap == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .envMaxSessions == "MEMNET_MAX_SESSIONS"
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictPicksOldestTouch == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictTouchOnReadOrWrite == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S04_SessionCapEvictSaveFirst {
+    doc /*
+      MN-REQ-05.5 R2 (proposed) — the victim is saved to its snapshot first
+      (fsync, atomic 0600, @SNAP v2 with ACL and lease digest kept), then
+      dropped from RAM. A failed save never drops RAM.
+    */
+    attribute verificationId : String = "MN-VER-05-S04";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictSaveFirst {
+      verify sessionCapEvictLruReq;
+      verify saveSessionSnapshotReq;
+      verify snapshotLosslessRoundTripReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictSavesFirstFsync == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictKeepsAclLease == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S05_SessionCapEvictSkipUnsaveable {
+    doc /*
+      MN-REQ-05.5 R3 (proposed) — an unsaveable victim (snapshot_unsaveable,
+      over cap, or no snapshot dir) is skipped, stays in RAM, and the
+      next-oldest session is tried.
+    */
+    attribute verificationId : String = "MN-VER-05-S05";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictSkipUnsaveable {
+      verify sessionCapEvictLruReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictSkipsUnsaveable == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictPicksOldestTouch == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S06_SessionCapEvictNoneEvictable {
+    doc /*
+      MN-REQ-05.5 R4 (proposed) — cap full and every candidate unsaveable,
+      so refuse with limit_exceeded|sessions n/cap as today; nothing is
+      dropped.
+    */
+    attribute verificationId : String = "MN-VER-05-S06";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictNoneEvictable {
+      verify sessionCapEvictLruReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictRefusesWhenNoneEvictable == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S07_SessionCapEvictExemptSelfAndLocked {
+    doc /*
+      MN-REQ-05.5 R5 (proposed) — the session being opened or loaded is
+      never evicted, nor is a session holding an active write lock (RSV
+      lease or in-flight commit).
+    */
+    attribute verificationId : String = "MN-VER-05-S07";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictExemptSelfAndLocked {
+      verify sessionCapEvictLruReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictNeverSelf == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictNeverWriteLocked == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S08_SessionCapEvictReportNameNotId {
+    doc /*
+      MN-REQ-05.5 R6 (proposed) — the eviction result reports the evicted
+      session by name or tag only, never a real mn_ id. serve_status carries
+      the sessions_evicted counter (ServeStatusLook.sessionsEvictedCounter
+      on MemNetUsageDashboard, outside MemNetSystem; a verification has one
+      subject, so the counter is checked by its deploy attribute, not here).
+    */
+    attribute verificationId : String = "MN-VER-05-S08";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictReportNameNotId {
+      verify sessionCapEvictLruReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictReportsNameNotId == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
+  verification def MN_VER_05_S09_SessionCapEvictLoadRestores {
+    doc /*
+      MN-REQ-05.5 R7 (proposed) — a later session_load restores the evicted
+      session from its snapshot with the same ACL and lease (@SNAP v2, digest
+      only; MN-REQ-06.16).
+    */
+    attribute verificationId : String = "MN-VER-05-S09";
+
+    subject system : MemNetSystem;
+
+    objective sessionCapEvictLoadRestores {
+      verify sessionCapEvictLruReq;
+      verify loadSessionSnapshotReq;
+      verify snapshotAclReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .evictLoadRestores == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictKeepsAclLease == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .evictShipped == false
+      }
+    }
+  }
+
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
       storageRole only where bytes outlive the call: working_memory,
@@ -2414,6 +2588,20 @@ package MemNetVerification {
     : MN_VER_05_S01_ConsistentValueByteCap;
   verification consistentFieldCapVerify
     : MN_VER_05_S02_ConsistentFieldCap;
+  verification sessionCapEvictOldestTouchVerify
+    : MN_VER_05_S03_SessionCapEvictOldestTouch;
+  verification sessionCapEvictSaveFirstVerify
+    : MN_VER_05_S04_SessionCapEvictSaveFirst;
+  verification sessionCapEvictSkipUnsaveableVerify
+    : MN_VER_05_S05_SessionCapEvictSkipUnsaveable;
+  verification sessionCapEvictNoneEvictableVerify
+    : MN_VER_05_S06_SessionCapEvictNoneEvictable;
+  verification sessionCapEvictExemptSelfAndLockedVerify
+    : MN_VER_05_S07_SessionCapEvictExemptSelfAndLocked;
+  verification sessionCapEvictReportNameNotIdVerify
+    : MN_VER_05_S08_SessionCapEvictReportNameNotId;
+  verification sessionCapEvictLoadRestoresVerify
+    : MN_VER_05_S09_SessionCapEvictLoadRestores;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
   verification lanMcpFrontSeveralServesVerify
     : MN_VER_06_S07_LanMcpFrontSeveralServes;

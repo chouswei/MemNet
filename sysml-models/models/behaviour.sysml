@@ -100,6 +100,14 @@ package MemNetBehaviour {
       File stays until the user deletes it. Not Neo4j.
     */
   }
+  attribute def EvEvictForCap {
+    doc /*
+      MN-REQ-05.5 (proposed, not shipped): session cap full on open or
+      load, after purge_expired; this live session is the oldest-touched
+      saveable victim. Save first, then drop from RAM. Unsaveable victims
+      are skipped (EvError) and stay live.
+    */
+  }
   attribute def EvCloseOrExpire {
     doc /* session_close or TTL purge after optional expire save. */
   }
@@ -328,7 +336,11 @@ package MemNetBehaviour {
     then closed;
 
     state closed {
-      doc /* No session id; open or load required. */
+      doc /*
+        No session id; open or load required. An evicted session (MN-REQ-05.5)
+        returns here; closed_to_loading via EvLoadSnapshot restores it from
+        its snapshot with the same ACL and lease.
+      */
     }
     transition closed_to_opening
       first closed
@@ -433,6 +445,28 @@ package MemNetBehaviour {
       first expireSaving
       accept EvCloseOrExpire
       then closed;
+
+    state evictSaving {
+      doc /*
+        MN-REQ-05.5 (proposed): cap eviction of the oldest-touched saveable
+        session. Write its snapshot first (fsync, atomic 0600, @SNAP v2);
+        save ok drops RAM to closed, save failure keeps the session active.
+        Never entered for the session being opened or loaded, or for a
+        session holding an active write lock.
+      */
+    }
+    transition active_to_evict_saving
+      first active
+      accept EvEvictForCap
+      then evictSaving;
+    transition evict_saving_to_closed
+      first evictSaving
+      accept EvCloseOrExpire
+      then closed;
+    transition evict_saving_to_active
+      first evictSaving
+      accept EvError
+      then active;
   }
 
   // --- 2. Goldfish loop (engine side of turn) ---
