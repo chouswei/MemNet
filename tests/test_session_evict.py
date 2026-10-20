@@ -27,6 +27,7 @@ import memnet.session as session_mod
 import memnet.snapshot as snapshot_mod
 from memnet.acl import acl_to_dict
 from memnet.admin_usage import build_report  # noqa: F401  (admin read surface)
+from memnet.checkpoint import checkpoint_dir, run_checkpoint, verify_checkpoint
 from memnet.cli import app
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
@@ -36,7 +37,6 @@ from memnet.registry import contains, count, get_entry
 from memnet.session import (
     SessionStore,
     get_session,
-    list_sessions,
     open_session,
     reset_registry,
     set_now_override,
@@ -60,6 +60,60 @@ _PLR = (
 )
 
 
+# Surface lists. The MN-REQ-05.5 READ-SURFACES and ADMIN-READS blocks in
+# sysml-models/models/requirements.sysml name the same entries;
+# tests/test_sysml_session_evict.py asserts the two stay equal. READ_SURFACES
+# is the MCP read tools plus the CLI-only reads (CLI_READ_ARGV) plus get_session.
+READ_SURFACES = (
+    "get_session",
+    "pin_map",
+    "query_warm",
+    "find",
+    "query_walk",
+    "read_list",
+    "export_pin_map",
+    "housekeep_stats",
+    "session_current",
+    "session_resume",
+    "tagmap_show",
+    "relations_list",
+    "query_neighbors",
+    "query_path",
+    "query_context",
+    "housekeep_stale",
+    "housekeep_orphans",
+    "housekeep_dangling",
+    "housekeep_recyclable",
+)
+ADMIN_READS = (
+    "serve_status",
+    "session_list",
+    "admin_usage_report",
+    "admin_checkpoint",
+    "admin_checkpoint_verify",
+)
+# Arguments beyond the session for the MCP caller reads that need them.
+_READ_ARGS = {
+    "find": {"limit": 5, "kind": "PLR"},
+    "query_walk": {"cue": "PLR01"},
+    "read_list": {"tag": "PLR"},
+}
+# CLI-only caller reads (no MCP tool). "{sid}" is the session id; each argv
+# names ids that workflow.example.txt seeds (PLR01, TEC01, E02).
+CLI_READ_ARGV = {
+    "session_resume": ("session", "resume", "{sid}"),
+    "tagmap_show": ("tagmap", "show", "--session", "{sid}"),
+    "relations_list": ("relations", "list", "--session", "{sid}"),
+    "query_neighbors": ("query", "neighbors", "PLR01", "--session", "{sid}"),
+    "query_path": ("query", "path", "PLR01", "TEC01", "--session", "{sid}"),
+    "query_context": ("query", "context", "--session", "{sid}"),
+    "housekeep_stale": ("housekeep", "stale", "--session", "{sid}"),
+    "housekeep_orphans": ("housekeep", "orphans", "--session", "{sid}"),
+    "housekeep_dangling": ("housekeep", "dangling", "--session", "{sid}"),
+    "housekeep_recyclable": ("housekeep", "recyclable", "--session", "{sid}"),
+}
+
+
 def _at(minute: float) -> datetime:
     return BASE + timedelta(minutes=minute)
 
@@ -70,6 +124,18 @@ def evict(memnet_temp, monkeypatch, tmp_path):
     snap_dir = tmp_path / "evict-snaps"
     snap_dir.mkdir()
     monkeypatch.setenv(ENV_MAX, "3")
+    monkeypatch.setenv(ENV_DIR, str(snap_dir))
+    monkeypatch.delenv(ENV_ALIAS, raising=False)
+    set_now_override(BASE)
+    return snap_dir
+
+
+@pytest.fixture
+def evict_pair(memnet_temp, monkeypatch, tmp_path):
+    """Cap 2, snapshot dir set, clock frozen at BASE: every touch ties on modified_at."""
+    snap_dir = tmp_path / "pair-snaps"
+    snap_dir.mkdir()
+    monkeypatch.setenv(ENV_MAX, "2")
     monkeypatch.setenv(ENV_DIR, str(snap_dir))
     monkeypatch.delenv(ENV_ALIAS, raising=False)
     set_now_override(BASE)
@@ -112,6 +178,59 @@ def _serve_status_payload() -> dict:
     from memnet_mcp.server import serve_status
 
     return json.loads(asyncio.run(serve_status()))
+
+
+def _instant(text: str) -> datetime:
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
+def _advanced(before: str | None, after: str | None) -> bool:
+    if after is None:
+        return False
+    return before is None or _instant(after) > _instant(before)
+
+
+def caller_read(surface: str, sid: str) -> int:
+    """One session-scoped caller read through the surface named in READ_SURFACES.
+
+    Returns the exit code. The text of a failure is not returned: it can name ids.
+    get_session() raises on failure, so its exit code is 0 or the call raises.
+    """
+    if surface == "get_session":
+        get_session(sid)
+        return 0
+    if surface in CLI_READ_ARGV:
+        argv = [a.format(sid=sid) for a in CLI_READ_ARGV[surface]]
+        return runner.invoke(app, argv).exit_code
+    from memnet_mcp import server as mcp_server
+
+    call = getattr(mcp_server, surface)
+    resp = json.loads(asyncio.run(call(session=sid, **_READ_ARGS.get(surface, {}))))
+    return resp["exit_code"]
+
+
+def _admin_read(surface: str, ckpt_dir) -> None:
+    """One admin or session-less read through the surface named in ADMIN_READS."""
+    if surface == "serve_status":
+        _serve_status_payload()
+    elif surface == "session_list":
+        from memnet_mcp import server as mcp_server
+
+        asyncio.run(mcp_server.session_list())
+    elif surface == "admin_usage_report":
+        build_report(ADMIN_TOKEN)
+    elif surface == "admin_checkpoint":
+        run_checkpoint(ADMIN_TOKEN, directory=ckpt_dir)
+    elif surface == "admin_checkpoint_verify":
+        run_checkpoint(ADMIN_TOKEN, directory=ckpt_dir)
+        verify_checkpoint(checkpoint_dir(ckpt_dir), ADMIN_TOKEN)
+    else:
+        raise AssertionError(f"no admin call for {surface}")
+
+
+def _open_frozen(schema) -> SessionStore:
+    """Open at the current (frozen) clock; does not move it."""
+    return open_session(map_file=str(schema), ttl_minutes=600)
 
 
 # Keys match by word or prefix: a segment starting with one of these names.
@@ -169,18 +288,82 @@ def test_reads_and_writes_are_touches(evict, schema_file, workflow_file):
     assert contains(a.session_id) and contains(b.session_id)
 
 
-def test_admin_and_serve_status_reads_are_not_touches(evict, schema_file, monkeypatch):
+@pytest.mark.parametrize("surface", READ_SURFACES)
+def test_caller_read_is_a_touch_and_moves_lru_pick(evict, schema_file, workflow_file, surface):
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)  # valid ids for the reads; the write is at minute 0
+    b = _open(schema_file, 1)
+    c = _open(schema_file, 2)
+    before = _last_touch(a.session_id)
+    set_now_override(_at(3))
+    assert caller_read(surface, a.session_id) == 0, f"{surface} read must succeed"
+    assert _advanced(before, _last_touch(a.session_id)), f"{surface} must set modified_at"
+    _open(schema_file, 4)
+    assert not contains(b.session_id), f"after {surface} on a, b must be the victim"
+    assert contains(a.session_id) and contains(c.session_id)
+
+
+@pytest.mark.parametrize("surface", ADMIN_READS)
+def test_admin_and_serve_status_reads_are_not_touches(
+    evict, schema_file, monkeypatch, tmp_path, surface
+):
     monkeypatch.setenv(ENV_ADMIN, ADMIN_TOKEN)
     a = _open(schema_file, 0)
     b = _open(schema_file, 1)
     c = _open(schema_file, 2)
+    before = _last_touch(a.session_id)
     set_now_override(_at(3))
-    list_sessions()
-    build_report(ADMIN_TOKEN)
-    _serve_status_payload()
-    d = _open(schema_file, 4)
-    assert not contains(a.session_id), "admin/serve_status reads must not refresh the touch"
-    assert contains(b.session_id) and contains(c.session_id) and contains(d.session_id)
+    _admin_read(surface, tmp_path / "ckpt")
+    assert _last_touch(a.session_id) == before, f"admin read {surface} must not move modified_at"
+    _open(schema_file, 4)
+    assert not contains(a.session_id), f"admin read {surface} must not change the victim pick"
+    assert contains(b.session_id) and contains(c.session_id)
+
+
+def test_tie_touch_order_a_then_b_evicts_a(evict_pair, schema_file):
+    # Open order is B then A, so opening order alone would evict B. The final
+    # touches are A, B, A, B: A's last touch is the earlier one, so A is the victim.
+    b = _open_frozen(schema_file)
+    a = _open_frozen(schema_file)
+    for sid in (a.session_id, b.session_id, a.session_id, b.session_id):
+        get_session(sid)  # frozen clock: every modified_at ties; touch_seq decides
+    _open_frozen(schema_file)
+    assert not contains(a.session_id), "the session touched first must be the victim"
+    assert contains(b.session_id)
+
+
+def test_tie_touch_order_b_then_a_evicts_b(evict_pair, schema_file):
+    # Open order is A then B, so opening order alone would evict A. The final
+    # touches are B, A, B, A: B's last touch is the earlier one, so B is the victim.
+    a = _open_frozen(schema_file)
+    b = _open_frozen(schema_file)
+    for sid in (b.session_id, a.session_id, b.session_id, a.session_id):
+        get_session(sid)  # frozen clock: every modified_at ties; touch_seq decides
+    _open_frozen(schema_file)
+    assert not contains(b.session_id), "the session touched first must be the victim"
+    assert contains(a.session_id)
+
+
+def test_open_assigns_touch_seq(evict, schema_file):
+    a = _open(schema_file, 0)
+    b = _open(schema_file, 1)
+    seq_a = get_entry(a.session_id).touch_seq
+    seq_b = get_entry(b.session_id).touch_seq
+    assert isinstance(seq_a, int) and isinstance(seq_b, int), "open must take a touch_seq"
+    assert seq_b > seq_a, "a later open must take a later touch_seq"
+
+
+def test_victim_order_compares_modified_at_as_instant(evict_pair, schema_file):
+    # Whole-second stamp "...00Z" and fractional stamp "...00.500000Z": as strings
+    # the fractional one sorts first ('.' < 'Z'), but as instants it is 0.5 s later.
+    set_now_override(BASE)
+    whole = open_session(map_file=str(schema_file), ttl_minutes=600)
+    set_now_override(BASE + timedelta(milliseconds=500))
+    fractional = open_session(map_file=str(schema_file), ttl_minutes=600)
+    set_now_override(_at(1))
+    open_session(map_file=str(schema_file), ttl_minutes=600)  # cap 2: one victim
+    assert not contains(whole.session_id), "the oldest instant must be the victim"
+    assert contains(fractional.session_id)
 
 
 # --- S04: save first, atomic write, victim lock, crash safety ---------------
@@ -787,3 +970,21 @@ def test_load_is_touch_with_fresh_ttl(evict, schema_file):
     loaded = load_snapshot(snap)
     expires = datetime.fromisoformat(loaded.meta.expires_at.replace("Z", "+00:00"))
     assert expires == _at(30 + 60), "a load starts a fresh TTL from load time"
+
+
+def test_touch_seq_not_in_snapshot_fresh_on_load(evict, schema_file, workflow_file):
+    # touchSeqInSnapshot=false: the counter is not persisted; a load is a touch.
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    victim = a.session_id
+    b = _open(schema_file, 1)
+    c = _open(schema_file, 2)
+    _open(schema_file, 4)  # evicts a
+    snap = _snapshot_of(evict, victim)
+    assert "touch_seq" not in snap.read_text(encoding="utf-8"), "snapshot must not carry touch_seq"
+    set_now_override(_at(5))
+    loaded = load_snapshot(snap)
+    assert loaded.store.get("PLR01") is not None, "round trip must keep the rows"
+    seq_loaded = get_entry(loaded.session_id).touch_seq
+    others = [get_entry(s.session_id).touch_seq for s in (b, c)]
+    assert seq_loaded > max(others), "a loaded session must get a fresh touch_seq above all others"

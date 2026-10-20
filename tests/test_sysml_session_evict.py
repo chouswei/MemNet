@@ -1,14 +1,17 @@
 """MN-REQ-05.5 model presence: the SysML cites runtime tests (proposed, not shipped).
 
 Runtime behaviour lives in tests/test_session_evict.py. This file only checks
-that the model points at those tests, that every cited test exists, and that
-the runtime module stays xfail until the engine ships. It makes no claim that a
-flag is true.
+that the model points at those tests, that every cited test exists, that the
+runtime module stays xfail until the engine ships, and that the READ-SURFACES
+and ADMIN-READS blocks match the runtime surface lists and cover every
+registered MCP tool and every session-scoped CLI command in cli.py. It makes
+no claim that a flag is true.
 """
 
 from __future__ import annotations
 
 import ast
+import asyncio
 import re
 from pathlib import Path
 
@@ -20,9 +23,60 @@ REQ = MODELS / "requirements.sysml"
 VERIFY = MODELS / "verify.sysml"
 BEHAVIOUR = MODELS / "behaviour.sysml"
 RUNTIME = ROOT / "tests" / "test_session_evict.py"
+CLI = ROOT / "parts" / "common" / "memnet" / "memnet" / "cli.py"
 VER_IDS = [f"MN-VER-05-S0{n}" for n in range(3, 10)]
 SATISFY_LINE = (
     r"^\s*satisfy\s+MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru\s*;"
+)
+# Registered MCP tools that are not caller reads: writes, lifecycle, lease verbs.
+# Every other registered tool must be a READ-SURFACES or ADMIN-READS entry, so a
+# new tool fails test_every_caller_mcp_read_tool_is_listed until it is classified.
+MCP_NON_READ_TOOLS = frozenset(
+    {
+        "add",
+        "extend",
+        "import_slice",
+        "ingest_codebase",
+        "ingest_pcba",
+        "ingest_skills",
+        "ingest_sysml",
+        "mutate",
+        "release",
+        "reserve",
+        "session_acl_bind",
+        "session_acl_enable",
+        "session_acl_grant",
+        "session_close",
+        "session_load",
+        "session_open",
+        "session_save",
+        "snap_model",
+        "update",
+    }
+)
+# CLI function name -> surface name, where the CLI function is named differently
+# from its MCP tool or classification entry. Other session-scoped commands match by name.
+CLI_SURFACE_ALIAS = {
+    "add_cmd": "add",
+    "delete_cmd": "delete",
+    "export_pin_map_cmd": "export_pin_map",
+    "extend_cmd": "extend",
+    "import_slice_cmd": "import_slice",
+    "ingest_codebase_cmd": "ingest_codebase",
+    "ingest_pcba_cmd": "ingest_pcba",
+    "ingest_skills_cmd": "ingest_skills",
+    "ingest_sysml_cmd": "ingest_sysml",
+    "mutate_cmd": "mutate",
+    "prune_stale_cmd": "prune_stale",
+    "query_find": "find",
+    "query_pin_map": "pin_map",
+    "release_cmd": "release",
+    "reserve_cmd": "reserve",
+    "update_cmd": "update",
+}
+# Session-scoped CLI writes and prunes with no MCP tool of the same name.
+CLI_ONLY_NON_READ = frozenset(
+    {"delete", "prune_dangling", "prune_orphans", "prune_recyclable", "prune_stale"}
 )
 
 
@@ -169,6 +223,100 @@ def test_evict_saving_closes_only_on_evict_saved():
 
 def test_readme_points_at_runtime_file():
     assert "tests/test_session_evict.py" in _read(README)
+
+
+def _block_names(text: str, name: str) -> list[str]:
+    """Surface names between ``<name>-BEGIN`` and ``<name>-END``, one per line."""
+    begin, end = f"{name}-BEGIN", f"{name}-END"
+    assert text.count(begin) == 1, f"{begin} must appear exactly once in requirements.sysml"
+    assert text.count(end) == 1, f"{end} must appear exactly once in requirements.sysml"
+    body = text.split(begin, 1)[1].split(end, 1)[0]
+    return [line.strip() for line in body.splitlines() if line.strip()]
+
+
+def _module_tuple(name: str) -> tuple[str, ...]:
+    """A string-tuple module constant of the runtime test file, read without importing it."""
+    for node in ast.parse(_read(RUNTIME)).body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id == name for t in node.targets
+        ):
+            return tuple(ast.literal_eval(node.value))
+    raise AssertionError(f"{name} must be a module constant in tests/test_session_evict.py")
+
+
+def test_surface_blocks_match_runtime_constants():
+    text = _read(REQ)
+    for block, const in (("READ-SURFACES", "READ_SURFACES"), ("ADMIN-READS", "ADMIN_READS")):
+        names = _block_names(text, block)
+        assert len(names) == len(set(names)), f"{block} must not repeat a surface"
+        assert set(names) == set(_module_tuple(const)), f"{block} must equal {const}"
+
+
+def test_every_caller_mcp_read_tool_is_listed():
+    from memnet.cli import admin_app
+    from memnet_mcp.server import mcp
+
+    registered = {t.name for t in asyncio.run(mcp.list_tools())}
+    reads = set(_module_tuple("READ_SURFACES"))
+    admin = set(_module_tuple("ADMIN_READS"))
+    cli_only = set(_module_tuple("CLI_READ_ARGV"))
+    assert MCP_NON_READ_TOOLS <= registered, "MCP_NON_READ_TOOLS names an unregistered tool"
+    assert not (reads & MCP_NON_READ_TOOLS), "a READ_SURFACES entry must not be a non-read tool"
+    assert not (admin & MCP_NON_READ_TOOLS), "an ADMIN_READS entry must not be a non-read tool"
+    unlisted = registered - MCP_NON_READ_TOOLS - reads - admin
+    assert not unlisted, f"classify these MCP tools as read or non-read: {sorted(unlisted)}"
+    # get_session is the in-process read; CLI_READ_ARGV names the CLI-only reads;
+    # every other READ entry is an MCP tool.
+    mcp_reads = reads - {"get_session"} - cli_only
+    assert mcp_reads <= registered, "a READ_SURFACES MCP name is not registered"
+    # Admin entries that are not MCP tools must be real `memnet admin` commands.
+    admin_cmds = {"admin_" + c.name.replace("-", "_") for c in admin_app.registered_commands}
+    assert (admin - registered) <= admin_cmds, "ADMIN_READS names an admin command that is absent"
+
+
+def _cli_session_commands() -> dict[str, str]:
+    """CLI function name -> surface name, for every session-scoped command in cli.py.
+
+    cli.py registers commands with typer (``@<app>.command(...)``), not argparse.
+    A command is session-scoped when one of its parameters names a session.
+    """
+    found: dict[str, str] = {}
+    for node in ast.parse(_read(CLI)).body:
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        is_command = any(
+            isinstance(d, ast.Call)
+            and isinstance(d.func, ast.Attribute)
+            and d.func.attr == "command"
+            for d in node.decorator_list
+        )
+        params = [a.arg for a in node.args.args]
+        if is_command and any("session" in p for p in params):
+            found[node.name] = CLI_SURFACE_ALIAS.get(node.name, node.name)
+    return found
+
+
+def test_every_cli_session_command_is_classified():
+    from memnet_mcp.server import mcp
+
+    registered = {t.name for t in asyncio.run(mcp.list_tools())}
+    reads = set(_module_tuple("READ_SURFACES"))
+    admin = set(_module_tuple("ADMIN_READS"))
+    cli_only = set(_module_tuple("CLI_READ_ARGV"))
+    commands = _cli_session_commands()
+    assert commands, "no session-scoped CLI command found in cli.py; the parser has moved"
+    classified = reads | admin | MCP_NON_READ_TOOLS | CLI_ONLY_NON_READ
+    unclassified = sorted(f for f, surface in commands.items() if surface not in classified)
+    assert not unclassified, (
+        f"classify these session-scoped CLI commands as read, admin or non-read: {unclassified}"
+    )
+    # Every CLI-only read must be a real session-scoped command, and every read
+    # that is not an MCP tool must be a CLI-only read with its argv.
+    surfaces = set(commands.values())
+    assert cli_only <= surfaces, "CLI_READ_ARGV names a command absent from cli.py"
+    assert (reads - {"get_session"} - registered) == cli_only, (
+        "a READ_SURFACES entry that is not an MCP tool must be in CLI_READ_ARGV"
+    )
 
 
 def test_no_lease_carried_wording_anywhere_in_models():

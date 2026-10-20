@@ -769,6 +769,17 @@ package MemNetRequirements {
           Proposed, not shipped (engine pending). Runtime checks:
           tests/test_session_evict.py (xfail until the engine ships).
 
+          State (checked at 0.19.25 source). Session-scoped CLI commands
+          call _load_session, which calls ss.touch(). So the MCP reads
+          pin_map, query_warm, find, query_walk, read_list, export_pin_map,
+          housekeep_stats and session_current already touch today, and so do
+          the CLI-only reads (session_resume calls ss.touch() itself). The
+          in-process get_session() only extends the TTL and does NOT touch:
+          a read through get_session() alone leaves modified_at unchanged
+          today. That is the gap the touch rule below closes. session_list,
+          serve_status and the admin commands do not touch. session_save
+          writes a file and does not touch; it is not a read surface.
+
           Cap. At session open or load, after purge_expired, when the count
           reaches MEMNET_MAX_SESSIONS (default 1024) the engine SHALL pick at
           most one victim. One cap lock SHALL cover the count, the victim pick
@@ -776,11 +787,63 @@ package MemNetRequirements {
           lock. The save then runs outside the cap lock, under the victim's
           session lock.
 
-          Victim. The live, non-evicting session with the oldest last touch.
-          The last-touch field is SessionMeta.modified_at (set by
-          SessionStore.touch); the victim pick and the tests read this one field.
-          A touch is any read or write through the session (get_session,
-          mutate, read, load). Admin and serve_status reads are NOT touches.
+          Victim. The live, non-evicting session with the oldest last touch,
+          ordered by (modified_at, touch_seq) and compared as parsed instants,
+          not as strings. SessionMeta.modified_at is set by SessionStore.touch();
+          touch_seq is the tie-break (see Tie order). Every non-admin caller
+          read SHALL set SessionMeta.modified_at through SessionStore.touch().
+          The caller read surfaces are the READ-SURFACES block below; the
+          reads that are NOT touches are the ADMIN-READS block below. Writes
+          (mutate, add, update, import_slice, ingest_*) are touches. Load
+          (session_load) is a touch with a fresh TTL. Open stamps the first
+          touch (modified_at = created_at) and takes a touch_seq, so a
+          never-read session has a defined last touch.
+
+          Tie order. touch_seq is a process-wide monotonic counter held on the
+          registry entry (SessionEntry) and advanced at every touch and open.
+          Build option: touchSeqMonotonic=true, touchSeqInSnapshot=false. The
+          counter is not persisted: a session loaded from a snapshot gets a
+          fresh touch_seq, because the load is a touch. Order by name then id
+          is the fallback only if a build cannot hold the counter; this build
+          can, so the fallback is not used.
+
+          The READ-SURFACES and ADMIN-READS lists cover the MCP tools and the
+          CLI-only surfaces. READ-SURFACES is MCP read tools, CLI-only reads
+          (session_resume, tagmap_show, relations_list, query_neighbors,
+          query_path, query_context, housekeep_stale, housekeep_orphans,
+          housekeep_dangling, housekeep_recyclable) and the in-process
+          get_session. Every session-scoped CLI command in cli.py is a read,
+          an admin read, or a non-read; the sync test fails on any other.
+
+          READ-SURFACES-BEGIN
+          get_session
+          pin_map
+          query_warm
+          find
+          query_walk
+          read_list
+          export_pin_map
+          housekeep_stats
+          session_current
+          session_resume
+          tagmap_show
+          relations_list
+          query_neighbors
+          query_path
+          query_context
+          housekeep_stale
+          housekeep_orphans
+          housekeep_dangling
+          housekeep_recyclable
+          READ-SURFACES-END
+
+          ADMIN-READS-BEGIN
+          serve_status
+          session_list
+          admin_usage_report
+          admin_checkpoint
+          admin_checkpoint_verify
+          ADMIN-READS-END
           A fresh open cannot be its own victim: its session is not in the
           registry until its slot is reserved under the cap lock, so the pick
           never sees it. A load of an evicted id is excluded from its own pick

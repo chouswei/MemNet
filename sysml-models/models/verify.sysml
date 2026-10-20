@@ -2325,11 +2325,21 @@ package MemNetVerification {
     doc /*
       MN-REQ-05.5 R1 (proposed, not shipped) — at MEMNET_MAX_SESSIONS on open
       or load, after purge_expired, evict the live session with the oldest
-      last touch. Any read or write is a touch; admin and serve_status reads
-      are not. Runtime checks (xfail until shipped):
+      last touch, ordered by (modified_at, touch_seq). Any caller read in
+      READ-SURFACES and any write is a touch; reads in ADMIN-READS are not.
+      Runtime checks (xfail until shipped):
       tests/test_session_evict.py::test_evicts_oldest_touched_first,
       ::test_reads_and_writes_are_touches,
-      ::test_admin_and_serve_status_reads_are_not_touches.
+      ::test_admin_and_serve_status_reads_are_not_touches (parametrized over
+      ADMIN_READS),
+      ::test_caller_read_is_a_touch_and_moves_lru_pick (parametrized over
+      READ_SURFACES),
+      ::test_tie_touch_order_a_then_b_evicts_a,
+      ::test_tie_touch_order_b_then_a_evicts_b,
+      ::test_open_assigns_touch_seq,
+      ::test_victim_order_compares_modified_at_as_instant.
+      Presence and surface-list sync: the sysml session-evict sync module
+      in tests/ (not an xfail runtime file).
     */
     attribute verificationId : String = "MN-VER-05-S03";
 
@@ -2517,7 +2527,8 @@ package MemNetVerification {
       ::test_no_rid_commit_after_evict_and_reload_succeeds,
       ::test_rid_held_by_other_llm_refused_reserved,
       ::test_reopen_restored_true_no_alerts,
-      ::test_load_is_touch_with_fresh_ttl.
+      ::test_load_is_touch_with_fresh_ttl,
+      ::test_touch_seq_not_in_snapshot_fresh_on_load.
     */
     attribute verificationId : String = "MN-VER-05-S09";
 

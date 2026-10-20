@@ -170,6 +170,12 @@ package MemNet {
     attribute evictPicksOldestTouch : Boolean = true;           // test_evicts_oldest_touched_first
     attribute evictTouchOnReadOrWrite : Boolean = true;         // test_reads_and_writes_are_touches
     attribute evictAdminReadsNotTouch : Boolean = true;         // test_admin_and_serve_status_reads_are_not_touches
+    // Tie order (MN-REQ-05.5): pick is (modified_at, touch_seq). touch_seq is a
+    // process-wide monotonic counter on SessionEntry, not persisted in snapshots
+    // (a load is a fresh touch). Name-then-id fallback is unused: the counter is held.
+    // Both tie tests: test_tie_touch_order_a_then_b_evicts_a, test_tie_touch_order_b_then_a_evicts_b
+    attribute touchSeqMonotonic : Boolean = true;
+    attribute touchSeqInSnapshot : Boolean = false;             // test_touch_seq_not_in_snapshot_fresh_on_load
     attribute evictSavesFirstFsync : Boolean = true;            // test_victim_saved_before_drop_atomic_fsync
     attribute evictVictimLockHeld : Boolean = true;             // test_victim_lock_held_from_pick_through_drop
     attribute evictOneCapLock : Boolean = true;                 // test_cap_two_concurrent_opens_one_victim_per_slot
