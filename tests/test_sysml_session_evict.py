@@ -89,10 +89,14 @@ def test_every_runtime_test_is_cited_by_a_verify_doc():
     assert _runtime_test_names() == cited
 
 
-def _evict_shipped() -> bool:
-    found = re.findall(r"attribute evictShipped : Boolean = (true|false);", _read(DEPLOY))
-    assert len(found) == 1, "deploy.sysml must declare evictShipped exactly once"
+def _deploy_flag(name: str) -> bool:
+    found = re.findall(rf"attribute {name} : Boolean = (true|false);", _read(DEPLOY))
+    assert len(found) == 1, f"deploy.sysml must declare {name} exactly once"
     return found[0] == "true"
+
+
+def _evict_shipped() -> bool:
+    return _deploy_flag("evictShipped")
 
 
 def _satisfy_linked() -> bool:
@@ -118,14 +122,15 @@ def _xfail_mark() -> tuple[bool, bool | None]:
     return False, None
 
 
-def _status_guards() -> dict[str, list[bool]]:
-    """Per MN-VER-05-S03..S09 def, the evictShipped value its status guard requires."""
+def _status_guards(flag: str = "evictShipped") -> dict[str, list[bool]]:
+    """Per MN-VER-05-S03..S09 def, the value of ``flag`` its status guard requires."""
     guards: dict[str, list[bool]] = {}
     for block in re.split(r"(?=verification def )", _read(VERIFY)):
         ver = re.search(r'attribute verificationId : String = "(MN-VER-05-S0\d)";', block)
         if ver and ver.group(1) in VER_IDS:
-            found = re.findall(r"\.evictShipped\s*==\s*(true|false)", block)
-            guards[ver.group(1)] = [v == "true" for v in found]
+            found = re.findall(rf"\.{flag}\s*==\s*(true|false)", block)
+            if found:
+                guards[ver.group(1)] = [v == "true" for v in found]
     return guards
 
 
@@ -138,10 +143,17 @@ def test_ship_flags_flip_together():
     assert not_shipped or shipped_ok, (
         "evictShipped, the deploy satisfy link and the runtime xfail mark must flip together"
     )
+    assert _deploy_flag("commitRefusesLostLease") == shipped, (
+        "commitRefusesLostLease must flip with evictShipped (both false now, both true at ship)"
+    )
     guards = _status_guards()
     assert set(guards) == set(VER_IDS), "every MN-VER-05-S03..S09 def must carry a status guard"
     for ver_id, values in guards.items():
         assert values == [shipped], f"{ver_id} evictShipped guard must match the deploy value"
+    lost_lease = _status_guards("commitRefusesLostLease")
+    assert lost_lease == {"MN-VER-05-S09": [shipped]}, (
+        "MN-VER-05-S09 must guard commitRefusesLostLease against the deploy value"
+    )
 
 
 def test_evict_saving_closes_only_on_evict_saved():

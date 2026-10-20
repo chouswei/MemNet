@@ -829,6 +829,14 @@ package MemNetRequirements {
           a fresh TTL. The reopened session returns restored=true and emits
           no alerts.
 
+          Lost lease. A commit naming a lease the caller no longer holds SHALL
+          be refused with code lease_lost; nothing is written; the refused
+          commit is not a touch. The commit names the held reserve with the
+          new wire arg rid (MCP mutate rid=, CLI mutate --rid), and llm_id
+          names the holder. lease= is not this arg: it stays the SessionBind
+          lease (MN-REQ-06.16). The arg is new and not shipped
+          (deploy commitRefusesLostLease=false).
+
           Caller. The caller result carries no cap and no eviction field: the
           caller is not told that a cap or an eviction exists. The open and
           load success results (CLI and MCP) carry no key matching cap, limit,
@@ -850,11 +858,14 @@ package MemNetRequirements {
           Ship (one commit, PR-facing). The commit that ships the engine SHALL
           in one change: (1) flip the module pytestmark in
           tests/test_session_evict.py to strict=True or drop the xfail; (2) set
-          deploy CapsPolicy evictShipped=true; (3) add the deploy satisfy link
+          deploy CapsPolicy evictShipped=true and commitRefusesLostLease=true;
+          (3) add the deploy satisfy link
           MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
           (4) flip the status guards caps.evictShipped == true in
-          MN-VER-05-S03..S09. tests/test_sysml_session_evict.py::test_ship_flags_flip_together
-          fails until (1) to (3) agree; (4) is a manual step at the same commit.
+          MN-VER-05-S03..S09 and caps.commitRefusesLostLease == true in
+          MN-VER-05-S09. tests/test_sysml_session_evict.py::test_ship_flags_flip_together
+          enforces (1) to (4): it fails unless evictShipped, commitRefusesLostLease,
+          the satisfy link and the xfail mark all agree, and every guard matches.
 
           LATER (not dropped, not modelled): a "touched within the last N
           minutes" exemption. Do not add it until a measured run shows

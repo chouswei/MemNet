@@ -31,7 +31,7 @@ from memnet.cli import app
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.mutate_gate import MutateGate
-from memnet.neighbourhood_reserve import extend, reserve
+from memnet.neighbourhood_reserve import reserve
 from memnet.registry import contains, count, get_entry
 from memnet.session import (
     SessionStore,
@@ -569,6 +569,8 @@ def test_open_and_load_results_carry_no_cap_fields(evict, schema_file, workflow_
     set_now_override(_at(3))
     cli_open = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])  # evicts a
     assert cli_open.exit_code == 0
+    # CLI session open/load print wire lines, not JSON (only `version --json` does),
+    # so the CLI side is checked by text token; the MCP side checks keys.
     _assert_no_cap_text(cli_open.stdout + cli_open.stderr)
     set_now_override(_at(4))
     mcp_open = json.loads(asyncio.run(session_open(map_file=str(schema_file))))  # evicts b
@@ -645,6 +647,10 @@ def test_restore_carries_no_lease(evict, schema_file, workflow_file):
 
 
 def test_restore_lease_commit_fails_cleanly(evict, schema_file, workflow_file):
+    # Real write path: MCP mutate (in-process), the same call an agent makes.
+    # The wire names the dropped reserve as rid= and its holder as llm_id=.
+    from memnet_mcp.server import mutate
+
     a = _open(schema_file, 0)
     _seed(a.session_id, workflow_file)
     victim = a.session_id
@@ -656,17 +662,34 @@ def test_restore_lease_commit_fails_cleanly(evict, schema_file, workflow_file):
     _open(schema_file, 1)
     _open(schema_file, 2)
     _open(schema_file, 4)  # evicts a while llm-1 holds a lease on PLR01
+    snap = _snapshot_of(evict, victim)
     set_now_override(_at(5))
-    loaded = load_snapshot(_snapshot_of(evict, victim))
+    loaded = load_snapshot(snap, keep_id=True)  # same id back, live, no lease
     assert lease.rid not in loaded.reserves.leases, "the lease must be absent after load"
+    snap_bytes = snap.read_bytes()
+    snap_mtime = snap.stat().st_mtime_ns
     rows_before = loaded.store.row_count_non_law()
-    wealth_before = loaded.store.get("PLR01").fields["wealth"]
-    # The engine's missing-reserve code: extend/release on a cleared lease raise reserve_expired.
-    with pytest.raises(MemNetError) as exc:
-        extend(loaded.reserves, rid=lease.rid, llm_id="llm-1")
-    assert exc.value.code == "reserve_expired", "a dropped lease must fail with reserve_expired"
-    assert loaded.store.row_count_non_law() == rows_before, "no partial write"
-    assert loaded.store.get("PLR01").fields["wealth"] == wealth_before, "PLR01 must be unchanged"
+    fields_before = dict(loaded.store.get("PLR01").fields)
+    touch_before = get_entry(victim).meta.modified_at
+
+    set_now_override(_at(6))
+    res = json.loads(
+        asyncio.run(
+            mutate(
+                wire_lines=["MATCH (n {id: 'PLR01'}) SET n.wealth = 999"],
+                session=victim,
+                llm_id="llm-1",
+                rid=lease.rid,
+            )
+        )
+    )
+    assert res["exit_code"] != 0, "a commit naming a dropped lease must be refused"
+    assert "@ERR: lease_lost|" in res["stderr"], "the refusal must carry code lease_lost"
+    assert loaded.store.row_count_non_law() == rows_before, "no row may be added or dropped"
+    assert dict(loaded.store.get("PLR01").fields) == fields_before, "PLR01 must be unchanged"
+    assert snap.read_bytes() == snap_bytes, "the snapshot file must not be rewritten"
+    assert snap.stat().st_mtime_ns == snap_mtime, "the snapshot mtime must not move"
+    assert get_entry(victim).meta.modified_at == touch_before, "a refused commit is not a touch"
 
 
 def test_reopen_restored_true_no_alerts(evict, schema_file, capsys):

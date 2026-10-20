@@ -2503,8 +2503,12 @@ package MemNetVerification {
       session from its snapshot: same ACL, no lease carried over (reserve
       leases dropped; the restored session has no bind). The load is a
       touch with a fresh TTL; the reopened session returns restored=true and
-      emits no alerts. Rows and edges survive. Runtime checks (xfail until
-      shipped): tests/test_session_evict.py::
+      emits no alerts. Rows and edges survive. A commit that names the dropped
+      lease (mutate rid=, llm_id) is refused lease_lost: row, field, row count,
+      snapshot bytes and mtime, and last touch are all unchanged; the refused
+      commit is not a touch. Gated by deploy caps.commitRefusesLostLease
+      (= evictShipped). Runtime checks (xfail until shipped):
+      tests/test_session_evict.py::
       test_restore_keeps_rows_edges_and_acl,
       ::test_restore_carries_no_lease,
       ::test_restore_lease_commit_fails_cleanly,
@@ -2518,7 +2522,7 @@ package MemNetVerification {
     objective sessionCapEvictLoadRestores {
       doc /*
         Runtime: tests/test_session_evict.py (restore fidelity, ACL, no lease,
-        restored flag, fresh TTL). Status guard only below.
+        restored flag, fresh TTL, lost-lease refusal). Status guards only below.
       */
       verify sessionCapEvictLruReq;
       verify loadSessionSnapshotReq;
@@ -2526,6 +2530,10 @@ package MemNetVerification {
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
             .evictShipped == false
+      }
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .commitRefusesLostLease == false
       }
     }
   }
