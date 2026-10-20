@@ -28,9 +28,10 @@ import memnet.snapshot as snapshot_mod
 from memnet.acl import acl_to_dict
 from memnet.admin_usage import build_report  # noqa: F401  (admin read surface)
 from memnet.cli import app
+from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.mutate_gate import MutateGate
-from memnet.neighbourhood_reserve import reserve
+from memnet.neighbourhood_reserve import extend, reserve
 from memnet.registry import contains, count, get_entry
 from memnet.session import (
     SessionStore,
@@ -47,7 +48,8 @@ pytestmark = pytest.mark.xfail(reason="MN-REQ-05.5 not shipped; engine pending",
 runner = CliRunner()
 
 ENV_MAX = "MEMNET_MAX_SESSIONS"
-ENV_DIR = "MEMNET_EVICT_SNAPSHOT_DIR"
+ENV_DIR = "MEMNET_EXPIRE_SNAPSHOT_DIR"  # reused; no second eviction knob
+ENV_ALIAS = "MEMNET_SNAPSHOT_DIR"  # optional neutral alias; conflicting paths refuse start
 ENV_ADMIN = "MEMNET_ADMIN_TOKEN"
 ADMIN_TOKEN = "test-admin-token"  # dummy value for the in-process admin read
 BASE = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -69,6 +71,7 @@ def evict(memnet_temp, monkeypatch, tmp_path):
     snap_dir.mkdir()
     monkeypatch.setenv(ENV_MAX, "3")
     monkeypatch.setenv(ENV_DIR, str(snap_dir))
+    monkeypatch.delenv(ENV_ALIAS, raising=False)
     set_now_override(BASE)
     return snap_dir
 
@@ -104,6 +107,36 @@ def _serve_status_payload() -> dict:
     from memnet_mcp.server import serve_status
 
     return json.loads(asyncio.run(serve_status()))
+
+
+# Keys match by word or prefix: a segment starting with one of these names.
+_CAP_KEY = re.compile(r"(^|_)(cap|limit|max_sessions|sessions_count|evict)")
+# Raw text matches only these exact tokens, so ordinary words like "capacity" pass.
+_CAP_TOKEN = re.compile(r"\b(max_sessions|sessions_count|evicted)\b")
+
+
+def _keys_of(node) -> set[str]:
+    if isinstance(node, dict):
+        keys = set(node)
+        for value in node.values():
+            keys |= _keys_of(value)
+        return keys
+    if isinstance(node, list):
+        keys: set[str] = set()
+        for item in node:
+            keys |= _keys_of(item)
+        return keys
+    return set()
+
+
+def _assert_no_cap_text(text: str) -> None:
+    assert not _CAP_TOKEN.search(text.lower()), "open/load output must not name a cap or eviction"
+
+
+def _assert_no_cap_fields(payload: dict) -> None:
+    bad = sorted(k for k in _keys_of(payload) if _CAP_KEY.search(k.lower()))
+    assert not bad, f"open/load result carries cap-like keys: {bad}"
+    _assert_no_cap_text(json.dumps(payload))
 
 
 # --- S03: oldest-touch order and touch semantics ----------------------------
@@ -154,17 +187,53 @@ def test_victim_saved_before_drop_atomic_fsync(evict, schema_file, workflow_file
     _open(schema_file, 1)
     _open(schema_file, 2)
     victim = a.session_id
-    fsynced: list[int] = []
-    real_fsync = os.fsync
+    snap_dir_stat = os.stat(evict)
+    snap_dir_real = os.path.realpath(evict)
+    events: list[str] = []  # kinds only; never a session id or path
+    real_fsync, real_replace, real_rename = os.fsync, os.replace, os.rename
+    real_drop, real_session_drop = registry_mod.remove_entry, session_mod.remove_entry
 
-    def counting_fsync(fd):
-        fsynced.append(fd)
+    def recording_fsync(fd):
+        st = os.fstat(fd)
+        if stat.S_ISDIR(st.st_mode):
+            same = st.st_ino == snap_dir_stat.st_ino and st.st_dev == snap_dir_stat.st_dev
+            events.append("dir_fsync_snap" if same else "dir_fsync_other")
+        elif stat.S_ISREG(st.st_mode):
+            events.append("file_fsync")
         return real_fsync(fd)
 
-    monkeypatch.setattr(os, "fsync", counting_fsync)
+    def wrap_rename(real):
+        def rename(src, dst, *args, **kwargs):
+            if os.path.realpath(os.path.dirname(os.fspath(dst))) == snap_dir_real:
+                events.append("rename_snap")
+            return real(src, dst, *args, **kwargs)
+
+        return rename
+
+    def wrap_drop(real):
+        def drop(*args, **kwargs):
+            events.append("drop")
+            return real(*args, **kwargs)
+
+        return drop
+
+    monkeypatch.setattr(os, "fsync", recording_fsync)
+    monkeypatch.setattr(os, "replace", wrap_rename(real_replace))
+    monkeypatch.setattr(os, "rename", wrap_rename(real_rename))
+    monkeypatch.setattr(registry_mod, "remove_entry", wrap_drop(real_drop))
+    monkeypatch.setattr(session_mod, "remove_entry", wrap_drop(real_session_drop))
     _open(schema_file, 4)
     assert not contains(victim)
-    assert len(fsynced) >= 2, "file and directory must both be fsynced"
+
+    def step(kind: str, after: int) -> int:
+        idx = next((i for i in range(after, len(events)) if events[i] == kind), None)
+        assert idx is not None, f"no {kind} after step {after}: {events}"
+        return idx
+
+    file_sync = step("file_fsync", 0)
+    renamed = step("rename_snap", file_sync)
+    dir_sync = step("dir_fsync_snap", renamed)
+    step("drop", dir_sync)  # RAM drop only after the snapshot dir is fsynced
     snap = _snapshot_of(evict, victim)
     assert stat.S_IMODE(snap.stat().st_mode) == 0o600
     leftovers = [p.name for p in evict.iterdir() if p != snap]
@@ -283,22 +352,70 @@ def test_all_in_use_refusal_drops_nothing(evict, schema_file):
     assert not any(evict.iterdir()), "no snapshot may be written on refusal"
 
 
+def test_cap_full_with_snapshot_dir_evicts_oldest(evict, schema_file):
+    # Positive control for the refusal test below: with the dir set, the same full cap evicts.
+    a = _open(schema_file, 0)
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    fresh = _open(schema_file, 4)
+    assert not contains(a.session_id), "oldest session must be evicted when the dir is set"
+    assert contains(fresh.session_id), "the fresh open must be live"
+    _snapshot_of(evict, a.session_id)  # the victim's complete snapshot exists
+
+
 def test_no_snapshot_dir_refuses_without_eviction(evict, schema_file, monkeypatch):
     monkeypatch.delenv(ENV_DIR, raising=False)
+    monkeypatch.delenv(ENV_ALIAS, raising=False)
     ids = [_open(schema_file, m).session_id for m in (0, 1, 2)]
     with pytest.raises(MemNetError) as exc:
         _open(schema_file, 4)
     assert exc.value.code == "limit_exceeded"
+    assert "all sessions are in use" in exc.value.message
     assert all(contains(sid) for sid in ids), "no eviction without a snapshot dir"
+    for sid in ids:
+        assert get_session(sid).session_id == sid, "every existing session must stay live"
+    assert not any(evict.iterdir()), "no snapshot may be written without a dir"
+
+
+def test_snapshot_dir_alias_conflict_refuses(tmp_path, monkeypatch):
+    same = tmp_path / "snaps"
+    same.mkdir()
+    other = tmp_path / "other"
+    monkeypatch.setenv(ENV_DIR, str(same))
+    monkeypatch.setenv(ENV_ALIAS, str(same))
+    Caps()  # the same path under both names is accepted
+    monkeypatch.setenv(ENV_ALIAS, str(other))
+    with pytest.raises(MemNetError) as exc:
+        Caps()
+    assert exc.value.code == "config_conflict", "two different snapshot dirs must refuse start"
+    assert str(same) not in exc.value.message and str(other) not in exc.value.message, (
+        "the refusal must not name either path"
+    )
 
 
 def test_cap_two_concurrent_opens_one_victim_per_slot(evict, schema_file, monkeypatch):
     monkeypatch.setenv(ENV_MAX, "2")
     a = _open(schema_file, 0)
     b = _open(schema_file, 1)
-    seeded = {a.session_id, b.session_id}
+    victims = {a.session_id, b.session_id}
     set_now_override(_at(30))
-    barrier = threading.Barrier(4)
+    real_write = snapshot_mod.write_snapshot
+    picked: set[str] = set()
+    picked_lock = threading.Lock()
+    both_picked = threading.Event()
+    release = threading.Event()
+
+    def held_write(ss, path, **kwargs):
+        # Each victim stays mid-save (slot still held) until the late opens have run.
+        if ss.session_id in victims:
+            with picked_lock:
+                picked.add(ss.session_id)
+                if len(picked) == len(victims):
+                    both_picked.set()
+            release.wait(5)
+        return real_write(ss, path, **kwargs)
+
+    monkeypatch.setattr(snapshot_mod, "write_snapshot", held_write)
     opened: list[SessionStore] = []
     refused: list[MemNetError] = []
     errors: list[Exception] = []
@@ -306,7 +423,6 @@ def test_cap_two_concurrent_opens_one_victim_per_slot(evict, schema_file, monkey
     stop = threading.Event()
 
     def worker():
-        barrier.wait(5)
         try:
             opened.append(open_session(map_file=str(schema_file), ttl_minutes=600))
         except MemNetError as exc:
@@ -319,27 +435,43 @@ def test_cap_two_concurrent_opens_one_victim_per_slot(evict, schema_file, monkey
             samples.append(count())
 
     mon = threading.Thread(target=sampler)
-    threads = [threading.Thread(target=worker) for _ in range(4)]
     mon.start()
-    for t in threads:
+    pickers = [threading.Thread(target=worker) for _ in range(2)]
+    for t in pickers:
         t.start()
-    for t in threads:
-        t.join(10)
-    stop.set()
-    mon.join(5)
+    try:
+        assert both_picked.wait(5), "both victims must be picked and mid-save"
+        # Release window: victims are still live and mid-save, so the picking opens
+        # must not have returned a session yet, and the cap is still full.
+        assert count() == 2, "victims stay registered until their save and drop"
+        assert not opened, "a picking open must not return before its victim is dropped"
+        late = [threading.Thread(target=worker) for _ in range(2)]
+        for t in late:
+            t.start()
+        for t in late:
+            t.join(5)
+        # Late opens see no evictable session (both victims are evicting) and are refused
+        # at once, without queuing behind the victims' saves.
+        assert len(refused) == 2, "late opens must be refused while the victims are mid-save"
+        assert count() == 2 and not opened, "cap stays full and no open returns during the window"
+    finally:
+        release.set()
+        for t in pickers:
+            t.join(5)
+        stop.set()
+        mon.join(5)
 
     assert not errors, "only limit_exceeded refusals are allowed"
-    assert len(opened) + len(refused) == 4
-    # Two victims exist and the cap lock serialises picks, so the first two opens always
-    # succeed. Later opens may be refused while both victims are mid-save (race-dependent).
-    assert len(opened) >= 2, "the first two opens each free one slot"
+    assert len(opened) == 2, "exactly the two opens that picked a victim succeed"
+    assert all(contains(s.session_id) for s in opened), (
+        "each successful open is live after its drop"
+    )
     assert all(e.code == "limit_exceeded" for e in refused)
+    assert all("all sessions are in use" in e.message for e in refused)
     assert samples and max(samples) <= 2, "count must never exceed the cap"
     assert count() == 2
-    created = seeded | {s.session_id for s in opened}
-    evicted = {sid for sid in created if not contains(sid)}
-    assert len(evicted) == len(opened), "each successful open consumes exactly one victim"
-    assert len(list(evict.iterdir())) == len(evicted), "one snapshot per victim"
+    assert not any(contains(sid) for sid in victims), "each victim is dropped after its save"
+    assert len(list(evict.iterdir())) == 2, "one snapshot per victim"
 
 
 # --- S07: exemptions ----------------------------------------------------------
@@ -400,12 +532,16 @@ def test_reserve_lease_is_not_an_exemption(evict, schema_file, workflow_file):
     _seed(a.session_id, workflow_file)
     b = _open(schema_file, 1)
     _open(schema_file, 2)
-    holder = SessionStore(a.session_id)
-    reserve(holder.reserves, holder.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(3))
+    live = get_session(a.session_id)
+    lease = reserve(
+        live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(3)
+    )
+    assert lease.rid in live.reserves.leases, "the lease must be held before eviction"
     _open(schema_file, 4)
     assert not contains(a.session_id), "a reserve lease alone does not exempt a session"
     assert contains(b.session_id)
     loaded = load_snapshot(_snapshot_of(evict, a.session_id))
+    assert lease.rid not in loaded.reserves.leases, "the lease must be absent after load"
     assert loaded.reserves.leases == {}, "reserve leases do not survive eviction"
 
 
@@ -421,6 +557,33 @@ def test_caller_result_has_no_eviction_field(evict, schema_file):
     assert res.exit_code == 0
     text = (res.stdout + res.stderr).lower()
     assert "evict" not in text, "caller output must not mention eviction"
+
+
+def test_open_and_load_results_carry_no_cap_fields(evict, schema_file, workflow_file):
+    from memnet_mcp.server import session_load, session_open
+
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    b = _open(schema_file, 1)
+    _open(schema_file, 2)
+    set_now_override(_at(3))
+    cli_open = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])  # evicts a
+    assert cli_open.exit_code == 0
+    _assert_no_cap_text(cli_open.stdout + cli_open.stderr)
+    set_now_override(_at(4))
+    mcp_open = json.loads(asyncio.run(session_open(map_file=str(schema_file))))  # evicts b
+    assert mcp_open["exit_code"] == 0, mcp_open
+    _assert_no_cap_fields(mcp_open)
+    set_now_override(_at(5))
+    mcp_load = json.loads(asyncio.run(session_load(file=str(_snapshot_of(evict, a.session_id)))))
+    assert mcp_load["exit_code"] == 0, mcp_load
+    _assert_no_cap_fields(mcp_load)
+    set_now_override(_at(6))
+    cli_load = runner.invoke(
+        app, ["session", "load", "--file", str(_snapshot_of(evict, b.session_id)), "--keep-id"]
+    )
+    assert cli_load.exit_code == 0
+    _assert_no_cap_text(cli_load.stdout + cli_load.stderr)
 
 
 def test_admin_report_names_victim_never_mn_id(evict, schema_file):
@@ -464,17 +627,46 @@ def test_restore_carries_no_lease(evict, schema_file, workflow_file):
     _seed(a.session_id, workflow_file)
     victim = a.session_id
     SessionStore(victim).grant_caller("worker-1")
-    holder = SessionStore(victim)
-    reserve(holder.reserves, holder.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(0.5))
+    live = get_session(victim)
+    lease = reserve(
+        live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(0.5)
+    )
+    assert lease.rid in live.reserves.leases, "the lease must be held before eviction"
     _open(schema_file, 1)
     _open(schema_file, 2)
     _open(schema_file, 4)  # evicts a; a reserve lease alone does not exempt it
     snap = _snapshot_of(evict, victim)
     set_now_override(_at(5))
     loaded = load_snapshot(snap)
+    assert lease.rid not in loaded.reserves.leases, "the lease must be absent after load"
     assert loaded.reserves.leases == {}, "restored session must carry no reserve leases"
     assert not (acl_to_dict(loaded.acl) or {}).get("bind"), "no bind may survive the restore"
     assert "worker-1" in loaded.acl.callers, "the ACL itself is kept"
+
+
+def test_restore_lease_commit_fails_cleanly(evict, schema_file, workflow_file):
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    victim = a.session_id
+    live = get_session(victim)
+    lease = reserve(
+        live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(0.5)
+    )
+    assert lease.rid in live.reserves.leases, "the lease must be held before eviction"
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _open(schema_file, 4)  # evicts a while llm-1 holds a lease on PLR01
+    set_now_override(_at(5))
+    loaded = load_snapshot(_snapshot_of(evict, victim))
+    assert lease.rid not in loaded.reserves.leases, "the lease must be absent after load"
+    rows_before = loaded.store.row_count_non_law()
+    wealth_before = loaded.store.get("PLR01").fields["wealth"]
+    # The engine's missing-reserve code: extend/release on a cleared lease raise reserve_expired.
+    with pytest.raises(MemNetError) as exc:
+        extend(loaded.reserves, rid=lease.rid, llm_id="llm-1")
+    assert exc.value.code == "reserve_expired", "a dropped lease must fail with reserve_expired"
+    assert loaded.store.row_count_non_law() == rows_before, "no partial write"
+    assert loaded.store.get("PLR01").fields["wealth"] == wealth_before, "PLR01 must be unchanged"
 
 
 def test_reopen_restored_true_no_alerts(evict, schema_file, capsys):

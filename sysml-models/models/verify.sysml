@@ -2411,11 +2411,16 @@ package MemNetVerification {
     doc /*
       MN-REQ-05.5 R4 (proposed) — cap full and no evictable candidate: refuse
       with code limit_exceeded and the message "all sessions are in use";
-      nothing is dropped. No snapshot dir means refuse, no eviction. Concurrent
-      opens at cap=2 keep count <= cap with one victim per slot.
+      nothing is dropped. No snapshot dir means refuse, no eviction; with the
+      dir set the same full cap evicts (positive control). The snapshot dir
+      and its alias must agree or start refuses (config_conflict). Concurrent
+      opens at cap=2: the two opens that pick a victim each succeed, late
+      opens are refused while the victims are mid-save, count <= cap throughout.
       Runtime checks (xfail until shipped): tests/test_session_evict.py::
       test_all_in_use_refusal_drops_nothing,
+      ::test_cap_full_with_snapshot_dir_evicts_oldest,
       ::test_no_snapshot_dir_refuses_without_eviction,
+      ::test_snapshot_dir_alias_conflict_refuses,
       ::test_cap_two_concurrent_opens_one_victim_per_slot.
     */
     attribute verificationId : String = "MN-VER-05-S06";
@@ -2472,6 +2477,7 @@ package MemNetVerification {
       counter is checked by its deploy attribute, not here). Runtime checks
       (xfail until shipped): tests/test_session_evict.py::
       test_caller_result_has_no_eviction_field,
+      ::test_open_and_load_results_carry_no_cap_fields,
       ::test_admin_report_names_victim_never_mn_id.
     */
     attribute verificationId : String = "MN-VER-05-S08";
@@ -2501,6 +2507,7 @@ package MemNetVerification {
       shipped): tests/test_session_evict.py::
       test_restore_keeps_rows_edges_and_acl,
       ::test_restore_carries_no_lease,
+      ::test_restore_lease_commit_fails_cleanly,
       ::test_reopen_restored_true_no_alerts,
       ::test_load_is_touch_with_fresh_ttl.
     */

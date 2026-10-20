@@ -461,7 +461,9 @@ package MemNetBehaviour {
         Never entered for the session being opened or loaded, or for a
         session holding an active write lock or an open bind. The victim is
         marked evicting under the cap lock; its victim lock is held from pick
-        through save, drop and registry removal. Save runs outside the cap lock.
+        through save, drop and registry removal. Save runs outside the cap lock;
+        the victim keeps its slot until dropped, and the open that picked it
+        waits for this save.
         Atomic write: temp file in the same dir, fsync file, rename, fsync dir.
       */
     }

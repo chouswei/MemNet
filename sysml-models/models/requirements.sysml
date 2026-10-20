@@ -779,28 +779,39 @@ package MemNetRequirements {
           Victim. The live, non-evicting session with the oldest last touch.
           A touch is any read or write through the session (get_session,
           mutate, read, load). Admin and serve_status reads are NOT touches.
-          The session being opened or loaded is excluded separately; only an
-          open bind or live writes (its session lock held by an in-flight
-          mutate or commit) exempt any other session. A reserve (RSV) lease
-          alone does NOT exempt its session. Exempt sessions are never
-          auto-dropped.
+          A fresh open cannot be its own victim: its session is not in the
+          registry until its slot is reserved under the cap lock, so the pick
+          never sees it. A load of an evicted id is excluded from its own pick
+          the same way. Only an open bind or live writes (its session lock held
+          by an in-flight mutate or commit) exempt any other session. A reserve
+          (RSV) lease alone does NOT exempt its session. Exempt sessions are
+          never auto-dropped.
 
           Save first. The victim's session lock SHALL be held from pick
-          through save, RAM drop and registry removal, then released. Under
-          that lock the victim SHALL be written to MEMNET_EVICT_SNAPSHOT_DIR as
-          an atomic write: temp file in the same directory, fsync the file,
+          through save, RAM drop and registry removal, then released. The
+          victim keeps its slot until it is dropped: the open that picked it
+          waits for that save and takes the slot only after the drop. Under
+          that lock the victim SHALL be written to MEMNET_EXPIRE_SNAPSHOT_DIR
+          (reused; written whether or not MEMNET_SAVE_ON_EXPIRE is on) as an
+          atomic write: temp file in the same directory, fsync the file,
           rename over the final name, fsync the directory; mode 0600; @SNAP
           version 2 with the ACL. Only after a complete save SHALL the engine
           drop the victim from RAM, then remove its registry entry. A failed
-          save keeps the victim live (EvError: evictSaving to active) and the
-          next-oldest candidate is tried.
+          save keeps the victim live (EvError: evictSaving to active); the
+          engine then tries the next-oldest candidate, or refuses with
+          limit_exceeded if none is left.
 
           Crash safety. A crash after the fsync and before the drop SHALL
           leave a complete snapshot. On restart the session is restored from
           that snapshot or is absent; never torn.
 
-          No snapshot dir. MEMNET_EVICT_SNAPSHOT_DIR has no default. Without
-          it the cap refuses and nothing is evicted.
+          No snapshot dir. MEMNET_EXPIRE_SNAPSHOT_DIR has no default. Without
+          it the cap refuses and nothing is evicted. With it set, a full cap
+          evicts. An optional neutral alias MEMNET_SNAPSHOT_DIR MAY name the
+          same directory. If both are set to different paths, serve SHALL
+          refuse to start: Caps construction fails with config_conflict and
+          neither path is printed. The same path under both names is accepted.
+          Dropping a separate eviction knob is deliberate: one dir, one meaning.
 
           Unsaveable. An unsaveable candidate (snapshot_unsaveable, over cap,
           or write error) SHALL stay live and the engine SHALL try the
@@ -819,16 +830,31 @@ package MemNetRequirements {
           no alerts.
 
           Caller. The caller result carries no cap and no eviction field: the
-          caller is not told that a cap or an eviction exists. The evicted
-          session's name or tag (never an mn_ id) and the sessions_evicted
-          counter are reported on admin serve_status only.
+          caller is not told that a cap or an eviction exists. The open and
+          load success results (CLI and MCP) carry no key matching cap, limit,
+          max_sessions, sessions_count or evict. The evicted session's name or
+          tag (never an mn_ id) and the sessions_evicted counter are reported
+          on admin serve_status only. Accepted: the limit_exceeded refusal
+          itself reveals that a cap exists. That refusal is the one
+          caller-visible signal and is not hidden.
 
           Settled (not open): a lease does not survive eviction; a load is a
           touch with a fresh TTL; admin and serve_status reads are not
-          touches; no default snapshot dir (no dir means the cap refuses);
-          one cap lock for count, pick and slot reservation; save outside
-          the cap lock, under the victim lock; no auto-drop of unsaveable
-          sessions, counted and surfaced.
+          touches; no default snapshot dir (no dir means the cap refuses;
+          MEMNET_EXPIRE_SNAPSHOT_DIR is reused, with MEMNET_SNAPSHOT_DIR as an
+          alias that must agree); one cap lock for count, pick and slot
+          reservation; save outside the cap lock, under the victim lock; the
+          victim keeps its slot until dropped and the picking open waits for
+          its save; no auto-drop of unsaveable sessions, counted and surfaced.
+
+          Ship (one commit, PR-facing). The commit that ships the engine SHALL
+          in one change: (1) flip the module pytestmark in
+          tests/test_session_evict.py to strict=True or drop the xfail; (2) set
+          deploy CapsPolicy evictShipped=true; (3) add the deploy satisfy link
+          MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
+          (4) flip the status guards caps.evictShipped == true in
+          MN-VER-05-S03..S09. tests/test_sysml_session_evict.py::test_ship_flags_flip_together
+          fails until (1) to (3) agree; (4) is a manual step at the same commit.
 
           LATER (not dropped, not modelled): a "touched within the last N
           minutes" exemption. Do not add it until a measured run shows

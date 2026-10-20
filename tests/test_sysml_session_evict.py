@@ -21,6 +21,9 @@ VERIFY = MODELS / "verify.sysml"
 BEHAVIOUR = MODELS / "behaviour.sysml"
 RUNTIME = ROOT / "tests" / "test_session_evict.py"
 VER_IDS = [f"MN-VER-05-S0{n}" for n in range(3, 10)]
+SATISFY_LINE = (
+    r"^\s*satisfy\s+MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru\s*;"
+)
 
 
 def _read(path: Path) -> str:
@@ -86,18 +89,59 @@ def test_every_runtime_test_is_cited_by_a_verify_doc():
     assert _runtime_test_names() == cited
 
 
-def test_runtime_module_is_xfail_until_shipped():
-    text = _read(RUNTIME)
-    assert "pytestmark = pytest.mark.xfail(" in text
-    assert 'reason="MN-REQ-05.5 not shipped; engine pending"' in text
-    assert "strict=False" in text
+def _evict_shipped() -> bool:
+    found = re.findall(r"attribute evictShipped : Boolean = (true|false);", _read(DEPLOY))
+    assert len(found) == 1, "deploy.sysml must declare evictShipped exactly once"
+    return found[0] == "true"
 
 
-def test_deploy_satisfy_not_linked_while_not_shipped():
-    text = _read(DEPLOY)
-    satisfy = "satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru"
-    assert satisfy not in text
-    assert "attribute evictShipped : Boolean = false;" in text
+def _satisfy_linked() -> bool:
+    return re.search(SATISFY_LINE, _read(DEPLOY), re.M) is not None
+
+
+def _xfail_mark() -> tuple[bool, bool | None]:
+    """Whether the runtime module carries an xfail pytestmark, and its strict value."""
+    for node in ast.parse(_read(RUNTIME)).body:
+        if not (
+            isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets)
+        ):
+            continue
+        marks = node.value.elts if isinstance(node.value, ast.List) else [node.value]
+        for mark in marks:
+            if isinstance(mark, ast.Call) and ast.unparse(mark.func) == "pytest.mark.xfail":
+                strict = next(
+                    (ast.literal_eval(kw.value) for kw in mark.keywords if kw.arg == "strict"),
+                    None,
+                )
+                return True, strict
+    return False, None
+
+
+def _status_guards() -> dict[str, list[bool]]:
+    """Per MN-VER-05-S03..S09 def, the evictShipped value its status guard requires."""
+    guards: dict[str, list[bool]] = {}
+    for block in re.split(r"(?=verification def )", _read(VERIFY)):
+        ver = re.search(r'attribute verificationId : String = "(MN-VER-05-S0\d)";', block)
+        if ver and ver.group(1) in VER_IDS:
+            found = re.findall(r"\.evictShipped\s*==\s*(true|false)", block)
+            guards[ver.group(1)] = [v == "true" for v in found]
+    return guards
+
+
+def test_ship_flags_flip_together():
+    shipped = _evict_shipped()
+    linked = _satisfy_linked()
+    has_xfail, strict = _xfail_mark()
+    not_shipped = not shipped and not linked and has_xfail and strict is False
+    shipped_ok = shipped and linked and (not has_xfail or strict is True)
+    assert not_shipped or shipped_ok, (
+        "evictShipped, the deploy satisfy link and the runtime xfail mark must flip together"
+    )
+    guards = _status_guards()
+    assert set(guards) == set(VER_IDS), "every MN-VER-05-S03..S09 def must carry a status guard"
+    for ver_id, values in guards.items():
+        assert values == [shipped], f"{ver_id} evictShipped guard must match the deploy value"
 
 
 def test_evict_saving_closes_only_on_evict_saved():
