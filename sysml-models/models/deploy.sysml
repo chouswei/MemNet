@@ -156,6 +156,52 @@ package MemNet {
     attribute maxLaw : Integer = 100;
     attribute maxRelations : Integer = 200;
     attribute maxSessions : Integer = 1024;
+    // MN-REQ-05.5 session cap LRU evict: proposed, not shipped (engine pending).
+    // Each flag is a spec record; its runtime check is the pytest on the same
+    // line in tests/test_session_evict.py (xfail until the engine ships).
+    attribute evictShipped : Boolean = false;
+    attribute evictOnSessionCap : Boolean = true;               // test_evicts_oldest_touched_first
+    attribute envMaxSessions : String = "MEMNET_MAX_SESSIONS";
+    attribute envSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";  // reused; no second eviction knob
+    attribute envSnapshotDirAlias : String = "MEMNET_SNAPSHOT_DIR";     // optional neutral alias; same path or refuse start
+    attribute evictSnapshotDirAliasConflictRefuses : Boolean = true;    // test_snapshot_dir_alias_conflict_refuses
+    attribute evictSnapshotDirDefault : String = "unset";       // test_no_snapshot_dir_refuses_without_eviction
+    attribute evictCapFullWithDirEvicts : Boolean = true;       // test_cap_full_with_snapshot_dir_evicts_oldest
+    attribute evictPicksOldestTouch : Boolean = true;           // test_evicts_oldest_touched_first
+    attribute evictTouchOnReadOrWrite : Boolean = true;         // test_reads_and_writes_are_touches
+    attribute evictNonTouchReadsNotTouch : Boolean = true;      // test_non_touch_reads_do_not_touch
+    attribute evictMaintenanceSavesNotTouch : Boolean = true;   // test_maintenance_save_is_not_a_touch
+    attribute evictNeverReadOpenIsVictim : Boolean = true;      // test_never_read_earliest_open_is_victim
+    attribute evictOpenIsFirstTouch : Boolean = true;           // tests/test_read_touch_regression.py::test_open_stamps_first_touch
+    // Tie order (MN-REQ-05.5): pick is (modified_at, touch_seq). touch_seq is a
+    // process-wide monotonic counter on SessionEntry, not persisted in snapshots
+    // (a load is a fresh touch). Name-then-id fallback is unused: the counter is held.
+    // Both tie tests: test_tie_touch_order_a_then_b_evicts_a, test_tie_touch_order_b_then_a_evicts_b
+    attribute touchSeqMonotonic : Boolean = true;
+    attribute touchSeqInSnapshot : Boolean = false;             // test_touch_seq_not_in_snapshot_fresh_on_load
+    attribute evictSavesFirstFsync : Boolean = true;            // test_victim_saved_before_drop_atomic_fsync
+    attribute evictVictimLockHeld : Boolean = true;             // test_victim_lock_held_from_pick_through_drop
+    attribute evictOneCapLock : Boolean = true;                 // test_cap_two_concurrent_opens_one_victim_per_slot
+    attribute evictVictimKeepsSlot : Boolean = true;            // test_cap_two_concurrent_opens_one_victim_per_slot
+    attribute evictSkipsUnsaveable : Boolean = true;            // test_unsaveable_victim_skipped_next_oldest_tried
+    attribute evictUnsaveableNotAutoDropped : Boolean = true;   // test_unsaveable_held_counted_on_serve_status
+    attribute evictRefusesWhenNoneEvictable : Boolean = true;   // test_all_in_use_refusal_drops_nothing
+    attribute evictNeverSelf : Boolean = true;                  // test_session_being_loaded_is_not_evicted
+    attribute evictNeverWriteLocked : Boolean = true;           // test_write_locked_session_exempt
+    attribute evictNeverOpenBind : Boolean = true;              // test_open_bind_exempt
+    attribute evictCallerNoEvictionField : Boolean = true;      // test_caller_result_has_no_eviction_field
+    attribute evictResultNoCapFields : Boolean = true;          // test_open_and_load_results_carry_no_cap_fields
+    attribute evictReportAdminOnlyNameNotId : Boolean = true;   // test_admin_report_names_victim_never_mn_id
+    attribute evictLoadRestores : Boolean = true;               // test_restore_keeps_rows_edges_and_acl
+    attribute evictReopenRestoredTrue : Boolean = true;         // test_reopen_restored_true_no_alerts
+    attribute evictLoadFreshTtl : Boolean = true;               // test_load_is_touch_with_fresh_ttl
+    attribute evictKeepsAclNoLease : Boolean = true;            // test_restore_carries_no_lease
+    // MN-REQ-05.5 lost lease: a commit naming a rid the caller no longer holds
+    // is refused lease_lost, nothing written, not a touch. Proposed, not shipped
+    // (new mutate wire arg rid=). Flips with evictShipped at the ship commit;
+    // test_ship_flags_flip_together enforces it. Runtime check is
+    // tests/test_session_evict.py::test_restore_lease_commit_fails_cleanly.
+    attribute commitRefusesLostLease : Boolean = false;
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;
@@ -185,6 +231,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
+    // MN-REQ-05.5 satisfy is not linked: the satisfy lands with the engine (evictShipped=false).
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
@@ -3165,11 +3212,17 @@ package MemNet {
       (save_on_expire, expire_snapshot_dir_set) and the count of
       sessions held because expire-save failed
       (expire_snapshot_failed). Path redacted. Look only.
+      MN-REQ-05.5 (proposed, not shipped): sessions_evicted and
+      sessions_unsaveable_held for cap evictions. Admin only: the evicted
+      session's name or tag, never a real mn_ id. Caller results carry no
+      eviction field. Runtime: tests/test_session_evict.py.
     */
     attribute lookOnly : Boolean = true;
     attribute saveOnExpireFlag : Boolean = true;
     attribute expireSnapshotDirSetFlag : Boolean = true;
     attribute expireSnapshotFailedCount : Boolean = true;
+    attribute sessionsEvictedCounter : Boolean = true;
+    attribute sessionsUnsaveableHeld : Boolean = true;
     attribute pathRedacted : Boolean = true;
   }
 

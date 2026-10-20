@@ -34,6 +34,7 @@
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
+    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (proposed, not shipped); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -761,6 +762,219 @@ package MemNetRequirements {
           MN-VER-05-S02 (tests/test_field_cap.py).
         */
         attribute requirementId : String = "MN-REQ-05.4";
+      }
+
+      requirement def MN_REQ_05_5_SessionCapEvictLru {
+        doc /*
+          Proposed, not shipped (engine pending). Runtime checks:
+          tests/test_session_evict.py (xfail until the engine ships).
+
+          State (checked at 0.19.25 source). Session-scoped CLI commands
+          call _load_session, which calls ss.touch(). So the MCP reads
+          pin_map, query_warm, find, query_walk, read_list, export_pin_map,
+          housekeep_stats and session_current already touch today, and so do
+          the CLI-only reads (session_resume calls ss.touch() itself). The
+          in-process get_session() only extends the TTL and does NOT touch:
+          a read through get_session() alone leaves modified_at unchanged
+          today. That is the gap the touch rule below closes. session_list,
+          serve_status and the admin commands do not touch. The saves
+          session_save, expire-save, admin checkpoint and evict-save do not
+          touch either (MAINTENANCE-SAVES below); a save is not a read surface.
+
+          Cap. At session open or load, after purge_expired, when the count
+          reaches MEMNET_MAX_SESSIONS (default 1024) the engine SHALL pick at
+          most one victim. One cap lock SHALL cover the count, the victim pick
+          and the slot reservation; the victim is marked evicting under that
+          lock. The save then runs outside the cap lock, under the victim's
+          session lock.
+
+          Victim. The live, non-evicting session with the oldest last touch,
+          ordered by (modified_at, touch_seq) and compared as parsed instants,
+          not as strings. SessionMeta.modified_at is set by SessionStore.touch();
+          touch_seq is the tie-break (see Tie order). Every non-admin caller
+          read SHALL set SessionMeta.modified_at through SessionStore.touch().
+          The caller read surfaces are the READ-SURFACES block below; the
+          reads that are NOT touches are the NON-TOUCH-READS block below.
+          Writes (mutate, add, update, import_slice, ingest_*) are touches.
+          Load (session_load) is a touch with a fresh TTL. Saves SHALL NOT
+          touch: session_save, expire-save, admin checkpoint and evict-save
+          (the MAINTENANCE-SAVES block below) SHALL leave modified_at and
+          touch_seq unchanged. Open stamps the first touch (modified_at =
+          created_at) and takes a touch_seq, so a never-read session has a
+          defined last touch.
+
+          Tie order. touch_seq is a process-wide monotonic counter held on the
+          registry entry (SessionEntry) and advanced at every touch and open.
+          Build option: touchSeqMonotonic=true, touchSeqInSnapshot=false. The
+          counter is not persisted: a session loaded from a snapshot gets a
+          fresh touch_seq, because the load is a touch. Order by name then id
+          is the fallback only if a build cannot hold the counter; this build
+          can, so the fallback is not used.
+
+          The READ-SURFACES, NON-TOUCH-READS and MAINTENANCE-SAVES lists cover
+          the MCP tools and the CLI-only surfaces. READ-SURFACES is MCP read
+          tools, CLI-only reads
+          (session_resume, tagmap_show, relations_list, query_neighbors,
+          query_path, query_context, housekeep_stale, housekeep_orphans,
+          housekeep_dangling, housekeep_recyclable) and the in-process
+          get_session. Every session-scoped CLI command in cli.py is a read,
+          a non-touch read, a maintenance save, or a non-read; the sync test fails
+          on any other.
+
+          READ-SURFACES-BEGIN
+          get_session
+          pin_map
+          query_warm
+          find
+          query_walk
+          read_list
+          export_pin_map
+          housekeep_stats
+          session_current
+          session_resume
+          tagmap_show
+          relations_list
+          query_neighbors
+          query_path
+          query_context
+          housekeep_stale
+          housekeep_orphans
+          housekeep_dangling
+          housekeep_recyclable
+          READ-SURFACES-END
+
+          NON-TOUCH-READS-BEGIN
+          serve_status
+          session_list
+          admin_usage_report
+          admin_checkpoint_verify
+          NON-TOUCH-READS-END
+
+          MAINTENANCE-SAVES-BEGIN
+          session_save
+          expire_save
+          admin_checkpoint
+          evict_save
+          MAINTENANCE-SAVES-END
+          A fresh open cannot be its own victim: its session is not in the
+          registry until its slot is reserved under the cap lock, so the pick
+          never sees it. A load of an evicted id is excluded from its own pick
+          the same way. Only an open bind or live writes (its session lock held
+          by an in-flight mutate or commit) exempt any other session. A reserve
+          (RSV) lease alone does NOT exempt its session. Exempt sessions are
+          never auto-dropped.
+
+          Save first. The victim's session lock SHALL be held from pick
+          through save, RAM drop and registry removal, then released. The
+          victim keeps its slot until it is dropped: the open that picked it
+          waits for that save and takes the slot only after the drop. Under
+          that lock the victim SHALL be written to MEMNET_EXPIRE_SNAPSHOT_DIR
+          (reused; written whether or not MEMNET_SAVE_ON_EXPIRE is on) as an
+          atomic write: temp file in the same directory, fsync the file,
+          rename over the final name, fsync the directory; mode 0600; @SNAP
+          version 2 with the ACL. Only after a complete save SHALL the engine
+          drop the victim from RAM, then remove its registry entry. A failed
+          save keeps the victim live (EvError: evictSaving to active); the
+          engine then tries the next-oldest candidate, or refuses with
+          limit_exceeded if none is left.
+
+          Crash safety. A crash after the fsync and before the drop SHALL
+          leave a complete snapshot. On restart the session is restored from
+          that snapshot or is absent; never torn.
+
+          No snapshot dir. MEMNET_EXPIRE_SNAPSHOT_DIR has no default. Without
+          it the cap refuses and nothing is evicted. With it set, a full cap
+          evicts. An optional neutral alias MEMNET_SNAPSHOT_DIR MAY name the
+          same directory. If both are set to different paths, serve SHALL
+          refuse to start: Caps construction fails with config_conflict and
+          neither path is printed. The same path under both names is accepted.
+          Dropping a separate eviction knob is deliberate: one dir, one meaning.
+
+          Unsaveable. An unsaveable candidate (snapshot_unsaveable, over cap,
+          or write error) SHALL stay live and the engine SHALL try the
+          next-oldest candidate. No auto-drop of unsaveable sessions. The
+          count of sessions held unsaveable SHALL be reported as
+          sessions_unsaveable_held on serve_status and surfaced to admin.
+
+          Refusal. If no session is evictable, the engine SHALL refuse with
+          code limit_exceeded and the plain message "all sessions are in use".
+          Nothing SHALL be dropped and no snapshot written.
+
+          Restore. session_load of an evicted id from its snapshot SHALL give
+          the same ACL, no lease carried over: reserve leases do not survive
+          and the restored session has no bind. A load is a touch and starts
+          a fresh TTL. The reopened session returns restored=true and emits
+          no alerts.
+
+          Lost lease. A commit naming a lease the caller no longer holds SHALL
+          be refused with code lease_lost; nothing is written; the refused
+          commit is not a touch. The commit names the held reserve with the
+          new wire arg rid (MCP mutate rid=, CLI mutate --rid), and llm_id
+          names the holder. lease= is not this arg: it stays the SessionBind
+          lease (MN-REQ-06.16). The arg is new and not shipped
+          (deploy commitRefusesLostLease=false).
+
+          A rid naming a live lease held by a different llm_id SHALL be refused
+          with the existing code reserved (MutateGate reserve check,
+          check_mutate_ids). reserve_conflict is the acquire-side overlap code
+          and is not used on commit. Not lease_lost: the lease is still live.
+
+          A commit that names no rid SHALL behave exactly as today: the
+          MN-REQ-12.13 reserve check is unchanged (no_llm_id or reserved on a
+          leased row). lease_lost fires only when a rid is named, so a no-rid
+          commit after eviction and reload succeeds and changes the field.
+          Regression, not xfail: tests/test_mutate_no_rid_regression.py.
+
+          Caller. The caller result carries no cap and no eviction field: the
+          caller is not told that a cap or an eviction exists. The open and
+          load success results (CLI and MCP) carry no key matching cap, limit,
+          max_sessions, sessions_count or evict. The evicted session's name or
+          tag (never an mn_ id) and the sessions_evicted counter are reported
+          on admin serve_status only. Accepted: the limit_exceeded refusal
+          itself reveals that a cap exists. That refusal is the one
+          caller-visible signal and is not hidden.
+
+          Settled (not open): a lease does not survive eviction; a load is a
+          touch with a fresh TTL; non-touch reads and saves are not
+          touches; no default snapshot dir (no dir means the cap refuses;
+          MEMNET_EXPIRE_SNAPSHOT_DIR is reused, with MEMNET_SNAPSHOT_DIR as an
+          alias that must agree); one cap lock for count, pick and slot
+          reservation; save outside the cap lock, under the victim lock; the
+          victim keeps its slot until dropped and the picking open waits for
+          its save; no auto-drop of unsaveable sessions, counted and surfaced.
+
+          Ship (one commit, PR-facing). The commit that ships the engine SHALL
+          in one change: (1) flip the module pytestmark in
+          tests/test_session_evict.py to strict=True or drop the xfail, and drop
+          the get_session and test_open_stamps_first_touch xfail marks in
+          tests/test_read_touch_regression.py; (2) set
+          deploy CapsPolicy evictShipped=true and commitRefusesLostLease=true;
+          (3) add the deploy satisfy link
+          MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
+          (4) flip the status guards caps.evictShipped == true in
+          MN-VER-05-S03..S09 and caps.commitRefusesLostLease == true in
+          MN-VER-05-S09. tests/test_sysml_session_evict.py::test_ship_flags_flip_together
+          enforces (1) to (4): it fails unless evictShipped, commitRefusesLostLease,
+          the satisfy link and the xfail marks all agree, and every guard matches.
+
+          LATER (not dropped, not modelled): a "touched within the last N
+          minutes" exemption. Do not add it until a measured run shows
+          reload-thrash at cap=3: cycle opens over 4 or more live sessions and
+          count evict-then-reload inside a short interval.
+
+          LATER (not dropped, not modelled): "require rid on leased rows" (a
+          no-rid commit on a leased row refused). Not a rule; add only if a
+          measured run shows a lost-holder write slipping past the reserve check.
+
+          Open items (doc only, not rules yet): (a) a distinct session_evicted
+          refusal for a caller who holds an evicted id; (b) whether
+          session_load of an evicted id returns the same id.
+
+          Verify: runtime tests in tests/test_session_evict.py, cited by
+          MN-VER-05-S03 to MN-VER-05-S09. Regression for the no-rid rule (not
+          xfail): tests/test_mutate_no_rid_regression.py.
+        */
+        attribute requirementId : String = "MN-REQ-05.5";
       }
     }
 
@@ -2311,6 +2525,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
   requirement consistentFieldCapReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
+  requirement sessionCapEvictLruReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -2569,6 +2785,14 @@ package MemNetRequirements {
     end #derive ::> queryFanoutCapsReq;
     end #derive ::> consistentValueByteCapReq;
     end #derive ::> consistentFieldCapReq;
+    end #derive ::> sessionCapEvictLruReq;
+  }
+
+  #derivation connection deriveSessionCapEvictFromCapsAndSnapshot {
+    end #original ::> sessionTtlAndCapsReq;
+    end #original ::> snapshotLosslessRoundTripReq;
+    end #original ::> snapshotAclReq;
+    end #derive ::> sessionCapEvictLruReq;
   }
 
   #derivation connection deriveProcessBoundaryLeaves {
