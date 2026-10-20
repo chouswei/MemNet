@@ -104,8 +104,15 @@ package MemNetBehaviour {
     doc /*
       MN-REQ-05.5 (proposed, not shipped): session cap full on open or
       load, after purge_expired; this live session is the oldest-touched
-      saveable victim. Save first, then drop from RAM. Unsaveable victims
-      are skipped (EvError) and stay live.
+      evictable victim. The victim lock is taken at pick and held through
+      save, drop and registry removal. Save first, then drop from RAM.
+    */
+  }
+  attribute def EvEvictSaved {
+    doc /*
+      MN-REQ-05.5 (proposed, not shipped): the victim's snapshot is complete
+      (temp file, fsync, rename, fsync dir). Only this event drops the victim
+      from RAM. Runtime check: tests/test_session_evict.py.
     */
   }
   attribute def EvCloseOrExpire {
@@ -339,7 +346,7 @@ package MemNetBehaviour {
       doc /*
         No session id; open or load required. An evicted session (MN-REQ-05.5)
         returns here; closed_to_loading via EvLoadSnapshot restores it from
-        its snapshot with the same ACL and lease.
+        its snapshot: same ACL, no lease carried over.
       */
     }
     transition closed_to_opening
@@ -452,7 +459,10 @@ package MemNetBehaviour {
         session. Write its snapshot first (fsync, atomic 0600, @SNAP v2);
         save ok drops RAM to closed, save failure keeps the session active.
         Never entered for the session being opened or loaded, or for a
-        session holding an active write lock.
+        session holding an active write lock or an open bind. The victim is
+        marked evicting under the cap lock; its victim lock is held from pick
+        through save, drop and registry removal. Save runs outside the cap lock.
+        Atomic write: temp file in the same dir, fsync file, rename, fsync dir.
       */
     }
     transition active_to_evict_saving
@@ -461,7 +471,7 @@ package MemNetBehaviour {
       then evictSaving;
     transition evict_saving_to_closed
       first evictSaving
-      accept EvCloseOrExpire
+      accept EvEvictSaved
       then closed;
     transition evict_saving_to_active
       first evictSaving

@@ -34,7 +34,7 @@
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
-    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (proposed, not shipped); save victim first; none evictable keeps limit_exceeded|sessions refusal
+    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (proposed, not shipped); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -766,23 +766,81 @@ package MemNetRequirements {
 
       requirement def MN_REQ_05_5_SessionCapEvictLru {
         doc /*
-          Proposed, not shipped. When the session cap (MEMNET_MAX_SESSIONS,
-          default 1024) is reached on session open or load, after
-          purge_expired, the engine SHALL evict the live session with the
-          oldest last-touch time; any read or write counts as a touch.
-          Before the RAM drop the victim SHALL be saved to its snapshot
-          first (fsync, atomic 0600 write, @SNAP version 2 with the ACL
-          and lease digest kept). An unsaveable victim (snapshot_unsaveable,
-          over cap, or no snapshot dir) SHALL be skipped, stay in RAM, and
-          the next-oldest SHALL be tried. If no session is evictable the
-          limit_exceeded|sessions n/cap refusal SHALL stand and nothing
-          SHALL be dropped. The session being opened or loaded SHALL NOT be
-          evicted, nor any session holding an active write lock (RSV lease
-          or in-flight commit). The result SHALL report the evicted session
-          by name or tag only, never a real mn_ id; serve_status SHALL carry
-          a sessions_evicted counter. A later session_load SHALL restore the
-          evicted session from its snapshot with the same ACL and lease.
-          Verify: MN-VER-05-S03 to MN-VER-05-S09.
+          Proposed, not shipped (engine pending). Runtime checks:
+          tests/test_session_evict.py (xfail until the engine ships).
+
+          Cap. At session open or load, after purge_expired, when the count
+          reaches MEMNET_MAX_SESSIONS (default 1024) the engine SHALL pick at
+          most one victim. One cap lock SHALL cover the count, the victim pick
+          and the slot reservation; the victim is marked evicting under that
+          lock. The save then runs outside the cap lock, under the victim's
+          session lock.
+
+          Victim. The live, non-evicting session with the oldest last touch.
+          A touch is any read or write through the session (get_session,
+          mutate, read, load). Admin and serve_status reads are NOT touches.
+          The session being opened or loaded is excluded separately; only an
+          open bind or live writes (its session lock held by an in-flight
+          mutate or commit) exempt any other session. A reserve (RSV) lease
+          alone does NOT exempt its session. Exempt sessions are never
+          auto-dropped.
+
+          Save first. The victim's session lock SHALL be held from pick
+          through save, RAM drop and registry removal, then released. Under
+          that lock the victim SHALL be written to MEMNET_EVICT_SNAPSHOT_DIR as
+          an atomic write: temp file in the same directory, fsync the file,
+          rename over the final name, fsync the directory; mode 0600; @SNAP
+          version 2 with the ACL. Only after a complete save SHALL the engine
+          drop the victim from RAM, then remove its registry entry. A failed
+          save keeps the victim live (EvError: evictSaving to active) and the
+          next-oldest candidate is tried.
+
+          Crash safety. A crash after the fsync and before the drop SHALL
+          leave a complete snapshot. On restart the session is restored from
+          that snapshot or is absent; never torn.
+
+          No snapshot dir. MEMNET_EVICT_SNAPSHOT_DIR has no default. Without
+          it the cap refuses and nothing is evicted.
+
+          Unsaveable. An unsaveable candidate (snapshot_unsaveable, over cap,
+          or write error) SHALL stay live and the engine SHALL try the
+          next-oldest candidate. No auto-drop of unsaveable sessions. The
+          count of sessions held unsaveable SHALL be reported as
+          sessions_unsaveable_held on serve_status and surfaced to admin.
+
+          Refusal. If no session is evictable, the engine SHALL refuse with
+          code limit_exceeded and the plain message "all sessions are in use".
+          Nothing SHALL be dropped and no snapshot written.
+
+          Restore. session_load of an evicted id from its snapshot SHALL give
+          the same ACL, no lease carried over: reserve leases do not survive
+          and the restored session has no bind. A load is a touch and starts
+          a fresh TTL. The reopened session returns restored=true and emits
+          no alerts.
+
+          Caller. The caller result carries no cap and no eviction field: the
+          caller is not told that a cap or an eviction exists. The evicted
+          session's name or tag (never an mn_ id) and the sessions_evicted
+          counter are reported on admin serve_status only.
+
+          Settled (not open): a lease does not survive eviction; a load is a
+          touch with a fresh TTL; admin and serve_status reads are not
+          touches; no default snapshot dir (no dir means the cap refuses);
+          one cap lock for count, pick and slot reservation; save outside
+          the cap lock, under the victim lock; no auto-drop of unsaveable
+          sessions, counted and surfaced.
+
+          LATER (not dropped, not modelled): a "touched within the last N
+          minutes" exemption. Do not add it until a measured run shows
+          reload-thrash at cap=3: cycle opens over 4 or more live sessions and
+          count evict-then-reload inside a short interval.
+
+          Open items (doc only, not rules yet): (a) a distinct session_evicted
+          refusal for a caller who holds an evicted id; (b) whether
+          session_load of an evicted id returns the same id.
+
+          Verify: runtime tests in tests/test_session_evict.py, cited by
+          MN-VER-05-S03 to MN-VER-05-S09.
         */
         attribute requirementId : String = "MN-REQ-05.5";
       }
