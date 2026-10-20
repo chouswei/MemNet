@@ -777,8 +777,9 @@ package MemNetRequirements {
           in-process get_session() only extends the TTL and does NOT touch:
           a read through get_session() alone leaves modified_at unchanged
           today. That is the gap the touch rule below closes. session_list,
-          serve_status and the admin commands do not touch. session_save
-          writes a file and does not touch; it is not a read surface.
+          serve_status and the admin commands do not touch. The saves
+          session_save, expire-save, admin checkpoint and evict-save do not
+          touch either (MAINTENANCE-SAVES below); a save is not a read surface.
 
           Cap. At session open or load, after purge_expired, when the count
           reaches MEMNET_MAX_SESSIONS (default 1024) the engine SHALL pick at
@@ -793,11 +794,14 @@ package MemNetRequirements {
           touch_seq is the tie-break (see Tie order). Every non-admin caller
           read SHALL set SessionMeta.modified_at through SessionStore.touch().
           The caller read surfaces are the READ-SURFACES block below; the
-          reads that are NOT touches are the ADMIN-READS block below. Writes
-          (mutate, add, update, import_slice, ingest_*) are touches. Load
-          (session_load) is a touch with a fresh TTL. Open stamps the first
-          touch (modified_at = created_at) and takes a touch_seq, so a
-          never-read session has a defined last touch.
+          reads that are NOT touches are the NON-TOUCH-READS block below.
+          Writes (mutate, add, update, import_slice, ingest_*) are touches.
+          Load (session_load) is a touch with a fresh TTL. Saves SHALL NOT
+          touch: session_save, expire-save, admin checkpoint and evict-save
+          (the MAINTENANCE-SAVES block below) SHALL leave modified_at and
+          touch_seq unchanged. Open stamps the first touch (modified_at =
+          created_at) and takes a touch_seq, so a never-read session has a
+          defined last touch.
 
           Tie order. touch_seq is a process-wide monotonic counter held on the
           registry entry (SessionEntry) and advanced at every touch and open.
@@ -807,13 +811,15 @@ package MemNetRequirements {
           is the fallback only if a build cannot hold the counter; this build
           can, so the fallback is not used.
 
-          The READ-SURFACES and ADMIN-READS lists cover the MCP tools and the
-          CLI-only surfaces. READ-SURFACES is MCP read tools, CLI-only reads
+          The READ-SURFACES, NON-TOUCH-READS and MAINTENANCE-SAVES lists cover
+          the MCP tools and the CLI-only surfaces. READ-SURFACES is MCP read
+          tools, CLI-only reads
           (session_resume, tagmap_show, relations_list, query_neighbors,
           query_path, query_context, housekeep_stale, housekeep_orphans,
           housekeep_dangling, housekeep_recyclable) and the in-process
           get_session. Every session-scoped CLI command in cli.py is a read,
-          an admin read, or a non-read; the sync test fails on any other.
+          a non-touch read, a maintenance save, or a non-read; the sync test fails
+          on any other.
 
           READ-SURFACES-BEGIN
           get_session
@@ -837,13 +843,19 @@ package MemNetRequirements {
           housekeep_recyclable
           READ-SURFACES-END
 
-          ADMIN-READS-BEGIN
+          NON-TOUCH-READS-BEGIN
           serve_status
           session_list
           admin_usage_report
-          admin_checkpoint
           admin_checkpoint_verify
-          ADMIN-READS-END
+          NON-TOUCH-READS-END
+
+          MAINTENANCE-SAVES-BEGIN
+          session_save
+          expire_save
+          admin_checkpoint
+          evict_save
+          MAINTENANCE-SAVES-END
           A fresh open cannot be its own victim: its session is not in the
           registry until its slot is reserved under the cap lock, so the pick
           never sees it. A load of an evicted id is excluded from its own pick
@@ -923,7 +935,7 @@ package MemNetRequirements {
           caller-visible signal and is not hidden.
 
           Settled (not open): a lease does not survive eviction; a load is a
-          touch with a fresh TTL; admin and serve_status reads are not
+          touch with a fresh TTL; non-touch reads and saves are not
           touches; no default snapshot dir (no dir means the cap refuses;
           MEMNET_EXPIRE_SNAPSHOT_DIR is reused, with MEMNET_SNAPSHOT_DIR as an
           alias that must agree); one cap lock for count, pick and slot
@@ -933,7 +945,9 @@ package MemNetRequirements {
 
           Ship (one commit, PR-facing). The commit that ships the engine SHALL
           in one change: (1) flip the module pytestmark in
-          tests/test_session_evict.py to strict=True or drop the xfail; (2) set
+          tests/test_session_evict.py to strict=True or drop the xfail, and drop
+          the get_session and test_open_stamps_first_touch xfail marks in
+          tests/test_read_touch_regression.py; (2) set
           deploy CapsPolicy evictShipped=true and commitRefusesLostLease=true;
           (3) add the deploy satisfy link
           MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
@@ -941,7 +955,7 @@ package MemNetRequirements {
           MN-VER-05-S03..S09 and caps.commitRefusesLostLease == true in
           MN-VER-05-S09. tests/test_sysml_session_evict.py::test_ship_flags_flip_together
           enforces (1) to (4): it fails unless evictShipped, commitRefusesLostLease,
-          the satisfy link and the xfail mark all agree, and every guard matches.
+          the satisfy link and the xfail marks all agree, and every guard matches.
 
           LATER (not dropped, not modelled): a "touched within the last N
           minutes" exemption. Do not add it until a measured run shows

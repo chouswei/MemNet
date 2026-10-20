@@ -25,6 +25,7 @@ from typer.testing import CliRunner
 import memnet.registry as registry_mod
 import memnet.session as session_mod
 import memnet.snapshot as snapshot_mod
+from evict_surfaces import CLI_READ_ARGV, NON_TOUCH_READS, READ_SURFACES
 from memnet.acl import acl_to_dict
 from memnet.admin_usage import build_report  # noqa: F401  (admin read surface)
 from memnet.checkpoint import checkpoint_dir, run_checkpoint, verify_checkpoint
@@ -40,6 +41,7 @@ from memnet.session import (
     open_session,
     reset_registry,
     set_now_override,
+    snapshot_expired_session,
 )
 from memnet.snapshot import load_snapshot
 
@@ -60,58 +62,15 @@ _PLR = (
 )
 
 
-# Surface lists. The MN-REQ-05.5 READ-SURFACES and ADMIN-READS blocks in
-# sysml-models/models/requirements.sysml name the same entries;
-# tests/test_sysml_session_evict.py asserts the two stay equal. READ_SURFACES
-# is the MCP read tools plus the CLI-only reads (CLI_READ_ARGV) plus get_session.
-READ_SURFACES = (
-    "get_session",
-    "pin_map",
-    "query_warm",
-    "find",
-    "query_walk",
-    "read_list",
-    "export_pin_map",
-    "housekeep_stats",
-    "session_current",
-    "session_resume",
-    "tagmap_show",
-    "relations_list",
-    "query_neighbors",
-    "query_path",
-    "query_context",
-    "housekeep_stale",
-    "housekeep_orphans",
-    "housekeep_dangling",
-    "housekeep_recyclable",
-)
-ADMIN_READS = (
-    "serve_status",
-    "session_list",
-    "admin_usage_report",
-    "admin_checkpoint",
-    "admin_checkpoint_verify",
-)
 # Arguments beyond the session for the MCP caller reads that need them.
 _READ_ARGS = {
     "find": {"limit": 5, "kind": "PLR"},
     "query_walk": {"cue": "PLR01"},
     "read_list": {"tag": "PLR"},
 }
-# CLI-only caller reads (no MCP tool). "{sid}" is the session id; each argv
-# names ids that workflow.example.txt seeds (PLR01, TEC01, E02).
-CLI_READ_ARGV = {
-    "session_resume": ("session", "resume", "{sid}"),
-    "tagmap_show": ("tagmap", "show", "--session", "{sid}"),
-    "relations_list": ("relations", "list", "--session", "{sid}"),
-    "query_neighbors": ("query", "neighbors", "PLR01", "--session", "{sid}"),
-    "query_path": ("query", "path", "PLR01", "TEC01", "--session", "{sid}"),
-    "query_context": ("query", "context", "--session", "{sid}"),
-    "housekeep_stale": ("housekeep", "stale", "--session", "{sid}"),
-    "housekeep_orphans": ("housekeep", "orphans", "--session", "{sid}"),
-    "housekeep_dangling": ("housekeep", "dangling", "--session", "{sid}"),
-    "housekeep_recyclable": ("housekeep", "recyclable", "--session", "{sid}"),
-}
+# Saves that SHALL NOT touch, reachable from tests. evict_save runs inside the
+# eviction itself, so it is covered once the engine ships (see MAINTENANCE-SAVES).
+MAINTENANCE_SAVES_REACHABLE = ("session_save", "expire_save", "admin_checkpoint")
 
 
 def _at(minute: float) -> datetime:
@@ -209,8 +168,8 @@ def caller_read(surface: str, sid: str) -> int:
     return resp["exit_code"]
 
 
-def _admin_read(surface: str, ckpt_dir) -> None:
-    """One admin or session-less read through the surface named in ADMIN_READS."""
+def _non_touch_read(surface: str, ckpt_dir) -> None:
+    """One non-touch read through the surface named in NON_TOUCH_READS."""
     if surface == "serve_status":
         _serve_status_payload()
     elif surface == "session_list":
@@ -219,13 +178,24 @@ def _admin_read(surface: str, ckpt_dir) -> None:
         asyncio.run(mcp_server.session_list())
     elif surface == "admin_usage_report":
         build_report(ADMIN_TOKEN)
-    elif surface == "admin_checkpoint":
-        run_checkpoint(ADMIN_TOKEN, directory=ckpt_dir)
     elif surface == "admin_checkpoint_verify":
-        run_checkpoint(ADMIN_TOKEN, directory=ckpt_dir)
         verify_checkpoint(checkpoint_dir(ckpt_dir), ADMIN_TOKEN)
     else:
-        raise AssertionError(f"no admin call for {surface}")
+        raise AssertionError(f"no non-touch read for {surface}")
+
+
+def _maintenance_save(surface: str, sid: str, tmp_path) -> None:
+    """One save through the surface named in MAINTENANCE_SAVES_REACHABLE."""
+    if surface == "session_save":
+        snap = str(tmp_path / "s.snap")
+        r = runner.invoke(app, ["session", "save", "--file", snap, "--session", sid])
+        assert r.exit_code == 0, "session save failed"
+    elif surface == "expire_save":
+        assert snapshot_expired_session(sid) is not None, "expire save failed"
+    elif surface == "admin_checkpoint":
+        run_checkpoint(ADMIN_TOKEN, directory=tmp_path / "ckpt")
+    else:
+        raise AssertionError(f"no maintenance save for {surface}")
 
 
 def _open_frozen(schema) -> SessionStore:
@@ -303,20 +273,53 @@ def test_caller_read_is_a_touch_and_moves_lru_pick(evict, schema_file, workflow_
     assert contains(a.session_id) and contains(c.session_id)
 
 
-@pytest.mark.parametrize("surface", ADMIN_READS)
-def test_admin_and_serve_status_reads_are_not_touches(
-    evict, schema_file, monkeypatch, tmp_path, surface
-):
+@pytest.mark.parametrize("surface", NON_TOUCH_READS)
+def test_non_touch_reads_do_not_touch(evict, schema_file, monkeypatch, tmp_path, surface):
     monkeypatch.setenv(ENV_ADMIN, ADMIN_TOKEN)
+    ckpt = tmp_path / "ckpt"
     a = _open(schema_file, 0)
     b = _open(schema_file, 1)
     c = _open(schema_file, 2)
+    if surface == "admin_checkpoint_verify":
+        # A checkpoint to verify, taken before the measured window.
+        run_checkpoint(ADMIN_TOKEN, directory=ckpt)
     before = _last_touch(a.session_id)
     set_now_override(_at(3))
-    _admin_read(surface, tmp_path / "ckpt")
-    assert _last_touch(a.session_id) == before, f"admin read {surface} must not move modified_at"
+    _non_touch_read(surface, ckpt)
+    assert _last_touch(a.session_id) == before, f"{surface} must not move modified_at"
     _open(schema_file, 4)
-    assert not contains(a.session_id), f"admin read {surface} must not change the victim pick"
+    assert not contains(a.session_id), f"{surface} must not change the victim pick"
+    assert contains(b.session_id) and contains(c.session_id)
+
+
+@pytest.mark.parametrize("surface", MAINTENANCE_SAVES_REACHABLE)
+def test_maintenance_save_is_not_a_touch(
+    evict, schema_file, workflow_file, monkeypatch, tmp_path, surface
+):
+    monkeypatch.setenv(ENV_ADMIN, ADMIN_TOKEN)
+    if surface == "expire_save":
+        monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)  # a's last touch is the write at minute 0
+    b = _open(schema_file, 1)
+    c = _open(schema_file, 2)
+    before = _last_touch(a.session_id)
+    before_seq = get_entry(a.session_id).touch_seq
+    set_now_override(_at(3))
+    _maintenance_save(surface, a.session_id, tmp_path)
+    assert _last_touch(a.session_id) == before, f"{surface} must not move modified_at"
+    assert get_entry(a.session_id).touch_seq == before_seq, f"{surface} must not take a touch_seq"
+    _open(schema_file, 4)
+    assert not contains(a.session_id), f"after {surface}, a must still be the victim"
+    assert contains(b.session_id) and contains(c.session_id)
+
+
+def test_never_read_earliest_open_is_victim(evict, schema_file):
+    a = _open(schema_file, 0)
+    b = _open(schema_file, 1)
+    c = _open(schema_file, 2)
+    _open(schema_file, 4)  # nothing was read: the earliest open is the oldest touch
+    assert not contains(a.session_id), "a never-read session opened earliest must be the victim"
     assert contains(b.session_id) and contains(c.session_id)
 
 
@@ -360,6 +363,9 @@ def test_victim_order_compares_modified_at_as_instant(evict_pair, schema_file):
     whole = open_session(map_file=str(schema_file), ttl_minutes=600)
     set_now_override(BASE + timedelta(milliseconds=500))
     fractional = open_session(map_file=str(schema_file), ttl_minutes=600)
+    assert re.search(r"\.5\d*Z$", _last_touch(fractional.session_id)), (
+        "the stored modified_at must keep its fraction, or the ordering test proves nothing"
+    )
     set_now_override(_at(1))
     open_session(map_file=str(schema_file), ttl_minutes=600)  # cap 2: one victim
     assert not contains(whole.session_id), "the oldest instant must be the victim"

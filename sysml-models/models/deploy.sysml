@@ -169,7 +169,10 @@ package MemNet {
     attribute evictCapFullWithDirEvicts : Boolean = true;       // test_cap_full_with_snapshot_dir_evicts_oldest
     attribute evictPicksOldestTouch : Boolean = true;           // test_evicts_oldest_touched_first
     attribute evictTouchOnReadOrWrite : Boolean = true;         // test_reads_and_writes_are_touches
-    attribute evictAdminReadsNotTouch : Boolean = true;         // test_admin_and_serve_status_reads_are_not_touches
+    attribute evictNonTouchReadsNotTouch : Boolean = true;      // test_non_touch_reads_do_not_touch
+    attribute evictMaintenanceSavesNotTouch : Boolean = true;   // test_maintenance_save_is_not_a_touch
+    attribute evictNeverReadOpenIsVictim : Boolean = true;      // test_never_read_earliest_open_is_victim
+    attribute evictOpenIsFirstTouch : Boolean = true;           // tests/test_read_touch_regression.py::test_open_stamps_first_touch
     // Tie order (MN-REQ-05.5): pick is (modified_at, touch_seq). touch_seq is a
     // process-wide monotonic counter on SessionEntry, not persisted in snapshots
     // (a load is a fresh touch). Name-then-id fallback is unused: the counter is held.

@@ -2326,18 +2326,23 @@ package MemNetVerification {
       MN-REQ-05.5 R1 (proposed, not shipped) — at MEMNET_MAX_SESSIONS on open
       or load, after purge_expired, evict the live session with the oldest
       last touch, ordered by (modified_at, touch_seq). Any caller read in
-      READ-SURFACES and any write is a touch; reads in ADMIN-READS are not.
+      READ-SURFACES and any write is a touch; reads in NON-TOUCH-READS and
+      saves in MAINTENANCE-SAVES are not. Open is the first touch.
       Runtime checks (xfail until shipped):
       tests/test_session_evict.py::test_evicts_oldest_touched_first,
       ::test_reads_and_writes_are_touches,
-      ::test_admin_and_serve_status_reads_are_not_touches (parametrized over
-      ADMIN_READS),
+      ::test_non_touch_reads_do_not_touch (parametrized over NON_TOUCH_READS),
+      ::test_maintenance_save_is_not_a_touch (parametrized over the saves
+      reachable from tests),
+      ::test_never_read_earliest_open_is_victim,
       ::test_caller_read_is_a_touch_and_moves_lru_pick (parametrized over
       READ_SURFACES),
       ::test_tie_touch_order_a_then_b_evicts_a,
       ::test_tie_touch_order_b_then_a_evicts_b,
       ::test_open_assigns_touch_seq,
       ::test_victim_order_compares_modified_at_as_instant.
+      Open as first touch (read-touch regression, strict xfail until shipped):
+      tests/test_read_touch_regression.py::test_open_stamps_first_touch.
       Presence and surface-list sync: the sysml session-evict sync module
       in tests/ (not an xfail runtime file).
     */
