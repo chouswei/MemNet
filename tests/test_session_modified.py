@@ -16,7 +16,7 @@ def test_modified_at_updates_on_read(memnet_temp, schema_file):
     t0 = datetime(2026, 6, 10, 12, 0, 0, tzinfo=UTC)
     set_now_override(t0)
     ss = open_session(map_file=str(schema_file))
-    assert ss.meta.modified_at is None
+    assert ss.meta.modified_at == "2026-06-10T12:00:00Z", "open is the first touch (MN-REQ-05.5)"
 
     stats = runner.invoke(app, ["housekeep", "stats", "--session", ss.session_id])
     assert stats.exit_code == 0

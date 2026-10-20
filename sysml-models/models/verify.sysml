@@ -54,12 +54,12 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Session cap LRU evict (MN-VER-05-S03..S09, proposed, not shipped):
+  Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
   MN-REQ-05.5 — oldest-touch pick; save first then drop; skip
   unsaveable; none evictable refuses limit_exceeded (all sessions are in
   use); self, write-locked and open-bind exempt; name not mn_ id on admin
   serve_status only; later load restores: same ACL, no lease carried over
-  (@SNAP v2). Runtime: tests/test_session_evict.py (xfail until shipped).
+  (@SNAP v2). Runtime: tests/test_session_evict.py (no xfail).
   Serve checkpoint (MN-VER-06-S13): ServeCheckpoint on
   TcpServeBridge; admin credential; per-session lock; lossless
   atomic snaps; skip unsaveable; no drain; no live load; no
@@ -2323,12 +2323,12 @@ package MemNetVerification {
 
   verification def MN_VER_05_S03_SessionCapEvictOldestTouch {
     doc /*
-      MN-REQ-05.5 R1 (proposed, not shipped) — at MEMNET_MAX_SESSIONS on open
+      MN-REQ-05.5 R1 (shipped, unreleased) — at MEMNET_MAX_SESSIONS on open
       or load, after purge_expired, evict the live session with the oldest
       last touch, ordered by (modified_at, touch_seq). Any caller read in
       READ-SURFACES and any write is a touch; reads in NON-TOUCH-READS and
       saves in MAINTENANCE-SAVES are not. Open is the first touch.
-      Runtime checks (xfail until shipped):
+      Runtime checks:
       tests/test_session_evict.py::test_evicts_oldest_touched_first,
       ::test_reads_and_writes_are_touches,
       ::test_non_touch_reads_do_not_touch (parametrized over NON_TOUCH_READS),
@@ -2341,7 +2341,7 @@ package MemNetVerification {
       ::test_tie_touch_order_b_then_a_evicts_b,
       ::test_open_assigns_touch_seq,
       ::test_victim_order_compares_modified_at_as_instant.
-      Open as first touch (read-touch regression, strict xfail until shipped):
+      Open as first touch (read-touch regression):
       tests/test_read_touch_regression.py::test_open_stamps_first_touch.
       Presence and surface-list sync: the sysml session-evict sync module
       in tests/ (not an xfail runtime file).
@@ -2359,23 +2359,24 @@ package MemNetVerification {
       verify sessionTtlAndCapsReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S04_SessionCapEvictSaveFirst {
     doc /*
-      MN-REQ-05.5 R2 (proposed) — the victim is saved to its snapshot first
+      MN-REQ-05.5 R2 (shipped) — the victim is saved to its snapshot first
       (temp file, fsync, rename, fsync dir; 0600; @SNAP v2 with the ACL),
       then dropped from RAM. The victim lock is held from pick through
       save, drop and registry removal. A crash after fsync and before drop
       leaves a complete snapshot. A failed save never drops RAM. Runtime checks
-      (xfail until shipped): tests/test_session_evict.py::
+      : tests/test_session_evict.py::
       test_victim_saved_before_drop_atomic_fsync,
       ::test_victim_lock_held_from_pick_through_drop,
       ::test_crash_after_fsync_before_drop_is_restorable,
-      ::test_failed_save_never_drops_ram.
+      ::test_failed_save_never_drops_ram,
+      ::test_failed_evict_save_is_not_a_touch.
     */
     attribute verificationId : String = "MN-VER-05-S04";
 
@@ -2391,17 +2392,17 @@ package MemNetVerification {
       verify snapshotLosslessRoundTripReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S05_SessionCapEvictSkipUnsaveable {
     doc /*
-      MN-REQ-05.5 R3 (proposed) — an unsaveable candidate (snapshot_unsaveable,
+      MN-REQ-05.5 R3 (shipped) — an unsaveable candidate (snapshot_unsaveable,
       over cap, write error) stays live and the next-oldest is tried. No
       auto-drop; the count is reported as sessions_unsaveable_held on
-      serve_status and surfaced to admin. Runtime checks (xfail until shipped):
+      serve_status and surfaced to admin. Runtime checks:
       tests/test_session_evict.py::test_unsaveable_victim_skipped_next_oldest_tried,
       ::test_unsaveable_held_counted_on_serve_status.
     */
@@ -2417,21 +2418,21 @@ package MemNetVerification {
       verify sessionCapEvictLruReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S06_SessionCapEvictNoneEvictable {
     doc /*
-      MN-REQ-05.5 R4 (proposed) — cap full and no evictable candidate: refuse
+      MN-REQ-05.5 R4 (shipped) — cap full and no evictable candidate: refuse
       with code limit_exceeded and the message "all sessions are in use";
       nothing is dropped. No snapshot dir means refuse, no eviction; with the
       dir set the same full cap evicts (positive control). The snapshot dir
       and its alias must agree or start refuses (config_conflict). Concurrent
       opens at cap=2: the two opens that pick a victim each succeed, late
       opens are refused while the victims are mid-save, count <= cap throughout.
-      Runtime checks (xfail until shipped): tests/test_session_evict.py::
+      Runtime checks : tests/test_session_evict.py::
       test_all_in_use_refusal_drops_nothing,
       ::test_cap_full_with_snapshot_dir_evicts_oldest,
       ::test_no_snapshot_dir_refuses_without_eviction,
@@ -2450,18 +2451,18 @@ package MemNetVerification {
       verify sessionCapEvictLruReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S07_SessionCapEvictExemptSelfAndLocked {
     doc /*
-      MN-REQ-05.5 R5 (proposed) — exempt from eviction: the session being
+      MN-REQ-05.5 R5 (shipped) — exempt from eviction: the session being
       opened or loaded; a session with an open bind; a session with live
       writes (session lock held by an in-flight mutate or commit). A reserve
       (RSV) lease alone does not exempt. No touch window (LATER, not modelled).
-      Runtime checks (xfail until shipped): tests/test_session_evict.py::
+      Runtime checks : tests/test_session_evict.py::
       test_session_being_loaded_is_not_evicted,
       ::test_write_locked_session_exempt, ::test_open_bind_exempt,
       ::test_reserve_lease_is_not_an_exemption.
@@ -2478,19 +2479,19 @@ package MemNetVerification {
       verify sessionCapEvictLruReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S08_SessionCapEvictReportNameNotId {
     doc /*
-      MN-REQ-05.5 R6 (proposed) — the caller result carries no cap and no
+      MN-REQ-05.5 R6 (shipped) — the caller result carries no cap and no
       eviction field. Admin serve_status reports the evicted session by name
       or tag only, never a real mn_ id, plus the sessions_evicted counter
       (ServeStatusLook on MemNetUsageDashboard, outside MemNetSystem; the
       counter is checked by its deploy attribute, not here). Runtime checks
-      (xfail until shipped): tests/test_session_evict.py::
+      : tests/test_session_evict.py::
       test_caller_result_has_no_eviction_field,
       ::test_open_and_load_results_carry_no_cap_fields,
       ::test_admin_report_names_victim_never_mn_id.
@@ -2507,14 +2508,14 @@ package MemNetVerification {
       verify sessionCapEvictLruReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
     }
   }
 
   verification def MN_VER_05_S09_SessionCapEvictLoadRestores {
     doc /*
-      MN-REQ-05.5 R7 (proposed) — a later session_load restores the evicted
+      MN-REQ-05.5 R7 (shipped) — a later session_load restores the evicted
       session from its snapshot: same ACL, no lease carried over (reserve
       leases dropped; the restored session has no bind). The load is a
       touch with a fresh TTL; the reopened session returns restored=true and
@@ -2524,8 +2525,7 @@ package MemNetVerification {
       all unchanged; the refused commit is not a touch. A rid naming a live
       lease held by another llm_id is refused reserved (existing code). A
       commit with no rid after eviction and reload succeeds. Gated by deploy
-      caps.commitRefusesLostLease (= evictShipped). Runtime checks (xfail until
-      shipped): tests/test_session_evict.py::
+      caps.commitRefusesLostLease (= evictShipped). Runtime checks: tests/test_session_evict.py::
       test_restore_keeps_rows_edges_and_acl,
       ::test_restore_carries_no_lease,
       ::test_restore_lease_commit_fails_cleanly,
@@ -2549,11 +2549,11 @@ package MemNetVerification {
       verify snapshotAclReq;
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .evictShipped == false
+            .evictShipped == true
       }
       require constraint {
         system.core.transport.inProcess.memory.sessions.caps
-            .commitRefusesLostLease == false
+            .commitRefusesLostLease == true
       }
     }
   }

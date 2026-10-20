@@ -76,7 +76,7 @@ async def serve_status() -> str:
     Also reports whether expire-save is armed (booleans only; path redacted).
     When TCP serve is up, flags come from the serve process.
     """
-    from memnet.session import expire_hold_count
+    from memnet.session import eviction_status, expire_hold_count
 
     flags: dict[str, bool | int] = dict(expire_save_status())
     flags["expire_snapshot_failed"] = expire_hold_count()
@@ -92,6 +92,8 @@ async def serve_status() -> str:
             "save_on_expire": flags["save_on_expire"],
             "expire_snapshot_dir_set": flags["expire_snapshot_dir_set"],
             "expire_snapshot_failed": int(flags.get("expire_snapshot_failed") or 0),
+            # Admin only (MN-REQ-05.5): names and counts, never a session id.
+            **eviction_status(),
         }
     )
 
@@ -436,6 +438,7 @@ async def _commit(
     lease: str | None = None,
     write_scope: str | None = None,
     llm_id: str | None = None,
+    rid: str | None = None,
 ) -> str:
     argv = [mode, "--stdin"]
     if allow_new_relation:
@@ -452,6 +455,8 @@ async def _commit(
         argv.extend(["--write-scope", write_scope])
     if llm_id:
         argv.extend(["--llm-id", llm_id])
+    if rid:
+        argv.extend(["--rid", rid])
     stdin = "\n".join(wire_lines)
     return await _run(argv, stdin=stdin, session=session)
 
@@ -467,13 +472,15 @@ async def mutate(
     lease: str | None = None,
     write_scope: str | None = None,
     llm_id: str | None = None,
+    rid: str | None = None,
 ) -> str:
     """Product GQL Commit: CREATE / MERGE / SET / DELETE (gated).
 
     Writes accept GQL only. Does not mint leftover NEW. leftover ``add`` /
     ``update`` names remain as leftover façades. When session ACL is enabled:
     pass ``caller``; optional ``mission_id``+``lease``; optional ``write_scope``.
-    Pass ``llm_id`` when mutating under RSV.
+    Pass ``llm_id`` when mutating under RSV. Pass ``rid`` (the reserve you hold)
+    so a commit whose reserve was dropped is refused lease_lost, nothing written.
     """
     return await _commit(
         "mutate",
@@ -486,6 +493,7 @@ async def mutate(
         lease=lease,
         write_scope=write_scope,
         llm_id=llm_id,
+        rid=rid,
     )
 
 

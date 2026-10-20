@@ -24,6 +24,7 @@ import threading
 from typing import Any
 
 from memnet.config import (
+    Caps,
     serve_allow_remote,
     serve_host,
     serve_max_frame_bytes,
@@ -252,6 +253,8 @@ def run_serve(host: str | None = None, port: int | None = None) -> None:
     host = host or serve_host()
     port = port or serve_port()
     validate_serve_bind_host(host)
+    # Refuses to start on conflicting snapshot dirs (config_conflict, MN-REQ-05.5).
+    Caps()
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
     from memnet.upgrade import startup_restore_or_exit
 

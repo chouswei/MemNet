@@ -66,6 +66,10 @@ def test_snapshot_text_matches_file(memnet_temp, schema_file):
     assert text.startswith("# memnet-snapshot-v1\n")
 
 
+def _instant(text: str) -> datetime:
+    return datetime.fromisoformat(text.replace("Z", "+00:00"))
+
+
 def test_snapshot_preserves_modified_at(memnet_temp, schema_file, workflow_file, tmp_path: Path):
     r1 = runner.invoke(app, ["session", "open", "--map-file", str(schema_file)])
     sid = r1.stdout.strip().split("|")[0].replace("@SESSION: ", "")
@@ -77,8 +81,12 @@ def test_snapshot_preserves_modified_at(memnet_temp, schema_file, workflow_file,
     write_snapshot(ss, snap_path)
     assert f"|{ss.meta.modified_at}" in snap_path.read_text(encoding="utf-8")
 
+    # A load is a touch (MN-REQ-05.5): modified_at is the load time, never earlier.
     loaded = load_snapshot(snap_path)
-    assert loaded.meta.modified_at == ss.meta.modified_at
+    assert _instant(loaded.meta.modified_at) >= _instant(ss.meta.modified_at)
+    # Only the upgrade restore keeps the snapshot's own clocks.
+    kept = load_snapshot(snap_path, preserve_clocks=True)
+    assert kept.meta.modified_at == ss.meta.modified_at
 
 
 _MISSION_MAP = [

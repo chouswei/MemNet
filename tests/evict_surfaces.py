@@ -3,7 +3,21 @@
 A helper, not a test module: pytest does not collect it. The READ-SURFACES,
 NON-TOUCH-READS and MAINTENANCE-SAVES blocks in sysml-models/models/requirements.sysml
 name the same entries; tests/test_sysml_session_evict.py asserts they stay equal.
+Also the shared clock, the CLI runner and the caller_read driver used by the
+runtime tests (tests/test_session_evict.py, tests/test_read_touch_regression.py).
 """
+
+import asyncio
+import json
+from datetime import UTC, datetime
+
+from typer.testing import CliRunner
+
+from memnet.cli import app
+from memnet.session import get_session
+
+BASE = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
+runner = CliRunner()
 
 # Caller reads: each one SHALL set modified_at through SessionStore.touch().
 # READ_SURFACES is the MCP read tools plus the CLI-only reads (CLI_READ_ARGV)
@@ -110,3 +124,35 @@ CLI_SURFACE_ALIAS = {
 CLI_ONLY_NON_READ = frozenset(
     {"delete", "prune_dangling", "prune_orphans", "prune_recyclable", "prune_stale"}
 )
+
+# Arguments beyond the session for the MCP caller reads that need them.
+_READ_ARGS = {
+    "find": {"limit": 5, "kind": "PLR"},
+    "query_walk": {"cue": "PLR01"},
+    "read_list": {"tag": "PLR"},
+}
+# Engine saves (ENGINE_SAVES) to the dotted path of the function that runs them.
+# tests/test_sysml_session_evict.py asserts each path imports and names a callable.
+ENGINE_SAVE_FUNCS = {
+    "expire_save": "memnet.session.snapshot_expired_session",
+    "evict_save": "memnet.session.save_evict_victim",
+}
+
+
+def caller_read(surface: str, sid: str) -> int:
+    """One session-scoped caller read through the surface named in READ_SURFACES.
+
+    Returns the exit code. The text of a failure is not returned: it can name ids.
+    get_session() raises on failure, so its exit code is 0 or the call raises.
+    """
+    if surface == "get_session":
+        get_session(sid)
+        return 0
+    if surface in CLI_READ_ARGV:
+        argv = [a.format(sid=sid) for a in CLI_READ_ARGV[surface]]
+        return runner.invoke(app, argv).exit_code
+    from memnet_mcp import server as mcp_server
+
+    call = getattr(mcp_server, surface)
+    resp = json.loads(asyncio.run(call(session=sid, **_READ_ARGS.get(surface, {}))))
+    return resp["exit_code"]

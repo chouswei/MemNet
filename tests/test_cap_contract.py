@@ -159,7 +159,7 @@ def test_every_cap_and_write_proof(memnet_temp, tmp_path: Path):
     assert cue.wire.startswith("## CueConflict |Q|=")
 
     sess = by_name["max_sessions"]
-    assert sess.wire == "@ERR: limit_exceeded|sessions 2/1"
+    assert sess.wire == "@ERR: limit_exceeded|all sessions are in use"
 
     snap_pre = by_name["snap_model_session_precheck"]
     assert snap_pre.library_code == "limit_exceeded"

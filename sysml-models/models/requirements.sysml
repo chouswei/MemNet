@@ -34,7 +34,7 @@
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
-    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (proposed, not shipped); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
+    MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (shipped, unreleased); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -766,8 +766,8 @@ package MemNetRequirements {
 
       requirement def MN_REQ_05_5_SessionCapEvictLru {
         doc /*
-          Proposed, not shipped (engine pending). Runtime checks:
-          tests/test_session_evict.py (xfail until the engine ships).
+          Shipped in the unreleased engine. Runtime checks:
+          tests/test_session_evict.py (no xfail).
 
           State (checked at 0.19.25 source). Session-scoped CLI commands
           call _load_session, which calls ss.touch(). So the MCP reads
@@ -911,8 +911,8 @@ package MemNetRequirements {
           commit is not a touch. The commit names the held reserve with the
           new wire arg rid (MCP mutate rid=, CLI mutate --rid), and llm_id
           names the holder. lease= is not this arg: it stays the SessionBind
-          lease (MN-REQ-06.16). The arg is new and not shipped
-          (deploy commitRefusesLostLease=false).
+          lease (MN-REQ-06.16). The arg is new and shipped
+          (deploy commitRefusesLostLease=true).
 
           A rid naming a live lease held by a different llm_id SHALL be refused
           with the existing code reserved (MutateGate reserve check,
@@ -971,8 +971,7 @@ package MemNetRequirements {
           session_load of an evicted id returns the same id.
 
           Verify: runtime tests in tests/test_session_evict.py, cited by
-          MN-VER-05-S03 to MN-VER-05-S09. Regression for the no-rid rule (not
-          xfail): tests/test_mutate_no_rid_regression.py.
+          MN-VER-05-S03 to MN-VER-05-S09. Regression for the no-rid rule: tests/test_mutate_no_rid_regression.py.
         */
         attribute requirementId : String = "MN-REQ-05.5";
       }

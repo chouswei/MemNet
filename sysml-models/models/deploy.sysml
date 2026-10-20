@@ -156,10 +156,10 @@ package MemNet {
     attribute maxLaw : Integer = 100;
     attribute maxRelations : Integer = 200;
     attribute maxSessions : Integer = 1024;
-    // MN-REQ-05.5 session cap LRU evict: proposed, not shipped (engine pending).
+    // MN-REQ-05.5 session cap LRU evict: shipped in the unreleased engine.
     // Each flag is a spec record; its runtime check is the pytest on the same
-    // line in tests/test_session_evict.py (xfail until the engine ships).
-    attribute evictShipped : Boolean = false;
+    // line in tests/test_session_evict.py.
+    attribute evictShipped : Boolean = true;
     attribute evictOnSessionCap : Boolean = true;               // test_evicts_oldest_touched_first
     attribute envMaxSessions : String = "MEMNET_MAX_SESSIONS";
     attribute envSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";  // reused; no second eviction knob
@@ -197,11 +197,11 @@ package MemNet {
     attribute evictLoadFreshTtl : Boolean = true;               // test_load_is_touch_with_fresh_ttl
     attribute evictKeepsAclNoLease : Boolean = true;            // test_restore_carries_no_lease
     // MN-REQ-05.5 lost lease: a commit naming a rid the caller no longer holds
-    // is refused lease_lost, nothing written, not a touch. Proposed, not shipped
-    // (new mutate wire arg rid=). Flips with evictShipped at the ship commit;
-    // test_ship_flags_flip_together enforces it. Runtime check is
+    // is refused lease_lost, nothing written, not a touch. Shipped (new mutate
+    // wire arg rid=). Flips with evictShipped; test_ship_flags_flip_together
+    // enforces it. Runtime check is
     // tests/test_session_evict.py::test_restore_lease_commit_fails_cleanly.
-    attribute commitRefusesLostLease : Boolean = false;
+    attribute commitRefusesLostLease : Boolean = true;
     attribute maxDepth : Integer = 4;
     attribute defaultQueryMaxRows : Integer = 50;
     attribute defaultQueryDepth : Integer = 2;
@@ -231,7 +231,7 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
-    // MN-REQ-05.5 satisfy is not linked: the satisfy lands with the engine (evictShipped=false).
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
@@ -3212,7 +3212,7 @@ package MemNet {
       (save_on_expire, expire_snapshot_dir_set) and the count of
       sessions held because expire-save failed
       (expire_snapshot_failed). Path redacted. Look only.
-      MN-REQ-05.5 (proposed, not shipped): sessions_evicted and
+      MN-REQ-05.5 (shipped, unreleased): sessions_evicted and
       sessions_unsaveable_held for cap evictions. Admin only: the evicted
       session's name or tag, never a real mn_ id. Caller results carry no
       eviction field. Runtime: tests/test_session_evict.py.
