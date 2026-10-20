@@ -2505,13 +2505,17 @@ package MemNetVerification {
       touch with a fresh TTL; the reopened session returns restored=true and
       emits no alerts. Rows and edges survive. A commit that names the dropped
       lease (mutate rid=, llm_id) is refused lease_lost: row, field, row count,
-      snapshot bytes and mtime, and last touch are all unchanged; the refused
-      commit is not a touch. Gated by deploy caps.commitRefusesLostLease
-      (= evictShipped). Runtime checks (xfail until shipped):
-      tests/test_session_evict.py::
+      snapshot bytes and mtime, and last touch (SessionMeta.modified_at) are
+      all unchanged; the refused commit is not a touch. A rid naming a live
+      lease held by another llm_id is refused reserved (existing code). A
+      commit with no rid after eviction and reload succeeds. Gated by deploy
+      caps.commitRefusesLostLease (= evictShipped). Runtime checks (xfail until
+      shipped): tests/test_session_evict.py::
       test_restore_keeps_rows_edges_and_acl,
       ::test_restore_carries_no_lease,
       ::test_restore_lease_commit_fails_cleanly,
+      ::test_no_rid_commit_after_evict_and_reload_succeeds,
+      ::test_rid_held_by_other_llm_refused_reserved,
       ::test_reopen_restored_true_no_alerts,
       ::test_load_is_touch_with_fresh_ttl.
     */

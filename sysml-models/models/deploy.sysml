@@ -187,7 +187,6 @@ package MemNet {
     attribute evictReopenRestoredTrue : Boolean = true;         // test_reopen_restored_true_no_alerts
     attribute evictLoadFreshTtl : Boolean = true;               // test_load_is_touch_with_fresh_ttl
     attribute evictKeepsAclNoLease : Boolean = true;            // test_restore_carries_no_lease
-    attribute evictRestoreLeaseCommitFails : Boolean = true;    // test_restore_lease_commit_fails_cleanly
     // MN-REQ-05.5 lost lease: a commit naming a rid the caller no longer holds
     // is refused lease_lost, nothing written, not a touch. Proposed, not shipped
     // (new mutate wire arg rid=). Flips with evictShipped at the ship commit;

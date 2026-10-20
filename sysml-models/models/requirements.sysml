@@ -777,6 +777,8 @@ package MemNetRequirements {
           session lock.
 
           Victim. The live, non-evicting session with the oldest last touch.
+          The last-touch field is SessionMeta.modified_at (set by
+          SessionStore.touch); the victim pick and the tests read this one field.
           A touch is any read or write through the session (get_session,
           mutate, read, load). Admin and serve_status reads are NOT touches.
           A fresh open cannot be its own victim: its session is not in the
@@ -837,6 +839,17 @@ package MemNetRequirements {
           lease (MN-REQ-06.16). The arg is new and not shipped
           (deploy commitRefusesLostLease=false).
 
+          A rid naming a live lease held by a different llm_id SHALL be refused
+          with the existing code reserved (MutateGate reserve check,
+          check_mutate_ids). reserve_conflict is the acquire-side overlap code
+          and is not used on commit. Not lease_lost: the lease is still live.
+
+          A commit that names no rid SHALL behave exactly as today: the
+          MN-REQ-12.13 reserve check is unchanged (no_llm_id or reserved on a
+          leased row). lease_lost fires only when a rid is named, so a no-rid
+          commit after eviction and reload succeeds and changes the field.
+          Regression, not xfail: tests/test_mutate_no_rid_regression.py.
+
           Caller. The caller result carries no cap and no eviction field: the
           caller is not told that a cap or an eviction exists. The open and
           load success results (CLI and MCP) carry no key matching cap, limit,
@@ -872,12 +885,17 @@ package MemNetRequirements {
           reload-thrash at cap=3: cycle opens over 4 or more live sessions and
           count evict-then-reload inside a short interval.
 
+          LATER (not dropped, not modelled): "require rid on leased rows" (a
+          no-rid commit on a leased row refused). Not a rule; add only if a
+          measured run shows a lost-holder write slipping past the reserve check.
+
           Open items (doc only, not rules yet): (a) a distinct session_evicted
           refusal for a caller who holds an evicted id; (b) whether
           session_load of an evicted id returns the same id.
 
           Verify: runtime tests in tests/test_session_evict.py, cited by
-          MN-VER-05-S03 to MN-VER-05-S09.
+          MN-VER-05-S03 to MN-VER-05-S09. Regression for the no-rid rule (not
+          xfail): tests/test_mutate_no_rid_regression.py.
         */
         attribute requirementId : String = "MN-REQ-05.5";
       }

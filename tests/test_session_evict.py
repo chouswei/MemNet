@@ -86,6 +86,11 @@ def _touch(sid: str, minute: float) -> SessionStore:
     return get_session(sid)
 
 
+def _last_touch(sid: str):
+    """Last touch is SessionMeta.modified_at, the field SessionStore.touch sets."""
+    return get_entry(sid).meta.modified_at
+
+
 def _seed(sid: str, workflow) -> None:
     """Write rows and edges through the CLI add path (a real write)."""
     r = runner.invoke(app, ["add", "--file", str(workflow), "--session", sid])
@@ -670,7 +675,7 @@ def test_restore_lease_commit_fails_cleanly(evict, schema_file, workflow_file):
     snap_mtime = snap.stat().st_mtime_ns
     rows_before = loaded.store.row_count_non_law()
     fields_before = dict(loaded.store.get("PLR01").fields)
-    touch_before = get_entry(victim).meta.modified_at
+    touch_before = _last_touch(victim)
 
     set_now_override(_at(6))
     res = json.loads(
@@ -689,7 +694,71 @@ def test_restore_lease_commit_fails_cleanly(evict, schema_file, workflow_file):
     assert dict(loaded.store.get("PLR01").fields) == fields_before, "PLR01 must be unchanged"
     assert snap.read_bytes() == snap_bytes, "the snapshot file must not be rewritten"
     assert snap.stat().st_mtime_ns == snap_mtime, "the snapshot mtime must not move"
-    assert get_entry(victim).meta.modified_at == touch_before, "a refused commit is not a touch"
+    assert _last_touch(victim) == touch_before, "a refused commit is not a touch"
+
+
+def test_no_rid_commit_after_evict_and_reload_succeeds(evict, schema_file, workflow_file):
+    # lease_lost fires only when a rid is named. The reload drops the lease, so a
+    # commit with no rid and no live lease is a plain commit and must succeed.
+    from memnet_mcp.server import mutate
+
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    victim = a.session_id
+    live = get_session(victim)
+    reserve(live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(0.5))
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _open(schema_file, 4)  # evicts a while llm-1 holds a lease on PLR01
+    snap = _snapshot_of(evict, victim)
+    set_now_override(_at(5))
+    loaded = load_snapshot(snap, keep_id=True)
+    assert loaded.reserves.leases == {}, "the reload must carry no lease"
+
+    set_now_override(_at(6))
+    res = json.loads(
+        asyncio.run(
+            mutate(
+                wire_lines=["MATCH (n {id: 'PLR01'}) SET n.wealth = 999"],
+                session=victim,
+                llm_id="llm-1",
+            )
+        )
+    )
+    assert res["exit_code"] == 0, "a commit with no rid must succeed after eviction and reload"
+    assert get_session(victim).store.get("PLR01").fields["wealth"] == "999", "the field must change"
+
+
+def test_rid_held_by_other_llm_refused_reserved(evict, schema_file, workflow_file):
+    # A rid naming a live lease held by another llm_id hits the existing reserve
+    # refusal (code reserved, MutateGate check_mutate_ids), not lease_lost.
+    from memnet_mcp.server import mutate
+
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    victim = a.session_id
+    live = get_session(victim)
+    lease = reserve(
+        live.reserves, live.store, anchor="PLR01", llm_id="llm-1", ttl_s=600, now=_at(0.5)
+    )
+    fields_before = dict(live.store.get("PLR01").fields)
+    touch_before = _last_touch(victim)
+
+    set_now_override(_at(1))
+    res = json.loads(
+        asyncio.run(
+            mutate(
+                wire_lines=["MATCH (n {id: 'PLR01'}) SET n.wealth = 999"],
+                session=victim,
+                llm_id="llm-2",
+                rid=lease.rid,
+            )
+        )
+    )
+    assert res["exit_code"] != 0, "llm-2 must not commit under llm-1's live lease"
+    assert "@ERR: reserved|" in res["stderr"], "the refusal must carry code reserved"
+    assert dict(live.store.get("PLR01").fields) == fields_before, "PLR01 must be unchanged"
+    assert _last_touch(victim) == touch_before, "a refused commit is not a touch"
 
 
 def test_reopen_restored_true_no_alerts(evict, schema_file, capsys):
