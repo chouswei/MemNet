@@ -880,7 +880,10 @@ package MemNetRequirements {
 
           Crash safety. A crash after the fsync and before the drop SHALL
           leave a complete snapshot. On restart the session is restored from
-          that snapshot or is absent; never torn.
+          that snapshot or is absent; never torn. Crash safety holds only where
+          the filesystem supports directory fsync: EINVAL, ENOTSUP and
+          EOPNOTSUPP from that fsync are tolerated, so there the rename is not
+          guaranteed durable.
 
           No snapshot dir. MEMNET_EXPIRE_SNAPSHOT_DIR has no default. Without
           it the cap refuses and nothing is evicted. With it set, a full cap

@@ -56,15 +56,15 @@ from memnet.pin_map_composer import (
     bounded_match_find,
     parse_find_locators,
 )
-from memnet.registry import get_entry, remove_entry
+from memnet.registry import get_entry
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
+    _expire_drop_if_overdue,
     _session_is_expired,
     close_session,
     count_sessions,
     expire_hold_count,
-    expire_save_should_drop,
     get_session,
     get_session_for_close,
     get_session_for_save,
@@ -451,8 +451,9 @@ def session_save(
         except MemNetError as exc:
             _handle_error(exc)
             raise AssertionError("unreachable") from exc
+        if expired:
+            ss.drop_if_overdue_locked()
     if expired:
-        remove_entry(sid)
         emit_wrn("session_expired_saved", str(file))
     emit_stat("saved", rows, str(file))
     emit_stderr(f"saved {rows} rows to {file}")
@@ -504,11 +505,9 @@ def session_load(
             if entry is not None and not _session_is_expired(entry):
                 ss = get_session(sid, caps)
             else:
-                if entry is not None:
-                    if expire_save_should_drop(sid, caps):
-                        remove_entry(sid)
-                    else:
-                        raise MemNetError("session_expired", "overdue", exit_code=2)
+                # Busy, renewed or unsaveable: kept live for a later sweep.
+                if entry is not None and not _expire_drop_if_overdue(sid, caps):
+                    raise MemNetError("session_expired", "overdue", exit_code=2)
                 path = resolve_expire_load_path(sid, caps)
                 ss = load_snapshot(
                     path,
