@@ -144,6 +144,27 @@ def _acl_check(ss, caller: str | None, permission: str) -> None:
         _handle_error(exc)
 
 
+class _SessionLock:
+    """The session lock for a CLI command, entered in ``with``.
+
+    The handle is read before the lock is taken, so a session can be dropped while
+    this command waits (eviction). Entering then refuses with the miss code, as an
+    ``@ERR`` exit: the body never runs and nothing is written.
+    """
+
+    def __init__(self, ss, *, exclusive: bool) -> None:
+        self._cm = ss.lock(exclusive=exclusive)
+
+    def __enter__(self) -> None:
+        try:
+            self._cm.__enter__()
+        except MemNetError as exc:
+            _handle_error(exc)
+
+    def __exit__(self, *exc_info) -> bool | None:
+        return self._cm.__exit__(*exc_info)
+
+
 def _load_session(session: str | None, *, exclusive: bool = False, touch: bool = True):
     purge_expired(_caps())
     try:
@@ -154,9 +175,7 @@ def _load_session(session: str | None, *, exclusive: bool = False, touch: bool =
         raise AssertionError("unreachable") from exc
     reset_warn_budget()
     emit_session_warnings(ss, _caps())
-    if exclusive:
-        return ss, ss.lock(exclusive=True)
-    return ss, ss.lock(exclusive=False)
+    return ss, _SessionLock(ss, exclusive=exclusive)
 
 
 def _ingest_lines(
@@ -426,7 +445,7 @@ def session_save(
         raise AssertionError("unreachable") from exc
     _acl_check(ss, caller, "pin_map")
     reset_warn_budget()
-    with ss.lock(exclusive=True):
+    with _SessionLock(ss, exclusive=True):
         try:
             rows = write_snapshot(ss, file)
         except MemNetError as exc:

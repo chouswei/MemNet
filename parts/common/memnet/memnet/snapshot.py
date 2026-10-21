@@ -23,6 +23,7 @@ from memnet.session import (
     claim_slot,
     purge_expired,
     register_claimed,
+    release_claim,
     utc_now,
 )
 from memnet.tag_map import (
@@ -373,8 +374,14 @@ def write_snapshot(ss: SessionStore, path: str | Path, *, trailer: str = "") -> 
     text = _format_snapshot(ss, rec_lines, emit_map)
     _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
     dest = Path(path)
-    backup_v1_before_v2(dest)
-    atomic_write_bytes(dest, (text + trailer).encode("utf-8"))
+    try:
+        backup_v1_before_v2(dest)
+        atomic_write_bytes(dest, (text + trailer).encode("utf-8"))
+    except OSError as exc:
+        # A real I/O failure is a refused save, not an internal error. Eviction
+        # and session save both see the typed refusal.
+        raise MemNetError("snapshot_unsaveable", f"write failed: {exc.strerror or 'I/O'}") from exc
+    ss.mark_saved()
     return ss.store.row_count_non_law()
 
 
@@ -563,7 +570,11 @@ def load_snapshot_text(
         touch_seq=_next_touch_seq(),
     )
     claim_slot(caps)
-    register_claimed(session_id, entry)
+    try:
+        register_claimed(session_id, entry)
+    except BaseException:
+        release_claim()  # never registered: the slot goes back, the error goes up
+        raise
     loaded = SessionStore(session_id, caps)
     loaded.restored = True
     return loaded

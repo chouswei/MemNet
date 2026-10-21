@@ -132,7 +132,15 @@ class SessionStore:
     @contextmanager
     def lock(self, exclusive: bool) -> Iterator[None]:
         with self._entry.lock:
+            # The handle was read before this wait. An eviction drops its victim while
+            # holding the victim lock, so the entry may be gone now: refuse, never write.
+            if get_entry(self.session_id) is not self._entry or self._entry.evicting:
+                raise_session_miss(self.session_id, self.caps)
             yield
+
+    def mark_saved(self) -> None:
+        """A successful save clears the unsaveable-held mark (MN-REQ-05.5 R3)."""
+        self._entry.evict_unsaveable = False
 
     def enable_acl(self) -> None:
         self.acl.enable()
@@ -425,11 +433,22 @@ def claim_slot(caps: Caps) -> None:
 
 
 def register_claimed(session_id: str, entry: SessionEntry) -> None:
-    """Register an entry whose slot came from claim_slot, and release that claim."""
+    """Register an entry whose slot came from claim_slot, and release that claim.
+
+    If register fails, the claim is not released here: the caller releases it with
+    release_claim (the open and load paths do, on any error after claim_slot).
+    """
+    global _pending_slots
+    with _cap_lock:
+        register(session_id, entry)
+        _pending_slots -= 1
+
+
+def release_claim() -> None:
+    """Give back a claim_slot claim whose entry was never registered."""
     global _pending_slots
     with _cap_lock:
         _pending_slots -= 1
-        register(session_id, entry)
 
 
 def eviction_status() -> dict[str, int | str | None]:
@@ -496,7 +515,11 @@ def open_session(
         touch_seq=_next_touch_seq(),
     )
     claim_slot(caps)
-    register_claimed(session_id, entry)
+    try:
+        register_claimed(session_id, entry)
+    except BaseException:
+        release_claim()  # never registered: the slot goes back, the error goes up
+        raise
     return SessionStore(session_id, caps)
 
 

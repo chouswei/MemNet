@@ -17,6 +17,7 @@ from memnet.import_absorb import (
     set_import_guard,
 )
 from memnet.mutate_gate import MutateGate
+from memnet.registry import get_entry
 from memnet.session import get_session, open_session
 
 runner = CliRunner()
@@ -246,6 +247,33 @@ def test_cli_import_slice(memnet_temp, schema_file):
     assert r.exit_code == 0, r.stderr + r.stdout
     assert "@IMPORT: ok|" in r.stdout
     assert get_session(lead.session_id).store.get("MOD_amp") is not None
+
+
+def test_cli_import_slice_refused_on_evicting_lead(memnet_temp, schema_file):
+    member, lead = _open_pair(schema_file)
+    # The lead is the victim of an eviction: its handle still resolves, but the lock refuses.
+    get_entry(lead.session_id).evicting = True
+    r = runner.invoke(
+        app,
+        [
+            "import-slice",
+            "--from-session",
+            member.session_id,
+            "--anchor",
+            "MOD_amp",
+            "--id-policy",
+            "keep",
+            "--no-guard",
+            "--session",
+            lead.session_id,
+        ],
+    )
+    assert r.exit_code == 2, r.stderr + r.stdout
+    assert "@ERR: session_not_found|unknown session" in r.stderr, "must be the session miss code"
+    assert "internal" not in r.stderr
+    assert "@IMPORT" not in r.stdout
+    lead_entry = get_entry(lead.session_id)
+    assert lead_entry.store.get("MOD_amp") is None, "a refused import writes nothing"
 
 
 def test_export_requires_anchor(memnet_temp, schema_file):

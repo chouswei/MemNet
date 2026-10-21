@@ -10,6 +10,7 @@ Never print session ids here: assertion messages name the rule, not the id.
 from __future__ import annotations
 
 import asyncio
+import errno
 import json
 import os
 import re
@@ -20,12 +21,14 @@ from unittest.mock import patch
 
 import pytest
 
+import memnet.cli as cli_mod
 import memnet.registry as registry_mod
 import memnet.session as session_mod
 import memnet.snapshot as snapshot_mod
 from evict_surfaces import BASE, NON_TOUCH_READS, READ_SURFACES, caller_read, runner
 from memnet.acl import acl_to_dict
 from memnet.admin_usage import build_report  # noqa: F401  (admin read surface)
+from memnet.atomic_file import atomic_write_bytes
 from memnet.checkpoint import checkpoint_dir, run_checkpoint, verify_checkpoint
 from memnet.cli import app
 from memnet.config import Caps
@@ -35,13 +38,15 @@ from memnet.neighbourhood_reserve import reserve
 from memnet.registry import contains, count, get_entry
 from memnet.session import (
     SessionStore,
+    close_session,
+    eviction_status,
     get_session,
     open_session,
     reset_registry,
     set_now_override,
     snapshot_expired_session,
 )
-from memnet.snapshot import load_snapshot
+from memnet.snapshot import load_snapshot, materialise_snapshot_text
 
 ENV_MAX = "MEMNET_MAX_SESSIONS"
 ENV_DIR = "MEMNET_EXPIRE_SNAPSHOT_DIR"  # reused; no second eviction knob
@@ -985,3 +990,245 @@ def test_failed_evict_save_is_not_a_touch(evict, schema_file, workflow_file, mon
     assert contains(a.session_id), "a failed evict-save must keep the victim live"
     assert _last_touch(a.session_id) == before, "a failed evict-save must not move modified_at"
     assert get_entry(a.session_id).touch_seq == before_seq, "a failed evict-save takes no touch_seq"
+
+
+# --- B1: a waiter on the victim's lock must not write into the dropped entry --------
+
+
+@pytest.fixture
+def evict_one(memnet_temp, monkeypatch, tmp_path):
+    """Cap 1, snapshot dir set: the only live session is the victim of the next open."""
+    snap_dir = tmp_path / "one-snaps"
+    snap_dir.mkdir()
+    monkeypatch.setenv(ENV_MAX, "1")
+    monkeypatch.setenv(ENV_DIR, str(snap_dir))
+    monkeypatch.delenv(ENV_ALIAS, raising=False)
+    set_now_override(BASE)
+    return snap_dir
+
+
+def _snapshot_wealth(path) -> str | None:
+    """PLR01 wealth in a snapshot file, read without registering a session."""
+    entry = materialise_snapshot_text(path.read_text(encoding="utf-8"))
+    value = entry.store.get("PLR01").fields.get("wealth")
+    return None if value is None else str(value)
+
+
+class _SignalLock:
+    """Wraps a session's RLock and sets ``blocked`` when a thread has to wait for it."""
+
+    def __init__(self, inner, blocked: threading.Event) -> None:
+        self._inner = inner
+        self._blocked = blocked
+
+    def __enter__(self):
+        if not self._inner.acquire(blocking=False):
+            self._blocked.set()  # the caller is now waiting on the lock
+            self._inner.acquire()
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        self._inner.release()
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+def test_mutate_waiting_on_dropped_victim_is_refused_not_lost(
+    evict_one, schema_file, workflow_file, monkeypatch
+):
+    from memnet_mcp.server import mutate
+
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)  # PLR01 exists to be SET
+    victim = a.session_id
+    entry = get_entry(victim)
+    waiting = threading.Event()
+    entry.lock = _SignalLock(entry.lock, waiting)
+    real_write = snapshot_mod.write_snapshot
+    real_get_session = cli_mod.get_session
+    writing = threading.Event()
+    release = threading.Event()
+    handle_taken = threading.Event()
+    out: dict = {}
+
+    def slow_write(ss, path, **kwargs):
+        if ss.session_id == victim:
+            writing.set()
+            release.wait(5)
+        return real_write(ss, path, **kwargs)
+
+    def taken_get_session(sid, *args, **kwargs):
+        # The CLI takes its handle here, before it waits on the victim's lock.
+        ss = real_get_session(sid, *args, **kwargs)
+        if sid == victim:
+            handle_taken.set()
+        return ss
+
+    def commit():
+        wire = ["MATCH (n {id: 'PLR01'}) SET n.wealth = 777"]
+        out["res"] = json.loads(asyncio.run(mutate(wire_lines=wire, session=victim)))
+
+    monkeypatch.setattr(snapshot_mod, "write_snapshot", slow_write)
+    monkeypatch.setattr(cli_mod, "get_session", taken_get_session)
+    opener = threading.Thread(target=lambda: _open(schema_file, 1))
+    committer = threading.Thread(target=commit)
+    try:
+        opener.start()
+        assert writing.wait(5), "eviction never reached the save"
+        committer.start()
+        assert handle_taken.wait(5), "mutate never took its handle"
+        assert waiting.wait(5), "mutate never blocked on the victim's lock"
+    finally:
+        release.set()
+        opener.join(5)
+        committer.join(5)
+    assert not opener.is_alive() and not committer.is_alive()
+
+    res = out["res"]
+    assert res["exit_code"] != 0, "a write that waited on a dropped victim must be refused"
+    assert "@ERR: session_expired|snap_available" in res["stderr"], (
+        "the refusal must carry the session miss code, not internal"
+    )
+    assert not contains(victim), "the victim was dropped by the eviction"
+    assert _snapshot_wealth(_snapshot_of(evict_one, victim)) != "777", (
+        "a refused write must not reach the snapshot"
+    )
+
+
+# --- S04: the victim's save is not silently trusted ---------------------------------
+
+
+def _fail_dir_fsync(monkeypatch, err: int) -> None:
+    """Make every directory fsync fail with *err*; file fsyncs are untouched."""
+    real_fsync = os.fsync
+
+    def failing_dir_fsync(fd):
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            raise OSError(err, os.strerror(err))
+        return real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", failing_dir_fsync)
+
+
+def test_dir_fsync_io_failure_keeps_victim_live(evict, schema_file, monkeypatch):
+    a = _open(schema_file, 0)
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _fail_dir_fsync(monkeypatch, errno.EIO)
+    with pytest.raises(MemNetError) as exc:
+        _open(schema_file, 4)  # every candidate fails its dir fsync, so nothing is dropped
+    assert exc.value.code == "limit_exceeded"
+    assert contains(a.session_id), "a failed dir fsync must keep the victim live"
+    assert eviction_status()["sessions_evicted"] == 0, "no session may be counted as evicted"
+
+
+@pytest.mark.parametrize("err", [errno.EINVAL, errno.ENOTSUP, errno.EOPNOTSUPP])
+def test_unsupported_dir_fsync_errno_save_succeeds(tmp_path, monkeypatch, err):
+    _fail_dir_fsync(monkeypatch, err)
+    dest = tmp_path / "victim.snap"
+    atomic_write_bytes(dest, b"body")  # a filesystem without directory fsync is not a failure
+    assert dest.read_bytes() == b"body"
+
+
+@pytest.mark.parametrize("err", [errno.EIO, errno.ENOSPC, errno.EDQUOT, errno.EROFS])
+def test_real_dir_fsync_io_error_raises(tmp_path, monkeypatch, err):
+    _fail_dir_fsync(monkeypatch, err)
+    with pytest.raises(OSError) as exc:
+        atomic_write_bytes(tmp_path / "victim.snap", b"body")
+    assert exc.value.errno == err
+
+
+def test_eio_on_evict_save_keeps_victim_live_via_real_write(evict, schema_file, monkeypatch):
+    # The eviction save goes through write_snapshot: a real EIO there is a typed refusal.
+    a = _open(schema_file, 0)
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _fail_dir_fsync(monkeypatch, errno.EIO)
+    with pytest.raises(MemNetError) as exc:
+        _open(schema_file, 4)  # every candidate's save fails with EIO, so nothing is dropped
+    assert exc.value.code == "limit_exceeded"
+    assert contains(a.session_id), "an EIO on the eviction save must keep the victim live"
+    assert eviction_status()["sessions_evicted"] == 0
+    assert eviction_status()["sessions_unsaveable_held"] >= 1
+
+
+def test_session_save_eio_is_clean_err_not_internal(evict, schema_file, monkeypatch, tmp_path):
+    a = _open(schema_file, 0)
+    _fail_dir_fsync(monkeypatch, errno.EIO)
+    dest = tmp_path / "out.snap"
+    r = runner.invoke(app, ["session", "save", "--file", str(dest), "--session", a.session_id])
+    assert r.exit_code != 0
+    assert "@ERR: snapshot_unsaveable|" in r.stderr, "a real write failure must be a clean @ERR"
+    assert "internal" not in r.stderr, "an I/O failure must not surface as @ERR: internal"
+
+
+# --- S06: a claimed slot is always given back ---------------------------------------
+
+
+def _boom(*_args, **_kwargs):
+    raise RuntimeError("simulated failure after the slot claim")
+
+
+def test_claim_released_when_open_fails_after_claim(evict, schema_file, monkeypatch):
+    _open(schema_file, 0)
+    prior = (count(), session_mod._pending_slots)
+    monkeypatch.setattr(session_mod, "register_claimed", _boom)
+    with pytest.raises(RuntimeError):
+        _open(schema_file, 1)
+    assert (count(), session_mod._pending_slots) == prior, "a failed open must give its claim back"
+
+
+def test_claim_released_when_load_fails_after_claim(evict, schema_file, workflow_file, monkeypatch):
+    a = _open(schema_file, 0)
+    _seed(a.session_id, workflow_file)
+    _open(schema_file, 1)
+    c = _open(schema_file, 2)
+    _open(schema_file, 4)  # evicts a
+    snap = _snapshot_of(evict, a.session_id)
+    close_session(c.session_id)  # free one slot so the load claims without evicting
+    prior = (count(), session_mod._pending_slots)
+    monkeypatch.setattr(snapshot_mod, "register_claimed", _boom)
+    with pytest.raises(RuntimeError):
+        load_snapshot(snap)
+    assert (count(), session_mod._pending_slots) == prior, "a failed load must give its claim back"
+
+
+def test_serve_status_reports_config_conflict_by_code_only(memnet_temp, monkeypatch, tmp_path):
+    one = tmp_path / "one"
+    two = tmp_path / "two"
+    monkeypatch.setenv(ENV_DIR, str(one))
+    monkeypatch.setenv(ENV_ALIAS, str(two))
+    payload = _serve_status_payload()
+    assert payload.get("config_error") == "config_conflict", "a conflicting dir must be reported"
+    text = json.dumps(payload)
+    assert str(one) not in text and str(two) not in text, "the payload must not name a path"
+    monkeypatch.delenv(ENV_ALIAS)
+    assert "config_error" not in _serve_status_payload(), "no conflict, no config_error key"
+
+
+# --- S05: the unsaveable-held mark follows the session -------------------------------
+
+
+def test_unsaveable_held_count_returns_to_zero_after_save(evict, schema_file, tmp_path):
+    a = _open(schema_file, 0)
+    _make_unsaveable(a)
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _open(schema_file, 4)  # a is held (unsaveable); b is evicted
+    assert eviction_status()["sessions_unsaveable_held"] == 1
+    ss = get_session(a.session_id)
+    ss.store.get("PLR01").fields["identity"] = "Hero"  # the value is saveable again
+    snapshot_mod.write_snapshot(ss, tmp_path / "a-ok.snap")
+    assert eviction_status()["sessions_unsaveable_held"] == 0, "a successful save clears the mark"
+
+
+def test_unsaveable_held_count_returns_to_zero_after_close(evict, schema_file):
+    a = _open(schema_file, 0)
+    _make_unsaveable(a)
+    _open(schema_file, 1)
+    _open(schema_file, 2)
+    _open(schema_file, 4)
+    assert eviction_status()["sessions_unsaveable_held"] == 1
+    close_session(a.session_id)
+    assert eviction_status()["sessions_unsaveable_held"] == 0, "a closed session is not held"

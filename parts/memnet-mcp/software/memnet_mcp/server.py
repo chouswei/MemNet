@@ -19,9 +19,11 @@ from memnet.config import (
     DEFAULT_INGEST_MAX_EDGES,
     DEFAULT_INGEST_MAX_NODES,
     expire_save_status,
+    save_on_expire,
     serve_host,
     serve_port,
 )
+from memnet.exceptions import MemNetError
 from memnet.serve import probe, send_command
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.http_transport import (
@@ -78,24 +80,32 @@ async def serve_status() -> str:
     """
     from memnet.session import eviction_status, expire_hold_count
 
-    flags: dict[str, bool | int] = dict(expire_save_status())
+    # Conflicting snapshot dirs refuse start; here the code is reported and no path is.
+    config_error: str | None = None
+    try:
+        flags: dict[str, bool | int] = dict(expire_save_status())
+    except MemNetError as exc:
+        config_error = exc.code
+        # Both names are set when they conflict, so the dir counts as set.
+        flags = {"save_on_expire": save_on_expire(), "expire_snapshot_dir_set": True}
     flags["expire_snapshot_failed"] = expire_hold_count()
     running = probe()
     if running:
         raw = send_command(["session", "expire-status"])
         flags = _expire_flags_from_stat(raw.get("stdout") or "")
-    return json.dumps(
-        {
-            "running": running,
-            "host": serve_host(),
-            "port": serve_port(),
-            "save_on_expire": flags["save_on_expire"],
-            "expire_snapshot_dir_set": flags["expire_snapshot_dir_set"],
-            "expire_snapshot_failed": int(flags.get("expire_snapshot_failed") or 0),
-            # Admin only (MN-REQ-05.5): names and counts, never a session id.
-            **eviction_status(),
-        }
-    )
+    payload: dict[str, bool | int | str | None] = {
+        "running": running,
+        "host": serve_host(),
+        "port": serve_port(),
+        "save_on_expire": flags["save_on_expire"],
+        "expire_snapshot_dir_set": flags["expire_snapshot_dir_set"],
+        "expire_snapshot_failed": int(flags.get("expire_snapshot_failed") or 0),
+        # Admin only (MN-REQ-05.5): names and counts, never a session id.
+        **eviction_status(),
+    }
+    if config_error is not None:
+        payload["config_error"] = config_error
+    return json.dumps(payload)
 
 
 @mcp.tool()

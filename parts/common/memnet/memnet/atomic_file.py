@@ -8,20 +8,46 @@ users, even when it replaces an older file created with a looser mode.
 
 from __future__ import annotations
 
+import errno
 import os
 import tempfile
 from pathlib import Path
+
+# Directory fsync errors that mean "this filesystem has no directory fsync".
+# Any other error is a real I/O failure and raises (EIO, ENOSPC, EDQUOT, EROFS, ...).
+_DIR_SYNC_UNSUPPORTED = frozenset({errno.EINVAL, errno.ENOTSUP, errno.EOPNOTSUPP})
 
 
 def _fsync_fd(fd: int) -> None:
     os.fsync(fd)
 
 
+def _sync_dir(path: Path) -> None:
+    """fsync the directory entry after rename. Unsupported filesystems are skipped."""
+    try:
+        dir_fd = os.open(path, os.O_RDONLY)
+    except OSError as exc:
+        if exc.errno in _DIR_SYNC_UNSUPPORTED:
+            return
+        raise
+    try:
+        _fsync_fd(dir_fd)
+    except OSError as exc:
+        if exc.errno in _DIR_SYNC_UNSUPPORTED:
+            return
+        raise
+    finally:
+        os.close(dir_fd)
+
+
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     """Write ``data`` via a 0600 temp file, fsync, and rename.
 
     A failure before rename leaves the destination untouched and removes
-    the temp file.
+    the temp file. A failed directory fsync raises after the rename, so the
+    caller treats the save as failed (eviction keeps the victim live). A
+    directory fsync that the filesystem does not support (EINVAL, ENOTSUP,
+    EOPNOTSUPP) is skipped.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(
@@ -42,13 +68,4 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
         except OSError:
             pass
         raise
-    try:
-        dir_fd = os.open(path.parent, os.O_RDONLY)
-    except OSError:
-        return
-    try:
-        _fsync_fd(dir_fd)
-    except OSError:
-        pass
-    finally:
-        os.close(dir_fd)
+    _sync_dir(path.parent)
