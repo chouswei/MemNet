@@ -9,6 +9,7 @@ import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import NoReturn
 
@@ -326,23 +327,38 @@ def expire_save_should_drop(session_id: str, caps: Caps | None = None) -> bool:
     return not (entry is not None and entry.expire_save_failed)
 
 
-def _expire_drop_if_overdue(session_id: str, caps: Caps | None = None) -> bool:
-    """Expire-save and drop one overdue session under its entry lock. True when dropped.
+class ExpireOutcome(Enum):
+    """What one overdue check under the entry lock did. Callers branch on it."""
+
+    DROPPED = "dropped"  # expire-saved (or not needed) and removed from RAM
+    RENEWED = "renewed"  # TTL was extended before the lock was taken: still live
+    BUSY = "busy"  # lock held by another thread, or by the calling thread
+    UNSAVEABLE = "unsaveable"  # expire-save failed: RAM kept
+    GONE = "gone"  # not registered, or the registered entry was replaced
+
+
+def _expire_drop_if_overdue(session_id: str, caps: Caps | None = None) -> ExpireOutcome:
+    """Expire-save and drop one overdue session under its entry lock.
 
     Never blocks. A lock held by another thread, or by the calling thread (its own
-    session in use), skips the session until the next sweep. Under the lock the entry
-    must still be the registered object and still overdue, so a renewed TTL is kept.
+    session in use), gives BUSY and the session waits for the next sweep. Under the lock
+    the entry must still be the registered object; if it is still overdue the result is
+    DROPPED or UNSAVEABLE, otherwise a renewed TTL gives RENEWED and the session is kept.
     An unsaveable expire keeps RAM (expire_save_should_drop).
     """
     entry = get_entry(session_id)
-    if entry is None or entry.lock._is_owned() or not entry.lock.acquire(blocking=False):
-        return False
+    if entry is None:
+        return ExpireOutcome.GONE
+    if entry.lock._is_owned() or not entry.lock.acquire(blocking=False):
+        return ExpireOutcome.BUSY
     try:
-        if get_entry(session_id) is not entry or not _session_is_expired(entry):
-            return False
+        if get_entry(session_id) is not entry:
+            return ExpireOutcome.GONE
+        if not _session_is_expired(entry):
+            return ExpireOutcome.RENEWED
         if not expire_save_should_drop(session_id, caps):
-            return False
-        return remove_entry(session_id)
+            return ExpireOutcome.UNSAVEABLE
+        return ExpireOutcome.DROPPED if remove_entry(session_id) else ExpireOutcome.GONE
     finally:
         entry.lock.release()
 
@@ -563,11 +579,14 @@ def get_session(session_id: str, caps: Caps | None = None, *, touch: bool = True
         raise_session_miss(session_id, caps, saw_expire=False)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
-        if _expire_drop_if_overdue(session_id, caps):
+        outcome = _expire_drop_if_overdue(session_id, caps)
+        if outcome is ExpireOutcome.DROPPED:
             purge_expired(caps)
             raise_session_miss(session_id, caps, saw_expire=True)
-        purge_expired(caps, keep=session_id)
-        raise MemNetError("session_expired", "overdue", exit_code=2)
+        if outcome is not ExpireOutcome.RENEWED:
+            purge_expired(caps, keep=session_id)
+            raise MemNetError("session_expired", "overdue", exit_code=2)
+        # RENEWED: the TTL was extended before the lock was taken, so the session is live.
     # Sliding TTL: extend on access (avoids silent expiry for long sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
@@ -592,11 +611,14 @@ def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[Ses
         raise_session_miss(session_id, caps, saw_expire=False)
     expired = _session_is_expired(entry)
     if expired and not bool(getattr(caps, "save_on_expire", False)):
-        if not _expire_drop_if_overdue(session_id, caps):
-            # Busy under another thread's lock, or renewed meanwhile: left for the next sweep.
+        outcome = _expire_drop_if_overdue(session_id, caps)
+        if outcome is ExpireOutcome.DROPPED:
+            purge_expired(caps)
+            raise_session_miss(session_id, caps, saw_expire=True)
+        if outcome is not ExpireOutcome.RENEWED:
+            # Busy under another thread's lock or unsaveable: left for the next sweep.
             raise MemNetError("session_expired", "overdue", exit_code=2)
-        purge_expired(caps)
-        raise_session_miss(session_id, caps, saw_expire=True)
+        expired = False  # renewed under the lock: a live save
     if not expired:
         original_ttl = entry.meta.ttl_minutes
         new_expires = utc_now() + timedelta(minutes=original_ttl)

@@ -60,6 +60,7 @@ from memnet.registry import get_entry
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
+    ExpireOutcome,
     _expire_drop_if_overdue,
     _session_is_expired,
     close_session,
@@ -502,12 +503,16 @@ def session_load(
                     exit_code=2,
                 )
             entry = get_entry(sid)
-            if entry is not None and not _session_is_expired(entry):
+            live = entry is not None
+            if entry is not None and _session_is_expired(entry):
+                outcome = _expire_drop_if_overdue(sid, caps)
+                if outcome not in (ExpireOutcome.DROPPED, ExpireOutcome.RENEWED):
+                    # Busy or unsaveable: kept live for a later sweep.
+                    raise MemNetError("session_expired", "overdue", exit_code=2)
+                live = outcome is ExpireOutcome.RENEWED
+            if live:
                 ss = get_session(sid, caps)
             else:
-                # Busy, renewed or unsaveable: kept live for a later sweep.
-                if entry is not None and not _expire_drop_if_overdue(sid, caps):
-                    raise MemNetError("session_expired", "overdue", exit_code=2)
                 path = resolve_expire_load_path(sid, caps)
                 ss = load_snapshot(
                     path,

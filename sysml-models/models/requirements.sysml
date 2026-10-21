@@ -893,6 +893,8 @@ package MemNetRequirements {
           neither path is printed. The same path under both names is accepted.
           Dropping a separate eviction knob is deliberate: one dir, one meaning.
 
+          Expiry never blocks reads; a read of a session another thread holds waits for that holder, as today.
+
           Unsaveable. An unsaveable candidate (snapshot_unsaveable, over cap,
           or write error) SHALL stay live and the engine SHALL try the
           next-oldest candidate. No auto-drop of unsaveable sessions. The
