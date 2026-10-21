@@ -2376,7 +2376,13 @@ package MemNetVerification {
       ::test_victim_lock_held_from_pick_through_drop,
       ::test_crash_after_fsync_before_drop_is_restorable,
       ::test_failed_save_never_drops_ram,
-      ::test_failed_evict_save_is_not_a_touch.
+      ::test_failed_evict_save_is_not_a_touch,
+      ::test_mutate_waiting_on_dropped_victim_is_refused_not_lost,
+      ::test_dir_fsync_io_failure_keeps_victim_live,
+      ::test_eio_on_evict_save_keeps_victim_live_via_real_write,
+      ::test_unsupported_dir_fsync_errno_save_succeeds,
+      ::test_real_dir_fsync_io_error_raises,
+      ::test_session_save_eio_is_clean_err_not_internal.
     */
     attribute verificationId : String = "MN-VER-05-S04";
 
@@ -2404,7 +2410,9 @@ package MemNetVerification {
       auto-drop; the count is reported as sessions_unsaveable_held on
       serve_status and surfaced to admin. Runtime checks:
       tests/test_session_evict.py::test_unsaveable_victim_skipped_next_oldest_tried,
-      ::test_unsaveable_held_counted_on_serve_status.
+      ::test_unsaveable_held_counted_on_serve_status,
+      ::test_unsaveable_held_count_returns_to_zero_after_save,
+      ::test_unsaveable_held_count_returns_to_zero_after_close.
     */
     attribute verificationId : String = "MN-VER-05-S05";
 
@@ -2437,7 +2445,10 @@ package MemNetVerification {
       ::test_cap_full_with_snapshot_dir_evicts_oldest,
       ::test_no_snapshot_dir_refuses_without_eviction,
       ::test_snapshot_dir_alias_conflict_refuses,
-      ::test_cap_two_concurrent_opens_one_victim_per_slot.
+      ::test_cap_two_concurrent_opens_one_victim_per_slot,
+      ::test_claim_released_when_open_fails_after_claim,
+      ::test_claim_released_when_load_fails_after_claim,
+      ::test_serve_status_reports_config_conflict_by_code_only.
     */
     attribute verificationId : String = "MN-VER-05-S06";
 

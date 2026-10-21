@@ -9,6 +9,7 @@ import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import NoReturn
 
@@ -132,7 +133,26 @@ class SessionStore:
     @contextmanager
     def lock(self, exclusive: bool) -> Iterator[None]:
         with self._entry.lock:
+            # The handle was read before this wait. An eviction drops its victim while
+            # holding the victim lock, so the entry may be gone now: refuse, never write.
+            if get_entry(self.session_id) is not self._entry or self._entry.evicting:
+                raise_session_miss(self.session_id, self.caps)
             yield
+
+    def mark_saved(self) -> None:
+        """A successful save clears the unsaveable-held mark (MN-REQ-05.5 R3)."""
+        self._entry.evict_unsaveable = False
+
+    def drop_if_overdue_locked(self) -> bool:
+        """Drop this session after an expired save, under its lock. True when dropped.
+
+        The caller holds the lock and wrote the snapshot in that same hold, so no write
+        can land between the save and the drop. Same entry and still overdue, so a TTL
+        renewed since the scan is kept.
+        """
+        if get_entry(self.session_id) is not self._entry or not _session_is_expired(self._entry):
+            return False
+        return remove_entry(self.session_id)
 
     def enable_acl(self) -> None:
         self.acl.enable()
@@ -307,13 +327,47 @@ def expire_save_should_drop(session_id: str, caps: Caps | None = None) -> bool:
     return not (entry is not None and entry.expire_save_failed)
 
 
+class ExpireOutcome(Enum):
+    """What one overdue check under the entry lock did. Callers branch on it."""
+
+    DROPPED = "dropped"  # expire-saved (or not needed) and removed from RAM
+    RENEWED = "renewed"  # TTL was extended before the lock was taken: still live
+    BUSY = "busy"  # lock held by another thread, or by the calling thread
+    UNSAVEABLE = "unsaveable"  # expire-save failed: RAM kept
+    GONE = "gone"  # not registered, or the registered entry was replaced
+
+
+def _expire_drop_if_overdue(session_id: str, caps: Caps | None = None) -> ExpireOutcome:
+    """Expire-save and drop one overdue session under its entry lock.
+
+    Never blocks. A lock held by another thread, or by the calling thread (its own
+    session in use), gives BUSY and the session waits for the next sweep. Under the lock
+    the entry must still be the registered object; if it is still overdue the result is
+    DROPPED or UNSAVEABLE, otherwise a renewed TTL gives RENEWED and the session is kept.
+    An unsaveable expire keeps RAM (expire_save_should_drop).
+    """
+    entry = get_entry(session_id)
+    if entry is None:
+        return ExpireOutcome.GONE
+    if entry.lock._is_owned() or not entry.lock.acquire(blocking=False):
+        return ExpireOutcome.BUSY
+    try:
+        if get_entry(session_id) is not entry:
+            return ExpireOutcome.GONE
+        if not _session_is_expired(entry):
+            return ExpireOutcome.RENEWED
+        if not expire_save_should_drop(session_id, caps):
+            return ExpireOutcome.UNSAVEABLE
+        return ExpireOutcome.DROPPED if remove_entry(session_id) else ExpireOutcome.GONE
+    finally:
+        entry.lock.release()
+
+
 def purge_expired(caps: Caps | None = None, *, keep: str | None = None) -> None:
-    now = utc_now()
-    for sid in list_expired_ids(now):
+    for sid in list_expired_ids(utc_now()):
         if keep is not None and sid == keep:
             continue
-        if expire_save_should_drop(sid, caps):
-            remove_entry(sid)
+        _expire_drop_if_overdue(sid, caps)
 
 
 def count_sessions(caps: Caps | None = None) -> int:
@@ -425,11 +479,22 @@ def claim_slot(caps: Caps) -> None:
 
 
 def register_claimed(session_id: str, entry: SessionEntry) -> None:
-    """Register an entry whose slot came from claim_slot, and release that claim."""
+    """Register an entry whose slot came from claim_slot, and release that claim.
+
+    If register fails, the claim is not released here: the caller releases it with
+    release_claim (the open and load paths do, on any error after claim_slot).
+    """
+    global _pending_slots
+    with _cap_lock:
+        register(session_id, entry)
+        _pending_slots -= 1
+
+
+def release_claim() -> None:
+    """Give back a claim_slot claim whose entry was never registered."""
     global _pending_slots
     with _cap_lock:
         _pending_slots -= 1
-        register(session_id, entry)
 
 
 def eviction_status() -> dict[str, int | str | None]:
@@ -496,7 +561,11 @@ def open_session(
         touch_seq=_next_touch_seq(),
     )
     claim_slot(caps)
-    register_claimed(session_id, entry)
+    try:
+        register_claimed(session_id, entry)
+    except BaseException:
+        release_claim()  # never registered: the slot goes back, the error goes up
+        raise
     return SessionStore(session_id, caps)
 
 
@@ -510,12 +579,14 @@ def get_session(session_id: str, caps: Caps | None = None, *, touch: bool = True
         raise_session_miss(session_id, caps, saw_expire=False)
     expires = datetime.fromisoformat(entry.meta.expires_at.replace("Z", "+00:00"))
     if expires < utc_now():
-        if expire_save_should_drop(session_id, caps):
-            remove_entry(session_id)
+        outcome = _expire_drop_if_overdue(session_id, caps)
+        if outcome is ExpireOutcome.DROPPED:
             purge_expired(caps)
             raise_session_miss(session_id, caps, saw_expire=True)
-        purge_expired(caps, keep=session_id)
-        raise MemNetError("session_expired", "overdue", exit_code=2)
+        if outcome is not ExpireOutcome.RENEWED:
+            purge_expired(caps, keep=session_id)
+            raise MemNetError("session_expired", "overdue", exit_code=2)
+        # RENEWED: the TTL was extended before the lock was taken, so the session is live.
     # Sliding TTL: extend on access (avoids silent expiry for long sessions)
     original_ttl = entry.meta.ttl_minutes
     new_expires = utc_now() + timedelta(minutes=original_ttl)
@@ -540,10 +611,14 @@ def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[Ses
         raise_session_miss(session_id, caps, saw_expire=False)
     expired = _session_is_expired(entry)
     if expired and not bool(getattr(caps, "save_on_expire", False)):
-        snapshot_expired_session(session_id, caps)
-        remove_entry(session_id)
-        purge_expired(caps)
-        raise_session_miss(session_id, caps, saw_expire=True)
+        outcome = _expire_drop_if_overdue(session_id, caps)
+        if outcome is ExpireOutcome.DROPPED:
+            purge_expired(caps)
+            raise_session_miss(session_id, caps, saw_expire=True)
+        if outcome is not ExpireOutcome.RENEWED:
+            # Busy under another thread's lock or unsaveable: left for the next sweep.
+            raise MemNetError("session_expired", "overdue", exit_code=2)
+        expired = False  # renewed under the lock: a live save
     if not expired:
         original_ttl = entry.meta.ttl_minutes
         new_expires = utc_now() + timedelta(minutes=original_ttl)

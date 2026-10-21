@@ -56,15 +56,16 @@ from memnet.pin_map_composer import (
     bounded_match_find,
     parse_find_locators,
 )
-from memnet.registry import get_entry, remove_entry
+from memnet.registry import get_entry
 from memnet.sanitiser import sanitise_batch
 from memnet.serve import run_serve
 from memnet.session import (
+    ExpireOutcome,
+    _expire_drop_if_overdue,
     _session_is_expired,
     close_session,
     count_sessions,
     expire_hold_count,
-    expire_save_should_drop,
     get_session,
     get_session_for_close,
     get_session_for_save,
@@ -144,6 +145,27 @@ def _acl_check(ss, caller: str | None, permission: str) -> None:
         _handle_error(exc)
 
 
+class _SessionLock:
+    """The session lock for a CLI command, entered in ``with``.
+
+    The handle is read before the lock is taken, so a session can be dropped while
+    this command waits (eviction). Entering then refuses with the miss code, as an
+    ``@ERR`` exit: the body never runs and nothing is written.
+    """
+
+    def __init__(self, ss, *, exclusive: bool) -> None:
+        self._cm = ss.lock(exclusive=exclusive)
+
+    def __enter__(self) -> None:
+        try:
+            self._cm.__enter__()
+        except MemNetError as exc:
+            _handle_error(exc)
+
+    def __exit__(self, *exc_info) -> bool | None:
+        return self._cm.__exit__(*exc_info)
+
+
 def _load_session(session: str | None, *, exclusive: bool = False, touch: bool = True):
     purge_expired(_caps())
     try:
@@ -154,9 +176,7 @@ def _load_session(session: str | None, *, exclusive: bool = False, touch: bool =
         raise AssertionError("unreachable") from exc
     reset_warn_budget()
     emit_session_warnings(ss, _caps())
-    if exclusive:
-        return ss, ss.lock(exclusive=True)
-    return ss, ss.lock(exclusive=False)
+    return ss, _SessionLock(ss, exclusive=exclusive)
 
 
 def _ingest_lines(
@@ -426,14 +446,15 @@ def session_save(
         raise AssertionError("unreachable") from exc
     _acl_check(ss, caller, "pin_map")
     reset_warn_budget()
-    with ss.lock(exclusive=True):
+    with _SessionLock(ss, exclusive=True):
         try:
             rows = write_snapshot(ss, file)
         except MemNetError as exc:
             _handle_error(exc)
             raise AssertionError("unreachable") from exc
+        if expired:
+            ss.drop_if_overdue_locked()
     if expired:
-        remove_entry(sid)
         emit_wrn("session_expired_saved", str(file))
     emit_stat("saved", rows, str(file))
     emit_stderr(f"saved {rows} rows to {file}")
@@ -482,14 +503,16 @@ def session_load(
                     exit_code=2,
                 )
             entry = get_entry(sid)
-            if entry is not None and not _session_is_expired(entry):
+            live = entry is not None
+            if entry is not None and _session_is_expired(entry):
+                outcome = _expire_drop_if_overdue(sid, caps)
+                if outcome not in (ExpireOutcome.DROPPED, ExpireOutcome.RENEWED):
+                    # Busy or unsaveable: kept live for a later sweep.
+                    raise MemNetError("session_expired", "overdue", exit_code=2)
+                live = outcome is ExpireOutcome.RENEWED
+            if live:
                 ss = get_session(sid, caps)
             else:
-                if entry is not None:
-                    if expire_save_should_drop(sid, caps):
-                        remove_entry(sid)
-                    else:
-                        raise MemNetError("session_expired", "overdue", exit_code=2)
                 path = resolve_expire_load_path(sid, caps)
                 ss = load_snapshot(
                     path,

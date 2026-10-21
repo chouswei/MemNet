@@ -880,7 +880,10 @@ package MemNetRequirements {
 
           Crash safety. A crash after the fsync and before the drop SHALL
           leave a complete snapshot. On restart the session is restored from
-          that snapshot or is absent; never torn.
+          that snapshot or is absent; never torn. Crash safety holds only where
+          the filesystem supports directory fsync: EINVAL, ENOTSUP and
+          EOPNOTSUPP from that fsync are tolerated, so there the rename is not
+          guaranteed durable.
 
           No snapshot dir. MEMNET_EXPIRE_SNAPSHOT_DIR has no default. Without
           it the cap refuses and nothing is evicted. With it set, a full cap
@@ -889,6 +892,8 @@ package MemNetRequirements {
           refuse to start: Caps construction fails with config_conflict and
           neither path is printed. The same path under both names is accepted.
           Dropping a separate eviction knob is deliberate: one dir, one meaning.
+
+          Expiry never blocks reads; CLI and MCP reads of a session another thread holds wait for that holder; in-process get_session takes no lock and does not wait.
 
           Unsaveable. An unsaveable candidate (snapshot_unsaveable, over cap,
           or write error) SHALL stay live and the engine SHALL try the
