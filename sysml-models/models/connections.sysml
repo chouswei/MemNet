@@ -98,7 +98,9 @@ package MemNetConnections {
       import_slice. MissionDock / EvidenceCentre are application patterns —
       MUST NOT nest under MemNetSystem. GQL only.
       Required: sessionId, caller (CallerId). Optional: missionId, lease
-      (reserve design; WAIT / not this ACL cut), anchors,
+      (SessionBind lease; shipped when configured; in-process MAY skip
+      bind — distinct from NeighbourhoodReserve RSV under Commit; full
+      session_token modes WAIT), anchors,
       writeScope (Multitask WorkerWriteScope). MUST NOT carry a full
       graph dump. Fields already on this item — do not duplicate.
     */

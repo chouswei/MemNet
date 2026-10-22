@@ -5,7 +5,7 @@
 Evidence walk against SysML under `sysml-models/models/`.  
 Companions: [company-memory-case-study.md](company-memory-case-study.md), [snapshot-passport-case-study.md](snapshot-passport-case-study.md).
 
-**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** Agens live hydrate/flush proven; extra **0.14** Neo4j live claimed (`liveNeo4jClaimed=true`; live round-trip yes; hid flush; leftover-nickname hydrate after hid miss); extra **0.16** optional library database on the same process (locators only; not hydrate/flush); cabinets external / not vendored.
+**Wire:** GQL / shaped `pin_map` only. **Status:** M2.5 **0.7** Agens live hydrate/flush proven. Neo4jAdapter / Neo4jLibraryPort / `liveNeo4jClaimed` are retired on `MemNetArchive` (#187). Cabinets external / not vendored.
 
 ## 1. Purpose
 

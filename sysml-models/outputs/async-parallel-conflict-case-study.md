@@ -15,7 +15,7 @@ Doctrine: `docs/operations/multi-agent-sessions.md`.
 | Nest | `MultitaskOperatingModel` -> `MultitaskCoordinator` (`SessionHandoffEmit`, `AsyncTaskDispatch`, `SessionImportReceive`) + `WorkerPool` / `MultitaskWorker[1..*]` |
 | Behaviour | `MultitaskMissionCycle`, `WorkerScopedTurn`, `EvDelegateWorker`, `EvEndCoordinatorTurn`, `EvWorkerReturn`, `EvOverlapScopeForbidden` |
 | Items | `MissionTaskPin` (`TSK_*`), `WorkerWriteScope`, `SessionHandoff` |
-| Requirements | MN-REQ-12.5, 12.6, 12.12 (also 12.3 / 12.4) |
+| Requirements | MN-REQ-12.5, 12.6, 12.12, 12.13 (also 12.3 / 12.4) |
 | Verify | MN-VER-12-S13 (happy + anti); S05 / S06 / S07 |
 
 **doctrineAsIs:** CapsPolicy **hard-rejects** out-of-scope mutate when session ACL is enabled. ACL is off by default. Overlap without ACL/RSV is last-write-wins.
@@ -101,7 +101,7 @@ sequenceDiagram
 1. One mission session (or **explicit** separate sessions).
 2. Mint `TSK_*`; assign `WorkerWriteScope`; emit `SessionHandoff`.
 3. Spawn via `AsyncTaskDispatch`; **end the turn**.
-4. Parallel only if disjoint anchors **or** separate session ids.
+4. Parallel only if disjoint anchors **or** separate session ids; overlapping writers on one session MAY take an **RSV** lease (MN-REQ-12.13).
 5. Next lead turn: `pin_map` first; optional import + ImportGuard; settle from pins not chat.
 
 ## 5. Related studies

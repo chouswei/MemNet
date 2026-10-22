@@ -447,8 +447,10 @@ package MemNetVerification {
       SessionImportReceive. Anti: overlapping anchors on one session —
       EvOverlapScopeForbidden / MUST NOT dual-write. The shipped CapsPolicy
       ACL hard-rejects an individual out-of-scope mutate when session ACL is
-      enabled; no neighbourhood reserve coordinates overlapping writers.
-      Subjects: AsyncTaskDispatch, WorkerPool. See
+      enabled. NeighbourhoodReserve (RSV) is shipped: overlapping writers
+      MAY lease ego scopes (reserve_conflict vs last-write-wins). Without
+      a lease, overlapping writers still require doctrine-level
+      serialisation. Subjects: AsyncTaskDispatch, WorkerPool. See
       outputs/async-parallel-conflict-case-study.md.
     */
     attribute verificationId : String = "MN-VER-12-S13";

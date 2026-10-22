@@ -13,7 +13,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j extra **0.14** `liveNeo4jClaimed=true`; extra **0.16** optional library database name on the same Neo4j process, locators only, name MUST differ from the cabinet (`rejectSameNameAsCabinet`); one sync owner). Extra **0.17** `RagHostHook.implemented=true` **outside** `MemNetSystem` (skip valid). Cabinets external / not vendored.
+3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client). Neo4jAdapter / Neo4jLibraryPort / `liveNeo4jClaimed` are retired on `MemNetArchive` (#187). Extra **0.17** `RagHostHook.implemented=true` **outside** `MemNetSystem` (skip valid). Cabinets external / not vendored.
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). TARGET `keep` = MERGE of labels+props / type+ends (GraphElement). leftover_MERGE_by_id is 0.9 leftover, not keep. Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -157,7 +157,7 @@ Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`;
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); leftover_NEW_mint as-is; TARGET GraphElement create; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
 | AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
-| Neo4jAdapter | `memnet.durable` (optional Neo4j client) | Extra **0.14** live claimed; `liveNeo4jClaimed=true` |
+| Neo4jAdapter | `MemNetArchive` (`models/archive.sysml`) | Retired (#187); `liveNeo4jClaimed=false`; `MEMNET_NEO4J_*` ignored |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
@@ -173,7 +173,7 @@ Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`;
 
 - **M1:** GQL wire profile — **done**
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
-- **M2.5:** Client + **0.7** Agens live hydrate/flush + extra **0.14** Neo4j live claim; cabinets external / not vendored ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M2.5:** Client + **0.7** Agens live hydrate/flush; Neo4j retired to `MemNetArchive` (#187); cabinets external / not vendored ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)
