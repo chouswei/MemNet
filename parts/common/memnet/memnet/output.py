@@ -97,6 +97,9 @@ def emit_record(record: Record, tag_map: TagMap) -> str:
         values.extend(v for k, v in record.fields.items() if k != "id")
         return emit_record_line(record.tag, values)
     values = [record.fields.get(f, "") for f in tag_def.fields]
+    if record.tag == "EDG" and "id" in tag_def.fields and not record.id:
+        # id-less edge: show the internal handle so it can be deleted by exact id
+        values[tag_def.fields.index("id")] = record.hid
     return emit_record_line(record.tag, values)
 
 

@@ -13,7 +13,7 @@ from memnet.gql import (
     soft_validate,
 )
 from memnet.gql_codec import GqlCodec
-from memnet.id_allocator import AssignedIdMap
+from memnet.id_allocator import AssignedIdMap, IdAllocator
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
@@ -434,6 +434,20 @@ class MutateGate:
             pending.append(rec)
             ack_items.append(it)
 
+        edge_ids_used: set[str] = set()
+        for rec in self.ss.store.list_records():
+            if rec.fields.get("id"):
+                edge_ids_used.add(rec.fields["id"])
+        for rec in pending:
+            if rec.fields.get("id"):
+                edge_ids_used.add(rec.fields["id"])
+        edge_alloc = IdAllocator(edge_ids_used)
+        for it in deferred_edges:
+            if it.edge_id:
+                edge_alloc.observe(it.edge_id)
+        for it in deferred_edges:
+            if not it.edge_id:
+                it.edge_id = edge_alloc.mint("E")
         for it in deferred_edges:
             for f in it.fields:
                 if f.op in ("+=", "-="):
@@ -827,22 +841,43 @@ class MutateGate:
         store = self.ss.store
         if it.edge_id:
             rec = store.resolve_one(it.edge_id)
-            if rec is not None and rec.tag == "EDG":
-                return rec.hid
-        rel = it.rel
-        for rec in store.list_records("EDG"):
-            if rel and rec.fields.get("relation") != rel:
-                continue
-            if it.frm:
-                src = store.resolve_one(it.frm)
-                if src is None or rec.fields.get("src") != src.hid:
-                    continue
-            if it.to:
-                dst = store.resolve_one(it.to)
-                if dst is None or rec.fields.get("dist") != dst.hid:
-                    continue
+            if rec is None or rec.tag != "EDG":
+                raise MemNetError("not_found", "relationship DELETE matched no element")
             return rec.hid
-        raise MemNetError("not_found", "relationship DELETE matched no element")
+        if not it.frm and not it.to:
+            raise MemNetError(
+                "bad_request",
+                "relationship DELETE needs an id or end nodes",
+                example="MATCH (a {id:'N1'})-[r]->(b {id:'N2'}) DELETE r",
+            )
+        src_hid = dst_hid = None
+        if it.frm:
+            src = store.resolve_one(it.frm)
+            if src is None:
+                raise MemNetError("not_found", "relationship DELETE matched no element")
+            src_hid = src.hid
+        if it.to:
+            dst = store.resolve_one(it.to)
+            if dst is None:
+                raise MemNetError("not_found", "relationship DELETE matched no element")
+            dst_hid = dst.hid
+        hits: list[str] = []
+        for rec in store.list_records("EDG"):
+            if it.rel and rec.fields.get("relation") != it.rel:
+                continue
+            if src_hid is not None and rec.fields.get("src") != src_hid:
+                continue
+            if dst_hid is not None and rec.fields.get("dist") != dst_hid:
+                continue
+            hits.append(rec.hid)
+        if not hits:
+            raise MemNetError("not_found", "relationship DELETE matched no element")
+        if len(hits) > 1:
+            raise MemNetError(
+                "cue_conflict",
+                f"relationship DELETE |Q|={len(hits)}; SHALL NOT pick one root or absorb",
+            )
+        return hits[0]
 
     def _node_to_record(self, node: NodeRec) -> Record:
         kind = node.kind

@@ -1042,17 +1042,76 @@ def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | E
     rest_u = (rest or "").upper()
     if "DELETE" not in s.upper() and "DELETE" not in rest_u:
         raise ParseError("relationship MATCH without DELETE is not agent-read", line_no)
+    frm, to = _rel_delete_ends(s, line_no)
     return [
         EdgeRec(
             op=Op.DROP,
-            edge_id=eid,
-            frm="",
+            edge_id=eid or None,
+            frm=frm,
             rel=m.group(2) or "",
-            to="",
+            to=to,
             fields=[],
             raw=s,
         )
     ]
+
+
+def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
+    """End-node ids for MATCH (a {id})-[r ...]->(b {id}) DELETE r.
+
+    Resolves ends the way MATCH ... CREATE does (nickname from props). An end
+    that carries a label or properties but no id cannot be resolved here, and
+    an undirected relationship with a constrained end is refused (direction
+    would be guessed).
+    """
+    body_m = _RE_MATCH_HEAD.match(s)
+    if not body_m:
+        return "", ""
+    chunk, _rest = _split_match_body(body_m.group(1))
+    bracket = chunk.find("[")
+    close = chunk.find("]", bracket) if bracket >= 0 else -1
+    if bracket < 0 or close < 0:
+        return "", ""
+    left_text = chunk[:bracket].rstrip()
+    lt = left_text.endswith("<-")
+    if lt:
+        left_text = left_text[:-2].rstrip()
+    left_nodes, _, _ = _parse_node_patterns(left_text)
+    arrow = chunk[close + 1 :].lstrip()
+    gt = arrow.startswith("->")
+    if lt and gt:
+        raise ParseError("relationship DELETE arrow both ways is unsupported", line_no)
+    if arrow.startswith("->"):
+        tail = arrow[2:]
+    elif arrow.startswith("-"):
+        tail = arrow[1:]
+    else:
+        raise ParseError("unsupported MATCH shape: relationship arrow", line_no)
+    directed = lt or gt
+    reverse = lt
+    right_nodes, _, _ = _parse_node_patterns(tail) if tail.strip() else ([], 0, "")
+    left_p = left_nodes[0] if left_nodes else None
+    right_p = right_nodes[0] if right_nodes else None
+    ends: list[str] = []
+    for node_p in (left_p, right_p):
+        if node_p is None:
+            ends.append("")
+            continue
+        nid = _nickname_from_props(node_p.props)
+        if not nid and (node_p.label or node_p.props):
+            raise ParseError(
+                "relationship DELETE end needs id (label or property ends unsupported)",
+                line_no,
+            )
+        ends.append(nid)
+    if not directed and any(ends):
+        raise ParseError(
+            "undirected relationship DELETE with an end id: use -> or <-",
+            line_no,
+        )
+    if reverse:
+        ends = [ends[1], ends[0]]
+    return ends[0], ends[1]
 
 
 def _needs_graphglot(stmt: str) -> bool:
@@ -1253,7 +1312,12 @@ def emit_item(it: NodeRec | EdgeRec | Section, *, as_mutate: bool = False) -> st
             # Prefer MATCH ends + CREATE when ends known; ack uses CREATE vars form
             return f"CREATE ({it.frm})-[:{it.rel} {_emit_props(props)}]->({it.to})"
         if as_mutate and it.op == Op.DROP:
-            return f"MATCH ()-[r {{id: '{_escape_str(it.edge_id or '')}'}}]-() DELETE r"
+            if it.edge_id:
+                return f"MATCH ()-[r {{id: '{_escape_str(it.edge_id)}'}}]-() DELETE r"
+            src_p = f"{{id: '{_escape_str(it.frm)}'}}" if it.frm else ""
+            dst_p = f"{{id: '{_escape_str(it.to)}'}}" if it.to else ""
+            rel_p = f":{it.rel}" if it.rel else ""
+            return f"MATCH ({src_p})-[r{rel_p}]->({dst_p}) DELETE r"
         return emit_edge_shaped(
             src_kind="NODE",
             src_id=it.frm,

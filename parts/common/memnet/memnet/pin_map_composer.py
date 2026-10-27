@@ -184,6 +184,9 @@ def record_to_gql_line(rec: Record, *, store=None) -> str:
         ):
             if store_key in rel_fields and rel_fields[store_key]:
                 rel_props[wire_key] = rel_fields[store_key]
+        if not rec.id:
+            # id-less edge: show the internal handle so it can be deleted by exact id
+            rel_props = {"id": rec.hid, **rel_props}
         rel_s = f":{rel} {_emit_props(rel_props)}" if rel_props else f":{rel}"
         return f"{src_line}-[{rel_s}]->{dst_line}"
     fields = {k: v for k, v in rec.fields.items() if k != "id"}
