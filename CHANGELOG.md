@@ -11,6 +11,16 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 - **Invent only — ClusterRoute vs SliceHandCarry (#191 / #47 cousin)** — `MemNetTwoMoves` outside `MemNetSystem` (`MN-REQ-06.9` + `MN-REQ-06.10` / `MN-VER-06-S08`). ClusterRoute = where the session lives (`MemNetLanMcpFront`; one owner; `pin_map` / `find` SHALL NOT span backends). SliceHandCarry = explicit copy into another session (`export_pin_map` or `session_save` → LAN file copy → dest import/`session_load`; `import_slice` same-serve only). Not a live hop. `import_slice(from_url)` not shipped. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/cluster-route-vs-slice-hand-carry.md`](docs/operations/cluster-route-vs-slice-hand-carry.md).
 - **Invent only — LAN MCP front over several serves (#191)** — `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S07`). One MCP catalogue, N LAN `memnet serve` backends; `SessionOwnerRegistry` is owner (explicit pin allowed; silent hash is not sole routing). One owner per session; `pin_map` / `find` SHALL NOT span backends. Cousin of #47 (peer sid handoff), not the same invent. tip≠face. `inventOnly=true`; `implemented=false`; no engine code; no SemVer bump. Wire: [`docs/operations/memnet-lan-mcp-front.md`](docs/operations/memnet-lan-mcp-front.md).
 
+## [0.19.27] - 2026-10-27
+
+### Fixed
+- **Relationship DELETE by end nodes (#224)** — a pattern DELETE such as `MATCH (a {id:'X'})-[e:rel]->(b {id:'Y'}) DELETE e` now resolves the end nodes instead of dropping them; the echo no longer writes `{id: ''}`. A DELETE that matches no edge returns `not_found`; one that matches more than one edge is refused `cue_conflict`; one with neither an edge id nor end nodes is refused. Label/props-only ends, undirected-with-end-ids and both-arrow patterns are refused with a parse error. Relation-only DELETE still works when it matches exactly one edge.
+
+### Changed
+- **Minted edge ids (#224)** — an edge written without an `id` gets an `E<n>` id on every write path (CREATE, PATCH, `@EDG` pipe, `import_slice`); minting skips existing `E` ids.
+- **Legacy id-less edges (#224)** — snapshot restore does not mint ids and snapshots no longer write synthetic `sn_edg_` ids, so legacy id-less edges stay id-less across round-trips. The EDG dump shows their internal `_elN` handle; `_elN` handles are valid only for the current load. `pin_map` stays id-free (MN-REQ-04.11). A snapshot whose EDG row cannot be emitted refuses `snapshot_unsaveable` instead of writing an empty line.
+- **Package identity 0.19.27** — Hatch / `project.toml` / `memnet.__version__`.
+
 ## [0.19.26] - 2026-10-21
 
 ### Added
