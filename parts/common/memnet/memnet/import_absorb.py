@@ -430,6 +430,12 @@ def absorb_working_memory_slice(
                     relations=lead.relations,
                 )
             imported.append(work_rec.hid)
+        # Id-less edges get an E id (CREATE path); one nickname scan, only if needed.
+        edge_alloc: IdAllocator | None = None
+        if any(not r.fields.get("id") for r in prepared_edges):
+            taken = lead.store.nickname_set()
+            taken.update(r.fields["id"] for r in prepared_edges if r.fields.get("id"))
+            edge_alloc = IdAllocator(taken)
         for rec in prepared_edges:
             work_rec = rec
             if policy == "keep":
@@ -450,7 +456,8 @@ def absorb_working_memory_slice(
                             break
                 if matched is not None:
                     merged = dict(matched.fields)
-                    merged.update(rec.fields)
+                    # an id-less incoming edge must not blank the matched edge's id
+                    merged.update({k: v for k, v in rec.fields.items() if k != "id" or v})
                     merged["src"] = src_r.hid if src_r else merged.get("src", "")
                     merged["dist"] = dst_r.hid if dst_r else merged.get("dist", "")
                     work_rec = Record(tag="EDG", fields=merged, hid=matched.hid)
@@ -463,6 +470,8 @@ def absorb_working_memory_slice(
                     imported.append(work_rec.hid)
                     continue
                 fields = dict(rec.fields)
+                if not fields.get("id") and edge_alloc is not None:
+                    fields["id"] = edge_alloc.mint("E")
                 if src_r:
                     fields["src"] = src_r.hid
                 if dst_r:
@@ -475,6 +484,8 @@ def absorb_working_memory_slice(
                     relations=lead.relations,
                 )
             else:
+                if not work_rec.fields.get("id") and edge_alloc is not None:
+                    work_rec.fields["id"] = edge_alloc.mint("E")
                 lead.store.add_row(
                     work_rec,
                     agent=agent,

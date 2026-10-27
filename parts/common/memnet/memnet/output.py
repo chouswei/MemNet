@@ -97,6 +97,9 @@ def emit_record(record: Record, tag_map: TagMap) -> str:
         values.extend(v for k, v in record.fields.items() if k != "id")
         return emit_record_line(record.tag, values)
     values = [record.fields.get(f, "") for f in tag_def.fields]
+    if record.tag == "EDG" and "id" in tag_def.fields:
+        # same edge id as pin_map (Record.edge_handle); id-less edges show _elN
+        values[tag_def.fields.index("id")] = record.edge_handle
     return emit_record_line(record.tag, values)
 
 

@@ -49,6 +49,17 @@ class Record(BaseModel):
         return self.fields.get("id", "")
 
     @property
+    def edge_handle(self) -> str:
+        """Edge id shown in the EDG dump id column (the only place edge ids are shown).
+
+        The user/minted E id when the edge has one, else the internal ``_elN``
+        hid. Either value is accepted back by ``MATCH ... DELETE r {id: ...}``.
+        pin_map never shows edge ids (wire profile 2). ``_elN`` is process-local:
+        it is only stable while the store is loaded.
+        """
+        return self.id or self.hid
+
+    @property
     def kind(self) -> Literal["node", "edge"]:
         return "edge" if self.tag == "EDG" else "node"
 

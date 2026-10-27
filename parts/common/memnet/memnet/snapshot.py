@@ -15,7 +15,7 @@ from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
 from memnet.mem_store import MemStore
 from memnet.models import Record, SessionMeta, TagDef, TagMap
-from memnet.output import emit_record, emit_wrn
+from memnet.output import emit_record, emit_record_line, emit_wrn
 from memnet.registry import SessionEntry
 from memnet.session import (
     SessionStore,
@@ -58,6 +58,9 @@ def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
             return nick
         except MemNetError:
             pass
+    if rec.tag == "EDG":
+        # Legacy id-less edge: emit an empty id so it reloads id-less (no sn_edg_ nick).
+        return ""
     return leftover_wire_nick(rec.hid, kind=rec.tag, used=used)
 
 
@@ -199,6 +202,17 @@ def _emit_record_lines(
                 if token in hid_to_nick:
                     fields[key] = hid_to_nick[token]
         clone = rec.model_copy(update={"fields": fields, "tag": _canonical_tag(ss, rec.tag)})
+        if rec.tag == "EDG" and not fields.get("id"):
+            # Id-less edge: write the stored (empty) id, not the _elN display handle.
+            td = emit_map.get(clone.tag)
+            if td is None:
+                raise MemNetError(
+                    "snapshot_unsaveable",
+                    f"{clone.tag} nick=- no emit row",
+                )
+            values = [fields.get(f, "") for f in td.fields]
+            rec_lines.append(emit_record_line(clone.tag, values))
+            continue
         rec_lines.append(emit_record(clone, emit_map))
     return rec_lines, hid_to_nick, emit_map
 
@@ -277,7 +291,13 @@ def _verify_emitted_snapshot(
                 f"{rec.tag} nick={_nick_of(rec)} missing emit row",
             ) from exc
         try:
-            parsed = parse_line(line, loaded_map, ss.caps, used_nicks=used_nicks)
+            parsed = parse_line(
+                line,
+                loaded_map,
+                ss.caps,
+                used_nicks=used_nicks,
+                keep_edge_id_less=True,
+            )
         except MemNetError as exc:
             raise MemNetError(
                 "snapshot_unsaveable",
@@ -558,8 +578,11 @@ def load_snapshot_text(
     )
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
-    for line in rec_lines:
-        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
+    parsed = [
+        parse_line(line, tag_map, caps, used_nicks=used_nicks, keep_edge_id_less=True)
+        for line in rec_lines
+    ]
+    for rec in parsed:
         store.upsert(rec, relations=relations)
     entry = SessionEntry(
         meta=new_meta,
@@ -599,8 +622,11 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
         relations = set(_seed_relations())
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
-    for line in rec_lines:
-        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
+    parsed = [
+        parse_line(line, tag_map, caps, used_nicks=used_nicks, keep_edge_id_less=True)
+        for line in rec_lines
+    ]
+    for rec in parsed:
         store.upsert(rec, relations=relations)
     return SessionEntry(
         meta=meta,
