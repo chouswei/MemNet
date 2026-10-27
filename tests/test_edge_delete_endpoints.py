@@ -10,7 +10,7 @@ from memnet.mutate_gate import MutateGate
 from memnet.output import emit_record
 from memnet.pin_map_composer import record_to_gql_line
 from memnet.session import open_session
-from memnet.snapshot import materialise_snapshot_text, snapshot_text
+from memnet.snapshot import load_snapshot_text, materialise_snapshot_text, snapshot_text
 from memnet.tier_a import Op
 
 _MAP = ["SCHEMA PRT ; fields=id name role"]
@@ -231,3 +231,44 @@ def test_restore_leaves_legacy_id_less_edge_id_less():
     assert edge.hid.startswith("_el")
     assert edge.hid in emit_record(edge, restored.tag_map)
     assert "_el" not in record_to_gql_line(edge, store=restored.store)
+
+
+def _id_less_edge_text():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    (edge,) = _edges(ss)
+    edge.fields.pop("id")
+    text = snapshot_text(ss)
+    assert "sn_edg_" not in text
+    assert "@EDG: |" in text
+    return text
+
+
+def test_legacy_id_less_edge_restores_via_both_loaders():
+    text = _id_less_edge_text()
+    for restored in (
+        materialise_snapshot_text(text),
+        load_snapshot_text(text),
+    ):
+        (edge,) = restored.store.list_records("EDG")
+        assert not edge.fields.get("id")
+        assert edge.hid.startswith("_el")
+        assert edge.hid in emit_record(edge, restored.tag_map)
+        assert "_el" not in record_to_gql_line(edge, store=restored.store)
+
+
+def test_id_less_edge_survives_repeated_snapshot_restore():
+    text = _id_less_edge_text()
+    ss = load_snapshot_text(text)
+    for _cycle in range(3):
+        text = snapshot_text(ss)
+        assert "sn_edg_" not in text
+        ss = load_snapshot_text(text)
+        (edge,) = _edges(ss)
+        stored = edge.fields.get("id") or ""
+        assert stored == ""
+        assert "sn_edg_" not in stored
+        assert not stored.startswith("E")
+        assert edge.hid.startswith("_el")
+        assert edge.hid in emit_record(edge, ss.tag_map)
+        assert "_el" not in record_to_gql_line(edge, store=ss.store)
