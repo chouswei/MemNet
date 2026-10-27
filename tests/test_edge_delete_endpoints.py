@@ -5,10 +5,12 @@ from __future__ import annotations
 import pytest
 
 from memnet.exceptions import MemNetError
+from memnet.gql import emit_item, parse
 from memnet.mutate_gate import MutateGate
 from memnet.output import emit_record
 from memnet.pin_map_composer import record_to_gql_line
 from memnet.session import open_session
+from memnet.tier_a import Op
 
 _MAP = ["SCHEMA PRT ; fields=id name role"]
 
@@ -126,3 +128,91 @@ def test_edge_reads_show_internal_id_when_no_user_id():
     # and that shown id deletes the edge
     _apply(ss, f"MATCH ()-[r {{id: '{edge.hid}'}}]-() DELETE r")
     assert _edges(ss) == []
+
+
+def test_end_with_only_label_or_only_props_is_parse_error():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    with pytest.raises(MemNetError) as ei:
+        _apply(ss, "MATCH ({id: 'P0'})-[r:links]->(:PRT) DELETE r")
+    assert ei.value.code == "parse_error"
+    with pytest.raises(MemNetError) as ei:
+        _apply(ss, "MATCH ({id: 'P0'})-[r:links]->({name: 'part1'}) DELETE r")
+    assert ei.value.code == "parse_error"
+    assert len(_edges(ss)) == 1
+
+
+def test_undirected_delete_with_end_id_refused():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    with pytest.raises(MemNetError) as ei:
+        _apply(ss, "MATCH ({id: 'P0'})-[r:links]-({id: 'P1'}) DELETE r")
+    assert ei.value.code == "parse_error"
+    assert len(_edges(ss)) == 1
+
+
+def test_both_arrows_delete_refused():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    with pytest.raises(MemNetError) as ei:
+        _apply(ss, "MATCH ({id: 'P0'})<-[r:links]->({id: 'P1'}) DELETE r")
+    assert ei.value.code == "parse_error"
+    assert len(_edges(ss)) == 1
+
+
+def test_single_end_delete_removes_only_matching_edge():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    _link(ss, "P2", "P1")
+    _apply(ss, "MATCH ({id: 'P0'})-[r:links]->() DELETE r")
+    p = {r.fields["id"]: r.hid for r in ss.store.list_records("PRT")}
+    left = {(e.fields["src"], e.fields["dist"]) for e in _edges(ss)}
+    assert left == {(p["P2"], p["P1"])}
+
+
+def test_minted_edge_id_skips_existing_edge_ids():
+    ss = _session()
+    _link(ss, "P0", "P1", props=" {id: 'E1'}")
+    _link(ss, "P0", "P2", props=" {id: 'E2'}")
+    _link(ss, "P1", "P2")
+    ids = [e.fields.get("id") for e in _edges(ss)]
+    minted = [i for i in ids if i not in ("E1", "E2")]
+    assert len(minted) == 1
+    assert minted[0] == "E3"
+    assert len(set(ids)) == 3
+
+
+def test_emit_item_drop_round_trips_with_ends():
+    (item,) = parse("MATCH ({id: 'P0'})-[r:links]->({id: 'P1'}) DELETE r").items
+    assert (item.op, item.frm, item.rel, item.to) == (Op.DROP, "P0", "links", "P1")
+    text = emit_item(item, as_mutate=True)
+    (again,) = parse(text).items
+    assert (again.op, again.frm, again.rel, again.to) == (Op.DROP, "P0", "links", "P1")
+
+
+def test_edge_id_miss_is_not_found():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    with pytest.raises(MemNetError) as ei:
+        _apply(ss, "MATCH ()-[r {id: 'E999'}]-() DELETE r")
+    assert ei.value.code == "not_found"
+    assert len(_edges(ss)) == 1
+
+
+def test_pin_map_line_has_no_edge_id_or_el_handle():
+    ss = _session()
+    _link(ss, "P0", "P1", props=" {id: 'KEEP'}")
+    _link(ss, "P1", "P2")
+    for edge in _edges(ss):
+        line = record_to_gql_line(edge, store=ss.store)
+        assert "_el" not in line
+        assert "id:" not in line
+        assert "KEEP" not in line
+        assert edge.hid not in line
+        assert edge.fields["id"] not in line
+    # legacy id-less edge: EDG dump shows its _elN handle, pin_map does not
+    legacy = _edges(ss)[0]
+    legacy.fields.pop("id")
+    assert legacy.hid.startswith("_el")
+    assert legacy.hid in emit_record(legacy, ss.tag_map)
+    assert "_el" not in record_to_gql_line(legacy, store=ss.store)
