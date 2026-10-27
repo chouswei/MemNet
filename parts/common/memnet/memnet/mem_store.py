@@ -247,6 +247,16 @@ class MemStore:
             return []
         return [r for r in self._by_hid.values() if r.fields.get("id") == nick]
 
+    def nickname_set(self) -> set[str]:
+        """Every element nickname (fields['id']) in the store.
+
+        No nickname index exists (``match_nickname`` scans too), so this is one
+        O(N) pass over ``_by_hid`` with no ranking. Callers must only invoke it
+        when a write actually has to mint an id (e.g. an id-less edge), so the
+        cost is paid per such write, not per mutate.
+        """
+        return {r.fields["id"] for r in self._by_hid.values() if r.fields.get("id")}
+
     def resolve_one(self, token: str | None) -> Record | None:
         """Unique hid or unique nickname. None if missing or CueConflict cardinality."""
         if not token:

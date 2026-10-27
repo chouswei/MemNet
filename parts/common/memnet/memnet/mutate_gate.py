@@ -178,6 +178,7 @@ class MutateGate:
         from memnet.neighbourhood_reserve import check_mutate_ids, touched_ids_from_records
 
         records = import_pipe_lines(lines, self.ss.tag_map, self.ss.caps)
+        self._mint_pipe_edge_ids(records)
         check_write_scope(
             getattr(self.ss, "acl", None),
             caller=caller,
@@ -434,20 +435,16 @@ class MutateGate:
             pending.append(rec)
             ack_items.append(it)
 
-        edge_ids_used: set[str] = set()
-        for rec in self.ss.store.list_records():
-            if rec.fields.get("id"):
-                edge_ids_used.add(rec.fields["id"])
-        for rec in pending:
-            if rec.fields.get("id"):
-                edge_ids_used.add(rec.fields["id"])
-        edge_alloc = IdAllocator(edge_ids_used)
-        for it in deferred_edges:
-            if it.edge_id:
-                edge_alloc.observe(it.edge_id)
-        for it in deferred_edges:
-            if not it.edge_id:
-                it.edge_id = edge_alloc.mint("E")
+        # Every edge gets an E id: CREATE without one (deferred) and PATCH of a
+        # legacy id-less edge (pending). The nickname scan runs only if needed.
+        id_less_patch = [r for r in pending if r.tag == "EDG" and not r.fields.get("id")]
+        if id_less_patch or any(not it.edge_id for it in deferred_edges):
+            edge_alloc = self._edge_id_allocator(pending, deferred_edges)
+            for it in deferred_edges:
+                if not it.edge_id:
+                    it.edge_id = edge_alloc.mint("E")
+            for rec in id_less_patch:
+                rec.fields["id"] = edge_alloc.mint("E")
         for it in deferred_edges:
             for f in it.fields:
                 if f.op in ("+=", "-="):
@@ -844,10 +841,14 @@ class MutateGate:
             if rec is None or rec.tag != "EDG":
                 raise MemNetError("not_found", "relationship DELETE matched no element")
             return rec.hid
-        if not it.frm and not it.to:
+        # Deprecated shape kept working: relation-only DELETE (no id, no ends, e.g.
+        # MATCH (a)-[e:helps]->(b) DELETE e) resolves by relation alone. It still
+        # goes through the cardinality rule below, so >1 match is cue_conflict,
+        # never an arbitrary pick. Fully unscoped DELETE r stays bad_request.
+        if not it.frm and not it.to and not it.rel:
             raise MemNetError(
                 "bad_request",
-                "relationship DELETE needs an id or end nodes",
+                "relationship DELETE needs an id, end nodes, or a relation type",
                 example="MATCH (a {id:'N1'})-[r]->(b {id:'N2'}) DELETE r",
             )
         src_hid = dst_hid = None
@@ -942,6 +943,30 @@ class MutateGate:
             rec.hid = bound.hid
         return rec
 
+    def _edge_id_allocator(self, batch: list[Record], deferred: list[EdgeRec]) -> IdAllocator:
+        """IdAllocator that will not reuse any nickname in the store, the batch, or a CREATE id.
+
+        Cost: one O(N) pass over the store (MemStore.nickname_set). No nickname
+        index exists, so this scan is the price of minting; it runs only for a
+        write that has at least one id-less edge, never for id'd edges.
+        """
+        used = self.ss.store.nickname_set()
+        used.update(r.fields["id"] for r in batch if r.fields.get("id"))
+        alloc = IdAllocator(used)
+        for it in deferred:
+            if it.edge_id:
+                alloc.observe(it.edge_id)
+        return alloc
+
+    def _mint_pipe_edge_ids(self, records: list[Record]) -> None:
+        """Legacy pipe @EDG lines without an id get an E id (in place)."""
+        if not any(r.tag == "EDG" and not r.fields.get("id") for r in records):
+            return
+        alloc = self._edge_id_allocator(records, [])
+        for r in records:
+            if r.tag == "EDG" and not r.fields.get("id"):
+                r.fields["id"] = alloc.mint("E")
+
     def _edge_to_record(self, edge: EdgeRec) -> Record:
         tag_def = self.ss.tag_map.get("EDG")
         if not tag_def:
@@ -959,6 +984,9 @@ class MutateGate:
         }
         if eid and not str(eid).startswith("_el"):
             fields["id"] = eid
+        elif base.get("id"):
+            # PATCH addressed by handle keeps the edge's existing id
+            fields["id"] = base["id"]
         for k in ("src_port", "dist_port", "carries", "wire"):
             if k in base and base[k]:
                 fields[k] = base[k]

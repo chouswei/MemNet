@@ -72,10 +72,12 @@ def test_empty_id_refused():
 
 
 def test_delete_without_id_or_endpoints_refused():
+    # Relation-only DELETE (-[r:links]->()) is a deprecated shape that still works
+    # (single match deletes, >1 is cue_conflict); only the fully unscoped form is refused.
     ss = _session()
     _link(ss, "P0", "P1")
     with pytest.raises(MemNetError):
-        _apply(ss, "MATCH ()-[r:links]->() DELETE r")
+        _apply(ss, "MATCH ()-[r]->() DELETE r")
     assert len(_edges(ss)) == 1
 
 
@@ -111,12 +113,14 @@ def test_edge_reads_show_internal_id_when_no_user_id():
     ss = _session()
     _link(ss, "P0", "P1", props=" {id: 'KEEP'}")
     edge = _edges(ss)[0]
-    # user id present: dump shows it, pin_map line stays nickname-free
+    # user id present: EDG dump shows it, pin_map line stays id-free (wire profile 2)
+    assert "KEEP" in emit_record(edge, ss.tag_map)
     assert "KEEP" not in record_to_gql_line(edge, store=ss.store)
-    # id-less edge: strip the user id to model a legacy edge
+    # id-less edge (legacy only; CREATE mints E ids): dump shows the _elN handle,
+    # pin_map still shows no edge id
     edge.fields.pop("id")
     line = record_to_gql_line(edge, store=ss.store)
-    assert f"id: '{edge.hid}'" in line
+    assert "id:" not in line
     dump = emit_record(edge, ss.tag_map)
     assert edge.hid in dump
     # and that shown id deletes the edge
