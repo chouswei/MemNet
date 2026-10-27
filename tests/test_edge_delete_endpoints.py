@@ -272,3 +272,23 @@ def test_id_less_edge_survives_repeated_snapshot_restore():
         assert edge.hid.startswith("_el")
         assert edge.hid in emit_record(edge, ss.tag_map)
         assert "_el" not in record_to_gql_line(edge, store=ss.store)
+
+
+def test_id_less_edge_without_emit_row_refuses_snapshot(monkeypatch):
+    from memnet import snapshot as snapshot_mod
+    from memnet.models import TagMap
+
+    ss = _session()
+    _link(ss, "P0", "P1")
+    (edge,) = _edges(ss)
+    edge.fields.pop("id")
+    real = snapshot_mod._snapshot_emit_tag_map
+
+    def _no_edg_row(sess):
+        full = real(sess)
+        return TagMap(tags={t: d for t, d in full.tags.items() if t != "EDG"})
+
+    monkeypatch.setattr(snapshot_mod, "_snapshot_emit_tag_map", _no_edg_row)
+    with pytest.raises(MemNetError) as excinfo:
+        snapshot_text(ss)
+    assert excinfo.value.code == "snapshot_unsaveable"

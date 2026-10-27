@@ -202,10 +202,15 @@ def _emit_record_lines(
                 if token in hid_to_nick:
                     fields[key] = hid_to_nick[token]
         clone = rec.model_copy(update={"fields": fields, "tag": _canonical_tag(ss, rec.tag)})
-        if rec.tag == "EDG" and not fields["id"]:
+        if rec.tag == "EDG" and not fields.get("id"):
             # Id-less edge: write the stored (empty) id, not the _elN display handle.
             td = emit_map.get(clone.tag)
-            values = [fields.get(f, "") for f in td.fields] if td else []
+            if td is None:
+                raise MemNetError(
+                    "snapshot_unsaveable",
+                    f"{clone.tag} nick=- no emit row",
+                )
+            values = [fields.get(f, "") for f in td.fields]
             rec_lines.append(emit_record_line(clone.tag, values))
             continue
         rec_lines.append(emit_record(clone, emit_map))
