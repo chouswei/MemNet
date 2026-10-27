@@ -120,5 +120,5 @@ def test_teach_contrasts_47_and_worth_building():
 
 def test_no_semver_bump_in_this_invent():
     text = _PROJECT.read_text(encoding="utf-8")
-    assert 'version = "0.19.26"' in text
-    assert "0.19.27" not in text
+    assert 'version = "0.19.27"' in text
+    assert "0.19.28" not in text
