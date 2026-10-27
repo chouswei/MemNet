@@ -10,6 +10,7 @@ from memnet.mutate_gate import MutateGate
 from memnet.output import emit_record
 from memnet.pin_map_composer import record_to_gql_line
 from memnet.session import open_session
+from memnet.snapshot import materialise_snapshot_text, snapshot_text
 from memnet.tier_a import Op
 
 _MAP = ["SCHEMA PRT ; fields=id name role"]
@@ -216,3 +217,17 @@ def test_pin_map_line_has_no_edge_id_or_el_handle():
     assert legacy.hid.startswith("_el")
     assert legacy.hid in emit_record(legacy, ss.tag_map)
     assert "_el" not in record_to_gql_line(legacy, store=ss.store)
+
+
+def test_restore_leaves_legacy_id_less_edge_id_less():
+    ss = _session()
+    _link(ss, "P0", "P1")
+    # legacy snapshot: the EDG line has an empty id column
+    text = snapshot_text(ss).replace("@EDG: E1|", "@EDG: |")
+    assert "@EDG: |" in text
+    restored = materialise_snapshot_text(text)
+    (edge,) = restored.store.list_records("EDG")
+    assert not edge.fields.get("id")
+    assert edge.hid.startswith("_el")
+    assert edge.hid in emit_record(edge, restored.tag_map)
+    assert "_el" not in record_to_gql_line(edge, store=restored.store)

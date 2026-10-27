@@ -438,6 +438,7 @@ class MutateGate:
         # Every edge gets an E id: CREATE without one (deferred) and PATCH of a
         # legacy id-less edge (pending). The nickname scan runs only if needed.
         id_less_patch = [r for r in pending if r.tag == "EDG" and not r.fields.get("id")]
+        # Known follow-up: the per-mutate scan of existing ids below is O(n) in the store.
         if id_less_patch or any(not it.edge_id for it in deferred_edges):
             edge_alloc = self._edge_id_allocator(pending, deferred_edges)
             for it in deferred_edges:

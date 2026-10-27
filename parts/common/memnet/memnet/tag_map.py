@@ -277,7 +277,11 @@ def parse_line(
     caps: Caps | None = None,
     *,
     used_nicks: set[str] | None = None,
+    keep_edge_id_less: bool = False,
 ) -> Record:
+    """Parse one wire/snapshot line. An id-less line gets a leftover nick, except
+    an EDG line when ``keep_edge_id_less`` (snapshot restore): it stays id-less so
+    its internal ``_elN`` handle is the only id, as stored."""
     caps = caps or Caps()
     physical = len(line.encode("utf-8"))
     # line_bytes is the escaped/raw pipe or snapshot line (backslash and
@@ -303,7 +307,7 @@ def parse_line(
     if nick:
         if used_nicks is not None:
             used_nicks.add(nick)
-    else:
+    elif not (keep_edge_id_less and tag == "EDG"):
         fields["id"] = leftover_wire_nick(
             f"{tag}|{payload}",
             kind=tag,
