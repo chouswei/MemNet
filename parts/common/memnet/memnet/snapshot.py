@@ -13,6 +13,7 @@ from memnet.atomic_file import atomic_write_bytes
 from memnet.config import Caps
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
+from memnet.id_allocator import IdAllocator
 from memnet.mem_store import MemStore
 from memnet.models import Record, SessionMeta, TagDef, TagMap
 from memnet.output import emit_record, emit_wrn
@@ -47,6 +48,20 @@ _ACL_PREFIX = "#@ACL:"
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
+
+
+def _mint_missing_edge_ids(recs: list[Record]) -> None:
+    """Legacy snapshots may carry id-less EDG lines: give each an E id (in place).
+
+    Runs over the whole parsed batch before any upsert, so minted ids cannot
+    collide with a nickname that appears later in the same snapshot.
+    """
+    if not any(r.tag == "EDG" and not r.fields.get("id") for r in recs):
+        return
+    alloc = IdAllocator({r.fields["id"] for r in recs if r.fields.get("id")})
+    for r in recs:
+        if r.tag == "EDG" and not r.fields.get("id"):
+            r.fields["id"] = alloc.mint("E")
 
 
 def _snapshot_emit_nick(rec: Record, used: set[str]) -> str:
@@ -558,8 +573,9 @@ def load_snapshot_text(
     )
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
-    for line in rec_lines:
-        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
+    parsed = [parse_line(line, tag_map, caps, used_nicks=used_nicks) for line in rec_lines]
+    _mint_missing_edge_ids(parsed)
+    for rec in parsed:
         store.upsert(rec, relations=relations)
     entry = SessionEntry(
         meta=new_meta,
@@ -599,8 +615,9 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
         relations = set(_seed_relations())
     store = MemStore(tag_map, caps)
     used_nicks: set[str] = set()
-    for line in rec_lines:
-        rec = parse_line(line, tag_map, caps, used_nicks=used_nicks)
+    parsed = [parse_line(line, tag_map, caps, used_nicks=used_nicks) for line in rec_lines]
+    _mint_missing_edge_ids(parsed)
+    for rec in parsed:
         store.upsert(rec, relations=relations)
     return SessionEntry(
         meta=meta,
