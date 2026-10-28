@@ -17,7 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
-from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS
+from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, standard_relation
 from memnet.exceptions import MemNetError
 from memnet.id_allocator import IdAllocator
 from memnet.models import Record, new_hid
@@ -439,7 +439,7 @@ def absorb_working_memory_slice(
         for rec in prepared_edges:
             work_rec = rec
             if policy == "keep":
-                rel = rec.fields.get("relation", "")
+                rel = standard_relation(rec.fields.get("relation", ""))
                 src = rec.fields.get("src", "")
                 dist = rec.fields.get("dist", "")
                 src_r = lead.store.resolve_one(src)
@@ -448,7 +448,7 @@ def absorb_working_memory_slice(
                 if src_r and dst_r:
                     for e in lead.store.list_records("EDG"):
                         if (
-                            e.fields.get("relation") == rel
+                            standard_relation(e.fields.get("relation", "")) == rel
                             and e.fields.get("src") == src_r.hid
                             and e.fields.get("dist") == dst_r.hid
                         ):

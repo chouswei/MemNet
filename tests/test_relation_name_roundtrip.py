@@ -168,7 +168,9 @@ def test_saved_snapshot_check_stays_strict_lower_camel():
     with pytest.raises(MemNetError):
         validate_snapshot_relation("HAS_FACT")
     ss = _session()
-    ss.relations.add("HAS_FACT")  # bypass the write path: save must refuse
+    ss.relations.add("HAS_FACT")  # bypass the write path: save folds it
+    assert "@REL: hasFact" in snapshot_text(ss)
+    ss.relations.add("bad-name")  # not a valid name at all: save still refuses
     with pytest.raises(MemNetError):
         snapshot_text(ss)
 
@@ -277,3 +279,15 @@ def test_pipe_edg_ack_carries_relation_normalized_warning():
         allow_new_relation=True,
     )
     assert r.warnings == ["relation_normalized|HAS_FACT->hasFact"]
+
+
+def test_raw_stored_upper_case_edge_saves_and_restores_as_standard_name():
+    # B3: a pre-fix raw ABOUT edge must not make session_save refuse.
+    ss = _session()
+    _raw_legacy_edge(ss)
+    text = snapshot_text(ss)  # no snapshot_unsaveable
+    assert "ABOUT" not in text
+    for loaded in (materialise_snapshot_text(text), load_snapshot_text(text)):
+        store = getattr(loaded, "store", loaded)
+        rels = [r.fields.get("relation") for r in store.list_records("EDG")]
+        assert rels == ["about"]

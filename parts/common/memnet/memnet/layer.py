@@ -831,7 +831,7 @@ def record_to_layer_edge(rec) -> LayerEdgeRec:
         edge_id=rec.id,
         frm=Endpoint(rec.fields.get("src", ""), src_port),
         to=Endpoint(rec.fields.get("dist", ""), dist_port),
-        rel=rec.fields.get("relation", ""),
+        rel=standard_relation(rec.fields.get("relation", "")),
         wire=wire,
         fields=fields,
     )

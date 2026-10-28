@@ -589,7 +589,7 @@ class MemStore:
             for edge in self._edges_from(nid) + self._edges_to(nid):
                 if active_only and edge.is_recyclable():
                     continue
-                rel = edge.fields.get("relation", "")
+                rel = standard_relation(edge.fields.get("relation", ""))
                 if rel not in _LAW_LINK_RELATIONS:
                     continue
                 src = edge.fields.get("src", "")
