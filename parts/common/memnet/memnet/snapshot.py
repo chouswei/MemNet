@@ -10,7 +10,12 @@ from pathlib import Path
 
 from memnet.acl import SessionAcl, acl_from_dict, acl_to_dict
 from memnet.atomic_file import atomic_write_bytes
-from memnet.config import Caps
+from memnet.config import (
+    Caps,
+    normalize_relation,
+    standard_relation,
+    validate_snapshot_relation,
+)
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
 from memnet.mem_store import MemStore
@@ -197,6 +202,9 @@ def _emit_record_lines(
         fields = dict(rec.fields)
         fields["id"] = hid_to_nick[rec.hid]
         if rec.tag == "EDG":
+            if fields.get("relation"):
+                # Fold a raw stored name (pre-fix store) to the standard one.
+                fields["relation"] = standard_relation(fields["relation"])
             for key in ("src", "dist"):
                 token = fields.get(key, "")
                 if token in hid_to_nick:
@@ -242,7 +250,8 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
-    for rel in sorted(ss.relations):
+    for rel in sorted({standard_relation(r) for r in ss.relations}):
+        validate_snapshot_relation(rel)
         lines.append(f"@REL: {rel}")
     lines.append(_SECTION_REC)
     lines.extend(rec_lines)
@@ -303,6 +312,8 @@ def _verify_emitted_snapshot(
                 "snapshot_unsaveable",
                 f"{rec.tag} nick={_nick_of(rec)} {exc.code} {exc.message}",
             ) from exc
+        if rec.tag == "EDG" and rec.fields.get("relation"):
+            validate_snapshot_relation(standard_relation(rec.fields["relation"]))
         want_id = hid_to_nick.get(rec.hid) or rec.fields.get("id") or ""
         keys = list(rec.fields.keys())
         if "id" not in keys:
@@ -313,6 +324,8 @@ def _verify_emitted_snapshot(
                 expected = want_id
             elif rec.tag == "EDG" and key in ("src", "dist"):
                 expected = hid_to_nick.get(raw, raw)
+            elif rec.tag == "EDG" and key == "relation":
+                expected = standard_relation(raw)
             else:
                 expected = raw
             got = parsed.fields.get(key, "")
@@ -486,9 +499,9 @@ def _parse_relations(rel_lines: list[str]) -> set[str]:
         if line.startswith("@REL:"):
             name = line.removeprefix("@REL:").strip()
             if name:
-                relations.add(name)
+                relations.add(normalize_relation(name))
         elif line and not line.startswith("#"):
-            relations.add(line)
+            relations.add(normalize_relation(line))
     return relations
 
 

@@ -6,7 +6,13 @@ import re
 import time
 from collections import deque
 
-from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps
+from memnet.config import (
+    DEFAULT_QUERY_DEPTH,
+    DEFAULT_QUERY_MAX_ROWS,
+    Caps,
+    normalize_relation,
+    standard_relation,
+)
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
@@ -99,6 +105,8 @@ class MemStore:
                     "limit_exceeded",
                     f"rows|{self.row_count_non_law() + 1}/{self.caps.max_rows}",
                 )
+        if record.tag == "EDG" and record.fields.get("relation"):
+            record.fields["relation"] = normalize_relation(record.fields["relation"])
         if record.tag == "EDG" and relations is not None:
             rel = record.fields.get("relation", "")
             if rel and rel not in relations:
@@ -448,7 +456,7 @@ class MemStore:
                 seen_edges.add(edge.hid)
                 src = edge.fields.get("src", "")
                 dst = edge.fields.get("dist", "")
-                rel = edge.fields.get("relation", "")
+                rel = standard_relation(edge.fields.get("relation", ""))
                 if not rel or not src or not dst:
                     continue
                 if src not in self._by_hid or dst not in self._by_hid:
@@ -581,7 +589,7 @@ class MemStore:
             for edge in self._edges_from(nid) + self._edges_to(nid):
                 if active_only and edge.is_recyclable():
                     continue
-                rel = edge.fields.get("relation", "")
+                rel = standard_relation(edge.fields.get("relation", ""))
                 if rel not in _LAW_LINK_RELATIONS:
                     continue
                 src = edge.fields.get("src", "")

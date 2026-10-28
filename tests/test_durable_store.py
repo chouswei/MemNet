@@ -78,7 +78,7 @@ def test_hydrate_into_session_then_pin_map(memnet_temp):
     assert loaded.ego_id == "COM_acme"
     assert ss.store.get("COM_acme") is not None
     assert ss.store.get("TSK_mission_q3") is not None
-    assert "ABOUT" in ss.relations
+    assert "about" in ss.relations
 
     rows, text = PinMapComposer(ss).compose(anchor="COM_acme", depth=2, max_rows=50)
     ids = {r.id for r in rows if r.tag != "LAW"}
@@ -86,7 +86,7 @@ def test_hydrate_into_session_then_pin_map(memnet_temp):
     assert "TSK_mission_q3" in ids
     assert "CREATE" not in text  # shaped present form, not mutate
     assert "name: 'Acme'" in text
-    assert "ABOUT" in text
+    assert "[:about]" in text
 
 
 def test_session_lifecycle_hydrate_port(memnet_temp):

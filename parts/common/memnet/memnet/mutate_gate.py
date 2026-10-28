@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from memnet.config import standard_relation
 from memnet.exceptions import MemNetError
 from memnet.gql import (
     ParseError,
@@ -20,6 +21,7 @@ from memnet.output import emit_record
 from memnet.same_thing_absorb import absorb_same_thing
 from memnet.tag_map import check_value_bytes
 from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
+from memnet.wire import parse_tag_line, split_payload
 
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
 _LEGACY_HINT = (
@@ -178,6 +180,7 @@ class MutateGate:
         from memnet.neighbourhood_reserve import check_mutate_ids, touched_ids_from_records
 
         records = import_pipe_lines(lines, self.ss.tag_map, self.ss.caps)
+        norm_warns = self._pipe_norm_warnings(lines, records)
         self._mint_pipe_edge_ids(records)
         check_write_scope(
             getattr(self.ss, "acl", None),
@@ -193,7 +196,7 @@ class MutateGate:
             llm_id=llm_id,
             store=self.ss.store,
         )
-        return self._commit_records(
+        result = self._commit_records(
             records,
             mode=mode,
             dry_run=dry_run,
@@ -201,6 +204,30 @@ class MutateGate:
             agent=agent,
             dialect="pipe",
         )
+        result.warnings[:0] = norm_warns
+        return result
+
+    def _pipe_norm_warnings(self, lines: list[str], records: list[Record]) -> list[str]:
+        """relation_normalized warnings for @EDG lines whose written type was folded."""
+        edg = self.ss.tag_map.get("EDG")
+        if not edg or "relation" not in edg.fields:
+            return []
+        idx = edg.fields.index("relation")
+        written: list[str] = []
+        for line in lines:
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            tag, payload = parse_tag_line(s)
+            if tag == "EDG":
+                vals = split_payload(payload)
+                written.append(vals[idx] if idx < len(vals) else "")
+        edges = [r for r in records if r.tag == "EDG"]
+        return [
+            f"relation_normalized|{w}->{r.fields['relation']}"
+            for w, r in zip(written, edges, strict=False)
+            if w and w != r.fields.get("relation")
+        ]
 
     def _apply_gql(
         self,
@@ -224,6 +251,11 @@ class MutateGate:
                 example=f"line {exc.line}" if exc.line else None,
             ) from exc
 
+        norm_warns = [
+            f"relation_normalized|{it.rel_written}->{it.rel}"
+            for it in doc.items
+            if isinstance(it, EdgeRec) and it.rel_written
+        ]
         errors = [i for i in soft_validate(doc) if i.severity == "error"]
         if errors:
             first = errors[0]
@@ -500,10 +532,11 @@ class MutateGate:
                 records=records,
                 ack_lines=ack,
                 assigned=assigned,
+                warnings=list(norm_warns),
                 dialect="gql",
             )
 
-        warnings: list[str] = []
+        warnings: list[str] = list(norm_warns)
         added: list[str] = []
         replaced: list[Record] = []
         deleted_backup: list[Record] = []
@@ -865,7 +898,7 @@ class MutateGate:
             dst_hid = dst.hid
         hits: list[str] = []
         for rec in store.list_records("EDG"):
-            if it.rel and rec.fields.get("relation") != it.rel:
+            if it.rel and standard_relation(rec.fields.get("relation", "")) != it.rel:
                 continue
             if src_hid is not None and rec.fields.get("src") != src_hid:
                 continue

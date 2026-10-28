@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
+from memnet.config import standard_relation
 from memnet.models import SHAPE_DROP_KEYS, Record
 
 # Nickname ``id`` and internal endpoint tokens stay off the rank key.
@@ -36,7 +37,7 @@ def node_rank_key(rec: Record) -> tuple:
 
 def edge_rank_key(rec: Record, resolve: ResolveFn | None = None) -> tuple:
     """Relationship type + endpoint observables + remaining payload."""
-    rel = str(rec.fields.get("relation") or "")
+    rel = standard_relation(str(rec.fields.get("relation") or ""))
     src_tok = str(rec.fields.get("src") or "")
     dist_tok = str(rec.fields.get("dist") or "")
     src_rec = resolve(src_tok) if resolve and src_tok else None

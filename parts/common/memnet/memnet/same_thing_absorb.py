@@ -9,6 +9,7 @@ the wire.
 
 from __future__ import annotations
 
+from memnet.config import standard_relation
 from memnet.exceptions import MemNetError
 from memnet.models import Record
 
@@ -96,7 +97,7 @@ def _fold_duplicate_edges(store, keep_hid: str) -> None:
         dist = rec.fields.get("dist", "")
         if src != keep_hid and dist != keep_hid:
             continue
-        key = (src, rec.fields.get("relation", ""), dist)
+        key = (src, standard_relation(rec.fields.get("relation", "")), dist)
         prior = seen.get(key)
         if prior is None:
             seen[key] = rec

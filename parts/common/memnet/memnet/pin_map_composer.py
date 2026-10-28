@@ -25,6 +25,7 @@ from memnet.config import (
     DEFAULT_QUERY_DEPTH,
     DEFAULT_QUERY_MAX_ROWS,
     OUTLINE_EXEMPLAR_LIMIT,
+    standard_relation,
 )
 from memnet.exceptions import MemNetError
 from memnet.gql import emit_node_shaped
@@ -170,7 +171,7 @@ def record_to_gql_line(rec: Record, *, store=None) -> str:
         dist = rec.fields.get("dist", "")
         src_line = _endpoint_shaped(store, src)
         dst_line = _endpoint_shaped(store, dist)
-        rel = rec.fields.get("relation", "related") or "related"
+        rel = standard_relation(rec.fields.get("relation", "related") or "related")
         rel_fields = dict(rec.fields)
         from memnet.gql import _emit_props
 

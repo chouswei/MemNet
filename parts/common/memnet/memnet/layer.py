@@ -15,6 +15,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Literal
 
+from memnet.config import RELATION_BODY, standard_relation
 from memnet.tier_a import Field, Op
 
 BAG_DENYLIST = frozenset({"law", "pseudo", "recycle", "role", "view"})
@@ -101,7 +102,7 @@ def looks_like_layer(line: str) -> bool:
     if s.startswith("##") or s.upper().startswith("SCHEMA"):
         return False
     # Tier A paren label — not Layer
-    if re.search(r"--\([a-z][a-z0-9_]*\)-->", s):
+    if re.search(rf"--\({RELATION_BODY}\)-->", s):
         return False
     # Layer edge: ] --label--> [  /  ] --label-- [  /  ] <--label--> [
     if re.search(
@@ -707,7 +708,7 @@ def edge_to_store_fields(edge: LayerEdgeRec) -> dict[str, str]:
     ``src_port`` / ``dist_port`` / ``wire`` / ``carries`` are free Record fields
     (not in fixed EDG TagDef) so 0.3 pipe ``@EDG:`` positional arity stays 7.
     """
-    rel = "bind" if edge.rel == "pipe" else edge.rel
+    rel = "bind" if edge.rel == "pipe" else standard_relation(edge.rel)
     fields: dict[str, str] = {
         "id": edge.edge_id or "",
         "src": edge.frm.node_id,
@@ -830,7 +831,7 @@ def record_to_layer_edge(rec) -> LayerEdgeRec:
         edge_id=rec.id,
         frm=Endpoint(rec.fields.get("src", ""), src_port),
         to=Endpoint(rec.fields.get("dist", ""), dist_port),
-        rel=rec.fields.get("relation", ""),
+        rel=standard_relation(rec.fields.get("relation", "")),
         wire=wire,
         fields=fields,
     )

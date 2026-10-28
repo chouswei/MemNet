@@ -1,0 +1,57 @@
+# memnet-snapshot-v1
+@SNAP: 2|snap_legacy_sid|2026-10-28T06:39:39.706049Z|2026-10-28T07:39:39.706049Z|60|1|2026-10-28T06:39:39.777214Z
+#@ACL:{"bind":null,"callers":[],"enabled":false}
+# map
+SCHEMA EDG ; fields=id src relation dist at attrs recycle
+SCHEMA LAW ; fields=id name cycle mechanism constraint
+SCHEMA PRT ; fields=id name role
+# relations
+@REL: allocates
+@REL: bind
+@REL: binds
+@REL: calls
+@REL: connects
+@REL: constrained_by
+@REL: contains
+@REL: declaredIn
+@REL: defines
+@REL: delegates
+@REL: dependsOn
+@REL: documents
+@REL: flowOf
+@REL: governs
+@REL: hasFact
+@REL: hasPort
+@REL: helps
+@REL: implements
+@REL: inFile
+@REL: includes
+@REL: knows
+@REL: links
+@REL: maps_to
+@REL: memberOf
+@REL: member_of
+@REL: mentions
+@REL: next
+@REL: on_net
+@REL: overrides
+@REL: owns
+@REL: paired_with
+@REL: pipe
+@REL: preempts
+@REL: produces
+@REL: realizes
+@REL: reports_to
+@REL: satisfies
+@REL: seeks_help
+@REL: tests
+@REL: triggers
+@REL: typedBy
+@REL: uses
+# records
+@PRT: P0|part0|r
+@PRT: P1|part1|r
+@PRT: P2|part2|r
+@EDG: E1|P0|links|P1||weight=3|persistent
+@EDG: E2|P1|hasFact|P2|||persistent
+@EDG: E3|P0|dependsOn|P2||old|persistent

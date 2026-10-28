@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from memnet.exceptions import MemNetError
@@ -11,8 +12,57 @@ RESERVED_TAGS = frozenset({"SESSION", "ERR", "WRN", "STAT", "REL", "DEL"})
 ORPHAN_EXEMPT_TAGS = frozenset({"LAW", "CFG", "SYS", "PLR"})
 RECYCLE_INACTIVE = frozenset({"delete_on_settle", "delete_on_expire"})
 ID_PATTERN = r"^[A-Za-z0-9_.-]+$"
-# Product GQL uses camelCase verbs (inFile, declaredIn, typedBy, memberOf).
-RELATION_PATTERN = r"^[a-z][a-zA-Z0-9_]*$"
+# The one relation-name rule for every write path: lowerCamel (inFile), UPPER_SNAKE
+# (HAS_FACT), Mixed_1. Accepted names are then folded to one standard spelling by
+# ``standard_relation``; stored, saved and returned names are always standard.
+RELATION_BODY = r"[A-Za-z][A-Za-z0-9_]*"
+RELATION_PATTERN = rf"^{RELATION_BODY}$"
+RELATION_RE = re.compile(RELATION_PATTERN)
+# Saved-snapshot check stays strict lowerCamel (unchanged since 0.19.x).
+SNAPSHOT_RELATION_PATTERN = r"^[a-z][a-zA-Z0-9_]*$"
+_SNAPSHOT_RELATION_RE = re.compile(SNAPSHOT_RELATION_PATTERN)
+_UPPER_SNAKE_RE = re.compile(r"[A-Z][A-Z0-9_]*")
+
+
+def validate_relation(name: str) -> None:
+    """Single relation-name check for write, restore and seed loaders."""
+    if not RELATION_RE.fullmatch(name):
+        raise MemNetError(
+            "invalid_relation",
+            f"relation {name!r} must match {RELATION_PATTERN}",
+        )
+
+
+def standard_relation(name: str) -> str:
+    """Fold a relation name to its standard spelling (the one normalization point).
+
+    All upper case -> lowerCamel (HAS_FACT -> hasFact); any other name keeps its
+    spelling but a leading capital is lowered (Mixed_1 -> mixed_1). Names that are
+    not valid relation names are returned unchanged for ``validate_relation``.
+    """
+    if not name or not RELATION_RE.fullmatch(name):
+        return name
+    if _UPPER_SNAKE_RE.fullmatch(name):
+        head, *rest = [p for p in name.lower().split("_") if p]
+        return head + "".join(p[0].upper() + p[1:] for p in rest)
+    return name[0].lower() + name[1:]
+
+
+def normalize_relation(name: str) -> str:
+    """Validate then fold: the entry point for write paths."""
+    validate_relation(name)
+    return standard_relation(name)
+
+
+def validate_snapshot_relation(name: str) -> None:
+    """Strict check for names written to a snapshot (standard names only)."""
+    if not _SNAPSHOT_RELATION_RE.fullmatch(name):
+        raise MemNetError(
+            "invalid_relation",
+            f"relation {name!r} must match {SNAPSHOT_RELATION_PATTERN}",
+        )
+
+
 MAX_WRN_PER_CALL = 12
 
 DEFAULT_QUERY_MAX_ROWS = 50

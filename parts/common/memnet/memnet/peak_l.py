@@ -11,6 +11,7 @@ top-k degree.
 
 from __future__ import annotations
 
+from memnet.config import standard_relation
 from memnet.models import Record
 from memnet.observable_rank import node_rank_key
 
@@ -19,7 +20,7 @@ _SKIP_TAGS = frozenset({"LAW", "EDG"})
 
 
 def _relation(edge: Record) -> str:
-    return str(edge.fields.get("relation") or "")
+    return standard_relation(str(edge.fields.get("relation") or ""))
 
 
 def _other_end(edge: Record, hid: str) -> str:
