@@ -211,3 +211,69 @@ def test_seed_loader_rejects_bad_names(tmp_path, monkeypatch):
 def test_trailing_newline_is_not_a_valid_name():
     with pytest.raises(MemNetError):
         validate_relation("bad\n")
+
+
+def _raw_legacy_edge(ss, rel="ABOUT", a="P0", b="P1"):
+    """An edge stored under its raw upper-case name, as pre-fix builds wrote it."""
+    from memnet.models import Record
+
+    nid = {r.fields["id"]: r.hid for r in ss.store.list_records("PRT")}
+    edge = Record(
+        tag="EDG",
+        fields={
+            "id": "",
+            "src": nid[a],
+            "dist": nid[b],
+            "relation": rel,
+            "at": "",
+            "attrs": "",
+            "recycle": "persistent",
+        },
+    )
+    ss.store.write_order.append(edge.hid)
+    ss.store._index_tag(edge)
+    ss.store._by_hid[edge.hid] = edge
+    ss.store._index_edge(edge)
+    ss.relations.add(rel)
+
+
+def _count(ss, rel):
+    rows = MutateGate(ss).apply(
+        [f"MATCH (x {{id: 'P0'}})-[e:{rel}]->(y) DELETE e"],
+        mode="mutate",
+        allow_new_relation=True,
+    )
+    return rows
+
+
+def test_legacy_raw_upper_case_edge_is_found_and_deleted_by_both_spellings():
+    # B1: an edge stored as ABOUT through the raw path (pre-fix store).
+    for pattern in ("ABOUT", "about"):
+        ss = _session()
+        _raw_legacy_edge(ss)
+        assert [e[1] for e in _edge_view(ss)] == ["ABOUT"]
+        hops = ss.store.context_walk_hops(anchor_id="P0")
+        assert [h[1] for h in hops] == ["about"]  # reads fold the stored name
+        res = _count(ss, pattern)
+        assert not any("not_found" in str(w) for w in res.warnings)
+        assert _edge_view(ss) == [], pattern
+
+
+@pytest.mark.parametrize(
+    "rel", [*_ACCEPTED, "A", "X_", "HAS__FACT", "HAS_2X", "Mixed_1", "HAS_FACT_"]
+)
+def test_standard_relation_is_snapshot_valid_and_idempotent(rel):
+    # B2
+    std = standard_relation(rel)
+    validate_snapshot_relation(std)
+    assert standard_relation(std) == std
+
+
+def test_pipe_edg_ack_carries_relation_normalized_warning():
+    ss = _session()
+    r = MutateGate(ss).apply(
+        ["@EDG: E9|P0|HAS_FACT|P1|||persistent", "@EDG: E8|P0|hasFact|P2|||persistent"],
+        mode="add",
+        allow_new_relation=True,
+    )
+    assert r.warnings == ["relation_normalized|HAS_FACT->hasFact"]

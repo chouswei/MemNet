@@ -6,7 +6,13 @@ import re
 import time
 from collections import deque
 
-from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, Caps, normalize_relation
+from memnet.config import (
+    DEFAULT_QUERY_DEPTH,
+    DEFAULT_QUERY_MAX_ROWS,
+    Caps,
+    normalize_relation,
+    standard_relation,
+)
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
@@ -450,7 +456,7 @@ class MemStore:
                 seen_edges.add(edge.hid)
                 src = edge.fields.get("src", "")
                 dst = edge.fields.get("dist", "")
-                rel = edge.fields.get("relation", "")
+                rel = standard_relation(edge.fields.get("relation", ""))
                 if not rel or not src or not dst:
                     continue
                 if src not in self._by_hid or dst not in self._by_hid:
