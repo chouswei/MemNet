@@ -57,7 +57,7 @@ Regression: `tests/test_pin_map_ingest.py` (`test_project_sysml_connection_def_i
 |---------|--------|
 | `snapshot_text` / `session_save` | Every `# memnet-snapshot-v1` record has leftover nickname length 1–64. Empty GraphElement `id` mints `sn_<kind>_<digest>` from hid. EDG `src`/`dist` hid rewritten to that nick. SHALL NOT mint `TSK_model_*`. |
 | `parse_line` / `session_load` | Empty first field mints the same leftover nick class. Old foam empty-id lines no longer `invalid_id`. |
-| Relation pattern | `RELATION_PATTERN` allows camelCase (`inFile`, `declaredIn`, `typedBy`, `memberOf`). Seed includes product verbs. |
+| Relation pattern | Write paths accept `^[A-Za-z][A-Za-z0-9_]*$` (one constant, `memnet.config`) and fold the name to one lowerCamel standard (`inFile`, `declaredIn`, `typedBy`, `memberOf`, `hasFact`). Snapshots store and verify only `^[a-z][a-zA-Z0-9_]*$`. Seed includes product verbs. |
 | `pin_map` | Still kind + locators. Nickname off shaped read (0.19.4). Hid off emit (0.19.5). |
 
 Regression: `tests/test_snapshot.py` (`test_mission_empty_nick_infile_save_load`). Catalog PKG mint (0.19.7) remains `tests/test_catalog_snap.py`.

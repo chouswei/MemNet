@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+from memnet.config import RELATION_BODY, standard_relation
+
 # Soft lint: atom / field value character budget (R1 prompt discipline).
 SOFT_ATOM_CHARS = 80
 PROSE_WORD_HINT = 8  # many whitespace-separated tokens → likely prose blob
@@ -61,6 +63,13 @@ class EdgeRec:
     to_label: str = ""
     frm_props: dict[str, str] = field(default_factory=dict)
     to_props: dict[str, str] = field(default_factory=dict)
+    # Spelling as written when it differs from the standard ``rel`` (echoed back).
+    rel_written: str = ""
+
+    def __post_init__(self) -> None:
+        std = standard_relation(self.rel)
+        if std != self.rel:
+            self.rel_written, self.rel = self.rel, std
 
 
 @dataclass
@@ -109,7 +118,7 @@ _RE_ARROW = re.compile(
     r"^(\+|\~)\s+"
     r"(?:(NEW|[A-Za-z_][A-Za-z0-9_]*)\s+)?"
     r"\[(NEW|[A-Za-z_][A-Za-z0-9_]*)\]\s*"
-    r"--\(([a-z][a-z0-9_]*)\)-->\s*"
+    rf"--\(({RELATION_BODY})\)-->\s*"
     r"\[(NEW|[A-Za-z_][A-Za-z0-9_]*)\]\s*"
     r"(.*)$"
 )
@@ -123,7 +132,7 @@ _RE_PRESENT_NODE = re.compile(r"^([A-Z][A-Z0-9_]*)\s+\[([A-Za-z_][A-Za-z0-9_]*)\
 _RE_PRESENT_EDGE = re.compile(
     r"^([A-Za-z_][A-Za-z0-9_]*)\s+"
     r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
-    r"--\(([a-z][a-z0-9_]*)\)-->\s*"
+    rf"--\(({RELATION_BODY})\)-->\s*"
     r"\[([A-Za-z_][A-Za-z0-9_]*)\]\s*"
     r"(.*)$"
 )

@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from memnet.config import RELATION_BODY
 from memnet.gql_parse_front import (
     GraphGlotError,
     clean_graphglot_message,
@@ -25,7 +26,7 @@ from memnet.wire import split_lf_lines
 
 _IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
 _LABEL = r"[A-Za-z_][A-Za-z0-9_]*"
-_RELTYPE = r"[A-Za-z_][A-Za-z0-9_]*"
+_RELTYPE = RELATION_BODY
 
 _STMT_START = re.compile(
     r"^(CREATE|MATCH|MERGE|DELETE|DETACH|WITH|UNWIND|CALL|FOR|INSERT)\b",
@@ -347,7 +348,7 @@ def looks_like_legacy_layer_or_tier_a(line: str) -> bool:
     if re.match(rf"^({_LABEL})\s+\[({_IDENT})\]", s):
         return True
     # Layer bare edge: E_x [a] --rel--> [b] or [a.port] --bind--> …
-    if re.search(r"--[A-Za-z_].*-->", s) or re.search(r"--\([a-z]", s):
+    if re.search(r"--[A-Za-z_].*-->", s) or re.search(r"--\([A-Za-z]", s):
         return True
     if "ports=" in s or "law=" in s:
         return True

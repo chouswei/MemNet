@@ -5,14 +5,13 @@ from __future__ import annotations
 import hashlib
 import re
 
-from memnet.config import ID_PATTERN, RELATION_PATTERN, RESERVED_TAGS, Caps
+from memnet.config import ID_PATTERN, RESERVED_TAGS, Caps, normalize_relation
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
 from memnet.models import Record, TagDef, TagMap
 from memnet.wire import emit_record_line, parse_tag_line, split_payload
 
 _ID_RE = re.compile(ID_PATTERN)
-_REL_RE = re.compile(RELATION_PATTERN)
 # Shared dialect: SCHEMA MOD ; fields=id path summary status recycle
 _RE_SCHEMA = re.compile(
     r"^SCHEMA\s+([A-Za-z_][A-Za-z0-9_]*)\s*(.*)$",
@@ -263,11 +262,8 @@ def validate_values(tag_def: TagDef, values: list[str], caps: Caps) -> dict[str,
         validate_id(result["id"])
     if tag_def.tag == "EDG":
         rel = result.get("relation", "")
-        if rel and not _REL_RE.match(rel):
-            raise MemNetError(
-                "invalid_relation",
-                f"relation {rel} must match {RELATION_PATTERN}",
-            )
+        if rel:
+            result["relation"] = normalize_relation(rel)
     return result
 
 

@@ -224,6 +224,11 @@ class MutateGate:
                 example=f"line {exc.line}" if exc.line else None,
             ) from exc
 
+        norm_warns = [
+            f"relation_normalized|{it.rel_written}->{it.rel}"
+            for it in doc.items
+            if isinstance(it, EdgeRec) and it.rel_written
+        ]
         errors = [i for i in soft_validate(doc) if i.severity == "error"]
         if errors:
             first = errors[0]
@@ -500,10 +505,11 @@ class MutateGate:
                 records=records,
                 ack_lines=ack,
                 assigned=assigned,
+                warnings=list(norm_warns),
                 dialect="gql",
             )
 
-        warnings: list[str] = []
+        warnings: list[str] = list(norm_warns)
         added: list[str] = []
         replaced: list[Record] = []
         deleted_backup: list[Record] = []

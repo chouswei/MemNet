@@ -19,6 +19,7 @@ from memnet.config import (
     default_ttl_minutes,
     examples_dir,
     expire_snapshot_dir,
+    normalize_relation,
     save_on_expire,
 )
 from memnet.exceptions import MemNetError
@@ -75,7 +76,7 @@ def _seed_relations() -> list[str]:
     for line in seed_file.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
-            lines.append(line)
+            lines.append(normalize_relation(line))
     return lines
 
 
