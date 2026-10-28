@@ -64,5 +64,5 @@ def test_contract_is_not_draft_and_no_semver_bump():
     assert "worthBuildingVisible=true" in nest
     assert "MemNetProductGateway" in nest
     project = PROJECT.read_text(encoding="utf-8")
-    assert 'version = "0.19.27"' in project
+    assert 'version = "0.20.0"' in project
     assert "0.19.28" not in project

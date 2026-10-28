@@ -1,3 +1,3 @@
 """MemNet — mission working memory for LLM agents (session graph + pin_map)."""
 
-__version__ = "0.19.27"
+__version__ = "0.20.0"
