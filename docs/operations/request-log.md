@@ -42,14 +42,14 @@ Each line is one JSON object.
 | `finished_ms` | Epoch milliseconds when the reply was sent. |
 | `queue_wait_ms` | Time from the frame being fully read until the command starts. Includes drain-gate and session-lock waits (the work clock starts once the session lock is held). |
 | `server_ms` | Time from the command start until the reply is ready. |
-| `op` | Command words only, for example `session open` or `mutate`. Never arguments. |
+| `op` | Command words only, for example `session open` or `mutate`; a leading `--version` probe is recorded as `--version`. Never arguments. |
 | `session` | One-way label: `s_` plus 8 hex digits of the session id. The engine has no session names, and the real `mn_` id is never written. |
 | `bytes_in` | Bytes received in the request. |
 | `bytes_out` | Bytes sent in the reply. |
 | `lines_in` | Lines on stdin for the request. |
 | `lines_out` | Lines on stdout for the reply. |
 | `nodes_touched` | Currently always `null`. The dispatch layer does not know this. |
-| `outcome` | `ok`, an `@ERR` code, `error`, `peer_gone`, `response_too_large` or `incomplete_frame`. |
+| `outcome` | `ok`, an `@ERR` code (`usage` for an unknown option or command, `internal` for a crash), `error`, `peer_gone`, `response_too_large` or `incomplete_frame`. |
 | `conn_id` | Per-connection counter. |
 | `seq` | Request number on that connection. Always `1` today, because the protocol is one request per connection. |
 

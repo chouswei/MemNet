@@ -113,7 +113,9 @@ def describe_payload(trace: RequestTrace, payload: dict[str, Any]) -> None:
     if not isinstance(argv, list):
         return
     words = [a for a in argv if isinstance(a, str)]
-    if words and _OP_WORD.match(words[0]):
+    if words and words[0] == "--version":
+        trace.op = "--version"
+    elif words and _OP_WORD.match(words[0]):
         op = words[0]
         if words[0] in _group_names() and len(words) > 1 and _OP_WORD.match(words[1]):
             op = f"{words[0]} {words[1]}"
