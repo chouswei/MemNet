@@ -43,6 +43,8 @@ Same usage method. Honesty, leftover naming, docs / skills, wheel / tag, caps, f
 
 Pure efficiency / speed on the current loop is **`0.19.c`**, not `0.20`.
 
+A `c` cut (wheel, tag, GitHub release, version bump) happens only when the owner asks for that release; a merge alone is never a cut.
+
 ### Consequences
 
 - Package is **0.20.0**. Extras **0.10–0.19** stay the owns table below. **1.0** stays unclaimed.
