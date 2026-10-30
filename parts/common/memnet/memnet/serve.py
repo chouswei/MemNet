@@ -242,20 +242,28 @@ class _Handler(socketserver.BaseRequestHandler):
     def _send_envelope(self, response: dict[str, Any]) -> None:
         data = json.dumps(response).encode("utf-8")
         max_frame = serve_max_frame_bytes()
-        if len(data) > max_frame:
+        too_large = len(data) > max_frame
+        if too_large:
             data = json.dumps(
                 _protocol_envelope(
                     "response_too_large",
                     f"response {len(data)} bytes exceeds cap {max_frame}",
                 )
             ).encode("utf-8")
-        self.request.sendall(struct.pack(">I", len(data)) + data)
         trace = getattr(self, "_trace", None)
         if trace is not None:
-            trace.bytes_out = len(data)
             from memnet import request_log
 
+            trace.bytes_out = len(data)
             request_log.describe_response(trace, response)
+            if too_large:
+                trace.outcome = "response_too_large"
+        try:
+            self.request.sendall(struct.pack(">I", len(data)) + data)
+        except OSError:
+            if trace is not None:
+                trace.outcome = "peer_gone"
+            raise
 
     def _read_exact(self, n: int) -> bytes | None:
         chunks: list[bytes] = []

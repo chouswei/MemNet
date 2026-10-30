@@ -133,6 +133,28 @@ def test_rotation(memnet_temp, monkeypatch, tmp_path):
     assert log.stat().st_size <= 800
 
 
+def test_zero_backups_still_rotates(memnet_temp, monkeypatch, tmp_path):
+    log = tmp_path / "z.jsonl"
+    monkeypatch.setenv("MEMNET_REQUEST_LOG", str(log))
+    monkeypatch.setenv("MEMNET_REQUEST_LOG_MAX_BYTES", "400")
+    monkeypatch.setenv("MEMNET_REQUEST_LOG_BACKUPS", "0")
+    for i in range(30):
+        request_log.finish(request_log.begin(i + 1))
+    assert log.stat().st_size <= 800
+
+
+def test_session_lock_wait_counts_as_queue_wait():
+    trace = request_log.begin(1)
+    request_log.mark_work_start()
+    time.sleep(0.05)
+    request_log.mark_lock_acquired()
+    time.sleep(0.01)
+    trace.t_done = time.perf_counter()
+    rec = json.loads(request_log.to_line(trace))
+    assert rec["queue_wait_ms"] >= 50
+    request_log._current.set(None)
+
+
 def test_sink_failure_is_harmless(memnet_temp, monkeypatch, tmp_path, caplog):
     bad = tmp_path / "no" / "such" / "dir" / "x.jsonl"
     monkeypatch.setenv("MEMNET_REQUEST_LOG", str(bad))

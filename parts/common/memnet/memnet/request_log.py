@@ -92,6 +92,13 @@ def mark_work_start() -> None:
         trace.t_work = time.perf_counter()
 
 
+def mark_lock_acquired() -> None:
+    """Session lock taken: lock wait counts as queue wait, so restart the work clock."""
+    trace = _current.get()
+    if trace is not None:
+        trace.t_work = time.perf_counter()
+
+
 def describe_payload(trace: RequestTrace, payload: dict[str, Any]) -> None:
     """Fill op, session label and lines_in. Never keeps argument or stdin text."""
     for flag, name in (
@@ -190,7 +197,7 @@ class _Sink:
         self._handler: RotatingFileHandler | None = None
         try:
             handler = RotatingFileHandler(
-                path, maxBytes=max_bytes, backupCount=backups, encoding="utf-8", delay=True
+                path, maxBytes=max_bytes, backupCount=max(1, backups), encoding="utf-8", delay=True
             )
             handler.handleError = self._on_error  # type: ignore[method-assign]
             self._handler = handler
@@ -206,6 +213,13 @@ class _Sink:
         import sys
 
         self._warn(sys.exc_info()[1] or RuntimeError("request log write failed"))
+
+    def close(self) -> None:
+        try:
+            if self._handler is not None:
+                self._handler.close()
+        except Exception:  # noqa: BLE001
+            pass
 
     def write(self, line: str) -> None:
         handler = self._handler
@@ -228,6 +242,8 @@ def _get_sink() -> _Sink | None:
     key = (path, request_log_max_bytes(), request_log_backups())
     with _sink_lock:
         if _sink_key != key:
+            if _sink is not None:
+                _sink.close()
             _sink = _Sink(*key)
             _sink_key = key
         return _sink

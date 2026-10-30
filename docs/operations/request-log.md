@@ -30,7 +30,7 @@ MEMNET_REQUEST_LOG=$HOME/.local/state/memnet/request.jsonl
 The file rotates by size.
 
 - `MEMNET_REQUEST_LOG_MAX_BYTES`: rotate when the file reaches this size. Default `10485760` (10 MiB).
-- `MEMNET_REQUEST_LOG_BACKUPS`: number of old files kept. Default `3`, giving `PATH.1` to `PATH.3`.
+- `MEMNET_REQUEST_LOG_BACKUPS`: number of old files kept. Default `3` (minimum `1`), giving `PATH.1` to `PATH.3`.
 
 ## Fields
 
@@ -40,7 +40,7 @@ Each line is one JSON object.
 |---|---|
 | `received_ms` | Epoch milliseconds when the request frame was received. |
 | `finished_ms` | Epoch milliseconds when the reply was sent. |
-| `queue_wait_ms` | Time from the frame being fully read until the command starts. Includes gate waits. |
+| `queue_wait_ms` | Time from the frame being fully read until the command starts. Includes drain-gate and session-lock waits (the work clock starts once the session lock is held). |
 | `server_ms` | Time from the command start until the reply is ready. |
 | `op` | Command words only, for example `session open` or `mutate`. Never arguments. |
 | `session` | One-way label: `s_` plus 8 hex digits of the session id. The engine has no session names, and the real `mn_` id is never written. |
@@ -49,7 +49,7 @@ Each line is one JSON object.
 | `lines_in` | Lines on stdin for the request. |
 | `lines_out` | Lines on stdout for the reply. |
 | `nodes_touched` | Currently always `null`. The dispatch layer does not know this. |
-| `outcome` | `ok`, an `@ERR` code, `error`, `peer_gone` or `incomplete_frame`. |
+| `outcome` | `ok`, an `@ERR` code, `error`, `peer_gone`, `response_too_large` or `incomplete_frame`. |
 | `conn_id` | Per-connection counter. |
 | `seq` | Request number on that connection. Always `1` today, because the protocol is one request per connection. |
 
@@ -65,7 +65,7 @@ Each line is one JSON object.
 ## Sample line
 
 ```json
-{"received_ms":1793000000123,"finished_ms":1793000031456,"queue_wait_ms":1204,"server_ms":30120,"op":"mutate","session":"s_3f9a1c2e","bytes_in":18342,"bytes_out":211,"lines_in":96,"lines_out":3,"nodes_touched":null,"outcome":"ok","conn_id":57,"seq":1}
+{"received_ms":1793000000123,"finished_ms":1793000031456,"queue_wait_ms":1204.0,"server_ms":30120.0,"op":"mutate","session":"s_3f9a1c2e","bytes_in":18342,"bytes_out":211,"lines_in":96,"lines_out":3,"nodes_touched":null,"outcome":"ok","conn_id":57,"seq":1}
 ```
 
 ## Finding overlaps

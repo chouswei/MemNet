@@ -158,7 +158,7 @@ def serve_max_frame_bytes() -> int:
 
 
 def request_log_path() -> str | None:
-    """JSONL per-request log file for ``memnet serve``. Env ``MEMNET_REQUEST_LOG``; off when unset."""
+    """JSONL request log file for ``memnet serve``. Env ``MEMNET_REQUEST_LOG``; off if unset."""
     raw = os.environ.get("MEMNET_REQUEST_LOG", "").strip()
     return raw or None
 

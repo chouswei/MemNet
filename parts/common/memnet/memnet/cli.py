@@ -161,6 +161,10 @@ class _SessionLock:
             self._cm.__enter__()
         except MemNetError as exc:
             _handle_error(exc)
+        else:
+            from memnet import request_log
+
+            request_log.mark_lock_acquired()
 
     def __exit__(self, *exc_info) -> bool | None:
         return self._cm.__exit__(*exc_info)
