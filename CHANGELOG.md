@@ -7,6 +7,11 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-10-30
+
+### Changed
+- **Faster bulk mutate (PR #230)** — statement shapes that already passed the GQL parse and product gate are remembered, so repeated batch lines skip re-parsing (lowering still runs on the real text); `MemStore.match_nodes` edge-end lookup loop tightened. A synthetic 8,230-line upload went from 81.5 s to 4.9 s; behaviour and snapshot format unchanged.
+
 ### Added
 - **Per-request serve log** — optional JSON Lines file (`--request-log` / `MEMNET_REQUEST_LOG`), size-rotated, off by default; fields received_ms, finished_ms, queue_wait_ms, server_ms, op, session label, byte/line counts, outcome, conn_id; see [`docs/operations/request-log.md`](docs/operations/request-log.md).
 
