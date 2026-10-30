@@ -11,6 +11,7 @@ which handles inline vs TCP routing, probe, and error surfacing.
 
 from __future__ import annotations
 
+import importlib
 import ipaddress
 import json
 import logging
@@ -79,6 +80,17 @@ def _protocol_envelope(code: str, detail: str) -> dict[str, Any]:
     }
 
 
+def _usage_error_types() -> tuple[type[BaseException], ...]:
+    """UsageError classes of the click typer runs on (vendored in newer typer, else click)."""
+    found: list[type[BaseException]] = []
+    for mod in ("typer._click.exceptions", "click.exceptions"):
+        try:
+            found.append(importlib.import_module(mod).UsageError)
+        except (ImportError, AttributeError):
+            continue
+    return tuple(found)
+
+
 def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     from memnet.admin_usage import (
         reset_caller_token,
@@ -136,6 +148,9 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
                     code = result
             except SystemExit as exc:
                 code = int(exc.code) if isinstance(exc.code, int) else 1
+            except _usage_error_types() as exc:
+                code = 2
+                err.write(f"@ERR: usage|{type(exc).__name__}: {exc.format_message()}\n")
             except Exception as exc:
                 code = 1
                 err.write(f"@ERR: internal|{type(exc).__name__}: {exc}\n")

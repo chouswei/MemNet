@@ -251,6 +251,36 @@ def emit_stderr_summary(ok: int, fail: int) -> None:
     emit_stderr(f"ok={ok} fail={fail}")
 
 
+def _emit_version(json_out: bool) -> None:
+    if json_out:
+        import json as _json
+
+        emit_stdout(_json.dumps({"name": "memnet", "version": __version__}))
+    else:
+        emit_stdout(f"@VER: memnet|{__version__}")
+
+
+def _root_version(value: bool) -> None:
+    if value:
+        _emit_version(False)
+        raise typer.Exit(0)
+
+
+@app.callback()
+def _root(
+    version_flag: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=_root_version,
+            is_eager=True,
+            help="Show the installed MemNet version and exit (same as `version`).",
+        ),
+    ] = False,
+) -> None:
+    """Net of Memory root."""
+
+
 @app.command()
 def version(
     json_out: Annotated[
@@ -258,12 +288,7 @@ def version(
     ] = False,
 ) -> None:
     """Show the installed MemNet version."""
-    if json_out:
-        import json as _json
-
-        emit_stdout(_json.dumps({"name": "memnet", "version": __version__}))
-    else:
-        emit_stdout(f"@VER: memnet|{__version__}")
+    _emit_version(json_out)
 
 
 @app.command()

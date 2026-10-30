@@ -170,3 +170,26 @@ def test_off_by_default(memnet_temp, monkeypatch, tmp_path):
     trace = request_log.begin(1)
     request_log.finish(trace)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_version_flag_ok_and_logged_as_op(served):
+    port, log = served
+    flag = send_command(["--version"], port=port)
+    cmd = send_command(["version"], port=port)
+    assert flag["exit_code"] == 0 and flag["stdout"] == cmd["stdout"]
+    assert flag["stdout"].startswith("@VER: memnet|")
+    time.sleep(0.2)
+    recs = _lines(log)
+    assert recs[0]["op"] == "--version" and recs[0]["outcome"] == "ok"
+    assert recs[1]["op"] == "version" and recs[1]["outcome"] == "ok"
+
+
+@pytest.mark.parametrize("args", [["--no-such-flag"], ["no-such-command"], ["version", "--bogus"]])
+def test_usage_errors_are_usage_not_internal(served, args):
+    port, log = served
+    out = send_command(args, port=port)
+    assert out["exit_code"] == 2
+    assert out["stderr"].startswith("@ERR: usage|")
+    assert "internal" not in out["stderr"]
+    time.sleep(0.2)
+    assert _lines(log)[-1]["outcome"] == "usage"
