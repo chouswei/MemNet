@@ -7,6 +7,9 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Added
+- **Per-request serve log** — optional JSON Lines file (`--request-log` / `MEMNET_REQUEST_LOG`), size-rotated, off by default; fields received_ms, finished_ms, queue_wait_ms, server_ms, op, session label, byte/line counts, outcome, conn_id; see [`docs/operations/request-log.md`](docs/operations/request-log.md).
+
 ## [0.20.0] - 2026-10-28
 
 ### Fixed

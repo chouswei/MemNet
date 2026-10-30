@@ -157,6 +157,20 @@ def serve_max_frame_bytes() -> int:
     return _env_int("MEMNET_SERVE_MAX_FRAME_BYTES", DEFAULT_SERVE_MAX_FRAME_BYTES)
 
 
+def request_log_path() -> str | None:
+    """JSONL per-request log file for ``memnet serve``. Env ``MEMNET_REQUEST_LOG``; off when unset."""
+    raw = os.environ.get("MEMNET_REQUEST_LOG", "").strip()
+    return raw or None
+
+
+def request_log_max_bytes() -> int:
+    return _env_int("MEMNET_REQUEST_LOG_MAX_BYTES", 10 * 1024 * 1024)
+
+
+def request_log_backups() -> int:
+    return _env_int("MEMNET_REQUEST_LOG_BACKUPS", 3)
+
+
 def serve_allow_remote() -> bool:
     raw = os.environ.get("MEMNET_SERVE_ALLOW_REMOTE", "").strip().lower()
     return raw in {"1", "true", "yes", "on"}

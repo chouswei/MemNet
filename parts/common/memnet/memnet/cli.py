@@ -280,8 +280,18 @@ def serve(
             help="Unix socket path (implies --ipc; sets MEMNET_IPC_SOCKET).",
         ),
     ] = "",
+    request_log: Annotated[
+        str,
+        typer.Option(
+            "--request-log",
+            help="Append one JSON line per request to this file (size-rotated). "
+            "Sets MEMNET_REQUEST_LOG. Off when unset.",
+        ),
+    ] = "",
 ) -> None:
     """Run the in-memory graph server (required for multi-command CLI use)."""
+    if request_log.strip():
+        os.environ["MEMNET_REQUEST_LOG"] = request_log.strip()
     use_ipc = ipc or bool(ipc_path.strip())
     if use_ipc:
         from memnet.local_ipc_gateway import run_ipc_serve

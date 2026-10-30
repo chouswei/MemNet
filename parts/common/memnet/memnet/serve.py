@@ -21,6 +21,7 @@ import socketserver
 import struct
 import sys
 import threading
+import time
 from typing import Any
 
 from memnet.config import (
@@ -120,6 +121,8 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     code = 0
     stdout = ""
     stderr = ""
+    from memnet import request_log
+
     token_ctx = set_caller_token(token_s)
     try:
         with capture_request_stdio(stdin_text if isinstance(stdin_text, str) else None) as (
@@ -127,6 +130,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
             err,
         ):
             try:
+                request_log.mark_work_start()
                 result = app(argv, prog_name="memnet", standalone_mode=False)
                 if isinstance(result, int) and result != 0:
                     code = result
@@ -146,9 +150,22 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
 
 class _Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
+        from memnet import request_log
+
+        self._trace = request_log.begin(request_log.next_conn_id())
+        try:
+            self._handle_one()
+        finally:
+            request_log.finish(self._trace)
+
+    def _handle_one(self) -> None:
+        from memnet import request_log
+
+        trace = self._trace
         try:
             raw_len = self._read_exact(4)
             if not raw_len:
+                trace.skip = True  # bare connect (probe): not a request
                 return
             (length,) = struct.unpack(">I", raw_len)
             max_frame = serve_max_frame_bytes()
@@ -168,7 +185,9 @@ class _Handler(socketserver.BaseRequestHandler):
                 return
             body = self._read_exact(length)
             if body is None:
+                trace.outcome = "incomplete_frame"
                 return
+            request_log.mark_received(trace, len(body))
             try:
                 payload = json.loads(body.decode("utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -179,7 +198,10 @@ class _Handler(socketserver.BaseRequestHandler):
                     _protocol_envelope("bad_request", "payload must be a JSON object")
                 )
                 return
+            request_log.describe_payload(trace, payload)
             response = self._run_request(payload)
+            trace.t_done = time.perf_counter()
+            request_log.describe_response(trace, response)
             if response is None:
                 return
             self._send_envelope(response)
@@ -228,6 +250,12 @@ class _Handler(socketserver.BaseRequestHandler):
                 )
             ).encode("utf-8")
         self.request.sendall(struct.pack(">I", len(data)) + data)
+        trace = getattr(self, "_trace", None)
+        if trace is not None:
+            trace.bytes_out = len(data)
+            from memnet import request_log
+
+            request_log.describe_response(trace, response)
 
     def _read_exact(self, n: int) -> bytes | None:
         chunks: list[bytes] = []
