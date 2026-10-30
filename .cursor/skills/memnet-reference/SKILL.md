@@ -23,6 +23,8 @@ This checkout **vendors** agent skills under `.cursor/skills/` (core: `memnet-us
 
 **`a.b.c` (ROADMAP law).** `a` = claim / generation (`0` = 1.0 unclaimed; `1` = claim of 0.5–0.8). `a` moves only if the contract breaks (Recall=`pin_map` / Commit=`mutate`, GraphElement identity, GQL-only wire). `b` = usage-method revision (new required loop step, new product tool, cue/outline/identity law, new goldfish verb). Historical extras **0.10–0.19** were `b`. N-server (#47) is not a `b`. `c` = same-method cut (honesty, leftover naming, docs/skills, wheel/tag, caps, façade, faster same `cue → pin_map → mutate`). Efficiency on the current loop is **`0.19.c`**, not `0.20`. Do not invent a 0.20 extra. Do not claim 1.0.
 
+A `c` cut (wheel, tag, GitHub release, version bump) happens only when the owner asks for that release; a merge alone is never a cut. See merge-is-not-release.
+
 ## When loaded
 
 1. Confirm the task is **product development** in this MemNet repo. If the task is **using** MemNet, stop and load [memnet-use](../memnet-use/SKILL.md).
