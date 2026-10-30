@@ -288,12 +288,18 @@ class MemStore:
             rows = [self._by_hid[i] for i in self._by_tag.get(tag_u, set()) if i in self._by_hid]
         else:
             rows = [r for r in self._by_hid.values() if r.tag != "EDG"]
-        want = {k: str(v) for k, v in (props or {}).items() if v is not None}
+        want = [(k, str(v)) for k, v in (props or {}).items() if v is not None]
         out: list[Record] = []
+        # Hot path (every relationship end of every CREATE batch scans the store):
+        # plain loop with early exit instead of all() over a generator per record.
         for rec in rows:
             if rec.tag == "EDG":
                 continue
-            if all(str(rec.fields.get(k, "")) == val for k, val in want.items()):
+            fields = rec.fields
+            for k, val in want:
+                if str(fields.get(k, "")) != val:
+                    break
+            else:
                 out.append(rec)
         return ranked(out, resolve=self.resolve_one)
 
