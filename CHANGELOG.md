@@ -7,6 +7,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.2] - 2026-10-30
+
 ### Fixed
 - **CLI usage errors over serve** — an unknown option or command now replies `@ERR: usage|<message>` with exit 2 instead of `@ERR: internal|...` exit 1; `internal` is kept for real crashes. The request log records outcome `usage`.
 
