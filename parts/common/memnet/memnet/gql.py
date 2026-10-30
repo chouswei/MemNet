@@ -1122,6 +1122,24 @@ def _needs_graphglot(stmt: str) -> bool:
     return _STMT_START.match(s) is not None
 
 
+# GraphGlot accepts or rejects a statement by its shape, not by the text inside a
+# simple string literal. A bulk upload is thousands of lines of a few shapes, and
+# GraphGlot costs ~4-17 ms a line, so a passed shape is remembered. Only plain
+# single-quoted literals are folded; anything with escapes, double quotes,
+# backticks or comments is parsed in full every time. Failures are never cached.
+_SIMPLE_LITERAL = re.compile(r"'[A-Za-z0-9_ .:/-]*'")
+_SHAPE_UNSAFE = re.compile(r"""["`\\']|//|/\*|--|\n|\r""")
+_ACCEPTED_SHAPES: set[str] = set()
+_ACCEPTED_SHAPES_MAX = 512
+
+
+def _accepted_shape(s: str) -> str | None:
+    shape = _SIMPLE_LITERAL.sub("'_'", s)
+    if _SHAPE_UNSAFE.search(shape.replace("'_'", "")):
+        return None
+    return shape
+
+
 def _accept_parse(stmt: str, line_no: int) -> None:
     """GraphGlot parse, then MemNet product gate. Does not lower."""
     s = stmt.strip()
@@ -1134,6 +1152,9 @@ def _accept_parse(stmt: str, line_no: int) -> None:
         )
     if not _needs_graphglot(s):
         return
+    shape = _accepted_shape(s)
+    if shape is not None and shape in _ACCEPTED_SHAPES:
+        return
     try:
         programs = parse_program(s)
     except GraphGlotError as exc:
@@ -1141,6 +1162,10 @@ def _accept_parse(stmt: str, line_no: int) -> None:
     gate_msg = gate_programs(programs)
     if gate_msg:
         raise ParseError(gate_msg, line_no, code="product_gate")
+    if shape is not None:
+        if len(_ACCEPTED_SHAPES) >= _ACCEPTED_SHAPES_MAX:
+            _ACCEPTED_SHAPES.clear()
+        _ACCEPTED_SHAPES.add(shape)
 
 
 def parse(text: str) -> Document:
