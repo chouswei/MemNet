@@ -1587,7 +1587,7 @@ package MemNetBehaviour {
       31k records 34.9 s). The record cap (5,000 default, config.py:121)
       is raisable only after this action holds (14.5 depends on 14.4).
     */
-    in item snapshot : String;
+    in item snapshotText : String;
     out item session : String;
   }
 

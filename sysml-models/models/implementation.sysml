@@ -549,7 +549,7 @@ package MemNetImplementation {
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
-    attribute dependency : String = "MN-REQ-14.5 after MN-REQ-14.4";
+    attribute dependsOn : String = "MN-REQ-14.5 after MN-REQ-14.4";
     // No satisfy: implemented=false must not look done to a tracker.
   }
 
