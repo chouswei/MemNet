@@ -536,6 +536,7 @@ package MemNetImplementation {
       14.3 typed directed walks (PARKED): mem_store.py:378-429.
       14.4 id index and linear load: mem_store.py:253-266 and :60.
       14.5 record cap: config.py:121, mem_store.py:102-107.
+      14.6 id design (mint, tombstone, dup refusal): same index as 14.4.
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";

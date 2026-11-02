@@ -1590,4 +1590,16 @@ package MemNetBehaviour {
     in item snapshot : String;
     out item session : String;
   }
+
+  action def IdMintAndRetire {
+    doc /*
+      PROPOSAL (MN-REQ-14.6; target only). Write: mint a time-ordered id
+      (UUIDv7/ULID style, no saved counter or pool); the id index refuses a
+      duplicate. Delete: tombstone the id, never reuse it. Lookup of a
+      tombstoned id returns "deleted". Save, load and restore never mint
+      or rewrite ids; id-less legacy links stay id-less.
+    */
+    in item record : String;
+    out item id : String;
+  }
 }

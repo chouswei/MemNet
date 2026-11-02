@@ -57,7 +57,7 @@
   Atelier-board asks (MN-VER-14-S01..S05, PROPOSAL, target only; no
   engine cut): MN-REQ-14.1 WHERE range, 14.2 paged reads (PARKED), 14.3
   typed directed walks (PARKED), 14.4 id index + linear load, 14.5 raisable
-  record cap (depends on 14.4). Defect records MN-VER-14-D01 (two-step walk
+  record cap (depends on 14.4), 14.6 id design (MN-VER-14-S06). Defect records MN-VER-14-D01 (two-step walk
   10-40% slower ee36a95 to bb4a4dc) and MN-VER-14-D02 (WHERE on a
   relationship with SET refused with a DELETE message).
   Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
@@ -2746,6 +2746,28 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_14_S06_IdDesign {
+    doc /*
+      MN-REQ-14.6 (PROPOSAL; traced to 14.4), model-level cases:
+      (a) index-vs-scan parity: every id lookup through the index equals a
+      full scan; (b) byte-identical save/reload round-trip, no id minted
+      or rewritten; (c) concurrent writes plus crash and restore leave zero
+      duplicate ids; (d) delete then lookup returns "deleted", never
+      not_found and never another record; (e) a write that reuses an
+      existing or retired id is refused. Open question for Elon: tombstone
+      storage and their count against the record cap (14.5).
+    */
+    attribute verificationId : String = "MN-VER-14-S06";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS06 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify idDesignReq;
+      verify idIndexAndLinearLoadReq;
+    }
+  }
+
   verification def MN_VER_14_D01_TwoStepWalkRegression {
     doc /*
       DEFECT record (not a requirement; no fix claimed). The two-step walk
@@ -2846,6 +2868,8 @@ package MemNetVerification {
     : MN_VER_14_S04_IdIndexAndLinearLoad;
   verification raisableSessionRecordCapVerify
     : MN_VER_14_S05_RaisableSessionRecordCap;
+  verification idDesignVerify
+    : MN_VER_14_S06_IdDesign;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify

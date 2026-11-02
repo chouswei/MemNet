@@ -17,6 +17,7 @@
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
     MN-REQ-14.4        Id/property index and linear session load
     MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
+    MN-REQ-14.6        Id design: minted time-ordered, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
@@ -2533,6 +2534,25 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-14.5";
       }
+
+      requirement def MN_REQ_14_6_IdDesign {
+        doc /*
+          Status: PROPOSAL, target only; traced to MN-REQ-14.4 (the id index
+          enforces it). (1) Ids are unique by construction: the engine mints
+          them at write time as time-ordered ids (UUIDv7 or ULID style),
+          with no saved counter and no pool. (2) Ids are never reused or
+          changed: a deleted id is retired forever (tombstoned), because
+          outside references (rows, links, logs, other products) may still
+          hold it. A lookup of a deleted id SHALL return a clear "deleted"
+          result, never not_found and never a different record. (3) Save,
+          load and restore SHALL NOT mint or rewrite ids (existing owner
+          rule); id-less legacy links stay id-less. (4) The id index SHALL
+          refuse a duplicate id on write. OPEN QUESTION for Elon: how
+          tombstones are stored and how they count against the record cap
+          (MN-REQ-14.5). Verify: MN-VER-14-S06.
+        */
+        attribute requirementId : String = "MN-REQ-14.6";
+      }
     }
   }
 
@@ -2830,6 +2850,9 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
   requirement raisableSessionRecordCapReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_5_RaisableSessionRecordCap;
+
+  requirement idDesignReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3221,6 +3244,7 @@ package MemNetRequirements {
     end #derive ::> typedDirectedWalksReq;
     end #derive ::> idIndexAndLinearLoadReq;
     end #derive ::> raisableSessionRecordCapReq;
+    end #derive ::> idDesignReq;
   }
 
   #derivation connection deriveWhereRangeFromWhereHonest {
@@ -3232,5 +3256,10 @@ package MemNetRequirements {
     end #original ::> storeResourceCapsReq;
     end #original ::> idIndexAndLinearLoadReq;
     end #derive ::> raisableSessionRecordCapReq;
+  }
+
+  #derivation connection deriveIdDesignFromIdIndex {
+    end #original ::> idIndexAndLinearLoadReq;
+    end #derive ::> idDesignReq;
   }
 }
