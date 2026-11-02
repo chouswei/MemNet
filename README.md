@@ -6,13 +6,22 @@ MemNet sits **between** LLM call pipelines and data search (MN-REQ-00). Corpus l
 
 This repo ships the engine + generic MCP only. **Product shape:** [`docs/SHAPE.md`](docs/SHAPE.md). **Pinned role:** working set of **a few technical documents** (atoms and locators, not PDF bytes) plus live `TSK`/`USR`/`MOD`, re-read fast. Tens of MiB typical; **hundreds of MiB still in role**; gigabytes = RAG/cabinet.
 
-Package **`memnet-llm`** (CLI **`memnet`**). Python ≥ 3.11. Hatch **0.19.11**; last published PyPI wheel is **`memnet-llm==0.19.6`** until this cut is uploaded (0.19.11 honesty `c`: catalog cross-session satisfy locators + CousinSysMLEdge mustNotInventUploadBind). **1.0** stays unclaimed. SemVer meaning (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Package **`memnet-llm`** (CLI **`memnet`**), version **0.20.2** on PyPI. Python ≥ 3.11. **1.0** is not claimed yet. What the version numbers mean (`a.b.c`): [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## What's shipped
+
+- **Product gateway** — `memnet-mcp --transport gateway` routes each product, by credential, to the `memnet serve` that owns its sessions. GQL and `@ERR`/`@WRN`/`@STAT` replies pass through unchanged. See [`docs/operations/product-gateway-contract.md`](docs/operations/product-gateway-contract.md).
+- **Safe upgrade** — `memnet admin upgrade-prepare` drains the serve (new sessions get `@ERR: serve_draining|retry_after_s=…`), saves every session, and the new version reloads them on start. See [`docs/operations/safe-upgrade.md`](docs/operations/safe-upgrade.md).
+- **Checkpoints and backups** — `memnet admin checkpoint` saves every loaded session without stopping the serve; `memnet admin checkpoint-verify` checks a restored copy. The backup doc runs this hourly to R2 with restic, plus a weekly restore check. See [`docs/operations/backup.md`](docs/operations/backup.md).
+- **Admin usage report** — `memnet admin usage-report` (admin token only, not an agent tool) lists active sessions by alias, with no graph content. See [`docs/operations/admin-usage-report.md`](docs/operations/admin-usage-report.md).
+- **Request log** — optional, off by default: `--request-log` or `MEMNET_REQUEST_LOG` writes one JSON line per serve request (timings, op, sizes, outcome; no statement text), rotated by size. See [`docs/operations/request-log.md`](docs/operations/request-log.md).
+- **Relation names in camelCase** — relation types are stored in lowerCamel form: `HAS_FACT` is stored as `hasFact`, and both spellings match the same edge. `mutate` warns when it renames one.
 
 ## Install + quick CLI
 
 ```bash
 pip install memnet-llm
-# or pin published: pip install memnet-llm==0.19.6
+# or pin: pip install memnet-llm==0.20.2
 # optional extras (drivers only — not an AgensGraph server):
 # pip install 'memnet-llm[mcp]'
 # pip install 'memnet-llm[agensgraph]'
@@ -50,7 +59,7 @@ Shaped pin map (illustrative; nickname `id` only if set):
 (:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: 'Clear warehouse'})
 ```
 
-Create by labels+properties (`CREATE ()` is legal). leftover `id:'NEW'` mint / `@ID:` AssignedIdMap is leftover, not product. Each turn `pin_map(q)` (or skip); **drop** prior maps from the prompt; leftover `--anchor` is a nickname cue. The agent dialect is **GQL only** (openCypher-shaped). Wire SSOT: [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md). Layer accept is dead.
+Create nodes by labels and properties (`CREATE ()` is legal); you don't mint ids yourself. The old `id:'NEW'` placeholder and `@ID:` id map are legacy and not part of the product. Each turn, call `pin_map(q)` (or skip it) and **drop** earlier maps from the prompt. The old `--anchor` flag still works, but only as a nickname cue. Agents speak **GQL only** (openCypher-shaped); no other input format is accepted. The wire format is defined in [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md).
 
 MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
 
@@ -61,7 +70,7 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 ## Import absorb vs shared session
 
 - **Path A** — same `sessionId`; peers just re-`pin_map`. No import.
-- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (pattern match, not MERGE-by-id). leftover `keep`/`reject`/`remint` `id_policy` is leftover, not product. That's absorb into the lead SSOT, not append. **ImportGuard** / **CheapLlmImportGuard** is a **user-selectable** optional soft LLM (feature stays; not deprecated). Absorb works with the key unset. Set `MEMNET_IMPORT_GUARD_API_KEY` on serve to activate (optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips the soft pass for one call. Hard ImportAbsorb always runs. Teach: [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md).
+- **Path B** — separate member session; lead absorbs a bounded slice via `memnet import-slice` (pattern match, not MERGE-by-id). The old `keep`/`reject`/`remint` `id_policy` options are legacy and not part of the product. The slice is merged into the lead session (the single source of truth), not appended. **ImportGuard** / **CheapLlmImportGuard** is a **user-selectable** optional soft LLM (feature stays; not deprecated). Absorb works with the key unset. Set `MEMNET_IMPORT_GUARD_API_KEY` on serve to activate (optional `MEMNET_IMPORT_GUARD_BASE_URL` / `MEMNET_IMPORT_GUARD_MODEL`). `--no-guard` skips the soft pass for one call. Hard ImportAbsorb always runs. Teach: [`docs/LLM-GUIDE.md`](docs/LLM-GUIDE.md).
 
 ## ACL + transport
 
@@ -71,13 +80,13 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional client `memnet-llm[agensgraph]`; the cabinet is external and not vendored. **0.7** is adapter + operator round trip (no runtime caller) (`liveCabinetClaimed`); CI skips unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is retired (#187). `MEMNET_NEO4J_*` is ignored (one log warning); the engine still starts.
+**Durable:** optional client `memnet-llm[agensgraph]`; the cabinet is external and not vendored. Since **0.7** the adapter and an operator-run round trip exist, but nothing calls the cabinet at runtime yet, so a live cabinet is not claimed. Its CI tests skip unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is retired (#187). `MEMNET_NEO4J_*` is ignored (one log warning); the engine still starts.
 
-## Deferred (honest)
+## Not done yet
 
 - Hosted AgensGraph as a product service (operator runs the server; this repo does not vendor it)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
-- SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / [#66](https://github.com/chouswei/MemNet/issues/66)) — 0.19 writes cue `pin_map` GQL out; identity merge on the way back is later
+- Reading SysML files or edited pin maps back in (MN-REQ-11.5 SHOULD / [#66](https://github.com/chouswei/MemNet/issues/66)) — `pin_map` GQL can be written out today; matching identities on the way back comes later
 - Host search / RAG as a MemNet tool — application nest only ([`docs/extras/memnet-host-search-nest.md`](docs/extras/memnet-host-search-nest.md))
 
 ## Links
@@ -90,6 +99,11 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Version map SSOT |
 | [`sysml-models/`](sysml-models/) | Requirements / verify |
 | [`docs/operations/multi-agent-sessions.md`](docs/operations/multi-agent-sessions.md) | Multitask ops |
+| [`docs/operations/safe-upgrade.md`](docs/operations/safe-upgrade.md) | Upgrade a serve without losing sessions |
+| [`docs/operations/backup.md`](docs/operations/backup.md) | Checkpoints, R2 backup, restore check |
+| [`docs/operations/admin-usage-report.md`](docs/operations/admin-usage-report.md) | Admin view of active sessions |
+| [`docs/operations/request-log.md`](docs/operations/request-log.md) | Optional per-request serve log |
+| [`docs/operations/product-gateway-contract.md`](docs/operations/product-gateway-contract.md) | Product gateway wire contract |
 | [`docs/README.md`](docs/README.md) | Full docs index |
 | [`docs/cap-contract.md`](docs/cap-contract.md) | Caps a product gate can hit (refuse vs clip, exact wire) |
 
