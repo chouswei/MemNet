@@ -20,6 +20,7 @@
     MN-REQ-14.6        Id design: minted time-ordered, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
+    MN-REQ-14.9        Value cap 4096 -> 32768 bytes, no chunking (PROPOSAL; flagged for Elon)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
@@ -2583,6 +2584,22 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-14.8";
       }
+
+      requirement def MN_REQ_14_9_ValueCap32k {
+        doc /*
+          Status: PROPOSAL, target only; FLAGGED FOR ELON. The per-value cap
+          (MEMNET_MAX_VALUE_BYTES, config.py:126) rises from 4096 to 32768
+          bytes, with no chunking, because Atelier rows hold up to 8,000
+          characters (UTF-8 up to about 24 KB). Values up to 32768 bytes
+          SHALL be accepted; larger values SHALL be refused with a clear
+          error; the cap is counted in bytes. Snapshots written under the
+          old cap SHALL still load. IMPACT to weigh: worst-case memory per
+          session is cap x records (5,000 x 32 KB, about 160 MB); snapshot
+          size, save and load time, and pin_map read size all grow with
+          value size. Verify: MN-VER-14-S09.
+        */
+        attribute requirementId : String = "MN-REQ-14.9";
+      }
     }
   }
 
@@ -2887,6 +2904,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds;
   requirement developerSurfaceRealIdsReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds;
+  requirement valueCap32kReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_9_ValueCap32k;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3281,6 +3300,7 @@ package MemNetRequirements {
     end #derive ::> idDesignReq;
     end #derive ::> agentHandlesNotIdsReq;
     end #derive ::> developerSurfaceRealIdsReq;
+    end #derive ::> valueCap32kReq;
   }
 
   #derivation connection deriveWhereRangeFromWhereHonest {
@@ -3307,5 +3327,10 @@ package MemNetRequirements {
   #derivation connection deriveDeveloperSurfaceFromIdDesign {
     end #original ::> idDesignReq;
     end #derive ::> developerSurfaceRealIdsReq;
+  }
+
+  #derivation connection deriveValueCapFromStoreCaps {
+    end #original ::> storeResourceCapsReq;
+    end #derive ::> valueCap32kReq;
   }
 }
