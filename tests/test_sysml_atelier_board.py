@@ -19,6 +19,7 @@ VERIFY = MODELS / "verify.sysml"
 
 LINE_CAP = re.compile(r"135,?168")
 OLD_LINE_CAP = re.compile(r"69,?632")
+DEV_CREDENTIAL = r"Developer\w*Credential|Credential\w*Developer"
 
 
 def _all_model_text() -> str:
@@ -127,12 +128,12 @@ def test_handle_table_part_satisfies_14_7():
 
 
 def test_developer_credential_is_a_port_def():
-    _one_def("port", r"Credential")
+    _one_def("port", DEV_CREDENTIAL)
 
 
 def test_developer_listener_has_credential_port_and_satisfies_14_8():
     name, body = _one_def("part", r"DeveloperListener")
-    port_defs = _defs("port", r"Credential")
+    port_defs = _defs("port", DEV_CREDENTIAL)
     assert port_defs, "no credential port def"
     assert any(re.search(rf"\bport\s+\w+\s*:\s*~?{pd}\b", body) for pd in port_defs), (
         f"{name} has no port typed by a credential port def"
