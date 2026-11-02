@@ -1654,11 +1654,15 @@ package MemNetBehaviour {
       become 4 bytes, wire.py _SPLITLINES_ESC) plus 4,096 bytes of
       framing. On write (mutate time), before storing: (1) a value over
       the value cap is refused limit_exceeded, message
-      value_bytes|{n}/{max} (unchanged); (2) a value whose escaped wire
-      size (wire.py escape rules) exceeds the line cap is refused
-      limit_exceeded, message line_bytes|{escaped}/{max_line}; (3) a write
+      value_bytes|{n}/{max} (unchanged); (2) the escaped wire size
+      (wire.py escape rules) of the whole record line as it would be saved,
+      all fields (tag, field names, separators and every value after the
+      write), is checked against the line cap, and over it the write is
+      refused limit_exceeded, message line_bytes|{n}/{max}; a record whose
+      fields each fit can still be refused here (tag_map.py:282-289 caps
+      the whole physical line); the per-record bound is the line cap; (3) a write
       over the per-session byte budget (14.10) is refused
-      limit_exceeded|session_bytes. A refused write stores nothing, so no
+      limit_exceeded|session_bytes (event EvSessionBytesRefused). A refused write stores nothing, so no
       accepted write makes a snapshot unsaveable. On load: a snapshot with
       a value over the configured value cap is refused clearly (value_bytes);
       an older host (default 4,096) must raise MEMNET_MAX_VALUE_BYTES and
@@ -1695,6 +1699,13 @@ package MemNetBehaviour {
   }
   attribute def EvBytesFree {
     doc /* Bytes released (value shrunk or record deleted; tombstone stays). */
+  }
+  attribute def EvSessionBytesRefused {
+    doc /*
+      A write refused limit_exceeded|session_bytes (MN-REQ-14.10). Only
+      this refusal moves underBudget -> atBudget; other refusals
+      (type_mismatch, line_bytes, value_bytes; generic EvError) do not.
+    */
   }
 
   state def IdLifecycle {
@@ -1739,9 +1750,11 @@ package MemNetBehaviour {
     doc /*
       PROPOSAL (MN-REQ-14.10; verify MN-VER-14-S10; target only). Per-session
       byte budget over values plus tombstones. Default TBD, owner-set.
-      A write that would go over the budget is refused
-      limit_exceeded|session_bytes {n}/{max} and writes nothing, so the
-      session stays within budget.
+      Setting: MEMNET_MAX_SESSION_BYTES. A write that would go over the
+      budget is refused limit_exceeded|session_bytes {n}/{max} and writes
+      nothing, so the session stays within budget. Only that refusal
+      (EvSessionBytesRefused) moves underBudget -> atBudget; any other
+      refusal leaves the state unchanged.
     */
     entry;
     then underBudget;
@@ -1755,7 +1768,7 @@ package MemNetBehaviour {
       then underBudget;
     transition write_refused
       first underBudget
-      accept EvError
+      accept EvSessionBytesRefused
       then atBudget;
 
     state atBudget {

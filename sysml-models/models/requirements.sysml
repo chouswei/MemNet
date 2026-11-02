@@ -2588,9 +2588,10 @@ package MemNetRequirements {
           a UUIDv7 (RFC 9562), with no saved counter and no pool. A UUIDv7
           is unique with high probability through its random bits; it is
           not unique by construction, and the clock can go backwards after
-          a crash or restore. The real guarantee is (4). Carve-out: pin
-          ingest keeps its deterministic ids (pinIngestDeterministicIdsReq,
-          MN-REQ-11.16); only ids minted by a write are UUIDv7.
+          a crash or restore. The real guarantee is (4). Pin-ingested
+          elements are created by Commit and get a minted UUIDv7 like any
+          write; their locators stay properties, not identity and not a
+          store key (pinIngestDeterministicIdsReq, MN-REQ-11.16).
           (2) Ids are never reused or changed: a deleted id is retired
           forever (tombstoned), because outside references (rows, links,
           logs, other products) may still hold it. A lookup of a deleted id
@@ -2617,10 +2618,11 @@ package MemNetRequirements {
           to the real id. No reply of any MCP tool SHALL carry a real id:
           find, read, walk, error text, and also pin_map, export_pin_map,
           snap_model, import_slice, session_save and session_load. Handle
-          lifetime: a handle is scoped to one session and persisted in its
-          snapshot; it stays valid across evict, restore, save and load, and
-          is never reused in that session. A handle from another session is
-          stale and refused. A handle that does not match (bad, stale or of
+          lifetime: a handle is process-unique (never reused within the
+          process) or carries its session, and is persisted in its session's
+          snapshot; it stays valid across evict, restore, save and load. A
+          handle from another session is foreign and SHALL be refused
+          (stale/foreign), never resolved. A handle that does not match (bad, stale or of
           a deleted record) SHALL be refused with a clear error, never a
           different record. Real ids stay internal to the engine and its
           snapshots. Migration note: this changes MCP reply contracts;
@@ -2670,22 +2672,26 @@ package MemNetRequirements {
           backslash double; so a 32,768-byte value escapes to at most
           4 x 32,768 = 131,072 bytes, plus 4,096 bytes for tag, field names,
           separators and the other fields of the line = 135,168; still
-          overridable by env. Mutate-time refusal: before storing, a value
-          whose escaped wire size exceeds the line cap SHALL be refused
-          limit_exceeded, message line_bytes|{escaped}/{max_line}, with
-          nothing stored, so no accepted write makes a snapshot unsaveable;
-          the value-cap message stays value_bytes|{n}/{max}. The cap-contract.md lines 153-158 change in
-          the code PR. IMPACT: today the worst case of values is 5,000 x
-          4,096 = 20,480,000 bytes (19.53 MiB); with this leaf 5,000 x
-          32,768 = 163,840,000 bytes (156.25 MiB), 8 times as much. Per
-          record: 5,000 x 32,768 is an upper bound on values only while one
-          capped value per record holds. A record can carry several
-          properties (up to 64 fields per tag); what bounds a record is the
-          line cap, since save refuses a line over it (snapshot_unsaveable):
-          a record is at most 135,168 bytes on the wire, so records x line
-          cap is 5,000 x 135,168 = 675,840,000 bytes (644.53 MiB), and the
-          per-session total-bytes cap (MN-REQ-14.10) is the bound that
-          counts. Snapshot size, save and load time, and pin_map read size
+          overridable by env. Mutate-time refusal: before storing, mutate SHALL
+          compute the escaped wire size of the whole record line as it
+          would be saved (all fields: tag, field names, separators and every
+          value, after the write) and, if it exceeds the line cap, refuse
+          limit_exceeded, message line_bytes|{n}/{max}, with nothing
+          stored. The real cap applies to the whole physical line
+          (tag_map.py:282-289), so checking one value is not enough: a
+          record whose fields each fit can still exceed the cap in total.
+          With the whole-line check no accepted write makes a snapshot
+          unsaveable, and a later change to the escape table cannot break
+          saving. The value-cap message stays value_bytes|{n}/{max}. The
+          cap-contract.md lines 153-158 change in the code PR (code PR
+          fix/line-cap-whole-line for the whole-line check). IMPACT: at one
+          capped value per record, values grow from 5,000 x 4,096 bytes
+          (19.53 MiB) to 5,000 x 32,768 = 163,840,000 bytes (156.25 MiB),
+          8 times as much. The per-record bound is the line cap: a record is
+          at most 135,168 bytes on the wire, whatever its field count, so
+          records x line cap is 5,000 x 135,168 = 675,840,000 bytes
+          (644.53 MiB), and the per-session total-bytes cap (MN-REQ-14.10)
+          is the bound that counts. Snapshot size, save and load time, and pin_map read size
           all grow with value size. Verify: MN-VER-14-S09. Behaviour:
           ValueLineCapEnforce.
         */
@@ -2700,9 +2706,13 @@ package MemNetRequirements {
           again across the process. SHALL cap the total bytes held by one
           session, counting values plus tombstones (14.6). A write that
           would go over it is refused with a named code, limit_exceeded|
-          session_bytes {n}/{max}, and writes nothing. The default is TBD
-          and owner-set; a floor of today's worst case, 20,480,000 bytes,
-          means nothing that loads today is refused. Linked from 14.5 and
+          session_bytes {n}/{max}, and writes nothing. The setting is the
+          env var MEMNET_MAX_SESSION_BYTES. Its default is TBD and
+          owner-set, and SHALL be set before or with 14.9 shipping. Floor:
+          5,000 x 32,768 = 163,840,000 bytes (156.25 MiB), counted as
+          escaped line bytes, so it is an upper bound on raw values; today a
+          record is bounded by the 32,768-byte line cap, so a default at or
+          above this floor refuses nothing that loads today. Linked from 14.5 and
           14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates.
         */
         attribute requirementId : String = "MN-REQ-14.10";

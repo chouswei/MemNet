@@ -542,10 +542,11 @@ package MemNetImplementation {
            replies carry real ids.
       14.9 value cap: config.py:126 (4,096 -> 32,768 bytes) and line cap
            config.py:127 (32,768 -> 135,168 = 4 x 32,768 + 4,096 bytes);
-           mutate-time escaped-size line_bytes refusal; docs/cap-contract.md
+           mutate-time whole-line escaped-size line_bytes refusal; docs/cap-contract.md
            lines 153-158 change in the code PR (#238).
-      14.10 per-session total-bytes cap (values plus tombstones): new knob,
-           default TBD, owner-set; refusal limit_exceeded|session_bytes.
+      14.10 per-session total-bytes cap (values plus tombstones): new knob
+           MEMNET_MAX_SESSION_BYTES, default TBD, owner-set, floor
+           163,840,000; refusal limit_exceeded|session_bytes.
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
@@ -555,19 +556,27 @@ package MemNetImplementation {
 
   // ----- Atelier-board target structure (PROPOSAL; MN-REQ-14; not allocated) -----
   // Target design only: implemented=false, no SoftwareAllocate, no CodeModule
-  // path. The satisfy lines are the design trace for MN-REQ-14 leaves, not a
-  // shipped claim; the tracker MUST NOT list these as implemented.
+  // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
+  // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
 
   part def IdIndex {
     doc /*
       PROPOSAL (MN-REQ-14.4 / 14.6). In-memory index keyed by the nickname
-      fields['id'] (match_nickname, mem_store.py:253-256) and by the real
+      fields['id'] (match_nickname, mem_store.py:253-266) and by the real
       id (store key hid). Rebuilt on load, never stored; iteration order
       preserved. Refuses a duplicate of an existing or tombstoned id.
     */
     attribute implemented : Boolean = false;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign;
+  }
+  dependency targetTrace_IdIndex_14_4
+    from IdIndex
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+  dependency targetTrace_IdIndex_14_6
+    from IdIndex
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
   }
 
   part def TombstoneStore {
@@ -578,19 +587,28 @@ package MemNetImplementation {
       per-session byte budget.
     */
     attribute implemented : Boolean = false;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign;
+  }
+  dependency targetTrace_TombstoneStore_14_6
+    from TombstoneStore
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
   }
 
   part def HandleTable {
     doc /*
       PROPOSAL (MN-REQ-14.7). Engine-side map handle -> real id for the
-      LLM-facing MCP surface. Scoped to one session, persisted in its
-      snapshot, valid across evict/restore/save/load, never reused; a bad,
-      stale, deleted or other-session handle is refused, never another
-      record.
+      LLM-facing MCP surface. Handles are process-unique (never reused
+      within the process) or carry their session; persisted in the
+      session's snapshot, valid across evict/restore/save/load. A bad,
+      stale or deleted handle is refused, and a foreign handle (minted in
+      another session) is refused, never resolved to another record.
     */
     attribute implemented : Boolean = false;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds;
+  }
+  dependency targetTrace_HandleTable_14_7
+    from HandleTable
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
   }
 
   port def DeveloperCredentialPort {
@@ -610,18 +628,27 @@ package MemNetImplementation {
     */
     attribute implemented : Boolean = false;
     port credentialIn : DeveloperCredentialPort;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds;
+  }
+  dependency targetTrace_DeveloperListener_14_8
+    from DeveloperListener
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
   }
 
   part def SessionByteBudget {
     doc /*
       PROPOSAL (MN-REQ-14.10). Per-session total of values plus
-      tombstones; default TBD, owner-set; over-budget write refused
-      limit_exceeded|session_bytes and stores nothing.
+      tombstones; set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
+      default TBD, owner-set, floor 163,840,000 bytes; over-budget write
+      refused limit_exceeded|session_bytes and stores nothing.
     */
     attribute implemented : Boolean = false;
     attribute maxSessionBytes : Integer;
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap;
+  }
+  dependency targetTrace_SessionByteBudget_14_10
+    from SessionByteBudget
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
   }
 
   part def AtelierBoardTargetEngine {

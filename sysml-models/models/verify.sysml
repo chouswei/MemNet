@@ -2780,8 +2780,10 @@ package MemNetVerification {
       existing or tombstoned id is refused; (f) a tombstone is an id-only
       entry, does not count against the record cap and counts toward the
       total-bytes cap (14.10); a legacy snapshot loads with an empty
-      tombstone set; (g) pin ingest keeps its deterministic ids
-      (pinIngestDeterministicIdsReq). Behaviour: IdMintAndRetire;
+      tombstone set; (g) pin-ingested elements are created by Commit and
+      get a minted UUIDv7 like any write, and their locators stay
+      properties, not identity (pinIngestDeterministicIdsReq, MN-REQ-11.16).
+      Behaviour: IdMintAndRetire;
       state machine IdLifecycle (live, tombstoned, retired).
     */
     attribute verificationId : String = "MN-VER-14-S06";
@@ -2806,11 +2808,14 @@ package MemNetVerification {
       export_pin_map, snap_model, import_slice, session_save, session_load)
       contains a real id; existing MCP reply cases (for example
       MN-VER-07-S01) are re-read as the migration check; (b) a valid handle resolves to its record; (c) a bad or
-      stale handle (including a handle from another session), or one of a
-      deleted record, is refused with a clear error, never a different
-      record; (d) snapshots keep real ids and a save/reload round-trip is
-      byte-identical; (e) a handle stays valid across evict, restore, save
-      and load, and is never reused in the session. Behaviour: HandleResolve.
+      stale handle, or one of a deleted record, is refused with a clear
+      error, never a different record; (d) snapshots keep real ids and a
+      save/reload round-trip is byte-identical; (e) a handle stays valid
+      across evict, restore, save and load, and is never reused within the
+      process; (f) a foreign handle: a handle minted in session A and
+      presented to session B is refused (stale/foreign), even when session
+      B holds a record under a handle of the same shape; it never resolves.
+      Behaviour: HandleResolve.
     */
     attribute verificationId : String = "MN-VER-14-S07";
 
@@ -2857,12 +2862,16 @@ package MemNetVerification {
       (65,536 escaped bytes) is accepted, saves and reloads byte-identical
       under the raised line cap of 135,168 = 4 x 32,768 + 4,096
       (MEMNET_MAX_LINE_BYTES); (g) a snapshot whose values exceed the
-      configured cap is refused clearly on load (or the model says it loads
-      anyway; open for Elon); (h) a 32,768-byte value of \x1c (4x escape,
+      configured cap is refused on load with limit_exceeded value_bytes
+      (loader refusal test kept); (h) a 32,768-byte value of \x1c (4x escape,
       131,072 escaped bytes) saves and reloads under the defaults; (i) with
       the line cap lowered below a value's escaped size, the mutate is
-      refused limit_exceeded line_bytes|{escaped}/{max_line} and nothing is
-      stored. Behaviour: ValueLineCapEnforce.
+      refused limit_exceeded line_bytes|{n}/{max} and nothing is stored;
+      (j) multi-field record: a record whose fields each fit the value cap
+      but whose whole escaped line exceeds 135,168 bytes (for example two
+      32,768-byte values of \x1c, 262,144 escaped bytes) is refused at
+      mutate with limit_exceeded line_bytes|{n}/{max} and nothing stored
+      (code PR fix/line-cap-whole-line). Behaviour: ValueLineCapEnforce.
     */
     attribute verificationId : String = "MN-VER-14-S09";
 
@@ -2882,8 +2891,9 @@ package MemNetVerification {
       (a) a write that would take values plus tombstones over the cap is
       refused with limit_exceeded|session_bytes {n}/{max} and writes
       nothing; (b) tombstones count toward it; (c) a session under the cap
-      is unaffected; (d) with the floor 20,480,000 bytes nothing that
-      loads today is refused. Behaviour: ValueLineCapEnforce; state
+      is unaffected; (d) with the floor 5,000 x 32,768 = 163,840,000
+      bytes (escaped line bytes) nothing that loads today is refused;
+      (e) MEMNET_MAX_SESSION_BYTES sets the cap. Behaviour: ValueLineCapEnforce; state
       machine SessionByteBudgetStates.
     */
     attribute verificationId : String = "MN-VER-14-S10";
@@ -2922,8 +2932,10 @@ package MemNetVerification {
       DEFECT record (not a requirement; no fix claimed). A WHERE on a
       relationship pattern combined with SET is refused with a DELETE
       message (wrong refusal text, SET named as DELETE); MN-REQ-03.4
-      requires honour-or-refuse with an accurate code. Open until
-      reproduced under tests/ and the message fixed. Planned fix
+      requires honour-or-refuse with an accurate code. Reproduced by
+      tests/test_d02_where_set_refusal.py (passes on today's engine while
+      the defect stands; the fix flips it). Open until the message is
+      fixed. Planned fix
       behaviour: WhereSetRefusalFix (proposal).
     */
     attribute verificationId : String = "MN-VER-14-D02";
@@ -2931,7 +2943,7 @@ package MemNetVerification {
     subject system : MemNetSystem;
 
     objective atelierBoardD02 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Defect repro test: tests/test_d02_where_set_refusal.py. */
       verify honourWherePredicateReq;
     }
   }
