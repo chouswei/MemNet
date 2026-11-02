@@ -676,6 +676,13 @@ class MutateGate:
                     if orig_nick != new_id:
                         applied_renames.append((old.hid, new_id, False, source_backup, ep_changes))
             self._refuse_over_field_cap()
+            touched_lines = set(added) | {r.hid for r in replaced}
+            for _old_hid, new_id, _merge, _backup, ep_changes in applied_renames:
+                survivor = self.ss.store.resolve_one(new_id)
+                if survivor is not None:
+                    touched_lines.add(survivor.hid)
+                touched_lines.update(eid for eid, _field in ep_changes)
+            self._refuse_over_line_cap(touched_lines)
             self.ss.mark_written()
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
@@ -737,6 +744,11 @@ class MutateGate:
         from memnet.snapshot import refuse_mutate_field_cap
 
         refuse_mutate_field_cap(self.ss)
+
+    def _refuse_over_line_cap(self, hids: set[str]) -> None:
+        from memnet.snapshot import refuse_mutate_line_cap
+
+        refuse_mutate_line_cap(self.ss, hids)
 
     def _item_to_record(self, it: NodeRec | EdgeRec) -> Record:
         if isinstance(it, EdgeRec):
@@ -1099,6 +1111,7 @@ class MutateGate:
                         f"mission_settled|{rec.id or rec.tag}|next read use query pin-map from cue"
                     )
             self._refuse_over_field_cap()
+            self._refuse_over_line_cap({r.hid for r in records})
             self.ss.mark_written()
         except MemNetError:
             for rid in added:

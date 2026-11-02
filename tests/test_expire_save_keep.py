@@ -172,7 +172,7 @@ def test_save_on_expire_off_still_drops(memnet_temp, schema_file, monkeypatch):
 
 
 def _extras_create() -> str:
-    """Mutate-legal row that save refuses (escaped line over line_bytes)."""
+    """Row whose whole escaped line is over line_bytes (each value fits)."""
     blob = "|" * 4000
     extras = ", ".join(f"x{i:02d}: '{blob}'" for i in range(20))
     return f"CREATE (:N {{id: 'N01', name: 'n', {extras}}})"
@@ -186,24 +186,33 @@ def test_live_unsaveable_expiry_keeps_warns_cap_and_close(tmp_path: Path):
     with running_serve(tmp_path, ttl_minutes=1, max_sessions=1) as svc:
         sid, opened = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
         assert sid, opened.stderr
-        created = svc.mutate(sid, _extras_create())
+        # Mutate refuses a whole line save could not write, so make save fail
+        # through an unwritable snapshot dir instead.
+        refused = svc.mutate(sid, _extras_create())
+        assert refused.exit_code != 0
+        assert "limit_exceeded|line_bytes" in refused.stderr
+        created = svc.mutate(sid, "CREATE (:N {id: 'N01', name: 'n'})")
         assert created.exit_code == 0, created.stderr
-        _wait_ttl()
-        pin = svc.pin_map(sid, cue="N01")
-        assert pin.exit_code == 2
-        assert "session_expired" in pin.stderr
-        assert "overdue" in pin.stderr
-        assert "expire_snapshot_failed" in pin.stderr
-        assert "snapshot_unsaveable" in pin.stderr
-        n, mx = svc.live_count()
-        assert n == 1
-        assert mx == 1
-        status = svc.expire_status()
-        assert "@STAT: expire_snapshot_failed|1|" in status.stdout
-        blocked, reply = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
-        assert blocked is None
-        assert "limit_exceeded" in reply.stderr
-        assert "all sessions are in use" in reply.stderr
+        os.chmod(svc.snap_dir, 0o555)
+        try:
+            _wait_ttl()
+            pin = svc.pin_map(sid, cue="N01")
+            assert pin.exit_code == 2
+            assert "session_expired" in pin.stderr
+            assert "overdue" in pin.stderr
+            assert "expire_snapshot_failed" in pin.stderr
+            assert "snapshot_unsaveable" in pin.stderr
+            n, mx = svc.live_count()
+            assert n == 1
+            assert mx == 1
+            status = svc.expire_status()
+            assert "@STAT: expire_snapshot_failed|1|" in status.stdout
+            blocked, reply = svc.try_open_session(map_lines=list(_TINY_MAP), ttl=1)
+            assert blocked is None
+            assert "limit_exceeded" in reply.stderr
+            assert "all sessions are in use" in reply.stderr
+        finally:
+            os.chmod(svc.snap_dir, 0o755)
         closed = svc.close(sid)
         assert closed.exit_code == 0, closed.stderr
         status2 = svc.expire_status()

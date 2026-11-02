@@ -184,45 +184,95 @@ def _snapshot_emit_tag_map(ss: SessionStore) -> TagMap:
     return TagMap(tags=tags)
 
 
-def _emit_record_lines(
-    ss: SessionStore,
-) -> tuple[list[str], dict[str, str], TagMap]:
-    emit_map = _snapshot_emit_tag_map(ss)
+def _snapshot_nicks(ss: SessionStore) -> dict[str, str]:
     used: set[str] = set()
     hid_to_nick: dict[str, str] = {}
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
         if rec:
             hid_to_nick[rec.hid] = _snapshot_emit_nick(rec, used)
+    return hid_to_nick
+
+
+def _emit_one_record_line(
+    ss: SessionStore,
+    rec: Record,
+    hid_to_nick: dict[str, str],
+    emit_map: TagMap,
+) -> str:
+    """One record line exactly as snapshot save writes it."""
+    fields = dict(rec.fields)
+    fields["id"] = hid_to_nick[rec.hid]
+    if rec.tag == "EDG":
+        if fields.get("relation"):
+            # Fold a raw stored name (pre-fix store) to the standard one.
+            fields["relation"] = standard_relation(fields["relation"])
+        for key in ("src", "dist"):
+            token = fields.get(key, "")
+            if token in hid_to_nick:
+                fields[key] = hid_to_nick[token]
+    clone = rec.model_copy(update={"fields": fields, "tag": _canonical_tag(ss, rec.tag)})
+    if rec.tag == "EDG" and not fields.get("id"):
+        # Id-less edge: write the stored (empty) id, not the _elN display handle.
+        td = emit_map.get(clone.tag)
+        if td is None:
+            raise MemNetError(
+                "snapshot_unsaveable",
+                f"{clone.tag} nick=- no emit row",
+            )
+        values = [fields.get(f, "") for f in td.fields]
+        return emit_record_line(clone.tag, values)
+    return emit_record(clone, emit_map)
+
+
+def _emit_record_lines(
+    ss: SessionStore,
+) -> tuple[list[str], dict[str, str], TagMap]:
+    emit_map = _snapshot_emit_tag_map(ss)
+    hid_to_nick = _snapshot_nicks(ss)
     rec_lines: list[str] = []
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
-        if not rec:
-            continue
-        fields = dict(rec.fields)
-        fields["id"] = hid_to_nick[rec.hid]
-        if rec.tag == "EDG":
-            if fields.get("relation"):
-                # Fold a raw stored name (pre-fix store) to the standard one.
-                fields["relation"] = standard_relation(fields["relation"])
-            for key in ("src", "dist"):
-                token = fields.get(key, "")
-                if token in hid_to_nick:
-                    fields[key] = hid_to_nick[token]
-        clone = rec.model_copy(update={"fields": fields, "tag": _canonical_tag(ss, rec.tag)})
-        if rec.tag == "EDG" and not fields.get("id"):
-            # Id-less edge: write the stored (empty) id, not the _elN display handle.
-            td = emit_map.get(clone.tag)
-            if td is None:
-                raise MemNetError(
-                    "snapshot_unsaveable",
-                    f"{clone.tag} nick=- no emit row",
-                )
-            values = [fields.get(f, "") for f in td.fields]
-            rec_lines.append(emit_record_line(clone.tag, values))
-            continue
-        rec_lines.append(emit_record(clone, emit_map))
+        if rec:
+            rec_lines.append(_emit_one_record_line(ss, rec, hid_to_nick, emit_map))
     return rec_lines, hid_to_nick, emit_map
+
+
+def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
+    """Mutate: refuse when a written record's whole escaped line could not save.
+
+    Measures the full record line (all fields) as snapshot save would emit it,
+    so no accepted write makes a snapshot unsaveable.
+    """
+    if not hids:
+        return
+    try:
+        emit_map = _snapshot_emit_tag_map(ss)
+    except MemNetError as exc:
+        if exc.code == "snapshot_unsaveable":
+            return  # fixed-tag width; save reports it
+        raise
+    hid_to_nick = _snapshot_nicks(ss)
+    cap = ss.caps.max_line_bytes
+    # The SCHEMA lines: a write can widen them (undeclared keys on a record).
+    for line in tag_map_to_lines(emit_map):
+        n = len(line.encode("utf-8"))
+        if n > cap:
+            raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
+    # Edges are written with endpoint nicks, so a node write or rename changes
+    # every incident edge line as well.
+    store = ss.store
+    check = set(hids)
+    for hid in hids:
+        check |= store._edges_by_src.get(hid, set())
+        check |= store._edges_by_dist.get(hid, set())
+    for hid in check:
+        rec = store._by_hid.get(hid)
+        if rec is None:
+            continue
+        n = len(_emit_one_record_line(ss, rec, hid_to_nick, emit_map).encode("utf-8"))
+        if n > cap:
+            raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
 
 
 def snapshot_text(ss: SessionStore) -> str:
