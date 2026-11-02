@@ -1626,4 +1626,151 @@ package MemNetBehaviour {
     in item id : String;
     out item record : String;
   }
+
+  action def RangeWhereCompare {
+    doc /*
+      PROPOSAL (MN-REQ-14.1; verify MN-VER-14-S01; target only). WHERE
+      p < | > | <= | >= $param. The comparison type comes from the
+      parameter: string or number only (int and float compare as numbers;
+      strings by code point); no coercion. A boolean or null operand, or a
+      property whose type differs from the parameter, refuses the WHOLE
+      statement with the new code type_mismatch (not
+      unsupported_predicate) before any SET or DELETE write; nothing is
+      written. A row without the property does not match. Literals only
+      off the agent wire. rowRev is a 6-digit string, bounded at 999,999.
+    */
+    in item predicate : String;
+    in item param : String;
+    out item matched : String;
+  }
+
+  action def ValueLineCapEnforce {
+    doc /*
+      PROPOSAL (MN-REQ-14.9 / 14.10; verify MN-VER-14-S09, S10; target
+      only). Fixed interface (owner t1443s8385). Caps: value cap
+      MEMNET_MAX_VALUE_BYTES default 32,768 bytes; line cap
+      MEMNET_MAX_LINE_BYTES default 4 x 32,768 + 4,096 = 135,168 bytes,
+      because the worst-case wire escape is 4x (\x1c, \x1d, \x1e each
+      become 4 bytes, wire.py _SPLITLINES_ESC) plus 4,096 bytes of
+      framing. On write (mutate time), before storing: (1) a value over
+      the value cap is refused limit_exceeded, message
+      value_bytes|{n}/{max} (unchanged); (2) a value whose escaped wire
+      size (wire.py escape rules) exceeds the line cap is refused
+      limit_exceeded, message line_bytes|{escaped}/{max_line}; (3) a write
+      over the per-session byte budget (14.10) is refused
+      limit_exceeded|session_bytes. A refused write stores nothing, so no
+      accepted write makes a snapshot unsaveable. On load: a snapshot with
+      a value over the configured value cap is refused clearly (value_bytes);
+      an older host (default 4,096) must raise MEMNET_MAX_VALUE_BYTES and
+      MEMNET_MAX_LINE_BYTES before loading a newer snapshot.
+    */
+    in item record : String;
+    out item accepted : String;
+  }
+
+  action def WhereSetRefusalFix {
+    doc /*
+      PROPOSAL (defect D02; verify MN-VER-14-D02; target only). A WHERE on
+      a relationship pattern combined with SET is refused today with a
+      DELETE message. Fix: the refusal names SET (the clause actually
+      used) with an accurate code, per MN-REQ-03.4 honour-or-refuse; once
+      relationship WHERE is honoured, WHERE ... SET applies to exactly the
+      matching relationships and nothing else. No partial write on refusal.
+    */
+    in item statement : String;
+    out item reply : String;
+  }
+
+  attribute def EvIdMinted {
+    doc /* A UUIDv7 id accepted by the id index (MN-REQ-14.6). */
+  }
+  attribute def EvIdDeleted {
+    doc /* Record deleted; its id becomes an id-only tombstone. */
+  }
+  attribute def EvIdRetired {
+    doc /* Tombstone sealed in a saved snapshot; id retired forever. */
+  }
+  attribute def EvBytesWrite {
+    doc /* A write that changes the session's values-plus-tombstones bytes. */
+  }
+  attribute def EvBytesFree {
+    doc /* Bytes released (value shrunk or record deleted; tombstone stays). */
+  }
+
+  state def IdLifecycle {
+    doc /*
+      PROPOSAL (MN-REQ-14.6 / 14.4; verify MN-VER-14-S06; target only).
+      Life of one real id: live -> tombstoned (deleted) -> retired. Ids
+      are never reused: no transition leads back to live, and the id index
+      refuses a write that names an existing or tombstoned id. Lookup of a
+      tombstoned or retired id returns "deleted", never not_found and
+      never another record. Save, load and restore never mint or rewrite
+      ids.
+    */
+    entry;
+    then live;
+
+    state live {
+      doc /* Record present; id in the id index. */
+    }
+    transition delete_to_tombstone
+      first live
+      accept EvIdDeleted
+      then tombstoned;
+
+    state tombstoned {
+      doc /*
+        Deleted: id-only tombstone (id + deleted marker) in the index and
+        snapshot. Not counted against the record cap (14.5); counted toward
+        the per-session byte budget (14.10).
+      */
+    }
+    transition tombstone_to_retired
+      first tombstoned
+      accept EvIdRetired
+      then retired;
+
+    state retired {
+      doc /* Terminal. The id is never reused or changed. */
+    }
+  }
+
+  state def SessionByteBudgetStates {
+    doc /*
+      PROPOSAL (MN-REQ-14.10; verify MN-VER-14-S10; target only). Per-session
+      byte budget over values plus tombstones. Default TBD, owner-set.
+      A write that would go over the budget is refused
+      limit_exceeded|session_bytes {n}/{max} and writes nothing, so the
+      session stays within budget.
+    */
+    entry;
+    then underBudget;
+
+    state underBudget {
+      doc /* Total bytes <= budget; writes that stay under are accepted. */
+    }
+    transition write_within
+      first underBudget
+      accept EvBytesWrite
+      then underBudget;
+    transition write_refused
+      first underBudget
+      accept EvError
+      then atBudget;
+
+    state atBudget {
+      doc /*
+        A write was refused session_bytes; nothing stored. Further writes
+        that fit are still accepted; frees return to underBudget.
+      */
+    }
+    transition free_bytes
+      first atBudget
+      accept EvBytesFree
+      then underBudget;
+    transition write_fits
+      first atBudget
+      accept EvBytesWrite
+      then underBudget;
+  }
 }

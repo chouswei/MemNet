@@ -59,7 +59,7 @@
     MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
-    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 69632, no chunking (PROPOSAL; flagged for Elon)
+    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (PROPOSAL; flagged for Elon)
     MN-REQ-14.10       Per-session total-bytes cap: values plus tombstones (PROPOSAL; default TBD, owner-set)
 
   Nesting: requirement def inside requirement def only (SysML requirements
@@ -2486,7 +2486,7 @@ package MemNetRequirements {
           6-digit string, so string order equals rev order only up to
           999,999; past that either the bound is written down as a limit or
           rowRev becomes numeric (open question for Elon).
-          Verify: MN-VER-14-S01. Behaviour: BoardWakeRead.
+          Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
         */
         attribute requirementId : String = "MN-REQ-14.1";
       }
@@ -2603,7 +2603,7 @@ package MemNetRequirements {
           restore SHALL NOT mint or rewrite ids (existing owner rule);
           id-less legacy links stay id-less. (4) The id index SHALL refuse
           a write whose id is a duplicate of an existing or tombstoned id.
-          Verify: MN-VER-14-S06. Behaviour: IdMintAndRetire.
+          Verify: MN-VER-14-S06. Behaviour: IdMintAndRetire, IdLifecycle.
         */
         attribute requirementId : String = "MN-REQ-14.6";
       }
@@ -2663,11 +2663,18 @@ package MemNetRequirements {
           32,768), because backslash and pipe are written twice
           (docs/cap-contract.md:153-158 says a single value always fits a
           line, and caps a product raise at 16,384). 14.9 SHALL therefore
-          also raise the default line cap to 69,632 bytes. Arithmetic: worst
-          case is a value of only pipes and backslashes, 2 x 32,768 =
-          65,536 escaped bytes, plus 4,096 bytes for tag, field names,
-          separators and the other fields of the line = 69,632; still
-          overridable by env. The cap-contract.md lines 153-158 change in
+          also raise the default line cap (fixed interface, owner
+          t1443s8385) to 4 x 32,768 + 4,096 = 135,168 bytes. Arithmetic:
+          the worst-case wire escape is 4x, not 2x: \x1c, \x1d and \x1e
+          each become 4 bytes (wire.py _SPLITLINES_ESC), while pipe and
+          backslash double; so a 32,768-byte value escapes to at most
+          4 x 32,768 = 131,072 bytes, plus 4,096 bytes for tag, field names,
+          separators and the other fields of the line = 135,168; still
+          overridable by env. Mutate-time refusal: before storing, a value
+          whose escaped wire size exceeds the line cap SHALL be refused
+          limit_exceeded, message line_bytes|{escaped}/{max_line}, with
+          nothing stored, so no accepted write makes a snapshot unsaveable;
+          the value-cap message stays value_bytes|{n}/{max}. The cap-contract.md lines 153-158 change in
           the code PR. IMPACT: today the worst case of values is 5,000 x
           4,096 = 20,480,000 bytes (19.53 MiB); with this leaf 5,000 x
           32,768 = 163,840,000 bytes (156.25 MiB), 8 times as much. Per
@@ -2675,11 +2682,12 @@ package MemNetRequirements {
           capped value per record holds. A record can carry several
           properties (up to 64 fields per tag); what bounds a record is the
           line cap, since save refuses a line over it (snapshot_unsaveable):
-          a record is at most 69,632 bytes on the wire, so records x line
-          cap is 5,000 x 69,632 = 348,160,000 bytes (332.03 MiB), and the
+          a record is at most 135,168 bytes on the wire, so records x line
+          cap is 5,000 x 135,168 = 675,840,000 bytes (644.53 MiB), and the
           per-session total-bytes cap (MN-REQ-14.10) is the bound that
           counts. Snapshot size, save and load time, and pin_map read size
-          all grow with value size. Verify: MN-VER-14-S09.
+          all grow with value size. Verify: MN-VER-14-S09. Behaviour:
+          ValueLineCapEnforce.
         */
         attribute requirementId : String = "MN-REQ-14.9";
       }
@@ -2695,7 +2703,7 @@ package MemNetRequirements {
           session_bytes {n}/{max}, and writes nothing. The default is TBD
           and owner-set; a floor of today's worst case, 20,480,000 bytes,
           means nothing that loads today is refused. Linked from 14.5 and
-          14.9. Verify: MN-VER-14-S10.
+          14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates.
         */
         attribute requirementId : String = "MN-REQ-14.10";
       }

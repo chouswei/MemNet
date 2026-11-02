@@ -64,7 +64,7 @@
     14.6 id design (S06)
     14.7 MCP surface handles only (S07)
     14.8 developer surface real ids (S08)
-    14.9 value cap 32,768 bytes + line cap 69,632 (S09)
+    14.9 value cap 32,768 bytes + line cap 135,168 (S09)
     14.10 per-session total-bytes cap (S10)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
@@ -2670,7 +2670,7 @@ package MemNetVerification {
       boolean or null operand is refused; int and float compare as numbers;
       strings compare by code point; a row without the property does not
       match; rowRev past 999,999 is outside the 6-digit string order.
-      Behaviour: BoardWakeRead.
+      Behaviour: BoardWakeRead, RangeWhereCompare.
       Today (bb4a4dc) the statement is refused unsupported_predicate
       (gql.py:249-251). Bench: platform-plan/bench/memnet-engine.py wake
       case. Runtime test planned, not written.
@@ -2781,7 +2781,8 @@ package MemNetVerification {
       entry, does not count against the record cap and counts toward the
       total-bytes cap (14.10); a legacy snapshot loads with an empty
       tombstone set; (g) pin ingest keeps its deterministic ids
-      (pinIngestDeterministicIdsReq). Behaviour: IdMintAndRetire.
+      (pinIngestDeterministicIdsReq). Behaviour: IdMintAndRetire;
+      state machine IdLifecycle (live, tombstoned, retired).
     */
     attribute verificationId : String = "MN-VER-14-S06";
 
@@ -2854,9 +2855,14 @@ package MemNetVerification {
       or less still loads; (e) MEMNET_MAX_VALUE_BYTES still overrides the
       default; (f) a 32,768-byte value made only of pipes and backslashes
       (65,536 escaped bytes) is accepted, saves and reloads byte-identical
-      under the raised line cap of 69,632 (MEMNET_MAX_LINE_BYTES); (g) a
-      snapshot whose values exceed the configured cap is refused clearly on
-      load (or the model says it loads anyway; open for Elon).
+      under the raised line cap of 135,168 = 4 x 32,768 + 4,096
+      (MEMNET_MAX_LINE_BYTES); (g) a snapshot whose values exceed the
+      configured cap is refused clearly on load (or the model says it loads
+      anyway; open for Elon); (h) a 32,768-byte value of \x1c (4x escape,
+      131,072 escaped bytes) saves and reloads under the defaults; (i) with
+      the line cap lowered below a value's escaped size, the mutate is
+      refused limit_exceeded line_bytes|{escaped}/{max_line} and nothing is
+      stored. Behaviour: ValueLineCapEnforce.
     */
     attribute verificationId : String = "MN-VER-14-S09";
 
@@ -2877,7 +2883,8 @@ package MemNetVerification {
       refused with limit_exceeded|session_bytes {n}/{max} and writes
       nothing; (b) tombstones count toward it; (c) a session under the cap
       is unaffected; (d) with the floor 20,480,000 bytes nothing that
-      loads today is refused.
+      loads today is refused. Behaviour: ValueLineCapEnforce; state
+      machine SessionByteBudgetStates.
     */
     attribute verificationId : String = "MN-VER-14-S10";
 
@@ -2916,7 +2923,8 @@ package MemNetVerification {
       relationship pattern combined with SET is refused with a DELETE
       message (wrong refusal text, SET named as DELETE); MN-REQ-03.4
       requires honour-or-refuse with an accurate code. Open until
-      reproduced under tests/ and the message fixed.
+      reproduced under tests/ and the message fixed. Planned fix
+      behaviour: WhereSetRefusalFix (proposal).
     */
     attribute verificationId : String = "MN-VER-14-D02";
 
