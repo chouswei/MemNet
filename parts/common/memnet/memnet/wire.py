@@ -19,6 +19,13 @@ _SPLITLINES_ESC: dict[str, str] = {
     "\u2029": "\\u2029",
 }
 SPLITLINES_SEPARATORS: tuple[str, ...] = tuple(_SPLITLINES_ESC)
+# Extra UTF-8 bytes each escaped char adds on the wire (backslash and pipe
+# double; \x1c/\x1d/\x1e grow 4x, the worst case).
+_ESC_EXTRA: dict[str, int] = {
+    "\\": 1,
+    "|": 1,
+    **{ch: len(esc) - len(ch.encode("utf-8")) for ch, esc in _SPLITLINES_ESC.items()},
+}
 _HEX = frozenset("0123456789abcdefABCDEF")
 
 
@@ -121,6 +128,15 @@ def join_payload(fields: list[str]) -> str:
                 escaped.append(ch)
         out.append("".join(escaped))
     return "|".join(out)
+
+
+def escaped_utf8_len(value: str) -> int:
+    """UTF-8 byte length of ``value`` once escaped by ``join_payload``."""
+    n = len(value.encode("utf-8"))
+    for ch, extra in _ESC_EXTRA.items():
+        if ch in value:
+            n += value.count(ch) * extra
+    return n
 
 
 def parse_tag_line(line: str) -> tuple[str, str]:

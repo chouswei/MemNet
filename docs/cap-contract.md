@@ -150,12 +150,16 @@ SCHEMA register refuses a declared map over the cap (`memnet/tag_map.py`). Mutat
 
 | Limit | Default | Knob | Wire |
 |-------|---------|------|------|
-| Field value | 32768 | `MEMNET_MAX_VALUE_BYTES` | `@ERR: limit_exceeded\|value_bytes {n}/{max}` |
-| Whole pipe / snapshot line | 69632 | `MEMNET_MAX_LINE_BYTES` | `@ERR: limit_exceeded\|line_bytes {n}/{max}` |
+| Field value | 32768 | `MEMNET_MAX_VALUE_BYTES` | `@ERR: limit_exceeded\|value_bytes\|{n}/{max}` |
+| Whole pipe / snapshot line | 135168 | `MEMNET_MAX_LINE_BYTES` | `@ERR: limit_exceeded\|line_bytes\|{n}/{max}` |
 
-**Value cap** is one hard cap on leftover `@TAG` `parse_line`, GQL `mutate` (CREATE / SET field values), and snapshot load. It is measured as the **UTF-8 byte length of the decoded (raw) property value**, not the escaped wire form. Default `32768` (was `4096` before this change); a product MAY lower or raise it with `MEMNET_MAX_VALUE_BYTES`. Over-cap refuses `limit_exceeded|value_bytes {n}/{max}` and does not store the row.
+**Value cap** is one hard cap on leftover `@TAG` `parse_line`, GQL `mutate` (CREATE / SET field values), and snapshot load. It is measured as the **UTF-8 byte length of the decoded (raw) property value**, not the escaped wire form. Default `32768` (was `4096` before this change); a product MAY lower or raise it with `MEMNET_MAX_VALUE_BYTES`. Over-cap refuses `limit_exceeded|value_bytes|{n}/{max}` and does not store the row.
 
-**Line cap** is the **UTF-8 byte length of the escaped/raw leftover-pipe or snapshot line** (backslash and pipe count twice on the wire). Save verify and load share this check. The default `69632` is sized for the worst case of one value at the default value cap: backslash and pipe are written twice, so 32768 bytes of `\` / `|` escape to 65536, plus 4096 for tag, key and framing (2 x 32768 + 4096 = 69632). Many fields whose escaped form exceeds `line_bytes` still refuse at save (`snapshot_unsaveable` wrapping `line_bytes`) rather than write a file load will refuse. If you raise the value cap, raise the line cap with it. GQL statements are not pipe lines.
+**Line cap** is the **UTF-8 byte length of the escaped/raw leftover-pipe or snapshot line**. Save verify and load share this check. The default `135168` is sized for the worst case of one value at the default value cap: snapshot emit escapes FS/GS/RS (`\x1c` / `\x1d` / `\x1e`, one byte each) as four bytes each (`\x1c` written out), so 32768 bytes of them escape to 131072, plus 4096 for tag, key and framing (4 x 32768 + 4096 = 135168). Backslash and pipe only double; LS/PS (three bytes) escape to six. If you raise the value cap, raise the line cap with it (4 x value cap + 4096). GQL statements are not pipe lines.
+
+**Mutate-time line refusal.** Before a value is stored (GQL CREATE / SET / MERGE, leftover pipe), mutate measures its escaped wire size with the same escape rules as snapshot emit (`memnet.wire.escaped_utf8_len`). If that size exceeds `max_line_bytes`, mutate refuses `@ERR: limit_exceeded|line_bytes|{escaped}/{max_line}` and stores nothing, so no accepted write can make a snapshot unsaveable through one value. The value cap check runs first and keeps its `value_bytes|{n}/{max}` message. Many fields whose escaped forms together exceed `line_bytes` still refuse at save (`snapshot_unsaveable` wrapping `line_bytes`) rather than write a file load will refuse.
+
+**Rollback.** Older hosts keep the old defaults (value 4096, line 32768). They refuse on load any snapshot with a value over their cap. Before loading a snapshot written under these defaults on an older host, raise `MEMNET_MAX_VALUE_BYTES` (to 32768) and `MEMNET_MAX_LINE_BYTES` (to 135168) there.
 
 Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF, FS/GS/RS, NEL, LS, PS) plus `|` and `\`. Load splits records on LF only (not `str.splitlines()`).
 

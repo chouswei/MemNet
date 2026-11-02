@@ -9,7 +9,7 @@ from memnet.config import ID_PATTERN, RESERVED_TAGS, Caps, normalize_relation
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
 from memnet.models import Record, TagDef, TagMap
-from memnet.wire import emit_record_line, parse_tag_line, split_payload
+from memnet.wire import emit_record_line, escaped_utf8_len, parse_tag_line, split_payload
 
 _ID_RE = re.compile(ID_PATTERN)
 # Shared dialect: SCHEMA MOD ; fields=id path summary status recycle
@@ -231,12 +231,21 @@ def value_utf8_len(val: str) -> int:
 
 
 def check_value_bytes(val: str, caps: Caps) -> None:
-    """Hard cap on decoded property values. Shared by pipe, GQL, and snapshot load."""
+    """Hard cap on decoded property values. Shared by pipe, GQL, and snapshot load.
+
+    Also refuses a value whose escaped wire size exceeds the line cap, so no
+    accepted write can make a snapshot unsaveable."""
     n = value_utf8_len(val)
     if n > caps.max_value_bytes:
         raise MemNetError(
             "limit_exceeded",
             f"value_bytes|{n}/{caps.max_value_bytes}",
+        )
+    escaped = escaped_utf8_len(val)
+    if escaped > caps.max_line_bytes:
+        raise MemNetError(
+            "limit_exceeded",
+            f"line_bytes|{escaped}/{caps.max_line_bytes}",
         )
 
 

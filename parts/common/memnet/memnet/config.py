@@ -124,7 +124,7 @@ class Caps:
         self.max_tags = _env_int("MEMNET_MAX_TAGS", 64)
         self.max_fields = _env_int("MEMNET_MAX_FIELDS", 64)
         self.max_value_bytes = _env_int("MEMNET_MAX_VALUE_BYTES", 32768)
-        self.max_line_bytes = _env_int("MEMNET_MAX_LINE_BYTES", 69632)
+        self.max_line_bytes = _env_int("MEMNET_MAX_LINE_BYTES", 135168)
         self.max_batch_lines = _env_int("MEMNET_MAX_BATCH_LINES", 1000)
         self.max_sessions = _env_int("MEMNET_MAX_SESSIONS", 1024)
         self.max_depth = _env_int("MEMNET_MAX_DEPTH", 4)

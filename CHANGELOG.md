@@ -9,7 +9,9 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ### Changed
 
-- **Default value cap 4096 → 32768 bytes (`MEMNET_MAX_VALUE_BYTES`)** — Atelier rows hold up to 8,000 characters (a worst case of 32,000 bytes UTF-8), so the old cap refused them. Still counted on decoded UTF-8 bytes, still overridable by env; over-cap refuses `limit_exceeded|value_bytes n/max`; snapshots made under the old cap load unchanged. Default `MEMNET_MAX_LINE_BYTES` raised 32768 → 69632 (2 × 32768 for worst-case `\`/`|` doubling + 4096 framing) so a 32768-byte value still saves; env override kept. Proposal MN-REQ-14.9 (model PR #237).
+- **Default value cap 4096 → 32768 bytes (`MEMNET_MAX_VALUE_BYTES`)** — Atelier rows hold up to 8,000 characters (a worst case of 32,000 bytes UTF-8), so the old cap refused them. Still counted on decoded UTF-8 bytes, still overridable by env; over-cap refuses `limit_exceeded|value_bytes|n/max`; snapshots made under the old cap load unchanged. Default `MEMNET_MAX_LINE_BYTES` raised 32768 → 135168 (4 × 32768 + 4096: FS/GS/RS escape to four bytes each on the wire, plus 4096 framing) so any 32768-byte value still saves; env override kept. Proposal MN-REQ-14.9 (model PR #237).
+- **Mutate-time `line_bytes` refusal** — mutate now refuses a value whose escaped wire size exceeds `MEMNET_MAX_LINE_BYTES` with `limit_exceeded|line_bytes|escaped/max` and stores nothing, so no accepted write can make a snapshot unsaveable through one value. The value-cap message stays `value_bytes|n/max`.
+- **Rollback note** — older hosts (value default 4096) refuse on load any snapshot with a value over their cap. Raise `MEMNET_MAX_VALUE_BYTES` (and `MEMNET_MAX_LINE_BYTES`) there before loading a snapshot written under these defaults.
 
 ## [0.20.2] - 2026-10-30
 
