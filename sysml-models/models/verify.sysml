@@ -57,7 +57,7 @@
   Atelier-board asks (MN-VER-14-S01..S05, PROPOSAL, target only; no
   engine cut): MN-REQ-14.1 WHERE range, 14.2 paged reads (PARKED), 14.3
   typed directed walks (PARKED), 14.4 id index + linear load, 14.5 raisable
-  record cap (depends on 14.4), 14.6 id design (MN-VER-14-S06), 14.7 agent handles not ids (MN-VER-14-S07). Defect records MN-VER-14-D01 (two-step walk
+  record cap (depends on 14.4), 14.6 id design (MN-VER-14-S06), 14.7 MCP surface handles only (MN-VER-14-S07), 14.8 developer surface real ids (MN-VER-14-S08). Defect records MN-VER-14-D01 (two-step walk
   10-40% slower ee36a95 to bb4a4dc) and MN-VER-14-D02 (WHERE on a
   relationship with SET refused with a DELETE message).
   Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
@@ -2770,8 +2770,9 @@ package MemNetVerification {
 
   verification def MN_VER_14_S07_AgentHandlesNotIds {
     doc /*
-      MN-REQ-14.7 (PROPOSAL; traced to 14.6), model-level cases:
-      (a) no agent-facing reply (find, read, walk, error text) contains a
+      MN-REQ-14.7 (PROPOSAL; traced to 14.6), MCP surface only,
+      model-level cases:
+      (a) no MCP-surface reply (find, read, walk, error text) contains a
       real id; (b) a valid handle resolves to its record; (c) a bad or
       stale handle, or one of a deleted record, is refused with a clear
       error, never a different record; (d) snapshots keep real ids and a
@@ -2784,6 +2785,27 @@ package MemNetVerification {
     objective atelierBoardS07 {
       doc /* PROPOSAL: no runtime test yet; model-level trace only. */
       verify agentHandlesNotIdsReq;
+      verify idDesignReq;
+    }
+  }
+
+  verification def MN_VER_14_S08_DeveloperSurfaceRealIds {
+    doc /*
+      MN-REQ-14.8 (PROPOSAL; traced to 14.6), developer surface only,
+      model-level cases: (a) replies carry the real id; (b) the real id is
+      stable across save/reload/restore and usable as an outside
+      reference; (c) lookup of a deleted real id returns "deleted", never
+      not_found and never another record; (d) the surface is separate:
+      the same call through the MCP surface still returns handles only
+      (MN-VER-14-S07); (e) an LLM agent session is refused on this surface.
+    */
+    attribute verificationId : String = "MN-VER-14-S08";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS08 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify developerSurfaceRealIdsReq;
       verify idDesignReq;
     }
   }
@@ -2892,6 +2914,8 @@ package MemNetVerification {
     : MN_VER_14_S06_IdDesign;
   verification agentHandlesNotIdsVerify
     : MN_VER_14_S07_AgentHandlesNotIds;
+  verification developerSurfaceRealIdsVerify
+    : MN_VER_14_S08_DeveloperSurfaceRealIds;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify

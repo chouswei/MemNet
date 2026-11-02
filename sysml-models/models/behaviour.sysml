@@ -1605,12 +1605,23 @@ package MemNetBehaviour {
 
   action def HandleResolve {
     doc /*
-      PROPOSAL (MN-REQ-14.7; target only). Agent-facing replies carry a
-      handle, never the real id. Resolve maps handle to real id inside the
+      PROPOSAL (MN-REQ-14.7; target only). MCP-surface (LLM-facing) replies
+      carry a handle, never the real id. Resolve maps handle to real id inside the
       engine; a bad, stale or deleted handle returns a clear error, never
       another record.
     */
     in item handle : String;
+    out item record : String;
+  }
+
+  action def DeveloperIdLookup {
+    doc /*
+      PROPOSAL (MN-REQ-14.8; target only). Developer / tool-integration
+      surface, separate from the MCP surface: replies carry the stable real
+      id, usable as an outside reference. Lookup of a retired id returns
+      "deleted", never not_found and never another record.
+    */
+    in item id : String;
     out item record : String;
   }
 }

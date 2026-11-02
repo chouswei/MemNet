@@ -18,7 +18,8 @@
     MN-REQ-14.4        Id/property index and linear session load
     MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
     MN-REQ-14.6        Id design: minted time-ordered, never reused, tombstoned (PROPOSAL; traced to 14.4)
-    MN-REQ-14.7        Agents see handles, never real ids (PROPOSAL; traced to 14.6)
+    MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
+    MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
@@ -2558,14 +2559,29 @@ package MemNetRequirements {
       requirement def MN_REQ_14_7_AgentHandlesNotIds {
         doc /*
           Status: PROPOSAL, target only; traced to MN-REQ-14.6. Owner
-          decision: agents never see real ids, only handles. The engine
-          maps each handle back to the real id. A handle that does not
-          match (bad, stale or of a deleted record) SHALL return a clear
-          error, never a different record. Real ids stay internal to the
-          engine and its snapshots; no agent-facing reply carries one.
-          Verify: MN-VER-14-S07.
+          decision, refined: real ids are hidden only from the LLM-facing
+          MCP surface. On that surface agents get handles only; the engine
+          maps each handle back to the real id. No MCP reply (find, read,
+          walk, error text) SHALL carry a real id. A handle that does not
+          match (bad, stale or of a deleted record) SHALL be refused with
+          a clear error, never a different record. Real ids stay internal
+          to the engine and its snapshots. Verify: MN-VER-14-S07.
         */
         attribute requirementId : String = "MN-REQ-14.7";
+      }
+
+      requirement def MN_REQ_14_8_DeveloperSurfaceRealIds {
+        doc /*
+          Status: PROPOSAL, target only; traced to MN-REQ-14.6. Owner
+          refinement: a separate developer / tool-integration interface,
+          for other tools and products built on MemNet, SHALL return real
+          ids. They are stable (never reused or changed, MN-REQ-14.6) and
+          usable as outside references. A lookup of a deleted real id
+          returns "deleted" on this surface too. The surface is distinct
+          from the MCP surface (MN-REQ-14.7); an LLM agent is not given
+          access to it. Verify: MN-VER-14-S08.
+        */
+        attribute requirementId : String = "MN-REQ-14.8";
       }
     }
   }
@@ -2869,6 +2885,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign;
   requirement agentHandlesNotIdsReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds;
+  requirement developerSurfaceRealIdsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3262,6 +3280,7 @@ package MemNetRequirements {
     end #derive ::> raisableSessionRecordCapReq;
     end #derive ::> idDesignReq;
     end #derive ::> agentHandlesNotIdsReq;
+    end #derive ::> developerSurfaceRealIdsReq;
   }
 
   #derivation connection deriveWhereRangeFromWhereHonest {
@@ -3283,5 +3302,10 @@ package MemNetRequirements {
   #derivation connection deriveAgentHandlesFromIdDesign {
     end #original ::> idDesignReq;
     end #derive ::> agentHandlesNotIdsReq;
+  }
+
+  #derivation connection deriveDeveloperSurfaceFromIdDesign {
+    end #original ::> idDesignReq;
+    end #derive ::> developerSurfaceRealIdsReq;
   }
 }
