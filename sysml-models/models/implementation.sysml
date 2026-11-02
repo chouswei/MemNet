@@ -545,8 +545,8 @@ package MemNetImplementation {
            mutate-time whole-line escaped-size line_bytes refusal; docs/cap-contract.md
            lines 153-158 change in the code PR (#238).
       14.10 per-session total-bytes cap (values plus tombstones): new knob
-           MEMNET_MAX_SESSION_BYTES, default TBD, owner-set, floor
-           163,840,000; refusal limit_exceeded|session_bytes.
+           MEMNET_MAX_SESSION_BYTES, default 163,840,000 (escaped
+           snapshot line bytes); refusal limit_exceeded|session_bytes.
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
@@ -637,13 +637,13 @@ package MemNetImplementation {
 
   part def SessionByteBudget {
     doc /*
-      PROPOSAL (MN-REQ-14.10). Per-session total of values plus
-      tombstones; set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
-      default TBD, owner-set, floor 163,840,000 bytes; over-budget write
+      PROPOSAL (MN-REQ-14.10; engine enforcement in snapshot.py). Per-session total of
+      escaped snapshot line bytes (plus tombstones, none today); set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
+      default 163,840,000 bytes (counted as escaped snapshot line bytes); over-budget write
       refused limit_exceeded|session_bytes and stores nothing.
     */
     attribute implemented : Boolean = false;
-    attribute maxSessionBytes : Integer;
+    attribute maxSessionBytes : Integer = 163840000;
   }
   dependency targetTrace_SessionByteBudget_14_10
     from SessionByteBudget

@@ -254,11 +254,13 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
         raise
     hid_to_nick = _snapshot_nicks(ss)
     cap = ss.caps.max_line_bytes
+    total = 0
     # The SCHEMA lines: a write can widen them (undeclared keys on a record).
     for line in tag_map_to_lines(emit_map):
         n = len(line.encode("utf-8"))
         if n > cap:
             raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
+        total += n
     # Edges are written with endpoint nicks, so a node write or rename changes
     # every incident edge line as well.
     store = ss.store
@@ -273,6 +275,23 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
         n = len(_emit_one_record_line(ss, rec, hid_to_nick, emit_map).encode("utf-8"))
         if n > cap:
             raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
+    _refuse_session_bytes(ss, hid_to_nick, emit_map, total)
+
+
+def _refuse_session_bytes(
+    ss: SessionStore, hid_to_nick: dict[str, str], emit_map: TagMap, total: int
+) -> None:
+    """MN-REQ-14.10: refuse when the session's escaped snapshot line bytes
+    (schema + record + edge lines, UTF-8) would exceed max_session_bytes."""
+    budget = ss.caps.max_session_bytes
+    for rid in ss.store.write_order:
+        rec = ss.store._by_hid.get(rid)
+        if rec:
+            total += len(_emit_one_record_line(ss, rec, hid_to_nick, emit_map).encode("utf-8"))
+            if total > budget:
+                break
+    if total > budget:
+        raise MemNetError("limit_exceeded", f"session_bytes|{total}/{budget}")
 
 
 def snapshot_text(ss: SessionStore) -> str:

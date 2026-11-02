@@ -217,6 +217,8 @@ package MemNet {
     attribute envSaveOnExpire : String = "MEMNET_SAVE_ON_EXPIRE";
     attribute envExpireSnapshotDir : String = "MEMNET_EXPIRE_SNAPSHOT_DIR";
     attribute envMaxValueBytes : String = "MEMNET_MAX_VALUE_BYTES";
+    attribute envMaxSessionBytes : String = "MEMNET_MAX_SESSION_BYTES";
+    attribute maxSessionBytesDefault : Integer = 163840000;
     attribute maxValueBytesDefault : Integer = 4096;
     attribute valueBytesOnDecodedRaw : Boolean = true;
     attribute gqlMutateEnforcesValueBytes : Boolean = true;

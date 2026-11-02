@@ -1749,7 +1749,7 @@ package MemNetBehaviour {
   state def SessionByteBudgetStates {
     doc /*
       PROPOSAL (MN-REQ-14.10; verify MN-VER-14-S10; target only). Per-session
-      byte budget over values plus tombstones. Default TBD, owner-set.
+      byte budget over escaped snapshot line bytes (plus tombstones). Default 163,840,000 bytes.
       Setting: MEMNET_MAX_SESSION_BYTES. A write that would go over the
       budget is refused limit_exceeded|session_bytes {n}/{max} and writes
       nothing, so the session stays within budget. Only that refusal

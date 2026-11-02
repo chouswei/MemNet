@@ -2887,12 +2887,12 @@ package MemNetVerification {
 
   verification def MN_VER_14_S10_SessionTotalBytesCap {
     doc /*
-      MN-REQ-14.10 (PROPOSAL; default TBD, owner-set), model-level cases:
+      MN-REQ-14.10 (default 163,840,000 bytes), model-level cases:
       (a) a write that would take values plus tombstones over the cap is
       refused with limit_exceeded|session_bytes {n}/{max} and writes
       nothing; (b) tombstones count toward it; (c) a session under the cap
-      is unaffected; (d) with the floor 5,000 x 32,768 = 163,840,000
-      bytes (escaped line bytes) nothing that loads today is refused;
+      is unaffected; (d) with the default 5,000 x 32,768 = 163,840,000
+      bytes (escaped snapshot line bytes) nothing that loads today is refused;
       (e) MEMNET_MAX_SESSION_BYTES sets the cap. Behaviour: ValueLineCapEnforce; state
       machine SessionByteBudgetStates.
     */

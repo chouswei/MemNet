@@ -60,7 +60,7 @@
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
     MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (PROPOSAL; flagged for Elon)
-    MN-REQ-14.10       Per-session total-bytes cap: values plus tombstones (PROPOSAL; default TBD, owner-set)
+    MN-REQ-14.10       Per-session total-bytes cap: values plus tombstones (default 163,840,000 bytes)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2707,10 +2707,10 @@ package MemNetRequirements {
           session, counting values plus tombstones (14.6). A write that
           would go over it is refused with a named code, limit_exceeded|
           session_bytes {n}/{max}, and writes nothing. The setting is the
-          env var MEMNET_MAX_SESSION_BYTES. Its default is TBD and
-          owner-set, and SHALL be set before or with 14.9 shipping. Floor:
-          5,000 x 32,768 = 163,840,000 bytes (156.25 MiB), counted as
-          escaped line bytes, so it is an upper bound on raw values; today a
+          env var MEMNET_MAX_SESSION_BYTES. Its default is 163,840,000
+          bytes (5,000 x 32,768 = 163,840,000; 156.25 MiB; owner-set), SHALL be set before or
+          with 14.9 shipping, and is counted as
+          escaped snapshot line bytes, so it is an upper bound on raw values; today a
           record is bounded by the 32,768-byte line cap, so a default at or
           above this floor refuses nothing that loads today. Linked from 14.5 and
           14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates.
