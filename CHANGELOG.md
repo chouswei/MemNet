@@ -9,7 +9,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ### Changed
 
-- **Default value cap 4096 → 32768 bytes (`MEMNET_MAX_VALUE_BYTES`)** — Atelier rows hold up to 8,000 characters (about 24 KB UTF-8), so the old cap refused them. Still counted on decoded UTF-8 bytes, still overridable by env; over-cap refuses `limit_exceeded|value_bytes n/max`; snapshots made under the old cap load unchanged. `MEMNET_MAX_LINE_BYTES` is unchanged at 32768, so a value at or near 32768 bytes is accepted but its snapshot save refuses with `snapshot_unsaveable` (`line_bytes`); raise the line cap alongside when such values must be saved. Proposal MN-REQ-14.9 (model PR #237).
+- **Default value cap 4096 → 32768 bytes (`MEMNET_MAX_VALUE_BYTES`)** — Atelier rows hold up to 8,000 characters (about 24 KB UTF-8), so the old cap refused them. Still counted on decoded UTF-8 bytes, still overridable by env; over-cap refuses `limit_exceeded|value_bytes n/max`; snapshots made under the old cap load unchanged. Default `MEMNET_MAX_LINE_BYTES` raised 32768 → 69632 (2 × 32768 for worst-case `\`/`|` doubling + 4096 framing) so a 32768-byte value still saves; env override kept. Proposal MN-REQ-14.9 (model PR #237).
 
 ## [0.20.2] - 2026-10-30
 

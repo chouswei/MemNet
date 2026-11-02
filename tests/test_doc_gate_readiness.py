@@ -384,7 +384,7 @@ def test_max_rows_count_report_nodes_and_edges():
 def test_mutate_byte_cap_report_bug4():
     report = mutate_byte_cap_report()
     assert report["pipe_value_bytes_default"] == 32768
-    assert report["pipe_line_bytes_default"] == 32768
+    assert report["pipe_line_bytes_default"] == 69632
     assert report["gql_mutate_checks_value_bytes"] is True
     assert report["gql_mutate_checks_line_bytes"] is False
     assert report["bug4_gql_skips_pipe_caps"] is False
@@ -757,7 +757,7 @@ def test_e17_contains_is_not_a_filter(doc_serve: ServeProc):
 def test_snapshot_value_cap_is_decoded_field():
     report = snapshot_value_cap_report()
     assert report["value_bytes_default"] == 32768
-    assert report["line_bytes_default"] == 32768
+    assert report["line_bytes_default"] == 69632
     assert report["max_fields_default"] == 64
     assert report["value_bytes_on_decoded_field"] is True
     assert report["value_bytes_gt_not_ge"] is True
@@ -846,7 +846,7 @@ def test_e18_8x4000_and_ram_extras(doc_serve: ServeProc, tmp_path: Path):
     assert fat["load_exit"] == 0, fat["load_err"]
     assert fat["exact"] is True
     assert fat["snap_line_utf8"] is not None
-    assert fat["snap_line_utf8"] < 32768
+    assert fat["snap_line_utf8"] < 69632
     wide = e18_instance_width(doc_serve, tmp_path, 64)
     assert wide["create_exit"] == 0, wide
     assert wide["ram_has_extras"] is True

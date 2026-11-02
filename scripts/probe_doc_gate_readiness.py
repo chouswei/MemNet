@@ -2077,7 +2077,7 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         "value_bytes 4096 is measured on the decoded field after split_payload "
         "(check_value_bytes uses `>` not `>=`). join_payload escapes splitlines "
         "separators plus `\\` and `|`; that expansion is not the value cap. "
-        "line_bytes 32768 is the escaped/raw snapshot line. SCHEMA register vs "
+        "line_bytes 69632 is the escaped/raw snapshot line. SCHEMA register vs "
         "max_fields=64. Mutate and snapshot save share one effective-field count; "
         "extras over max_fields refuse limit_exceeded|fields n/max at mutate.",
         "E18e CJK 4000: " + e18_cjk_composition(4000, han=E18_HAN) + ".",

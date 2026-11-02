@@ -79,15 +79,22 @@ def test_value_over_old_cap_round_trips(memnet_temp, schema_file, tmp_path: Path
     assert loaded.store.get("PLR_V").fields["identity"] == blob
 
 
-def test_value_at_cap_is_accepted_but_exceeds_default_line_cap_on_save(
+def test_default_line_cap_is_69632(monkeypatch):
+    monkeypatch.delenv("MEMNET_MAX_LINE_BYTES", raising=False)
+    assert Caps().max_line_bytes == 2 * CAP + 4096
+
+
+def test_max_value_of_pipes_and_backslashes_saves_and_reloads(
     memnet_temp, schema_file, tmp_path: Path, monkeypatch
 ):
-    # Open design point: line_bytes stays 32768, so a max-size value cannot be saved.
     monkeypatch.delenv("MEMNET_MAX_VALUE_BYTES", raising=False)
     monkeypatch.delenv("MEMNET_MAX_LINE_BYTES", raising=False)
     ss = open_session(map_file=str(schema_file), caps=Caps())
-    MutateGate(ss).apply([_create("x" * CAP)], mode="add")
-    with pytest.raises(MemNetError) as ei:
-        write_snapshot(ss, tmp_path / "max.snap")
-    assert ei.value.code == "snapshot_unsaveable"
-    assert "line_bytes" in ei.value.message
+    blob = "|\\" * (CAP // 2)  # pipe and backslash escape to two bytes each on the wire
+    assert len(blob.encode()) == CAP
+    MutateGate(ss).apply([_create(blob.replace("\\", "\\\\"))], mode="add")
+    assert ss.store.get("PLR_V").fields["identity"] == blob
+    path = tmp_path / "max.snap"
+    write_snapshot(ss, path)
+    loaded = load_snapshot(path, caps=Caps())
+    assert loaded.store.get("PLR_V").fields["identity"] == blob

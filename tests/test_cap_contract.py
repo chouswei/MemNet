@@ -25,7 +25,7 @@ def test_defaults_match_library():
     assert d["max_tags"] == 64
     assert d["max_fields"] == 64
     assert d["max_value_bytes"] == 32768
-    assert d["max_line_bytes"] == 32768
+    assert d["max_line_bytes"] == 69632
     assert d["max_batch_lines"] == 1000
     assert d["max_sessions"] == 1024
     assert d["max_depth"] == 4
