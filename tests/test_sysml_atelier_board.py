@@ -186,9 +186,16 @@ def test_developer_listener_has_credential_port_and_target_trace_14_8():
     _assert_target_trace(name, REQ_14_8)
 
 
-def test_session_byte_budget_part_has_target_trace_to_14_10():
-    name, _ = _one_def("part", r"Byte(s)?Budget")
-    _assert_target_trace(name, REQ_14_10)
+def test_session_byte_budget_part_is_implemented_and_satisfies_14_10():
+    name, body = _one_def("part", r"Byte(s)?Budget")
+    code = _strip_comments(body)
+    assert re.search(r"\bimplemented\s*:\s*Boolean\s*=\s*true", code), (
+        f"{name} must be implemented=true"
+    )
+    assert re.search(rf"\bsatisfy\b[^;]*\b{REQ_14_10[1]}\s*;", code), (
+        f"{name} must satisfy {REQ_14_10[1]}"
+    )
+    assert not _target_traces(name, REQ_14_10), f"{name} still has a targetTrace"
 
 
 # ----- behaviour -----

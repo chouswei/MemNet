@@ -152,6 +152,7 @@ SCHEMA register refuses a declared map over the cap (`memnet/tag_map.py`). Mutat
 |-------|---------|------|------|
 | Field value | 32768 | `MEMNET_MAX_VALUE_BYTES` | `@ERR: limit_exceeded\|value_bytes\|{n}/{max}` |
 | Whole pipe / snapshot line | 135168 | `MEMNET_MAX_LINE_BYTES` | `@ERR: limit_exceeded\|line_bytes\|{n}/{max}` |
+| Session total (escaped snapshot line bytes) | 163840000 | `MEMNET_MAX_SESSION_BYTES` | `@ERR: limit_exceeded\|session_bytes\|{n}/{max}` |
 
 **Value cap** is one hard cap on leftover `@TAG` `parse_line`, GQL `mutate` (CREATE / SET field values), and snapshot load. It is measured as the **UTF-8 byte length of the decoded (raw) property value**, not the escaped wire form. Default `32768` (was `4096` before this change); a product MAY lower or raise it with `MEMNET_MAX_VALUE_BYTES`. Over-cap refuses `limit_exceeded|value_bytes|{n}/{max}` and does not store the row.
 
@@ -161,7 +162,9 @@ SCHEMA register refuses a declared map over the cap (`memnet/tag_map.py`). Mutat
 
 **Edge and schema lines.** The same check covers every other snapshot line a write changes. Edges are records (`@EDG`) written with endpoint nicks, so mutate measures each written edge and every edge incident to a written or renamed node (a rename changes the nick in those edge lines). It also measures every per-tag `SCHEMA` line as save would emit it, including keys the write added to the schema (undeclared keys widen it, MN-REQ-01.9). Over the cap refuses `limit_exceeded|line_bytes|{n}/{max_line}` inside the same rollback scope, before `mark_written`: records, edges and schema are restored. Writers that bypass the mutate gate (snapshot import, durable hydrate, CLI delete/prune) are not checked here; save remains their backstop.
 
-**Rollback.** Older hosts keep the old defaults (value 4096, line 32768). They refuse on load any snapshot with a value over their cap. Before loading a snapshot written under these defaults on an older host, raise `MEMNET_MAX_VALUE_BYTES` (to 32768) and `MEMNET_MAX_LINE_BYTES` (to 135168) there.
+**Session byte budget (MN-REQ-14.10).** Each session has a total budget, default `163840000` bytes, set by `MEMNET_MAX_SESSION_BYTES`. It counts the **escaped snapshot line bytes** (UTF-8) of every schema, record and edge line, exactly as snapshot emit writes them (plus tombstone lines, if the engine keeps any; today there are none). That is the measure the line cap and save already use, it is the true on-disk and RAM-snapshot cost, and it is an upper bound on raw value bytes. After a write is computed, if the session total would exceed the budget, GQL CREATE / SET / MERGE and leftover pipe mutate refuse `@ERR: limit_exceeded|session_bytes|{n}/{max}` (n = the total the write would reach) and roll back exactly like the `line_bytes` refusal, so the session is unchanged. Deletes are always allowed. The floor `163840000` = 5000 x 32768 holds only under the default value cap (32768), default line cap and default `MEMNET_MAX_ROWS` (5000); a product that raises those caps must raise this budget too, or it will refuse writes the other caps allow.
+
+**Rollback.** Older hosts keep the old defaults (value 4096, line 32768) and have no session byte budget. They refuse on load any snapshot with a value over their cap. Before loading a snapshot written under these defaults on an older host, raise `MEMNET_MAX_VALUE_BYTES` (to 32768) and `MEMNET_MAX_LINE_BYTES` (to 135168) there.
 
 Snapshot emit escapes every Python `str.splitlines()` separator (LF, CR, VT, FF, FS/GS/RS, NEL, LS, PS) plus `|` and `\`. Load splits records on LF only (not `str.splitlines()`).
 
