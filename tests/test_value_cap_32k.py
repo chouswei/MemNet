@@ -79,9 +79,11 @@ def test_value_over_old_cap_round_trips(memnet_temp, schema_file, tmp_path: Path
     assert loaded.store.get("PLR_V").fields["identity"] == blob
 
 
-def test_default_line_cap_is_69632(monkeypatch):
+def test_default_line_cap_is_4x_value_cap_plus_4096(monkeypatch):
+    monkeypatch.delenv("MEMNET_MAX_VALUE_BYTES", raising=False)
     monkeypatch.delenv("MEMNET_MAX_LINE_BYTES", raising=False)
-    assert Caps().max_line_bytes == 2 * CAP + 4096
+    # \x1c/\x1d/\x1e escape to 4 bytes each on the wire: worst case is 4x.
+    assert Caps().max_line_bytes == 4 * CAP + 4096 == 135168
 
 
 def test_max_value_of_pipes_and_backslashes_saves_and_reloads(
@@ -98,3 +100,50 @@ def test_max_value_of_pipes_and_backslashes_saves_and_reloads(
     write_snapshot(ss, path)
     loaded = load_snapshot(path, caps=Caps())
     assert loaded.store.get("PLR_V").fields["identity"] == blob
+
+
+def _save_reload(ss, tmp_path: Path, name: str):
+    path = tmp_path / name
+    write_snapshot(ss, path)
+    return load_snapshot(path, caps=Caps())
+
+
+def test_max_value_of_fs_chars_saves_and_reloads(
+    memnet_temp, schema_file, tmp_path: Path, monkeypatch
+):
+    monkeypatch.delenv("MEMNET_MAX_VALUE_BYTES", raising=False)
+    monkeypatch.delenv("MEMNET_MAX_LINE_BYTES", raising=False)
+    ss = open_session(map_file=str(schema_file), caps=Caps())
+    blob = "\x1c" * CAP  # each 1-byte FS escapes to 4 bytes on the wire
+    assert len(blob.encode()) == CAP
+    MutateGate(ss).apply([_create(blob)], mode="add")
+    assert ss.store.get("PLR_V").fields["identity"] == blob
+    loaded = _save_reload(ss, tmp_path, "fs.snap")
+    assert loaded.store.get("PLR_V").fields["identity"] == blob
+
+
+def test_max_value_of_line_separators_saves_and_reloads(
+    memnet_temp, schema_file, tmp_path: Path, monkeypatch
+):
+    monkeypatch.delenv("MEMNET_MAX_VALUE_BYTES", raising=False)
+    monkeypatch.delenv("MEMNET_MAX_LINE_BYTES", raising=False)
+    ss = open_session(map_file=str(schema_file), caps=Caps())
+    blob = "\u2028" * 10922 + "xx"  # 10922 x 3 bytes + 2 = exactly 32768 bytes
+    assert len(blob.encode()) == CAP
+    MutateGate(ss).apply([_create(blob)], mode="add")
+    assert ss.store.get("PLR_V").fields["identity"] == blob
+    loaded = _save_reload(ss, tmp_path, "ls.snap")
+    assert loaded.store.get("PLR_V").fields["identity"] == blob
+
+
+def test_escaped_size_over_line_cap_refused_at_mutate(memnet_temp, schema_file, monkeypatch):
+    monkeypatch.delenv("MEMNET_MAX_VALUE_BYTES", raising=False)
+    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "69632")
+    ss = open_session(map_file=str(schema_file), caps=Caps())
+    blob = "\x1c" * CAP  # value cap ok (32768 bytes), escaped 131072 bytes > 69632
+    with pytest.raises(MemNetError) as ei:
+        MutateGate(ss).apply([_create(blob)], mode="add")
+    assert ei.value.code == "limit_exceeded"
+    assert ei.value.message.startswith("line_bytes|")
+    assert ei.value.message.endswith("/69632")
+    assert ss.store.get("PLR_V") is None
