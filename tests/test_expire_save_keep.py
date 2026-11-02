@@ -37,7 +37,7 @@ _TTL_WAIT_S = 62
 def _make_unsaveable(ss) -> None:
     MutateGate(ss).apply([_PLR], mode="add")
     rec = ss.store.get("PLR01")
-    rec.fields["identity"] = "x" * 9000
+    rec.fields["identity"] = "x" * 40000
 
 
 def _arm_expire(monkeypatch, tmp_path: Path) -> Caps:

@@ -1037,7 +1037,7 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     notes = [
         "GQL string literals: single or double quotes; escapes are \\\\ \\' \\\" \\n \\r \\t only. "
         "Unknown escape -> parse_error (GraphGlot/ParseError). GQL mutate, leftover pipe, "
-        "and snapshot load share decoded MEMNET_MAX_VALUE_BYTES=4096 "
+        "and snapshot load share decoded MEMNET_MAX_VALUE_BYTES=32768 "
         "(`limit_exceeded|value_bytes n/max`). line_bytes 32768 is leftover-pipe / "
         "snapshot escaped line, not a GQL statement cap.",
         "ISO INSERT is not the mutate spelling (CREATE is).",

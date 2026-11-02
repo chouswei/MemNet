@@ -85,7 +85,7 @@ A refuse MUST NOT look like a complete empty report (`ok` JSON). If a measured f
       "max_law": 100,
       "max_tags": 64,
       "max_fields": 64,
-      "max_value_bytes": 4096,
+      "max_value_bytes": 32768,
       "max_line_bytes": 32768,
       "max_batch_lines": 1000,
       "max_depth": 4,

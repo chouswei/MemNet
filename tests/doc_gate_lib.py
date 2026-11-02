@@ -525,7 +525,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
     parse_end = tag.find("\ndef ", parse_at + 1)
     parse_src = tag[parse_at:parse_end] if parse_at >= 0 else ""
     return {
-        "value_bytes_default": 4096,
+        "value_bytes_default": 32768,
         "line_bytes_default": 32768,
         "max_fields_default": 64,
         "value_bytes_on_decoded_field": "value_utf8_len" in tag and "max_value_bytes" in tag,
@@ -547,7 +547,7 @@ def snapshot_value_cap_report() -> dict[str, Any]:
         "emit_record_schema_columns_only": "values = [record.fields.get(f, " in out_src,
         "snapshot_widens_undeclared_schema": "_snapshot_emit_tag_map" in snap,
         "save_atomic_write_no_value_check": "atomic_write_bytes(" in snap,
-        "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
+        "config_value": '_env_int("MEMNET_MAX_VALUE_BYTES", 32768)' in cfg,
         "config_line": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
         "config_fields": '_env_int("MEMNET_MAX_FIELDS", 64)' in cfg,
         "code_path": (
@@ -831,7 +831,7 @@ def mutate_byte_cap_report() -> dict[str, Any]:
     return {
         "gql_escapes": r"""\\ \' \" \n \r \t""",
         "gql_unknown_escape": "unknown string escape" in gql,
-        "pipe_value_bytes_default": 4096,
+        "pipe_value_bytes_default": 32768,
         "pipe_line_bytes_default": 32768,
         "pipe_batch_lines_default": 1000,
         "pipe_value_code": "limit_exceeded|value_bytes {n}/{max} (inner | -> space on wire)",
@@ -847,7 +847,7 @@ def mutate_byte_cap_report() -> dict[str, Any]:
         "keyword_is_casefold_substring": (
             "return any(needle in str(v).lower() for v in rec.fields.values())" in composer
         ),
-        "config_value_bytes": '_env_int("MEMNET_MAX_VALUE_BYTES", 4096)' in cfg,
+        "config_value_bytes": '_env_int("MEMNET_MAX_VALUE_BYTES", 32768)' in cfg,
         "config_line_bytes": '_env_int("MEMNET_MAX_LINE_BYTES", 32768)' in cfg,
         "bug4_gql_skips_pipe_caps": not gql_value,
     }
