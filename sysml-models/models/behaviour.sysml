@@ -1562,7 +1562,7 @@ package MemNetBehaviour {
 
   action def BoardWakeRead {
     doc /*
-      PROPOSAL (MN-REQ-14.1 / 14.2 / 14.4). Board wake: MATCH rows WHERE
+      PROPOSAL (MN-REQ-14.1 / 14.2 / 14.4; verify MN-VER-14-S01, S02). Board wake: MATCH rows WHERE
       toBot = $me AND rowRev > $since, ordered by rowRev, one page of at
       most the read cap (50, config.py:68). Today refused at gql.py:249-251
       (range) and by the cap (paging); the caller code path over internal
@@ -1581,7 +1581,7 @@ package MemNetBehaviour {
 
   action def SessionLoadLinear {
     doc /*
-      PROPOSAL (MN-REQ-14.4 / 14.5). Snapshot load builds the record
+      PROPOSAL (MN-REQ-14.4 / 14.5; verify MN-VER-14-S04, S05). Snapshot load builds the record
       index once and resolves each edge end by lookup, so time is linear in
       records (today a hid set per edge end, mem_store.py:60, quadratic;
       31k records 34.9 s). The record cap (5,000 default, config.py:121)
@@ -1593,9 +1593,11 @@ package MemNetBehaviour {
 
   action def IdMintAndRetire {
     doc /*
-      PROPOSAL (MN-REQ-14.6; target only). Write: mint a time-ordered id
-      (UUIDv7/ULID style, no saved counter or pool); the id index refuses a
-      duplicate. Delete: tombstone the id, never reuse it. Lookup of a
+      PROPOSAL (MN-REQ-14.6; verify MN-VER-14-S06; target only). Write:
+      mint a UUIDv7 (RFC 9562; no saved counter or pool; unique with high
+      probability, not by construction); the id index refuses an id that is
+      existing or tombstoned. Delete: tombstone the id (id-only entry),
+      never reuse it. Lookup of a
       tombstoned id returns "deleted". Save, load and restore never mint
       or rewrite ids; id-less legacy links stay id-less.
     */
@@ -1605,7 +1607,7 @@ package MemNetBehaviour {
 
   action def HandleResolve {
     doc /*
-      PROPOSAL (MN-REQ-14.7; target only). MCP-surface (LLM-facing) replies
+      PROPOSAL (MN-REQ-14.7; verify MN-VER-14-S07; target only). MCP-surface (LLM-facing) replies
       carry a handle, never the real id. Resolve maps handle to real id inside the
       engine; a bad, stale or deleted handle returns a clear error, never
       another record.
@@ -1616,7 +1618,7 @@ package MemNetBehaviour {
 
   action def DeveloperIdLookup {
     doc /*
-      PROPOSAL (MN-REQ-14.8; target only). Developer / tool-integration
+      PROPOSAL (MN-REQ-14.8; verify MN-VER-14-S08; target only). Developer / tool-integration
       surface, separate from the MCP surface: replies carry the stable real
       id, usable as an outside reference. Lookup of a retired id returns
       "deleted", never not_found and never another record.

@@ -538,12 +538,17 @@ package MemNetImplementation {
       14.5 record cap: config.py:121, mem_store.py:102-107.
       14.6 id design (mint, tombstone, dup refusal): same index as 14.4.
       14.7 MCP surface: engine-side handle-to-id map; replies carry handles only.
-      14.8 developer surface: separate interface; replies carry real ids.
+      14.8 developer surface: separate listener/transport, own credential;
+           replies carry real ids.
+      14.9 value cap: config.py:126 (4,096 -> 32,768 bytes) and line cap
+           config.py:127 (32,768 -> 69,632 bytes); docs/cap-contract.md
+           lines 153-158 change in the code PR.
+      14.10 per-session total-bytes cap (values plus tombstones): new knob,
+           default TBD, owner-set; refusal limit_exceeded|session_bytes.
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
     attribute dependency : String = "MN-REQ-14.5 after MN-REQ-14.4";
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks;
+    // No satisfy: implemented=false must not look done to a tracker.
   }
 }

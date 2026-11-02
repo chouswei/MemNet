@@ -54,12 +54,21 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Atelier-board asks (MN-VER-14-S01..S05, PROPOSAL, target only; no
-  engine cut): MN-REQ-14.1 WHERE range, 14.2 paged reads (PARKED), 14.3
-  typed directed walks (PARKED), 14.4 id index + linear load, 14.5 raisable
-  record cap (depends on 14.4), 14.6 id design (MN-VER-14-S06), 14.7 MCP surface handles only (MN-VER-14-S07), 14.8 developer surface real ids (MN-VER-14-S08), 14.9 value cap 32768 bytes (MN-VER-14-S09). Defect records MN-VER-14-D01 (two-step walk
-  10-40% slower ee36a95 to bb4a4dc) and MN-VER-14-D02 (WHERE on a
-  relationship with SET refused with a DELETE message).
+  Atelier-board asks (MN-VER-14-S01..S10, PROPOSAL, target only; no
+  engine cut; model-level, never counted as verified):
+    MN-REQ-14.1 WHERE range (S01)
+    14.2 paged reads, PARKED (S02)
+    14.3 typed directed walks, PARKED (S03)
+    14.4 id index + linear load (S04)
+    14.5 raisable record cap, depends on 14.4 (S05)
+    14.6 id design (S06)
+    14.7 MCP surface handles only (S07)
+    14.8 developer surface real ids (S08)
+    14.9 value cap 32,768 bytes + line cap 69,632 (S09)
+    14.10 per-session total-bytes cap (S10)
+  Defect records:
+    MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
+    MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message
   Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
   MN-REQ-05.5 — oldest-touch pick; save first then drop; skip
   unsaveable; none evictable refuses limit_exceeded (all sessions are in
@@ -2655,7 +2664,13 @@ package MemNetVerification {
       MN-REQ-14.1 (PROPOSAL) — MATCH (r:Row) WHERE r.rowRev > $since
       returns exactly the rows with a greater rowRev and no others; < <= >=
       likewise; the same predicate honours WHERE ... SET / DELETE; a type
-      mismatch refuses with a named code instead of an empty result.
+      mismatch refuses with the new code type_mismatch (not
+      unsupported_predicate) instead of an empty result, for the whole
+      statement before any SET or DELETE write (no partial write); a
+      boolean or null operand is refused; int and float compare as numbers;
+      strings compare by code point; a row without the property does not
+      match; rowRev past 999,999 is outside the 6-digit string order.
+      Behaviour: BoardWakeRead.
       Today (bb4a4dc) the statement is refused unsupported_predicate
       (gql.py:249-251). Bench: platform-plan/bench/memnet-engine.py wake
       case. Runtime test planned, not written.
@@ -2678,6 +2693,9 @@ package MemNetVerification {
       return every row once, in order, each page at most the cap
       (config.py:68), with agent RETURN still forbidden
       (gql_parse_front.py:34). Not accepted; shape only until reviewed.
+      Elon's since-filter (keyset paging on 14.1, more-rows flag, unique
+      increasing key) is a NOTE on the leaf, not yet this case.
+      Behaviour: BoardWakeRead.
     */
     attribute verificationId : String = "MN-VER-14-S02";
 
@@ -2711,10 +2729,15 @@ package MemNetVerification {
     doc /*
       MN-REQ-14.4 (PROPOSAL) — id lookup at 31k records does not grow
       linearly with records (today 1.2-1.7 ms, scan in mem_store.py:253-266);
-      snapshot load of 31k records is linear (today 34.9 s, quadratic at
-      mem_store.py:60); results, order and evict/restore fidelity
-      (MN-VER-05-S09) unchanged. Bench: memnet-engine.py id lookup and
-      session load cases.
+      pass bar: compare the 7.8k and 31k bench sizes, where load time at
+      31k is at most about 4 times (31k / 7.8k, linear) the time at 7.8k,
+      not about 16 times (quadratic); the lookup time at 31k is not above
+      the lookup time at 7.8k by the record ratio. Index covers the
+      nickname id and the real id; it is rebuilt on load, not stored;
+      results, order and evict/restore fidelity (MN-VER-05-S09)
+      unchanged (today 31k load 34.9 s, quadratic at mem_store.py:60).
+      Bench: memnet-engine.py id lookup and session load cases.
+      Behaviour: SessionLoadLinear.
     */
     attribute verificationId : String = "MN-VER-14-S04";
 
@@ -2732,7 +2755,8 @@ package MemNetVerification {
       MN-REQ-14.5 (PROPOSAL; DEPENDS ON MN-VER-14-S04) — with the cap
       raised above 5,000 (config.py:121) a 7.8k and a 31k record session
       mutate, save and load without rows|n/max refusal, and the default cap
-      still refuses at 5,001. Not runnable until 14.4 lands.
+      still refuses at 5,001; tombstones do not count against it. Not
+      runnable until 14.4 lands. Behaviour: SessionLoadLinear.
     */
     attribute verificationId : String = "MN-VER-14-S05";
 
@@ -2742,7 +2766,6 @@ package MemNetVerification {
       doc /* PROPOSAL: no runtime test yet; model-level trace only. */
       verify raisableSessionRecordCapReq;
       verify idIndexAndLinearLoadReq;
-      verify consistentValueByteCapReq;
     }
   }
 
@@ -2754,8 +2777,11 @@ package MemNetVerification {
       or rewritten; (c) concurrent writes plus crash and restore leave zero
       duplicate ids; (d) delete then lookup returns "deleted", never
       not_found and never another record; (e) a write that reuses an
-      existing or retired id is refused. Open question for Elon: tombstone
-      storage and their count against the record cap (14.5).
+      existing or tombstoned id is refused; (f) a tombstone is an id-only
+      entry, does not count against the record cap and counts toward the
+      total-bytes cap (14.10); a legacy snapshot loads with an empty
+      tombstone set; (g) pin ingest keeps its deterministic ids
+      (pinIngestDeterministicIdsReq). Behaviour: IdMintAndRetire.
     */
     attribute verificationId : String = "MN-VER-14-S06";
 
@@ -2765,6 +2791,9 @@ package MemNetVerification {
       doc /* PROPOSAL: no runtime test yet; model-level trace only. */
       verify idDesignReq;
       verify idIndexAndLinearLoadReq;
+      verify idNotRequiredOnWireReq;
+      verify noCopyCousinStoreKeyReq;
+      verify pinIngestDeterministicIdsReq;
     }
   }
 
@@ -2772,11 +2801,15 @@ package MemNetVerification {
     doc /*
       MN-REQ-14.7 (PROPOSAL; traced to 14.6), MCP surface only,
       model-level cases:
-      (a) no MCP-surface reply (find, read, walk, error text) contains a
-      real id; (b) a valid handle resolves to its record; (c) a bad or
-      stale handle, or one of a deleted record, is refused with a clear
-      error, never a different record; (d) snapshots keep real ids and a
-      save/reload round-trip is byte-identical.
+      (a) no reply of any MCP tool (find, read, walk, error text, pin_map,
+      export_pin_map, snap_model, import_slice, session_save, session_load)
+      contains a real id; existing MCP reply cases (for example
+      MN-VER-07-S01) are re-read as the migration check; (b) a valid handle resolves to its record; (c) a bad or
+      stale handle (including a handle from another session), or one of a
+      deleted record, is refused with a clear error, never a different
+      record; (d) snapshots keep real ids and a save/reload round-trip is
+      byte-identical; (e) a handle stays valid across evict, restore, save
+      and load, and is never reused in the session. Behaviour: HandleResolve.
     */
     attribute verificationId : String = "MN-VER-14-S07";
 
@@ -2797,7 +2830,9 @@ package MemNetVerification {
       reference; (c) lookup of a deleted real id returns "deleted", never
       not_found and never another record; (d) the surface is separate:
       the same call through the MCP surface still returns handles only
-      (MN-VER-14-S07); (e) an LLM agent session is refused on this surface.
+      (MN-VER-14-S07); (e) the MCP credential is refused on this surface, and a caller without
+      the developer credential is refused; the surface is a separate
+      listener or transport. Behaviour: DeveloperIdLookup.
     */
     attribute verificationId : String = "MN-VER-14-S08";
 
@@ -2817,7 +2852,11 @@ package MemNetVerification {
       refused with a clear error; (c) the cap counts bytes, not characters
       (multi-byte UTF-8); (d) a snapshot written with values of 4096 bytes
       or less still loads; (e) MEMNET_MAX_VALUE_BYTES still overrides the
-      default.
+      default; (f) a 32,768-byte value made only of pipes and backslashes
+      (65,536 escaped bytes) is accepted, saves and reloads byte-identical
+      under the raised line cap of 69,632 (MEMNET_MAX_LINE_BYTES); (g) a
+      snapshot whose values exceed the configured cap is refused clearly on
+      load (or the model says it loads anyway; open for Elon).
     */
     attribute verificationId : String = "MN-VER-14-S09";
 
@@ -2826,13 +2865,35 @@ package MemNetVerification {
     objective atelierBoardS09 {
       doc /* PROPOSAL: no runtime test yet; model-level trace only. */
       verify valueCap32kReq;
+      verify consistentValueByteCapReq;
+      verify storeResourceCapsReq;
+    }
+  }
+
+  verification def MN_VER_14_S10_SessionTotalBytesCap {
+    doc /*
+      MN-REQ-14.10 (PROPOSAL; default TBD, owner-set), model-level cases:
+      (a) a write that would take values plus tombstones over the cap is
+      refused with limit_exceeded|session_bytes {n}/{max} and writes
+      nothing; (b) tombstones count toward it; (c) a session under the cap
+      is unaffected; (d) with the floor 20,480,000 bytes nothing that
+      loads today is refused.
+    */
+    attribute verificationId : String = "MN-VER-14-S10";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS10 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify sessionTotalBytesCapReq;
     }
   }
 
   verification def MN_VER_14_D01_TwoStepWalkRegression {
     doc /*
       DEFECT record (not a requirement; no fix claimed). The two-step walk
-      (neighbors from the ask) is 10-40% slower from ee36a95 (235 ms) to
+      (neighbors from the ask) is up to about 42% slower (235 -> 333 ms is
+      +41.7%) from ee36a95 (235 ms) to
       bb4a4dc (333 ms) for the same 19,593 elements, in every run of
       memnet-engine.py. Cause not investigated; #230 changed only the write
       side and match_nodes (mem_store.py:291-303). Open until a run
@@ -2844,7 +2905,8 @@ package MemNetVerification {
 
     objective atelierBoardD01 {
       doc /* PROPOSAL: no runtime test yet; model-level trace only. */
-      verify typedDirectedWalksReq;
+      verify anchoredWalkReq;
+      verify queryFanoutCapsReq;
     }
   }
 
@@ -2937,6 +2999,8 @@ package MemNetVerification {
     : MN_VER_14_S08_DeveloperSurfaceRealIds;
   verification valueCap32kVerify
     : MN_VER_14_S09_ValueCap32k;
+  verification sessionTotalBytesCapVerify
+    : MN_VER_14_S10_SessionTotalBytesCap;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify
