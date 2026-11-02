@@ -523,4 +523,159 @@ package MemNetImplementation {
   }
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
+
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; not allocated) -----
+  // No SoftwareAllocate and no CodeModule path: nothing is shipped.
+  part def AtelierBoardAskPlan {
+    doc /*
+      Planned engine touch points for MN-REQ-14 (origin/master bb4a4dc,
+      parts/common/memnet/memnet/). Documentation of where a later cut
+      would land; the tracker MUST NOT list these as implemented.
+      14.1 range WHERE: gql.py:249-251 (refusal today).
+      14.2 paged reads (PARKED): config.py:68 cap; gql_parse_front.py:34.
+      14.3 typed directed walks (PARKED): mem_store.py:378-429.
+      14.4 id index and linear load: mem_store.py:253-266 and :60.
+      14.5 record cap: config.py:121, mem_store.py:102-107.
+      14.6 id design (mint, tombstone, dup refusal): same index as 14.4.
+      14.7 MCP surface: engine-side handle-to-id map; replies carry handles only.
+      14.8 developer surface: separate listener/transport, own credential;
+           replies carry real ids.
+      14.9 value cap: config.py:126 (4,096 -> 32,768 bytes) and line cap
+           config.py:127 (32,768 -> 135,168 = 4 x 32,768 + 4,096 bytes);
+           mutate-time whole-line escaped-size line_bytes refusal; docs/cap-contract.md
+           lines 153-158 change in the code PR (#238).
+      14.10 per-session total-bytes cap (values plus tombstones): new knob
+           MEMNET_MAX_SESSION_BYTES, default TBD, owner-set, floor
+           163,840,000; refusal limit_exceeded|session_bytes.
+    */
+    attribute implemented : Boolean = false;
+    attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
+    attribute dependsOn : String = "MN-REQ-14.5 after MN-REQ-14.4";
+    // No satisfy: implemented=false must not look done to a tracker.
+  }
+
+  // ----- Atelier-board target structure (PROPOSAL; MN-REQ-14; not allocated) -----
+  // Target design only: implemented=false, no SoftwareAllocate, no CodeModule
+  // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
+  // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
+
+  part def IdIndex {
+    doc /*
+      PROPOSAL (MN-REQ-14.4 / 14.6). In-memory index keyed by the nickname
+      fields['id'] (match_nickname, mem_store.py:253-266) and by the real
+      id (store key hid). Rebuilt on load, never stored; iteration order
+      preserved. Refuses a duplicate of an existing or tombstoned id.
+    */
+    attribute implemented : Boolean = false;
+  }
+  dependency targetTrace_IdIndex_14_4
+    from IdIndex
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+  dependency targetTrace_IdIndex_14_6
+    from IdIndex
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  part def TombstoneStore {
+    doc /*
+      PROPOSAL (MN-REQ-14.6 / 14.10). Id-only entries (id + deleted marker)
+      in the index and the snapshot; a legacy snapshot loads with an empty
+      set. Not counted against the record cap; counted toward the
+      per-session byte budget.
+    */
+    attribute implemented : Boolean = false;
+  }
+  dependency targetTrace_TombstoneStore_14_6
+    from TombstoneStore
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  part def HandleTable {
+    doc /*
+      PROPOSAL (MN-REQ-14.7). Engine-side map handle -> real id for the
+      LLM-facing MCP surface. Handles are process-unique (never reused
+      within the process) or carry their session; persisted in the
+      session's snapshot, valid across evict/restore/save/load. A bad,
+      stale or deleted handle is refused, and a foreign handle (minted in
+      another session) is refused, never resolved to another record.
+    */
+    attribute implemented : Boolean = false;
+  }
+  dependency targetTrace_HandleTable_14_7
+    from HandleTable
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  port def DeveloperCredentialPort {
+    doc /*
+      PROPOSAL (MN-REQ-14.8). Credential check for the developer surface,
+      its own credential, separate from the MCP credential. The MCP
+      credential is refused here.
+    */
+    in item credential : String;
+  }
+
+  part def DeveloperListener {
+    doc /*
+      PROPOSAL (MN-REQ-14.8). Separate listener/transport for tool
+      integration (never a flag on the MCP endpoint); replies carry stable
+      real ids. A caller without the developer credential is refused.
+    */
+    attribute implemented : Boolean = false;
+    port credentialIn : DeveloperCredentialPort;
+  }
+  dependency targetTrace_DeveloperListener_14_8
+    from DeveloperListener
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  part def SessionByteBudget {
+    doc /*
+      PROPOSAL (MN-REQ-14.10). Per-session total of values plus
+      tombstones; set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
+      default TBD, owner-set, floor 163,840,000 bytes; over-budget write
+      refused limit_exceeded|session_bytes and stores nothing.
+    */
+    attribute implemented : Boolean = false;
+    attribute maxSessionBytes : Integer;
+  }
+  dependency targetTrace_SessionByteBudget_14_10
+    from SessionByteBudget
+    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap {
+    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  part def AtelierBoardTargetEngine {
+    doc /*
+      PROPOSAL (MN-REQ-14; target only). Composes the MN-REQ-14 target
+      parts and wires the behaviour: range WHERE (14.1), cap enforcement on
+      write and load at line cap 135,168 (14.9 / 14.10), the D02 WHERE+SET
+      refusal fix, the id lifecycle (14.6) and the session byte budget
+      (14.10). 14.2 paging and 14.3 typed walks stay PARKED and are not
+      composed here.
+    */
+    attribute implemented : Boolean = false;
+    part idIndex : IdIndex;
+    part tombstones : TombstoneStore;
+    part handles : HandleTable;
+    part developer : DeveloperListener;
+    part byteBudget : SessionByteBudget;
+
+    perform action rangeWhere : MemNetBehaviour::RangeWhereCompare;
+    perform action capEnforce : MemNetBehaviour::ValueLineCapEnforce;
+    perform action whereSetFix : MemNetBehaviour::WhereSetRefusalFix;
+    perform action idMint : MemNetBehaviour::IdMintAndRetire;
+    perform action handleResolve : MemNetBehaviour::HandleResolve;
+    perform action developerLookup : MemNetBehaviour::DeveloperIdLookup;
+    perform action boardWake : MemNetBehaviour::BoardWakeRead;
+    perform action loadLinear : MemNetBehaviour::SessionLoadLinear;
+    exhibit state idLifecycle : MemNetBehaviour::IdLifecycle;
+    exhibit state byteBudgetStates : MemNetBehaviour::SessionByteBudgetStates;
+  }
 }
