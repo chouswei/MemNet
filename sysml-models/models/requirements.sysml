@@ -10,6 +10,13 @@
     MN-REQ-12          Multitask Mode (parent/worker; shared session as-is)
     MN-REQ-13          0.5 Recall/Commit (thin; math skeleton; no engine cut)
     MN-REQ-13.2        SameThingAbsorb — in-session Commit rule (not ImportAbsorb)
+    MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
+                       benchmarks, synthetic, origin/master bb4a4dc); target only, no engine cut
+    MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
+    MN-REQ-14.2        Paged reads past the 50-row cap by cursor or since-filter (PARKED: Elon review)
+    MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
+    MN-REQ-14.4        Id/property index and linear session load
+    MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
     MN-REQ-02.8        GraphElement identity; optional nickname; leftover mint/store-key
     MN-REQ-02.9        MUST NOT copy cousin store-key / unique-name / embedding Recall
     MN-REQ-04.8        Cue |Q|>1 stays RelativeSeed bounded + honest; CueConflict
@@ -2430,6 +2437,103 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-13.2";
       }
     }
+
+    // ----- Atelier-board asks (PROPOSAL; target only, engine untouched) -----
+
+    requirement def MN_REQ_14_AtelierBoardAsks {
+      doc /*
+        Group (PROPOSAL, 2026-11-02, owner ask "Model the new feature";
+        requests from Atelier Keeper). Source: platform-plan
+        MODEL-AND-PERF.md and bench/memnet-engine.py (synthetic board of 61
+        rows per symphony; measured in-process at origin/master bb4a4dc,
+        0.20.2). Five engine gaps block MemNet as an Atelier board store.
+        TARGET model only: no engine code changes in this cut and none is
+        claimed shipped. Leaves 14.2 and 14.3 are PARKED until Elon reviews
+        them (scope note r00002195). Defects found on the way are recorded
+        in MN-VER-14-D01 and MN-VER-14-D02, not as requirements.
+        Line refs below are at bb4a4dc, parts/common/memnet/memnet/.
+      */
+      attribute requirementId : String = "MN-REQ-14";
+
+      requirement def MN_REQ_14_1_WhereRangeComparison {
+        doc /*
+          Status: PROPOSAL. Today a WHERE with < > <= >= is refused
+          (unsupported_predicate, gql.py:249-251), measured on ee36a95 and
+          bb4a4dc. The board wake needs rowRev > $since (rowRev is a
+          fixed-width 6-digit string, so string order is rev order).
+          SHALL accept < > <= >= in MATCH WHERE (and FILTER) between a
+          property and a parameter or literal, for string and numeric
+          values of the same type, honouring the predicate on read and on
+          WHERE ... SET / DELETE (MN-REQ-03.4). A comparison of mismatched
+          types SHALL refuse with a named code, never silently match
+          nothing. Parameters only on the agent wire (ADR-001).
+          Verify: MN-VER-14-S01.
+        */
+        attribute requirementId : String = "MN-REQ-14.1";
+      }
+
+      requirement def MN_REQ_14_2_PagedReadsPastCap {
+        doc /*
+          Status: PROPOSAL, PARKED for Elon's review (scope note r00002195);
+          not accepted. Today a read returns at most 50 rows (config.py:68)
+          and agent RETURN is forbidden (gql_parse_front.py:34, product
+          gate). Proposed: a read past the cap SHALL be reachable by a
+          cursor (opaque, session-bound) or by a since-filter (14.1) so the
+          caller resumes without a gap or repeat while the session is
+          unchanged. The cap itself stays; the page size never exceeds it.
+          Paging is preferred over opening agent RETURN. Open questions in
+          the PR body. Verify: MN-VER-14-S02 (shape only until accepted).
+        */
+        attribute requirementId : String = "MN-REQ-14.2";
+      }
+
+      requirement def MN_REQ_14_3_TypedDirectedWalks {
+        doc /*
+          Status: PROPOSAL, PARKED for design review. Semantics change:
+          mark before any cut. Today neighbors is untyped and undirected and
+          the fan-out cap applies to out-edges only (mem_store.py:378-429,
+          config.py:131); a two-step walk from an ask crosses the Session
+          node (19,593 elements; one step already returns 123). Proposed: a
+          walk (query_walk / neighbors) SHALL take an optional relation
+          type set and direction, and when given SHALL follow only edges of
+          those types in that direction; with neither given it SHALL behave
+          as today. Relation names fold as in #226 (PART_OF stored partOf).
+          The fan-out cap SHALL count the edges actually followed.
+          Verify: MN-VER-14-S03 (shape only until accepted).
+        */
+        attribute requirementId : String = "MN-REQ-14.3";
+      }
+
+      requirement def MN_REQ_14_4_IdIndexAndLinearLoad {
+        doc /*
+          Status: PROPOSAL. Today id lookup scans every record
+          (match_nickname, mem_store.py:253-266; no nickname index) at
+          1.2-1.7 ms for 31k records and growing linearly; session load
+          builds a hid set per edge end (load_records, mem_store.py:60) and
+          is quadratic: 31k records take 34.9 s snapshot load (80-85 s on
+          the load_records path). SHALL keep a property/id index so an id
+          lookup does not scan all records, and SHALL load a snapshot in
+          time linear in records. Index and load SHALL NOT change what a
+          read returns (same rows, same order) and SHALL survive evict and
+          restore (MN-REQ-05.5). Verify: MN-VER-14-S04.
+        */
+        attribute requirementId : String = "MN-REQ-14.4";
+      }
+
+      requirement def MN_REQ_14_5_RaisableSessionRecordCap {
+        doc /*
+          Status: PROPOSAL; DEPENDS ON MN-REQ-14.4. A session holds at most
+          5,000 records, nodes plus edges (config.py:121, mem_store.py:
+          102-107), about 25 symphonies of 195 records; load at 7.8k / 31k
+          records is refused rows|5001/5000. The cap SHALL be raisable by
+          the operator (default unchanged) only once 14.4 lands: raising it
+          before then runs into quadratic load. The raised cap SHALL apply
+          the same way to mutate, import and snapshot load (one helper, as
+          MN-REQ-05.3 / 05.4). Verify: MN-VER-14-S05.
+        */
+        attribute requirementId : String = "MN-REQ-14.5";
+      }
+    }
   }
 
   // --- Requirement usages + #derivation (SysML v2 deriveReqt) ---
@@ -2713,6 +2817,19 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   requirement sameThingAbsorbReq
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+
+  requirement atelierBoardAsksReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks;
+  requirement whereRangeComparisonReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_1_WhereRangeComparison;
+  requirement pagedReadsPastCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_2_PagedReadsPastCap;
+  requirement typedDirectedWalksReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_3_TypedDirectedWalks;
+  requirement idIndexAndLinearLoadReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
+  requirement raisableSessionRecordCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_5_RaisableSessionRecordCap;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3093,5 +3210,27 @@ package MemNetRequirements {
   #derivation connection deriveNoAssumeFromIngestRoadmap {
     end #original ::> pinIngestDeterministicIdsReq;
     end #derive ::> noAssumeAclReserveIngestReq;
+  }
+
+  // Atelier-board asks (PROPOSAL): groups derive from mission; leaves from existing rules
+  #derivation connection deriveAtelierBoardAsksFromMission {
+    end #original ::> missionReq;
+    end #derive ::> atelierBoardAsksReq;
+    end #derive ::> whereRangeComparisonReq;
+    end #derive ::> pagedReadsPastCapReq;
+    end #derive ::> typedDirectedWalksReq;
+    end #derive ::> idIndexAndLinearLoadReq;
+    end #derive ::> raisableSessionRecordCapReq;
+  }
+
+  #derivation connection deriveWhereRangeFromWhereHonest {
+    end #original ::> honourWherePredicateReq;
+    end #derive ::> whereRangeComparisonReq;
+  }
+
+  #derivation connection deriveRecordCapFromIndexAndCaps {
+    end #original ::> storeResourceCapsReq;
+    end #original ::> idIndexAndLinearLoadReq;
+    end #derive ::> raisableSessionRecordCapReq;
   }
 }

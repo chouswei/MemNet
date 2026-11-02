@@ -523,4 +523,24 @@ package MemNetImplementation {
   }
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
+
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; not allocated) -----
+  // No SoftwareAllocate and no CodeModule path: nothing is shipped.
+  part def AtelierBoardAskPlan {
+    doc /*
+      Planned engine touch points for MN-REQ-14 (origin/master bb4a4dc,
+      parts/common/memnet/memnet/). Documentation of where a later cut
+      would land; the tracker MUST NOT list these as implemented.
+      14.1 range WHERE: gql.py:249-251 (refusal today).
+      14.2 paged reads (PARKED): config.py:68 cap; gql_parse_front.py:34.
+      14.3 typed directed walks (PARKED): mem_store.py:378-429.
+      14.4 id index and linear load: mem_store.py:253-266 and :60.
+      14.5 record cap: config.py:121, mem_store.py:102-107.
+    */
+    attribute implemented : Boolean = false;
+    attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
+    attribute dependency : String = "MN-REQ-14.5 after MN-REQ-14.4";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks;
+  }
 }

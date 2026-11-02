@@ -54,6 +54,12 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
+  Atelier-board asks (MN-VER-14-S01..S05, PROPOSAL, target only; no
+  engine cut): MN-REQ-14.1 WHERE range, 14.2 paged reads (PARKED), 14.3
+  typed directed walks (PARKED), 14.4 id index + linear load, 14.5 raisable
+  record cap (depends on 14.4). Defect records MN-VER-14-D01 (two-step walk
+  10-40% slower ee36a95 to bb4a4dc) and MN-VER-14-D02 (WHERE on a
+  relationship with SET refused with a DELETE message).
   Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
   MN-REQ-05.5 — oldest-touch pick; save first then drop; skip
   unsaveable; none evictable refuses limit_exceeded (all sessions are in
@@ -2644,6 +2650,139 @@ package MemNetVerification {
     : MN_VER_07_S01_TargetCommandListNoRequiredId;
   verification recallCommitTwoOperatorsVerify
     : MN_VER_13_S01_RecallCommitTwoOperators;
+  verification def MN_VER_14_S01_WhereRangeComparison {
+    doc /*
+      MN-REQ-14.1 (PROPOSAL) — MATCH (r:Row) WHERE r.rowRev > $since
+      returns exactly the rows with a greater rowRev and no others; < <= >=
+      likewise; the same predicate honours WHERE ... SET / DELETE; a type
+      mismatch refuses with a named code instead of an empty result.
+      Today (bb4a4dc) the statement is refused unsupported_predicate
+      (gql.py:249-251). Bench: platform-plan/bench/memnet-engine.py wake
+      case. Runtime test planned, not written.
+    */
+    attribute verificationId : String = "MN-VER-14-S01";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS01 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify whereRangeComparisonReq;
+      verify honourWherePredicateReq;
+    }
+  }
+
+  verification def MN_VER_14_S02_PagedReadsPastCap {
+    doc /*
+      MN-REQ-14.2 (PROPOSAL, PARKED for Elon's review) — on a session of
+      more than 50 matching rows, repeated reads by cursor or since-filter
+      return every row once, in order, each page at most the cap
+      (config.py:68), with agent RETURN still forbidden
+      (gql_parse_front.py:34). Not accepted; shape only until reviewed.
+    */
+    attribute verificationId : String = "MN-VER-14-S02";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS02 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify pagedReadsPastCapReq;
+    }
+  }
+
+  verification def MN_VER_14_S03_TypedDirectedWalks {
+    doc /*
+      MN-REQ-14.3 (PROPOSAL, PARKED for design review) — a walk from an ask
+      given relation type partOf and direction in follows only those edges
+      and does not cross the Session node (today the two-step walk returns
+      19,593 elements and one step returns 123); with no type or direction
+      the result equals today's. Semantics change; not accepted.
+    */
+    attribute verificationId : String = "MN-VER-14-S03";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS03 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify typedDirectedWalksReq;
+    }
+  }
+
+  verification def MN_VER_14_S04_IdIndexAndLinearLoad {
+    doc /*
+      MN-REQ-14.4 (PROPOSAL) — id lookup at 31k records does not grow
+      linearly with records (today 1.2-1.7 ms, scan in mem_store.py:253-266);
+      snapshot load of 31k records is linear (today 34.9 s, quadratic at
+      mem_store.py:60); results, order and evict/restore fidelity
+      (MN-VER-05-S09) unchanged. Bench: memnet-engine.py id lookup and
+      session load cases.
+    */
+    attribute verificationId : String = "MN-VER-14-S04";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS04 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify idIndexAndLinearLoadReq;
+      verify loadSessionSnapshotReq;
+    }
+  }
+
+  verification def MN_VER_14_S05_RaisableSessionRecordCap {
+    doc /*
+      MN-REQ-14.5 (PROPOSAL; DEPENDS ON MN-VER-14-S04) — with the cap
+      raised above 5,000 (config.py:121) a 7.8k and a 31k record session
+      mutate, save and load without rows|n/max refusal, and the default cap
+      still refuses at 5,001. Not runnable until 14.4 lands.
+    */
+    attribute verificationId : String = "MN-VER-14-S05";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS05 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify raisableSessionRecordCapReq;
+      verify idIndexAndLinearLoadReq;
+      verify consistentValueByteCapReq;
+    }
+  }
+
+  verification def MN_VER_14_D01_TwoStepWalkRegression {
+    doc /*
+      DEFECT record (not a requirement; no fix claimed). The two-step walk
+      (neighbors from the ask) is 10-40% slower from ee36a95 (235 ms) to
+      bb4a4dc (333 ms) for the same 19,593 elements, in every run of
+      memnet-engine.py. Cause not investigated; #230 changed only the write
+      side and match_nodes (mem_store.py:291-303). Open until a run
+      identifies the change.
+    */
+    attribute verificationId : String = "MN-VER-14-D01";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardD01 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify typedDirectedWalksReq;
+    }
+  }
+
+  verification def MN_VER_14_D02_WhereRelationSetRefusedAsDelete {
+    doc /*
+      DEFECT record (not a requirement; no fix claimed). A WHERE on a
+      relationship pattern combined with SET is refused with a DELETE
+      message (wrong refusal text, SET named as DELETE); MN-REQ-03.4
+      requires honour-or-refuse with an accurate code. Open until
+      reproduced under tests/ and the message fixed.
+    */
+    attribute verificationId : String = "MN-VER-14-D02";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardD02 {
+      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      verify honourWherePredicateReq;
+    }
+  }
+
   verification recallDoesNotAbsorbVerify
     : MN_VER_13_S02_RecallDoesNotAbsorb;
   verification catalogModelSnapVerify
@@ -2697,4 +2836,18 @@ package MemNetVerification {
     : MN_VER_06_S14_SnapshotAcl;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
+  verification whereRangeComparisonVerify
+    : MN_VER_14_S01_WhereRangeComparison;
+  verification pagedReadsPastCapVerify
+    : MN_VER_14_S02_PagedReadsPastCap;
+  verification typedDirectedWalksVerify
+    : MN_VER_14_S03_TypedDirectedWalks;
+  verification idIndexAndLinearLoadVerify
+    : MN_VER_14_S04_IdIndexAndLinearLoad;
+  verification raisableSessionRecordCapVerify
+    : MN_VER_14_S05_RaisableSessionRecordCap;
+  verification twoStepWalkRegressionVerify
+    : MN_VER_14_D01_TwoStepWalkRegression;
+  verification whereRelationSetRefusedAsDeleteVerify
+    : MN_VER_14_D02_WhereRelationSetRefusedAsDelete;
 }

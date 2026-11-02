@@ -1557,4 +1557,37 @@ package MemNetBehaviour {
       accept EvError
       then hostIdle;
   }
+
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; target only) -----
+
+  action def BoardWakeRead {
+    doc /*
+      PROPOSAL (MN-REQ-14.1 / 14.2 / 14.4). Board wake: MATCH rows WHERE
+      toBot = $me AND rowRev > $since, ordered by rowRev, one page of at
+      most the read cap (50, config.py:68). Today refused at gql.py:249-251
+      (range) and by the cap (paging); the caller code path over internal
+      indexes is outside the GQL contract. Steps: (1) parse range predicate
+      (14.1); (2) resolve rows through the property/id index, not a full
+      scan (14.4); (3) emit one page and, if more remain, a resume point
+      (cursor or last rowRev; PARKED, 14.2); (4) caller repeats with the
+      resume point until none. Typed directed walk to the ask (14.3,
+      PARKED) is a separate optional step and is not part of the wake.
+    */
+    in item since : String;
+    in item page : String;
+    out item rows : String;
+    out item resume : String;
+  }
+
+  action def SessionLoadLinear {
+    doc /*
+      PROPOSAL (MN-REQ-14.4 / 14.5). Snapshot load builds the record
+      index once and resolves each edge end by lookup, so time is linear in
+      records (today a hid set per edge end, mem_store.py:60, quadratic;
+      31k records 34.9 s). The record cap (5,000 default, config.py:121)
+      is raisable only after this action holds (14.5 depends on 14.4).
+    */
+    in item snapshot : String;
+    out item session : String;
+  }
 }
