@@ -512,7 +512,7 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                 Case(
                     name="pipe_line_bytes",
                     kind="hard_refuse",
-                    default="69632",
+                    default="135168",
                     knob="MEMNET_MAX_LINE_BYTES (escaped/raw leftover pipe / snapshot line)",
                     library_code=exc.code,
                     library_message=exc.message,
