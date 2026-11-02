@@ -49,6 +49,18 @@
     MN-REQ-11.17.3     Snap budget pre-check; refuse named; mint all-or-nothing
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
+    MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
+                       benchmarks, synthetic, origin/master bb4a4dc); target only, no engine cut
+    MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
+    MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
+    MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
+    MN-REQ-14.4        Id/property index and linear session load
+    MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
+    MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
+    MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
+    MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
+    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (PROPOSAL; flagged for Elon)
+    MN-REQ-14.10       Per-session total-bytes cap: values plus tombstones (PROPOSAL; default TBD, owner-set)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2430,6 +2442,282 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-13.2";
       }
     }
+
+    // ----- Atelier-board asks (PROPOSAL; target only, engine untouched) -----
+
+    requirement def MN_REQ_14_AtelierBoardAsks {
+      doc /*
+        Group (PROPOSAL, 2026-11-02, owner ask "Model the new feature";
+        requests from Atelier Keeper). Source: platform-plan
+        MODEL-AND-PERF.md and bench/memnet-engine.py (synthetic board of 61
+        rows per symphony; measured in-process at origin/master bb4a4dc,
+        0.20.2). Nine leaves, 14.1 to 14.9, plus a tenth, the per-session
+        total-bytes cap (14.10), block MemNet as an Atelier board store.
+        TARGET model only: no engine code changes in this cut and none is
+        claimed shipped. Leaves 14.2 and 14.3 are PARKED until Elon reviews
+        them (scope note r00002195). Defects found on the way are recorded
+        in MN-VER-14-D01 and MN-VER-14-D02, not as requirements. Every
+        MN-VER-14 case is model-level: no runtime test, and a tracker MUST
+        NOT count one as verified. Line refs below are at bb4a4dc,
+        parts/common/memnet/memnet/.
+      */
+      attribute requirementId : String = "MN-REQ-14";
+
+      requirement def MN_REQ_14_1_WhereRangeComparison {
+        doc /*
+          Status: PROPOSAL. Today a WHERE with < > <= >= is refused
+          (unsupported_predicate, gql.py:249-251), measured on ee36a95 and
+          bb4a4dc. The board wake needs rowRev > $since. SHALL accept
+          < > <= >= in MATCH WHERE (and FILTER) between a property and a
+          parameter, honouring the predicate on read and on WHERE ... SET /
+          DELETE (MN-REQ-03.4). Literals are allowed only off the agent wire;
+          the agent wire takes parameters only (ADR-001). Type rules:
+          (1) the parameter's type sets the comparison type; (2) only string
+          and numeric are supported, and int and float compare as numbers;
+          (3) strings compare by code point (for UTF-8 the same as byte
+          order), with no locale collation; (4) no implicit coercion;
+          comparing a boolean or null with a range operator is refused;
+          (5) a row without the property does not match, and that is not an
+          error; (6) if any candidate row holds the property with a
+          different type, the whole statement is refused before any SET or
+          DELETE write, so there is no partial write. The refusal code is a
+          new code, type_mismatch; unsupported_predicate stays for an
+          operator that is not supported. Bound: rowRev is a fixed-width
+          6-digit string, so string order equals rev order only up to
+          999,999; past that either the bound is written down as a limit or
+          rowRev becomes numeric (open question for Elon).
+          Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
+        */
+        attribute requirementId : String = "MN-REQ-14.1";
+      }
+
+      requirement def MN_REQ_14_2_PagedReadsPastCap {
+        doc /*
+          Status: PROPOSAL, PARKED for Elon's review (scope note r00002195);
+          not accepted. Today a read returns at most 50 rows (config.py:68)
+          and agent RETURN is forbidden (gql_parse_front.py:34, product
+          gate). Proposed: a read past the cap SHALL be reachable by a
+          cursor (opaque, session-bound) or by a since-filter (14.1) so the
+          caller resumes without a gap or repeat while the session is
+          unchanged. The cap itself stays; the page size never exceeds it.
+          Paging is preferred over opening agent RETURN. Open questions in
+          the PR body.
+          NOTE (Elon CTO review, not a rewrite of this leaf): his call is a
+          since-filter, keyset paging on 14.1, and no opaque cursor for now.
+          It keeps no server state, has no cursor lifetime, and survives
+          evict and restore (MN-REQ-05.5). It needs two things only: the
+          engine orders by the filter key, and each reply carries a
+          more-rows flag when it hit the cap. The key must be unique and
+          only increase: rowRev unique per board must be stated; real ids
+          cannot break ties because agents never see them (14.7). If this
+          leaf is unparked, 14.2 and S02 are rewritten to that shape.
+          Verify: MN-VER-14-S02 (shape only until accepted). Behaviour:
+          BoardWakeRead.
+        */
+        attribute requirementId : String = "MN-REQ-14.2";
+      }
+
+      requirement def MN_REQ_14_3_TypedDirectedWalks {
+        doc /*
+          Status: PROPOSAL, PARKED for design review. Semantics change:
+          mark before any cut. Today neighbors is untyped and undirected and
+          the fan-out cap applies to out-edges only (mem_store.py:378-429,
+          config.py:131); a two-step walk from an ask crosses the Session
+          node (19,593 elements; one step already returns 123). Proposed: a
+          walk (query_walk / neighbors) SHALL take two optional arguments,
+          a relation type set and a direction, and when given SHALL follow
+          only edges of those types in that direction. Relation names fold
+          as in #226 (PART_OF stored partOf). An empty type set is refused;
+          a direction other than out, in or both is refused; the reply
+          echoes the folded types and the direction applied. With neither
+          argument given, the walk SHALL behave exactly as today, including
+          cap counting (out-edges only). The rule "the fan-out cap counts
+          the edges actually followed" applies only when a type or a
+          direction is given, so a default walk is unchanged.
+          Verify: MN-VER-14-S03 (shape only until accepted).
+        */
+        attribute requirementId : String = "MN-REQ-14.3";
+      }
+
+      requirement def MN_REQ_14_4_IdIndexAndLinearLoad {
+        doc /*
+          Status: PROPOSAL. Today id lookup scans every record
+          (match_nickname, mem_store.py:253-266; no nickname index) at
+          1.2-1.7 ms for 31k records and growing linearly; session load
+          builds a hid set per edge end (load_records, mem_store.py:60) and
+          is quadratic: 31k records take 34.9 s snapshot load (80-85 s on
+          the load_records path). The "id" looked up today is the nickname
+          fields['id'] (match_nickname), not the store key, which is the
+          hid. SHALL keep an index over both keys: the nickname property
+          id, and the real id of MN-REQ-14.6. The index is rebuilt on load
+          and is not stored in the snapshot; iteration order is preserved.
+          SHALL load a snapshot in time linear in records. Index and load
+          SHALL NOT change what a read returns (same rows, same order) and
+          SHALL survive evict and restore (MN-REQ-05.5). 14.4 lands before
+          14.5. Verify: MN-VER-14-S04. Behaviour: SessionLoadLinear.
+        */
+        attribute requirementId : String = "MN-REQ-14.4";
+      }
+
+      requirement def MN_REQ_14_5_RaisableSessionRecordCap {
+        doc /*
+          Status: PROPOSAL; DEPENDS ON MN-REQ-14.4. A session holds at most
+          5,000 records, nodes plus edges (config.py:121, mem_store.py:
+          102-107), about 25 symphonies of 195 records; load at 7.8k / 31k
+          records is refused rows|5001/5000. The cap SHALL be raisable by
+          the operator as a process-wide environment setting, not per
+          session (default 5,000, unchanged) only once 14.4 lands: raising
+          it before then runs into quadratic load. The raised cap SHALL
+          apply the same way to mutate, import and snapshot load (one
+          helper, as MN-REQ-05.3 / 05.4). Tombstones (14.6) do not count
+          against this cap. Raising it multiplies the memory bound of 14.9;
+          the per-session total-bytes cap (MN-REQ-14.10) bounds that.
+          Verify: MN-VER-14-S05. Behaviour: SessionLoadLinear.
+        */
+        attribute requirementId : String = "MN-REQ-14.5";
+      }
+
+      requirement def MN_REQ_14_6_IdDesign {
+        doc /*
+          Status: PROPOSAL, target only; traced to MN-REQ-14.4 (the id index
+          enforces it) and to MN-REQ-02.8 (id not required on the wire) and
+          MN-REQ-02.9 (no cousin store key). Note gql-wire-profile.md:58:
+          CREATE / MERGE have no store-key production; a real id is minted
+          by the engine and is never written by the caller, so it is not a
+          store-key production. (1) The engine mints an id at write time as
+          a UUIDv7 (RFC 9562), with no saved counter and no pool. A UUIDv7
+          is unique with high probability through its random bits; it is
+          not unique by construction, and the clock can go backwards after
+          a crash or restore. The real guarantee is (4). Pin-ingested
+          elements are created by Commit and get a minted UUIDv7 like any
+          write; their locators stay properties, not identity and not a
+          store key (pinIngestDeterministicIdsReq, MN-REQ-11.16).
+          (2) Ids are never reused or changed: a deleted id is retired
+          forever (tombstoned), because outside references (rows, links,
+          logs, other products) may still hold it. A lookup of a deleted id
+          SHALL return a clear "deleted" result, never not_found and never
+          a different record. Tombstones are id-only entries (the id and a
+          deleted marker) in the id index and in the snapshot, not full
+          records. They do NOT count against the record cap (14.5); they DO
+          count toward the per-session total-bytes cap (14.10). A legacy
+          snapshot loads with an empty tombstone set. (3) Save, load and
+          restore SHALL NOT mint or rewrite ids (existing owner rule);
+          id-less legacy links stay id-less. (4) The id index SHALL refuse
+          a write whose id is a duplicate of an existing or tombstoned id.
+          Verify: MN-VER-14-S06. Behaviour: IdMintAndRetire, IdLifecycle.
+        */
+        attribute requirementId : String = "MN-REQ-14.6";
+      }
+
+      requirement def MN_REQ_14_7_AgentHandlesNotIds {
+        doc /*
+          Status: PROPOSAL, target only; traced to MN-REQ-14.6 and to the
+          owner decision of 2026-11-02 (handles only for the LLM MCP
+          surface; real ids on a developer surface, 14.8). On the MCP
+          surface agents get handles only; the engine maps each handle back
+          to the real id. No reply of any MCP tool SHALL carry a real id:
+          find, read, walk, error text, and also pin_map, export_pin_map,
+          snap_model, import_slice, session_save and session_load. Handle
+          lifetime: a handle is process-unique (never reused within the
+          process) or carries its session, and is persisted in its session's
+          snapshot; it stays valid across evict, restore, save and load. A
+          handle from another session is foreign and SHALL be refused
+          (stale/foreign), never resolved. A handle that does not match (bad, stale or of
+          a deleted record) SHALL be refused with a clear error, never a
+          different record. Real ids stay internal to the engine and its
+          snapshots. Migration note: this changes MCP reply contracts;
+          existing MCP reply verify cases, for example MN-VER-07-S01, are
+          re-read against it before a cut. Verify: MN-VER-14-S07.
+          Behaviour: HandleResolve.
+        */
+        attribute requirementId : String = "MN-REQ-14.7";
+      }
+
+      requirement def MN_REQ_14_8_DeveloperSurfaceRealIds {
+        doc /*
+          Status: PROPOSAL, target only; traced to MN-REQ-14.6. Owner
+          refinement: a separate developer / tool-integration interface,
+          for other tools and products built on MemNet, SHALL return real
+          ids. They are stable (never reused or changed, MN-REQ-14.6) and
+          usable as outside references. A lookup of a deleted real id
+          returns "deleted" on this surface too. The surface is a separate
+          listener or transport with its own credential, never a flag on the
+          MCP endpoint (an agent can set a flag). A caller without the
+          developer credential is refused. Whether it is enabled by default
+          is open. Verify: MN-VER-14-S08. Behaviour: DeveloperIdLookup.
+        */
+        attribute requirementId : String = "MN-REQ-14.8";
+      }
+
+      requirement def MN_REQ_14_9_ValueCap32k {
+        doc /*
+          Status: PROPOSAL, target only; FLAGGED FOR ELON. The per-value cap
+          (MEMNET_MAX_VALUE_BYTES, config.py:126) rises from 4,096 to
+          32,768 bytes, one global value, no chunking, still overridable by
+          env, because Atelier rows hold up to 8,000 characters, which is up
+          to 32,000 bytes in UTF-8 (4 bytes per character). That is 768
+          bytes under the cap, and holds only if the stored value is the
+          raw row text, with no envelope and no JSON escaping. Values up to
+          32,768 bytes SHALL be accepted; larger values SHALL be refused
+          with a clear error; the cap is counted in bytes. Snapshots written
+          under the old cap SHALL still load. LINE CAP: a 32,768-byte value
+          cannot fit today's line cap (MEMNET_MAX_LINE_BYTES, config.py:127,
+          32,768), because backslash and pipe are written twice
+          (docs/cap-contract.md:153-158 says a single value always fits a
+          line, and caps a product raise at 16,384). 14.9 SHALL therefore
+          also raise the default line cap (fixed interface, owner
+          t1443s8385) to 4 x 32,768 + 4,096 = 135,168 bytes. Arithmetic:
+          the worst-case wire escape is 4x, not 2x: \x1c, \x1d and \x1e
+          each become 4 bytes (wire.py _SPLITLINES_ESC), while pipe and
+          backslash double; so a 32,768-byte value escapes to at most
+          4 x 32,768 = 131,072 bytes, plus 4,096 bytes for tag, field names,
+          separators and the other fields of the line = 135,168; still
+          overridable by env. Mutate-time refusal: before storing, mutate SHALL
+          compute the escaped wire size of the whole record line as it
+          would be saved (all fields: tag, field names, separators and every
+          value, after the write) and, if it exceeds the line cap, refuse
+          limit_exceeded, message line_bytes|{n}/{max}, with nothing
+          stored. The real cap applies to the whole physical line
+          (tag_map.py:282-289), so checking one value is not enough: a
+          record whose fields each fit can still exceed the cap in total.
+          With the whole-line check no accepted write makes a snapshot
+          unsaveable, and a later change to the escape table cannot break
+          saving. The value-cap message stays value_bytes|{n}/{max}. The
+          cap-contract.md lines 153-158 change in the code PR (code PR
+          fix/line-cap-whole-line for the whole-line check). IMPACT: at one
+          capped value per record, values grow from 5,000 x 4,096 bytes
+          (19.53 MiB) to 5,000 x 32,768 = 163,840,000 bytes (156.25 MiB),
+          8 times as much. The per-record bound is the line cap: a record is
+          at most 135,168 bytes on the wire, whatever its field count, so
+          records x line cap is 5,000 x 135,168 = 675,840,000 bytes
+          (644.53 MiB), and the per-session total-bytes cap (MN-REQ-14.10)
+          is the bound that counts. Snapshot size, save and load time, and pin_map read size
+          all grow with value size. Verify: MN-VER-14-S09. Behaviour:
+          ValueLineCapEnforce.
+        */
+        attribute requirementId : String = "MN-REQ-14.9";
+      }
+
+      requirement def MN_REQ_14_10_SessionTotalBytesCap {
+        doc /*
+          Status: PROPOSAL, target only; FLAGGED FOR ELON. Without a total
+          the record cap (14.5) and the value cap (14.9) multiply each
+          other, and the session-count cap (MN-REQ-05.5) multiplies that
+          again across the process. SHALL cap the total bytes held by one
+          session, counting values plus tombstones (14.6). A write that
+          would go over it is refused with a named code, limit_exceeded|
+          session_bytes {n}/{max}, and writes nothing. The setting is the
+          env var MEMNET_MAX_SESSION_BYTES. Its default is TBD and
+          owner-set, and SHALL be set before or with 14.9 shipping. Floor:
+          5,000 x 32,768 = 163,840,000 bytes (156.25 MiB), counted as
+          escaped line bytes, so it is an upper bound on raw values; today a
+          record is bounded by the 32,768-byte line cap, so a default at or
+          above this floor refuses nothing that loads today. Linked from 14.5 and
+          14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates.
+        */
+        attribute requirementId : String = "MN-REQ-14.10";
+      }
+    }
   }
 
   // --- Requirement usages + #derivation (SysML v2 deriveReqt) ---
@@ -2713,6 +3001,30 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
   requirement sameThingAbsorbReq
     : MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_2_SameThingAbsorb;
+
+  requirement atelierBoardAsksReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks;
+  requirement whereRangeComparisonReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_1_WhereRangeComparison;
+  requirement pagedReadsPastCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_2_PagedReadsPastCap;
+  requirement typedDirectedWalksReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_3_TypedDirectedWalks;
+  requirement idIndexAndLinearLoadReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
+  requirement raisableSessionRecordCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_5_RaisableSessionRecordCap;
+
+  requirement idDesignReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign;
+  requirement agentHandlesNotIdsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_7_AgentHandlesNotIds;
+  requirement developerSurfaceRealIdsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_8_DeveloperSurfaceRealIds;
+  requirement valueCap32kReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_9_ValueCap32k;
+  requirement sessionTotalBytesCapReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3093,5 +3405,63 @@ package MemNetRequirements {
   #derivation connection deriveNoAssumeFromIngestRoadmap {
     end #original ::> pinIngestDeterministicIdsReq;
     end #derive ::> noAssumeAclReserveIngestReq;
+  }
+
+  // Atelier-board asks (PROPOSAL): groups derive from mission; leaves from existing rules
+  #derivation connection deriveAtelierBoardAsksFromMission {
+    end #original ::> missionReq;
+    end #derive ::> atelierBoardAsksReq;
+    end #derive ::> whereRangeComparisonReq;
+    end #derive ::> pagedReadsPastCapReq;
+    end #derive ::> typedDirectedWalksReq;
+    end #derive ::> idIndexAndLinearLoadReq;
+    end #derive ::> raisableSessionRecordCapReq;
+    end #derive ::> idDesignReq;
+    end #derive ::> agentHandlesNotIdsReq;
+    end #derive ::> developerSurfaceRealIdsReq;
+    end #derive ::> valueCap32kReq;
+    end #derive ::> sessionTotalBytesCapReq;
+  }
+
+  #derivation connection deriveWhereRangeFromWhereHonest {
+    end #original ::> honourWherePredicateReq;
+    end #derive ::> whereRangeComparisonReq;
+  }
+
+  #derivation connection deriveRecordCapFromIndexAndCaps {
+    end #original ::> storeResourceCapsReq;
+    end #original ::> idIndexAndLinearLoadReq;
+    end #derive ::> raisableSessionRecordCapReq;
+  }
+
+  #derivation connection deriveIdDesignFromIdIndex {
+    end #original ::> idIndexAndLinearLoadReq;
+    end #original ::> idNotRequiredOnWireReq;
+    end #original ::> noCopyCousinStoreKeyReq;
+    end #derive ::> idDesignReq;
+  }
+
+  // 14.7 also traces to the owner decision 2026-11-02 (handles only for the
+  // LLM-facing MCP surface; real ids on the developer surface, 14.8).
+  #derivation connection deriveAgentHandlesFromIdDesign {
+    end #original ::> idDesignReq;
+    end #derive ::> agentHandlesNotIdsReq;
+  }
+
+  #derivation connection deriveDeveloperSurfaceFromIdDesign {
+    end #original ::> idDesignReq;
+    end #derive ::> developerSurfaceRealIdsReq;
+  }
+
+  #derivation connection deriveValueCapFromStoreCaps {
+    end #original ::> storeResourceCapsReq;
+    end #derive ::> valueCap32kReq;
+  }
+
+  #derivation connection deriveTotalBytesCapFromCaps {
+    end #original ::> storeResourceCapsReq;
+    end #original ::> raisableSessionRecordCapReq;
+    end #original ::> valueCap32kReq;
+    end #derive ::> sessionTotalBytesCapReq;
   }
 }
