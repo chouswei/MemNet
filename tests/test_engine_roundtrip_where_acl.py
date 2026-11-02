@@ -184,7 +184,6 @@ def test_snapshot_refuses_extras_over_max_fields(memnet_temp, tmp_path: Path, mo
 def test_snapshot_refuses_escaped_line_over_line_bytes(
     memnet_temp, schema_file, tmp_path: Path, monkeypatch
 ):
-    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "80")
     ss = open_session(map_file=str(schema_file), caps=Caps())
     blob = "|" * 40
     MutateGate(ss).apply(
@@ -195,6 +194,10 @@ def test_snapshot_refuses_escaped_line_over_line_bytes(
         ],
         mode="add",
     )
+    # Mutate refuses a whole line over the cap; tighten the cap after the
+    # write so save's own line check is what refuses.
+    monkeypatch.setenv("MEMNET_MAX_LINE_BYTES", "80")
+    ss.caps = Caps()
     path = tmp_path / "lineb.snap"
     with pytest.raises(MemNetError) as ei:
         write_snapshot(ss, path)
