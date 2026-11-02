@@ -254,8 +254,20 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
         raise
     hid_to_nick = _snapshot_nicks(ss)
     cap = ss.caps.max_line_bytes
+    # The SCHEMA lines: a write can widen them (undeclared keys on a record).
+    for line in tag_map_to_lines(emit_map):
+        n = len(line.encode("utf-8"))
+        if n > cap:
+            raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
+    # Edges are written with endpoint nicks, so a node write or rename changes
+    # every incident edge line as well.
+    store = ss.store
+    check = set(hids)
     for hid in hids:
-        rec = ss.store._by_hid.get(hid)
+        check |= store._edges_by_src.get(hid, set())
+        check |= store._edges_by_dist.get(hid, set())
+    for hid in check:
+        rec = store._by_hid.get(hid)
         if rec is None:
             continue
         n = len(_emit_one_record_line(ss, rec, hid_to_nick, emit_map).encode("utf-8"))
