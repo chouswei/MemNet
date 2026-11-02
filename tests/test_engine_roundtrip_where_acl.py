@@ -377,7 +377,7 @@ def test_explicit_save_unsaveable_names_row(memnet_temp, schema_file, tmp_path: 
     ss = open_session(map_file=str(schema_file), caps=Caps())
     MutateGate(ss).apply([_PLR], mode="add")
     rec = ss.store.get("PLR01")
-    rec.fields["identity"] = "x" * 9000
+    rec.fields["identity"] = "x" * 40000
     path = tmp_path / "bad.snap"
     with pytest.raises(MemNetError) as ei:
         write_snapshot(ss, path)
@@ -399,7 +399,7 @@ def test_expire_save_unsaveable_writes_no_file(
     ss = open_session(map_file=str(schema_file), caps=Caps())
     MutateGate(ss).apply([_PLR], mode="add")
     rec = ss.store.get("PLR01")
-    rec.fields["identity"] = "x" * 9000
+    rec.fields["identity"] = "x" * 40000
     snapshot_expired_session(ss.session_id, Caps())
     snaps = list(tmp_path.glob("*.snap"))
     assert snaps == []

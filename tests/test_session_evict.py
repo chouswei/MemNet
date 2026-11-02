@@ -122,7 +122,7 @@ def _snapshot_of(snap_dir, sid: str):
 
 def _make_unsaveable(ss: SessionStore) -> None:
     MutateGate(ss).apply([_PLR], mode="add")
-    ss.store.get("PLR01").fields["identity"] = "x" * 9000
+    ss.store.get("PLR01").fields["identity"] = "x" * 40000
 
 
 def _serve_status_payload() -> dict:

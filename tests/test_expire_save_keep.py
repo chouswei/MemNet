@@ -37,7 +37,7 @@ _TTL_WAIT_S = 62
 def _make_unsaveable(ss) -> None:
     MutateGate(ss).apply([_PLR], mode="add")
     rec = ss.store.get("PLR01")
-    rec.fields["identity"] = "x" * 9000
+    rec.fields["identity"] = "x" * 40000
 
 
 def _arm_expire(monkeypatch, tmp_path: Path) -> Caps:
@@ -174,7 +174,7 @@ def test_save_on_expire_off_still_drops(memnet_temp, schema_file, monkeypatch):
 def _extras_create() -> str:
     """Mutate-legal row that save refuses (escaped line over line_bytes)."""
     blob = "|" * 4000
-    extras = ", ".join(f"x{i:02d}: '{blob}'" for i in range(12))
+    extras = ", ".join(f"x{i:02d}: '{blob}'" for i in range(20))
     return f"CREATE (:N {{id: 'N01', name: 'n', {extras}}})"
 
 

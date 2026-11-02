@@ -383,8 +383,8 @@ def test_max_rows_count_report_nodes_and_edges():
 
 def test_mutate_byte_cap_report_bug4():
     report = mutate_byte_cap_report()
-    assert report["pipe_value_bytes_default"] == 4096
-    assert report["pipe_line_bytes_default"] == 32768
+    assert report["pipe_value_bytes_default"] == 32768
+    assert report["pipe_line_bytes_default"] == 69632
     assert report["gql_mutate_checks_value_bytes"] is True
     assert report["gql_mutate_checks_line_bytes"] is False
     assert report["bug4_gql_skips_pipe_caps"] is False
@@ -471,8 +471,8 @@ def test_e12_max_rows_counts_nodes_and_edges(tmp_path: Path):
         svc.close(sid)
 
 
-def test_e13_16kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path: Path):
-    blob = make_special_blob(16 * 1024, newlines=True, pipes=True)
+def test_e13_64kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path: Path):
+    blob = make_special_blob(64 * 1024, newlines=True, pipes=True)
     sid = _open_ok(doc_serve)
     create = doc_serve.mutate(
         sid,
@@ -481,7 +481,7 @@ def test_e13_16kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path
     assert create.exit_code != 0
     joined_c = "\n".join(err_lines(create.stderr))
     assert "value_bytes" in joined_c
-    assert "16384/4096" in joined_c
+    assert "65536/32768" in joined_c
     setted = doc_serve.mutate(
         sid,
         "MATCH (n:USR {id: 'USR_big'}) SET n.value = " + gql_str(blob) + "\n",
@@ -496,14 +496,14 @@ def test_e13_16kib_ram_roundtrip_snapshot_refused(doc_serve: ServeProc, tmp_path
     doc_serve.close(sid)
 
     sid2 = _open_ok(doc_serve)
-    plain = make_special_blob(16 * 1024, newlines=False, pipes=False)
+    plain = make_special_blob(64 * 1024, newlines=False, pipes=False)
     create2 = doc_serve.mutate(
         sid2,
         "CREATE (:USR {id: 'USR_p', key: 'blob', value: " + gql_str(plain) + ", recycle: ''})\n",
     )
     assert create2.exit_code != 0
     assert "value_bytes" in "\n".join(err_lines(create2.stderr))
-    assert "16384/4096" in "\n".join(err_lines(create2.stderr))
+    assert "65536/32768" in "\n".join(err_lines(create2.stderr))
     doc_serve.close(sid2)
 
 
@@ -756,8 +756,8 @@ def test_e17_contains_is_not_a_filter(doc_serve: ServeProc):
 
 def test_snapshot_value_cap_is_decoded_field():
     report = snapshot_value_cap_report()
-    assert report["value_bytes_default"] == 4096
-    assert report["line_bytes_default"] == 32768
+    assert report["value_bytes_default"] == 32768
+    assert report["line_bytes_default"] == 69632
     assert report["max_fields_default"] == 64
     assert report["value_bytes_on_decoded_field"] is True
     assert report["value_bytes_gt_not_ge"] is True
@@ -846,7 +846,7 @@ def test_e18_8x4000_and_ram_extras(doc_serve: ServeProc, tmp_path: Path):
     assert fat["load_exit"] == 0, fat["load_err"]
     assert fat["exact"] is True
     assert fat["snap_line_utf8"] is not None
-    assert fat["snap_line_utf8"] < 32768
+    assert fat["snap_line_utf8"] < 69632
     wide = e18_instance_width(doc_serve, tmp_path, 64)
     assert wide["create_exit"] == 0, wide
     assert wide["ram_has_extras"] is True

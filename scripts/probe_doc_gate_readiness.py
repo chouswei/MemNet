@@ -926,7 +926,8 @@ def item_e12_max_rows(tmp: Path) -> ItemResult:
 
 def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     caps = mutate_byte_cap_report()
-    target = 16 * 1024
+    # Over the decoded value cap (32768 since PR #238; was 4096).
+    target = 64 * 1024
     blob = make_special_blob(target, newlines=True, pipes=True)
     blob_plain = make_special_blob(target, newlines=False, pipes=False)
     blob_pipe = make_special_blob(target, newlines=False, pipes=True)
@@ -953,7 +954,7 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
         sid,
         "CREATE (:USR {id: 'USR_big', key: 'blob', value: " + gql_str(blob) + ", recycle: ''})\n",
     )
-    cases["create_16kib"] = {
+    cases["create_64kib"] = {
         "exit": create.exit_code,
         "errs": err_lines(create.stderr),
     }
@@ -962,7 +963,7 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
         sid,
         "MATCH (n:USR {id: 'USR_big'}) SET n.value = " + gql_str(blob) + "\n",
     )
-    cases["set_16kib"] = {"exit": setted.exit_code, "errs": err_lines(setted.stderr)}
+    cases["set_64kib"] = {"exit": setted.exit_code, "errs": err_lines(setted.stderr)}
     wires.extend(err_lines(setted.stderr))
     pin = svc.pin_map(sid, cue="USR_big")
     props = shaped_node_props(pin.stdout) or {}
@@ -974,10 +975,10 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     cases["pin_map_value_bytes"] = len(got.encode("utf-8")) if isinstance(got, str) else None
     cases["create_value_bytes"] = over_cap
     if ram_ok:
-        gaps.append("16 KiB special blob was accepted by GQL mutate (value_bytes should refuse)")
+        gaps.append("64 KiB special blob was accepted by GQL mutate (value_bytes should refuse)")
         wires.extend(err_lines(pin.stderr))
     elif not over_cap:
-        gaps.append("16 KiB CREATE refused but not value_bytes")
+        gaps.append("64 KiB CREATE refused but not value_bytes")
 
     bad_esc = svc.mutate(
         sid,
@@ -1037,21 +1038,21 @@ def item_e13_strings(svc: ServeProc, tmp: Path) -> ItemResult:
     notes = [
         "GQL string literals: single or double quotes; escapes are \\\\ \\' \\\" \\n \\r \\t only. "
         "Unknown escape -> parse_error (GraphGlot/ParseError). GQL mutate, leftover pipe, "
-        "and snapshot load share decoded MEMNET_MAX_VALUE_BYTES=4096 "
-        "(`limit_exceeded|value_bytes n/max`). line_bytes 32768 is leftover-pipe / "
+        "and snapshot load share decoded MEMNET_MAX_VALUE_BYTES=32768 "
+        "(`limit_exceeded|value_bytes|n/max`). line_bytes 135168 is leftover-pipe / "
         "snapshot escaped line, not a GQL statement cap.",
         "ISO INSERT is not the mutate spelling (CREATE is).",
     ]
     if not ram_ok and over_cap:
         verdict = "yes"
         notes.append(
-            "16 KiB CREATE/SET refuse at write time with value_bytes 16384/4096. "
+            "64 KiB CREATE/SET refuse at write time with value_bytes|65536/32768. "
             "Nothing is stored; snapshot save of that session does not write the blob."
         )
     else:
         verdict = "no"
     return ItemResult(
-        item="E13 16 KiB string properties + mutate/GQL byte caps",
+        item="E13 64 KiB string properties + mutate/GQL byte caps",
         verdict=verdict,
         notes=notes,
         numbers=cases,
@@ -2074,10 +2075,11 @@ def item_e18(svc: ServeProc, tmp: Path) -> ItemResult:
         verdict = "no"
 
     notes = [
-        "value_bytes 4096 is measured on the decoded field after split_payload "
+        "value_bytes (32768 since PR #238; the 4000/4096 blobs are historical pre-#238 "
+        "probes, now well under the cap) is measured on the decoded field after split_payload "
         "(check_value_bytes uses `>` not `>=`). join_payload escapes splitlines "
         "separators plus `\\` and `|`; that expansion is not the value cap. "
-        "line_bytes 32768 is the escaped/raw snapshot line. SCHEMA register vs "
+        "line_bytes 135168 is the escaped/raw snapshot line. SCHEMA register vs "
         "max_fields=64. Mutate and snapshot save share one effective-field count; "
         "extras over max_fields refuse limit_exceeded|fields n/max at mutate.",
         "E18e CJK 4000: " + e18_cjk_composition(4000, han=E18_HAN) + ".",

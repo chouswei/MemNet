@@ -473,7 +473,7 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                 Case(
                     name="pipe_value_bytes",
                     kind="hard_refuse",
-                    default="4096",
+                    default="32768",
                     knob="MEMNET_MAX_VALUE_BYTES",
                     library_code=exc.code,
                     library_message=exc.message,
@@ -494,7 +494,7 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                 Case(
                     name="gql_mutate_value_bytes",
                     kind="hard_refuse",
-                    default="4096",
+                    default="32768",
                     knob="MEMNET_MAX_VALUE_BYTES",
                     library_code=exc.code,
                     library_message=exc.message,
@@ -512,7 +512,7 @@ def case_pipe_value_and_line_bytes() -> list[Case]:
                 Case(
                     name="pipe_line_bytes",
                     kind="hard_refuse",
-                    default="32768",
+                    default="135168",
                     knob="MEMNET_MAX_LINE_BYTES (escaped/raw leftover pipe / snapshot line)",
                     library_code=exc.code,
                     library_message=exc.message,
@@ -1046,7 +1046,7 @@ def case_where_and_snapshot_honesty() -> list[Case]:
     ss2 = _open()
     MutateGate(ss2).apply([_cst(1, name="n1")], mode="add")
     rec = ss2.store.get("N01")
-    rec.fields["name"] = "x" * 9000
+    rec.fields["name"] = "x" * 40000
     try:
         write_snapshot(ss2, Path("/tmp/unsaveable.snap"))
         raise AssertionError("expected snapshot_unsaveable")

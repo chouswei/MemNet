@@ -56,7 +56,7 @@ def _expire_now(minutes: int = 5) -> None:
 def _make_unsaveable(ss) -> None:
     """Oversize a field so the expire-save refuses (snapshot_unsaveable)."""
     MutateGate(ss).apply([_PLR], mode="add")
-    ss.store.get("PLR01").fields["identity"] = "x" * 9000
+    ss.store.get("PLR01").fields["identity"] = "x" * 40000
 
 
 def _renew_before_recheck(monkeypatch, sid: str, modules=(session_mod, cli_mod)) -> list[bool]:
