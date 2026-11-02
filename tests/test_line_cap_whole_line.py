@@ -42,8 +42,15 @@ def _create(identity: str, inventory: str) -> str:
 
 def _line_bytes(identity: str, inventory: str) -> int:
     """Escaped UTF-8 size of the PLR_V line exactly as snapshot emit writes it."""
-    vals = {"id": "PLR_V", "identity": identity, "wealth": "1", "cashflow": "0",
-            "monopoly": "0", "reputation": "0", "inventory": inventory}
+    vals = {
+        "id": "PLR_V",
+        "identity": identity,
+        "wealth": "1",
+        "cashflow": "0",
+        "monopoly": "0",
+        "reputation": "0",
+        "inventory": inventory,
+    }
     return len(emit_record_line("PLR", [vals[f] for f in FIELDS]).encode("utf-8"))
 
 
