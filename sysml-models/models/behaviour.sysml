@@ -1602,4 +1602,15 @@ package MemNetBehaviour {
     in item record : String;
     out item id : String;
   }
+
+  action def HandleResolve {
+    doc /*
+      PROPOSAL (MN-REQ-14.7; target only). Agent-facing replies carry a
+      handle, never the real id. Resolve maps handle to real id inside the
+      engine; a bad, stale or deleted handle returns a clear error, never
+      another record.
+    */
+    in item handle : String;
+    out item record : String;
+  }
 }
