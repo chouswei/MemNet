@@ -101,6 +101,7 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate
 | SameThingAbsorb (Commit rule) | `MATCH (a:Label {…}), (b:Label {…}) SET a += b` | After CueConflict: agent-gated collapse of two patterns into one GraphElement (`aka` on the survivor). Not a product verb. Not MERGE-by-id / MERGE-by-name. Distinct from ImportAbsorb |
 | Patch properties | `MATCH (n:Label {goal:'…'}) SET n.key = value` | No mint on patch |
 | Delete | `MATCH (n:Label {…}) DETACH DELETE n` or delete one rel by type+ends | Settle / recycle policy elsewhere |
+| Filter (WHERE) | `MATCH (n:Label) WHERE n.k >= 5 SET …` / `DELETE n`; `MATCH ()-[r:TYPE]-() WHERE r.k < 'b' SET …` / `DELETE r` | Honoured: `true`/`false`, `=` `<>` `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, range `<` `>` `<=` `>=`, with `AND`/`OR`/`NOT`. Range RHS is a number literal or a quoted string only; number vs numeric field compares numerically, string vs non-numeric field by code point; missing, empty or mistyped fields never match (see `docs/cap-contract.md` MATCH WHERE). Node SET/DELETE and rel DELETE need exactly one match; rel SET updates every match. Other forms: `@ERR: unsupported_predicate\|WHERE {name} is not honoured` |
 
 **Leftover invented store (not TARGET):** leftover_by_id / leftover_NEW_mint / leftover_id_first / leftover_MERGE_by_id / leftover_allocate_from_locator / leftover_ingestIsIdRule. **0.9 engine still does this.** Do not teach it as identity. Do not replace it with another application PK.
 

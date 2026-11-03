@@ -8,6 +8,7 @@ from memnet.config import standard_relation
 from memnet.exceptions import MemNetError
 from memnet.gql import (
     ParseError,
+    RelDropRec,
     RelSetRec,
     emit_item,
     looks_like_gql,
@@ -342,6 +343,21 @@ class MutateGate:
                             raw=it.raw,
                         )
                     )
+                continue
+            if isinstance(it, RelDropRec):
+                hid = self._resolve_edge_drop(it)
+                rec = self.ss.store._by_hid[hid]
+                drops.append(hid)
+                ack_items.append(
+                    EdgeRec(
+                        op=Op.DROP,
+                        edge_id=rec.fields.get("id") or rec.hid,
+                        frm=rec.fields.get("src", ""),
+                        rel=rec.fields.get("relation", ""),
+                        to=rec.fields.get("dist", ""),
+                        raw=it.raw,
+                    )
+                )
                 continue
             if isinstance(it, EdgeRec) and it.op == Op.DROP:
                 hid = self._resolve_edge_drop(it)
@@ -978,10 +994,24 @@ class MutateGate:
         return out
 
     def _resolve_edge_drop(self, it: EdgeRec) -> str:
+        from memnet.gql import eval_where
+
         store = self.ss.store
+        where = it.where if isinstance(it, RelDropRec) else None
+
+        def where_ok(rec: Record) -> bool:
+            if where is None:
+                return True
+            view = Record(
+                tag="EDG",
+                fields={**_split_attrs(rec.fields.get("attrs", "")), **rec.fields},
+                hid=rec.hid,
+            )
+            return eval_where(view, where)
+
         if it.edge_id:
             rec = store.resolve_one(it.edge_id)
-            if rec is None or rec.tag != "EDG":
+            if rec is None or rec.tag != "EDG" or not where_ok(rec):
                 raise MemNetError("not_found", "relationship DELETE matched no element")
             return rec.hid
         # Deprecated shape kept working: relation-only DELETE (no id, no ends, e.g.
@@ -1012,6 +1042,8 @@ class MutateGate:
             if src_hid is not None and rec.fields.get("src") != src_hid:
                 continue
             if dst_hid is not None and rec.fields.get("dist") != dst_hid:
+                continue
+            if not where_ok(rec):
                 continue
             hits.append(rec.hid)
         if not hits:

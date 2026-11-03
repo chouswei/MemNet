@@ -431,7 +431,14 @@ Default `MEMNET_SAVE_ON_EXPIRE` is off. At TTL:
 
 ## MATCH WHERE (honour or refuse)
 
-GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honoured forms: `true` / `false`, property equality / `<>` / `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, and `AND` / `OR` / `NOT` of those. Property-map equality in MATCH still filters. `MATCH (n WHERE true)-[r {id}]->() DELETE r` remains the gated edge-delete spelling.
+GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honoured forms: `true` / `false`, property equality / `<>` / `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, range `<` / `>` / `<=` / `>=` (MN-REQ-14.1), and `AND` / `OR` / `NOT` of those. Property-map equality in MATCH still filters. `MATCH (n WHERE true)-[r {id}]->() DELETE r` remains the gated edge-delete spelling.
+
+**Range WHERE (MN-REQ-14.1).** `n.k < v`, `n.k > v`, `n.k <= v`, `n.k >= v` on node patterns (WHERE or inline `(n:T WHERE …)`) and on relationship patterns (`MATCH ()-[r:T]-() WHERE r.k > v SET …` / `DELETE r`). Typing rules:
+
+- The right operand is a number literal (`-?\d+(\.\d+)?`) or a quoted string. Anything else (a property, `$param`, a bare word, `true` / `false` / `null`, a list or a map) refuses `WHERE <op> operand is not honoured`; a literal on the left (`5 < n.x`) refuses too.
+- A field is numeric iff it fully matches `-?\d+(\.\d+)?([eE][+-]?\d+)?`. A number literal compares numerically with a numeric field; a quoted string compares by code point with a non-numeric field.
+- No match (UNKNOWN, never an error): a missing or empty field; a number against a non-numeric field; a string against a numeric-looking field; a numeric-looking field whose value is not finite (`1e999`) against a number. `NOT` of UNKNOWN stays UNKNOWN; `AND` / `OR` are three-valued; UNKNOWN at the top is no match.
+- Cardinality is unchanged: node SET / DELETE and relationship DELETE need exactly one match (0 → `not_found`, >1 → `cue_conflict`); relationship SET updates every match. A relationship WHERE names only the relationship variable (end-node predicates refuse `unsupported_predicate`). Any refusal leaves the session unchanged. `MATCH … WHERE … RETURN` stays `product_gate`.
 
 If lowering cannot honour the predicate, the whole statement refuses and applies nothing:
 
