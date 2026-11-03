@@ -1724,21 +1724,26 @@ package MemNetBehaviour {
   }
   attribute def EvBytesWrite {
     doc /*
-      A write that changes the session's escaped snapshot line bytes and
-      whose new total stays under the budget, so EvBytesWrite never overlaps
-      EvBytesReachBudget (a total at exactly the budget is
-      EvBytesReachBudget; the code accepts total <= budget).
+      An accepted write that changes the session's escaped snapshot line
+      bytes: any write whose new total, after the whole mutate, is at or
+      under the budget (newTotal <= budget; the code refuses only
+      newTotal > budget). A refused write stores nothing and raises no
+      EvBytesWrite. The guards on the state def pick the target state.
     */
+    attribute newTotal : Integer;
   }
   attribute def EvBytesReachBudget {
     doc /*
-      The total reaches or passes the budget: a write that lands exactly on
-      it, a load or hydrate of a session at it, or a lowered
-      MEMNET_MAX_SESSION_BYTES.
+      The total reaches or passes the budget without a write: a load or
+      hydrate of a session at or over it, or a lowered
+      MEMNET_MAX_SESSION_BYTES. EvBytesWrite and EvBytesReachBudget are
+      disjoint by cause: a write is always EvBytesWrite, never this event.
     */
+    attribute newTotal : Integer;
   }
   attribute def EvBytesFree {
     doc /* Bytes released (value shrunk or record deleted). */
+    attribute newTotal : Integer;
   }
   attribute def EvSessionBytesRefused {
     doc /*
@@ -1798,21 +1803,39 @@ package MemNetBehaviour {
       limit_exceeded|session_bytes {n}/{max} and changes nothing. atBudget
       means the total is at or over the budget (a lowered setting can leave
       a loaded session over it); it does not mean that a refusal happened.
-      Deletes always go through. While the total is over the budget only
-      deletes pass; a write is accepted only if the new total ends at or
-      under the budget (total <= budget), otherwise it is refused
-      session_bytes and nothing is stored. A write that lands exactly on the
-      budget is accepted and leaves the session atBudget.
+      One rule in every state: deletes always pass and skip the budget; a
+      write is accepted only if the new total ends at or under the budget
+      (newTotal <= budget), otherwise it is refused session_bytes and
+      nothing is stored. So while the total is at or over the budget, only
+      deletes pass unconditionally. A mutate that both deletes and writes
+      is checked once, on the total after both: it is accepted if that
+      total is at or under the budget, else the whole mutate is refused
+      and neither the delete nor the write is stored. A write that lands
+      exactly on the budget is accepted and leaves the session atBudget.
+      newTotal is the total after the event; budget is the setting.
     */
+    attribute newTotal : Integer;
+    attribute budget : Integer;
+
     entry;
     then underBudget;
 
     state underBudget {
-      doc /* Total bytes < budget; writes that stay under are accepted. */
+      doc /* Total bytes < budget. */
     }
     transition write_within
       first underBudget
       accept EvBytesWrite
+      if newTotal < budget
+      then underBudget;
+    transition write_lands_on_budget
+      first underBudget
+      accept EvBytesWrite
+      if newTotal >= budget
+      then atBudget;
+    transition free_within
+      first underBudget
+      accept EvBytesFree
       then underBudget;
     transition write_reaches_budget
       first underBudget
@@ -1821,9 +1844,9 @@ package MemNetBehaviour {
 
     state atBudget {
       doc /*
-        Total bytes >= budget. Over the budget only deletes pass; a write is
-        accepted only if the new total ends at or under the budget, else it
-        is refused session_bytes and stores nothing. The state returns to
+        Total bytes >= budget. Deletes always pass; a write is accepted
+        only if the new total ends at or under the budget, else it is
+        refused session_bytes and stores nothing. The state returns to
         underBudget only when the new total is below the budget; a free or
         write that leaves the total at or over it stays atBudget.
       */
