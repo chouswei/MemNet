@@ -2770,7 +2770,10 @@ package MemNetRequirements {
           total of 14.10 SHALL be kept as a per-session running sum of
           escaped UTF-8 line bytes, updated on create, update, delete,
           import, hydrate and load. A write SHALL cost O(changed rows plus
-          the incident edges of changed nodes), never O(session). The
+          the incident edges of changed nodes), amortised; only the first
+          check after load or hydrate, a SCHEMA change, a bypass_guard
+          rollback, a row-count tripwire or a leftover-nick collision pays
+          one O(rows) rebuild. The
           running total SHALL equal a full recount of the SCHEMA and record
           lines at every point; the debug flag MEMNET_DEBUG_SESSION_BYTES=1
           makes every check also recount and assert equality. Widening a

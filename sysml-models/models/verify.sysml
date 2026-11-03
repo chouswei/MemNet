@@ -2951,7 +2951,8 @@ package MemNetVerification {
       update, delete, import, hydrate and load the incremental total
       equals full_recount_total (MEMNET_DEBUG_SESSION_BYTES=1 asserts it);
       (b) a write costs O(changed rows plus incident edges of changed
-      nodes), not O(session); (c) SCHEMA widening by an undeclared key, a
+      nodes), amortised, with one O(rows) rebuild only after load,
+      hydrate, a SCHEMA change, a rollback or a nick collision; (c) SCHEMA widening by an undeclared key, a
       node rename (edge lines carry endpoint nicks) and relation folding
       are accounted exactly; (d) a bypass_guard rollback, or a failure
       inside the sync, invalidates the ledger and the next check rebuilds
