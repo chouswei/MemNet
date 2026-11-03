@@ -50,7 +50,7 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); target only, no engine cut
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.11 implemented, rest target only
     MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
@@ -59,7 +59,7 @@
     MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
-    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (PROPOSAL; flagged for Elon)
+    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (implemented; tests/test_value_cap_32k.py, test_line_cap_whole_line.py, test_line_cap_edge_schema.py)
     MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
 
@@ -2444,7 +2444,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (PROPOSAL; target only, engine untouched) -----
+    // ----- Atelier-board asks (14.9-14.11 implemented; rest PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2456,13 +2456,13 @@ package MemNetRequirements {
         total-bytes cap (14.10), block MemNet as an Atelier board store.
         An eleventh (14.11) makes the write paths that bypass the mutate
         gate enforce the same caps.
-        TARGET model only: no engine code changes in this cut and none is
-        claimed shipped. Leaves 14.2 and 14.3 are PARKED until Elon reviews
-        them (scope note r00002195). Defects found on the way are recorded
-        in MN-VER-14-D01 and MN-VER-14-D02, not as requirements. Every
-        MN-VER-14 case is model-level: no runtime test, and a tracker MUST
-        NOT count one as verified. Line refs below are at bb4a4dc,
-        parts/common/memnet/memnet/.
+        Implemented with runtime tests: leaves 14.9, 14.10 and 14.11 (test
+        files named in each leaf's doc). The rest are target only: leaves
+        14.1 and 14.4 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
+        PARKED until Elon reviews them (scope note r00002195). A target-only
+        leaf is never counted as verified. Defects found on the way are
+        recorded in MN-VER-14-D01 and MN-VER-14-D02, not as requirements.
+        Line refs below are at bb4a4dc, parts/common/memnet/memnet/.
       */
       attribute requirementId : String = "MN-REQ-14";
 
@@ -2655,7 +2655,9 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_9_ValueCap32k {
         doc /*
-          Status: PROPOSAL, target only; FLAGGED FOR ELON. The per-value cap
+          Status: implemented (tests/test_value_cap_32k.py,
+          tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py);
+          FLAGGED FOR ELON. The per-value cap
           (MEMNET_MAX_VALUE_BYTES, config.py:126) rises from 4,096 to
           32,768 bytes, one global value, no chunking, still overridable by
           env, because Atelier rows hold up to 8,000 characters, which is up
@@ -2748,7 +2750,11 @@ package MemNetRequirements {
           must still pass the line cap, else the delete is refused and
           nothing is removed. Snapshot load keeps its loader refusal of an
           over-cap value or line and also refuses a session over budget;
-          save refuses an over-budget session and writes no file.
+          save refuses an over-budget session and writes no file. The
+          field cap (MN-REQ-05.4) also applies on these paths: the bypass
+          guard runs it before the line cap, and a record over the field
+          cap (MEMNET_MAX_FIELDS, default 64) is refused limit_exceeded
+          fields|{n}/{max} with nothing written.
           Verify: MN-VER-14-S11. Behaviour: BypassPathCapEnforce.
         */
         attribute requirementId : String = "MN-REQ-14.11";
