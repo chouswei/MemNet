@@ -1004,7 +1004,7 @@ def case_where_and_snapshot_honesty() -> list[Case]:
     MutateGate(ss).apply([_cst(1)], mode="add")
     try:
         MutateGate(ss).apply(
-            ["MATCH (n:CST) WHERE n.role > 0 SET n.role = 'x'"],
+            ["MATCH (n:CST) WHERE n.role > n.other SET n.role = 'x'"],
             mode="mutate",
         )
         raise AssertionError("expected unsupported_predicate")

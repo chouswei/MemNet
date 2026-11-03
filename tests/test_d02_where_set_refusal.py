@@ -90,10 +90,10 @@ def test_d02_relationship_where_set_updates_only_matching(memnet_temp, statement
 
 
 def test_d02_unsupported_relationship_where_refused_without_delete(memnet_temp):
-    """A range WHERE on a relationship is refused unsupported_predicate, not as DELETE."""
+    """A property-to-property relationship WHERE is refused unsupported_predicate, not DELETE."""
     ss = _session()
     before = _state(ss)
-    statement = "MATCH ()-[r:links]-() WHERE r.n > 1 SET r.kind = 'b'"
+    statement = "MATCH ()-[r:links]-() WHERE r.n > r.other SET r.kind = 'b'"
     with pytest.raises(MemNetError) as ei:
         _apply(ss, statement)
     assert ei.value.code == "unsupported_predicate"

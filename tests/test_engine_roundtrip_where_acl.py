@@ -294,7 +294,7 @@ def test_unsupported_where_refuses_nothing_applied(memnet_temp, schema_file):
     MutateGate(ss).apply([_PLR], mode="add")
     with pytest.raises(MemNetError) as ei:
         MutateGate(ss).apply(
-            ["MATCH (n:PLR) WHERE n.wealth > 0 SET n.wealth = 9"],
+            ["MATCH (n:PLR) WHERE n.wealth > n.other SET n.wealth = 9"],
             mode="mutate",
         )
     assert ei.value.code == "unsupported_predicate"
