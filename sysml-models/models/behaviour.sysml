@@ -1807,9 +1807,10 @@ package MemNetBehaviour {
       One rule in every state: a delete skips only the budget check; the
       field and line caps still run. A write is accepted only if the new
       total ends at or under the budget (newTotal <= budget), otherwise it
-      is refused session_bytes and nothing is stored. So while the total is
-      at or over the budget, a write is refused and only a delete can pass. A mutate that both deletes and writes
-      is checked once, on the total after both: it is accepted if that
+      is refused session_bytes and nothing is stored. So a write passes only
+      if its new total ends at or under the budget, even while the total is
+      at or over the budget. A mutate that both deletes and writes is
+      checked once, on the total after both: it is accepted if that
       total is at or under the budget, else the whole mutate is refused
       and neither the delete nor the write is stored. A write that lands
       exactly on the budget is accepted and leaves the session atBudget.
