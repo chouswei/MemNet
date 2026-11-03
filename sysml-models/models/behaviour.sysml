@@ -1710,7 +1710,15 @@ package MemNetBehaviour {
       deleted and non-matching relationships are unchanged. A shape that
       stays unsupported (for example a range comparison) is refused
       unsupported_predicate with a message naming the clause used (SET /
-      WHERE, never DELETE), with no partial write.
+      WHERE, never DELETE), with no partial write. A relationship WHERE+SET
+      that matches nothing, or whose end id does not resolve, is refused
+      not_found with no write. SET on a protected relationship field (id,
+      merge, src, dist, relation) is refused invalid_field with no write.
+      A relationship SET with no WHERE and no id pattern is refused
+      unsupported_predicate naming SET / WHERE, with no write; a SET whose
+      pattern carries an id needs no WHERE. Quoted literals in WHERE or SET
+      are never scanned as SET targets. Evidence:
+      tests/test_d02_where_set_refusal.py, tests/test_d02_followups.py.
     */
     in item statement : String;
     out item reply : String;

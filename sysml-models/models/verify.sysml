@@ -2962,16 +2962,18 @@ package MemNetVerification {
       session_bytes|{total}/{budget} with {total} the partial sum in write
       order; (f) join_payload (str.translate) is byte-identical to the
       former per-character loop (no complexity bound is claimed for
-      join_payload beyond linear in payload bytes); (g) the ledger is
-      dropped on expire and on save-on-expire and rebuilt on the next
-      load. Behaviour: SessionByteBudgetStates.
+      join_payload); (g) the ledger is dropped on expire and on
+      save-on-expire and the next load rebuilds a total equal to a full
+      recount, run by
+      tests/test_d02_followups.py::test_ledger_dropped_on_expire*.
+      Behaviour: SessionByteBudgetStates.
     */
     attribute verificationId : String = "MN-VER-14-S12";
 
     subject system : MemNetSystem;
 
     objective atelierBoardS12 {
-      doc /* Implemented: tests/test_session_bytes_incremental.py, tests/test_join_payload_vectorised.py. */
+      doc /* Implemented: tests/test_session_bytes_incremental.py, tests/test_join_payload_vectorised.py; (g) tests/test_d02_followups.py::test_ledger_dropped_on_expire*. */
       verify incrementalByteBudgetReq;
     }
   }
@@ -3006,7 +3008,16 @@ package MemNetVerification {
       exactly the matching relationships, nothing is deleted, and an
       unsupported relationship WHERE shape is refused
       unsupported_predicate naming the clause used, with the session
-      unchanged. tests/test_d02_where_set_refusal.py now asserts the fix.
+      unchanged. Follow-ups (PR #246 review): (B1) a relationship
+      WHERE+SET that matches nothing, or whose end id does not resolve,
+      is refused not_found with no write; (B2) SET on a protected
+      relationship field (id, merge, src, dist, relation) is refused
+      invalid_field with no write; (B3) a relationship SET with no WHERE
+      and no id pattern is refused unsupported_predicate naming SET /
+      WHERE (never DELETE) with no write, while a SET whose pattern
+      carries an id needs no WHERE; quoted literals in WHERE or SET are
+      never scanned as SET targets. tests/test_d02_where_set_refusal.py
+      and tests/test_d02_followups.py assert the fix.
       Behaviour: WhereSetRefusalFix (implemented).
     */
     attribute verificationId : String = "MN-VER-14-D02";
@@ -3014,7 +3025,7 @@ package MemNetVerification {
     subject system : MemNetSystem;
 
     objective atelierBoardD02 {
-      doc /* Implemented: tests/test_d02_where_set_refusal.py asserts the fix. */
+      doc /* Implemented: tests/test_d02_where_set_refusal.py and tests/test_d02_followups.py assert the fix. */
       verify honourWherePredicateReq;
     }
   }

@@ -2790,7 +2790,7 @@ package MemNetRequirements {
           recomputes with the full walk). wire.join_payload escaping is
           table based (str.translate) and byte-identical to the former
           per-character loop; no complexity bound is claimed for
-          join_payload beyond linear in payload bytes. Semantics of 14.10 and 14.11 (default
+          join_payload. Semantics of 14.10 and 14.11 (default
           163,840,000 bytes, codes, atomicity) are unchanged.
           Verify: MN-VER-14-S12. Behaviour: SessionByteBudgetStates.
         */
