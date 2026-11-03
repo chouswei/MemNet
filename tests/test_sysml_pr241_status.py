@@ -93,19 +93,35 @@ def test_n1_no_shrinking_write_accepted_claim():
     assert not re.search(r"(?i)shrinking write is\s+accepted", _flat(_states()))
 
 
-def test_n1_doc_over_budget_only_deletes_pass():
+def test_n1_doc_deletes_always_pass_write_total_rule():
     f = _flat(_states())
-    assert re.search(r"(?i)over (the )?budget,? only deletes", f)
-    assert re.search(r"(?i)accepted only if the (new )?total ends at or under the budget", f)
+    assert re.search(r"(?i)deletes always pass", f)
+    assert re.search(r"(?i)write is accepted only if the new total ends at or under the budget", f)
+    assert re.search(r"(?i)otherwise it is refused session_bytes", f)
 
 
-def test_n1_bytes_write_not_overlap_reach_budget():
+def test_n1_declares_new_total_and_budget():
+    s = _states()
+    assert re.search(r"attribute newTotal\s*:", s)
+    assert re.search(r"attribute budget\s*:", s)
+
+
+def test_n1_at_budget_guards_split_on_budget():
+    s = _states()
+    for n in ("free_bytes", "write_fits"):
+        assert any("newTotal < budget" in x for x in _transitions(s, n)), n
+    for n in ("stay_at_budget", "write_stays_at_budget"):
+        assert any("newTotal >= budget" in x for x in _transitions(s, n)), n
+
+
+def test_n1_bytes_write_covers_every_accepted_write():
     f = _flat(_text("behaviour.sysml"))
-    assert (
-        re.search(r"EvBytesWrite[^.]*(does not|never|not) overlap[^.]*EvBytesReachBudget", f)
-        or re.search(r"EvBytesReachBudget[^.]*(does not|never|not) overlap[^.]*EvBytesWrite", f)
-        or re.search(r"(?i)EvBytesWrite[^.]*(not overlap|disjoint)", f)
-    )
+    m = re.search(r"attribute def EvBytesWrite \{.*?\*/", f)
+    assert m
+    d = m.group(0)
+    assert re.search(r"(?i)any write whose new total", d)
+    assert re.search(r"newTotal <= budget", d)
+    assert not re.search(r"(?i)not overlap|disjoint", d)
 
 
 # ---- N2: requirements.sysml ----
