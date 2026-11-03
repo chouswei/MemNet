@@ -62,7 +62,7 @@
     MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (implemented; tests/test_value_cap_32k.py, test_line_cap_whole_line.py, test_line_cap_edge_schema.py)
     MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
-    MN-REQ-14.12       Budget check is incremental: cost O(changed rows), total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
+    MN-REQ-14.12       Budget check is incremental: re-encodes changed nodes + their incident edges, total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2766,14 +2766,17 @@ package MemNetRequirements {
       requirement def MN_REQ_14_12_IncrementalByteBudget {
         doc /*
           Status: implemented (this PR). The budget check is incremental:
-          cost O(changed rows), total equal to a full recount. The session
-          total of 14.10 SHALL be kept as a per-session running sum of
-          escaped UTF-8 line bytes, updated on create, update, delete,
-          import, hydrate and load. A write SHALL cost O(changed rows plus
-          the incident edges of changed nodes), amortised; only the first
-          check after load or hydrate, a SCHEMA change, a bypass_guard
-          rollback, a row-count tripwire or a leftover-nick collision pays
-          one O(rows) rebuild. The
+          it re-encodes only what changed, total equal to a full recount.
+          The session total of 14.10 SHALL be kept as a per-session running
+          sum of escaped UTF-8 line bytes, updated on create, update,
+          delete, import, hydrate and load. The rows re-encoded per write
+          SHALL be the changed nodes plus the incident edges of changed
+          nodes; only the first check after load or hydrate, a store swap
+          (MemStore replaced), a SCHEMA change, a bypass_guard rollback, a
+          row-count tripwire or a leftover-nick collision pays one full
+          rebuild. The ledger is dropped on expire and on save-on-expire
+          (it lives on the registry entry) and is rebuilt on the next load.
+          The
           running total SHALL equal a full recount of the SCHEMA and record
           lines at every point; the debug flag MEMNET_DEBUG_SESSION_BYTES=1
           makes every check also recount and assert equality. Widening a
@@ -2786,7 +2789,8 @@ package MemNetRequirements {
           {total} is the partial sum in write order (the refusal path
           recomputes with the full walk). wire.join_payload escaping is
           table based (str.translate) and byte-identical to the former
-          per-character loop. Semantics of 14.10 and 14.11 (default
+          per-character loop; no complexity bound is claimed for
+          join_payload beyond linear in payload bytes. Semantics of 14.10 and 14.11 (default
           163,840,000 bytes, codes, atomicity) are unchanged.
           Verify: MN-VER-14-S12. Behaviour: SessionByteBudgetStates.
         */
