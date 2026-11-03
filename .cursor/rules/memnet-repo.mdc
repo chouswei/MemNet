@@ -1,0 +1,6 @@
+---
+description: MemNet repo context pointer
+alwaysApply: true
+---
+
+Follow the repo skill `.claude/skills/memnet-repo/SKILL.md` and `AGENTS.md`, then apply the task delta. Vendored skills: `.cursor/skills/SKILL-GRAPH.md`.
