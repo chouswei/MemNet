@@ -50,7 +50,7 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.12 implemented, rest target only
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.4, 14.9-14.12 implemented, rest target only
     MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id (implemented; tests/test_range_where.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
@@ -2445,7 +2445,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (14.9-14.12 implemented; rest PROPOSAL, target only) -----
+    // ----- Atelier-board asks (14.1, 14.4, 14.9-14.12 implemented; rest PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2458,13 +2458,14 @@ package MemNetRequirements {
         An eleventh (14.11) makes the write paths that bypass the mutate
         gate enforce the same caps. A twelfth (14.12) makes the byte-budget
         check incremental.
-        Implemented with runtime tests: leaves 14.9 to 14.12 (test
-        files named in each leaf's doc). The rest are target only: leaves
-        14.1 and 14.4 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
+        Implemented with runtime tests: leaves 14.1, 14.4 and 14.9 to 14.12
+        (test files named in each leaf's doc). The rest are target only:
+        leaves 14.5 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
         PARKED until Elon reviews them (scope note r00002195). A target-only
         leaf is never counted as verified. Defects found on the way are
         recorded in MN-VER-14-D01 and MN-VER-14-D02, not as requirements.
-        Line refs below are at bb4a4dc, parts/common/memnet/memnet/.
+        Line refs in 14.1, 14.4 and 14.6 are at the #245 head; other refs
+        below are at bb4a4dc, parts/common/memnet/memnet/.
       */
       attribute requirementId : String = "MN-REQ-14";
 

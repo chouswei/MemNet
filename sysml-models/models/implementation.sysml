@@ -524,7 +524,7 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.4, 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
   // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
   // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
   // 14.1 and 14.4 are implemented (tests/test_range_where.py, tests/test_id_opaque_range.py,
