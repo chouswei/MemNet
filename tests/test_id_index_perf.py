@@ -68,7 +68,10 @@ def test_resolve_one_is_constant_time(big_caps):
     assert store.resolve_one("P42") is not None
     assert store.resolve_one("MISS0") is None
     ms = _best_ms_per_call(store.resolve_one, tokens)
-    print(f"resolve_one: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})", flush=True)
+    print(
+        f"resolve_one: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})",
+        flush=True,
+    )
     assert ms <= _MAX_MS_PER_CALL, f"resolve_one {ms:.4f} ms/call on {_LOOKUP_ROWS} rows"
 
 
@@ -78,7 +81,10 @@ def test_match_nickname_is_constant_time(big_caps):
     assert len(store.match_nickname("P42")) == 1
     assert store.match_nickname("MISS0") == []
     ms = _best_ms_per_call(store.match_nickname, tokens)
-    print(f"match_nickname: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})", flush=True)
+    print(
+        f"match_nickname: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})",
+        flush=True,
+    )
     assert ms <= _MAX_MS_PER_CALL, f"match_nickname {ms:.4f} ms/call on {_LOOKUP_ROWS} rows"
 
 
