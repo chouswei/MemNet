@@ -24,6 +24,10 @@ Catalog and load order: [`docs/README.md`](docs/README.md) (identity / `grammar/
 | Identity / packaging / layout | `project.toml`, `pyproject.toml`, `LAYOUT.md` |
 | Session stub / novel drop / vendor pins | `AGENT-CONTEXT.md`, `DROP-NOVEL-WRITER.md`, `refs/README.md` |
 
+## Repo skills
+
+Repo-held context for Claude Code and Cursor: `.claude/skills/memnet-repo/SKILL.md` and `.cursor/rules/memnet-repo.mdc` (build/test, layout, SysML SSOT, conventions).
+
 ## Skill routing
 
 **Repo skills** (`.cursor/skills/`): this checkout **vendors** the MemNet stack. **Core:** `memnet-use` + `mcp-memnet` + `memnet-format` + `memnet-nested-sessions` + `memnet-multitask`. **Build:** `memnet-reference`. SysML / codebase are specialists. Routing: [`.cursor/skills/SKILL-GRAPH.md`](.cursor/skills/SKILL-GRAPH.md). Optional human-machine pack: [cursor-user-skills](https://github.com/chouswei/cursor-user-skills) — this folder wins here.
