@@ -377,7 +377,7 @@ package MemNetVerification {
       require constraint {
         multitask.coordinator.doctrineAsIs == true
           and multitask.coordinator.importReceive.absorb.gateKind == "hard"
-          and multitask.coordinator.importReceive.absorb.actor == "engine"
+          and multitask.coordinator.importReceive.absorb.'actor' == "engine"
           and multitask.coordinator.importReceive.absorb.implemented == true
           and multitask.coordinator.importReceive.absorb.idPolicy.keep.idPolicy
             == "keep"
@@ -939,7 +939,7 @@ package MemNetVerification {
           and system.durable.mergeIsPerWriteLookup == true
           and system.durable.noReplacementStoreKey == true
           and system.durable.retiredNeo4jEnvIgnored == true
-          and system.pinMaps.interface.leftoverLocatorMint == true
+          and system.pinMaps.'interface'.leftoverLocatorMint == true
           and system.multitask.coordinator.importReceive.absorb.idPolicy
             .remint.leftoverInventedMint == true
       }
@@ -1152,10 +1152,10 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.leftoverRequireAnchorProductCommand
             == false
-          and system.pinMaps.interface.matchByLabelsAndProps == true
-          and system.pinMaps.interface.leftoverAllocateIsProductCommand
+          and system.pinMaps.'interface'.matchByLabelsAndProps == true
+          and system.pinMaps.'interface'.leftoverAllocateIsProductCommand
             == false
-          and system.pinMaps.interface.leftoverAllocateFromLocatorProductCommand
+          and system.pinMaps.'interface'.leftoverAllocateFromLocatorProductCommand
             == false
           and system.multitask.coordinator.importReceive.absorb
             .leftoverIdPolicyIsProductCommand == false
@@ -3014,9 +3014,10 @@ package MemNetVerification {
       relationship field (id, merge, src, dist, relation) is refused
       invalid_field with no write; (B3) a relationship SET with no WHERE
       and no id pattern is refused unsupported_predicate naming SET /
-      WHERE (never DELETE) with no write, while a SET whose pattern
-      carries an id needs no WHERE; quoted literals in WHERE or SET are
-      never scanned as SET targets. tests/test_d02_where_set_refusal.py
+      WHERE (never DELETE) with no write, while a SET whose relationship
+      pattern carries an id ([r {id:…}]) needs no WHERE; an end-node id
+      alone does not exempt it (refused unsupported_predicate); quoted
+      literals in WHERE or SET are never scanned as SET targets. tests/test_d02_where_set_refusal.py
       and tests/test_d02_followups.py assert the fix.
       Behaviour: WhereSetRefusalFix (implemented).
     */
