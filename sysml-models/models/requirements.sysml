@@ -51,10 +51,10 @@
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
                        benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.12 implemented, rest target only
-    MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
+    MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE (implemented; tests/test_range_where.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
-    MN-REQ-14.4        Id/property index and linear session load
+    MN-REQ-14.4        Nickname id index and linear session load (implemented; tests/test_id_index.py, test_id_index_perf.py)
     MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
     MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
@@ -2470,27 +2470,29 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_1_WhereRangeComparison {
         doc /*
-          Status: PROPOSAL. Today a WHERE with < > <= >= is refused
-          (unsupported_predicate, gql.py:249-251), measured on ee36a95 and
-          bb4a4dc. The board wake needs rowRev > $since. SHALL accept
-          < > <= >= in MATCH WHERE (and FILTER) between a property and a
-          parameter, honouring the predicate on read and on WHERE ... SET /
-          DELETE (MN-REQ-03.4). Literals are allowed only off the agent wire;
-          the agent wire takes parameters only (ADR-001). Type rules:
-          (1) the parameter's type sets the comparison type; (2) only string
-          and numeric are supported, and int and float compare as numbers;
-          (3) strings compare by code point (for UTF-8 the same as byte
-          order), with no locale collation; (4) no implicit coercion;
-          comparing a boolean or null with a range operator is refused;
-          (5) a row without the property does not match, and that is not an
-          error; (6) if any candidate row holds the property with a
-          different type, the whole statement is refused before any SET or
-          DELETE write, so there is no partial write. The refusal code is a
-          new code, type_mismatch; unsupported_predicate stays for an
-          operator that is not supported. Bound: rowRev is a fixed-width
+          Status: implemented (owner's rules). Before this cut a WHERE with
+          < > <= >= was refused unsupported_predicate (gql.py:249-251,
+          measured on ee36a95 and bb4a4dc). Rules: (1) < > <= >= SHALL be
+          honoured in a node WHERE and in a relationship WHERE, for
+          WHERE ... SET and WHERE ... DELETE (MN-REQ-03.4). A relationship
+          WHERE ... DELETE is now honoured: if it matches no relationship
+          it is refused not_found, if it matches more than one it is refused
+          cue_conflict, and nothing is deleted. (2) The right operand is a
+          number literal or a quoted string; any other right operand (a
+          property, a $param, a boolean or null) is refused
+          unsupported_predicate. (3) A stored field counts as numeric iff it
+          reads as a number. Number compares with number, string with
+          string by code point (for UTF-8 the same as byte order), with no
+          locale collation. (4) A mixed pair (number against string), a
+          missing property or an empty value does not match; that is not an
+          error and there is no type_mismatch code. (5) NOT over a no-match
+          stays no match (NOT does not turn a missing or mixed field into a
+          match). (6) On any refusal nothing is written, so there is no
+          partial write. (7) Agent MATCH ... RETURN stays product-gated
+          (gql_parse_front.py; paged reads are 14.2), so the board wake
+          read is not opened by this leaf. Bound: rowRev is a fixed-width
           6-digit string, so string order equals rev order only up to
-          999,999; past that either the bound is written down as a limit or
-          rowRev becomes numeric (open question for Elon).
+          999,999. Evidence: tests/test_range_where.py.
           Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
         */
         attribute requirementId : String = "MN-REQ-14.1";
@@ -2546,20 +2548,22 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_4_IdIndexAndLinearLoad {
         doc /*
-          Status: PROPOSAL. Today id lookup scans every record
-          (match_nickname, mem_store.py:253-266; no nickname index) at
-          1.2-1.7 ms for 31k records and growing linearly; session load
-          builds a hid set per edge end (load_records, mem_store.py:60) and
-          is quadratic: 31k records take 34.9 s snapshot load (80-85 s on
-          the load_records path). The "id" looked up today is the nickname
-          fields['id'] (match_nickname), not the store key, which is the
-          hid. SHALL keep an index over both keys: the nickname property
-          id, and the real id of MN-REQ-14.6. The index is rebuilt on load
-          and is not stored in the snapshot; iteration order is preserved.
-          SHALL load a snapshot in time linear in records. Index and load
-          SHALL NOT change what a read returns (same rows, same order) and
-          SHALL survive evict and restore (MN-REQ-05.5). 14.4 lands before
-          14.5. Verify: MN-VER-14-S04. Behaviour: SessionLoadLinear.
+          Status: implemented. Before this cut id lookup scanned every
+          record (match_nickname, mem_store.py:253-266; no nickname index)
+          at 1.2-1.7 ms for 31k records, and session load built a hid set
+          per edge end (load_records, mem_store.py:60), quadratic: 31k
+          records took 34.9 s snapshot load. The "id" looked up is the
+          nickname fields['id'] (match_nickname), not the store key (hid).
+          MemStore SHALL keep a nickname index (nickname -> hids, so
+          duplicate nicknames stay allowed); it is rebuilt on load and never
+          stored in the snapshot. Lookups through the index SHALL return the
+          same rows in the same order as the scan did. A snapshot SHALL load
+          in time linear in records. Bound: a nickname lookup takes at most
+          0.02 ms at 5,000 rows. Index and load SHALL NOT change what a read
+          returns and SHALL survive evict and restore (MN-REQ-05.5). The
+          real-id key of MN-REQ-14.6 stays target only. 14.4 lands before
+          14.5. Evidence: tests/test_id_index.py, tests/test_id_index_perf.py.
+          Verify: MN-VER-14-S04. Behaviour: SessionLoadLinear.
         */
         attribute requirementId : String = "MN-REQ-14.4";
       }
@@ -2610,6 +2614,10 @@ package MemNetRequirements {
           restore SHALL NOT mint or rewrite ids (existing owner rule);
           id-less legacy links stay id-less. (4) The id index SHALL refuse
           a write whose id is a duplicate of an existing or tombstoned id.
+          INTERIM NOTE (as built, not this target): engine-minted nickname
+          ids keep a per-prefix high-water that is never lowered (snapshot
+          line "#@IDHW:"), so they are time-ordered and never reused, even
+          after a delete. UUIDv7 and tombstones stay target only.
           Verify: MN-VER-14-S06. Behaviour: IdMintAndRetire, IdLifecycle.
         */
         attribute requirementId : String = "MN-REQ-14.6";

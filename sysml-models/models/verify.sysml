@@ -54,13 +54,13 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Atelier-board asks (MN-VER-14-S01..S12; S09 to S12 implemented with
+  Atelier-board asks (MN-VER-14-S01..S12; S01, S04 and S09 to S12 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
-    MN-REQ-14.1 WHERE range (S01)
+    MN-REQ-14.1 WHERE range, implemented (S01)
     14.2 paged reads, PARKED (S02)
     14.3 typed directed walks, PARKED (S03)
-    14.4 id index + linear load (S04)
+    14.4 nickname id index + linear load, implemented (S04)
     14.5 raisable record cap, depends on 14.4 (S05)
     14.6 id design (S06)
     14.7 MCP surface handles only (S07)
@@ -2664,26 +2664,27 @@ package MemNetVerification {
     : MN_VER_13_S01_RecallCommitTwoOperators;
   verification def MN_VER_14_S01_WhereRangeComparison {
     doc /*
-      MN-REQ-14.1 (PROPOSAL) — MATCH (r:Row) WHERE r.rowRev > $since
-      returns exactly the rows with a greater rowRev and no others; < <= >=
-      likewise; the same predicate honours WHERE ... SET / DELETE; a type
-      mismatch refuses with the new code type_mismatch (not
-      unsupported_predicate) instead of an empty result, for the whole
-      statement before any SET or DELETE write (no partial write); a
-      boolean or null operand is refused; int and float compare as numbers;
-      strings compare by code point; a row without the property does not
-      match; rowRev past 999,999 is outside the 6-digit string order.
+      MN-REQ-14.1 (implemented) — < > <= >= in a node WHERE and in a
+      relationship WHERE, with SET and with DELETE, touch exactly the
+      matching records and no others; a relationship WHERE ... DELETE that
+      matches none is refused not_found, more than one cue_conflict; a
+      right operand that is a property, a $param, a boolean or null is
+      refused unsupported_predicate; a field is numeric iff it reads as a
+      number; numbers compare as numbers, strings by code point; a mixed
+      pair, a missing property or an empty value does not match (no
+      type_mismatch code); NOT over a no-match stays no match; nothing is
+      written on a refusal; agent MATCH ... RETURN stays product-gated
+      (14.2). rowRev past 999,999 is outside the 6-digit string order.
       Behaviour: BoardWakeRead, RangeWhereCompare.
-      Today (bb4a4dc) the statement is refused unsupported_predicate
-      (gql.py:249-251). Bench: platform-plan/bench/memnet-engine.py wake
-      case. Runtime test planned, not written.
+      Before (bb4a4dc) the statement was refused unsupported_predicate
+      (gql.py:249-251). Runtime test: tests/test_range_where.py.
     */
     attribute verificationId : String = "MN-VER-14-S01";
 
     subject system : MemNetSystem;
 
     objective atelierBoardS01 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_range_where.py asserts the range WHERE rules. */
       verify whereRangeComparisonReq;
       verify honourWherePredicateReq;
     }
@@ -2730,16 +2731,15 @@ package MemNetVerification {
 
   verification def MN_VER_14_S04_IdIndexAndLinearLoad {
     doc /*
-      MN-REQ-14.4 (PROPOSAL) — id lookup at 31k records does not grow
-      linearly with records (today 1.2-1.7 ms, scan in mem_store.py:253-266);
-      pass bar: compare the 7.8k and 31k bench sizes, where load time at
-      31k is at most about 4 times (31k / 7.8k, linear) the time at 7.8k,
-      not about 16 times (quadratic); the lookup time at 31k is not above
-      the lookup time at 7.8k by the record ratio. Index covers the
-      nickname id and the real id; it is rebuilt on load, not stored;
-      results, order and evict/restore fidelity (MN-VER-05-S09)
-      unchanged (today 31k load 34.9 s, quadratic at mem_store.py:60).
-      Bench: memnet-engine.py id lookup and session load cases.
+      MN-REQ-14.4 (implemented) — MemStore keeps a nickname index, rebuilt
+      on load and never stored; a lookup through it returns the same rows
+      in the same order as a full scan, duplicate nicknames included;
+      snapshot load is linear in records (before: 31k load 34.9 s,
+      quadratic at mem_store.py:60); a nickname lookup takes at most
+      0.02 ms at 5,000 rows (before: scan in mem_store.py:253-266,
+      1.2-1.7 ms at 31k); results, order and evict/restore fidelity
+      (MN-VER-05-S09) unchanged. Runtime tests: tests/test_id_index.py,
+      tests/test_id_index_perf.py.
       Behaviour: SessionLoadLinear.
     */
     attribute verificationId : String = "MN-VER-14-S04";
@@ -2747,7 +2747,7 @@ package MemNetVerification {
     subject system : MemNetSystem;
 
     objective atelierBoardS04 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_id_index.py and tests/test_id_index_perf.py assert the index and linear load. */
       verify idIndexAndLinearLoadReq;
       verify loadSessionSnapshotReq;
     }
@@ -3018,7 +3018,9 @@ package MemNetVerification {
       pattern carries an id ([r {id:…}]) needs no WHERE; an end-node id
       alone does not exempt it (refused unsupported_predicate); quoted
       literals in WHERE or SET are never scanned as SET targets. tests/test_d02_where_set_refusal.py
-      and tests/test_d02_followups.py assert the fix.
+      and tests/test_d02_followups.py assert the fix; the end-node id case
+      is tests/test_d02_followups.py::test_b3_set_with_only_end_node_id_is_refused
+      and ::test_b3_refusal_names_relationship_id_pattern.
       Behaviour: WhereSetRefusalFix (implemented).
     */
     attribute verificationId : String = "MN-VER-14-D02";

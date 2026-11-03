@@ -527,7 +527,8 @@ package MemNetImplementation {
   // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
   // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
   // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
-  // 14.1 and 14.4-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
+  // 14.1 and 14.4 are implemented (tests/test_range_where.py, tests/test_id_index.py);
+  // 14.5-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
   // 14.2 and 14.3 are PARKED.
   part def AtelierBoardAskPlan {
     doc /*
@@ -565,24 +566,30 @@ package MemNetImplementation {
     // No satisfy: implemented=false must not look done to a tracker.
   }
 
-  // ----- Atelier-board target structure (PROPOSAL 14.1, 14.4-14.8; MN-REQ-14) -----
+  // ----- Atelier-board target structure (PROPOSAL 14.5-14.8; MN-REQ-14) -----
   // Target design only: implemented=false, no SoftwareAllocate, no CodeModule
   // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
   // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
+  // Exception: IdIndex is implemented for 14.4 and satisfies it; its 14.6
+  // part stays a target trace.
 
   part def IdIndex {
     doc /*
-      PROPOSAL (MN-REQ-14.4 / 14.6). In-memory index keyed by the nickname
-      fields['id'] (match_nickname, mem_store.py:253-266) and by the real
-      id (store key hid). Rebuilt on load, never stored; iteration order
-      preserved. Refuses a duplicate of an existing or tombstoned id.
+      Implemented (MN-REQ-14.4; MemStore in mem_store.py; tests
+      tests/test_id_index.py, tests/test_id_index_perf.py). In-memory
+      index by nickname fields['id'] to hid; duplicate nicknames stay
+      allowed (B-D2), so one nickname may map to several hids, in store
+      order. Rebuilt on load, never stored; reads return the same rows in
+      the same order. Engine-minted nickname ids come from a per-prefix
+      high-water that is never lowered and never reuses an id, even after
+      a delete. The high-water persists through the snapshot "#@IDHW:"
+      line only (snapshot persistence); durable / agensgraph does not
+      carry it yet. Still target (MN-REQ-14.6): a real-id key, UUIDv7
+      minting, tombstones and refusal of a duplicate or tombstoned id.
     */
-    attribute implemented : Boolean = false;
-  }
-  dependency targetTrace_IdIndex_14_4
-    from IdIndex
-    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad {
-    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+    attribute implemented : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
   }
   dependency targetTrace_IdIndex_14_6
     from IdIndex

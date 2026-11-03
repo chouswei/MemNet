@@ -1581,11 +1581,15 @@ package MemNetBehaviour {
 
   action def SessionLoadLinear {
     doc /*
-      PROPOSAL (MN-REQ-14.4 / 14.5; verify MN-VER-14-S04, S05). Snapshot load builds the record
-      index once and resolves each edge end by lookup, so time is linear in
-      records (today a hid set per edge end, mem_store.py:60, quadratic;
-      31k records 34.9 s). The record cap (5,000 default, config.py:121)
-      is raisable only after this action holds (14.5 depends on 14.4).
+      Implemented (MN-REQ-14.4; verify MN-VER-14-S04; tests
+      tests/test_id_index.py, tests/test_id_index_perf.py). Snapshot load
+      builds the record index once and resolves each edge end by lookup,
+      so time is linear in records (before: a hid set per edge end,
+      mem_store.py:60, quadratic; 31k records 34.9 s). MemStore rebuilds
+      its nickname index on load and never stores it; reads return the
+      same rows in the same order. The record cap (5,000 default,
+      config.py:121) is raisable only after this action holds (14.5,
+      still PROPOSAL, depends on 14.4).
     */
     in item snapshotText : String;
     out item session : String;
@@ -1600,6 +1604,10 @@ package MemNetBehaviour {
       never reuse it. Lookup of a
       tombstoned id returns "deleted". Save, load and restore never mint
       or rewrite ids; id-less legacy links stay id-less.
+      INTERIM (as built): engine-minted nickname ids come from a
+      per-prefix high-water that is never lowered (snapshot "#@IDHW:"
+      line), so they are time-ordered and never reused; UUIDv7 and
+      tombstones stay target only.
     */
     in item record : String;
     out item id : String;
@@ -1629,15 +1637,18 @@ package MemNetBehaviour {
 
   action def RangeWhereCompare {
     doc /*
-      PROPOSAL (MN-REQ-14.1; verify MN-VER-14-S01; target only). WHERE
-      p < | > | <= | >= $param. The comparison type comes from the
-      parameter: string or number only (int and float compare as numbers;
-      strings by code point); no coercion. A boolean or null operand, or a
-      property whose type differs from the parameter, refuses the WHOLE
-      statement with the new code type_mismatch (not
-      unsupported_predicate) before any SET or DELETE write; nothing is
-      written. A row without the property does not match. Literals only
-      off the agent wire. rowRev is a 6-digit string, bounded at 999,999.
+      Implemented (MN-REQ-14.1; verify MN-VER-14-S01; tests
+      tests/test_range_where.py). p < | > | <= | >= on a node or
+      relationship WHERE, for SET and DELETE (relationship DELETE is
+      honoured: 0 matches refused not_found, more than 1 cue_conflict).
+      The right operand is a number literal or a quoted string; a
+      property, $param, boolean or null operand is refused
+      unsupported_predicate. A field is numeric iff it reads as a number;
+      number vs number, string vs string by code point. A mixed pair, a
+      missing property or an empty value does not match (no type_mismatch
+      code); NOT over a no-match stays no match. Nothing is written on a
+      refusal. Agent MATCH ... RETURN stays product-gated (14.2). rowRev is
+      a 6-digit string, bounded at 999,999.
     */
     in item predicate : String;
     in item param : String;
@@ -1708,7 +1719,8 @@ package MemNetBehaviour {
       (=, AND, OR, NOT, parentheses) and the SET applies to exactly the
       relationships that match the pattern and the WHERE; nothing is
       deleted and non-matching relationships are unchanged. A shape that
-      stays unsupported (for example a range comparison) is refused
+      stays unsupported (for example a range comparison whose right
+      operand is a property or a $param) is refused
       unsupported_predicate with a message naming the clause used (SET /
       WHERE, never DELETE), with no partial write. A relationship WHERE+SET
       that matches nothing, or whose end id does not resolve, is refused
