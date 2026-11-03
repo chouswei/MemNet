@@ -71,7 +71,7 @@
     14.12 incremental byte-budget check, total equal to a full recount (S12)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
-    MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message
+    MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message (FIXED)
   Session cap LRU evict (MN-VER-05-S03..S09, shipped, unreleased):
   MN-REQ-05.5 — oldest-touch pick; save first then drop; skip
   unsaveable; none evictable refuses limit_exceeded (all sessions are in
@@ -2950,23 +2950,30 @@ package MemNetVerification {
       tests/test_join_payload_vectorised.py. Cases: (a) after every create,
       update, delete, import, hydrate and load the incremental total
       equals full_recount_total (MEMNET_DEBUG_SESSION_BYTES=1 asserts it);
-      (b) a write costs O(changed rows plus incident edges of changed
-      nodes), amortised, with one O(rows) rebuild only after load,
-      hydrate, a SCHEMA change, a rollback or a nick collision; (c) SCHEMA widening by an undeclared key, a
+      (b) a write re-encodes only changed nodes plus the incident edges of
+      changed nodes, with one full rebuild only after load, hydrate, a
+      store swap (MemStore replaced), a SCHEMA change, a rollback, a
+      row-count check mismatch (row count differs from rows seen) or a
+      leftover-nick collision; (c) SCHEMA widening by an undeclared key, a
       node rename (edge lines carry endpoint nicks) and relation folding
       are accounted exactly; (d) a bypass_guard rollback, or a failure
       inside the sync, invalidates the ledger and the next check rebuilds
       it equal to a full recount; (e) the refusal text stays
       session_bytes|{total}/{budget} with {total} the partial sum in write
       order; (f) join_payload (str.translate) is byte-identical to the
-      former per-character loop. Behaviour: SessionByteBudgetStates.
+      former per-character loop (no complexity bound is claimed for
+      join_payload); (g) the ledger is dropped on expire and on
+      save-on-expire and the next load rebuilds a total equal to a full
+      recount, run by
+      tests/test_d02_followups.py::test_ledger_dropped_on_expire*.
+      Behaviour: SessionByteBudgetStates.
     */
     attribute verificationId : String = "MN-VER-14-S12";
 
     subject system : MemNetSystem;
 
     objective atelierBoardS12 {
-      doc /* Implemented: tests/test_session_bytes_incremental.py, tests/test_join_payload_vectorised.py. */
+      doc /* Implemented: tests/test_session_bytes_incremental.py, tests/test_join_payload_vectorised.py; (g) tests/test_d02_followups.py::test_ledger_dropped_on_expire*. */
       verify incrementalByteBudgetReq;
     }
   }
@@ -2994,21 +3001,31 @@ package MemNetVerification {
 
   verification def MN_VER_14_D02_WhereRelationSetRefusedAsDelete {
     doc /*
-      DEFECT record (not a requirement; no fix claimed). A WHERE on a
-      relationship pattern combined with SET is refused with a DELETE
-      message (wrong refusal text, SET named as DELETE); MN-REQ-03.4
-      requires honour-or-refuse with an accurate code. Reproduced by
-      tests/test_d02_where_set_refusal.py (passes on today's engine while
-      the defect stands; the fix flips it). Open until the message is
-      fixed. Planned fix
-      behaviour: WhereSetRefusalFix (proposal).
+      DEFECT record, FIXED (not a requirement). A WHERE on a relationship
+      pattern combined with SET was refused with a DELETE message (wrong
+      refusal text, SET named as DELETE); MN-REQ-03.4 requires
+      honour-or-refuse with an accurate code. Fixed: the SET applies to
+      exactly the matching relationships, nothing is deleted, and an
+      unsupported relationship WHERE shape is refused
+      unsupported_predicate naming the clause used, with the session
+      unchanged. Follow-ups (PR #246 review): (B1) a relationship
+      WHERE+SET that matches nothing, or whose end id does not resolve,
+      is refused not_found with no write; (B2) SET on a protected
+      relationship field (id, merge, src, dist, relation) is refused
+      invalid_field with no write; (B3) a relationship SET with no WHERE
+      and no id pattern is refused unsupported_predicate naming SET /
+      WHERE (never DELETE) with no write, while a SET whose pattern
+      carries an id needs no WHERE; quoted literals in WHERE or SET are
+      never scanned as SET targets. tests/test_d02_where_set_refusal.py
+      and tests/test_d02_followups.py assert the fix.
+      Behaviour: WhereSetRefusalFix (implemented).
     */
     attribute verificationId : String = "MN-VER-14-D02";
 
     subject system : MemNetSystem;
 
     objective atelierBoardD02 {
-      doc /* Defect repro test: tests/test_d02_where_set_refusal.py. */
+      doc /* Implemented: tests/test_d02_where_set_refusal.py and tests/test_d02_followups.py assert the fix. */
       verify honourWherePredicateReq;
     }
   }

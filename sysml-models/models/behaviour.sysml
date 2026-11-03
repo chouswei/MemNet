@@ -1702,12 +1702,23 @@ package MemNetBehaviour {
 
   action def WhereSetRefusalFix {
     doc /*
-      PROPOSAL (defect D02; verify MN-VER-14-D02; target only). A WHERE on
-      a relationship pattern combined with SET is refused today with a
-      DELETE message. Fix: the refusal names SET (the clause actually
-      used) with an accurate code, per MN-REQ-03.4 honour-or-refuse; once
-      relationship WHERE is honoured, WHERE ... SET applies to exactly the
-      matching relationships and nothing else. No partial write on refusal.
+      Implemented (defect D02 fixed; verify MN-VER-14-D02; per MN-REQ-03.4
+      honour-or-refuse). A WHERE on a relationship pattern combined with
+      SET is honoured: the WHERE takes the same predicates as a node WHERE
+      (=, AND, OR, NOT, parentheses) and the SET applies to exactly the
+      relationships that match the pattern and the WHERE; nothing is
+      deleted and non-matching relationships are unchanged. A shape that
+      stays unsupported (for example a range comparison) is refused
+      unsupported_predicate with a message naming the clause used (SET /
+      WHERE, never DELETE), with no partial write. A relationship WHERE+SET
+      that matches nothing, or whose end id does not resolve, is refused
+      not_found with no write. SET on a protected relationship field (id,
+      merge, src, dist, relation) is refused invalid_field with no write.
+      A relationship SET with no WHERE and no id pattern is refused
+      unsupported_predicate naming SET / WHERE, with no write; a SET whose
+      pattern carries an id needs no WHERE. Quoted literals in WHERE or SET
+      are never scanned as SET targets. Evidence:
+      tests/test_d02_where_set_refusal.py, tests/test_d02_followups.py.
     */
     in item statement : String;
     out item reply : String;

@@ -679,7 +679,8 @@ package MemNetImplementation {
       incremental_total, full_recount_total, check_budget; dirty journal on
       MemStore). Per-session running sum of escaped UTF-8 line bytes,
       updated on create, update, delete, import, hydrate and load; a write
-      costs O(changed rows plus the incident edges of changed nodes). The
+      re-encodes the changed nodes plus the incident edges of changed
+      nodes. The
       total equals full_recount_total at every point
       (MEMNET_DEBUG_SESSION_BYTES=1 asserts it). A bypass_guard rollback or
       a failure inside the sync invalidates the ledger; the next check
@@ -695,7 +696,7 @@ package MemNetImplementation {
       PROPOSAL (MN-REQ-14; target only). Composes the MN-REQ-14 target
       parts and wires the behaviour: range WHERE (14.1), cap enforcement on
       write and load at line cap 135,168 (14.9 / 14.10), the D02 WHERE+SET
-      refusal fix, the id lifecycle (14.6) and the session byte budget
+      fix (implemented; MN-VER-14-D02 fixed), the id lifecycle (14.6) and the session byte budget
       (14.10). 14.2 paging and 14.3 typed walks stay PARKED and are not
       composed here.
     */
