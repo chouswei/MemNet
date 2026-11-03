@@ -200,6 +200,95 @@ def test_range_no_match_is_not_found(memnet_temp, values, where):
     _assert_refused(ss, f"MATCH (n:T) WHERE {where} DELETE n", "not_found")
 
 
+# ----- non-finite fields are UNKNOWN: kept out under NOT, OR and AND -----
+
+_NON_FINITE = ("1e999", "-1e999", "nan")
+
+
+@pytest.mark.parametrize("odd", _NON_FINITE)
+@pytest.mark.parametrize(
+    "where",
+    [
+        "NOT n.x < 5",
+        "NOT n.x > 5",
+        "NOT n.x >= 0",
+        "NOT (n.x < 5 OR n.name = 'zzz')",
+        "NOT n.x < 5 OR n.name = 'zzz'",
+        "NOT (n.x < 5 AND n.name = 'n0')",
+    ],
+)
+def test_non_finite_alone_no_match(memnet_temp, odd, where):
+    ss = _session(odd)
+    _assert_refused(ss, f"MATCH (n:T) WHERE {where} SET n.y = 'hit'", "not_found")
+    _assert_refused(ss, f"MATCH (n:T) WHERE {where} DELETE n", "not_found")
+
+
+@pytest.mark.parametrize("odd", _NON_FINITE)
+def test_non_finite_not_excluded_with_finite_excluded(memnet_temp, odd):
+    # 3 < 5 so NOT drops N1 too: nothing matches
+    ss = _session(odd, "3")
+    _assert_refused(ss, "MATCH (n:T) WHERE NOT n.x < 5 SET n.y = 'hit'", "not_found")
+
+
+@pytest.mark.parametrize("odd", _NON_FINITE)
+@pytest.mark.parametrize(
+    "where",
+    [
+        "NOT n.x < 5",
+        "NOT n.x <= 5",
+        "NOT (n.x < 5 OR n.name = 'zzz')",
+        "NOT n.x < 5 AND n.name <> 'zzz'",
+    ],
+)
+def test_non_finite_not_selects_only_finite(memnet_temp, odd, where):
+    ss = _session("7", odd)
+    _set(ss, where)
+    assert _hits(ss) == ["N0"]
+
+
+@pytest.mark.parametrize("odd", _NON_FINITE)
+@pytest.mark.parametrize("where", ["n.x < 5 OR n.name = 'zzz'", "n.x > -5 OR n.name = 'zzz'"])
+def test_non_finite_or_selects_only_finite(memnet_temp, odd, where):
+    ss = _session(odd, "3")
+    _set(ss, where)
+    assert _hits(ss) == ["N1"]
+
+
+def _rel_n_session(*ns):
+    """P0..Pk; edge E<i> P0->P<i+1> :links with n = ns[i] (quoted)."""
+    ss = open_session(map_lines=_REL_MAP)
+    gate = MutateGate(ss)
+    gate.apply(
+        [f"CREATE (:PRT {{id: 'P{i}', name: 'part{i}', role: '{i}'}})" for i in range(len(ns) + 1)],
+        mode="mutate",
+        allow_new_relation=True,
+    )
+    for i, n in enumerate(ns):
+        gate.apply(
+            [
+                f"MATCH (a {{id: 'P0'}}), (b {{id: 'P{i + 1}'}}) "
+                f"CREATE (a)-[:links {{id: 'E{i}', kind: 'a', n: {_gql_str(n)}}}]->(b)"
+            ],
+            mode="mutate",
+            allow_new_relation=True,
+        )
+    return ss
+
+
+@pytest.mark.parametrize("odd", _NON_FINITE)
+@pytest.mark.parametrize("where", ["NOT r.n < 5", "NOT (r.n < 5 OR r.kind = 'zzz')"])
+def test_relationship_non_finite_kept_out_under_not(memnet_temp, odd, where):
+    ss = _rel_n_session("7", odd)
+    before = _edges(ss)
+    _mutate(ss, f"MATCH ()-[r:links]-() WHERE {where} SET r.kind = 'b'")
+    after = _edges(ss)
+    assert after["E0"] == {**before["E0"], "kind": "b"}
+    assert after["E1"] == before["E1"]
+    ss2 = _rel_n_session("7", odd)
+    _mutate(ss2, f"MATCH ()-[r:links]-() WHERE {where} DELETE r")
+    assert set(_edges(ss2)) == {"E1"}
+
+
 # ----- refused shapes: unsupported_predicate, session unchanged -----
 
 
