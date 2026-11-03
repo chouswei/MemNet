@@ -67,7 +67,7 @@
     14.8 developer surface real ids (S08)
     14.9 value cap 32,768 bytes + line cap 135,168 (S09)
     14.10 per-session total-bytes cap (S10)
-    14.11 bypass-path caps: import, hydrate, CLI delete/prune (S11)
+    14.11 bypass-path caps: import, hydrate; CLI delete/prune line cap only (S11)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
     MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message
@@ -2855,8 +2855,9 @@ package MemNetVerification {
 
   verification def MN_VER_14_S09_ValueCap32k {
     doc /*
-      MN-REQ-14.9 (PROPOSAL; flagged for Elon), model-level cases: (a) a
-      value of 32768 bytes is accepted; (b) a value of 32769 bytes is
+      MN-REQ-14.9 (implemented; runtime tests tests/test_value_cap_32k.py,
+      tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py),
+      cases: (a) a value of 32768 bytes is accepted; (b) a value of 32769 bytes is
       refused with a clear error; (c) the cap counts bytes, not characters
       (multi-byte UTF-8); (d) a snapshot written with values of 4096 bytes
       or less still loads; (e) MEMNET_MAX_VALUE_BYTES still overrides the
@@ -2880,7 +2881,7 @@ package MemNetVerification {
     subject system : MemNetSystem;
 
     objective atelierBoardS09 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_value_cap_32k.py, tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py. */
       verify valueCap32kReq;
       verify consistentValueByteCapReq;
       verify storeResourceCapsReq;
@@ -2913,9 +2914,11 @@ package MemNetVerification {
 
   verification def MN_VER_14_S11_BypassPathCaps {
     doc /*
-      MN-REQ-14.11, run by tests/test_bypass_paths_caps.py. For each of
-      snapshot import, durable hydrate and CLI delete/prune: (a) a record
-      over the value cap is refused value_bytes|{n}/{max}; (b) a record, edge
+      MN-REQ-14.11, run by tests/test_bypass_paths_caps.py. Scope: (a)
+      value cap and (c) byte budget apply to snapshot import and durable
+      hydrate only; (b) line cap applies to snapshot import, durable hydrate
+      and CLI delete/prune. Cases: (a) a record over the value cap is
+      refused value_bytes|{n}/{max}; (b) a record, edge
       or SCHEMA line over the line cap is refused line_bytes|{n}/{max};
       (c) a result over the byte budget is refused session_bytes|{n}/{max};
       in every case the session (lines, relations, write order) is
