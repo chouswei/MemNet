@@ -324,7 +324,7 @@ def eval_where(rec: Any, pred: WherePred) -> bool:
 
 
 def _eval3(rec: Any, pred: WherePred) -> bool | None:
-    """Three-valued WHERE: None is UNKNOWN (a range op on a missing or mistyped field)."""
+    """Three-valued WHERE: None is UNKNOWN (a range op on a missing, mistyped or non-finite field)."""
     op = pred.op
     if op == "TRUE":
         return True
@@ -382,7 +382,7 @@ def _eval_range(raw: str, op: str, value: str, vtype: str) -> bool | None:
             return None
         left = _as_number(raw)
         if isinstance(left, float) and not math.isfinite(left):
-            return False
+            return None
         right = _as_number(value)
     elif vtype == "str":
         if numeric:

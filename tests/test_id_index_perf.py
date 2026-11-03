@@ -68,6 +68,7 @@ def test_resolve_one_is_constant_time(big_caps):
     assert store.resolve_one("P42") is not None
     assert store.resolve_one("MISS0") is None
     ms = _best_ms_per_call(store.resolve_one, tokens)
+    print(f"resolve_one: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})", flush=True)
     assert ms <= _MAX_MS_PER_CALL, f"resolve_one {ms:.4f} ms/call on {_LOOKUP_ROWS} rows"
 
 
@@ -77,6 +78,7 @@ def test_match_nickname_is_constant_time(big_caps):
     assert len(store.match_nickname("P42")) == 1
     assert store.match_nickname("MISS0") == []
     ms = _best_ms_per_call(store.match_nickname, tokens)
+    print(f"match_nickname: {ms:.5f} ms/call on {_LOOKUP_ROWS} rows (limit {_MAX_MS_PER_CALL})", flush=True)
     assert ms <= _MAX_MS_PER_CALL, f"match_nickname {ms:.4f} ms/call on {_LOOKUP_ROWS} rows"
 
 
@@ -132,6 +134,11 @@ def test_snapshot_load_is_linear(memnet_temp, big_caps, tmp_path: Path):
     t_small = _best_load_seconds(small)
     t_large = _best_load_seconds(large)
     ratio = t_large / t_small
+    print(
+        f"load: {_LOAD_LARGE} rows {t_large:.4f}s, {_LOAD_SMALL} rows {t_small:.4f}s,"
+        f" ratio {ratio:.2f} (limit {_MAX_LOAD_RATIO})",
+        flush=True,
+    )
     assert ratio <= _MAX_LOAD_RATIO, (
         f"load {_LOAD_LARGE} rows {t_large:.3f}s / {_LOAD_SMALL} rows {t_small:.3f}s"
         f" = {ratio:.1f} > {_MAX_LOAD_RATIO}"
