@@ -742,13 +742,13 @@ package MemNetRequirements {
           The field-value byte cap SHALL be one hard cap on leftover
           pipe mutate, GQL mutate, and snapshot load, measured as the
           UTF-8 byte length of the decoded (raw) property value.
-          Default 4096. Knob MEMNET_MAX_VALUE_BYTES (a product MAY
-          raise it to 16384). Over-cap SHALL refuse
+          Knob MEMNET_MAX_VALUE_BYTES, default 32768. Over-cap SHALL refuse
           limit_exceeded|value_bytes n/max and SHALL NOT accept the
           write. line_bytes is the UTF-8 byte length of the
           escaped/raw leftover-pipe or snapshot line (backslash and
           pipe count twice). Save verify and load SHALL use the same
-          check (MEMNET_MAX_LINE_BYTES, default 32768). A single
+          check (MEMNET_MAX_LINE_BYTES, default 135168 (4 x 32768 + 4096,
+          worst-case escaping)). A single
           field under value_bytes still fits default line_bytes;
           many fields whose escaped form exceeds line_bytes SHALL
           fail closed at save (snapshot_unsaveable wrapping
