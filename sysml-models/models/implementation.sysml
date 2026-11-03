@@ -524,13 +524,17 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; not allocated) -----
-  // No SoftwareAllocate and no CodeModule path: nothing is shipped.
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.11 implemented, 14.2-14.3 PARKED) -----
+  // 14.9, 14.10 and 14.11 are shipped with runtime tests (SessionByteBudget in snapshot.py,
+  // BypassPathCaps in bypass_caps.py; config.py holds the caps).
+  // 14.1 and 14.4-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
+  // 14.2 and 14.3 are PARKED.
   part def AtelierBoardAskPlan {
     doc /*
-      Planned engine touch points for MN-REQ-14 (origin/master bb4a4dc,
-      parts/common/memnet/memnet/). Documentation of where a later cut
-      would land; the tracker MUST NOT list these as implemented.
+      Engine touch points for MN-REQ-14 (origin/master bb4a4dc,
+      parts/common/memnet/memnet/). 14.9-14.11 are implemented and
+      listed where they landed; the other items are where a later cut
+      would land, and the tracker MUST NOT list those as implemented.
       14.1 range WHERE: gql.py:249-251 (refusal today).
       14.2 paged reads (PARKED): config.py:68 cap; gql_parse_front.py:34.
       14.3 typed directed walks (PARKED): mem_store.py:378-429.
@@ -558,7 +562,7 @@ package MemNetImplementation {
     // No satisfy: implemented=false must not look done to a tracker.
   }
 
-  // ----- Atelier-board target structure (PROPOSAL; MN-REQ-14; not allocated) -----
+  // ----- Atelier-board target structure (PROPOSAL 14.1, 14.4-14.8; MN-REQ-14) -----
   // Target design only: implemented=false, no SoftwareAllocate, no CodeModule
   // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
   // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
