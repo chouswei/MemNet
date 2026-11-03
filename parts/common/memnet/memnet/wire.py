@@ -26,6 +26,7 @@ _ESC_EXTRA: dict[str, int] = {
     "|": 1,
     **{ch: len(esc) - len(ch.encode("utf-8")) for ch, esc in _SPLITLINES_ESC.items()},
 }
+_ESC_TABLE = str.maketrans({"\\": "\\\\", "|": "\\|", **_SPLITLINES_ESC})
 _HEX = frozenset("0123456789abcdefABCDEF")
 
 
@@ -114,20 +115,7 @@ def split_payload(payload: str) -> list[str]:
 
 
 def join_payload(fields: list[str]) -> str:
-    out: list[str] = []
-    for field in fields:
-        escaped: list[str] = []
-        for ch in field:
-            if ch == "\\":
-                escaped.append("\\\\")
-            elif ch == "|":
-                escaped.append("\\|")
-            elif ch in _SPLITLINES_ESC:
-                escaped.append(_SPLITLINES_ESC[ch])
-            else:
-                escaped.append(ch)
-        out.append("".join(escaped))
-    return "|".join(out)
+    return "|".join(field.translate(_ESC_TABLE) for field in fields)
 
 
 def escaped_utf8_len(value: str) -> int:
