@@ -51,7 +51,7 @@
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
                        benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.12 implemented, rest target only
-    MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE (implemented; tests/test_range_where.py)
+    MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id (implemented; tests/test_range_where.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
     MN-REQ-14.4        Nickname id index and linear session load (implemented; tests/test_id_index.py, test_id_index_perf.py)
@@ -2471,28 +2471,44 @@ package MemNetRequirements {
       requirement def MN_REQ_14_1_WhereRangeComparison {
         doc /*
           Status: implemented (owner's rules). Before this cut a WHERE with
-          < > <= >= was refused unsupported_predicate (gql.py:249-251,
-          measured on ee36a95 and bb4a4dc). Rules: (1) < > <= >= SHALL be
-          honoured in a node WHERE and in a relationship WHERE, for
-          WHERE ... SET and WHERE ... DELETE (MN-REQ-03.4). A relationship
-          WHERE ... DELETE is now honoured: if it matches no relationship
-          it is refused not_found, if it matches more than one it is refused
-          cue_conflict, and nothing is deleted. (2) The right operand is a
-          number literal or a quoted string; any other right operand (a
-          property, a $param, a boolean or null) is refused
-          unsupported_predicate. (3) A stored field counts as numeric iff it
-          reads as a number. Number compares with number, string with
-          string by code point (for UTF-8 the same as byte order), with no
-          locale collation. (4) A mixed pair (number against string), a
-          missing property or an empty value does not match; that is not an
-          error and there is no type_mismatch code. (5) NOT over a no-match
-          stays no match (NOT does not turn a missing or mixed field into a
-          match). (6) On any refusal nothing is written, so there is no
-          partial write. (7) Agent MATCH ... RETURN stays product-gated
-          (gql_parse_front.py; paged reads are 14.2), so the board wake
-          read is not opened by this leaf. Bound: rowRev is a fixed-width
-          6-digit string, so string order equals rev order only up to
-          999,999. Evidence: tests/test_range_where.py.
+          < > <= >= was refused unsupported_predicate (measured on ee36a95
+          and bb4a4dc). Rules: (1) < > <= >= SHALL be honoured in a node
+          WHERE (also inline, MATCH (n:T WHERE ...)) and in a relationship
+          WHERE, for WHERE ... SET and WHERE ... DELETE (MN-REQ-03.4;
+          gql.py:282-319). A node WHERE that matches no record is refused
+          not_found, more than one cue_conflict; a relationship WHERE ...
+          SET updates every match. A relationship WHERE ... DELETE is now
+          honoured (RelDropRec, gql.py:132; mutate_gate.py:996-1050): if it
+          matches no relationship it is refused not_found, if it matches
+          more than one it is refused cue_conflict, and nothing is deleted;
+          its WHERE takes predicates on the relationship only (a.* or b.*
+          is refused unsupported_predicate). (2) The left side is a
+          property; the right operand is a number literal or a quoted
+          string; any other right operand (a property, a $param, a boolean
+          or null, a bare word) or a literal on the left is refused
+          unsupported_predicate. (3) Ids are opaque identity: no meaning
+          comes from an id's value, order or sequence. A range comparison
+          on the id property of a node or relationship (n.id, r.id) is
+          refused unsupported_predicate at parse time, number or string
+          operand, bare or under AND / OR / NOT, with nothing written
+          (gql.py:287-289). Equality on id keeps working through the
+          nickname index (14.4). (4) A stored field counts as numeric iff
+          it fully reads as a number (exponent allowed). Number compares
+          with number, string with string by code point (for UTF-8 the same
+          as byte order), with no locale collation. A non-finite numeric
+          field (for example 1e999) never matches a number range
+          (gql.py:384). (5) A mixed pair (number against string), a missing
+          property or an empty value does not match; that is not an error
+          and there is no type_mismatch code. (6) WHERE is three-valued
+          (gql.py:321-399): such a comparison is UNKNOWN, AND / OR / NOT
+          carry UNKNOWN, and UNKNOWN is no match, so NOT over a no-match
+          stays no match. (7) On any refusal nothing is written, so there
+          is no partial write. (8) Agent MATCH ... RETURN stays
+          product-gated (gql_parse_front.py:34; paged reads are 14.2), so
+          the board wake read is not opened by this leaf. Bound: rowRev is a
+          fixed-width 6-digit string, so string order equals rev order only
+          up to 999,999. Evidence: tests/test_range_where.py,
+          tests/test_id_opaque_range.py.
           Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
         */
         attribute requirementId : String = "MN-REQ-14.1";
@@ -2501,7 +2517,7 @@ package MemNetRequirements {
       requirement def MN_REQ_14_2_PagedReadsPastCap {
         doc /*
           Status: PROPOSAL, PARKED for Elon's review (scope note r00002195);
-          not accepted. Today a read returns at most 50 rows (config.py:68)
+          not accepted. Today a read returns at most 50 rows (config.py:71)
           and agent RETURN is forbidden (gql_parse_front.py:34, product
           gate). Proposed: a read past the cap SHALL be reachable by a
           cursor (opaque, session-bound) or by a since-filter (14.1) so the
@@ -2528,8 +2544,8 @@ package MemNetRequirements {
         doc /*
           Status: PROPOSAL, PARKED for design review. Semantics change:
           mark before any cut. Today neighbors is untyped and undirected and
-          the fan-out cap applies to out-edges only (mem_store.py:378-429,
-          config.py:131); a two-step walk from an ask crosses the Session
+          the fan-out cap applies to out-edges only (neighbors, mem_store.py:628-680,
+          config.py:136); a two-step walk from an ask crosses the Session
           node (19,593 elements; one step already returns 123). Proposed: a
           walk (query_walk / neighbors) SHALL take two optional arguments,
           a relation type set and a direction, and when given SHALL follow
@@ -2549,17 +2565,25 @@ package MemNetRequirements {
       requirement def MN_REQ_14_4_IdIndexAndLinearLoad {
         doc /*
           Status: implemented. Before this cut id lookup scanned every
-          record (match_nickname, mem_store.py:253-266; no nickname index)
-          at 1.2-1.7 ms for 31k records, and session load built a hid set
-          per edge end (load_records, mem_store.py:60), quadratic: 31k
-          records took 34.9 s snapshot load. The "id" looked up is the
-          nickname fields['id'] (match_nickname), not the store key (hid).
-          MemStore SHALL keep a nickname index (nickname -> hids, so
-          duplicate nicknames stay allowed); it is rebuilt on load and never
-          stored in the snapshot. Lookups through the index SHALL return the
-          same rows in the same order as the scan did. A snapshot SHALL load
-          in time linear in records. Bound: a nickname lookup takes at most
-          0.02 ms at 5,000 rows. Index and load SHALL NOT change what a read
+          record (match_nickname; no nickname index) at 1.2-1.7 ms for 31k
+          records, and session load built a hid set per edge end
+          (load_records), quadratic: 31k records took 34.9 s snapshot load
+          (both measured on bb4a4dc). The "id" looked up is the nickname
+          fields['id'] (match_nickname), not the store key (hid). MemStore
+          SHALL keep a nickname index (nickname -> hids, so duplicate
+          nicknames stay allowed); as built it is RecordTable
+          (mem_store.py:34), the store's hid -> record dict, which updates
+          the index on every write, rollback included, and is never stored
+          in the snapshot. Lookups through the index (match_nickname,
+          resolve_one, match_nodes by id, find by id locator;
+          mem_store.py:423, :512, :523, pin_map_composer.py:494-512) SHALL
+          return the same rows in the same order as the scan did. A
+          snapshot SHALL load in time linear in records (load_records,
+          mem_store.py:205-232). Bounds (tests/test_id_index_perf.py): a
+          nickname lookup or resolve_one takes at most 0.02 ms at 5,000
+          rows; loading 8,000 rows takes at most 8 x the 2,000-row time.
+          The index serves equality lookup only; no range or order is
+          read from an id (14.1 rule 3). Index and load SHALL NOT change what a read
           returns and SHALL survive evict and restore (MN-REQ-05.5). The
           real-id key of MN-REQ-14.6 stays target only. 14.4 lands before
           14.5. Evidence: tests/test_id_index.py, tests/test_id_index_perf.py.
@@ -2571,8 +2595,8 @@ package MemNetRequirements {
       requirement def MN_REQ_14_5_RaisableSessionRecordCap {
         doc /*
           Status: PROPOSAL; DEPENDS ON MN-REQ-14.4. A session holds at most
-          5,000 records, nodes plus edges (config.py:121, mem_store.py:
-          102-107), about 25 symphonies of 195 records; load at 7.8k / 31k
+          5,000 records, nodes plus edges (config.py:125, mem_store.py:
+          267-272), about 25 symphonies of 195 records; load at 7.8k / 31k
           records is refused rows|5001/5000. The cap SHALL be raisable by
           the operator as a process-wide environment setting, not per
           session (default 5,000, unchanged) only once 14.4 lands: raising
@@ -2614,10 +2638,18 @@ package MemNetRequirements {
           restore SHALL NOT mint or rewrite ids (existing owner rule);
           id-less legacy links stay id-less. (4) The id index SHALL refuse
           a write whose id is a duplicate of an existing or tombstoned id.
-          INTERIM NOTE (as built, not this target): engine-minted nickname
-          ids keep a per-prefix high-water that is never lowered (snapshot
-          line "#@IDHW:"), so they are time-ordered and never reused, even
-          after a delete. UUIDv7 and tombstones stay target only.
+          INTERIM NOTE (as built, not this target): an id is opaque
+          identity only; no meaning comes from its value, order or
+          sequence, and none is promised. The engine guarantees only that
+          an engine-minted nickname id is unique among live rows and is
+          never minted again, even after a delete or a refused batch (a
+          refused batch's ids are burnt), across snapshot save / load and
+          checkpoint restore. For that alone the store keeps a per-prefix
+          high-water that is never lowered, clear() included
+          (mem_store.py:127-133), persisted as a snapshot "#@IDHW:" line
+          (snapshot.py:393-438); #@IDHW serves never-reuse only. Evidence:
+          tests/test_id_index.py (test_mint_* cases). UUIDv7 and
+          tombstones stay target only.
           Verify: MN-VER-14-S06. Behaviour: IdMintAndRetire, IdLifecycle.
         */
         attribute requirementId : String = "MN-REQ-14.6";
@@ -2668,7 +2700,7 @@ package MemNetRequirements {
           Status: implemented (tests/test_value_cap_32k.py,
           tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py);
           FLAGGED FOR ELON. The per-value cap
-          (MEMNET_MAX_VALUE_BYTES, config.py:126) rises from 4,096 to
+          (MEMNET_MAX_VALUE_BYTES, config.py:130) rises from 4,096 to
           32,768 bytes, one global value, no chunking, still overridable by
           env, because Atelier rows hold up to 8,000 characters, which is up
           to 32,000 bytes in UTF-8 (4 bytes per character). That is 768
@@ -2678,7 +2710,7 @@ package MemNetRequirements {
           with a clear error; the cap is counted in bytes. Snapshots written
           under the old cap SHALL still load. LINE CAP: a 32,768-byte value
           could not fit the old 32,768-byte line cap (MEMNET_MAX_LINE_BYTES,
-          config.py:127; the cap is now 135,168), because backslash and pipe are written twice
+          config.py:131; the cap is now 135,168), because backslash and pipe are written twice
           (docs/cap-contract.md:153-158 says a single value always fits a
           line, and caps a product raise at 16,384). 14.9 SHALL therefore
           also raise the default line cap (fixed interface, owner
@@ -2694,7 +2726,7 @@ package MemNetRequirements {
           value, after the write) and, if it exceeds the line cap, refuse
           limit_exceeded, message line_bytes|{n}/{max}, with nothing
           stored. The real cap applies to the whole physical line
-          (tag_map.py:282-289), so checking one value is not enough: a
+          (tag_map.py:291-298), so checking one value is not enough: a
           record whose fields each fit can still exceed the cap in total.
           With the whole-line check no accepted write makes a snapshot
           unsaveable, and a later change to the escape table cannot break

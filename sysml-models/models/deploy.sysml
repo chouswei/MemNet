@@ -1105,6 +1105,10 @@ package MemNet {
   part def HousekeepSettle {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
+      The stale warnings after a command take their recyclable / dangling /
+      orphan counts from one categorising pass (stale_counts,
+      housekeep.py:132; warnings.py:39;
+      tests/test_command_cost.py::test_stale_warnings_one_pass_same_lines).
       Recycle policy feeds PinMapShapedRead hide rules.
       This part deletes classified rows. recycle=delete_on_settle and
       recycle=delete_on_expire hide a row from pin_map. That mark is
@@ -1860,7 +1864,15 @@ package MemNet {
       merge / absorb as product commands (CueConflict is an emit mark;
       SameThingAbsorb is a Commit rule). TierA / Layer line codecs
       are RETIRED on product path (M2 done). As-is: memnet.cli
-      (+ serve_client). Python rewrite out of scope.
+      (+ serve_client). Command flow: every argv (in-process run_argv, as MCP uses it,
+      serve request, serve_client fallback) runs on one click command
+      built once per process (cli_command / invoke_cli,
+      in_process_engine.py:18, :39; serve.py:146, serve_client.py:75);
+      a serve usage error keeps exit 2 and SystemExit codes are kept
+      (tests/test_command_cost.py::test_run_argv_builds_click_command_once,
+      ::test_serve_and_mcp_build_click_command_once,
+      ::test_serve_usage_error_stays_exit_2, ::test_system_exit_codes_kept).
+      Python rewrite out of scope.
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
