@@ -1723,7 +1723,12 @@ package MemNetBehaviour {
     doc /* Tombstone sealed in a saved snapshot; id retired forever. */
   }
   attribute def EvBytesWrite {
-    doc /* A write that changes the session's escaped snapshot line bytes. */
+    doc /*
+      A write that changes the session's escaped snapshot line bytes and
+      whose new total stays under the budget, so EvBytesWrite never overlaps
+      EvBytesReachBudget (a total at exactly the budget is
+      EvBytesReachBudget; the code accepts total <= budget).
+    */
   }
   attribute def EvBytesReachBudget {
     doc /*
@@ -1793,7 +1798,11 @@ package MemNetBehaviour {
       limit_exceeded|session_bytes {n}/{max} and changes nothing. atBudget
       means the total is at or over the budget (a lowered setting can leave
       a loaded session over it); it does not mean that a refusal happened.
-      Deletes always go through.
+      Deletes always go through. While the total is over the budget only
+      deletes pass; a write is accepted only if the new total ends at or
+      under the budget (total <= budget), otherwise it is refused
+      session_bytes and nothing is stored. A write that lands exactly on the
+      budget is accepted and leaves the session atBudget.
     */
     entry;
     then underBudget;
@@ -1812,18 +1821,32 @@ package MemNetBehaviour {
 
     state atBudget {
       doc /*
-        Total bytes >= budget. A write that would grow the total is refused
-        session_bytes and stores nothing; a delete or a shrinking write is
-        accepted, and frees return to underBudget once the total is under.
+        Total bytes >= budget. Over the budget only deletes pass; a write is
+        accepted only if the new total ends at or under the budget, else it
+        is refused session_bytes and stores nothing. The state returns to
+        underBudget only when the new total is below the budget; a free or
+        write that leaves the total at or over it stays atBudget.
       */
     }
     transition free_bytes
       first atBudget
       accept EvBytesFree
+      if newTotal < budget
       then underBudget;
     transition write_fits
       first atBudget
       accept EvBytesWrite
+      if newTotal < budget
       then underBudget;
+    transition stay_at_budget
+      first atBudget
+      accept EvBytesFree
+      if newTotal >= budget
+      then atBudget;
+    transition write_stays_at_budget
+      first atBudget
+      accept EvBytesWrite
+      if newTotal >= budget
+      then atBudget;
   }
 }
