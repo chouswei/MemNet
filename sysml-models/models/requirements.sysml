@@ -2669,8 +2669,8 @@ package MemNetRequirements {
           32,768 bytes SHALL be accepted; larger values SHALL be refused
           with a clear error; the cap is counted in bytes. Snapshots written
           under the old cap SHALL still load. LINE CAP: a 32,768-byte value
-          cannot fit today's line cap (MEMNET_MAX_LINE_BYTES, config.py:127,
-          32,768), because backslash and pipe are written twice
+          could not fit the old 32,768-byte line cap (MEMNET_MAX_LINE_BYTES,
+          config.py:127; the cap is now 135,168), because backslash and pipe are written twice
           (docs/cap-contract.md:153-158 says a single value always fits a
           line, and caps a product raise at 16,384). 14.9 SHALL therefore
           also raise the default line cap (fixed interface, owner
