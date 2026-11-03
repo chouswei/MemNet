@@ -524,28 +524,39 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.4, 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
   // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
   // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
-  // 14.1 and 14.4-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
+  // 14.1 and 14.4 are implemented (tests/test_range_where.py, tests/test_id_opaque_range.py,
+  // tests/test_id_index.py, tests/test_id_index_perf.py);
+  // 14.5-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
   // 14.2 and 14.3 are PARKED.
   part def AtelierBoardAskPlan {
     doc /*
-      Engine touch points for MN-REQ-14 (origin/master bb4a4dc,
-      parts/common/memnet/memnet/). 14.9-14.11 are implemented and
-      listed where they landed; the other items are where a later cut
-      would land, and the tracker MUST NOT list those as implemented.
-      14.1 range WHERE: gql.py:249-251 (refusal today).
-      14.2 paged reads (PARKED): config.py:68 cap; gql_parse_front.py:34.
-      14.3 typed directed walks (PARKED): mem_store.py:378-429.
-      14.4 id index and linear load: mem_store.py:253-266 and :60.
-      14.5 record cap: config.py:121, mem_store.py:102-107.
+      Engine touch points for MN-REQ-14 (parts/common/memnet/memnet/;
+      line numbers at the range-where-id-index combine). 14.1, 14.4 and
+      14.9-14.12 are implemented and listed where they landed; the other
+      items are where a later cut would land, and the tracker MUST NOT
+      list those as implemented.
+      14.1 range WHERE (implemented): parse gql.py:282-319 (range on id
+           refused unsupported_predicate, gql.py:287-289), three-valued
+           evaluation gql.py:321-399; relationship WHERE ... DELETE
+           RelDropRec gql.py:132 and gql.py:1252, resolved in
+           mutate_gate.py:996-1050.
+      14.2 paged reads (PARKED): config.py:71 cap; gql_parse_front.py:34.
+      14.3 typed directed walks (PARKED): neighbors, mem_store.py:628-680.
+      14.4 id index and linear load (implemented): RecordTable
+           mem_store.py:34-175 (high-water kept by clear(), :127-133),
+           match_nickname :423, load_records :205-232; #@IDHW: line
+           snapshot.py:393-438 and load :795, :842; find by id
+           pin_map_composer.py:494-512.
+      14.5 record cap: config.py:125, mem_store.py:267-272.
       14.6 id design (mint, tombstone, dup refusal): same index as 14.4.
       14.7 MCP surface: engine-side handle-to-id map; replies carry handles only.
       14.8 developer surface: separate listener/transport, own credential;
            replies carry real ids.
-      14.9 value cap: config.py:126 (4,096 -> 32,768 bytes) and line cap
-           config.py:127 (32,768 -> 135,168 = 4 x 32,768 + 4,096 bytes);
+      14.9 value cap: config.py:130 (4,096 -> 32,768 bytes) and line cap
+           config.py:131 (32,768 -> 135,168 = 4 x 32,768 + 4,096 bytes);
            mutate-time whole-line escaped-size line_bytes refusal; docs/cap-contract.md
            lines 153-158 change in the code PR (#238).
       14.10 per-session total-bytes cap (escaped snapshot line bytes): new knob
@@ -565,24 +576,36 @@ package MemNetImplementation {
     // No satisfy: implemented=false must not look done to a tracker.
   }
 
-  // ----- Atelier-board target structure (PROPOSAL 14.1, 14.4-14.8; MN-REQ-14) -----
+  // ----- Atelier-board target structure (PROPOSAL 14.5-14.8; MN-REQ-14) -----
   // Target design only: implemented=false, no SoftwareAllocate, no CodeModule
   // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
   // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
+  // Exception: IdIndex is implemented for 14.4 and satisfies it; its 14.6
+  // part stays a target trace.
 
   part def IdIndex {
     doc /*
-      PROPOSAL (MN-REQ-14.4 / 14.6). In-memory index keyed by the nickname
-      fields['id'] (match_nickname, mem_store.py:253-266) and by the real
-      id (store key hid). Rebuilt on load, never stored; iteration order
-      preserved. Refuses a duplicate of an existing or tombstoned id.
+      Implemented (MN-REQ-14.4; RecordTable, mem_store.py:34, is
+      MemStore._by_hid; tests tests/test_id_index.py,
+      tests/test_id_index_perf.py). In-memory index by nickname
+      fields['id'] to hid, kept on every dict mutator (rollback included;
+      reindex(hid) after an in-place edit; verify_indexes() checks it);
+      duplicate nicknames stay allowed (B-D2), so one nickname may map to
+      several hids, in first-insert order. Rebuilt on load, never stored;
+      reads return the same rows in the same order. Equality lookup only:
+      an id is opaque identity, with no meaning from its value, order or
+      sequence, and a range WHERE on id is refused (MN-REQ-14.1). Minted
+      ids are unique among live rows and never minted again, even after a
+      delete or a refused batch; for that only, RecordTable keeps a
+      per-prefix high-water that is never lowered, clear() included
+      (mem_store.py:127-133). It persists through the snapshot "#@IDHW:"
+      line only (snapshot.py:393-438); durable / agensgraph does not
+      carry it yet. Still target (MN-REQ-14.6): a real-id key, UUIDv7
+      minting, tombstones and refusal of a duplicate or tombstoned id.
     */
-    attribute implemented : Boolean = false;
-  }
-  dependency targetTrace_IdIndex_14_4
-    from IdIndex
-    to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad {
-    doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+    attribute implemented : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_4_IdIndexAndLinearLoad;
   }
   dependency targetTrace_IdIndex_14_6
     from IdIndex

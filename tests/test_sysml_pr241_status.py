@@ -181,8 +181,6 @@ def test_n2_proposal_kept_on_others():
         assert "PROPOSAL" in idx[k], k
     assert "PARKED" in idx["14.2"] and "PARKED" in idx["14.3"]
     for name in (
-        "MN_REQ_14_1_",
-        "MN_REQ_14_4_",
         "MN_REQ_14_5_",
         "MN_REQ_14_6_",
         "MN_REQ_14_7_",

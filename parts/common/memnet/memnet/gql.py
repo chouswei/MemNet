@@ -9,6 +9,7 @@ bounded find — not free WITH / UNWIND / CALL / unbounded MATCH…RETURN.
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -111,6 +112,8 @@ class WherePred:
     value: str = ""
     var: str = ""
     children: list[WherePred] = field(default_factory=list)
+    # Range ops (LT/GT/LE/GE) only: "num" for a number literal, "str" for a quoted one.
+    vtype: str = ""
 
 
 @dataclass
@@ -123,6 +126,24 @@ class RelSetRec(EdgeRec):
     """
 
     where: WherePred | None = None
+
+
+@dataclass
+class RelDropRec(EdgeRec):
+    """MATCH ()-[r …]-() WHERE <pred on r> DELETE r (RangeWhere, MN-REQ-14.1).
+
+    A relationship DROP with a WHERE that is not only ``true``: MutateGate resolves
+    it like a plain relationship DELETE plus the WHERE over the attrs view, and the
+    cardinality rule holds (0 -> not_found, >1 -> cue_conflict).
+    """
+
+    where: WherePred | None = None
+
+
+_RANGE_OPS = {"<=": "LE", ">=": "GE", "<": "LT", ">": "GT"}
+_RE_RANGE_NUM = re.compile(r"-?\d+(?:\.\d+)?")
+_RE_FIELD_NUM = re.compile(r"-?\d+(\.\d+)?([eE][+-]?\d+)?")
+_RE_FIELD_INT = re.compile(r"-?\d+")
 
 
 def _unsupported_pred(name: str, line_no: int | None = None) -> None:
@@ -259,8 +280,14 @@ class _WhereParser:
             self.i += 1
             op = "EQ"
         elif self.i < len(self.s) and self.s[self.i] in "<>":
-            _unsupported_pred(self.s[self.i], self.line_no)
-            raise AssertionError("unreachable")
+            sym = self.s[self.i : self.i + 2]
+            if sym not in _RANGE_OPS:
+                sym = self.s[self.i]
+            self.i += len(sym)
+            if key == "id":
+                # Owner rule: an id is opaque identity; no meaning from its value or order.
+                _unsupported_pred(f"{sym} on id", self.line_no)
+            return self._range_operand(_RANGE_OPS[sym], sym, var, key)
         else:
             snippet = self.s[self.i : self.i + 16].strip() or "predicate"
             _unsupported_pred(snippet, self.line_no)
@@ -274,21 +301,62 @@ class _WhereParser:
                 _unsupported_pred("=~", self.line_no)
         return WherePred(op=op, var=var, key=key, value=_value_to_store(val))
 
+    def _range_operand(self, op: str, sym: str, var: str, key: str) -> WherePred:
+        """Right operand of < > <= >=: a number literal or a quoted string only."""
+        self.skip_ws()
+        ch = self.s[self.i : self.i + 1]
+        if ch and ch in "'\"":
+            val, self.i = _parse_string(self.s, self.i)
+            return WherePred(op=op, var=var, key=key, value=str(val), vtype="str")
+        m = _RE_RANGE_NUM.match(self.s, self.i)
+        if m:
+            nxt = self.s[m.end() : m.end() + 1]
+            if not nxt or not (nxt.isalnum() or nxt in "_.$"):
+                self.i = m.end()
+                return WherePred(op=op, var=var, key=key, value=m.group(0), vtype="num")
+        _unsupported_pred(f"{sym} operand", self.line_no)
+        raise AssertionError("unreachable")
+
 
 def eval_where(rec: Any, pred: WherePred) -> bool:
-    """Whether *rec* satisfies a honoured WHERE tree."""
+    """Whether *rec* satisfies a honoured WHERE tree (UNKNOWN counts as no match)."""
+    return _eval3(rec, pred) is True
+
+
+def _eval3(rec: Any, pred: WherePred) -> bool | None:
+    """Three-valued WHERE: None is UNKNOWN.
+
+    UNKNOWN comes from a range op on a missing, mistyped or non-finite field.
+    """
     op = pred.op
     if op == "TRUE":
         return True
     if op == "FALSE":
         return False
     if op == "AND":
-        return all(eval_where(rec, c) for c in pred.children)
+        out: bool | None = True
+        for c in pred.children:
+            v = _eval3(rec, c)
+            if v is False:
+                return False
+            if v is None:
+                out = None
+        return out
     if op == "OR":
-        return any(eval_where(rec, c) for c in pred.children)
+        out = False
+        for c in pred.children:
+            v = _eval3(rec, c)
+            if v is True:
+                return True
+            if v is None:
+                out = None
+        return out
     if op == "NOT":
-        return not eval_where(rec, pred.children[0])
+        v = _eval3(rec, pred.children[0])
+        return None if v is None else not v
     raw = str(rec.fields.get(pred.key, ""))
+    if op in ("LT", "GT", "LE", "GE"):
+        return _eval_range(raw, op, pred.value, pred.vtype)
     if op == "EQ":
         return raw == pred.value
     if op == "NE":
@@ -304,6 +372,43 @@ def eval_where(rec: Any, pred: WherePred) -> bool:
     if op == "IN":
         return pred.value in _field_as_list(raw)
     return False
+
+
+def _eval_range(raw: str, op: str, value: str, vtype: str) -> bool | None:
+    if not raw:
+        return None
+    numeric = _RE_FIELD_NUM.fullmatch(raw) is not None
+    left: Any
+    right: Any
+    if vtype == "num":
+        if not numeric:
+            return None
+        left = _as_number(raw)
+        if isinstance(left, float) and not math.isfinite(left):
+            return None
+        right = _as_number(value)
+    elif vtype == "str":
+        if numeric:
+            return None
+        left, right = raw, value
+    else:
+        return None
+    if op == "LT":
+        return bool(left < right)
+    if op == "GT":
+        return bool(left > right)
+    if op == "LE":
+        return bool(left <= right)
+    return bool(left >= right)
+
+
+def _as_number(text: str) -> int | float:
+    if _RE_FIELD_INT.fullmatch(text):
+        try:
+            return int(text)
+        except ValueError:  # past Python's int digit limit
+            pass
+    return float(text)
 
 
 def _field_as_list(raw: str) -> list[str]:
@@ -1118,9 +1223,9 @@ def _parse_match_rel_set(s: str, line_no: int, chunk: str, rest: str) -> list[No
 
 
 def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
-    """MATCH ()-[r {id:'E1'}]-() DELETE r  (simplified gated form)."""
+    """MATCH ()-[r {id:'E1'}]-() [WHERE <pred on r>] DELETE r  (simplified gated form)."""
     if not _where_true_only(s):
-        _unsupported_pred("predicate on relationship DELETE", line_no)
+        return _parse_match_rel_where_delete(s, line_no, rest)
     m = re.search(
         rf"\[\s*(?:({_IDENT})\s*)?(?::({_RELTYPE}))?\s*(\{{[^{{}}]*\}})?\s*\]",
         s,
@@ -1143,6 +1248,38 @@ def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | E
             to=to,
             fields=[],
             raw=s,
+        )
+    ]
+
+
+def _parse_match_rel_where_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
+    """MATCH (a)-[r:TYPE {…}]->(b) WHERE <pred on r> DELETE r (one match only)."""
+    if not (rest or "").upper().startswith("DELETE"):
+        raise ParseError("relationship MATCH without DELETE is not agent-read", line_no)
+    m = _RE_REL_BRACKET.search(s)
+    if not m:
+        raise ParseError(f"unsupported MATCH shape: {s[:80]!r}", line_no)
+    var = m.group(1) or ""
+    props = parse_props(m.group(3)) if m.group(3) else {}
+    eid = _nickname_from_props(props)
+    frm, to, end_nodes, remainder = _rel_pattern(s, line_no, verb="DELETE")
+    if any(p is not None and p.where is not None for p in end_nodes):
+        _unsupported_pred("on relationship end with DELETE", line_no)
+    if not remainder.upper().startswith("WHERE"):
+        _unsupported_pred("predicate on relationship DELETE", line_no)
+    where_pred = parse_where_clause(remainder[5:].strip(), line_no)
+    for v in sorted(_where_vars(where_pred) - {var}):
+        _unsupported_pred(f"{v}.* with relationship DELETE (only {var or 'r'}.*)", line_no)
+    return [
+        RelDropRec(
+            op=Op.DROP,
+            edge_id=eid or None,
+            frm=frm,
+            rel=m.group(2) or "",
+            to=to,
+            fields=[],
+            raw=s,
+            where=where_pred,
         )
     ]
 

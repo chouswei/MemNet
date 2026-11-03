@@ -920,7 +920,7 @@ package MemNet {
     */
     attribute implemented : Boolean = false;
     attribute gateKind : String = "agent";
-    attribute actor : String = "llm_then_commit";
+    attribute 'actor' : String = "llm_then_commit";
     attribute notAProductVerb : Boolean = true;
     attribute notRecall : Boolean = true;
     attribute distinctFromImportAbsorb : Boolean = true;
@@ -1105,6 +1105,10 @@ package MemNet {
   part def HousekeepSettle {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
+      The stale warnings after a command take their recyclable / dangling /
+      orphan counts from one categorising pass (stale_counts,
+      housekeep.py:132; warnings.py:39;
+      tests/test_command_cost.py::test_stale_warnings_one_pass_same_lines).
       Recycle policy feeds PinMapShapedRead hide rules.
       This part deletes classified rows. recycle=delete_on_settle and
       recycle=delete_on_expire hide a row from pin_map. That mark is
@@ -1860,7 +1864,15 @@ package MemNet {
       merge / absorb as product commands (CueConflict is an emit mark;
       SameThingAbsorb is a Commit rule). TierA / Layer line codecs
       are RETIRED on product path (M2 done). As-is: memnet.cli
-      (+ serve_client). Python rewrite out of scope.
+      (+ serve_client). Command flow: every argv (in-process run_argv, as MCP uses it,
+      serve request, serve_client fallback) runs on one click command
+      built once per process (cli_command / invoke_cli,
+      in_process_engine.py:18, :39; serve.py:146, serve_client.py:75);
+      a serve usage error keeps exit 2 and SystemExit codes are kept
+      (tests/test_command_cost.py::test_run_argv_builds_click_command_once,
+      ::test_serve_and_mcp_build_click_command_once,
+      ::test_serve_usage_error_stays_exit_2, ::test_system_exit_codes_kept).
+      Python rewrite out of scope.
     */
     port apiOut : InProcessOutPort;
     port ipcOut : LocalIpcOutPort;
@@ -2421,7 +2433,7 @@ package MemNet {
     attribute firstDomain : String = "sysml";
     attribute roadmapOnly : Boolean = false;
     attribute allDomainsImplemented : Boolean = true;
-    part interface : PinMapIngestBase;
+    part 'interface' : PinMapIngestBase;
     part sysml : PinMapIngest_Sysml;
     part codebase : PinMapIngest_Codebase;
     part pcbaAto : PinMapIngest_PcbaAto;
@@ -2450,7 +2462,7 @@ package MemNet {
       depth / view. Not N-server federation.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute doctrineAsIs : Boolean = true;
     port sliceOut : WorkingMemorySliceOutPort;
     part requireAnchors : SliceAnchorsRequired;
@@ -2466,7 +2478,7 @@ package MemNet {
       are empty. Who: engine. In: anchor list. Out: validated anchors.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
   }
 
   part def SliceBudgetGate {
@@ -2475,7 +2487,7 @@ package MemNet {
       max_rows × anchors. Caps whole-store dump. Who: engine.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   }
@@ -2487,7 +2499,7 @@ package MemNet {
       LAW as payload.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
   }
 
   // --- Path B ImportAbsorb (lead side; engine SHALL hard) ---
@@ -2499,7 +2511,7 @@ package MemNet {
       Who: engine. Path A never enters ImportAbsorb.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_9_LeadOwnsSessionImport;
   }
@@ -2511,7 +2523,7 @@ package MemNet {
       commit. Who: engine. Soft ImportGuard MUST NOT waive ACL.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     part caps : CapsPolicy;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;
@@ -2523,7 +2535,7 @@ package MemNet {
       session schema (unknown/reserved kinds fail). Who: engine.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_7_SchemaValidatedIngest;
   }
@@ -2537,7 +2549,7 @@ package MemNet {
       micro merge=true re-id.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute idPolicy : String = "keep";
     attribute matchByLabelsAndProps : Boolean = true;
     attribute leftoverKeyedOnStoreKey : Boolean = true;
@@ -2554,7 +2566,7 @@ package MemNet {
       leftoverKeyedOnStoreKey records 0.9 honesty.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute idPolicy : String = "reject";
     attribute productCommand : Boolean = false;
     attribute leftoverIdPolicyIsProductCommand : Boolean = false;
@@ -2572,7 +2584,7 @@ package MemNet {
       leftoverInventedMint=true. Not TARGET store-key law.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute idPolicy : String = "remint";
     attribute leftoverInventedMint : Boolean = true;
     attribute leftoverIssue : String = "NEW-by_id";
@@ -2589,7 +2601,7 @@ package MemNet {
       judgment; engine still applies the chosen policy hard.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     part keep : IdPolicyKeep;
     part reject : IdPolicyReject;
     part remint : IdPolicyRemint;
@@ -2604,7 +2616,7 @@ package MemNet {
       under the active id policy. Who: engine. Out: lead SSOT updated.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
   }
 
   part def GuardDecisionAtomRecord {
@@ -2614,7 +2626,7 @@ package MemNet {
       chat as SSOT. Who: engine (optional write).
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute optional : Boolean = true;
   }
 
@@ -2640,7 +2652,7 @@ package MemNet {
       + slice alone. Module: memnet.import_absorb.
     */
     attribute gateKind : String = "hard";
-    attribute actor : String = "engine";
+    attribute 'actor' : String = "engine";
     attribute doctrineAsIs : Boolean = false;
     attribute implemented : Boolean = true;
     attribute leftoverIdPolicyIsProductCommand : Boolean = false;
@@ -2675,7 +2687,7 @@ package MemNet {
       engine ACL / write-scope hard reject.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
   }
 
   part def SoftJunkTrim {
@@ -2685,7 +2697,7 @@ package MemNet {
       drops edges whose endpoints were trimmed.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
     attribute trimMode : String = "subtractive";
   }
 
@@ -2695,7 +2707,7 @@ package MemNet {
       soft when ids look fabricated. Engine hard gates still apply after.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
   }
 
   part def SoftSizeNoiseReview {
@@ -2704,7 +2716,7 @@ package MemNet {
       Engine SliceBudgetGate remains the hard budget.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
   }
 
   part def SoftIdPolicyAdvice {
@@ -2714,7 +2726,7 @@ package MemNet {
       import to SessionMerge.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
   }
 
   part def SoftDecisionEmit {
@@ -2725,7 +2737,7 @@ package MemNet {
       lead mutate. Used when a guard ran (host hook or cheap-LLM adapter).
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
   }
 
   part def GuardPassthrough {
@@ -2736,7 +2748,7 @@ package MemNet {
       the guard is valid. Path A never uses this nest.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "host";
+    attribute 'actor' : String = "host";
     attribute skipped : Boolean = true;
   }
 
@@ -2751,7 +2763,7 @@ package MemNet {
       Module: memnet.import_absorb.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "host";
+    attribute 'actor' : String = "host";
     attribute implemented : Boolean = true;
     attribute optionalSoftPolicy : Boolean = true;
     attribute doctrineAsIs : Boolean = false;
@@ -2777,7 +2789,7 @@ package MemNet {
       (display only; MUST NOT carry MEMNET_IMPORT_GUARD_API_KEY).
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm";
+    attribute 'actor' : String = "llm";
     attribute costTier : String = "cheap";
     attribute implemented : Boolean = true;
     attribute optionalSoftPolicy : Boolean = true;
@@ -2804,7 +2816,7 @@ package MemNet {
       single implemented=true — that flag lives on children only.
     */
     attribute gateKind : String = "soft";
-    attribute actor : String = "llm_or_host";
+    attribute 'actor' : String = "llm_or_host";
     attribute optionalSoftPolicy : Boolean = true;
     attribute doctrineAsIs : Boolean = false;
     attribute costTier : String = "cheap";
@@ -2820,7 +2832,7 @@ package MemNet {
     part inventedIds : SoftInventedIdReview;
     part sizeNoise : SoftSizeNoiseReview;
     part idAdvice : SoftIdPolicyAdvice;
-    part decide : SoftDecisionEmit;
+    part 'decide' : SoftDecisionEmit;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_10_NoChatOrWholeStoreImport;
   }
@@ -3188,7 +3200,7 @@ package MemNet {
 
   connection libraryToHostSearch : LibraryLocatorFlow {
     doc /* Extra 0.16 library locators MAY feed the outside hook. */
-    end port source ::> memNetSystem.durable.library.locatorOut;
+    end port source ::> memNetSystem.durable.'library'.locatorOut;
     end port sink ::> hostSearch.locatorIn;
   }
 

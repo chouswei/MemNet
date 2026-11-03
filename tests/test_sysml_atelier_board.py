@@ -156,10 +156,16 @@ def test_no_satisfy_on_any_implemented_false_part():
         assert target not in parts, f"satisfy ... by {target} on an implemented=false part"
 
 
-def test_id_index_part_has_target_traces_to_14_4_and_14_6():
-    _one_def("part", r"IdIndex")
-    _assert_target_trace("IdIndex", REQ_14_4)
-    _assert_target_trace("IdIndex", REQ_14_6)
+def test_id_index_part_satisfies_14_4_and_has_target_trace_to_14_6():
+    name, body = _one_def("part", r"IdIndex")
+    code = _strip_comments(body)
+    text = _strip_comments(_all_model_text())
+    req = "|".join(REQ_14_4)
+    in_body = re.search(rf"\bsatisfy\b[^;]*\b(?:{req})\s*;", code)
+    by_part = re.search(rf"\bsatisfy\b[^;]*\b(?:{req})\b[^;]*\bby\s+[\w:]*\b{name}\s*;", text)
+    assert in_body or by_part, f"{name} must satisfy {REQ_14_4[1]}"
+    assert not _target_traces(name, REQ_14_4), f"{name} still has a targetTrace to 14.4"
+    _assert_target_trace(name, REQ_14_6)
 
 
 def test_tombstone_store_part_has_target_trace_to_14_6():
@@ -201,9 +207,8 @@ def test_session_byte_budget_part_is_implemented_and_satisfies_14_10():
 # ----- behaviour -----
 
 
-def test_range_where_action_refuses_type_mismatch_and_is_traced():
-    name, body = _one_def("action", r"Range")
-    assert "type_mismatch" in body
+def test_range_where_action_is_traced():
+    name, _ = _one_def("action", r"Range")
     assert _performed(name), f"action {name} is never performed"
     assert name in _verify_case("MN_VER_14_S01_WhereRangeComparison") or name in _requirement_doc(
         "MN_REQ_14_1_WhereRangeComparison"

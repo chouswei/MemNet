@@ -11,6 +11,15 @@ from memnet.session import open_session
 from memnet.snapshot import snapshot_text
 
 
+def _no_idhw(text: str) -> str:
+    """Snapshot text without the ``#@IDHW:`` line (burnt mints may raise only that)."""
+    return "\n".join(ln for ln in text.split("\n") if not ln.startswith("#@IDHW:"))
+
+
+def _rows(ss) -> dict[str, tuple[str, dict[str, str]]]:
+    return {h: (r.tag, dict(r.fields)) for h, r in ss.store._by_hid.items()}
+
+
 def _create(n: int, val: str = "v") -> str:
     return (
         f"CREATE (:PLR {{id: 'PLR_{n}', identity: '{val}', wealth: 1, cashflow: 0, "
@@ -43,6 +52,7 @@ def test_refusal_at_budget_leaves_session_unchanged(memnet_temp, schema_file, mo
     with pytest.raises(MemNetError) as ei:
         while n < 200:
             before = snapshot_text(ss)
+            rows_before = _rows(ss)
             gate.apply([_create(n, "x" * 100)], mode="add")
             n += 1
     assert ei.value.code == "limit_exceeded"
@@ -50,7 +60,9 @@ def test_refusal_at_budget_leaves_session_unchanged(memnet_temp, schema_file, mo
     total, cap = ei.value.message.split("|")[1].split("/")
     assert cap == "3000" and int(total) > 3000
     assert n > 0
-    assert snapshot_text(ss) == before
+    # conductor ruling: burnt ids persist, so only the #@IDHW: line may be added or raised
+    assert _no_idhw(snapshot_text(ss)) == _no_idhw(before)
+    assert _rows(ss) == rows_before
     assert ss.store.get(f"PLR_{n}") is None
 
 

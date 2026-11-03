@@ -1564,11 +1564,15 @@ package MemNetBehaviour {
     doc /*
       PROPOSAL (MN-REQ-14.1 / 14.2 / 14.4; verify MN-VER-14-S01, S02). Board wake: MATCH rows WHERE
       toBot = $me AND rowRev > $since, ordered by rowRev, one page of at
-      most the read cap (50, config.py:68). Today refused at gql.py:249-251
-      (range) and by the cap (paging); the caller code path over internal
+      most the read cap (50, config.py:71). The range predicate itself is
+      now honoured on WHERE ... SET / DELETE (14.1, RangeWhereCompare), but
+      this read stays refused: agent MATCH ... RETURN is product-gated
+      (gql_parse_front.py:34; tests/test_range_where.py::test_range_return_refused_product_gate)
+      and paging is PARKED (14.2); the caller code path over internal
       indexes is outside the GQL contract. Steps: (1) parse range predicate
-      (14.1); (2) resolve rows through the property/id index, not a full
-      scan (14.4); (3) emit one page and, if more remain, a resume point
+      (14.1, built for SET / DELETE only); (2) resolve rows through an index,
+      not a full scan (14.4 indexes the nickname id only; there is no
+      property index for rowRev); (3) emit one page and, if more remain, a resume point
       (cursor or last rowRev; PARKED, 14.2); (4) caller repeats with the
       resume point until none. Typed directed walk to the ask (14.3,
       PARKED) is a separate optional step and is not part of the wake.
@@ -1581,11 +1585,19 @@ package MemNetBehaviour {
 
   action def SessionLoadLinear {
     doc /*
-      PROPOSAL (MN-REQ-14.4 / 14.5; verify MN-VER-14-S04, S05). Snapshot load builds the record
-      index once and resolves each edge end by lookup, so time is linear in
-      records (today a hid set per edge end, mem_store.py:60, quadratic;
-      31k records 34.9 s). The record cap (5,000 default, config.py:121)
-      is raisable only after this action holds (14.5 depends on 14.4).
+      Implemented (MN-REQ-14.4; verify MN-VER-14-S04; tests
+      tests/test_id_index.py, tests/test_id_index_perf.py). Snapshot load
+      (MemStore.load_records, mem_store.py:205-232) builds one
+      nickname -> hid map and resolves each edge end by dict lookup, so
+      time is linear in records (before: a hid set rebuilt per edge end,
+      quadratic; 31k records 34.9 s on bb4a4dc). The nickname index lives
+      in RecordTable (mem_store.py:34) and is rebuilt as rows are stored;
+      it is never written to the snapshot. Reads return the same rows in
+      the same order as a scan (match_nickname, mem_store.py:423). Pass
+      bar: tests/test_id_index_perf.py::test_snapshot_load_is_linear
+      (8,000 rows at most 8 x the 2,000-row time). The record cap (5,000
+      default, MEMNET_MAX_ROWS, config.py:125) is raisable only after this
+      action holds (14.5, still PROPOSAL, depends on 14.4).
     */
     in item snapshotText : String;
     out item session : String;
@@ -1600,6 +1612,22 @@ package MemNetBehaviour {
       never reuse it. Lookup of a
       tombstoned id returns "deleted". Save, load and restore never mint
       or rewrite ids; id-less legacy links stay id-less.
+      INTERIM (as built, not this target): an id is opaque identity only;
+      no meaning comes from its value, order or sequence. The engine
+      guarantees only that a minted id is unique among live rows and is
+      never minted again, even after a delete or a refused batch (its id
+      is burnt). To keep never-reuse, RecordTable keeps a per-prefix
+      high-water that is never lowered, clear() included
+      (mem_store.py:127-133); snapshot save writes it as a "#@IDHW:" line
+      only when it is above the live ids and load raises it back
+      (snapshot.py:393, :408, :795). The mutate gate seeds IdAllocator
+      from MemStore.nickname_set, which adds the high-water
+      (mutate_gate.py:1128-1130, mem_store.py:435, id_allocator.py:30-40). #@IDHW serves never-reuse only. Tests:
+      tests/test_id_index.py::test_mint_does_not_reuse_deleted_edge_id,
+      ::test_mint_never_reuses_across_snapshot_save_load,
+      ::test_mint_never_reuses_across_checkpoint_restore,
+      ::test_mint_after_refused_bypass_and_gate_batches. UUIDv7 and
+      tombstones stay target only.
     */
     in item record : String;
     out item id : String;
@@ -1629,15 +1657,34 @@ package MemNetBehaviour {
 
   action def RangeWhereCompare {
     doc /*
-      PROPOSAL (MN-REQ-14.1; verify MN-VER-14-S01; target only). WHERE
-      p < | > | <= | >= $param. The comparison type comes from the
-      parameter: string or number only (int and float compare as numbers;
-      strings by code point); no coercion. A boolean or null operand, or a
-      property whose type differs from the parameter, refuses the WHOLE
-      statement with the new code type_mismatch (not
-      unsupported_predicate) before any SET or DELETE write; nothing is
-      written. A row without the property does not match. Literals only
-      off the agent wire. rowRev is a 6-digit string, bounded at 999,999.
+      Implemented (MN-REQ-14.1; verify MN-VER-14-S01; tests
+      tests/test_range_where.py, tests/test_id_opaque_range.py). Parse
+      (gql.py:282-319): p < | > | <= | >= on a node WHERE (also inline,
+      MATCH (n:T WHERE ...)) or a
+      relationship WHERE, for SET and DELETE. The left side is a property;
+      the right operand is a number literal (-?digits[.digits]) or a
+      quoted string; a property, $param, boolean, null or bare word, or a
+      literal on the left, is refused unsupported_predicate. A range on
+      the id property (n.id, r.id) is refused unsupported_predicate at
+      parse time, number or string operand, bare or under AND / OR / NOT
+      (gql.py:287-289): an id is opaque identity, no meaning from its
+      value, order or sequence; equality on id keeps working through the
+      index. Evaluate (gql.py:321-399): three-valued; a range on a missing
+      or empty field or on a mixed pair is UNKNOWN, AND / OR / NOT carry
+      UNKNOWN, and UNKNOWN is no match (so NOT over a no-match stays no
+      match). A stored field is numeric iff it fully reads as a number
+      (exponent allowed); number compares with number, string with string
+      by code point. A non-finite numeric field (for example 1e999) never
+      matches a number range (gql.py:384). Cardinality: a node WHERE ...
+      SET / DELETE that matches none is refused not_found, more than one
+      cue_conflict; a relationship WHERE ... SET updates every match; a
+      relationship WHERE ... DELETE (RelDropRec, gql.py:132; resolved in
+      MutateGate._resolve_edge_drop, mutate_gate.py:996-1050, over the
+      attrs view) refuses none not_found and more than one cue_conflict,
+      and takes predicates on r only (a.* / b.* refused
+      unsupported_predicate). Nothing is written on a refusal. Agent
+      MATCH ... RETURN stays product-gated (gql_parse_front.py:34). rowRev
+      is a 6-digit string, bounded at 999,999.
     */
     in item predicate : String;
     in item param : String;
@@ -1660,7 +1707,7 @@ package MemNetBehaviour {
       all fields (tag, field names, separators and every value after the
       write), is checked against the line cap, and over it the write is
       refused limit_exceeded, message line_bytes|{n}/{max}; a record whose
-      fields each fit can still be refused here (tag_map.py:282-289 caps
+      fields each fit can still be refused here (tag_map.py:291-298 caps
       the whole physical line); the per-record bound is the line cap; (3) a write
       over the per-session byte budget (14.10) is refused
       limit_exceeded|session_bytes (event EvSessionBytesRefused). A refused write stores nothing, so no
@@ -1705,10 +1752,12 @@ package MemNetBehaviour {
       Implemented (defect D02 fixed; verify MN-VER-14-D02; per MN-REQ-03.4
       honour-or-refuse). A WHERE on a relationship pattern combined with
       SET is honoured: the WHERE takes the same predicates as a node WHERE
-      (=, AND, OR, NOT, parentheses) and the SET applies to exactly the
+      (=, AND, OR, NOT, parentheses and, since MN-REQ-14.1, < > <= >=;
+      RangeWhereCompare) and the SET applies to exactly the
       relationships that match the pattern and the WHERE; nothing is
       deleted and non-matching relationships are unchanged. A shape that
-      stays unsupported (for example a range comparison) is refused
+      stays unsupported (for example a range comparison whose right
+      operand is a property or a $param, or a range on r.id) is refused
       unsupported_predicate with a message naming the clause used (SET /
       WHERE, never DELETE), with no partial write. A relationship WHERE+SET
       that matches nothing, or whose end id does not resolve, is refused

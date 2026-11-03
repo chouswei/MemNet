@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from memnet.config import Caps
-from memnet.housekeep import dangling_rows, orphan_rows, recyclable_rows
+from memnet.housekeep import stale_counts
 from memnet.output import emit_wrn
 from memnet.session import SessionStore, utc_now
 
@@ -36,9 +36,7 @@ def emit_ttl_warning(store: SessionStore) -> None:
 
 
 def emit_stale_warnings(store: SessionStore) -> None:
-    r = len(recyclable_rows(store))
-    d = len(dangling_rows(store))
-    o = len(orphan_rows(store))
+    r, d, o = stale_counts(store)
     if r:
         emit_wrn(
             "stale_in_store",

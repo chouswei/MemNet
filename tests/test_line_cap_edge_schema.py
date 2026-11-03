@@ -53,6 +53,12 @@ def _state(s):
     return _body(s), {h: dict(r.fields) for h, r in s.store._by_hid.items()}
 
 
+def _state_no_idhw(s):
+    """Like _state, minus the ``#@IDHW:`` line (burnt mints may add or raise only that)."""
+    body, rows = _state(s)
+    return "\n".join(ln for ln in body.split("\n") if not ln.startswith("#@IDHW:")), rows
+
+
 def _edge_props(at: int, attrs: int) -> str:
     return f"at: '{chr(28) * at}', attrs: '{chr(28) * attrs}'"
 
@@ -94,13 +100,14 @@ def _schema_set(n_keys: int, key_len: int) -> str:
 
 
 def test_oversized_edge_line_refused_state_unchanged(ss):
-    before = _state(ss)
+    # conductor ruling: burnt ids persist, so only the #@IDHW: line may differ
+    before = _state_no_idhw(ss)
     with pytest.raises(MemNetError) as ei:
         MutateGate(ss).apply([EDGE % _edge_props(20000, 20000)], mode="add")
     assert ei.value.code == "limit_exceeded"
     n, cap = ei.value.message.removeprefix("line_bytes|").split("/")
     assert int(n) > LINE_CAP == int(cap)
-    assert _state(ss) == before
+    assert _state_no_idhw(ss) == before
     assert not [r for r in ss.store._by_hid.values() if r.tag == "EDG"]
 
 
