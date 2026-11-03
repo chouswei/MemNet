@@ -52,14 +52,22 @@ def _req(name: str) -> str:
 
 
 def test_n1_free_bytes_out_of_at_budget_is_guarded():
-    ts = [x for x in _transitions(_states(), "free_bytes") if "first atBudget" in x and "then underBudget" in x]
+    ts = [
+        x
+        for x in _transitions(_states(), "free_bytes")
+        if "first atBudget" in x and "then underBudget" in x
+    ]
     assert ts, "free_bytes atBudget -> underBudget missing"
     for x in ts:
         assert re.search(r"\bif\b", x), x
 
 
 def test_n1_write_fits_out_of_at_budget_is_guarded():
-    ts = [x for x in _transitions(_states(), "write_fits") if "first atBudget" in x and "then underBudget" in x]
+    ts = [
+        x
+        for x in _transitions(_states(), "write_fits")
+        if "first atBudget" in x and "then underBudget" in x
+    ]
     assert ts, "write_fits atBudget -> underBudget missing"
     for x in ts:
         assert re.search(r"\bif\b", x), x
@@ -75,8 +83,7 @@ def test_n1_guards_name_new_total_under_budget():
 def test_n1_at_budget_has_stay_transition():
     s = _states()
     stays = [
-        m.group(0)
-        for m in re.finditer(r"transition \w+\s+first atBudget[^;]*then atBudget\s*;", s)
+        m.group(0) for m in re.finditer(r"transition \w+\s+first atBudget[^;]*then atBudget\s*;", s)
     ]
     assert stays, "no atBudget -> atBudget stay transition"
     assert any(re.search(r"\bif\b", x) for x in stays)
@@ -94,9 +101,11 @@ def test_n1_doc_over_budget_only_deletes_pass():
 
 def test_n1_bytes_write_not_overlap_reach_budget():
     f = _flat(_text("behaviour.sysml"))
-    assert re.search(r"EvBytesWrite[^.]*(does not|never|not) overlap[^.]*EvBytesReachBudget", f) or re.search(
-        r"EvBytesReachBudget[^.]*(does not|never|not) overlap[^.]*EvBytesWrite", f
-    ) or re.search(r"(?i)EvBytesWrite[^.]*(not overlap|disjoint)", f)
+    assert (
+        re.search(r"EvBytesWrite[^.]*(does not|never|not) overlap[^.]*EvBytesReachBudget", f)
+        or re.search(r"EvBytesReachBudget[^.]*(does not|never|not) overlap[^.]*EvBytesWrite", f)
+        or re.search(r"(?i)EvBytesWrite[^.]*(not overlap|disjoint)", f)
+    )
 
 
 # ---- N2: requirements.sysml ----
@@ -122,7 +131,9 @@ def test_n2_group_names_implemented():
 
 
 def test_n2_index_14_9_not_proposal():
-    line = next(l for l in _text("requirements.sysml").splitlines() if re.match(r"\s*MN-REQ-14\.9\s", l))
+    line = next(
+        ln for ln in _text("requirements.sysml").splitlines() if re.match(r"\s*MN-REQ-14\.9\s", ln)
+    )
     assert "PROPOSAL" not in line
 
 
@@ -132,20 +143,32 @@ def test_n2_14_9_doc_not_proposal():
 
 
 def test_n2_14_11_mentions_field_cap():
-    assert re.search(r"(?i)field cap|per-field|field count|fields? (is|are) capped", _req("MN_REQ_14_11_BypassPathCaps") if "MN_REQ_14_11_BypassPathCaps" in _text("requirements.sysml") else _text("requirements.sysml").split('"MN-REQ-14.11"')[0][-3000:])
+    assert re.search(
+        r"(?i)field cap|per-field|field count|fields? (is|are) capped",
+        _req("MN_REQ_14_11_BypassPathCaps")
+        if "MN_REQ_14_11_BypassPathCaps" in _text("requirements.sysml")
+        else _text("requirements.sysml").split('"MN-REQ-14.11"')[0][-3000:],
+    )
 
 
 def test_n2_proposal_kept_on_others():
     t = _text("requirements.sysml")
     idx = {}
-    for l in t.splitlines():
-        m = re.match(r"\s*MN-REQ-(14\.\d+)\s", l)
+    for ln in t.splitlines():
+        m = re.match(r"\s*MN-REQ-(14\.\d+)\s", ln)
         if m:
-            idx[m.group(1)] = l
+            idx[m.group(1)] = ln
     for k in ("14.6", "14.7", "14.8"):
         assert "PROPOSAL" in idx[k], k
     assert "PARKED" in idx["14.2"] and "PARKED" in idx["14.3"]
-    for name in ("MN_REQ_14_1_", "MN_REQ_14_4_", "MN_REQ_14_5_", "MN_REQ_14_6_", "MN_REQ_14_7_", "MN_REQ_14_8_"):
+    for name in (
+        "MN_REQ_14_1_",
+        "MN_REQ_14_4_",
+        "MN_REQ_14_5_",
+        "MN_REQ_14_6_",
+        "MN_REQ_14_7_",
+        "MN_REQ_14_8_",
+    ):
         i = t.index(f"requirement def {name}")
         assert "PROPOSAL" in _block(t, i)[:600], name
 
@@ -175,10 +198,12 @@ def test_n4_s09_objective_not_no_runtime_test():
 def test_n4_s11_cases_a_c_limited_to_import_hydrate():
     t = _text("verify.sysml")
     d = _flat(_block(t, t.index("verification def MN_VER_14_S11_BypassPathCaps")))
-    assert not re.search(r"For each of snapshot import, durable hydrate and CLI delete/prune: \(a\)", d)
-    assert re.search(r"(?i)\(a\)[^;]*(import|hydrate)[^;]*(only|not CLI|CLI delete and prune are not)", d) or re.search(
-        r"(?i)(a) and \(c\)[^.]*import and hydrate|import and hydrate[^.]*\(a\)", d
+    assert not re.search(
+        r"For each of snapshot import, durable hydrate and CLI delete/prune: \(a\)", d
     )
+    assert re.search(
+        r"(?i)\(a\)[^;]*(import|hydrate)[^;]*(only|not CLI|CLI delete and prune are not)", d
+    ) or re.search(r"(?i)(a) and \(c\)[^.]*import and hydrate|import and hydrate[^.]*\(a\)", d)
 
 
 def test_n4_summary_consistent():
