@@ -1081,7 +1081,7 @@ def _parse_match_rel_set(s: str, line_no: int, chunk: str, rest: str) -> list[No
         raise ParseError(f"unsupported MATCH continuation: {remainder[:60]!r}", line_no)
     if where_pred is None and not eid:
         raise ParseError(
-            "relationship SET without WHERE or {id:…} pattern is not honoured",
+            "relationship SET without WHERE or relationship {id:…} pattern is not honoured",
             line_no,
             code="unsupported_predicate",
         )
