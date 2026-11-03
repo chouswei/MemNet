@@ -90,6 +90,7 @@ pythonpath = [
 markers = [
     "scheme(id): integration scheme identifier from plan S01-S115",
     "agensgraph_live: needs MEMNET_AGENSGRAPH_URL pointing at external AgensGraph",
+    "perf: near-cap timing guard, runs only with MEMNET_PERF=1",
 ]
 
 [tool.ruff]
