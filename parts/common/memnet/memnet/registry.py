@@ -13,6 +13,7 @@ from memnet.models import SessionMeta, TagMap
 if TYPE_CHECKING:
     from memnet.acl import SessionAcl
     from memnet.neighbourhood_reserve import NeighbourhoodReserveTable
+    from memnet.session_bytes import SessionBytes
 
 _registry_lock = threading.RLock()
 _sessions: dict[str, SessionEntry] = {}
@@ -35,6 +36,8 @@ class SessionEntry:
     evicting: bool = False
     # Set when an eviction save of this session failed; it stays live (sessions_unsaveable_held).
     evict_unsaveable: bool = False
+    # MN-REQ-14.12: incremental session byte ledger (memnet.session_bytes.ledger_for).
+    bytes_ledger: SessionBytes | None = None
 
     def ensure_reserves(self) -> NeighbourhoodReserveTable:
         from memnet.neighbourhood_reserve import NeighbourhoodReserveTable

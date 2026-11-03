@@ -247,13 +247,20 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str], *, budget: bool = T
     """
     if not hids:
         return
-    try:
-        emit_map = _snapshot_emit_tag_map(ss)
-    except MemNetError as exc:
-        if exc.code == "snapshot_unsaveable":
-            return  # fixed-tag width; save reports it
-        raise
-    hid_to_nick = _snapshot_nicks(ss)
+    from memnet.session_bytes import _debug, _sync_view, assert_consistent, check_budget
+
+    # MN-REQ-14.12: sync the byte ledger first (always, so its total stays exact).
+    view = _sync_view(ss, hids)
+    if view is not None:
+        hid_to_nick, emit_map = view
+    else:
+        try:
+            emit_map = _snapshot_emit_tag_map(ss)
+        except MemNetError as exc:
+            if exc.code == "snapshot_unsaveable":
+                return  # fixed-tag width; save reports it
+            raise
+        hid_to_nick = _snapshot_nicks(ss)
     cap = ss.caps.max_line_bytes
     total = 0
     # The SCHEMA lines: a write can widen them (undeclared keys on a record).
@@ -277,7 +284,9 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str], *, budget: bool = T
         if n > cap:
             raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
     if budget:
-        _refuse_session_bytes(ss, hid_to_nick, emit_map, total)
+        check_budget(ss, total, hid_to_nick, emit_map)
+    elif view is not None and _debug():
+        assert_consistent(ss)
 
 
 def _refuse_session_bytes(

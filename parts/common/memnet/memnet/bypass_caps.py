@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from memnet.exceptions import MemNetError
 from memnet.models import Record
 from memnet.session import SessionStore
+from memnet.session_bytes import ledger_for
 from memnet.tag_map import check_value_bytes
 
 _RAISE = {
@@ -61,6 +62,9 @@ def _restore(ss: SessionStore, cp: _Checkpoint) -> None:
             store._index_edge(rec)
     ss.relations.clear()
     ss.relations.update(cp.relations)
+    # Records may keep in-place edits (rename_id, _retarget_endpoints,
+    # same_thing_absorb), so reconcile: the next check rebuilds the byte ledger.
+    ledger_for(ss).invalidate()
 
 
 class BypassGuard:
