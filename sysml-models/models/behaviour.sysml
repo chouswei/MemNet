@@ -1813,6 +1813,8 @@ package MemNetBehaviour {
       and neither the delete nor the write is stored. A write that lands
       exactly on the budget is accepted and leaves the session atBudget.
       newTotal is the total after the event; budget is the setting.
+      The total is maintained incrementally (MN-REQ-14.12; verify
+      MN-VER-14-S12).
     */
     attribute newTotal : Integer;
     attribute budget : Integer;

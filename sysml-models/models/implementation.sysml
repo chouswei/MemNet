@@ -524,9 +524,9 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.11 implemented, 14.2-14.3 PARKED) -----
-  // 14.9, 14.10 and 14.11 are shipped with runtime tests (SessionByteBudget in snapshot.py,
-  // BypassPathCaps in bypass_caps.py; config.py holds the caps).
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
+  // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
+  // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
   // 14.1 and 14.4-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
   // 14.2 and 14.3 are PARKED.
   part def AtelierBoardAskPlan {
@@ -555,6 +555,9 @@ package MemNetImplementation {
            import_absorb.py, durable/sync.py, cli.py delete and housekeep.py
            prune; snapshot.py refuse_session_budget (save) and
            refuse_snapshot_text_budget (load).
+      14.12 incremental budget check: session_bytes.py (SessionBytes ledger,
+           incremental_total, full_recount_total, check_budget) with a
+           dirty journal on MemStore; wire.py join_payload via str.translate.
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
@@ -650,6 +653,7 @@ package MemNetImplementation {
       default 163,840,000 bytes (config.py DEFAULT_MAX_SESSION_BYTES; counted as escaped snapshot line bytes); an
       over-budget write, load, save, import or hydrate is
       refused limit_exceeded|session_bytes and stores nothing.
+      The total is kept incrementally by SessionByteLedger (MN-REQ-14.12).
     */
     attribute implemented : Boolean = true;
     attribute maxSessionBytes : Integer = 163840000;
@@ -667,6 +671,23 @@ package MemNetImplementation {
     attribute implemented : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_11_BypassPathCaps;
+  }
+
+  part def SessionByteLedger {
+    doc /*
+      Implemented (MN-REQ-14.12; memnet/session_bytes.py: SessionBytes,
+      incremental_total, full_recount_total, check_budget; dirty journal on
+      MemStore). Per-session running sum of escaped UTF-8 line bytes,
+      updated on create, update, delete, import, hydrate and load; a write
+      costs O(changed rows plus the incident edges of changed nodes). The
+      total equals full_recount_total at every point
+      (MEMNET_DEBUG_SESSION_BYTES=1 asserts it). A bypass_guard rollback or
+      a failure inside the sync invalidates the ledger; the next check
+      rebuilds it from the store.
+    */
+    attribute implemented : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_12_IncrementalByteBudget;
   }
 
   part def AtelierBoardTargetEngine {
