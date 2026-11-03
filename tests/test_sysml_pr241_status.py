@@ -201,8 +201,10 @@ def test_n3_board_comment_qualified():
     head = _flat(t[i : t.index("part def AtelierBoardAskPlan", i)])
     assert not re.search(r"nothing is shipped\.?\s*$", head.strip())
     assert re.search(r"(?i)implemented", head)
-    for n in ("14.9", "14.10", "14.11"):
-        assert n in head
+    # 14.12 (incremental ledger) widened the range to 14.9-14.12.
+    if not re.search(r"14\.9 to 14\.1[12]", head):
+        for n in ("14.9", "14.10", "14.11"):
+            assert n in head
 
 
 # ---- N4: verify.sysml ----
@@ -227,6 +229,6 @@ def test_n4_s11_cases_a_c_limited_to_import_hydrate():
 
 def test_n4_summary_consistent():
     t = _text("verify.sysml")[:6000]
-    assert re.search(r"S09 to S11 implemented", t) or re.search(r"S09.{0,4}S11", t)
+    assert re.search(r"S09 to S1[12] implemented", t) or re.search(r"S09.{0,4}S1[12]", t)
     assert re.search(r"(?i)14\.11 bypass-path caps: import, hydrate", t)
     assert not re.search(r"14\.11 bypass-path caps: import, hydrate, CLI delete/prune \(S11\)", t)

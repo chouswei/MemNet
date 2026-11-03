@@ -536,7 +536,16 @@ def snapshot_value_cap_report() -> dict[str, Any]:
         "line_bytes_on_raw_snapshot_line": "max_line_bytes" in parse_src
         and "len(line.encode(" in parse_src,
         "join_escapes_backslash_and_pipe": (
-            "def join_payload" in join_src and '"\\\\"' in join_src and '"|"' in join_src
+            "def join_payload" in join_src
+            and (
+                ('"\\\\"' in join_src and '"|"' in join_src)
+                # table-based escape (MN-REQ-14.12): the table lives at module level
+                or (
+                    "_ESC_TABLE" in join_src
+                    and '"\\\\": "\\\\\\\\"' in wire
+                    and '"|": "\\\\|"' in wire
+                )
+            )
         ),
         "join_escapes_splitlines_separators": "_SPLITLINES_ESC" in wire
         and "split_snapshot_lines" in wire,

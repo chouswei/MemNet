@@ -692,6 +692,7 @@ class MutateGate:
                     # Restore deleted source, then put retargeted endpoints back.
                     if old_id not in store._by_hid:
                         store._by_hid[old_id] = source_backup
+                        store.mark_dirty(old_id)
                         if old_id not in store.write_order:
                             store.write_order.append(old_id)
                         store._index_tag(source_backup)
@@ -704,6 +705,7 @@ class MutateGate:
                         if edge.fields.get(field) != survivor_hid:
                             continue
                         store._unindex_edge(edge)
+                        store.mark_dirty(eid)
                         edge.fields[field] = old_id
                         store._index_edge(edge)
                 else:
@@ -720,11 +722,13 @@ class MutateGate:
                         store._unindex_edge(cur)
                     store._unindex_tag(cur)
                 store._by_hid[old.hid] = old
+                store.mark_dirty(old.hid)
                 store._index_tag(old)
                 if old.tag == "EDG":
                     store._index_edge(old)
             for old in deleted_backup:
                 store._by_hid[old.hid] = old
+                store.mark_dirty(old.hid)
                 store.write_order.append(old.hid)
                 store._index_tag(old)
                 if old.tag == "EDG":
@@ -1118,6 +1122,7 @@ class MutateGate:
                 self.ss.store.delete(rid)
             for old in replaced:
                 self.ss.store._by_hid[old.hid] = old
+                self.ss.store.mark_dirty(old.hid)
                 if old.tag == "EDG":
                     self.ss.store._index_edge(old)
             raise

@@ -50,7 +50,7 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.11 implemented, rest target only
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.12 implemented, rest target only
     MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
@@ -62,6 +62,7 @@
     MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (implemented; tests/test_value_cap_32k.py, test_line_cap_whole_line.py, test_line_cap_edge_schema.py)
     MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
+    MN-REQ-14.12       Budget check is incremental: cost O(changed rows), total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2444,7 +2445,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (14.9-14.11 implemented; rest PROPOSAL, target only) -----
+    // ----- Atelier-board asks (14.9-14.12 implemented; rest PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2455,8 +2456,9 @@ package MemNetRequirements {
         0.20.2). Nine leaves, 14.1 to 14.9, plus a tenth, the per-session
         total-bytes cap (14.10), block MemNet as an Atelier board store.
         An eleventh (14.11) makes the write paths that bypass the mutate
-        gate enforce the same caps.
-        Implemented with runtime tests: leaves 14.9, 14.10 and 14.11 (test
+        gate enforce the same caps. A twelfth (14.12) makes the byte-budget
+        check incremental.
+        Implemented with runtime tests: leaves 14.9 to 14.12 (test
         files named in each leaf's doc). The rest are target only: leaves
         14.1 and 14.4 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
         PARKED until Elon reviews them (scope note r00002195). A target-only
@@ -2667,8 +2669,8 @@ package MemNetRequirements {
           32,768 bytes SHALL be accepted; larger values SHALL be refused
           with a clear error; the cap is counted in bytes. Snapshots written
           under the old cap SHALL still load. LINE CAP: a 32,768-byte value
-          cannot fit today's line cap (MEMNET_MAX_LINE_BYTES, config.py:127,
-          32,768), because backslash and pipe are written twice
+          could not fit the old 32,768-byte line cap (MEMNET_MAX_LINE_BYTES,
+          config.py:127; the cap is now 135,168), because backslash and pipe are written twice
           (docs/cap-contract.md:153-158 says a single value always fits a
           line, and caps a product raise at 16,384). 14.9 SHALL therefore
           also raise the default line cap (fixed interface, owner
@@ -2727,7 +2729,8 @@ package MemNetRequirements {
           write that the value and line caps allow, and a lower setting can
           refuse to load or hydrate a session that is over it (the setting to
           raise is named in the error). Linked from 14.5 and
-          14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates, BypassPathCapEnforce.
+          14.9. The total is kept incrementally (MN-REQ-14.12).
+          Verify: MN-VER-14-S10; incremental total: MN-VER-14-S12. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates, BypassPathCapEnforce.
         */
         attribute requirementId : String = "MN-REQ-14.10";
       }
@@ -2758,6 +2761,36 @@ package MemNetRequirements {
           Verify: MN-VER-14-S11. Behaviour: BypassPathCapEnforce.
         */
         attribute requirementId : String = "MN-REQ-14.11";
+      }
+
+      requirement def MN_REQ_14_12_IncrementalByteBudget {
+        doc /*
+          Status: implemented (this PR). The budget check is incremental:
+          cost O(changed rows), total equal to a full recount. The session
+          total of 14.10 SHALL be kept as a per-session running sum of
+          escaped UTF-8 line bytes, updated on create, update, delete,
+          import, hydrate and load. A write SHALL cost O(changed rows plus
+          the incident edges of changed nodes), amortised; only the first
+          check after load or hydrate, a SCHEMA change, a bypass_guard
+          rollback, a row-count tripwire or a leftover-nick collision pays
+          one O(rows) rebuild. The
+          running total SHALL equal a full recount of the SCHEMA and record
+          lines at every point; the debug flag MEMNET_DEBUG_SESSION_BYTES=1
+          makes every check also recount and assert equality. Widening a
+          tag's SCHEMA by an undeclared key, renaming a node (edge lines
+          carry the endpoint nicks) and relation folding are accounted
+          exactly. A bypass_guard rollback invalidates the ledger, so the
+          next check rebuilds it from the restored store and the total again
+          equals a full recount; a failure inside the sync also invalidates
+          it. The refusal text stays session_bytes|{total}/{budget}, where
+          {total} is the partial sum in write order (the refusal path
+          recomputes with the full walk). wire.join_payload escaping is
+          table based (str.translate) and byte-identical to the former
+          per-character loop. Semantics of 14.10 and 14.11 (default
+          163,840,000 bytes, codes, atomicity) are unchanged.
+          Verify: MN-VER-14-S12. Behaviour: SessionByteBudgetStates.
+        */
+        attribute requirementId : String = "MN-REQ-14.12";
       }
     }
   }
@@ -3069,6 +3102,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap;
   requirement bypassPathCapsReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_11_BypassPathCaps;
+  requirement incrementalByteBudgetReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_12_IncrementalByteBudget;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3507,5 +3542,11 @@ package MemNetRequirements {
     end #original ::> raisableSessionRecordCapReq;
     end #original ::> valueCap32kReq;
     end #derive ::> sessionTotalBytesCapReq;
+  }
+
+  #derivation connection deriveIncrementalBudgetFromTotalBytesCap {
+    end #original ::> sessionTotalBytesCapReq;
+    end #original ::> bypassPathCapsReq;
+    end #derive ::> incrementalByteBudgetReq;
   }
 }

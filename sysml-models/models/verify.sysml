@@ -54,7 +54,7 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Atelier-board asks (MN-VER-14-S01..S11; S09 to S11 implemented with
+  Atelier-board asks (MN-VER-14-S01..S12; S09 to S12 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
     MN-REQ-14.1 WHERE range (S01)
@@ -68,6 +68,7 @@
     14.9 value cap 32,768 bytes + line cap 135,168 (S09)
     14.10 per-session total-bytes cap (S10)
     14.11 bypass-path caps: import, hydrate; CLI delete/prune line cap only (S11)
+    14.12 incremental byte-budget check, total equal to a full recount (S12)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
     MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message
@@ -2943,6 +2944,33 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_14_S12_IncrementalByteBudget {
+    doc /*
+      MN-REQ-14.12, run by tests/test_session_bytes_incremental.py and
+      tests/test_join_payload_vectorised.py. Cases: (a) after every create,
+      update, delete, import, hydrate and load the incremental total
+      equals full_recount_total (MEMNET_DEBUG_SESSION_BYTES=1 asserts it);
+      (b) a write costs O(changed rows plus incident edges of changed
+      nodes), amortised, with one O(rows) rebuild only after load,
+      hydrate, a SCHEMA change, a rollback or a nick collision; (c) SCHEMA widening by an undeclared key, a
+      node rename (edge lines carry endpoint nicks) and relation folding
+      are accounted exactly; (d) a bypass_guard rollback, or a failure
+      inside the sync, invalidates the ledger and the next check rebuilds
+      it equal to a full recount; (e) the refusal text stays
+      session_bytes|{total}/{budget} with {total} the partial sum in write
+      order; (f) join_payload (str.translate) is byte-identical to the
+      former per-character loop. Behaviour: SessionByteBudgetStates.
+    */
+    attribute verificationId : String = "MN-VER-14-S12";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS12 {
+      doc /* Implemented: tests/test_session_bytes_incremental.py, tests/test_join_payload_vectorised.py. */
+      verify incrementalByteBudgetReq;
+    }
+  }
+
   verification def MN_VER_14_D01_TwoStepWalkRegression {
     doc /*
       DEFECT record (not a requirement; no fix claimed). The two-step walk
@@ -3060,6 +3088,8 @@ package MemNetVerification {
     : MN_VER_14_S10_SessionTotalBytesCap;
   verification bypassPathCapsVerify
     : MN_VER_14_S11_BypassPathCaps;
+  verification incrementalByteBudgetVerify
+    : MN_VER_14_S12_IncrementalByteBudget;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify

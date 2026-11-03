@@ -35,6 +35,20 @@ class MemStore:
         self._edges_by_src: dict[str, set[str]] = {}
         self._edges_by_dist: dict[str, set[str]] = {}
         self._by_tag: dict[str, set[str]] = {}
+        # Dirty journal for the session byte ledger (MN-REQ-14.12): hids whose
+        # record changed since the last drain; _dirty_all forces a full rebuild.
+        self._dirty: set[str] = set()
+        self._dirty_all: bool = True
+
+    def mark_dirty(self, *hids: str) -> None:
+        """Note hids whose stored record changed (over-marking is always safe)."""
+        self._dirty.update(hids)
+
+    def drain_dirty(self) -> tuple[set[str], bool]:
+        dirty, dirty_all = self._dirty, self._dirty_all
+        self._dirty = set()
+        self._dirty_all = False
+        return dirty, dirty_all
 
     def load_records(self, records: list[Record]) -> None:
         self._by_hid.clear()
@@ -42,6 +56,7 @@ class MemStore:
         self._edges_by_src.clear()
         self._edges_by_dist.clear()
         self._by_tag.clear()
+        self._dirty_all = True
         nick_to_hid: dict[str, str] = {}
         loaded: list[Record] = []
         for rec in records:
@@ -136,6 +151,7 @@ class MemStore:
             self.write_order.append(rid)
             self._index_tag(record)
         self._by_hid[rid] = record
+        self.mark_dirty(rid)
         if record.tag == "EDG":
             self._index_edge(record)
         return warnings
@@ -188,6 +204,7 @@ class MemStore:
             self._unindex_edge(existing)
         self._unindex_tag(existing)
         rec = self._by_hid.pop(hid, None)
+        self.mark_dirty(hid)
         if rec and hid in self.write_order:
             self.write_order.remove(hid)
         return rec
@@ -233,6 +250,7 @@ class MemStore:
             return warnings
 
         old.fields["id"] = new_id
+        self.mark_dirty(old.hid)
         return warnings
 
     def _retarget_endpoints(self, old_hid: str, new_hid: str) -> None:
@@ -244,6 +262,7 @@ class MemStore:
             if edge is None or edge.tag != "EDG":
                 continue
             self._unindex_edge(edge)
+            self.mark_dirty(eid)
             if edge.fields.get("src") == old_hid:
                 edge.fields["src"] = new_hid
             if edge.fields.get("dist") == old_hid:
