@@ -18,7 +18,7 @@ from memnet.config import (
 )
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import FIXED_TAGS
-from memnet.mem_store import MemStore
+from memnet.mem_store import MemStore, _split_suffix
 from memnet.models import Record, SessionMeta, TagDef, TagMap
 from memnet.output import emit_record, emit_record_line, emit_wrn
 from memnet.registry import SessionEntry
@@ -49,6 +49,9 @@ SUPPORTED_SNAPSHOT_FORMATS = (1, 2)
 V1_BACKUP_SUFFIX = ".v1.bak"
 # Session ACL line. A ``#`` line, so readers that predate it skip it.
 _ACL_PREFIX = "#@ACL:"
+# Per-prefix minted-id high-water, written only when it is above the live ids
+# (a deleted id must not be re-minted after reload). A ``#`` line; optional.
+_IDHW_PREFIX = "#@IDHW: "
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
@@ -156,8 +159,52 @@ def first_over_field_cap(
     return None
 
 
+def _indexed_field_counts(ss: SessionStore) -> tuple[dict[str, int], bool]:
+    """Effective field count per canonical tag from the store's field-key index.
+
+    Same counts as ``effective_snapshot_fields`` (an undeclared key counts once
+    per row that carries it, as ``collect_undeclared_extras`` does) without a
+    row walk. The flag is True when some fixed tag carries an undeclared key.
+    """
+    store = ss.store
+    extra_n: dict[str, int] = {}
+    extra_has_id: set[str] = set()
+    fixed_extra = False
+    for raw_tag, keys in store.field_keys_by_tag().items():
+        canon = _canonical_tag(ss, raw_tag)
+        td = ss.tag_map.get(canon)
+        known = set(td.fields) if td else {"id"}
+        undeclared = [k for k in keys if k not in known]
+        if not undeclared:
+            continue
+        if canon in FIXED_TAGS or raw_tag in FIXED_TAGS:
+            fixed_extra = True
+        counts = store.field_key_counts(raw_tag)
+        extra_n[canon] = extra_n.get(canon, 0) + sum(counts[k] for k in undeclared)
+        if "id" in undeclared:
+            extra_has_id.add(canon)
+    out: dict[str, int] = {}
+    for tag, td in ss.tag_map.tags.items():
+        n = len(td.fields) + extra_n.get(tag, 0)
+        if tag not in FIXED_TAGS and "id" not in td.fields and tag not in extra_has_id:
+            n += 1
+        out[tag] = n
+    for tag, n in extra_n.items():
+        if tag not in out:
+            out[tag] = 1 + n
+    return out, fixed_extra
+
+
 def refuse_mutate_field_cap(ss: SessionStore) -> None:
-    """Mutate: refuse when a user tag's effective fields could not save."""
+    """Mutate: refuse when a user tag's effective fields could not save.
+
+    Decided from the store's field-key index; the full row walk runs only to
+    build the refusal (same code and message as before).
+    """
+    counts, fixed_extra = _indexed_field_counts(ss)
+    cap = ss.caps.max_fields
+    if not fixed_extra and not any(n > cap for tag, n in counts.items() if tag not in FIXED_TAGS):
+        return
     over = first_over_field_cap(ss, skip_fixed=True)
     if over is None:
         return
@@ -343,6 +390,41 @@ def _acl_line(acl: SessionAcl) -> str:
     return f"{_ACL_PREFIX}{payload}"
 
 
+def _idhw_line(ss: SessionStore) -> str | None:
+    """``#@IDHW:`` line when some prefix's high-water is above its max live suffix."""
+    hw = ss.store.id_high_water()
+    if not hw:
+        return None
+    live: dict[str, int] = {}
+    for nick in ss.store._by_hid._nick:  # live nicknames (index keys); save walks rows anyway
+        split = _split_suffix(nick)
+        if split is not None and split[1] > live.get(split[0], -1):
+            live[split[0]] = split[1]
+    if not any(n > live.get(prefix, -1) for prefix, n in hw.items()):
+        return None
+    return _IDHW_PREFIX + json.dumps(hw, sort_keys=True, separators=(",", ":"))
+
+
+def _parse_idhw(lines: list[str]) -> dict[str, int] | None:
+    """High-water from the ``#@IDHW:`` line. Absent or malformed: None (ignored)."""
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith(_IDHW_PREFIX.rstrip()):
+            continue
+        try:
+            data = json.loads(line.removeprefix(_IDHW_PREFIX.rstrip()))
+        except ValueError:
+            return None
+        if not isinstance(data, dict):
+            return None
+        return {
+            k: v
+            for k, v in data.items()
+            if isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool) and v >= 0
+        }
+    return None
+
+
 def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -> str:
     lines = [SNAPSHOT_MAGIC]
     m = ss.meta
@@ -353,6 +435,9 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -
         f"{m.ttl_minutes}|{hw}|{modified}"
     )
     lines.append(_acl_line(ss.acl))
+    idhw = _idhw_line(ss)
+    if idhw is not None:
+        lines.append(idhw)
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
@@ -705,6 +790,9 @@ def load_snapshot_text(
     ]
     for rec in parsed:
         store.upsert(rec, relations=relations)
+    idhw = _parse_idhw(lines)
+    if idhw:
+        store.raise_id_high_water(idhw)
     entry = SessionEntry(
         meta=new_meta,
         tag_map=tag_map,
@@ -749,6 +837,9 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
     ]
     for rec in parsed:
         store.upsert(rec, relations=relations)
+    idhw = _parse_idhw(lines)
+    if idhw:
+        store.raise_id_high_water(idhw)
     return SessionEntry(
         meta=meta,
         tag_map=tag_map,

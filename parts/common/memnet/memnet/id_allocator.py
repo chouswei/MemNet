@@ -30,6 +30,14 @@ class IdAllocator:
     def __init__(self, existing_ids: set[str] | None = None) -> None:
         self._used: set[str] = set(existing_ids or ())
         self._seq: dict[str, int] = {}
+        # Seed per-prefix seq from the existing ids so mint is max + 1: a gap
+        # left by a deleted id is never refilled.
+        for rid in self._used:
+            m = _NUM_SUFFIX.match(rid)
+            if m:
+                prefix, n = m.group(1), int(m.group(2))
+                if n > self._seq.get(prefix, 0):
+                    self._seq[prefix] = n
 
     def observe(self, rid: str) -> None:
         if rid and rid != "NEW":

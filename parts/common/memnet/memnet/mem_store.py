@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import time
-from collections import deque
+from collections import Counter, deque
 
 from memnet.config import (
     DEFAULT_QUERY_DEPTH,
@@ -23,6 +23,157 @@ _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
 _LAW_LINK_RELATIONS = frozenset({"governs", "features", "constrains", "applies_to"})
 _ENGINE_LAW_ID_RE = re.compile(r"^LAW0[1-5]$")
 _ID_TOKEN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_NUM_SUFFIX_RE = re.compile(r"^([A-Za-z_]+)(\d+)$")
+
+
+def _split_suffix(nick: str) -> tuple[str, int] | None:
+    m = _NUM_SUFFIX_RE.match(nick) if nick else None
+    return (m.group(1), int(m.group(2))) if m else None
+
+
+class RecordTable(dict):
+    """``hid -> Record`` that keeps the nickname id index on every mutator.
+
+    Indexes: nick -> hids, hid -> indexed (nick, tag, keys), hid -> first-insert
+    seq (dict order), raw tag -> Counter(field key), per-prefix id high-water.
+    Unindexing uses the indexed snapshot, never the record's current fields, so
+    an in-place edit followed by a write (or ``reindex``) stays consistent.
+    The high-water is never lowered (``clear`` included): minted ids are burnt.
+    """
+
+    _MISSING = object()
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        self._nick: dict[str, set[str]] = {}
+        self._ix: dict[str, tuple[str, str, tuple[str, ...]]] = {}
+        self._seq: dict[str, int] = {}
+        self._next_seq = 0
+        self._tag_keys: dict[str, Counter] = {}
+        self._hw: dict[str, int] = {}
+        self.update(*args, **kwargs)
+
+    # --- index upkeep -------------------------------------------------------
+
+    def _index(self, hid: str, rec: Record) -> None:
+        nick = rec.fields.get("id") or ""
+        keys = tuple(rec.fields)
+        self._ix[hid] = (nick, rec.tag, keys)
+        if nick:
+            self._nick.setdefault(nick, set()).add(hid)
+            split = _split_suffix(nick)
+            if split is not None:
+                prefix, n = split
+                if n > self._hw.get(prefix, -1):
+                    self._hw[prefix] = n
+        self._tag_keys.setdefault(rec.tag, Counter()).update(keys)
+
+    def _unindex(self, hid: str) -> None:
+        snap = self._ix.pop(hid, None)
+        if snap is None:
+            return
+        nick, tag, keys = snap
+        if nick:
+            bucket = self._nick.get(nick)
+            if bucket is not None:
+                bucket.discard(hid)
+                if not bucket:
+                    del self._nick[nick]
+        counter = self._tag_keys.get(tag)
+        if counter is not None:
+            counter.subtract(keys)
+            for key in keys:
+                if counter[key] <= 0:
+                    del counter[key]
+            if not counter:
+                del self._tag_keys[tag]
+
+    def reindex(self, hid: str) -> None:
+        self._unindex(hid)
+        rec = dict.get(self, hid)
+        if rec is not None:
+            self._index(hid, rec)
+
+    # --- dict mutators ------------------------------------------------------
+
+    def __setitem__(self, hid: str, rec: Record) -> None:
+        if not dict.__contains__(self, hid):
+            self._seq[hid] = self._next_seq
+            self._next_seq += 1
+        self._unindex(hid)
+        dict.__setitem__(self, hid, rec)
+        self._index(hid, rec)
+
+    def __delitem__(self, hid: str) -> None:
+        dict.__delitem__(self, hid)
+        self._unindex(hid)
+        self._seq.pop(hid, None)
+
+    def pop(self, hid, default=_MISSING):
+        if dict.__contains__(self, hid):
+            rec = dict.__getitem__(self, hid)
+            del self[hid]
+            return rec
+        if default is RecordTable._MISSING:
+            raise KeyError(hid)
+        return default
+
+    def popitem(self):
+        hid, rec = dict.popitem(self)
+        self._unindex(hid)
+        self._seq.pop(hid, None)
+        return hid, rec
+
+    def clear(self) -> None:
+        dict.clear(self)
+        self._nick.clear()
+        self._ix.clear()
+        self._seq.clear()
+        self._tag_keys.clear()
+        # self._hw is kept: the high-water is never lowered.
+
+    def update(self, *args, **kwargs) -> None:
+        for hid, rec in dict(*args, **kwargs).items():
+            self[hid] = rec
+
+    def setdefault(self, hid, default=None):
+        if not dict.__contains__(self, hid):
+            self[hid] = default
+        return dict.__getitem__(self, hid)
+
+    def __ior__(self, other):
+        self.update(other)
+        return self
+
+    def __copy__(self) -> RecordTable:
+        return _rebuild_record_table(dict(self), self._hw)
+
+    def __deepcopy__(self, memo) -> RecordTable:
+        import copy
+
+        return _rebuild_record_table(copy.deepcopy(dict(self), memo), self._hw)
+
+    def __reduce__(self):
+        return (_rebuild_record_table, (dict(self), dict(self._hw)))
+
+    # --- reads --------------------------------------------------------------
+
+    def nick_hids(self, nick: str) -> list[str]:
+        """Hids indexed under ``nick``, in dict (first-insert) order."""
+        bucket = self._nick.get(nick)
+        if not bucket:
+            return []
+        if len(bucket) == 1:
+            return list(bucket)
+        return sorted(bucket, key=self._seq.__getitem__)
+
+
+def _rebuild_record_table(items: dict, hw: dict[str, int]) -> RecordTable:
+    out = RecordTable(items)
+    for prefix, n in hw.items():
+        if n > out._hw.get(prefix, -1):
+            out._hw[prefix] = n
+    return out
 
 
 class MemStore:
@@ -30,7 +181,8 @@ class MemStore:
         self.tag_map = tag_map
         self.caps = caps or Caps()
         # Graph is elements keyed by hidden handle (off the wire).
-        self._by_hid: dict[str, Record] = {}
+        # RecordTable keeps the nickname index on every write, rollbacks included.
+        self._by_hid: RecordTable = RecordTable()
         self.write_order: list[str] = []
         self._edges_by_src: dict[str, set[str]] = {}
         self._edges_by_dist: dict[str, set[str]] = {}
@@ -72,8 +224,6 @@ class MemStore:
                     token = rec.fields.get(key, "")
                     if token and token not in self._by_hid and token in nick_to_hid:
                         rec.fields[key] = nick_to_hid[token]
-                    elif token and token in {r.hid for r in loaded}:
-                        rec.fields[key] = token
             self._by_hid[rec.hid] = rec
             self.write_order.append(rec.hid)
             self._index_tag(rec)
@@ -250,6 +400,7 @@ class MemStore:
             return warnings
 
         old.fields["id"] = new_id
+        self.reindex(old.hid)
         self.mark_dirty(old.hid)
         return warnings
 
@@ -270,19 +421,93 @@ class MemStore:
             self._index_edge(edge)
 
     def match_nickname(self, nick: str) -> list[Record]:
+        """Rows whose ``fields['id']`` is ``nick``, in ``_by_hid`` order. O(hits)."""
         if not nick:
             return []
-        return [r for r in self._by_hid.values() if r.fields.get("id") == nick]
+        by_hid = self._by_hid
+        out: list[Record] = []
+        for hid in by_hid.nick_hids(nick):
+            rec = dict.get(by_hid, hid)
+            if rec is not None and rec.fields.get("id") == nick:
+                out.append(rec)
+        return out
 
     def nickname_set(self) -> set[str]:
-        """Every element nickname (fields['id']) in the store.
+        """Every live nickname, plus ``{prefix}{high-water}`` for each id prefix.
 
-        No nickname index exists (``match_nickname`` scans too), so this is one
-        O(N) pass over ``_by_hid`` with no ranking. Callers must only invoke it
-        when a write actually has to mint an id (e.g. an id-less edge), so the
-        cost is paid per such write, not per mutate.
+        Read from the nickname index (no row scan). The high-water entries keep
+        an IdAllocator seeded from this set from re-minting a deleted id.
         """
-        return {r.fields["id"] for r in self._by_hid.values() if r.fields.get("id")}
+        by_hid = self._by_hid
+        out = set(by_hid._nick)
+        out.update(f"{p}{n}" for p, n in by_hid._hw.items())
+        return out
+
+    def reindex(self, hid: str) -> None:
+        """Re-read one row into the indexes after an in-place field edit."""
+        self._by_hid.reindex(hid)
+
+    def id_high_water(self) -> dict[str, int]:
+        """Per-prefix highest numeric id suffix ever stored (never lowered)."""
+        return dict(self._by_hid._hw)
+
+    def raise_id_high_water(self, hw: dict[str, int]) -> None:
+        """Raise per-prefix high-water marks (snapshot ``#@IDHW``); never lowers."""
+        cur = self._by_hid._hw
+        for prefix, n in hw.items():
+            if n > cur.get(prefix, -1):
+                cur[prefix] = n
+
+    def field_keys_by_tag(self) -> dict[str, set[str]]:
+        """Raw stored tag -> every field key some row of that tag carries."""
+        return {tag: set(counter) for tag, counter in self._by_hid._tag_keys.items()}
+
+    def field_key_counts(self, tag: str) -> Counter:
+        """Raw stored tag -> rows per field key (read-only view of the index)."""
+        return self._by_hid._tag_keys.get(tag) or Counter()
+
+    def verify_indexes(self) -> list[str]:
+        """Problems between the indexes and the rows ([] = consistent). O(N)."""
+        by_hid = self._by_hid
+        if not isinstance(by_hid, RecordTable):
+            return ["_by_hid is not a RecordTable"]
+        problems: list[str] = []
+        nick_want: dict[str, set[str]] = {}
+        keys_want: dict[str, Counter] = {}
+        live_max: dict[str, int] = {}
+        last_seq = -1
+        for hid, rec in dict.items(by_hid):
+            nick = rec.fields.get("id") or ""
+            snap = by_hid._ix.get(hid)
+            if snap != (nick, rec.tag, tuple(rec.fields)):
+                problems.append(f"stale index row {hid}: indexed={snap!r} nick={nick!r}")
+            seq = by_hid._seq.get(hid)
+            if seq is None or seq <= last_seq:
+                problems.append(f"insert seq out of order at {hid}")
+            else:
+                last_seq = seq
+            if nick:
+                nick_want.setdefault(nick, set()).add(hid)
+                split = _split_suffix(nick)
+                if split is not None:
+                    live_max[split[0]] = max(live_max.get(split[0], -1), split[1])
+            keys_want.setdefault(rec.tag, Counter()).update(rec.fields.keys())
+        live = set(dict.keys(by_hid))
+        if set(by_hid._ix) - live:
+            problems.append("index holds rows not in the store")
+        if set(by_hid._seq) != live:
+            problems.append("insert seq keys differ from the store")
+        if by_hid._nick != nick_want:
+            bad = sorted(set(by_hid._nick) ^ set(nick_want)) or sorted(
+                n for n in nick_want if by_hid._nick.get(n) != nick_want[n]
+            )
+            problems.append(f"nickname index differs: {bad[:5]}")
+        if by_hid._tag_keys != keys_want:
+            problems.append("field-key counters differ")
+        for prefix, n in live_max.items():
+            if by_hid._hw.get(prefix, -1) < n:
+                problems.append(f"id high-water {prefix}={by_hid._hw.get(prefix)} < live {n}")
+        return problems
 
     def resolve_one(self, token: str | None) -> Record | None:
         """Unique hid or unique nickname. None if missing or CueConflict cardinality."""
@@ -303,7 +528,13 @@ class MemStore:
     ) -> list[Record]:
         """Pattern lookup (labels + properties the node actually has)."""
         tag_u = tag.upper() if tag else None
-        if tag_u:
+        id_val = str(props["id"]) if props and props.get("id") is not None else ""
+        if id_val:
+            # Nickname index: candidates are the id hits, not the whole store.
+            rows = self.match_nickname(id_val)
+            if tag_u:
+                rows = [r for r in rows if r.tag == tag_u]
+        elif tag_u:
             rows = [self._by_hid[i] for i in self._by_tag.get(tag_u, set()) if i in self._by_hid]
         else:
             rows = [r for r in self._by_hid.values() if r.tag != "EDG"]

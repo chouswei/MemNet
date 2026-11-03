@@ -503,10 +503,18 @@ def bounded_match_find(
     if limit < 1:
         raise MemNetError("bad_limit", "find --limit must be >= 1")
     kind_u = kind.upper() if kind else None
-    if kind_u:
-        rows = store.list_records(kind_u, active_only=True)
+    id_val = next((val for key, val in locators if key == "id"), "")
+    by_hid = getattr(store, "_by_hid", None)
+    if id_val and hasattr(store, "match_nickname"):
+        # Nickname index: O(hits), no list_records walk.
+        rows = store.match_nickname(id_val)
+    elif by_hid is not None and hasattr(store, "_by_tag"):
+        if kind_u:
+            rows = [by_hid[i] for i in store._by_tag.get(kind_u, ()) if i in by_hid]
+        else:
+            rows = list(by_hid.values())
     else:
-        rows = [r for r in store.list_records(active_only=True) if r.tag not in {"LAW", "EDG"}]
+        rows = None
     needle = (keyword or "").strip().lower()
 
     def _loc_ok(rec: Record) -> bool:
@@ -520,6 +528,16 @@ def bounded_match_find(
             return True
         return any(needle in str(v).lower() for v in rec.fields.values())
 
+    if rows is None:
+        if kind_u:
+            rows = store.list_records(kind_u, active_only=True)
+        else:
+            rows = [r for r in store.list_records(active_only=True) if r.tag not in {"LAW", "EDG"}]
+    elif kind_u:
+        rows = [r for r in rows if r.tag == kind_u and not r.is_recyclable()]
+    else:
+        rows = [r for r in rows if r.tag not in {"LAW", "EDG"} and not r.is_recyclable()]
+    # Filter first, then rank only the hits.
     hits = [r for r in rows if _loc_ok(r) and _kw_ok(r)]
     hits = ranked(hits, resolve=getattr(store, "resolve_one", None))
     return FindResult(seeds=hits[:limit], total=len(hits))
