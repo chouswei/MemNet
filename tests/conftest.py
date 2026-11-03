@@ -29,6 +29,12 @@ def memnet_temp(monkeypatch: pytest.MonkeyPatch):
     reset_drain_gate()
 
 
+@pytest.fixture(autouse=True)
+def _debug_session_bytes(monkeypatch: pytest.MonkeyPatch):
+    """Whole suite: every session-bytes check also asserts incremental == full recount."""
+    monkeypatch.setenv("MEMNET_DEBUG_SESSION_BYTES", "1")
+
+
 @pytest.fixture
 def schema_file():
     return examples_dir() / "schema.example.txt"
