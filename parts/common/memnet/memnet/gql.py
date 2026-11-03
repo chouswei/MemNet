@@ -1045,6 +1045,9 @@ _RE_REL_BRACKET = re.compile(
 )
 
 
+_RE_QUOTED = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"")
+
+
 def _parse_match_rel(s: str, line_no: int, chunk: str, rest: str) -> list[NodeRec | EdgeRec]:
     if (rest or "").upper().startswith("SET"):
         return _parse_match_rel_set(s, line_no, chunk, rest)
@@ -1076,6 +1079,12 @@ def _parse_match_rel_set(s: str, line_no: int, chunk: str, rest: str) -> list[No
         where_pred = parse_where_clause(remainder[5:].strip(), line_no)
     elif remainder:
         raise ParseError(f"unsupported MATCH continuation: {remainder[:60]!r}", line_no)
+    if where_pred is None and not eid:
+        raise ParseError(
+            "relationship SET without WHERE or {id:…} pattern is not honoured",
+            line_no,
+            code="unsupported_predicate",
+        )
     for k, v in props.items():
         if k == "id":
             continue
@@ -1084,7 +1093,8 @@ def _parse_match_rel_set(s: str, line_no: int, chunk: str, rest: str) -> list[No
     if where_pred is not None:
         for v in sorted(_where_vars(where_pred) - {var}):
             _unsupported_pred(f"{v}.* with relationship SET (only {var or 'r'}.*)", line_no)
-    for sm in re.finditer(rf"({_IDENT})\s*(?:\.\s*{_IDENT}\s*=|\+=)", rest[3:]):
+    set_text = _RE_QUOTED.sub("''", rest[3:])
+    for sm in re.finditer(rf"({_IDENT})\s*(?:\.\s*{_IDENT}\s*=|\+=)", set_text):
         if sm.group(1) != var:
             raise ParseError(
                 f"relationship SET targets {sm.group(1)!r}; SET {var or 'r'}.<key> only",
