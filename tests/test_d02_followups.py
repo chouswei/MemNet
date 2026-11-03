@@ -126,6 +126,19 @@ def test_b3_set_with_id_pattern_needs_no_where(memnet_temp):
     assert edges["E2"] == {"kind": "c", "n": "0"}
 
 
+def test_b3_set_with_only_end_node_id_is_refused(memnet_temp):
+    """L-246b-2: an end-node id is not a relationship id; with no WHERE it is refused."""
+    ss = _session()
+    _refused(ss, "MATCH (a {id: 'P0'})-[r:links]->(b) SET r.kind = 'b'", "unsupported_predicate")
+
+
+def test_b3_refusal_names_relationship_id_pattern(memnet_temp):
+    """L-246b-3: the B3 refusal says the id pattern is on the relationship."""
+    ss = _session()
+    err = _refused(ss, "MATCH ()-[r:links]-() SET r.kind = 'b'", "unsupported_predicate")
+    assert "relationship {id:" in str(err), f"refusal does not name 'relationship {{id:': {err}"
+
+
 # --- quoted literals are not SET targets ---------------------------------------
 
 

@@ -1716,8 +1716,9 @@ package MemNetBehaviour {
       merge, src, dist, relation) is refused invalid_field with no write.
       A relationship SET with no WHERE and no id pattern is refused
       unsupported_predicate naming SET / WHERE, with no write; a SET whose
-      pattern carries an id needs no WHERE. Quoted literals in WHERE or SET
-      are never scanned as SET targets. Evidence:
+      relationship pattern carries an id ([r {id:…}]) needs no WHERE; an
+      end-node id alone does not exempt it (refused unsupported_predicate).
+      Quoted literals in WHERE or SET are never scanned as SET targets. Evidence:
       tests/test_d02_where_set_refusal.py, tests/test_d02_followups.py.
     */
     in item statement : String;
