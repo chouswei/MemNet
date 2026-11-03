@@ -69,10 +69,10 @@ def dispatch(argv: list[str] | None = None) -> int:
 
 
 def _run_app(argv: list[str]) -> int:
-    from memnet.cli import app
+    from memnet.in_process_engine import invoke_cli
 
     try:
-        app(argv, prog_name="memnet", standalone_mode=False)
+        invoke_cli(argv)
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 1
     return 0

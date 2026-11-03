@@ -129,6 +129,23 @@ def recyclable_rows(store: SessionStore) -> list[Record]:
     return [r for r in store.store._by_hid.values() if r.is_recyclable()]
 
 
+def stale_counts(store: SessionStore) -> tuple[int, int, int]:
+    """(recyclable, dangling, orphans) counts from one categorising pass.
+
+    ``recyclable`` matches ``len(recyclable_rows(store))``: ``_categorise``
+    skips LAW rows, so recyclable LAW rows are added here.
+    """
+    buckets = _categorise(store)
+    law_recyclable = sum(
+        1 for r in store.store._by_hid.values() if r.tag == "LAW" and r.is_recyclable()
+    )
+    return (
+        len(buckets.recyclable) + law_recyclable,
+        len(buckets.dangling),
+        len(buckets.orphans),
+    )
+
+
 def dangling_rows(store: SessionStore) -> list[Record]:
     return _categorise(store).dangling
 

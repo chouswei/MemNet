@@ -127,7 +127,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     if refuse:
         return draining_envelope()
     os.environ["MEMNET_SERVE_INTERNAL"] = "1"
-    from memnet.cli import app
+    from memnet.in_process_engine import invoke_cli
     from memnet.output import capture_request_stdio
 
     code = 0
@@ -143,7 +143,7 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
         ):
             try:
                 request_log.mark_work_start()
-                result = app(argv, prog_name="memnet", standalone_mode=False)
+                result = invoke_cli(argv)
                 if isinstance(result, int) and result != 0:
                     code = result
             except SystemExit as exc:
