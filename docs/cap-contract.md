@@ -435,6 +435,7 @@ GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honou
 
 **Range WHERE (MN-REQ-14.1).** `n.k < v`, `n.k > v`, `n.k <= v`, `n.k >= v` on node patterns (WHERE or inline `(n:T WHERE …)`) and on relationship patterns (`MATCH ()-[r:T]-() WHERE r.k > v SET …` / `DELETE r`). Typing rules:
 
+- Range on `id` (`n.id < v`, `r.id >= v`, …) refuses `WHERE <op> on id is not honoured` at parse time, anywhere under `AND` / `OR` / `NOT`, number or string operand: an id is opaque identity, with no meaning from its value, order or sequence. `=` / `<>` / `!=` on `id` stay honoured.
 - The right operand is a number literal (`-?\d+(\.\d+)?`) or a quoted string. Anything else (a property, `$param`, a bare word, `true` / `false` / `null`, a list or a map) refuses `WHERE <op> operand is not honoured`; a literal on the left (`5 < n.x`) refuses too.
 - A field is numeric iff it fully matches `-?\d+(\.\d+)?([eE][+-]?\d+)?`. A number literal compares numerically with a numeric field; a quoted string compares by code point with a non-numeric field.
 - No match (UNKNOWN, never an error): a missing or empty field; a number against a non-numeric field; a string against a numeric-looking field; a numeric-looking field whose value is not finite (`1e999`) against a number. `NOT` of UNKNOWN stays UNKNOWN; `AND` / `OR` are three-valued; UNKNOWN at the top is no match.

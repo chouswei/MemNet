@@ -284,6 +284,9 @@ class _WhereParser:
             if sym not in _RANGE_OPS:
                 sym = self.s[self.i]
             self.i += len(sym)
+            if key == "id":
+                # Owner rule: an id is opaque identity; no meaning from its value or order.
+                _unsupported_pred(f"{sym} on id", self.line_no)
             return self._range_operand(_RANGE_OPS[sym], sym, var, key)
         else:
             snippet = self.s[self.i : self.i + 16].strip() or "predicate"

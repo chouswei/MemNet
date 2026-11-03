@@ -102,6 +102,7 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate
 | Patch properties | `MATCH (n:Label {goal:'…'}) SET n.key = value` | No mint on patch |
 | Delete | `MATCH (n:Label {…}) DETACH DELETE n` or delete one rel by type+ends | Settle / recycle policy elsewhere |
 | Filter (WHERE) | `MATCH (n:Label) WHERE n.k >= 5 SET …` / `DELETE n`; `MATCH ()-[r:TYPE]-() WHERE r.k < 'b' SET …` / `DELETE r` | Honoured: `true`/`false`, `=` `<>` `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, range `<` `>` `<=` `>=`, with `AND`/`OR`/`NOT`. Range RHS is a number literal or a quoted string only; number vs numeric field compares numerically, string vs non-numeric field by code point; missing, empty or mistyped fields never match (see `docs/cap-contract.md` MATCH WHERE). Node SET/DELETE and rel DELETE need exactly one match; rel SET updates every match. Other forms: `@ERR: unsupported_predicate\|WHERE {name} is not honoured` |
+| Range on id | `MATCH (n) WHERE n.id < 'P2' SET …` | Refused: `@ERR: unsupported_predicate\|WHERE < on id is not honoured` (any range op, node or rel, under `AND`/`OR`/`NOT`). Ids are opaque: no meaning from value, order or sequence |
 
 **Leftover invented store (not TARGET):** leftover_by_id / leftover_NEW_mint / leftover_id_first / leftover_MERGE_by_id / leftover_allocate_from_locator / leftover_ingestIsIdRule. **0.9 engine still does this.** Do not teach it as identity. Do not replace it with another application PK.
 
