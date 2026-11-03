@@ -178,8 +178,9 @@ def test_minted_edge_id_skips_existing_edge_ids():
     _link(ss, "P1", "P2")
     ids = [e.fields.get("id") for e in _edges(ss)]
     minted = [i for i in ids if i not in ("E1", "E2")]
+    # owner rule: ids are opaque; only uniqueness among live rows is checked
     assert len(minted) == 1
-    assert minted[0] == "E3"
+    assert minted[0]
     assert len(set(ids)) == 3
 
 

@@ -4,9 +4,10 @@ Red-first for symphony range-where-id-index (M1). Pinned interface (lands in M2)
 ``MemStore._by_hid`` is a dict subclass that indexes on every mutator;
 ``match_nickname(nick)`` returns the same rows in the same order as a scan of
 ``_by_hid``; ``verify_indexes() -> list[str]`` ([] = consistent), ``reindex(hid)``
-and ``id_high_water() -> dict[str, int]`` are new. IdAllocator mints max suffix + 1
-and the mint high-water survives snapshot save/load. ``refuse_mutate_field_cap`` and
-``bounded_match_find`` keep their signatures and results.
+and ``id_high_water() -> dict[str, int]`` are new. Owner rule (18:47 TPE): an id is
+opaque; tests check only that minted ids are unique among live rows and that a
+deleted or burnt (refused-batch) id is never minted again, across save/load and
+restore. ``refuse_mutate_field_cap`` and ``bounded_match_find`` keep their signatures and results.
 
 New names are looked up inside test bodies so collection never fails on 0639ad1.
 """
@@ -361,14 +362,33 @@ def _prt_session():
     return ss
 
 
+def _edge_id_list(ss) -> list[str]:
+    return [e.fields.get("id", "") for e in ss.store.list_records("EDG")]
+
+
 def _edge_ids(ss) -> set[str]:
-    return {e.fields.get("id", "") for e in ss.store.list_records("EDG")}
+    return set(_edge_id_list(ss))
+
+
+def _assert_live_unique(ss) -> None:
+    ids = _edge_id_list(ss)
+    assert all(ids), ids
+    assert len(ids) == len(set(ids)), ids
 
 
 def _mint_link(ss, a: str = "P0", b: str = "P1") -> str:
     before = _edge_ids(ss)
     _apply(ss, f"MATCH (a {{id: '{a}'}}), (b {{id: '{b}'}}) CREATE (a)-[:links]->(b)")
     (new,) = _edge_ids(ss) - before
+    return new
+
+
+def _fresh(ss, seen: set[str], a: str, b: str) -> str:
+    """Mint one edge; owner rule: only uniqueness and never-reuse, no value/order."""
+    new = _mint_link(ss, a, b)
+    assert new not in seen, (new, seen)
+    seen.add(new)
+    _assert_live_unique(ss)
     return new
 
 
@@ -379,53 +399,84 @@ def _delete_edge(ss, eid: str) -> None:
 
 def test_mint_does_not_reuse_deleted_edge_id(memnet_temp):
     ss = _prt_session()
-    assert _mint_link(ss, "P0", "P1") == "E1"
-    assert _mint_link(ss, "P1", "P2") == "E2"
-    _delete_edge(ss, "E2")
-    assert ss.store.id_high_water().get("E") == 2
-    assert _mint_link(ss, "P2", "P3") == "E3"
+    seen: set[str] = set()
+    _fresh(ss, seen, "P0", "P1")
+    gone = _fresh(ss, seen, "P1", "P2")
+    _delete_edge(ss, gone)
+    for a, b in [("P2", "P3"), ("P3", "P0"), ("P0", "P2"), ("P1", "P3")]:
+        assert _fresh(ss, seen, a, b) != gone
 
 
-def test_mint_high_water_survives_snapshot_save_load(memnet_temp, tmp_path: Path):
+def test_mint_never_reuses_across_snapshot_save_load(memnet_temp, tmp_path: Path):
     from memnet.snapshot import load_snapshot, write_snapshot
 
     ss = _prt_session()
-    assert _mint_link(ss, "P0", "P1") == "E1"
-    assert _mint_link(ss, "P1", "P2") == "E2"
-    _delete_edge(ss, "E2")
-    assert _mint_link(ss, "P2", "P3") == "E3"
+    seen: set[str] = set()
+    keep = _fresh(ss, seen, "P0", "P1")
+    gone = _fresh(ss, seen, "P1", "P2")
+    _delete_edge(ss, gone)
+    later = _fresh(ss, seen, "P2", "P3")
     path = tmp_path / "mint.snap"
     write_snapshot(ss, path)
     loaded = load_snapshot(path)
-    assert _edge_ids(loaded) == {"E1", "E3"}
-    assert loaded.store.id_high_water().get("E") == 3
-    assert _mint_link(loaded, "P3", "P0") == "E4"
+    assert _edge_ids(loaded) == {keep, later}
+    for a, b in [("P3", "P0"), ("P0", "P2")]:
+        _fresh(loaded, seen, a, b)
 
 
-def test_mint_is_max_live_suffix_plus_one(memnet_temp):
+def test_mint_never_reuses_across_checkpoint_restore(memnet_temp, monkeypatch, tmp_path: Path):
+    from memnet.checkpoint import MANIFEST_NAME, run_checkpoint
+    from memnet.snapshot import load_snapshot_text, materialise_snapshot_text
+
+    ss = _prt_session()
+    seen: set[str] = set()
+    keep = _fresh(ss, seen, "P0", "P1")
+    gone = _fresh(ss, seen, "P1", "P2")
+    _delete_edge(ss, gone)
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", TOKEN)
+    result = run_checkpoint(TOKEN, directory=tmp_path)
+    assert result.exit_code == 0
+    dest = tmp_path / "checkpoint"
+    manifest = json.loads((dest / MANIFEST_NAME).read_text(encoding="utf-8"))
+    row = next(r for r in manifest["sessions"] if r["session_id"] == ss.session_id)
+    text = (dest / row["file"]).read_text(encoding="utf-8")
+    assert {
+        e.fields.get("id") for e in materialise_snapshot_text(text).store.list_records("EDG")
+    } == {keep}
+    restored = load_snapshot_text(text)
+    assert _edge_ids(restored) == {keep}
+    for a, b in [("P2", "P3"), ("P3", "P0")]:
+        _fresh(restored, seen, a, b)
+
+
+def test_mint_skips_live_chosen_ids(memnet_temp):
     ss = _prt_session()
     _apply(
         ss,
         "MATCH (a {id: 'P0'}), (b {id: 'P1'}) CREATE (a)-[:links {id: 'E1'}]->(b)",
         "MATCH (a {id: 'P1'}), (b {id: 'P2'}) CREATE (a)-[:links {id: 'E3'}]->(b)",
     )
-    assert _edge_ids(ss) == {"E1", "E3"}
-    assert _mint_link(ss, "P2", "P3") == "E4"
+    seen = {"E1", "E3"}
+    assert _edge_ids(ss) == seen
+    for a, b in [("P2", "P3"), ("P3", "P0"), ("P0", "P2")]:
+        _fresh(ss, seen, a, b)
 
 
-def test_mint_after_refused_bypass_and_gate_batches(memnet_temp):
+def test_mint_after_refused_bypass_and_gate_batches(memnet_temp, tmp_path: Path):
     from memnet.bypass_caps import bypass_guard
+    from memnet.snapshot import load_snapshot, write_snapshot
 
     ss = _prt_session()
-    assert _mint_link(ss, "P0", "P1") == "E1"
-    assert _mint_link(ss, "P1", "P2") == "E2"
-    _delete_edge(ss, "E2")  # committed delete
-    # refused through bypass_guard: rollback is clear() + re-set
+    seen: set[str] = set()
+    keep = _fresh(ss, seen, "P0", "P1")
+    gone = _fresh(ss, seen, "P1", "P2")
+    _delete_edge(ss, gone)  # committed delete
+    # refused through bypass_guard: rollback is clear() + re-set; the mint is burnt
     with pytest.raises(MemNetError):
         with bypass_guard(ss):
-            _mint_link(ss, "P2", "P3")
+            seen.add(_mint_link(ss, "P2", "P3"))
             raise MemNetError("limit_exceeded", "test|1/0")
-    assert _edge_ids(ss) == {"E1"}
+    assert _edge_ids(ss) == {keep}
     # refused through the mutate gate (field cap after the edge is written)
     over = f"CREATE (:PRT {{id: 'P_OVER', name: 'a', role: 'b', {_extras(62)}}})"
     with pytest.raises(MemNetError) as ei:
@@ -435,11 +486,14 @@ def test_mint_after_refused_bypass_and_gate_batches(memnet_temp):
             over,
         )
     assert ei.value.code == "limit_exceeded"
-    assert _edge_ids(ss) == {"E1"}
-    nxt = _mint_link(ss, "P3", "P0")
-    assert nxt != "E2"
+    assert _edge_ids(ss) == {keep}
     # gate ruling (M1): ids minted inside a refused batch are burnt, never reused
-    assert nxt.startswith("E") and int(nxt[1:]) > 2
+    _fresh(ss, seen, "P3", "P0")
+    path = tmp_path / "burnt.snap"
+    write_snapshot(ss, path)
+    loaded = load_snapshot(path)
+    for a, b in [("P0", "P2"), ("P1", "P3")]:
+        _fresh(loaded, seen, a, b)
 
 
 # --- group 5: bounded_match_find by id uses the index ---------------------------
