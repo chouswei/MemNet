@@ -1,7 +1,7 @@
 """PR #241b model follow-up (symphony pr241b-model-n1n3, node P1).
 
-Red-first text/regex tests pinning N1 (behaviour.sysml byte-budget wording and
-MN-REQ-14 section header) and N2 (requirements.sysml MN_REQ_05_3 defaults).
+Red-first text/regex tests pinning N1 (behaviour.sysml byte-budget wording), N3 (MN-REQ-14
+section header) and N2 (requirements.sysml MN_REQ_05_3 defaults).
 """
 
 from __future__ import annotations
@@ -82,7 +82,17 @@ def test_n1b_delete_skips_only_budget_check():
     assert re.search(r"(?i)field[^.]*line caps[^.]*(still )?(run|apply)", s), s
 
 
-# ---- N1 (c): section header ----
+def test_n1b_write_passes_when_new_total_ends_at_or_under_budget():
+    s = _states()
+    assert not re.search(r"(?i)a write is refused and only a delete can pass", s), s
+    assert re.search(
+        r"(?i)write passes[^.]*new total ends at or under (the )?budget[^.]*"
+        r"(even )?(while|when)[^.]*(at or over|over)[^.]*budget",
+        s,
+    ), s
+
+
+# ---- N3: section header ----
 
 
 def test_n1c_header_not_proposal_target_only():
