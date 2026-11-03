@@ -238,11 +238,12 @@ def _emit_record_lines(
     return rec_lines, hid_to_nick, emit_map
 
 
-def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
+def refuse_mutate_line_cap(ss: SessionStore, hids: set[str], *, budget: bool = True) -> None:
     """Mutate: refuse when a written record's whole escaped line could not save.
 
     Measures the full record line (all fields) as snapshot save would emit it,
-    so no accepted write makes a snapshot unsaveable.
+    so no accepted write makes a snapshot unsaveable. ``budget=False`` skips the
+    session byte budget (bypass-path deletes shrink the session; MN-REQ-14.11).
     """
     if not hids:
         return
@@ -275,7 +276,8 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str]) -> None:
         n = len(_emit_one_record_line(ss, rec, hid_to_nick, emit_map).encode("utf-8"))
         if n > cap:
             raise MemNetError("limit_exceeded", f"line_bytes|{n}/{cap}")
-    _refuse_session_bytes(ss, hid_to_nick, emit_map, total)
+    if budget:
+        _refuse_session_bytes(ss, hid_to_nick, emit_map, total)
 
 
 def _refuse_session_bytes(
@@ -292,6 +294,32 @@ def _refuse_session_bytes(
                 break
     if total > budget:
         raise MemNetError("limit_exceeded", f"session_bytes|{total}/{budget}")
+
+
+def refuse_session_budget(ss: SessionStore) -> None:
+    """MN-REQ-14.10/14.11: refuse when the whole session exceeds its byte budget.
+
+    Used by save (the file would be over budget); the write-time check lives in
+    :func:`refuse_mutate_line_cap`.
+    """
+    try:
+        emit_map = _snapshot_emit_tag_map(ss)
+    except MemNetError as exc:
+        if exc.code == "snapshot_unsaveable":
+            return  # save reports it
+        raise
+    total = sum(len(line.encode("utf-8")) for line in tag_map_to_lines(emit_map))
+    _refuse_session_bytes(ss, _snapshot_nicks(ss), emit_map, total)
+
+
+def refuse_snapshot_text_budget(map_lines: list[str], rec_lines: list[str], caps: Caps) -> None:
+    """Load: refuse a snapshot whose stored SCHEMA + record lines exceed the budget."""
+    budget = caps.max_session_bytes
+    total = 0
+    for line in (*map_lines, *rec_lines):
+        total += len(line.encode("utf-8"))
+        if total > budget:
+            raise MemNetError("limit_exceeded", f"session_bytes|{total}/{budget}")
 
 
 def snapshot_text(ss: SessionStore) -> str:
@@ -475,6 +503,7 @@ def write_snapshot(ss: SessionStore, path: str | Path, *, trailer: str = "") -> 
     rec_lines, hid_to_nick, emit_map = _emit_record_lines(ss)
     text = _format_snapshot(ss, rec_lines, emit_map)
     _verify_emitted_snapshot(ss, text, hid_to_nick, emit_map)
+    refuse_session_budget(ss)  # MN-REQ-14.11: a file over budget would not reload
     dest = Path(path)
     try:
         backup_v1_before_v2(dest)
@@ -628,6 +657,7 @@ def load_snapshot_text(
     lines = split_snapshot_lines(text)
     meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
     acl = _parse_acl(lines)
+    refuse_snapshot_text_budget(map_lines, rec_lines, caps)  # MN-REQ-14.11
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:

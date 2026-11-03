@@ -219,7 +219,7 @@ package MemNet {
     attribute envMaxValueBytes : String = "MEMNET_MAX_VALUE_BYTES";
     attribute envMaxSessionBytes : String = "MEMNET_MAX_SESSION_BYTES";
     attribute maxSessionBytesDefault : Integer = 163840000;
-    attribute maxValueBytesDefault : Integer = 4096;
+    attribute maxValueBytesDefault : Integer = 32768;
     attribute valueBytesOnDecodedRaw : Boolean = true;
     attribute gqlMutateEnforcesValueBytes : Boolean = true;
     attribute envMaxFields : String = "MEMNET_MAX_FIELDS";

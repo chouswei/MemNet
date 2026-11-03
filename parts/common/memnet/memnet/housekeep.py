@@ -166,6 +166,23 @@ def stats(store: SessionStore) -> dict[str, int]:
     }
 
 
+def _delete_guarded(store: SessionStore, rows: list[Record]) -> list[Record]:
+    """Delete rows atomically; rewritten lines must still pass the line cap.
+
+    Deletes shrink the session, so the byte budget never refuses them
+    (MN-REQ-14.11).
+    """
+    from memnet.bypass_caps import bypass_guard
+
+    with bypass_guard(store, budget=False) as guard:
+        deleted: list[Record] = []
+        for rec in rows:
+            if store.store.delete(rec.hid):
+                deleted.append(rec)
+        guard.verify({r.hid for r in deleted})
+    return deleted
+
+
 def prune_rows(store: SessionStore, rows: list[Record]) -> list[Record]:
     """Delete ``rows`` after a fresh categorisation.
 
@@ -173,11 +190,7 @@ def prune_rows(store: SessionStore, rows: list[Record]) -> list[Record]:
     """
     buckets = _categorise(store)
     _refuse_referenced(rows, buckets.referenced)
-    deleted: list[Record] = []
-    for rec in rows:
-        if store.store.delete(rec.hid):
-            deleted.append(rec)
-    return deleted
+    return _delete_guarded(store, rows)
 
 
 def prune_stale(store: SessionStore) -> list[Record]:
@@ -196,8 +209,4 @@ def prune_stale(store: SessionStore) -> list[Record]:
             seen.add(rec.hid)
             rows.append(rec)
     _refuse_referenced(rows, buckets.referenced)
-    out: list[Record] = []
-    for rec in rows:
-        if store.store.delete(rec.hid):
-            out.append(rec)
-    return out
+    return _delete_guarded(store, rows)

@@ -544,9 +544,13 @@ package MemNetImplementation {
            config.py:127 (32,768 -> 135,168 = 4 x 32,768 + 4,096 bytes);
            mutate-time whole-line escaped-size line_bytes refusal; docs/cap-contract.md
            lines 153-158 change in the code PR (#238).
-      14.10 per-session total-bytes cap (values plus tombstones): new knob
+      14.10 per-session total-bytes cap (escaped snapshot line bytes): new knob
            MEMNET_MAX_SESSION_BYTES, default 163,840,000 (escaped
            snapshot line bytes); refusal limit_exceeded|session_bytes.
+      14.11 bypass paths: bypass_caps.py (checkpoint, verify, rollback) used by
+           import_absorb.py, durable/sync.py, cli.py delete and housekeep.py
+           prune; snapshot.py refuse_session_budget (save) and
+           refuse_snapshot_text_budget (load).
     */
     attribute implemented : Boolean = false;
     attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
@@ -638,14 +642,27 @@ package MemNetImplementation {
   part def SessionByteBudget {
     doc /*
       Implemented (MN-REQ-14.10; engine enforcement in snapshot.py). Per-session total of
-      escaped snapshot line bytes (plus tombstones, none today); set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
-      default 163,840,000 bytes (5,000 x 32,768 = 163,840,000; counted as escaped snapshot line bytes); over-budget write
+      escaped snapshot line bytes; set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
+      default 163,840,000 bytes (config.py DEFAULT_MAX_SESSION_BYTES; counted as escaped snapshot line bytes); an
+      over-budget write, load, save, import or hydrate is
       refused limit_exceeded|session_bytes and stores nothing.
     */
     attribute implemented : Boolean = true;
     attribute maxSessionBytes : Integer = 163840000;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap;
+  }
+
+  part def BypassPathCaps {
+    doc /*
+      Implemented (MN-REQ-14.11; bypass_caps.py). Value, whole-line and
+      session-byte caps on snapshot import, durable hydrate and CLI
+      delete/prune, atomic: a refusal restores the store, relations and
+      indexes. Deletes skip the byte budget but keep the line cap.
+    */
+    attribute implemented : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_11_BypassPathCaps;
   }
 
   part def AtelierBoardTargetEngine {
@@ -663,9 +680,11 @@ package MemNetImplementation {
     part handles : HandleTable;
     part developer : DeveloperListener;
     part byteBudget : SessionByteBudget;
+    part bypassCaps : BypassPathCaps;
 
     perform action rangeWhere : MemNetBehaviour::RangeWhereCompare;
     perform action capEnforce : MemNetBehaviour::ValueLineCapEnforce;
+    perform action bypassCapEnforce : MemNetBehaviour::BypassPathCapEnforce;
     perform action whereSetFix : MemNetBehaviour::WhereSetRefusalFix;
     perform action idMint : MemNetBehaviour::IdMintAndRetire;
     perform action handleResolve : MemNetBehaviour::HandleResolve;
