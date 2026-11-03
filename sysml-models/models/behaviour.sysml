@@ -1646,8 +1646,9 @@ package MemNetBehaviour {
 
   action def ValueLineCapEnforce {
     doc /*
-      PROPOSAL (MN-REQ-14.9 / 14.10; verify MN-VER-14-S09, S10; target
-      only). Fixed interface (owner t1443s8385). Caps: value cap
+      Implemented for the mutate gate (MN-REQ-14.9 / 14.10; verify
+      MN-VER-14-S09, S10; tests tests/test_session_bytes_budget.py).
+      Bypass paths: BypassPathCapEnforce. Fixed interface (owner t1443s8385). Caps: value cap
       MEMNET_MAX_VALUE_BYTES default 32,768 bytes; line cap
       MEMNET_MAX_LINE_BYTES default 4 x 32,768 + 4,096 = 135,168 bytes,
       because the worst-case wire escape is 4x (\x1c, \x1d, \x1e each
@@ -1669,6 +1670,33 @@ package MemNetBehaviour {
       MEMNET_MAX_LINE_BYTES before loading a newer snapshot.
     */
     in item record : String;
+    out item accepted : String;
+  }
+
+  action def BypassPathCapEnforce {
+    doc /*
+      Implemented (MN-REQ-14.11; verify MN-VER-14-S11; tests
+      tests/test_bypass_paths_caps.py). A write path that bypasses the
+      mutate gate runs the same caps as ValueLineCapEnforce, with the same
+      limit_exceeded codes, and is atomic. Paths and order:
+      (1) snapshot import (import_absorb): value cap on the incoming
+      records first, then the write under a checkpoint, then field cap,
+      whole-line cap (record, edge and SCHEMA lines) and session byte
+      budget on the result; (2) durable hydrate (durable/sync.py): same
+      checks; a hydrate that leaves the session over budget, including a
+      session already over a lowered MEMNET_MAX_SESSION_BYTES, is refused
+      limit_exceeded|session_bytes, loads nothing, leaves durable data
+      untouched, and the error names the setting to raise; (3) CLI delete
+      and housekeep prune: no byte-budget check (a delete shrinks the
+      session, as mutate deletes always go through), but every rewritten
+      edge and SCHEMA line must pass the line cap, else the whole delete or
+      prune is refused and nothing is removed; (4) snapshot load keeps the
+      loader refusal of an over-cap value or line and refuses a snapshot
+      over budget; snapshot save refuses an over-budget session and writes
+      no file; ingest commits through the mutate gate. On any refusal the
+      store, relations and indexes are restored to the entry state.
+    */
+    in item records : String;
     out item accepted : String;
   }
 
@@ -1695,16 +1723,34 @@ package MemNetBehaviour {
     doc /* Tombstone sealed in a saved snapshot; id retired forever. */
   }
   attribute def EvBytesWrite {
-    doc /* A write that changes the session's values-plus-tombstones bytes. */
+    doc /*
+      An accepted write that changes the session's escaped snapshot line
+      bytes: any write whose new total, after the whole mutate, is at or
+      under the budget (newTotal <= budget; the code refuses only
+      newTotal > budget). A refused write stores nothing and raises no
+      EvBytesWrite. The guards on the state def pick the target state.
+    */
+    attribute newTotal : Integer;
+  }
+  attribute def EvBytesReachBudget {
+    doc /*
+      The total reaches or passes the budget without a write: a load or
+      hydrate of a session at or over it, or a lowered
+      MEMNET_MAX_SESSION_BYTES. EvBytesWrite and EvBytesReachBudget are
+      disjoint by cause: a write is always EvBytesWrite, never this event.
+    */
+    attribute newTotal : Integer;
   }
   attribute def EvBytesFree {
-    doc /* Bytes released (value shrunk or record deleted; tombstone stays). */
+    doc /* Bytes released (value shrunk or record deleted). */
+    attribute newTotal : Integer;
   }
   attribute def EvSessionBytesRefused {
     doc /*
-      A write refused limit_exceeded|session_bytes (MN-REQ-14.10). Only
-      this refusal moves underBudget -> atBudget; other refusals
-      (type_mismatch, line_bytes, value_bytes; generic EvError) do not.
+      A refusal limit_exceeded|session_bytes (MN-REQ-14.10). It is an
+      observation only: atBudget is a function of the byte total, not of
+      this event. Other refusals (type_mismatch, line_bytes, value_bytes;
+      generic EvError) say nothing about the total.
     */
   }
 
@@ -1748,42 +1794,82 @@ package MemNetBehaviour {
 
   state def SessionByteBudgetStates {
     doc /*
-      PROPOSAL (MN-REQ-14.10; verify MN-VER-14-S10; target only). Per-session
-      byte budget over escaped snapshot line bytes (plus tombstones). Default 163,840,000 bytes.
-      Setting: MEMNET_MAX_SESSION_BYTES. A write that would go over the
-      budget is refused limit_exceeded|session_bytes {n}/{max} and writes
-      nothing, so the session stays within budget. Only that refusal
-      (EvSessionBytesRefused) moves underBudget -> atBudget; any other
-      refusal leaves the state unchanged.
+      Implemented (MN-REQ-14.10, 14.11; verify MN-VER-14-S10, S11; tests
+      tests/test_session_bytes_budget.py, tests/test_bypass_paths_caps.py).
+      Per-session byte budget over escaped snapshot line bytes. Default
+      163,840,000 bytes (DEFAULT_MAX_SESSION_BYTES). Setting:
+      MEMNET_MAX_SESSION_BYTES. A write, load, import, hydrate or save that
+      would put the total over the budget is refused
+      limit_exceeded|session_bytes {n}/{max} and changes nothing. atBudget
+      means the total is at or over the budget (a lowered setting can leave
+      a loaded session over it); it does not mean that a refusal happened.
+      One rule in every state: deletes always pass and skip the budget; a
+      write is accepted only if the new total ends at or under the budget
+      (newTotal <= budget), otherwise it is refused session_bytes and
+      nothing is stored. So while the total is at or over the budget, only
+      deletes pass unconditionally. A mutate that both deletes and writes
+      is checked once, on the total after both: it is accepted if that
+      total is at or under the budget, else the whole mutate is refused
+      and neither the delete nor the write is stored. A write that lands
+      exactly on the budget is accepted and leaves the session atBudget.
+      newTotal is the total after the event; budget is the setting.
     */
+    attribute newTotal : Integer;
+    attribute budget : Integer;
+
     entry;
     then underBudget;
 
     state underBudget {
-      doc /* Total bytes <= budget; writes that stay under are accepted. */
+      doc /* Total bytes < budget. */
     }
     transition write_within
       first underBudget
       accept EvBytesWrite
+      if newTotal < budget
       then underBudget;
-    transition write_refused
+    transition write_lands_on_budget
       first underBudget
-      accept EvSessionBytesRefused
+      accept EvBytesWrite
+      if newTotal >= budget
+      then atBudget;
+    transition free_within
+      first underBudget
+      accept EvBytesFree
+      then underBudget;
+    transition write_reaches_budget
+      first underBudget
+      accept EvBytesReachBudget
       then atBudget;
 
     state atBudget {
       doc /*
-        A write was refused session_bytes; nothing stored. Further writes
-        that fit are still accepted; frees return to underBudget.
+        Total bytes >= budget. Deletes always pass; a write is accepted
+        only if the new total ends at or under the budget, else it is
+        refused session_bytes and stores nothing. The state returns to
+        underBudget only when the new total is below the budget; a free or
+        write that leaves the total at or over it stays atBudget.
       */
     }
     transition free_bytes
       first atBudget
       accept EvBytesFree
+      if newTotal < budget
       then underBudget;
     transition write_fits
       first atBudget
       accept EvBytesWrite
+      if newTotal < budget
       then underBudget;
+    transition stay_at_budget
+      first atBudget
+      accept EvBytesFree
+      if newTotal >= budget
+      then atBudget;
+    transition write_stays_at_budget
+      first atBudget
+      accept EvBytesWrite
+      if newTotal >= budget
+      then atBudget;
   }
 }

@@ -50,7 +50,7 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); target only, no engine cut
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.9-14.11 implemented, rest target only
     MN-REQ-14.1        WHERE range comparisons < > <= >= (today refused gql.py:249-251)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
@@ -59,8 +59,9 @@
     MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
     MN-REQ-14.7        MCP surface: handles only, never real ids (PROPOSAL; traced to 14.6)
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
-    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (PROPOSAL; flagged for Elon)
-    MN-REQ-14.10       Per-session total-bytes cap: values plus tombstones (default 163,840,000 bytes)
+    MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (implemented; tests/test_value_cap_32k.py, test_line_cap_whole_line.py, test_line_cap_edge_schema.py)
+    MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
+    MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2443,7 +2444,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (PROPOSAL; target only, engine untouched) -----
+    // ----- Atelier-board asks (14.9-14.11 implemented; rest PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2453,13 +2454,15 @@ package MemNetRequirements {
         rows per symphony; measured in-process at origin/master bb4a4dc,
         0.20.2). Nine leaves, 14.1 to 14.9, plus a tenth, the per-session
         total-bytes cap (14.10), block MemNet as an Atelier board store.
-        TARGET model only: no engine code changes in this cut and none is
-        claimed shipped. Leaves 14.2 and 14.3 are PARKED until Elon reviews
-        them (scope note r00002195). Defects found on the way are recorded
-        in MN-VER-14-D01 and MN-VER-14-D02, not as requirements. Every
-        MN-VER-14 case is model-level: no runtime test, and a tracker MUST
-        NOT count one as verified. Line refs below are at bb4a4dc,
-        parts/common/memnet/memnet/.
+        An eleventh (14.11) makes the write paths that bypass the mutate
+        gate enforce the same caps.
+        Implemented with runtime tests: leaves 14.9, 14.10 and 14.11 (test
+        files named in each leaf's doc). The rest are target only: leaves
+        14.1 and 14.4 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
+        PARKED until Elon reviews them (scope note r00002195). A target-only
+        leaf is never counted as verified. Defects found on the way are
+        recorded in MN-VER-14-D01 and MN-VER-14-D02, not as requirements.
+        Line refs below are at bb4a4dc, parts/common/memnet/memnet/.
       */
       attribute requirementId : String = "MN-REQ-14";
 
@@ -2598,8 +2601,9 @@ package MemNetRequirements {
           SHALL return a clear "deleted" result, never not_found and never
           a different record. Tombstones are id-only entries (the id and a
           deleted marker) in the id index and in the snapshot, not full
-          records. They do NOT count against the record cap (14.5); they DO
-          count toward the per-session total-bytes cap (14.10). A legacy
+          records. They do NOT count against the record cap (14.5); once they
+          exist they SHALL count toward the per-session total-bytes cap
+          (14.10; no tombstones exist today). A legacy
           snapshot loads with an empty tombstone set. (3) Save, load and
           restore SHALL NOT mint or rewrite ids (existing owner rule);
           id-less legacy links stay id-less. (4) The id index SHALL refuse
@@ -2651,7 +2655,9 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_9_ValueCap32k {
         doc /*
-          Status: PROPOSAL, target only; FLAGGED FOR ELON. The per-value cap
+          Status: implemented (tests/test_value_cap_32k.py,
+          tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py);
+          FLAGGED FOR ELON. The per-value cap
           (MEMNET_MAX_VALUE_BYTES, config.py:126) rises from 4,096 to
           32,768 bytes, one global value, no chunking, still overridable by
           env, because Atelier rows hold up to 8,000 characters, which is up
@@ -2700,22 +2706,58 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_10_SessionTotalBytesCap {
         doc /*
-          Status: PROPOSAL, target only; FLAGGED FOR ELON. Without a total
+          Status: implemented (mutate gate, snapshot load and save, snapshot
+          import, durable hydrate; ingest through the mutate gate; tests
+          tests/test_session_bytes_budget.py and
+          tests/test_bypass_paths_caps.py). Without a total
           the record cap (14.5) and the value cap (14.9) multiply each
           other, and the session-count cap (MN-REQ-05.5) multiplies that
           again across the process. SHALL cap the total bytes held by one
-          session, counting values plus tombstones (14.6). A write that
+          session, counted as escaped snapshot line bytes (UTF-8) of every
+          SCHEMA, record and edge line. A write that
           would go over it is refused with a named code, limit_exceeded|
-          session_bytes {n}/{max}, and writes nothing. The setting is the
-          env var MEMNET_MAX_SESSION_BYTES. Its default is 163,840,000
-          bytes (5,000 x 32,768 = 163,840,000; 156.25 MiB; owner-set), SHALL be set before or
-          with 14.9 shipping, and is counted as
-          escaped snapshot line bytes, so it is an upper bound on raw values; today a
-          record is bounded by the 32,768-byte line cap, so a default at or
-          above this floor refuses nothing that loads today. Linked from 14.5 and
-          14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates.
+          session_bytes {n}/{max}, and writes nothing. The same check runs
+          on snapshot load, snapshot save, snapshot import, durable hydrate
+          and ingest (via the mutate gate); a delete never trips it. The
+          setting is the env var MEMNET_MAX_SESSION_BYTES. Its default is
+          163,840,000 bytes (5,000 x 32,768 = 163,840,000; 156.25 MiB; owner-set; one
+          named constant, DEFAULT_MAX_SESSION_BYTES in config.py). It is a
+          deliberate cap, not a floor: 5,000 records at the 135,168-byte
+          line cap would be 675,840,000 bytes, so the default can refuse a
+          write that the value and line caps allow, and a lower setting can
+          refuse to load or hydrate a session that is over it (the setting to
+          raise is named in the error). Linked from 14.5 and
+          14.9. Verify: MN-VER-14-S10. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates, BypassPathCapEnforce.
         */
         attribute requirementId : String = "MN-REQ-14.10";
+      }
+
+      requirement def MN_REQ_14_11_BypassPathCaps {
+        doc /*
+          Status: implemented (tests/test_bypass_paths_caps.py). A write
+          path that does not go through the mutate gate SHALL enforce the
+          same caps as mutate, with the same limit_exceeded codes
+          (value_bytes|{n}/{max}, line_bytes|{n}/{max},
+          session_bytes|{n}/{max}) and SHALL be atomic: a refused call
+          leaves the session exactly as it was. Paths: snapshot import
+          (import_absorb), durable hydrate (durable/sync.py), CLI delete and
+          housekeep prune. Hydrate into a session already over its byte
+          budget (for example under a lower MEMNET_MAX_SESSION_BYTES) is
+          refused session_bytes with nothing loaded; durable data is never
+          touched or truncated. A delete shrinks the session, so the byte
+          budget never refuses it, but the edge and SCHEMA lines it rewrites
+          (an edge to a deleted node is written with the endpoint handle)
+          must still pass the line cap, else the delete is refused and
+          nothing is removed. Snapshot load keeps its loader refusal of an
+          over-cap value or line and also refuses a session over budget;
+          save refuses an over-budget session and writes no file. The
+          field cap (MN-REQ-05.4) also applies on these paths: the bypass
+          guard runs it before the line cap, and a record over the field
+          cap (MEMNET_MAX_FIELDS, default 64) is refused limit_exceeded
+          fields|{n}/{max} with nothing written.
+          Verify: MN-VER-14-S11. Behaviour: BypassPathCapEnforce.
+        */
+        attribute requirementId : String = "MN-REQ-14.11";
       }
     }
   }
@@ -3025,6 +3067,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_9_ValueCap32k;
   requirement sessionTotalBytesCapReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_10_SessionTotalBytesCap;
+  requirement bypassPathCapsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_11_BypassPathCaps;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {

@@ -17,6 +17,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
+from memnet.bypass_caps import bypass_guard, check_record_values
 from memnet.config import DEFAULT_QUERY_DEPTH, DEFAULT_QUERY_MAX_ROWS, standard_relation
 from memnet.exceptions import MemNetError
 from memnet.id_allocator import IdAllocator
@@ -391,8 +392,12 @@ def absorb_working_memory_slice(
         override_scope=override,
     )
 
+    # Same caps as mutate (MN-REQ-14.11): value cap first, then line/field/budget
+    # on the written result; any refusal rolls the lead session back untouched.
+    check_record_values(prepared_nodes + prepared_edges, lead)
     imported: list[str] = []
-    with lead.lock(exclusive=True):
+    with lead.lock(exclusive=True), bypass_guard(lead) as guard:
+        before = set(lead.store._by_hid)
         if decision is not None and record_decision:
             _record_decision_atom(lead, decision, agent=agent)
         for rec in prepared_nodes:
@@ -493,6 +498,7 @@ def absorb_working_memory_slice(
                     relations=lead.relations,
                 )
             imported.append(work_rec.hid)
+        guard.verify(set(imported) | (set(lead.store._by_hid) - before))
         lead.mark_written()
 
     return ImportAbsorbResult(

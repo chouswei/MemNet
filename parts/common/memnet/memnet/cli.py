@@ -1547,7 +1547,16 @@ def delete_cmd(
 ) -> None:
     ss, lock = _load_session(session, exclusive=True)
     with lock:
-        rec = ss.store.delete(record_id)
+        from memnet.bypass_caps import bypass_guard
+
+        try:
+            with bypass_guard(ss, budget=False) as guard:
+                rec = ss.store.delete(record_id)
+                if rec:
+                    guard.verify({rec.hid})
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
         if not rec:
             _handle_error(MemNetError("not_found", f"id {record_id}"))
         ss.mark_written()

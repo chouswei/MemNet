@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from memnet.bypass_caps import bypass_guard, check_record_values
 from memnet.durable.adapter import DurableStoreAdapter, DurableSubgraph, HydrateBudget
 from memnet.durable.factory import make_adapter_from_env
 from memnet.exceptions import MemNetError
@@ -38,13 +39,17 @@ class DurableSyncOwner:
             raise MemNetError("no_ego", "hydrate requires ego_id")
         budget = budget or HydrateBudget()
         subgraph = self._adapter.hydrate(ego_id, budget).bounded(budget)
-        with session.lock(exclusive=True):
-            for rec in subgraph.all_records():
+        records = list(subgraph.all_records())
+        # Same caps as mutate (MN-REQ-14.11); atomic: refused hydrate loads nothing.
+        check_record_values(records, session)
+        with session.lock(exclusive=True), bypass_guard(session) as guard:
+            for rec in records:
                 session.store.upsert(
                     rec,
                     allow_new_relation=True,
                     relations=session.relations,
                 )
+            guard.verify({r.hid for r in records})
             session.mark_written()
         return subgraph
 

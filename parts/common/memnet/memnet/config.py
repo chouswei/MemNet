@@ -65,6 +65,9 @@ def validate_snapshot_relation(name: str) -> None:
 
 MAX_WRN_PER_CALL = 12
 
+# Session byte budget default (MN-REQ-14.10): 5,000 rows x 32,768 B. A deliberate
+# cap, not a floor: 5,000 lines at the 135,168 B line cap could exceed it.
+DEFAULT_MAX_SESSION_BYTES = 163_840_000
 DEFAULT_QUERY_MAX_ROWS = 50
 DEFAULT_QUERY_DEPTH = 2
 # Path-B ingest: a pin is a node. One node/pin budget; one edge budget.
@@ -126,7 +129,7 @@ class Caps:
         self.max_fields = _env_int("MEMNET_MAX_FIELDS", 64)
         self.max_value_bytes = _env_int("MEMNET_MAX_VALUE_BYTES", 32768)
         self.max_line_bytes = _env_int("MEMNET_MAX_LINE_BYTES", 135168)
-        self.max_session_bytes = _env_int("MEMNET_MAX_SESSION_BYTES", 163840000)
+        self.max_session_bytes = _env_int("MEMNET_MAX_SESSION_BYTES", DEFAULT_MAX_SESSION_BYTES)
         self.max_batch_lines = _env_int("MEMNET_MAX_BATCH_LINES", 1000)
         self.max_sessions = _env_int("MEMNET_MAX_SESSIONS", 1024)
         self.max_depth = _env_int("MEMNET_MAX_DEPTH", 4)

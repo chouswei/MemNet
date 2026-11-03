@@ -317,14 +317,20 @@ def test_n1_line_cap_checks_whole_record_line_at_mutate():
     assert not PER_VALUE_WORST.search(s09)
 
 
-def test_n2_session_bytes_floor_is_163840000_with_env_var():
+def test_n2_session_bytes_default_is_163840000_a_cap_not_a_floor():
     doc = _flat(_requirement_doc("MN_REQ_14_10_SessionTotalBytesCap"))
     s10 = _flat(_verify_case("MN_VER_14_S10_SessionTotalBytesCap"))
     _, part = _one_def("part", r"SessionByteBudget")
     _, states = _one_def("state", r"SessionByteBudgetStates")
-    assert NEW_FLOOR.search(doc), "14.10 floor must be 5,000 x 32,768 = 163,840,000"
+    assert NEW_FLOOR.search(doc), "14.10 default must be 5,000 x 32,768 = 163,840,000"
+    for where, body in (("14.10", doc), ("S10", s10)):
+        assert "refuses nothing that loads" not in body, f"{where} floor claim is false"
+        assert "nothing that loads today" not in body, f"{where} floor claim is false"
+        assert "tombstone" not in body.lower().replace("no tombstones", ""), (
+            f"{where} counts tombstones, which do not exist"
+        )
     assert "escaped" in doc.lower(), "14.10 floor counts escaped line bytes"
-    assert re.search(r"163,?840,?000", s10), "S10 floor must be 163,840,000"
+    assert re.search(r"163,?840,?000", s10), "S10 default must be 163,840,000"
     for where, body in (
         ("14.10", doc),
         ("S10", s10),
@@ -379,7 +385,7 @@ def test_n4_no_pin_ingest_deterministic_id_carve_out():
     assert g and "UUIDv7" in g.group(1), "S06(g) must say pin-ingested elements get a minted UUIDv7"
 
 
-def test_n5_dedicated_session_bytes_refused_event():
+def test_n5_at_budget_means_total_at_or_over_budget():
     events = _defs("attribute", r"^EvSessionBytes\w*Refus")
     assert events, "no attribute def EvSessionBytes...Refused for a session_bytes refusal"
     _, states = _one_def("state", r"SessionByteBudgetStates")
@@ -390,9 +396,10 @@ def test_n5_dedicated_session_bytes_refused_event():
     moves = re.findall(
         r"\btransition\s+\w+\s+first\s+underBudget\s+accept\s+(\w+)\s+then\s+atBudget", code
     )
-    assert moves and all(e in events for e in moves), (
-        f"only the session_bytes refusal event may move underBudget -> atBudget, got {moves}"
+    assert moves and all(e not in events for e in moves), (
+        f"a refusal event must not move underBudget -> atBudget (atBudget is a total), got {moves}"
     )
+    assert "at or over the budget" in _flat(states), "atBudget must mean total at or over budget"
 
 
 def test_n6_over_cap_load_refused_value_bytes_no_open_question():

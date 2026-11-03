@@ -54,8 +54,9 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Atelier-board asks (MN-VER-14-S01..S10, PROPOSAL, target only; no
-  engine cut; model-level, never counted as verified):
+  Atelier-board asks (MN-VER-14-S01..S11; S09 to S11 implemented with
+  runtime tests, the rest PROPOSAL, target only, model-level, never
+  counted as verified):
     MN-REQ-14.1 WHERE range (S01)
     14.2 paged reads, PARKED (S02)
     14.3 typed directed walks, PARKED (S03)
@@ -66,6 +67,7 @@
     14.8 developer surface real ids (S08)
     14.9 value cap 32,768 bytes + line cap 135,168 (S09)
     14.10 per-session total-bytes cap (S10)
+    14.11 bypass-path caps: import, hydrate; CLI delete/prune line cap only (S11)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
     MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message
@@ -2276,7 +2278,7 @@ package MemNetVerification {
   verification def MN_VER_05_S01_ConsistentValueByteCap {
     doc /*
       MN-REQ-05.3 — one decoded value_bytes cap; knob MEMNET_MAX_VALUE_BYTES;
-      default 4096; GQL mutate refuses over-cap.
+      default 32768 (#238); GQL mutate refuses over-cap.
     */
     attribute verificationId : String = "MN-VER-05-S01";
 
@@ -2288,7 +2290,7 @@ package MemNetVerification {
         system.core.transport.inProcess.memory.sessions.caps
             .envMaxValueBytes == "MEMNET_MAX_VALUE_BYTES"
           and system.core.transport.inProcess.memory.sessions.caps
-            .maxValueBytesDefault == 4096
+            .maxValueBytesDefault == 32768
           and system.core.transport.inProcess.memory.sessions.caps
             .valueBytesOnDecodedRaw == true
           and system.core.transport.inProcess.memory.sessions.caps
@@ -2853,8 +2855,9 @@ package MemNetVerification {
 
   verification def MN_VER_14_S09_ValueCap32k {
     doc /*
-      MN-REQ-14.9 (PROPOSAL; flagged for Elon), model-level cases: (a) a
-      value of 32768 bytes is accepted; (b) a value of 32769 bytes is
+      MN-REQ-14.9 (implemented; runtime tests tests/test_value_cap_32k.py,
+      tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py),
+      cases: (a) a value of 32768 bytes is accepted; (b) a value of 32769 bytes is
       refused with a clear error; (c) the cap counts bytes, not characters
       (multi-byte UTF-8); (d) a snapshot written with values of 4096 bytes
       or less still loads; (e) MEMNET_MAX_VALUE_BYTES still overrides the
@@ -2878,7 +2881,7 @@ package MemNetVerification {
     subject system : MemNetSystem;
 
     objective atelierBoardS09 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_value_cap_32k.py, tests/test_line_cap_whole_line.py, tests/test_line_cap_edge_schema.py. */
       verify valueCap32kReq;
       verify consistentValueByteCapReq;
       verify storeResourceCapsReq;
@@ -2887,22 +2890,56 @@ package MemNetVerification {
 
   verification def MN_VER_14_S10_SessionTotalBytesCap {
     doc /*
-      MN-REQ-14.10 (default 163,840,000 bytes), model-level cases:
-      (a) a write that would take values plus tombstones over the cap is
-      refused with limit_exceeded|session_bytes {n}/{max} and writes
-      nothing; (b) tombstones count toward it; (c) a session under the cap
-      is unaffected; (d) with the default 5,000 x 32,768 = 163,840,000
-      bytes (escaped snapshot line bytes) nothing that loads today is refused;
-      (e) MEMNET_MAX_SESSION_BYTES sets the cap. Behaviour: ValueLineCapEnforce; state
-      machine SessionByteBudgetStates.
+      MN-REQ-14.10 (default 163,840,000 bytes, DEFAULT_MAX_SESSION_BYTES),
+      cases, run by tests/test_session_bytes_budget.py and
+      tests/test_bypass_paths_caps.py: (a) a write that would take the
+      escaped snapshot line bytes over the cap is refused with
+      limit_exceeded|session_bytes {n}/{max} and writes nothing (session
+      byte-identical), through GQL and the pipe protocol; (b) a session
+      under the cap is unaffected; (c) MEMNET_MAX_SESSION_BYTES sets the
+      cap; (d) deletes skip the check (spy: the budget helper is not
+      called); (e) load, save, import, hydrate and ingest apply the same
+      check. The default is a deliberate cap, not a floor of what loads.
+      Behaviour: ValueLineCapEnforce; state machine SessionByteBudgetStates.
     */
     attribute verificationId : String = "MN-VER-14-S10";
 
     subject system : MemNetSystem;
 
     objective atelierBoardS10 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_session_bytes_budget.py, tests/test_bypass_paths_caps.py. */
       verify sessionTotalBytesCapReq;
+    }
+  }
+
+  verification def MN_VER_14_S11_BypassPathCaps {
+    doc /*
+      MN-REQ-14.11, run by tests/test_bypass_paths_caps.py. Scope: (a)
+      value cap and (c) byte budget apply to snapshot import and durable
+      hydrate only; (b) line cap applies to snapshot import, durable hydrate
+      and CLI delete/prune. Cases: (a) a record over the value cap is
+      refused value_bytes|{n}/{max}; (b) a record, edge
+      or SCHEMA line over the line cap is refused line_bytes|{n}/{max};
+      (c) a result over the byte budget is refused session_bytes|{n}/{max};
+      in every case the session (lines, relations, write order) is
+      unchanged and a batch is all-or-nothing; (d) the same input at exactly
+      the cap is accepted; (e) hydrate into a session already over a lowered
+      budget is refused session_bytes, loads nothing and leaves the durable
+      data untouched; (f) CLI delete and prune are never refused by the
+      byte budget (spy) but are refused, and remove nothing, when a
+      rewritten edge line would pass the line cap; (g) snapshot load refuses
+      an over-budget snapshot and registers nothing; save refuses an
+      over-budget session and writes no file; (h) ingest commit over budget
+      is refused and leaves the session unchanged. Behaviour:
+      BypassPathCapEnforce.
+    */
+    attribute verificationId : String = "MN-VER-14-S11";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS11 {
+      doc /* Implemented: tests/test_bypass_paths_caps.py. */
+      verify bypassPathCapsReq;
     }
   }
 
@@ -3021,6 +3058,8 @@ package MemNetVerification {
     : MN_VER_14_S09_ValueCap32k;
   verification sessionTotalBytesCapVerify
     : MN_VER_14_S10_SessionTotalBytesCap;
+  verification bypassPathCapsVerify
+    : MN_VER_14_S11_BypassPathCaps;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify
