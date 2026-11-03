@@ -438,7 +438,8 @@ def test_mint_after_refused_bypass_and_gate_batches(memnet_temp):
     assert _edge_ids(ss) == {"E1"}
     nxt = _mint_link(ss, "P3", "P0")
     assert nxt != "E2"
-    assert nxt == "E3"
+    # gate ruling (M1): ids minted inside a refused batch are burnt, never reused
+    assert nxt.startswith("E") and int(nxt[1:]) > 2
 
 
 # --- group 5: bounded_match_find by id uses the index ---------------------------
