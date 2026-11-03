@@ -93,9 +93,10 @@ def test_n1_no_shrinking_write_accepted_claim():
     assert not re.search(r"(?i)shrinking write is\s+accepted", _flat(_states()))
 
 
-def test_n1_doc_deletes_always_pass_write_total_rule():
+def test_n1_doc_delete_skips_only_budget_write_total_rule():
     f = _flat(_states())
-    assert re.search(r"(?i)deletes always pass", f)
+    assert not re.search(r"(?i)deletes always pass", f)
+    assert re.search(r"(?i)a delete skips only the budget check; the field and line caps still run", f)
     assert re.search(r"(?i)write is accepted only if the new total ends at or under the budget", f)
     assert re.search(r"(?i)otherwise it is refused session_bytes", f)
 
