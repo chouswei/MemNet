@@ -113,6 +113,18 @@ class WherePred:
     children: list[WherePred] = field(default_factory=list)
 
 
+@dataclass
+class RelSetRec(EdgeRec):
+    """MATCH ()-[r …]-() WHERE … SET r.k = v (WhereSetRefusalFix, MN-VER-14-D02).
+
+    A relationship field update, not a DROP: MutateGate applies the SET to every
+    relationship that matches the pattern (id, type, end ids, inline props) and
+    the WHERE, which takes the node WHERE predicates.
+    """
+
+    where: WherePred | None = None
+
+
 def _unsupported_pred(name: str, line_no: int | None = None) -> None:
     raise ParseError(f"WHERE {name} is not honoured", line_no, code="unsupported_predicate")
 
@@ -865,11 +877,11 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
     try:
         patterns, consumed, full = _parse_node_patterns(patterns_chunk)
     except ParseError:
-        # Relationship MATCH for delete: ()-[r {id:…}]-()
-        return _parse_match_rel_delete(s, line_no, rest)
+        # Relationship MATCH: ()-[r {id:…}]-() DELETE r / … WHERE … SET r.k = v
+        return _parse_match_rel(s, line_no, patterns_chunk, rest)
     tail = full[consumed:].strip()
     if tail.startswith("-") or tail.startswith("<-"):
-        return _parse_match_rel_delete(s, line_no, rest)
+        return _parse_match_rel(s, line_no, patterns_chunk, rest)
     where_pred: WherePred | None = None
     if tail.upper().startswith("WHERE"):
         where_pred = parse_where_clause(tail[5:].strip(), line_no)
@@ -1027,6 +1039,74 @@ def _parse_same_thing_set(
     )
 
 
+_RE_REL_BRACKET = re.compile(
+    rf"\[\s*(?:({_IDENT})\s*)?(?::({_RELTYPE}))?\s*(\{{[^{{}}]*\}})?\s*\]",
+    re.IGNORECASE,
+)
+
+
+def _parse_match_rel(s: str, line_no: int, chunk: str, rest: str) -> list[NodeRec | EdgeRec]:
+    if (rest or "").upper().startswith("SET"):
+        return _parse_match_rel_set(s, line_no, chunk, rest)
+    return _parse_match_rel_delete(s, line_no, rest)
+
+
+def _where_vars(pred: WherePred) -> set[str]:
+    if pred.children:
+        out: set[str] = set()
+        for c in pred.children:
+            out |= _where_vars(c)
+        return out
+    return {pred.var} if pred.var else set()
+
+
+def _parse_match_rel_set(s: str, line_no: int, chunk: str, rest: str) -> list[NodeRec | EdgeRec]:
+    """MATCH (a)-[r:TYPE {…}]->(b) WHERE <pred on r> SET r.k = v (no DELETE)."""
+    m = _RE_REL_BRACKET.search(chunk)
+    if not m:
+        raise ParseError(f"unsupported MATCH shape: {s[:80]!r}", line_no)
+    var = m.group(1) or ""
+    props = parse_props(m.group(3)) if m.group(3) else {}
+    eid = _nickname_from_props(props)
+    frm, to, end_nodes, remainder = _rel_pattern(s, line_no, verb="SET")
+    if any(p is not None and p.where is not None for p in end_nodes):
+        _unsupported_pred("on relationship end with SET", line_no)
+    where_pred: WherePred | None = None
+    if remainder.upper().startswith("WHERE"):
+        where_pred = parse_where_clause(remainder[5:].strip(), line_no)
+    elif remainder:
+        raise ParseError(f"unsupported MATCH continuation: {remainder[:60]!r}", line_no)
+    for k, v in props.items():
+        if k == "id":
+            continue
+        eq = WherePred(op="EQ", var=var, key=k, value=_value_to_store(v))
+        where_pred = eq if where_pred is None else WherePred(op="AND", children=[eq, where_pred])
+    if where_pred is not None:
+        for v in sorted(_where_vars(where_pred) - {var}):
+            _unsupported_pred(f"{v}.* with relationship SET (only {var or 'r'}.*)", line_no)
+    for sm in re.finditer(rf"({_IDENT})\s*(?:\.\s*{_IDENT}\s*=|\+=)", rest[3:]):
+        if sm.group(1) != var:
+            raise ParseError(
+                f"relationship SET targets {sm.group(1)!r}; SET {var or 'r'}.<key> only",
+                line_no,
+            )
+    fields = _parse_set_clause(rest, var)
+    if not fields:
+        raise ParseError("relationship SET needs at least one r.<key> = <value>", line_no)
+    return [
+        RelSetRec(
+            op=Op.PATCH,
+            edge_id=eid or None,
+            frm=frm,
+            rel=m.group(2) or "",
+            to=to,
+            fields=fields,
+            raw=s,
+            where=where_pred,
+        )
+    ]
+
+
 def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | EdgeRec]:
     """MATCH ()-[r {id:'E1'}]-() DELETE r  (simplified gated form)."""
     if not _where_true_only(s):
@@ -1058,7 +1138,15 @@ def _parse_match_rel_delete(s: str, line_no: int, rest: str) -> list[NodeRec | E
 
 
 def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
-    """End-node ids for MATCH (a {id})-[r ...]->(b {id}) DELETE r.
+    """End-node ids for MATCH (a {id})-[r ...]->(b {id}) DELETE r."""
+    frm, to, _ends, _remainder = _rel_pattern(s, line_no, verb="DELETE")
+    return frm, to
+
+
+def _rel_pattern(
+    s: str, line_no: int, *, verb: str
+) -> tuple[str, str, list[_NodePattern | None], str]:
+    """End-node ids, end patterns and trailing text (WHERE …) of a relationship MATCH.
 
     Resolves ends the way MATCH ... CREATE does (nickname from props). An end
     that carries a label or properties but no id cannot be resolved here, and
@@ -1067,12 +1155,12 @@ def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
     """
     body_m = _RE_MATCH_HEAD.match(s)
     if not body_m:
-        return "", ""
+        return "", "", [], ""
     chunk, _rest = _split_match_body(body_m.group(1))
     bracket = chunk.find("[")
     close = chunk.find("]", bracket) if bracket >= 0 else -1
     if bracket < 0 or close < 0:
-        return "", ""
+        return "", "", [], ""
     left_text = chunk[:bracket].rstrip()
     lt = left_text.endswith("<-")
     if lt:
@@ -1081,7 +1169,7 @@ def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
     arrow = chunk[close + 1 :].lstrip()
     gt = arrow.startswith("->")
     if lt and gt:
-        raise ParseError("relationship DELETE arrow both ways is unsupported", line_no)
+        raise ParseError(f"relationship {verb} arrow both ways is unsupported", line_no)
     if arrow.startswith("->"):
         tail = arrow[2:]
     elif arrow.startswith("-"):
@@ -1090,7 +1178,8 @@ def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
         raise ParseError("unsupported MATCH shape: relationship arrow", line_no)
     directed = lt or gt
     reverse = lt
-    right_nodes, _, _ = _parse_node_patterns(tail) if tail.strip() else ([], 0, "")
+    right_nodes, consumed, full = _parse_node_patterns(tail) if tail.strip() else ([], 0, "")
+    remainder = full[consumed:].strip()
     left_p = left_nodes[0] if left_nodes else None
     right_p = right_nodes[0] if right_nodes else None
     ends: list[str] = []
@@ -1101,18 +1190,18 @@ def _rel_delete_ends(s: str, line_no: int) -> tuple[str, str]:
         nid = _nickname_from_props(node_p.props)
         if not nid and (node_p.label or node_p.props):
             raise ParseError(
-                "relationship DELETE end needs id (label or property ends unsupported)",
+                f"relationship {verb} end needs id (label or property ends unsupported)",
                 line_no,
             )
         ends.append(nid)
     if not directed and any(ends):
         raise ParseError(
-            "undirected relationship DELETE with an end id: use -> or <-",
+            f"undirected relationship {verb} with an end id: use -> or <-",
             line_no,
         )
     if reverse:
         ends = [ends[1], ends[0]]
-    return ends[0], ends[1]
+    return ends[0], ends[1], [left_p, right_p], remainder
 
 
 def _needs_graphglot(stmt: str) -> bool:

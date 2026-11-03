@@ -8,6 +8,7 @@ from memnet.config import standard_relation
 from memnet.exceptions import MemNetError
 from memnet.gql import (
     ParseError,
+    RelSetRec,
     emit_item,
     looks_like_gql,
     looks_like_legacy_layer_or_tier_a,
@@ -325,6 +326,22 @@ class MutateGate:
         absorbs: list[tuple[Record, Record, dict[str, str]]] = []
         for it in doc.items:
             if isinstance(it, Section):
+                continue
+            if isinstance(it, RelSetRec):
+                for rec in self._rel_set_records(it):
+                    records.append(rec)
+                    pending.append(rec)
+                    ack_items.append(
+                        EdgeRec(
+                            op=Op.PATCH,
+                            edge_id=rec.fields.get("id") or rec.hid,
+                            frm=rec.fields.get("src", ""),
+                            rel=rec.fields.get("relation", ""),
+                            to=rec.fields.get("dist", ""),
+                            fields=list(it.fields),
+                            raw=it.raw,
+                        )
+                    )
                 continue
             if isinstance(it, EdgeRec) and it.op == Op.DROP:
                 hid = self._resolve_edge_drop(it)
@@ -884,6 +901,82 @@ class MutateGate:
         hits.sort(key=lambda r: r.hid)
         return hits
 
+    def _rel_set_hits(self, it: RelSetRec) -> list[Record]:
+        """Relationships matching a relationship SET pattern and its WHERE."""
+        from memnet.gql import eval_where
+
+        store = self.ss.store
+        if it.edge_id:
+            one = store.resolve_one(it.edge_id)
+            cands = [one] if one is not None and one.tag == "EDG" else []
+        else:
+            cands = store.list_records("EDG")
+        src_hid = dst_hid = None
+        if it.frm:
+            src = store.resolve_one(it.frm)
+            if src is None:
+                raise MemNetError("not_found", "relationship SET matched no element")
+            src_hid = src.hid
+        if it.to:
+            dst = store.resolve_one(it.to)
+            if dst is None:
+                raise MemNetError("not_found", "relationship SET matched no element")
+            dst_hid = dst.hid
+        hits: list[Record] = []
+        for rec in cands:
+            if it.rel and standard_relation(rec.fields.get("relation", "")) != it.rel:
+                continue
+            if src_hid is not None and rec.fields.get("src") != src_hid:
+                continue
+            if dst_hid is not None and rec.fields.get("dist") != dst_hid:
+                continue
+            if it.where is not None:
+                view = Record(
+                    tag="EDG",
+                    fields={**_split_attrs(rec.fields.get("attrs", "")), **rec.fields},
+                    hid=rec.hid,
+                )
+                if not eval_where(view, it.where):
+                    continue
+            hits.append(rec)
+        hits.sort(key=lambda r: r.hid)
+        return hits
+
+    def _rel_set_records(self, it: RelSetRec) -> list[Record]:
+        """One updated EDG record per matching relationship (nothing dropped)."""
+        for f in it.fields:
+            if f.key in ("id", "merge", "src", "dist", "relation"):
+                raise MemNetError(
+                    "invalid_field",
+                    f"relationship SET cannot change {f.key}",
+                    example="MATCH ()-[r:links]-() WHERE r.kind = 'a' SET r.kind = 'b'",
+                )
+        hits = self._rel_set_hits(it)
+        if not hits:
+            raise MemNetError("not_found", "relationship SET matched no element")
+        caps = getattr(self.ss, "caps", None)
+        out: list[Record] = []
+        for rec in hits:
+            fields = dict(rec.fields)
+            attrs = _split_attrs(fields.get("attrs", ""))
+            for f in it.fields:
+                if f.key in ("fromPort", "src_port"):
+                    fields["src_port"] = f.value
+                elif f.key in ("toPort", "dist_port"):
+                    fields["dist_port"] = f.value
+                elif f.key in ("at", "recycle", "carries", "wire"):
+                    fields[f.key] = f.value
+                else:
+                    attrs[f.key] = f.value
+            bare = [p for p in fields.get("attrs", "").split(";") if p and "=" not in p]
+            fields["attrs"] = ";".join(bare + [f"{k}={v}" for k, v in attrs.items()])
+            if caps is not None:
+                for val in fields.values():
+                    if val:
+                        check_value_bytes(val, caps)
+            out.append(Record(tag="EDG", fields=fields, hid=rec.hid))
+        return out
+
     def _resolve_edge_drop(self, it: EdgeRec) -> str:
         store = self.ss.store
         if it.edge_id:
@@ -1134,3 +1227,13 @@ class MutateGate:
             warnings=warnings,
             dialect=dialect,
         )
+
+
+def _split_attrs(raw: str) -> dict[str, str]:
+    """``k=v`` pairs of EDG ``attrs`` (``k=v;k2=v2``), in order; bare notes skipped."""
+    out: dict[str, str] = {}
+    for part in (raw or "").split(";"):
+        if "=" in part:
+            k, v = part.split("=", 1)
+            out[k] = v
+    return out
