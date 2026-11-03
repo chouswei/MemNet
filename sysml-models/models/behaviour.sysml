@@ -1558,7 +1558,7 @@ package MemNetBehaviour {
       then hostIdle;
   }
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; target only) -----
+  // ----- Atelier-board asks (MN-REQ-14; 14.9, 14.10, 14.11 implemented; others PROPOSAL) -----
 
   action def BoardWakeRead {
     doc /*
@@ -1734,9 +1734,10 @@ package MemNetBehaviour {
   }
   attribute def EvBytesReachBudget {
     doc /*
-      The total reaches or passes the budget without a write: a load or
-      hydrate of a session at or over it, or a lowered
-      MEMNET_MAX_SESSION_BYTES. EvBytesWrite and EvBytesReachBudget are
+      The total reaches the budget without a write. A load or hydrate over
+      the budget is refused, so this event fires only when a load or hydrate
+      lands exactly at the budget, or when MEMNET_MAX_SESSION_BYTES is
+      lowered under a loaded total. EvBytesWrite and EvBytesReachBudget are
       disjoint by cause: a write is always EvBytesWrite, never this event.
     */
     attribute newTotal : Integer;
@@ -1803,12 +1804,13 @@ package MemNetBehaviour {
       limit_exceeded|session_bytes {n}/{max} and changes nothing. atBudget
       means the total is at or over the budget (a lowered setting can leave
       a loaded session over it); it does not mean that a refusal happened.
-      One rule in every state: deletes always pass and skip the budget; a
-      write is accepted only if the new total ends at or under the budget
-      (newTotal <= budget), otherwise it is refused session_bytes and
-      nothing is stored. So while the total is at or over the budget, only
-      deletes pass unconditionally. A mutate that both deletes and writes
-      is checked once, on the total after both: it is accepted if that
+      One rule in every state: a delete skips only the budget check; the
+      field and line caps still run. A write is accepted only if the new
+      total ends at or under the budget (newTotal <= budget), otherwise it
+      is refused session_bytes and nothing is stored. So a write passes only
+      if its new total ends at or under the budget, even while the total is
+      at or over the budget. A mutate that both deletes and writes is
+      checked once, on the total after both: it is accepted if that
       total is at or under the budget, else the whole mutate is refused
       and neither the delete nor the write is stored. A write that lands
       exactly on the budget is accepted and leaves the session atBudget.
@@ -1844,8 +1846,9 @@ package MemNetBehaviour {
 
     state atBudget {
       doc /*
-        Total bytes >= budget. Deletes always pass; a write is accepted
-        only if the new total ends at or under the budget, else it is
+        Total bytes >= budget. A delete skips only the budget check; the
+        field and line caps still run. A write is accepted only if the new
+        total ends at or under the budget, else it is
         refused session_bytes and stores nothing. The state returns to
         underBudget only when the new total is below the budget; a free or
         write that leaves the total at or over it stays atBudget.
