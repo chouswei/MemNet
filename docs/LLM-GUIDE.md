@@ -115,6 +115,7 @@ Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the pr
 | leftover `read_get` | **Not** an MCP or product CLI tool |
 | `housekeep_stats` | Caps and row counts |
 | `serve_status` | TCP serve probe (optional in-process) |
+| `typed_walk` | Typed walk over one edge type, handles only: `start` is a handle (`h_...`) from an earlier row or a nickname from `find`; continue from a row's end-node handle. Limit 1-500 (default 50), 20,000 edge reads, 1 MiB reply. An edge type no edge has is refused `unknown_relation`; a foreign or deleted handle is refused `stale_handle` |
 | leftover `query_walk` | leftover hop debug, not goldfish |
 
 Always pass the same `session` id across tools in one job.

@@ -7,6 +7,14 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Added
+
+- **Typed walks over MCP, handles only** — MCP tool `typed_walk` and CLI `memnet query typed-walk --json-handles` (one `@WALKJSON` line). Every node and edge is an opaque session-keyed handle; no nickname, hid or element id appears in the reply or its error text. `start` takes a handle from an earlier row or a nickname. A handle from another session, or of a deleted node, is refused `stale_handle`. Same limits as the CLI walk. MN-REQ-14.7 slice.
+
+### Changed
+
+- **Typed walk refuses an edge type no edge has** — `unknown_relation` (CLI and MCP; checked after folding) instead of an empty walk.
+
 ## [0.20.4] - 2026-11-04
 
 ### Added
