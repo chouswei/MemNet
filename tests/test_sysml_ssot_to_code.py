@@ -58,7 +58,7 @@ def test_ssot_to_code_wheel_and_absence():
     assert "sysmlEdgeInWheel : Boolean = false" in text
     assert 'hatchPackage : String = "memnet-llm"' in text
     assert 'consoleMemnet : String = "memnet.cli:main"' in text
-    assert 'consoleMemnetMcp : String = "memnet_mcp.server:main"' in text
+    assert 'consoleMemnetMcp : String = "memnet_mcp.entry:main"' in text
     assert "part def CousinSysMLEdgeNotInRepo" in text
     assert "inThisRepo : Boolean = false" in text
     assert "mustNotInventUploadBind : Boolean = true" in text
@@ -78,7 +78,7 @@ def test_ssot_to_code_wheel_and_absence():
     pyproject = PYPROJECT.read_text(encoding="utf-8")
     assert 'name = "memnet-llm"' in pyproject
     assert 'memnet = "memnet.cli:main"' in pyproject
-    assert 'memnet-mcp = "memnet_mcp.server:main"' in pyproject
+    assert 'memnet-mcp = "memnet_mcp.entry:main"' in pyproject
     assert '"parts/common/memnet/memnet"' in pyproject
     assert '"parts/memnet-mcp/software/memnet_mcp"' in pyproject
     assert 'hatchCorePackage : String = "parts/common/memnet/memnet"' in text

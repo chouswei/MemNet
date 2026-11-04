@@ -52,8 +52,17 @@
   catalogue stays inventOnly.
   Safe serve upgrade (MN-VER-06-S12): SafeServeUpgrade on
   TcpServeBridge; admin drain; manifest; startup restore;
-  retire after a clean restore; no client retry; no silent
-  session loss; no SemVer bump.
+  retire after a clean restore (audit mark; a later restart
+  still restores); no client retry; no silent session loss;
+  no SemVer bump.
+  Restart restore (MN-VER-06-S15): SafeUpgradeMod; newest valid
+  set of checkpoint and upgrade-prepare, tie to upgrade; retired
+  stays a candidate; pre-flight; @WARN: restore_fallback; none
+  valid exits 3; @STAT: restore_source. Runtime:
+  tests/test_restart_restore.py.
+  memnet-mcp extra (MN-VER-06-S16): McpServerMod; console
+  memnet_mcp.entry:main; one line mcp_extra_missing, exit 2, every
+  transport and --help. Runtime: tests/test_mcp_extra_missing.py.
   Atelier-board asks (MN-VER-14-S01..S12; S01, S03, S04 and S09 to S12 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
@@ -1332,7 +1341,7 @@ package MemNetVerification {
           and wheel.hatchCorePackage == "parts/common/memnet/memnet"
           and wheel.hatchMcpPackage == "parts/memnet-mcp/software/memnet_mcp"
           and wheel.consoleMemnet == "memnet.cli:main"
-          and wheel.consoleMemnetMcp == "memnet_mcp.server:main"
+          and wheel.consoleMemnetMcp == "memnet_mcp.entry:main"
           and mcpMod.tipIsFace == false
           and mcpMod.track == true
           and mcpMod.implemented == true
@@ -1680,13 +1689,22 @@ package MemNetVerification {
       block ready_to_stop unless allow-unsaved. Restore checks
       counts and checksums. Corrupt snapshots stay on disk.
       A clean restore retires the manifest in that startup.
+      Retire is an audit mark ("retired", "retired_at"): it no
+      longer stops a later restore, and a later start restores
+      again (MN-REQ-06.17, MN-VER-06-S15).
       Same session id, ACL, TTL clock, and house. Not an
       agent MCP tool. No client retry. No SemVer bump.
+      Tests: tests/test_safe_upgrade.py::test_clean_restore_retires_and_a_later_start_still_restores
+      (renamed from ..._so_a_later_start_does_not_replay; the second
+      start restores again and the manifest stays retired);
+      ::test_tcp_restart_restores_same_sessions (the third start
+      finds the kept fact).
     */
     attribute verificationId : String = "MN-VER-06-S12";
 
     subject tcp : TcpServeBridge;
     subject cli : CliFacade;
+    subject upgradeMod : SafeUpgradeMod;
 
     objective safeServeUpgrade {
       verify safeServeUpgradeReq;
@@ -1714,6 +1732,8 @@ package MemNetVerification {
           and tcp.safeUpgrade.preservesTtlClock == true
           and tcp.safeUpgrade.preservesHouse == true
           and tcp.safeUpgrade.retiresAfterCleanRestore == true
+          and upgradeMod.retiredStaysCandidate == true
+          and upgradeMod.laterRestartRestores == true
           and tcp.safeUpgrade.statUpgradeRestore == "upgrade_restore"
           and cli.upgradePrepareOnAgentMcp == false
           and cli.upgradePrepare.onAgentMcp == false
@@ -1761,6 +1781,93 @@ package MemNetVerification {
           and cli.checkpointOnAgentMcp == false
           and cli.checkpoint.onAgentMcp == false
           and cli.checkpointVerify.onAgentMcp == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S15_RestartRestoreNewestSet {
+    doc /*
+      MN-REQ-06.17 — every serve start restores the newest valid
+      snapshot set, checkpoint or upgrade-prepare.
+      Field case and mtime: tests/test_restart_restore.py::test_field_case_retired_legacy_prepare_and_newer_checkpoint_restores_checkpoint
+      (retired legacy prepare manifest with no timestamp, older mtime,
+      plus a newer checkpoint: the checkpoint is restored with ids, ACL,
+      product and expires_at kept);
+      ::test_legacy_prepare_alone_restores_by_mtime_and_again_when_retired.
+      Tie: ::test_tie_goes_to_upgrade.
+      Fallback: ::test_corrupt_newest_checkpoint_falls_back_to_upgrade_loudly
+      (@WARN: restore_fallback|checkpoint|upgrade_checksum|... on stdout
+      and stderr, report "rejected").
+      None valid: ::test_no_valid_set_exits_3_with_the_newest_code.
+      No files: ::test_no_candidate_files_is_skipped.
+      Real process (SIGKILL and SIGTERM; same session id set and
+      per-session rows, edges and node ids; second restart again):
+      ::test_real_restart_restores_checkpoint_and_again_on_the_next_restart;
+      precedence: ::test_real_restart_newer_checkpoint_beats_older_prepare,
+      ::test_real_restart_newer_prepare_beats_older_checkpoint.
+      Retire no longer stops a later restore:
+      tests/test_safe_upgrade.py::test_clean_restore_retires_and_a_later_start_still_restores.
+      Behaviour: RestartRestoreChoice. Part: SafeUpgradeMod.
+    */
+    attribute verificationId : String = "MN-VER-06-S15";
+
+    subject upgradeMod : SafeUpgradeMod;
+    subject tcp : TcpServeBridge;
+
+    objective restartRestoreNewestSet {
+      doc /* Implemented: tests/test_restart_restore.py asserts the restore choice in process and in a real serve. */
+      verify requirement restartRestoreNewestSetReq : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_17_RestartRestoreNewestSet;
+      require constraint {
+        upgradeMod.implemented == true
+          and upgradeMod.restoresCheckpointSet == true
+          and upgradeMod.restoresUpgradeSet == true
+          and upgradeMod.tieGoesToUpgrade == true
+          and upgradeMod.retiredStaysCandidate == true
+          and upgradeMod.laterRestartRestores == true
+          and upgradeMod.preflightBeforeLoad == true
+          and upgradeMod.fallbackIsLoud == true
+          and upgradeMod.printsRestoreSource == true
+          and upgradeMod.noneValidExit == 3
+          and upgradeMod.noCandidateSkipped == true
+          and upgradeMod.loadFailureFallsBack == false
+          and upgradeMod.emptyNewestSetWins == true
+          and upgradeMod.retireOnlyUpgradeSource == true
+          and upgradeMod.writesCheckpointManifest == false
+          and tcp.safeUpgrade.retiresAfterCleanRestore == true
+          and tcp.serveCheckpoint.retiresOrLoads == false
+      }
+    }
+  }
+
+  verification def MN_VER_06_S16_McpExtraFailFast {
+    doc /*
+      MN-REQ-06.18 — memnet-mcp without the [mcp] extra writes one
+      stderr line, @ERR: mcp_extra_missing|memnet-mcp needs the mcp
+      extra (missing module: <mcp|uvicorn>); install with: pip install
+      'memnet-llm[mcp]', nothing on stdout, no traceback, exit 2, for
+      --transport stdio, streamable-http, gateway and --help, with mcp
+      or uvicorn missing:
+      tests/test_mcp_extra_missing.py::test_missing_extra_one_line_exit_2;
+      entry interface (MCP_EXTRA_HINT, require_mcp_extra, main):
+      ::test_entry_module_interface; console script
+      memnet_mcp.entry:main: ::test_console_script_points_at_entry;
+      with the extra, --help still works:
+      ::test_with_extra_help_still_works.
+    */
+    attribute verificationId : String = "MN-VER-06-S16";
+
+    subject mcpMod : McpServerMod;
+    subject wheel : MemNetLlmWheel;
+
+    objective mcpExtraFailFast {
+      doc /* Implemented: tests/test_mcp_extra_missing.py runs memnet_mcp with the extra blocked. */
+      verify requirement mcpExtraFailFastReq : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_18_McpExtraFailFast;
+      require constraint {
+        mcpMod.implemented == true
+          and mcpMod.mcpExtraMissingExit == 2
+          and mcpMod.extraCheckBeforeArgs == true
+          and mcpMod.everyTransportNeedsExtra == true
+          and wheel.track == true
       }
     }
   }
@@ -2690,23 +2797,53 @@ package MemNetVerification {
       ::test_id_equality_still_works,
       ::test_range_on_non_id_field_still_honoured); a field is numeric iff
       it fully reads as a number; numbers compare as numbers, strings by
-      code point; a mixed pair, a missing property, an empty value or an
-      odd field (1e999, NaN, "-", " 5") does not match (no type_mismatch
-      code; tests/test_range_where.py::test_range_no_match_is_not_found);
-      NOT over a no-match stays no match; nothing is written on a refusal;
+      code point; a missing property, an empty value, or a number literal
+      against an odd field (1e999, NaN, "-", " 5") does not match
+      (tests/test_range_where.py::test_range_no_match_is_not_found);
+      NOT over a no-match stays no match; nothing is written on a refusal.
+      Type refusal (where_type_mismatch, exit 1, nothing written): a
+      quoted number operand is refused at parse, also with no numeric
+      data, nested, inline and on a relationship, while a range on id
+      stays unsupported_predicate and '' / ' 5' stay strings
+      (tests/test_range_type_refusal.py::test_quoted_number_operand_refused,
+      ::test_quoted_number_refused_without_numeric_data,
+      ::test_quoted_number_refused_nested,
+      ::test_quoted_number_refused_inline_where,
+      ::test_quoted_number_cli_exact_line,
+      ::test_range_on_id_stays_unsupported_predicate,
+      ::test_empty_and_space_operands_stay_strings,
+      ::test_relationship_quoted_number_refused;
+      tests/test_range_where.py::test_range_quoted_number_operand_refused);
+      a quoted string against a stored number is refused when evaluated,
+      whatever the sibling order, and one numeric row refuses the whole
+      statement (tests/test_range_type_refusal.py::test_quoted_string_vs_stored_number_refused,
+      ::test_one_numeric_row_refuses_whole_statement,
+      ::test_mismatch_refused_whatever_sibling_order,
+      ::test_mismatch_refused_inline_where, ::test_mismatch_cli_exact_line,
+      ::test_relationship_mismatch_refused;
+      tests/test_range_where.py::test_range_string_vs_numeric_field_refused);
+      the kept no-match cases stay not_found, a number literal skips
+      placeholders and equality stays exact text
+      (tests/test_range_type_refusal.py::test_kept_unknown_is_not_found,
+      ::test_number_literal_skips_placeholders,
+      ::test_equality_is_exact_text); typed-walk --where refuses the same
+      way (tests/test_range_type_refusal.py::test_typed_walk_quoted_number_refused,
+      ::test_typed_walk_mismatch_refused;
+      tests/test_typed_walk_where.py::test_three_valued_string_vs_numeric_field_refused);
       agent MATCH ... RETURN stays product-gated
-      (::test_range_return_refused_product_gate); the CLI mutate path
+      (tests/test_range_where.py::test_range_return_refused_product_gate); the CLI mutate path
       honours a range (::test_run_argv_mutate_range_where). A stored rowRev
       such as '000124' is numeric, so it compares with a number literal
-      (n.rowRev > 123); a quoted operand gives no match
+      (n.rowRev > 123); a quoted operand is refused where_type_mismatch
       (tests/test_typed_walk_where.py::test_main_use_row_rev_number_operand,
-      ::test_main_use_row_rev_quoted_operand_gives_no_rows). A non-finite
+      ::test_main_use_row_rev_quoted_operand_is_refused). A non-finite
       field still matches through a true OR sibling and never under AND
       (tests/test_range_where_nonfinite_or.py::test_non_finite_hit_through_true_or_sibling,
       ::test_non_finite_under_and_with_true_sibling_no_match).
       Behaviour: BoardWakeRead, RangeWhereCompare.
       Before (bb4a4dc) the statement was refused unsupported_predicate.
-      Runtime tests: tests/test_range_where.py, tests/test_id_opaque_range.py.
+      Runtime tests: tests/test_range_where.py, tests/test_id_opaque_range.py,
+      tests/test_range_type_refusal.py.
     */
     attribute verificationId : String = "MN-VER-14-S01";
 
@@ -2774,7 +2911,8 @@ package MemNetVerification {
       ::test_where_filters_rows_not_traversal,
       ::test_limit_counts_matching_rows,
       ::test_main_use_row_rev_number_operand,
-      ::test_main_use_row_rev_quoted_operand_gives_no_rows.
+      ::test_main_use_row_rev_quoted_operand_is_refused,
+      ::test_three_valued_string_vs_numeric_field_refused.
       1..k and cycles: tests/test_typed_walk.py::test_chain_of_12_at_max_10,
       ::test_chain_walked_backwards, ::test_cycle_ends,
       ::test_min_hops_skips_rows_but_expands, ::test_shortest_path_wins_bfs.
@@ -3205,6 +3343,10 @@ package MemNetVerification {
     : MN_VER_06_S13_ServeCheckpoint;
   verification snapshotAclVerify
     : MN_VER_06_S14_SnapshotAcl;
+  verification restartRestoreNewestSetVerify
+    : MN_VER_06_S15_RestartRestoreNewestSet;
+  verification mcpExtraFailFastVerify
+    : MN_VER_06_S16_McpExtraFailFast;
   verification housekeepEndpointIdentityVerify
     : MN_VER_04_S06_HousekeepEndpointIdentity;
   verification whereRangeComparisonVerify
