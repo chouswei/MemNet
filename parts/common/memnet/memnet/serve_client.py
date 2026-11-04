@@ -21,6 +21,8 @@ from memnet.serve import probe as probe_tcp
 from memnet.serve import send_command as send_command_tcp
 
 _STATELESS = frozenset({"version", "guide", "examples", "serve"})
+# Run in this process and talk to the serve themselves (work against any serve version).
+_CLIENT_SIDE = frozenset({("admin", "upgrade-verify")})
 
 
 def _stateful(argv: list[str]) -> bool:
@@ -47,7 +49,7 @@ def dispatch(argv: list[str] | None = None) -> int:
     argv = list(argv if argv is not None else sys.argv[1:])
     if argv and argv[0] == "serve":
         return _run_app(argv)
-    if not _stateful(argv) or _inline_mode():
+    if not _stateful(argv) or _inline_mode() or tuple(argv[:2]) in _CLIENT_SIDE:
         return _run_app(argv)
     # MN-REQ-06.2 preferred over TCP when MEMNET_IPC_SOCKET is set and listening.
     from memnet.local_ipc_gateway import probe as probe_ipc
@@ -72,10 +74,11 @@ def _run_app(argv: list[str]) -> int:
     from memnet.in_process_engine import invoke_cli
 
     try:
-        invoke_cli(argv)
+        result = invoke_cli(argv)
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 1
-    return 0
+    # Non-standalone click returns the typer.Exit code instead of raising it.
+    return result if isinstance(result, int) else 0
 
 
 def _emit_proxy_response(response: dict) -> int:

@@ -647,6 +647,42 @@ def admin_upgrade_prepare(
         raise typer.Exit(result.exit_code)
 
 
+@admin_app.command("upgrade-verify")
+def admin_upgrade_verify(
+    before: Annotated[
+        Path,
+        typer.Option("--before", help="Saved upgrade or checkpoint manifest to compare."),
+    ],
+    token: Annotated[
+        str | None,
+        typer.Option(
+            "--token",
+            help="Admin token (do not log). Default MEMNET_ADMIN_TOKEN of this shell.",
+        ),
+    ] = None,
+    host: Annotated[str | None, typer.Option("--host", help="Serve host.")] = None,
+    port: Annotated[int | None, typer.Option("--port", help="Serve port.")] = None,
+    scratch: Annotated[
+        Path | None,
+        typer.Option("--scratch", help="New dir for the throwaway checkpoint (removed)."),
+    ] = None,
+) -> None:
+    """Health and data check after an upgrade: exit 3 on any mismatch. Runs client side."""
+    from memnet.admin_usage import configured_admin_token
+    from memnet.upgrade import verify_upgrade
+
+    presented = token if token else configured_admin_token()
+    try:
+        report = verify_upgrade(before, token=presented, host=host, port=port, scratch=scratch)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    sys.stdout.write(report.stdout_json())
+    sys.stderr.write(report.stderr_text())
+    if report.exit_code:
+        raise typer.Exit(report.exit_code)
+
+
 @admin_app.command("checkpoint")
 def admin_checkpoint(
     token: Annotated[
