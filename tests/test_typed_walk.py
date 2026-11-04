@@ -351,14 +351,13 @@ def test_in_session_stored_folded_and_walked(board):
 
 
 def test_snake_lower_is_not_folded(board):
-    lines = _ok(board, "--from", "A1", "--type", "part_of", "--dir", "in")
-    assert _paths(lines) == []
-    assert lines[0].startswith("@WALK: type=part_of|")
-    assert _stat(lines, "walk_truncated") == ["walk_truncated", "none", "-"]
+    # part_of keeps its spelling, so no edge has it (MN-REQ-14.7: refused, not empty)
+    err = _refused(board, "unknown_relation", "--from", "A1", "--type", "part_of", "--dir", "in")
+    assert "part_of" in err
 
 
-def test_unknown_valid_type_zero_rows(board):
-    assert _paths(_ok(board, "--from", "A1", "--type", "NEVER_USED", "--dir", "both")) == []
+def test_unknown_valid_type_refused(board):
+    _refused(board, "unknown_relation", "--from", "A1", "--type", "NEVER_USED", "--dir", "both")
 
 
 def test_invalid_relation_refused(board):
@@ -789,7 +788,7 @@ def test_return_still_product_gated_beside_the_verb(board):
     assert "@ERR: product_gate|" in out["stderr"]
 
 
-def test_no_mcp_typed_walk_tool(board, monkeypatch):
+def test_one_mcp_typed_walk_tool(board, monkeypatch):
     _tw()
     assert _end_ids(_ok(board, "--from", "R1", "--type", "PART_OF")) == ["A1"]
     monkeypatch.setenv("MEMNET_TEST_INLINE", "1")
@@ -797,7 +796,8 @@ def test_no_mcp_typed_walk_tool(board, monkeypatch):
 
     names = {t.name for t in asyncio.run(mcp.list_tools())}
     assert "query_walk" in names
-    assert not [n for n in names if "typed" in n.lower()], names
+    # MN-REQ-14.7 slice: the handle-only typed_walk tool (tests/test_typed_walk_mcp.py)
+    assert [n for n in names if "typed" in n.lower()] == ["typed_walk"], names
 
 
 def test_leftover_query_walk_unchanged(board):

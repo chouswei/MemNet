@@ -22,6 +22,7 @@ import time
 
 import pytest
 
+from memnet.exceptions import MemNetError
 from memnet.mem_store import MemStore
 from memnet.models import Record
 from memnet.session import open_session
@@ -101,11 +102,10 @@ def test_examined_is_exact_for_one_hop(star, monkeypatch):
     res = typed_walk(store, start="A", relation="cites", direction="out", limit=_FAR)
     assert res.examined == _FAR
     assert len(res.paths) == _FAR
-    res = typed_walk(store, start="A", relation="replaces", direction="in", limit=_FAR)
-    assert res.examined == 0
-    assert res.paths == ()
-    assert res.visited == 1
-    assert res.truncated is None
+    # no edge has type replaces: refused before any read (MN-REQ-14.7)
+    with pytest.raises(MemNetError) as ei:
+        typed_walk(store, start="A", relation="replaces", direction="in", limit=_FAR)
+    assert ei.value.code == "unknown_relation"
 
 
 def test_examined_never_exceeds_type_bucket_at_default_limit(star):

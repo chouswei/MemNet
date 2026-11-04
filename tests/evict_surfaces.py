@@ -29,6 +29,7 @@ READ_SURFACES = (
     "find",
     "query_walk",
     "query_typed_walk",
+    "typed_walk",
     "read_list",
     "export_pin_map",
     "housekeep_stats",
@@ -140,6 +141,7 @@ CLI_ONLY_NON_READ = frozenset(
 _READ_ARGS = {
     "find": {"limit": 5, "kind": "PLR"},
     "query_walk": {"cue": "PLR01"},
+    "typed_walk": {"start": "PLR01", "edge_type": "binds"},
     "read_list": {"tag": "PLR"},
 }
 # Engine saves (ENGINE_SAVES) to the dotted path of the function that runs them.

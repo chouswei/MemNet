@@ -11,6 +11,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 - **Upgrade health and data check** — `memnet admin upgrade-verify --before <manifest>` compares the running serve with the saved upgrade manifest: the same session ids, and the same rows and relations per session. Any mismatch exits 3. It runs client side, so it also checks a 0.20.4 serve.
 - **One-step rollback** — `scripts/upgrade-rollback.sh` restores the old venv link and the saved pre-upgrade state directory, then waits for the old serve to restore every session (docs/operations/safe-upgrade.md).
+- **Typed walks over MCP, handles only** — MCP tool `typed_walk` and CLI `memnet query typed-walk --json-handles` (one `@WALKJSON` line). Every node and edge is an opaque session-keyed handle; no nickname, hid or element id appears in the reply or its error text. `start` takes a handle from an earlier row or a nickname. A handle from another session, or of a deleted node, is refused `stale_handle`. Same limits as the CLI walk. MN-REQ-14.7 slice.
 
 ### Fixed
 
@@ -21,6 +22,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ### Changed
 
 - **Range WHERE type refusal** — A quoted number, or a quoted string against a stored number, in a range WHERE is refused `where_type_mismatch`. This replaces the 0.20.4 note that `'000123'` matches nothing.
+- **Typed walk refuses an edge type no edge has** — `unknown_relation` (CLI and MCP; checked after folding) instead of an empty walk.
 
 ## [0.20.4] - 2026-11-04
 
