@@ -7,6 +7,15 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Restart restore** — Restart restores from the newest valid snapshot set (checkpoint or upgrade-prepare); a later restart restores again; a corrupt newest set falls back with `@WARN: restore_fallback`.
+- **memnet-mcp without the `[mcp]` extra** — memnet-mcp without the [mcp] extra exits 2 with one line: `pip install 'memnet-llm[mcp]'`.
+
+### Changed
+
+- **Range WHERE type refusal** — A quoted number, or a quoted string against a stored number, in a range WHERE is refused `where_type_mismatch`. This replaces the 0.20.4 note that `'000123'` matches nothing.
+
 ## [0.20.4] - 2026-11-04
 
 ### Added
