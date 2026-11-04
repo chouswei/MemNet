@@ -2892,7 +2892,7 @@ package MemNetVerification {
       ::test_no_hid_in_output_and_anon_node_shows_no_id.
       Fold: tests/test_typed_walk.py::test_spelling_folds,
       ::test_in_session_stored_folded_and_walked,
-      ::test_snake_lower_is_not_folded, ::test_unknown_valid_type_zero_rows,
+      ::test_snake_lower_is_not_folded, ::test_unknown_valid_type_refused,
       ::test_invalid_relation_refused;
       tests/test_walk_index.py::test_legacy_raw_relation_spelling_is_indexed_standard.
       Out / in / both: tests/test_typed_walk.py::test_one_hop_in_far_nodes_with_id_and_every_property,
@@ -2935,7 +2935,7 @@ package MemNetVerification {
       ::test_intermediate_nodes_are_kind_and_id_only,
       ::test_result_cursor_is_none, ::test_empty_walk_reply,
       ::test_return_still_product_gated_beside_the_verb,
-      ::test_no_mcp_typed_walk_tool, ::test_leftover_query_walk_unchanged.
+      ::test_one_mcp_typed_walk_tool, ::test_leftover_query_walk_unchanged.
       Index and examined: tests/test_walk_index.py::test_typed_edges_by_type_and_direction,
       ::test_adj_after_create_delete_and_relationship_set,
       ::test_adj_after_detach_delete, ::test_adj_after_rename_and_rename_merge,

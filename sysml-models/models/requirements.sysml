@@ -845,6 +845,7 @@ package MemNetRequirements {
           find
           query_walk
           query_typed_walk
+          typed_walk
           read_list
           export_pin_map
           housekeep_stats
