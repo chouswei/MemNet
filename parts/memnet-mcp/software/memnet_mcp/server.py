@@ -12,7 +12,7 @@ try:
     from mcp.server.fastmcp import FastMCP
 except ImportError as exc:
     raise ImportError(
-        "memnet-mcp requires the mcp package. Install with: pip install memnet-llm[mcp]"
+        "memnet-mcp requires the mcp package. Install with: pip install 'memnet-llm[mcp]'"
     ) from exc
 
 from memnet.config import (
