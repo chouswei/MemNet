@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 
 try:
@@ -25,6 +26,7 @@ from memnet.config import (
 )
 from memnet.exceptions import MemNetError
 from memnet.serve import probe, send_command
+from memnet.typed_walk import ID_MASK, WALK_DEFAULT_LIMIT, is_handle
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.http_transport import (
     DEFAULT_MCP_HTTP_HOST,
@@ -434,6 +436,82 @@ async def query_walk(
         str(max_rows),
     ]
     return await _run(argv, session=session)
+
+
+_WALKJSON = "@WALKJSON: "
+_RE_HID = re.compile(r"_el\d+")
+
+
+def _scrub(text: str, start: str) -> str:
+    """Mask a nickname ``start`` and any ``_elN`` hid in error text."""
+    if start and not is_handle(start):
+        text = re.sub(rf"(?<![\w-]){re.escape(start)}(?![\w-])", ID_MASK, text)
+    return _RE_HID.sub(ID_MASK, text)
+
+
+def _walk_reply(resp: MemNetResponse, start: str) -> str:
+    """Envelope for ``typed_walk``: parsed walk JSON, or a scrubbed error; no raw wire."""
+    out: dict = {"ok": False, "exit_code": resp.exit_code, "session_id": resp.session_id}
+    line = next((ln for ln in resp.stdout.splitlines() if ln.startswith(_WALKJSON)), None)
+    if resp.exit_code == 0 and line is not None:
+        out.update(ok=True, errors=[], **json.loads(line[len(_WALKJSON) :]))
+        return json.dumps(out, ensure_ascii=False)
+    errors = [_scrub(e, start) for e in resp.errors] or ["@ERR: no_walk|typed walk gave no reply"]
+    code, _, message = errors[0].removeprefix("@ERR: ").partition("|")
+    out.update(errors=errors, error={"code": code, "message": message})
+    return json.dumps(out, ensure_ascii=False)
+
+
+@mcp.tool()
+async def typed_walk(
+    start: str,
+    edge_type: str,
+    direction: str = "out",
+    min_hops: int = 1,
+    max_hops: int = 1,
+    where: str | None = None,
+    limit: int = WALK_DEFAULT_LIMIT,
+    session: str | None = None,
+    caller: str | None = None,
+) -> str:
+    """Typed walk over one edge type (MN-REQ-14.3 / 14.7): BFS, handles only.
+
+    ``start``: a node handle (``h_...``) from a previous walk row, or a nickname
+    from ``find``. Handles are opaque and session-keyed: never parse, build or
+    carry them to another session (refused ``stale_handle``, as is a handle of a
+    deleted node). ``direction`` out | in | both; hops 1 <= min <= max <= 10;
+    ``where`` is a predicate on ``n``, the row's end node. ``limit`` 1..500
+    (default 50); 20,000 typed edge reads and 1,048,576 reply bytes per call.
+    An edge type no edge in the session has is refused ``unknown_relation``.
+
+    Reply: ``ok``, ``walk``, ``rows`` (each: ``start``, ``steps`` of edge + node
+    refs; the END node carries ``props``) and ``stats`` (``rows``,
+    ``truncated`` none | limit | budget | bytes). To continue, pass a row's end
+    node handle as ``start``. No real id appears in the reply.
+    """
+    argv = [
+        "query",
+        "typed-walk",
+        "--json-handles",
+        "--from",
+        start,
+        "--type",
+        edge_type,
+        "--dir",
+        direction,
+        "--min-hops",
+        str(min_hops),
+        "--max-hops",
+        str(max_hops),
+        "--limit",
+        str(limit),
+    ]
+    if where:
+        argv.extend(["--where", where])
+    if caller:
+        argv.extend(["--caller", caller])
+    resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv, session=session))
+    return _walk_reply(resp, start)
 
 
 async def _commit(
