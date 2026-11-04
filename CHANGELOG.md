@@ -7,9 +7,15 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Added
+
+- **Upgrade health and data check** — `memnet admin upgrade-verify --before <manifest>` compares the running serve with the saved upgrade manifest: the same session ids, and the same rows and relations per session. Any mismatch exits 3. It runs client side, so it also checks a 0.20.4 serve.
+- **One-step rollback** — `scripts/upgrade-rollback.sh` restores the old venv link and the saved pre-upgrade state directory, then waits for the old serve to restore every session (docs/operations/safe-upgrade.md).
+
 ### Fixed
 
 - **Restart restore** — Restart restores from the newest valid snapshot set (checkpoint or upgrade-prepare); a later restart restores again; a corrupt newest set falls back with `@WARN: restore_fallback`.
+- **CLI exit codes when run in-process** — a command that `memnet` runs in its own process (`version`, `guide`, `examples`, `admin upgrade-verify`, or under `MEMNET_TEST_INLINE`) now returns its own exit code; a `typer.Exit` code was turned into 0.
 - **memnet-mcp without the `[mcp]` extra** — memnet-mcp without the [mcp] extra exits 2 with one line: `pip install 'memnet-llm[mcp]'`.
 
 ### Changed

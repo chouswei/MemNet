@@ -789,3 +789,125 @@ def upgrade_prepare_envelope(
     else:
         stderr = result.stat + "\n"
     return {"exit_code": result.exit_code, "stdout": result.stdout_json(), "stderr": stderr}
+
+
+def compare_counts(
+    before: list[dict[str, Any]], after: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Per-session differences between two manifest ``sessions`` lists (rows and edges)."""
+    old = {str(row["session_id"]): row for row in before}
+    new = {str(row["session_id"]): row for row in after}
+    out: list[dict[str, Any]] = []
+    for sid in sorted(old.keys() | new.keys()):
+        if sid not in new:
+            out.append({"kind": "missing", "session_id": sid, "before": 1, "after": 0})
+        elif sid not in old:
+            out.append({"kind": "extra", "session_id": sid, "before": 0, "after": 1})
+        else:
+            for kind in ("rows", "edges"):
+                was, now = int(old[sid].get(kind, -1)), int(new[sid].get(kind, -1))
+                if was != now:
+                    out.append({"kind": kind, "session_id": sid, "before": was, "after": now})
+    return out
+
+
+@dataclass
+class VerifyReport:
+    before: int
+    after: int
+    mismatches: list[dict[str, Any]]
+
+    @property
+    def exit_code(self) -> int:
+        return 3 if self.mismatches else 0
+
+    def stdout_json(self) -> str:
+        payload = {
+            "ok": not self.mismatches,
+            "sessions": {"before": self.before, "after": self.after},
+            "mismatches": self.mismatches,
+        }
+        return json.dumps(payload, sort_keys=True) + "\n"
+
+    def stderr_text(self) -> str:
+        if not self.mismatches:
+            return f"@STAT: upgrade_verify|ok|{self.after}\n"
+        lines = [
+            f"@WARN: upgrade_verify_mismatch|{m['kind']}|{m['session_id']}|"
+            f"before={m['before']}|after={m['after']}"
+            for m in self.mismatches
+        ]
+        lines.append(f"@ERR: upgrade_verify_mismatch|{len(self.mismatches)}")
+        return "\n".join(lines) + "\n"
+
+
+def _before_sessions(path: Path) -> list[dict[str, Any]]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return [
+            {
+                "session_id": str(row["session_id"]),
+                "rows": int(row["rows"]),
+                "edges": int(row["edges"]),
+            }
+            for row in data["sessions"]
+        ]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise MemNetError("upgrade_verify_before", type(exc).__name__, exit_code=2) from exc
+
+
+def verify_upgrade(
+    before_path: Path,
+    *,
+    token: str | None,
+    host: str | None = None,
+    port: int | None = None,
+    scratch: Path | None = None,
+) -> VerifyReport:
+    """Compare a saved manifest with the running serve (client side, any serve version).
+
+    The serve writes an ``admin checkpoint`` into a scratch dir (never the live
+    state dir), and its manifest is the after side. The scratch dir is removed.
+    """
+    import shutil
+    import tempfile
+
+    from memnet.serve import send_command
+
+    before = _before_sessions(before_path)
+    if scratch is None:
+        work = Path(tempfile.mkdtemp(prefix="memnet-upgrade-verify-"))
+    else:
+        scratch.mkdir(parents=True)
+        work = scratch
+    try:
+        try:
+            reply = send_command(
+                ["admin", "checkpoint", "--state-dir", str(work)],
+                host=host,
+                port=port,
+                admin_token=token,
+                timeout=120,
+            )
+        except OSError as exc:
+            raise MemNetError("serve_unreachable", type(exc).__name__, exit_code=2) from exc
+        manifest_path = work / "checkpoint" / "checkpoint-manifest.json"
+        if not manifest_path.is_file():
+            err = str(reply.get("stderr") or "").strip().splitlines()
+            line = err[0] if err else "@ERR: upgrade_verify_checkpoint|no manifest"
+            code, _, detail = line.removeprefix("@ERR: ").partition("|")
+            raise MemNetError(code or "upgrade_verify_checkpoint", detail, exit_code=2)
+        after = json.loads(manifest_path.read_text(encoding="utf-8"))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    mismatches = compare_counts(before, after.get("sessions") or [])
+    for row in after.get("unsaved") or []:
+        sid = str(row.get("session_id"))
+        mismatches = [m for m in mismatches if m["session_id"] != sid]
+        mismatches.append({"kind": "unsaved", "session_id": sid, "before": 1, "after": 0})
+    unsaved = len(after.get("unsaved") or [])
+    return VerifyReport(
+        before=len(before),
+        after=len(after.get("sessions") or []) + unsaved,
+        mismatches=mismatches,
+    )

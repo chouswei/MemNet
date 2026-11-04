@@ -6,11 +6,13 @@ During the restart, clients see `@ERR: serve_draining|retry_after_s=<seconds>` o
 
 ## Procedure
 
+The unit runs the serve through a venv link, for example `ExecStart=/opt/memnet/venv/bin/memnet serve`, where `/opt/memnet/venv` is a symlink to the versioned venv (`/opt/memnet/venv-0.20.4`). Rollback swaps that link back.
+
 1. Install the new version in a separate virtualenv. Leave the running venv in place.
 
 ```bash
-python -m venv /opt/memnet/venv-new
-/opt/memnet/venv-new/bin/pip install "memnet-llm[mcp]==<new>"
+python -m venv /opt/memnet/venv-<new>
+/opt/memnet/venv-<new>/bin/pip install "memnet-llm[mcp]==<new>"
 ```
 
 Hosts that run `memnet-mcp` (streamable-http or gateway) need the `[mcp]` extra.
@@ -23,9 +25,21 @@ memnet admin upgrade-prepare --state-dir "$MEMNET_STATE_DIR"
 
 3. Check ready-to-stop. Stop the process only when stderr contains `@STAT: upgrade_prepare|ready|`. If a session cannot be snapshotted, the command names it, exits non-zero, and does not write a ready manifest. Pass `--allow-unsaved` only when those named sessions may be dropped.
 
-4. Point the unit `ExecStart` at the new venv, on the same port and the same `MEMNET_STATE_DIR`, and restart.
+4. Stop the serve and keep a copy of the state directory. This copy is what rollback restores.
 
-5. Read the restore stats from the new process:
+```bash
+systemctl stop memnet-serve
+cp -a "$MEMNET_STATE_DIR" "$MEMNET_STATE_DIR.pre-upgrade"
+```
+
+5. Point the venv link at the new venv (same port, same `MEMNET_STATE_DIR`) and start.
+
+```bash
+ln -sfn /opt/memnet/venv-<new> /opt/memnet/venv.tmp && mv -T /opt/memnet/venv.tmp /opt/memnet/venv
+systemctl start memnet-serve
+```
+
+6. Read the restore stats from the new process:
 
 ```text
 @STAT: restore_source|upgrade|<timestamp>
@@ -34,7 +48,52 @@ memnet admin upgrade-prepare --state-dir "$MEMNET_STATE_DIR"
 
 A clean stat marks the manifest `retired` (with `retired_at`) inside that process. A retired manifest stays a candidate: every later restart restores again from the newest valid set (see "Restart restore"). The snapshot files stay on disk. A checksum failure, a parse failure, or an unsupported snapshot format in every set exits `3`, leaves the files untouched, and does not retire. A session that fails to load from a set that passed the check also exits `3`, with no fallback (see "Restart restore").
 
+7. Run the health and data check. The upgrade is done only when it passes.
+
+```bash
+memnet admin upgrade-verify --before "$MEMNET_STATE_DIR.pre-upgrade/upgrade-manifest.json"
+```
+
+Run it as the serve user, with `MEMNET_ADMIN_TOKEN` in the environment (or `--token`), before agents write again. The check runs in the client, so it works against any serve version: it asks the serve for an `admin checkpoint` into a new scratch directory (`--scratch`, default a temp directory; never the live state directory), compares that with the saved manifest, and removes the scratch directory. It passes when the session ids are the same and each session has the same rows and relations (edges):
+
+```text
+@STAT: upgrade_verify|ok|<n>
+```
+
+Any difference prints one line per session and exits `3`. Kinds are `missing`, `extra`, `unsaved`, `rows` and `edges`:
+
+```text
+@WARN: upgrade_verify_mismatch|<kind>|<session>|before=<x>|after=<y>
+@ERR: upgrade_verify_mismatch|<count>
+```
+
+No serve, a refused token, or a missing or unreadable `--before` file exits `2`. stdout carries the same result as JSON (`ok`, `sessions.before`, `sessions.after`, `mismatches`). On a mismatch, roll back.
+
 ## Rollback
+
+One command restores the old venv and the saved sessions:
+
+```bash
+scripts/upgrade-rollback.sh \
+  --live-venv /opt/memnet/venv --old-venv /opt/memnet/venv-0.20.4 \
+  --state-dir "$MEMNET_STATE_DIR" --saved "$MEMNET_STATE_DIR.pre-upgrade" \
+  --stop 'systemctl stop memnet-serve' --start 'systemctl start memnet-serve'
+```
+
+It refuses with exit `2` and changes nothing when the live venv is not a symlink, the old venv has no `bin/python`, the saved copy has no ready-to-stop `upgrade-manifest.json`, or the stop command fails. Otherwise it:
+
+1. runs the stop command;
+2. moves the state directory aside to `<state-dir>.rolled-back-<UTC stamp>` (nothing is deleted; it holds every write made after the upgrade);
+3. copies the saved directory back, removes its `upgrade-restore.json` and marks its upgrade manifest not retired, so the old build restores it;
+4. points the live venv link at the old venv;
+5. runs the start command and waits (`--wait-s`, default 60) for the old serve's `upgrade-restore.json`.
+
+It prints `@STAT: upgrade_rollback|ok|<n>` when every saved session was restored and none failed, and exits `3` with `@ERR: upgrade_rollback|<restore|timeout|start>|...` otherwise. The saved copy is not changed, so the command can be run again. `upgrade-verify` exists only from the build after 0.20.4. To compare rows after a rollback, run it from the new venv (`/opt/memnet/venv-<new>/bin/memnet admin upgrade-verify ...`) against the old serve.
+
+**This loses every write made after the upgrade** (they stay in the moved-aside directory).
+
+The manual equivalent follows.
+
 
 Point the unit `ExecStart` back at the old venv and start it when the restore stat is not clean. After a clean stat the manifest is marked retired. The new build still treats it as a restore candidate and restores the newest valid set again on every start, which may be these snapshots or a newer checkpoint. An old build (0.20.4 or earlier) started after a clean stat skips the retired manifest and starts empty. The snapshot files stay on disk, so roll forward to the new build again, or restore them with the new build.
 
@@ -86,6 +145,10 @@ A checkpoint written half-way (a crash or a full disk) leaves files that do not 
 **No set.** With no manifest on disk (a fresh state directory) the serve starts with 0 sessions. When manifests exist but none passes the check, the serve prints `@ERR: <code>|<detail>` with the newest set's own code and exits `3`. It never starts silently empty while a manifest exists. A newest set that is valid and empty wins: it records that no session was loaded. A session that fails to load from a set that passed the check also exits `3`, with no fallback.
 
 **Accepted risk.** A restart replays the newest set, so a session closed after that set was written comes back until the next checkpoint. Run `memnet admin checkpoint` after closing sessions and before a planned restart; the hourly checkpoint ([backup.md](backup.md)) bounds the rest. Both manifests are stamped by the running serve's clock: on a host without a real-time clock, restart after NTP has synchronised.
+
+## Mixed versions
+
+Clients and the serve may be on different builds during the upgrade. A 0.20.4 client (one connection per command, no keep-alive) works against the new serve. A new pooled client (keep-alive) works against a 0.20.4 serve, which closes the connection after every reply: the client keeps a socket only when the reply says `keep_alive`, and drops a kept socket that the serve has closed (a stop, a restart or a rollback) before it sends the next command.
 
 ## Hosts
 
