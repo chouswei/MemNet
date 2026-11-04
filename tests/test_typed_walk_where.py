@@ -341,7 +341,8 @@ def test_main_use_row_rev_number_operand(rows):
     assert _ids(rows, "n.rowRev >= 123 AND n.rowRev < 200") == ["R1", "R2"]
 
 
-def test_main_use_row_rev_quoted_operand_is_refused(rows):
+def test_main_use_row_rev_quoted_operand_gives_no_rows(rows):
+    # name kept until M4 MODEL-ALIGN renames it ..._is_refused with the SysML edits
     # a quoted number in a range is refused at parse time (score §1.6 D-T2)
     line = (
         "@ERR: where_type_mismatch|WHERE > on n.rowRev: quoted number '000123'; "

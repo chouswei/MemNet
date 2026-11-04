@@ -10,7 +10,8 @@ pinned for M2:
   Number vs numeric field compares numerically; string vs non-numeric field
   compares by code point. Number vs non-numeric field and a missing or empty
   field: no match (never raise). A quoted string vs a numeric-looking field is
-  refused where_type_mismatch (score /tmp/srs/score.md §1.6, D-T3).
+  refused where_type_mismatch (score /tmp/srs/score.md §1.6, D-T3), as is a
+  quoted number operand such as '2000' (D-T2).
 - NOT over a no-match range is still no match.
 - Cardinality is unchanged: node SET / DELETE and relationship DELETE need
   exactly one match (0 -> not_found, >1 -> cue_conflict, nothing written);
@@ -114,8 +115,6 @@ ONE_MATCH = [
     ),
     pytest.param(("B", "a"), "n.x > 'Z'", 1, id="codepoint-case"),
     pytest.param(("z", "é"), "n.x > 'z'", 1, id="codepoint-non-ascii"),
-    # string literal skips numeric-looking fields
-    pytest.param(("7", "2026-01-15"), "n.x > '2000'", 1, id="string-skips-numeric"),
     # NOT over a no-match range stays no match
     pytest.param((_MISSING, "3"), "NOT n.x > 5", 1, id="not-missing-is-no-match"),
     pytest.param(("abc", "3"), "NOT n.x > 5", 1, id="not-mismatch-is-no-match"),
@@ -215,6 +214,18 @@ def test_range_string_vs_numeric_field_refused(memnet_temp, values, where):
     assert err.message == want
     err = _assert_refused(ss, f"MATCH (n:T) WHERE {where} DELETE n", "where_type_mismatch")
     assert err.message == want
+
+
+def test_range_quoted_number_operand_refused(memnet_temp):
+    # was string-skips-numeric: '2000' is a quoted number, refused at parse (D-T2)
+    ss = _session("7", "2026-01-15")
+    want = "WHERE > on n.x: quoted number '2000'; use a number literal"
+    for stmt in (
+        "MATCH (n:T) WHERE n.x > '2000' SET n.y = 'hit'",
+        "MATCH (n:T) WHERE n.x > '2000' DELETE n",
+    ):
+        err = _assert_refused(ss, stmt, "where_type_mismatch")
+        assert err.message == want
 
 
 # ----- non-finite fields are UNKNOWN: kept out under NOT, OR and AND -----
@@ -421,7 +432,7 @@ def test_relationship_range_delete_one_match(memnet_temp, stmt, gone):
         ("r.n >= 0", "cue_conflict"),
         ("r.n > 9", "not_found"),
         ("r.n < -1", "not_found"),
-        ("r.n > 'a'", "not_found"),
+        ("r.n > 'a'", "where_type_mismatch"),
     ],
 )
 def test_relationship_range_delete_cardinality(memnet_temp, where, code):
