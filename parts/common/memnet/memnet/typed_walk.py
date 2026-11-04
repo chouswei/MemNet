@@ -26,13 +26,15 @@ import hmac
 import json
 import re
 from collections import deque
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
 from memnet.config import DEFAULT_QUERY_MAX_ROWS, normalize_relation
 from memnet.exceptions import MemNetError
 from memnet.gql import ParseError, WherePred, emit_node_shaped, eval_where, parse_where_clause
 from memnet.mem_store import MemStore
 from memnet.models import Record
+from memnet.paging import decode_cursor, encode_cursor, fingerprint
 
 WALK_MAX_HOPS = 10  # k ceiling
 WALK_DEFAULT_LIMIT = DEFAULT_QUERY_MAX_ROWS  # 50
@@ -78,7 +80,11 @@ class WalkResult:
     truncated: str | None  # None | "limit" | "budget"
     examined: int  # typed edge reads from the adjacency index
     visited: int  # distinct nodes reached, start included
-    cursor: str | None = None  # reserved for paging (#247 item 4); always None here
+    cursor: str | None = None  # next page's token; None unless paging was asked and rows remain
+    offset: int = 0  # rows skipped before this page (row numbers continue from offset + 1)
+    cursor_at: Callable[[int], str] | None = field(
+        default=None, compare=False
+    )  # token at a row offset
 
 
 def _check_where_vars(pred: WherePred) -> None:
@@ -130,11 +136,18 @@ def typed_walk(
     where: str | None = None,
     limit: int = WALK_DEFAULT_LIMIT,
     start_node: Record | None = None,
+    cursor: str | None = None,
+    paged: bool = False,
+    session_id: str | None = None,
 ) -> WalkResult:
     """Walk ``relation`` edges from the node nicknamed ``start`` (score D3-D7).
 
     ``start_node`` (a resolved handle) replaces the nickname lookup. A type no
     edge in the store has is refused ``unknown_relation`` (checked after folding).
+
+    Paging (``memnet.paging``): ``cursor`` resumes after the rows an earlier page
+    gave; ``paged`` (or a cursor) makes the result carry the next cursor when
+    rows remain. Both need ``session_id``, the cursor's MAC key.
     """
     if start_node is None and not start:
         raise MemNetError("no_anchor", "query typed-walk requires --from")
@@ -155,6 +168,26 @@ def typed_walk(
     pred = _parse_where(where)
     origin = start_node if start_node is not None else _start_node(store, start)
     budget = WALK_MAX_EXAMINED
+    skip = 0
+    cursor_at: Callable[[int], str] | None = None
+    if cursor is not None or paged:
+        if session_id is None:
+            raise MemNetError("bad_cursor", "paging needs a session")
+        fp = fingerprint(
+            "walk",
+            start=origin.hid,
+            rel=rel,
+            dir=direction,
+            hops=[min_hops, max_hops],
+            where=(where or "").strip(),
+        )
+        sid = session_id
+
+        def cursor_at(offset: int) -> str:
+            return encode_cursor(sid, "walk", fp, store.change_count, offset)
+
+        if cursor is not None:
+            skip = decode_cursor(sid, cursor, "walk", fp, store)
 
     by_hid = store._by_hid
     want_out = direction in ("out", "both")
@@ -164,6 +197,7 @@ def typed_walk(
     rows: list[WalkPath] = []
     truncated: str | None = None
     examined = 0
+    matched = 0
     frontier: deque[tuple[str, int]] = deque([(origin.hid, 0)])
 
     def _path_to(hid: str) -> WalkPath:
@@ -204,6 +238,9 @@ def typed_walk(
                 frontier.append((far, hop))
             if hop < min_hops or (pred is not None and not eval_where(far_rec, pred)):
                 continue
+            if matched < skip:
+                matched += 1
+                continue
             if len(rows) >= limit:
                 truncated = "limit"
                 break
@@ -219,6 +256,9 @@ def typed_walk(
         truncated=truncated,
         examined=examined,
         visited=len(reached),
+        cursor=cursor_at(skip + len(rows)) if cursor_at and truncated == "limit" else None,
+        offset=skip,
+        cursor_at=cursor_at,
     )
 
 
@@ -251,12 +291,20 @@ def shaped_path(result: WalkResult, path: WalkPath) -> str:
     return "".join(parts)
 
 
-def _stat_lines(rows: int, limit: int, truncated: str | None) -> list[str]:
+def _stat_lines(rows: int, limit: int, truncated: str | None, cursor: str | None) -> list[str]:
     return [
         f"@STAT: walk_rows|{rows}|{limit}",
         f"@STAT: walk_truncated|{truncated or 'none'}|-",
-        "@STAT: walk_cursor|-|-",
+        f"@STAT: walk_cursor|{cursor or '-'}|-",
     ]
+
+
+def _next_cursor(result: WalkResult, kept: int, total: int) -> str | None:
+    """Cursor after ``kept`` of this page's ``total`` rows (None: nothing remains)."""
+    if kept < total:
+        # a byte cut: resume at the first dropped row (never before one row is kept)
+        return result.cursor_at(result.offset + kept) if result.cursor_at and kept else None
+    return result.cursor
 
 
 def _size(lines: list[str]) -> int:
@@ -272,9 +320,9 @@ def emit_walk(result: WalkResult, *, max_bytes: int | None = None) -> list[str]:
     )
     body = [
         f"@PATH: {i}|{len(p.steps)}|{shaped_path(result, p)}"
-        for i, p in enumerate(result.paths, start=1)
+        for i, p in enumerate(result.paths, start=result.offset + 1)
     ]
-    full = [header, *body, *_stat_lines(len(body), result.limit, result.truncated)]
+    full = [header, *body, *_stat_lines(len(body), result.limit, result.truncated, result.cursor)]
     if _size(full) <= cap:
         return full
     label = result.truncated or "bytes"
@@ -282,11 +330,13 @@ def emit_walk(result: WalkResult, *, max_bytes: int | None = None) -> list[str]:
     kept: list[str] = []
     for line in body:
         n = len(kept) + 1
-        if used + _size([line]) + _size(_stat_lines(n, result.limit, label)) > cap:
+        stats = _stat_lines(n, result.limit, label, _next_cursor(result, n, len(body)))
+        if used + _size([line]) + _size(stats) > cap:
             break
         kept.append(line)
         used += _size([line])
-    return [header, *kept, *_stat_lines(len(kept), result.limit, label)]
+    cur = _next_cursor(result, len(kept), len(body))
+    return [header, *kept, *_stat_lines(len(kept), result.limit, label, cur)]
 
 
 # ----- handles (MN-REQ-14.7 slice) ---------------------------------------------
@@ -379,7 +429,7 @@ def walk_json(
 ) -> str:
     """One ``@WALKJSON: <json>`` line, handles only; trailing rows dropped past ``max_bytes``."""
     cap = WALK_MAX_REPLY_BYTES if max_bytes is None else max_bytes
-    paths = enumerate(result.paths, start=1)
+    paths = enumerate(result.paths, start=result.offset + 1)
     rows = [_dump(_json_row(result, store, session_id, i, p)) for i, p in paths]
     walk = {
         "type": result.relation,
@@ -388,17 +438,19 @@ def walk_json(
         "limit": result.limit,
     }
 
-    def _line(kept: list[str], label: str) -> str:
-        stats = {"rows": len(kept), "truncated": label, "cursor": None}
+    def _line(kept: list[str], label: str, cursor: str | None = None) -> str:
+        stats = {"rows": len(kept), "truncated": label, "cursor": cursor}
         head = _dump({"walk": walk, "rows": []})[:-2]  # drop the closing "]}"
         return f'@WALKJSON: {head}{",".join(kept)}],"stats":{_dump(stats)}}}'
 
-    full = _line(rows, result.truncated or "none")
+    full = _line(rows, result.truncated or "none", result.cursor)
     if len(full.encode("utf-8")) + 1 <= cap:
         return full
     label = result.truncated or "bytes"
     # the row count grows from "0" to at most len(rows) digits
-    used = len(_line([], label).encode("utf-8")) + 1 + len(str(len(rows))) - 1
+    at_end = result.cursor_at(result.offset + len(rows)) if result.cursor_at else None
+    used = len(_line([], label, at_end).encode("utf-8"))
+    used += len(str(len(rows)))
     kept: list[str] = []
     for row in rows:
         size = len(row.encode("utf-8")) + (1 if kept else 0)
@@ -406,4 +458,4 @@ def walk_json(
             break
         kept.append(row)
         used += size
-    return _line(kept, label)
+    return _line(kept, label, _next_cursor(result, len(kept), len(rows)))

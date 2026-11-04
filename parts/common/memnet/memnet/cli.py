@@ -9,7 +9,7 @@ from typing import Annotated
 
 import typer
 
-from memnet import __version__
+from memnet import __version__, paging
 from memnet.config import (
     DEFAULT_INGEST_MAX_EDGES,
     DEFAULT_INGEST_MAX_NODES,
@@ -1915,9 +1915,24 @@ def query_find(
         typer.Option("--locator", help="KEY=VAL field cue; repeatable"),
     ] = None,
     keyword: Annotated[str | None, typer.Option("--keyword")] = None,
+    cursor: Annotated[
+        str | None,
+        typer.Option("--cursor", help="find_cursor of the previous page (same cues)"),
+    ] = None,
+    paged: Annotated[
+        bool,
+        typer.Option("--paged", help="end with @STAT: find_cursor (opaque token, or -)"),
+    ] = False,
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
-    """Bounded MATCH find (seed nodes only). Hard LIMIT required. Not pin_map."""
+    """Bounded MATCH find (seed nodes only). Hard LIMIT required. Not pin_map.
+
+    Paging: ``--paged`` or ``--cursor`` ends the reply with ``@STAT: find_cursor``,
+    an opaque token while hits remain, else ``-``. Pass it as ``--cursor`` with
+    the same cues (``--limit`` may change). Errors: ``bad_cursor``,
+    ``cursor_mismatch``, ``stale_cursor``. Without either flag the reply is
+    unchanged.
+    """
     if limit is None:
         _handle_error(MemNetError("no_limit", "find requires --limit"))
     locators = []
@@ -1936,12 +1951,19 @@ def query_find(
     ss, lock = _load_session(session)
     with lock:
         try:
+            offset = 0
+            fp = paging.fingerprint(
+                "find", kind=(kind or "").upper(), locators=locators, keyword=keyword
+            )
+            if cursor is not None:
+                offset = paging.decode_cursor(ss.session_id, cursor, "find", fp, ss.store)
             found = bounded_match_find(
                 ss.store,
                 kind=kind,
                 locators=locators,
                 keyword=keyword,
                 limit=limit,
+                offset=offset,
             )
         except MemNetError as exc:
             _handle_error(exc)
@@ -1955,6 +1977,14 @@ def query_find(
         if text:
             for line in text.splitlines():
                 emit_stdout(line)
+        if paged or cursor is not None:
+            more = offset + limit < found.total
+            tok = "-"
+            if more:
+                tok = paging.encode_cursor(
+                    ss.session_id, "find", fp, ss.store.change_count, offset + limit
+                )
+            emit_stdout(f"@STAT: find_cursor|{tok}|-")
 
 
 @query_app.command("walk")
@@ -1998,7 +2028,14 @@ def query_typed_walk(
         str | None,
         typer.Option("--where", help="predicate on n, the row's end node (#250 rules)"),
     ] = None,
-    limit: Annotated[int, typer.Option("--limit", help="rows, 1..500")] = 50,
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", help="rows per page, 1..500 (default 50); asking turns paging on"),
+    ] = None,
+    cursor: Annotated[
+        str | None,
+        typer.Option("--cursor", help="next_cursor of the previous page (same query params)"),
+    ] = None,
     session: Annotated[str | None, typer.Option("--session")] = None,
     caller: Annotated[
         str | None,
@@ -2021,6 +2058,12 @@ def query_typed_walk(
     Bounds: limit 1..500, 20,000 typed edge reads, 1,048,576 reply bytes.
     An edge type no edge in the session has is refused ``unknown_relation``.
 
+    Paging: an explicit ``--limit`` or a ``--cursor`` turns it on; ``walk_cursor``
+    then holds an opaque token while rows remain (also after a byte cut), else
+    ``-``. Pass it as ``--cursor`` with the same query params (``--limit`` may
+    change); row numbers continue. A changed param is ``cursor_mismatch``, a
+    session changed since the page ``stale_cursor``, a bad token ``bad_cursor``.
+
     ``--json-handles`` (MN-REQ-14.7 slice): one ``@WALKJSON: <json>`` line where
     every node and edge is an opaque session-keyed handle; no nickname, hid or
     element id is emitted, error text included.
@@ -2042,8 +2085,11 @@ def query_typed_walk(
                 min_hops=min_hops,
                 max_hops=max_hops,
                 where=where,
-                limit=limit,
+                limit=50 if limit is None else limit,
                 start_node=start_node,
+                cursor=cursor,
+                paged=limit is not None or cursor is not None,
+                session_id=ss.session_id,
             )
         except MemNetError as exc:
             if json_handles:

@@ -13,6 +13,7 @@ byte-for-byte what it was before.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import re
 
@@ -37,6 +38,7 @@ def chain(memnet_temp):
     _apply(ss, *[f"CREATE (:T {{id: '{n}', name: 'n{i}'}})" for i, n in enumerate(_NICKS)])
     for a, b in zip(_NICKS, _NICKS[1:], strict=False):
         _apply(ss, f"MATCH (a {{id: '{a}'}}), (b {{id: '{b}'}}) CREATE (a)-[:LINKS]->(b)")
+    _apply(ss, "MATCH (a {id: 'QA'}), (b {id: 'QB'}) CREATE (a)-[:ALT]->(b)")
     return ss
 
 
@@ -72,10 +74,11 @@ def test_cursor_is_opaque_and_carries_no_id(chain):
     r = _walk(chain, "--limit", "2")
     tok = _stat(r["stdout"], "walk_cursor")
     assert re.fullmatch(r"c_[a-z2-7]+", tok), tok
+    raw = base64.b32decode(tok[2:].upper() + "=" * (-len(tok[2:]) % 8))
     for nick in _NICKS:
-        assert nick.lower() not in tok.lower()
+        assert nick.encode() not in raw
     for rec in chain.store._by_hid.values():
-        assert rec.hid not in tok
+        assert rec.hid.encode() not in raw
 
 
 def test_cursor_roundtrip_in_paging_module(chain):
@@ -96,7 +99,8 @@ def test_malformed_cursor_is_bad_cursor(chain, bad):
 
 def test_forged_cursor_is_bad_cursor(chain):
     tok = _stat(_walk(chain, "--limit", "2")["stdout"], "walk_cursor")
-    flipped = tok[:-1] + ("a" if tok[-1] != "a" else "b")
+    mid = len(tok) // 2  # not the last char: its low bits can be base32 padding
+    flipped = tok[:mid] + ("a" if tok[mid] != "a" else "b") + tok[mid + 1 :]
     assert _code(_walk(chain, "--cursor", flipped)) == "bad_cursor"
 
 
@@ -104,6 +108,8 @@ def test_cursor_from_another_session_is_bad_cursor(chain):
     tok = _stat(_walk(chain, "--limit", "2")["stdout"], "walk_cursor")
     other = open_session(map_lines=list(_MAP))
     _apply(other, *[f"CREATE (:T {{id: '{n}'}})" for n in _NICKS])
+    for a, b in zip(_NICKS, _NICKS[1:], strict=False):
+        _apply(other, f"MATCH (a {{id: '{a}'}}), (b {{id: '{b}'}}) CREATE (a)-[:LINKS]->(b)")
     r = run_argv(
         ["query", "typed-walk", "--from", "QA", "--type", "LINKS", "--cursor", tok]
         + ["--session", other.session_id]
@@ -155,7 +161,7 @@ def test_walk_limit_may_change_between_pages(chain):
 @pytest.mark.parametrize(
     "changed",
     [
-        ["--type", "OTHER"],
+        ["--type", "ALT"],
         ["--dir", "in"],
         ["--max-hops", "5"],
         ["--min-hops", "2"],
@@ -330,9 +336,10 @@ def _mcp_walk(ss, **kw) -> dict:
     from memnet_mcp.server import typed_walk
 
     raw = asyncio.run(typed_walk(session=ss.session_id, **kw))
-    for nick in _NICKS:
+    got = json.loads(raw)
+    for nick in _NICKS:  # a cursor is lowercase base32, so a nickname can only be an id leak
         assert nick not in raw
-    return json.loads(raw)
+    return got
 
 
 def test_mcp_typed_walk_pages_with_next_cursor(chain):

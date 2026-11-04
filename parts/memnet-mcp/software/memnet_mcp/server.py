@@ -26,7 +26,7 @@ from memnet.config import (
 )
 from memnet.exceptions import MemNetError
 from memnet.serve import probe, send_command
-from memnet.typed_walk import ID_MASK, WALK_DEFAULT_LIMIT, is_handle
+from memnet.typed_walk import ID_MASK, is_handle
 from memnet_mcp.client import MemNetResponse, run_memnet
 from memnet_mcp.http_transport import (
     DEFAULT_MCP_HTTP_HOST,
@@ -394,12 +394,20 @@ async def find(
     locators: list[str] | None = None,
     keyword: str | None = None,
     session: str | None = None,
+    cursor: str | None = None,
+    paged: bool = False,
 ) -> str:
     """Bounded MATCH find: seed nodes only (hard LIMIT).
 
     When |Q|>1 emit CueConflict (do not copy-id).
     At least one of kind / locators (KEY=VAL) / keyword. Not rag_query.
     SHALL NOT absorb.
+
+    Paging: ``paged=true`` or a ``cursor`` ends the reply with
+    ``@STAT: find_cursor|<token>|-`` (``-`` when no hits remain). Pass the token
+    as ``cursor`` with the same cues (``limit`` may change). The token is opaque:
+    never parse or build one. Refused ``bad_cursor``, ``cursor_mismatch`` (cues
+    changed) or ``stale_cursor`` (session changed since the page).
     """
     argv = ["query", "find", "--limit", str(limit)]
     if kind:
@@ -408,6 +416,10 @@ async def find(
         argv.extend(["--locator", loc])
     if keyword:
         argv.extend(["--keyword", keyword])
+    if cursor is not None:
+        argv.extend(["--cursor", cursor])
+    elif paged:
+        argv.append("--paged")
     return await _run(argv, session=session)
 
 
@@ -449,12 +461,14 @@ def _scrub(text: str, start: str) -> str:
     return _RE_HID.sub(ID_MASK, text)
 
 
-def _walk_reply(resp: MemNetResponse, start: str) -> str:
+def _walk_reply(resp: MemNetResponse, start: str, *, paging: bool = False) -> str:
     """Envelope for ``typed_walk``: parsed walk JSON, or a scrubbed error; no raw wire."""
     out: dict = {"ok": False, "exit_code": resp.exit_code, "session_id": resp.session_id}
     line = next((ln for ln in resp.stdout.splitlines() if ln.startswith(_WALKJSON)), None)
     if resp.exit_code == 0 and line is not None:
         out.update(ok=True, errors=[], **json.loads(line[len(_WALKJSON) :]))
+        if paging:
+            out["next_cursor"] = out["stats"]["cursor"]
         return json.dumps(out, ensure_ascii=False)
     errors = [_scrub(e, start) for e in resp.errors] or ["@ERR: no_walk|typed walk gave no reply"]
     code, _, message = errors[0].removeprefix("@ERR: ").partition("|")
@@ -470,9 +484,10 @@ async def typed_walk(
     min_hops: int = 1,
     max_hops: int = 1,
     where: str | None = None,
-    limit: int = WALK_DEFAULT_LIMIT,
+    limit: int | None = None,
     session: str | None = None,
     caller: str | None = None,
+    cursor: str | None = None,
 ) -> str:
     """Typed walk over one edge type (MN-REQ-14.3 / 14.7): BFS, handles only.
 
@@ -481,13 +496,21 @@ async def typed_walk(
     carry them to another session (refused ``stale_handle``, as is a handle of a
     deleted node). ``direction`` out | in | both; hops 1 <= min <= max <= 10;
     ``where`` is a predicate on ``n``, the row's end node. ``limit`` 1..500
-    (default 50); 20,000 typed edge reads and 1,048,576 reply bytes per call.
+    (default 50; passing it, or a ``cursor``, turns paging on); 20,000 typed
+    edge reads and 1,048,576 reply bytes per call.
     An edge type no edge in the session has is refused ``unknown_relation``.
 
     Reply: ``ok``, ``walk``, ``rows`` (each: ``start``, ``steps`` of edge + node
     refs; the END node carries ``props``) and ``stats`` (``rows``,
     ``truncated`` none | limit | budget | bytes). To continue, pass a row's end
     node handle as ``start``. No real id appears in the reply.
+
+    Paging: when ``limit`` or ``cursor`` is passed and rows remain, the reply
+    carries ``next_cursor`` (also in ``stats.cursor``); absent or null when
+    there are no more. Pass it as ``cursor`` with the same query params
+    (``limit`` may change); row numbers continue. The token is opaque: never
+    parse or build one. Refused ``bad_cursor``, ``cursor_mismatch`` (params
+    changed) or ``stale_cursor`` (session changed since the page).
     """
     argv = [
         "query",
@@ -503,15 +526,17 @@ async def typed_walk(
         str(min_hops),
         "--max-hops",
         str(max_hops),
-        "--limit",
-        str(limit),
     ]
+    if limit is not None:
+        argv.extend(["--limit", str(limit)])
+    if cursor is not None:
+        argv.extend(["--cursor", cursor])
     if where:
         argv.extend(["--where", where])
     if caller:
         argv.extend(["--caller", caller])
     resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv, session=session))
-    return _walk_reply(resp, start)
+    return _walk_reply(resp, start, paging=limit is not None or cursor is not None)
 
 
 async def _commit(
