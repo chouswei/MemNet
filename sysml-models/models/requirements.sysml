@@ -38,9 +38,11 @@
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
-    MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire; no silent session loss
+    MN-REQ-06.14       Safe serve upgrade inside memnet serve: drain, manifest, restore, retire (audit mark; a later restart still restores, 06.17); no silent session loss
     MN-REQ-06.15       Admin checkpoint of every loaded session: lossless snaps, no drain, no traffic refuse
     MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600; first v2 write over v1 keeps <file>.v1.bak once (0600); no dual write
+    MN-REQ-06.17       Restart restore from the newest valid snapshot set (checkpoint or upgrade-prepare); every restart restores; loud fallback (@WARN: restore_fallback); none valid exits 3 (implemented; tests/test_restart_restore.py)
+    MN-REQ-06.18       memnet-mcp fails fast without the [mcp] extra: one stderr line mcp_extra_missing, exit 2 (implemented; tests/test_mcp_extra_missing.py)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -51,7 +53,7 @@
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
                        benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.3, 14.4, 14.9-14.12 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL
-    MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id (implemented; tests/test_range_where.py)
+    MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id; a quoted number or a quoted string against a stored number is refused where_type_mismatch (implemented; tests/test_range_where.py, test_range_type_refusal.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Typed directed walks: query typed-walk, one edge type, out/in/both, 1..10 hops (implemented; tests/test_typed_walk.py, test_walk_index.py)
     MN-REQ-14.4        Nickname id index and linear session load (implemented; tests/test_id_index.py, test_id_index_perf.py)
@@ -1441,11 +1443,18 @@ package MemNetRequirements {
           (format v1) SHALL load. If the format is unsupported or
           a snapshot is corrupt, startup SHALL fail loudly and
           SHALL NOT delete or rewrite the snapshot files.
-          A clean restore (failed = 0) SHALL retire the manifest
-          inside that same startup, before the process accepts
-          work. The operator does not run a separate retire
-          command. A later restart SHALL NOT replay those
-          snapshots. A failed restore SHALL NOT retire.
+          A clean restore (failed = 0) of the upgrade set SHALL
+          retire the manifest inside that same startup, before the
+          process accepts work. The operator does not run a
+          separate retire command. Retire is an audit mark only
+          ("retired": true and "retired_at"; the manifest keeps its
+          mtime, upgrade.py:745-770): a retired manifest SHALL stay
+          a restore candidate, so a later restart restores again
+          from the newest valid set under MN-REQ-06.17. A failed
+          restore SHALL NOT retire. Start-up reads both the upgrade
+          manifest and the checkpoint manifest (MN-REQ-06.17);
+          upgrade-prepare stamps "timestamp" in the ready manifest
+          and in the blocked report (upgrade.py:370, :349).
           Restored sessions keep the same session id, CapsPolicy
           ACL bindings, TTL expiry clock, and house (the session
           tag map). Product label is kept with the passport.
@@ -1495,7 +1504,11 @@ package MemNetRequirements {
           SHALL NOT slide TTL or expiry clocks, and SHALL NOT
           change session ids, CapsPolicy ACL, or live state.
           A checkpoint SHALL NOT retire a manifest and SHALL
-          NOT load a snapshot into the live registry.
+          NOT load a snapshot into the live registry: the
+          checkpoint command still only writes. Serve start-up
+          restore reads checkpoint-manifest.json as one of its
+          two candidates and may load that set (MN-REQ-06.17);
+          restore never writes the checkpoint manifest.
           checkpoint-verify loads every snapshot in the given
           directory into a throwaway in-process store and
           checks row counts, edge counts, and checksums against
@@ -1540,6 +1553,128 @@ package MemNetRequirements {
           are lost, and an old build refuses v2 loudly. No SemVer bump.
         */
         attribute requirementId : String = "MN-REQ-06.16";
+      }
+
+      requirement def MN_REQ_06_17_RestartRestoreNewestSet {
+        doc /*
+          Status: implemented. Restart restore from the newest valid
+          snapshot set. Before this cut start-up read only the upgrade
+          manifest and skipped it silently once retired, so a restart
+          after a checkpoint came up with 0 sessions. Code refs at
+          d64bedf, parts/common/memnet/memnet/upgrade.py; serve.py and
+          local_ipc_gateway.py call startup_restore_or_exit unchanged.
+          (1) Candidates. With state root R (MEMNET_STATE_DIR, else the
+          default state dir), every serve start SHALL consider two
+          snapshot sets (upgrade.py:472-480): "checkpoint",
+          R/checkpoint/checkpoint-manifest.json, whose row file SHALL be
+          a single name under R/checkpoint (any other value makes the
+          set invalid, upgrade_manifest; upgrade.py:483-495); and
+          "upgrade", R/upgrade-manifest.json, whose row file is relative
+          to R. upgrade-blocked.json is never a candidate.
+          (2) Timestamp. A set's time SHALL be the manifest "timestamp"
+          when it parses as ISO-8601 with a UTC offset or Z, else the
+          manifest file mtime as UTC, recorded as timestamp_source
+          "manifest" or "mtime" (upgrade.py:459-469, :546-552). Legacy
+          upgrade manifests have no timestamp and fall back to mtime.
+          (3) Order. Newest first; on an exact tie the upgrade set goes
+          before the checkpoint set, because it was taken drained
+          (upgrade.py:446, :579-581).
+          (4) Retired. "retired" SHALL NOT remove a candidate. It means
+          the upgrade set was restored cleanly at least once and is kept
+          for audit with "retired_at". Every later restart restores
+          again. Restore SHALL NOT write the checkpoint manifest.
+          (5) Pre-flight. Before anything is loaded, with no registry
+          change, each set SHALL be checked (upgrade.py:498-532): the
+          JSON loads and is an object, else upgrade_manifest; for
+          "upgrade", ready_to_stop is true, else upgrade_not_ready; the
+          snapshot format is supported, else upgrade_snapshot_format;
+          sessions is a list of objects, else upgrade_manifest; for
+          every row the file exists (snapshot_not_found), its sha256
+          equals checksum_sha256 (upgrade_checksum) and its body after
+          the passport starts with the snapshot magic (bad_snapshot).
+          (6) Choice and fallback. The first set in that order that
+          passes pre-flight SHALL be loaded. Every newer set that
+          failed SHALL be reported loudly, one line per set on stdout
+          and on stderr, @WARN: restore_fallback|<source>|<code>|<detail>,
+          and one {source, code, detail} entry in the report's
+          "rejected" (upgrade.py:689-695, :734-735). A corrupt newest set
+          therefore falls back to the older intact one and says so on
+          every start.
+          (7) None. No candidate file at all SHALL be skipped (a fresh
+          state dir; 0 sessions, no line). Candidates present but none
+          valid SHALL raise the newest set's own code: start-up prints
+          @ERR: <code>|<detail> and exits 3 (upgrade.py:696-698,
+          :728-731). A manifest on disk SHALL never give a silent 0.
+          (8) Load. The chosen set loads as before (keep_id,
+          preserve_clocks; counts, house, session id and the
+          mutated-file rollback; upgrade.py:595-673). Checkpoint rows
+          have no passport: the ACL comes from the snapshot #@ACL line,
+          the product from the row, and the clock check compares the
+          row expires_at (upgrade_clock). A registry that is not empty
+          is refused upgrade_restore_registry_busy. A failure while
+          loading a set that passed pre-flight is a per-session failure:
+          start-up exits 3 with no fallback (upgrade.py:738-739).
+          (9) Empty. A valid newest set with no sessions wins: it
+          records that nothing was loaded, so older sessions are not
+          brought back.
+          (10) Report. upgrade-restore.json keeps every key and adds
+          source, timestamp, timestamp_source, manifest (path relative
+          to R) and rejected (upgrade.py:413-428). Start-up prints
+          @STAT: restore_source|<source>|<timestamp> and then the
+          unchanged @STAT: upgrade_restore|ok|n|failed|m, each on stdout
+          and stderr. Retire (MN-REQ-06.14) runs only when the source is
+          upgrade and failed = 0 (upgrade.py:740-742).
+          (11) Interface. RestoreCandidate (source, manifest_path,
+          snap_root, timestamp, timestamp_source, error_code,
+          error_detail) and restore_candidates(directory=None), newest
+          first, pre-flight done, read only (upgrade.py:431-440,
+          :585-587); RestoreReport gains source, timestamp, rejected;
+          restore_manifest, startup_restore_or_exit and retire_manifest
+          keep their names and signatures.
+          (12) Accepted risk. A restart replays the newest set, so a
+          session closed after that set was written comes back until
+          the next checkpoint. Operators run memnet admin checkpoint
+          after closing sessions and before a planned restart; the
+          hourly checkpoint bounds the rest. Both manifests are stamped
+          by a running serve; on a host without a real-time clock,
+          restart after the clock has synchronised.
+          Same usage method; no SemVer bump. No real session id in docs
+          or tests. Verify: MN-VER-06-S15. Behaviour:
+          RestartRestoreChoice. Evidence: tests/test_restart_restore.py,
+          tests/test_safe_upgrade.py::test_clean_restore_retires_and_a_later_start_still_restores.
+        */
+        attribute requirementId : String = "MN-REQ-06.17";
+      }
+
+      requirement def MN_REQ_06_18_McpExtraFailFast {
+        doc /*
+          Status: implemented. memnet-mcp fails fast without the [mcp]
+          extra. Before this cut a plain install crash-looped the unit
+          with an ImportError traceback before main ran.
+          (1) The memnet-mcp console entry SHALL be
+          memnet_mcp.entry:main (pyproject.toml [project.scripts]);
+          python -m memnet_mcp SHALL call the same main
+          (memnet_mcp/__main__.py). Before it parses any argument, main
+          SHALL import mcp.server.fastmcp and then uvicorn
+          (memnet_mcp/entry.py:14-32).
+          (2) On the first missing module it SHALL write exactly one
+          line to stderr, nothing to stdout and no traceback, and exit
+          2: @ERR: mcp_extra_missing|memnet-mcp needs the mcp extra
+          (missing module: <mcp|uvicorn>); install with: pip install
+          'memnet-llm[mcp]'. The hint is MCP_EXTRA_HINT.
+          (3) Every transport (stdio, streamable-http, the product
+          gateway) needs the extra, and --help without it gives the same
+          one line: one install rule for every memnet-mcp unit.
+          (4) The server module keeps its own import guard for direct
+          imports, quoting the hint the same way. Install and upgrade
+          docs SHALL say that any host running memnet-mcp installs
+          memnet-llm[mcp] (README.md; docs/operations/safe-upgrade.md
+          step 1; product-gateway-contract.md; memnet-lan-mcp-front.md).
+          The memnet CLI and memnet serve do not need the extra. No
+          SemVer bump. Verify: MN-VER-06-S16. Evidence:
+          tests/test_mcp_extra_missing.py.
+        */
+        attribute requirementId : String = "MN-REQ-06.18";
       }
     }
 
@@ -2504,25 +2639,50 @@ package MemNetRequirements {
           as byte order), with no locale collation. A non-finite numeric
           field (for example 1e999, which overflows to inf) never matches a
           number range (gql.py:388); NaN does not read as a number
-          (gql.py:145), so it is a mixed pair under rule (5). (5) A mixed pair (number against string), a missing
-          property or an empty value does not match; that is not an error
-          and there is no type_mismatch code. (6) WHERE is three-valued
-          (gql.py:321-399): a comparison on a mixed pair, a missing or
-          empty property or a non-finite numeric field is UNKNOWN (so a
-          non-finite field still matches through a true OR sibling, and
-          never under AND), AND / OR / NOT
+          (gql.py:145), so it is a non-numeric value under rule (5). (5) Type
+          refusal (owner go 2026-11-04; replaces the #250 rule that a mixed
+          pair silently does not match; code refs at d64bedf). A quoted
+          operand whose text fully reads as a number ('123', '000123',
+          '-2.5', '1e3') is refused at parse time, whatever the data, with
+          @ERR: where_type_mismatch|WHERE <op> on <var>.<key>: quoted number
+          '<lit>'; use a number literal (gql.py:306-319); the id check of
+          rule (3) runs first, so n.id > '5' stays unsupported_predicate,
+          and '' or ' 5' do not read as numbers and stay strings. A quoted
+          (non-numeric) string operand against a stored value that reads as
+          a number (rule (4), non-finite included, for example '5' or
+          '1e999') is refused when evaluated with @ERR:
+          where_type_mismatch|WHERE <op> on <var>.<key>: stored number vs
+          quoted string; use a number literal (gql.py:394-401); <op> is the
+          operator as written. AND and OR evaluate every child before
+          combining (gql.py:347-356), so the refusal does not depend on
+          sibling order, and one numeric row refuses the whole statement.
+          The refusal is exit 1 like other WHERE refusals and covers node
+          and relationship WHERE, SET and DELETE, inline WHERE and query
+          typed-walk --where (an inline WHERE refusal is not retried as a
+          relationship MATCH, gql.py:993-996). Kept as no match, not an
+          error: a missing property or an empty value; a number literal
+          against a non-numeric value ('abc', '-', 'NaN', ' 5'); a
+          non-finite numeric field against a number literal. Equality is
+          unchanged: = <> != are exact text, so n.rowRev = 124 does not
+          match '000124'. (6) WHERE is three-valued
+          (gql.py:321-399): a comparison on a missing or empty property, a
+          number literal against a non-numeric value or a non-finite
+          numeric field is UNKNOWN (so a non-finite field still matches
+          through a true OR sibling, and never under AND), AND / OR / NOT
           carry UNKNOWN, and UNKNOWN is no match, so NOT over a no-match
-          stays no match. (7) On any refusal nothing is written, so there
+          stays no match; a where_type_mismatch refusal is not UNKNOWN, it
+          refuses the statement, under NOT too. (7) On any refusal nothing is written, so there
           is no partial write. (8) Agent MATCH ... RETURN stays
           product-gated (gql_parse_front.py:34; paged reads are 14.2), so
           the board wake read is not opened by this leaf. rowRev: a stored
           rowRev such as '000124' fully reads as a number, so it is numeric
           under rule (4); compare it with a number literal (n.rowRev > 123).
-          A quoted operand (n.rowRev > '000123') is a mixed pair under rule
-          (5) and gives no match. Evidence: tests/test_range_where.py,
+          A quoted operand (n.rowRev > '000123') is refused
+          where_type_mismatch under rule (5). Evidence: tests/test_range_where.py,
           tests/test_id_opaque_range.py, tests/test_range_where_nonfinite_or.py,
+          tests/test_range_type_refusal.py,
           tests/test_typed_walk_where.py::test_main_use_row_rev_number_operand,
-          ::test_main_use_row_rev_quoted_operand_gives_no_rows.
+          ::test_main_use_row_rev_quoted_operand_is_refused.
           Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
         */
         attribute requirementId : String = "MN-REQ-14.1";
@@ -2598,13 +2758,15 @@ package MemNetRequirements {
           (4) WHERE. --where is a predicate on n, the row's end node,
           parsed by gql.parse_where_clause (gql.py:153) and evaluated by
           gql.eval_where (gql.py:321) with the MN-REQ-14.1 rules unchanged:
-          three-valued, a missing, empty, mixed-type or non-finite field is
-          UNKNOWN and UNKNOWN is no match; a range on n.id is refused
+          three-valued, a missing, empty or non-finite field, or a number
+          literal against a non-numeric value, is UNKNOWN and UNKNOWN is no
+          match; a quoted number, or a quoted string against a stored
+          number, is refused where_type_mismatch; a range on n.id is refused
           unsupported_predicate (equality on n.id works); a variable other
           than n is refused unsupported_predicate. WHERE filters rows, not
           traversal. rowRev: compare with a number literal
           (--where "n.rowRev > 123" matches rowRev '000124'); a quoted
-          operand (n.rowRev > '000123') is a mixed pair and gives no rows.
+          operand (n.rowRev > '000123') is refused where_type_mismatch.
           (5) Order (walk-only). Rows go in hop order; within a hop, in the
           parents' BFS order; for each parent, its type-T edges in edge
           first-insert sequence (RecordTable _seq; for both, out and in

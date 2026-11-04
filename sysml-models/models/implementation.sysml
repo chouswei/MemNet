@@ -68,16 +68,30 @@ package MemNetImplementation {
 
   part def McpServerMod {
     doc /*
-      memnet-mcp console: memnet_mcp.server:main. Tip/ops engine face.
-      MUST NOT be taught as product invent face (tipIsFace=false).
+      memnet-mcp console: memnet_mcp.entry:main, which checks the [mcp]
+      extra (mcp.server.fastmcp, then uvicorn) before it parses any
+      argument and then runs memnet_mcp.server main (MN-REQ-06.18). A
+      missing module gives one stderr line, @ERR: mcp_extra_missing|...;
+      install with: pip install 'memnet-llm[mcp]', and exit 2, for every
+      transport and for --help (tests/test_mcp_extra_missing.py).
+      Tip/ops engine face. MUST NOT be taught as product invent face
+      (tipIsFace=false).
     */
     attribute path : String = "parts/memnet-mcp/software/memnet_mcp/server.py";
     attribute pyName : String = "memnet_mcp.server";
-    attribute consoleEntry : String = "memnet_mcp.server:main";
+    attribute consoleEntry : String = "memnet_mcp.entry:main";
+    attribute entryPyName : String = "memnet_mcp.entry";
+    attribute mcpExtraHint : String = "pip install 'memnet-llm[mcp]'";
+    attribute errMcpExtraMissing : String = "mcp_extra_missing";
+    attribute mcpExtraMissingExit : Integer = 2;
+    attribute extraCheckBeforeArgs : Boolean = true;
+    attribute everyTransportNeedsExtra : Boolean = true;
     attribute tipIsFace : Boolean = false;
     attribute implemented : Boolean = true;
     attribute inThisRepo : Boolean = true;
     attribute track : Boolean = true;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_18_McpExtraFailFast;
   }
 
   part def MemNetLlmWheel {
@@ -91,7 +105,7 @@ package MemNetImplementation {
     attribute hatchCorePackage : String = "parts/common/memnet/memnet";
     attribute hatchMcpPackage : String = "parts/memnet-mcp/software/memnet_mcp";
     attribute consoleMemnet : String = "memnet.cli:main";
-    attribute consoleMemnetMcp : String = "memnet_mcp.server:main";
+    attribute consoleMemnetMcp : String = "memnet_mcp.entry:main";
     attribute oneWheelManyHosts : Boolean = true;
     attribute sysmlEdgeInWheel : Boolean = false;
     attribute track : Boolean = true;
@@ -123,9 +137,37 @@ package MemNetImplementation {
     attribute pyName : String = "memnet.admin_usage";
   }
   part def SafeUpgradeMod {
-    doc /* Serve drain, manifest, startup restore, and retire (MN-REQ-06.14). */
+    doc /*
+      Serve drain, manifest, startup restore, and retire (MN-REQ-06.14).
+      Start-up restore from the newest valid snapshot set, checkpoint or
+      upgrade-prepare, on every start (MN-REQ-06.17; restore_candidates,
+      restore_manifest, startup_restore_or_exit; runtime tests
+      tests/test_restart_restore.py, tests/test_safe_upgrade.py). Retire
+      is an audit mark; a retired manifest stays a candidate.
+    */
     attribute path : String = "parts/common/memnet/memnet/upgrade.py";
     attribute pyName : String = "memnet.upgrade";
+    attribute implemented : Boolean = true;
+    attribute restoresCheckpointSet : Boolean = true;
+    attribute restoresUpgradeSet : Boolean = true;
+    attribute tieGoesToUpgrade : Boolean = true;
+    attribute retiredStaysCandidate : Boolean = true;
+    attribute laterRestartRestores : Boolean = true;
+    attribute preflightBeforeLoad : Boolean = true;
+    attribute warnRestoreFallback : String = "restore_fallback";
+    attribute fallbackIsLoud : Boolean = true;
+    attribute statRestoreSource : String = "restore_source";
+    attribute printsRestoreSource : Boolean = true;
+    attribute noneValidExit : Integer = 3;
+    attribute noCandidateSkipped : Boolean = true;
+    attribute loadFailureFallsBack : Boolean = false;
+    attribute emptyNewestSetWins : Boolean = true;
+    attribute retireOnlyUpgradeSource : Boolean = true;
+    attribute writesCheckpointManifest : Boolean = false;
+
+    perform action startRestore : MemNetBehaviour::RestartRestoreChoice;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_17_RestartRestoreNewestSet;
   }
   part def ServeCheckpointMod {
     doc /* Admin checkpoint of loaded sessions without drain (MN-REQ-06.15). */
@@ -381,7 +423,7 @@ package MemNetImplementation {
     end code ::> adminUsageMod;
   }
   allocation safeUpgradeToMod : SoftwareAllocate {
-    doc /* Drain, manifest, startup restore, and retire on memnet-serve. */
+    doc /* Drain, manifest, startup restore (newest valid set, MN-REQ-06.17), and retire on memnet-serve. */
     end logical ::> memNetSystem.core.transport.tcp.safeUpgrade;
     end code ::> safeUpgradeMod;
   }

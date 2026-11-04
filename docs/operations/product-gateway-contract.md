@@ -199,6 +199,8 @@ The product host exports the plaintext bearer as `MEMNET_GATEWAY_TOKEN` (for exa
 }
 ```
 
+The gateway host needs the mcp extra: `pip install 'memnet-llm[mcp]'`. Without it, `memnet-mcp` exits 2 with one `@ERR: mcp_extra_missing|…` line naming that install.
+
 ```bash
 export MEMNET_GATEWAY_CONFIG=/etc/memnet/gateway.json
 memnet-mcp --transport gateway

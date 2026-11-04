@@ -9,8 +9,9 @@ refused ``unsupported_predicate`` (bare or nested); equality on ``n.id`` works. 
 variable other than ``n`` is refused. WHERE filters rows, not traversal.
 
 rowRev note (L-247-1, 14.1 rule 5): '000124' fully reads as a number, so
-``n.rowRev > 123`` compares numerically and ``n.rowRev > '000123'`` is a mixed pair
-(UNKNOWN, no rows).
+``n.rowRev > 123`` compares numerically and ``n.rowRev > '000123'`` (a quoted
+number) is refused ``where_type_mismatch``, as is a quoted string against a numeric
+field (score /tmp/srs/score.md §1.6).
 
 New names are looked up inside test bodies so collection never fails on 4b8ed16.
 """
@@ -172,13 +173,20 @@ def test_leading_where_keyword_is_stripped(rows):
         ("NOT (n.x > 5 AND n.k = 'c')", ["R1", "R2", "R3"]),
         # UNKNOWN OR FALSE stays UNKNOWN
         ("n.x > 100 OR n.k = 'zzz'", []),
-        # mixed pair: string literal vs a numeric field is UNKNOWN
-        ("n.x > 'a'", []),
-        ("NOT n.x > 'a'", []),
     ],
 )
 def test_three_valued(rows, where, want):
     assert _ids(rows, where) == want
+
+
+@pytest.mark.parametrize("where", ["n.x > 'a'", "NOT n.x > 'a'"])
+def test_three_valued_string_vs_numeric_field_refused(rows, where):
+    # quoted string vs a numeric field is refused, not UNKNOWN (score §1.6 D-T3)
+    err = _refused(rows, where, "where_type_mismatch")
+    assert (
+        "@ERR: where_type_mismatch|WHERE > on n.x: stored number vs quoted string; "
+        "use a number literal" in err
+    )
 
 
 _NON_FINITE = ("1e999", "-1e999", "NaN", "nan")
@@ -333,8 +341,14 @@ def test_main_use_row_rev_number_operand(rows):
     assert _ids(rows, "n.rowRev >= 123 AND n.rowRev < 200") == ["R1", "R2"]
 
 
-def test_main_use_row_rev_quoted_operand_gives_no_rows(rows):
-    # '000124' fully reads as a number: a quoted operand is a mixed pair (UNKNOWN)
-    assert _ids(rows, "n.toBot = 'x' AND n.rowRev > '000123'") == []
-    assert _ids(rows, "n.rowRev > '000123'") == []
+def test_main_use_row_rev_quoted_operand_is_refused(rows):
+    # a quoted number in a range is refused at parse time (score §1.6 D-T2)
+    line = (
+        "@ERR: where_type_mismatch|WHERE > on n.rowRev: quoted number '000123'; "
+        "use a number literal"
+    )
+    assert line in _refused(rows, "n.toBot = 'x' AND n.rowRev > '000123'", "where_type_mismatch")
+    assert line in _refused(rows, "n.rowRev > '000123'", "where_type_mismatch")
+    # equality stays exact text
     assert _ids(rows, "n.rowRev = '000124'") == ["R1"]
+    assert _ids(rows, "n.rowRev = 124") == []

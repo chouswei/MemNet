@@ -1710,7 +1710,8 @@ package MemNetBehaviour {
   action def RangeWhereCompare {
     doc /*
       Implemented (MN-REQ-14.1; verify MN-VER-14-S01; tests
-      tests/test_range_where.py, tests/test_id_opaque_range.py). Parse
+      tests/test_range_where.py, tests/test_id_opaque_range.py,
+      tests/test_range_type_refusal.py). Parse
       (gql.py:282-319): p < | > | <= | >= on a node WHERE (also inline,
       MATCH (n:T WHERE ...)) or a
       relationship WHERE, for SET and DELETE. The left side is a property;
@@ -1721,16 +1722,28 @@ package MemNetBehaviour {
       parse time, number or string operand, bare or under AND / OR / NOT
       (gql.py:287-289): an id is opaque identity, no meaning from its
       value, order or sequence; equality on id keeps working through the
-      index. Evaluate (gql.py:321-399): three-valued; a range on a missing
-      or empty field or on a mixed pair is UNKNOWN, AND / OR / NOT carry
-      UNKNOWN, and UNKNOWN is no match (so NOT over a no-match stays no
-      match). A stored field is numeric iff it fully reads as a number
-      (exponent allowed); number compares with number, string with string
-      by code point. A non-finite numeric field (for example 1e999) never
-      matches a number range (gql.py:388); a range on a non-finite field
-      is UNKNOWN like a mixed pair, so it still matches through a true OR
-      sibling and never under AND (tests/test_range_where_nonfinite_or.py).
-      NaN does not read as a number (gql.py:145), so it is a mixed pair.
+      index. Type refusal (code refs at d64bedf): after the id check, a
+      quoted operand that fully reads as a number ('123', '000123', '-2.5',
+      '1e3') is refused at parse, where_type_mismatch, "WHERE <op> on
+      <var>.<key>: quoted number '<lit>'; use a number literal"
+      (gql.py:306-319). Evaluate (gql.py:321-399): three-valued; AND and
+      OR evaluate every child before combining (gql.py:347-356), so a
+      refusal does not depend on sibling order. A quoted string against a
+      stored value that reads as a number (non-finite included) is refused
+      where_type_mismatch, "WHERE <op> on <var>.<key>: stored number vs
+      quoted string; use a number literal" (gql.py:394-401), and nothing
+      is written. A range on a missing or empty field, or a number literal
+      against a non-numeric value ('abc', '-', 'NaN', ' 5'), is UNKNOWN,
+      AND / OR / NOT carry UNKNOWN, and UNKNOWN is no match (so NOT over a
+      no-match stays no match). A stored field is numeric iff it fully
+      reads as a number (exponent allowed); number compares with number,
+      string with string by code point. A non-finite numeric field (for
+      example 1e999) never matches a number range (gql.py:388 at the #250
+      head); a number range on a non-finite field is UNKNOWN, so it still
+      matches through a true OR sibling and never under AND
+      (tests/test_range_where_nonfinite_or.py). NaN does not read as a
+      number (gql.py:145), so it is a non-numeric value. Equality (= <>
+      !=) stays exact text: n.rowRev = 124 does not match '000124'.
       Cardinality: a node WHERE ...
       SET / DELETE that matches none is refused not_found, more than one
       cue_conflict; a relationship WHERE ... SET updates every match; a
@@ -1742,12 +1755,68 @@ package MemNetBehaviour {
       MATCH ... RETURN stays product-gated (gql_parse_front.py:34). rowRev:
       a stored '000124' fully reads as a number, so compare it with a
       number literal (n.rowRev > 123); a quoted operand (n.rowRev >
-      '000123') is a mixed pair and gives no match.
+      '000123') is refused where_type_mismatch.
     */
     in item predicate : String;
     in item param : String;
     out item matched : String;
   }
+
+  action def RestartRestoreChoice {
+    doc /*
+      Implemented (MN-REQ-06.17; verify MN-VER-06-S15; tests
+      tests/test_restart_restore.py). Every serve start
+      (startup_restore_or_exit, upgrade.py:725-742; code refs at d64bedf).
+      (1) Candidates: checkpoint/checkpoint-manifest.json (rows a single
+      file name under checkpoint/) and upgrade-manifest.json under the
+      state root; upgrade-blocked.json never. A retired upgrade manifest
+      stays a candidate. (2) Pre-flight each set, loading nothing:
+      upgrade_manifest, upgrade_not_ready (upgrade set only),
+      upgrade_snapshot_format, snapshot_not_found, upgrade_checksum,
+      bad_snapshot. (3) Order newest first by manifest timestamp, else
+      manifest mtime; an exact tie goes to upgrade. (4) Fall back: take the
+      first set that passed; print @WARN:
+      restore_fallback|<source>|<code>|<detail> on stdout and stderr for
+      each newer set that failed and list it in rejected. No file at all:
+      skipped. None valid: @ERR: <newest code>|<detail>, exit 3. (5) Load
+      the chosen set with keep_id and preserve_clocks; a per-session
+      failure exits 3 with no fallback. An empty newest set wins. (6)
+      Report: upgrade-restore.json with source, timestamp,
+      timestamp_source, manifest, rejected; @STAT:
+      restore_source|<source>|<timestamp> then @STAT:
+      upgrade_restore|ok|n|failed|m; retire the upgrade manifest (audit
+      mark) only when the source is upgrade and failed = 0.
+    */
+    in item stateRoot : String;
+    out item report : String;
+
+    action candidates {
+      doc /* Read both manifests; checkpoint and upgrade; blocked report never. */
+    }
+    action preflight {
+      doc /* Check JSON, ready_to_stop, format, files, sha256, magic; load nothing. */
+    }
+    action order {
+      doc /* Newest first by timestamp, else mtime; tie to upgrade. */
+    }
+    action fallback {
+      doc /* First valid set wins; @WARN: restore_fallback per newer rejected set; none valid exits 3. */
+    }
+    action load {
+      doc /* keep_id, preserve_clocks; per-session failure exits 3, no fallback. */
+    }
+    action reportRestore {
+      doc /* @STAT: restore_source, then @STAT: upgrade_restore; retire only for a clean upgrade set. */
+    }
+    first candidates then preflight;
+    first preflight then order;
+    first order then fallback;
+    first fallback then load;
+    first load then reportRestore;
+  }
+
+  // Serve start-up performs this choice once per start (SafeUpgradeMod).
+  action serveStartRestore : RestartRestoreChoice;
 
   action def ValueLineCapEnforce {
     doc /*

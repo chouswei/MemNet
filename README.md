@@ -28,6 +28,8 @@ pip install memnet-llm
 # contributors: pip install -e ".[dev,mcp]"
 ```
 
+Any host that runs `memnet-mcp` (stdio, streamable-http or the product gateway, for example a droplet) installs `pip install 'memnet-llm[mcp]'`. Without the extra, `memnet-mcp` exits 2 with one line: `@ERR: mcp_extra_missing|memnet-mcp needs the mcp extra (missing module: mcp); install with: pip install 'memnet-llm[mcp]'`.
+
 CLI needs a serve process. Prefer local IPC; TCP is the fallback.
 
 ```bash

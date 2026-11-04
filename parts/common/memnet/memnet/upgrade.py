@@ -1,9 +1,10 @@
 """Safe serve upgrade: drain, manifest, and startup restore (MN-REQ-06.14).
 
 Admin-only. Not an agent MCP tool. A session that cannot be snapshotted
-blocks ready-to-stop unless the operator passes allow-unsaved. A clean
-restore retires the manifest in that same startup. Snapshot files are
-not deleted, and a failed restore does not retire.
+blocks ready-to-stop unless the operator passes allow-unsaved. Every serve
+start restores the newest valid snapshot set, checkpoint or upgrade-prepare.
+A clean restore of the upgrade set marks it retired, and it stays a
+candidate. Snapshot files are not deleted, and a failed restore does not retire.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -313,6 +315,8 @@ def prepare_upgrade(
     On any unsaved session, ready_to_stop stays false unless allow_unsaved.
     The serve returns to accepting work when the drain is not ready to stop.
     """
+    from memnet.session import iso_timestamp
+
     authenticate(presented_token)
     root = directory or state_dir()
     retry_after = _retry_after_s()
@@ -342,6 +346,7 @@ def prepare_upgrade(
             "manifest_format": MANIFEST_FORMAT,
             "snapshot_format": snapshot_format_version(),
             "serve_version": __version__,
+            "timestamp": iso_timestamp(),
             "ready_to_stop": False,
             "allow_unsaved": False,
             "saved": saved_rows,
@@ -362,6 +367,7 @@ def prepare_upgrade(
         "manifest_format": MANIFEST_FORMAT,
         "snapshot_format": snapshot_format_version(),
         "serve_version": __version__,
+        "timestamp": iso_timestamp(),
         "ready_to_stop": True,
         "retired": False,
         "allow_unsaved": bool(allow_unsaved),
@@ -390,10 +396,19 @@ class RestoreReport:
     errors: list[dict[str, str]] = field(default_factory=list)
     session_ids: list[str] = field(default_factory=list)
     details: list[dict[str, Any]] = field(default_factory=list)
+    source: str | None = None
+    timestamp: str | None = None
+    rejected: list[dict[str, str]] = field(default_factory=list)
+    timestamp_source: str | None = None
+    manifest: str | None = None
 
     @property
     def stat(self) -> str:
         return f"@STAT: upgrade_restore|ok|{self.ok}|failed|{self.failed}"
+
+    @property
+    def source_stat(self) -> str:
+        return f"@STAT: restore_source|{self.source}|{self.timestamp}"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -404,7 +419,31 @@ class RestoreReport:
             "errors": self.errors,
             "session_ids": self.session_ids,
             "details": self.details,
+            "source": self.source,
+            "timestamp": self.timestamp,
+            "timestamp_source": self.timestamp_source,
+            "manifest": self.manifest,
+            "rejected": self.rejected,
         }
+
+
+@dataclass
+class RestoreCandidate:
+    """One snapshot set that a serve start may restore (MN-REQ-06.14)."""
+
+    source: str
+    manifest_path: Path
+    snap_root: Path
+    timestamp: str
+    timestamp_source: str
+    error_code: str | None = None
+    error_detail: str = ""
+
+
+SOURCE_UPGRADE = "upgrade"
+SOURCE_CHECKPOINT = "checkpoint"
+# Exact tie: the upgrade set was taken drained, so it goes first.
+_TIE_RANK = {SOURCE_UPGRADE: 0, SOURCE_CHECKPOINT: 1}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -417,14 +456,151 @@ def _load_json(path: Path) -> dict[str, Any]:
     return data
 
 
+def _parse_stamp(value: Any) -> datetime | None:
+    """ISO-8601 with a UTC offset or Z, else None."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        when = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if when.tzinfo is None:
+        return None
+    return when
+
+
+def _candidate_paths(root: Path) -> list[tuple[str, Path, Path]]:
+    from memnet.checkpoint import CHECKPOINT_DIRNAME
+    from memnet.checkpoint import MANIFEST_NAME as CHECKPOINT_MANIFEST_NAME
+
+    ckpt = root / CHECKPOINT_DIRNAME
+    return [
+        (SOURCE_CHECKPOINT, ckpt / CHECKPOINT_MANIFEST_NAME, ckpt),
+        (SOURCE_UPGRADE, root / MANIFEST_NAME, root),
+    ]
+
+
+def _row_rel(source: str, row: dict[str, Any]) -> str:
+    """Snapshot path relative to the set's root. Checkpoint rows are a single name."""
+    rel = str(row.get("file") or "")
+    if source == SOURCE_CHECKPOINT:
+        from memnet.checkpoint import _snap_name
+
+        name = _snap_name(rel)
+        if name is None:
+            raise MemNetError(
+                "upgrade_manifest", "snapshot file must be a single name", exit_code=3
+            )
+        return name
+    return rel
+
+
+def _preflight(source: str, manifest: dict[str, Any], snap_root: Path) -> None:
+    """Check a set before anything is loaded. Raises the first MemNetError found."""
+    if source == SOURCE_UPGRADE and not manifest.get("ready_to_stop"):
+        raise MemNetError("upgrade_not_ready", "manifest is not ready_to_stop", exit_code=3)
+    try:
+        fmt = int(manifest.get("snapshot_format") or 0)
+    except (TypeError, ValueError):
+        fmt = 0
+    if fmt not in SUPPORTED_SNAPSHOT_FORMATS:
+        raise MemNetError(
+            "upgrade_snapshot_format",
+            f"unsupported snapshot format {fmt}",
+            exit_code=3,
+        )
+    sessions = manifest.get("sessions")
+    if sessions is None:
+        sessions = []
+    if not isinstance(sessions, list) or not all(isinstance(r, dict) for r in sessions):
+        raise MemNetError("upgrade_manifest", "sessions must be a list of objects", exit_code=3)
+    for row in sessions:
+        sid = str(row.get("session_id") or "")
+        path = snap_root / _row_rel(source, row)
+        if not path.is_file():
+            raise MemNetError("snapshot_not_found", f"{sid}: missing snapshot file", exit_code=3)
+        data = path.read_bytes()
+        if hashlib.sha256(data).hexdigest() != str(row.get("checksum_sha256") or ""):
+            raise MemNetError("upgrade_checksum", f"{sid}: checksum mismatch", exit_code=3)
+        try:
+            body, _ = split_passport(data.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise MemNetError(
+                "bad_snapshot", f"{sid}: unsupported snapshot header", exit_code=3
+            ) from exc
+        if not body.startswith(SNAPSHOT_MAGIC):
+            raise MemNetError("bad_snapshot", f"{sid}: unsupported snapshot header", exit_code=3)
+
+
+def _check_candidate(
+    source: str, manifest_path: Path, snap_root: Path
+) -> tuple[RestoreCandidate, dict[str, Any] | None]:
+    from memnet.session import iso_timestamp
+
+    manifest: dict[str, Any] | None = None
+    error: MemNetError | None = None
+    try:
+        manifest = _load_json(manifest_path)
+    except MemNetError as exc:
+        error = exc
+    stamp = manifest.get("timestamp") if manifest else None
+    if _parse_stamp(stamp) is not None:
+        timestamp, timestamp_source = str(stamp), "manifest"
+    else:
+        mtime = manifest_path.stat().st_mtime
+        timestamp = iso_timestamp(datetime.fromtimestamp(mtime, tz=UTC))
+        timestamp_source = "mtime"
+    if manifest is not None:
+        try:
+            _preflight(source, manifest, snap_root)
+        except MemNetError as exc:
+            error = exc
+        except OSError as exc:
+            error = MemNetError("upgrade_manifest", type(exc).__name__, exit_code=3)
+    cand = RestoreCandidate(
+        source=source,
+        manifest_path=manifest_path,
+        snap_root=snap_root,
+        timestamp=timestamp,
+        timestamp_source=timestamp_source,
+        error_code=error.code if error else None,
+        error_detail=error.message if error else "",
+    )
+    return cand, (manifest if error is None else None)
+
+
+def _ranked(directory: Path | None) -> list[tuple[RestoreCandidate, dict[str, Any] | None]]:
+    root = directory or state_dir()
+    found = [
+        _check_candidate(source, manifest_path, snap_root)
+        for source, manifest_path, snap_root in _candidate_paths(root)
+        if manifest_path.is_file()
+    ]
+    # Newest first; an exact tie goes to upgrade (stable sort keeps the rank order).
+    found.sort(key=lambda item: _TIE_RANK[item[0].source])
+    found.sort(key=lambda item: _parse_stamp(item[0].timestamp), reverse=True)
+    return found
+
+
+def restore_candidates(directory: Path | None = None) -> list[RestoreCandidate]:
+    """Every snapshot set on disk, newest first, pre-flight checked. Reads only."""
+    return [cand for cand, _ in _ranked(directory)]
+
+
 def _fail_session(report: RestoreReport, sid: str, code: str, detail: str) -> None:
     report.failed += 1
     report.errors.append({"session_id": sid, "code": code, "detail": detail})
 
 
-def _restore_one(root: Path, row: dict[str, Any], report: RestoreReport) -> None:
+def _restore_one(
+    root: Path, row: dict[str, Any], report: RestoreReport, source: str = SOURCE_UPGRADE
+) -> None:
     sid = str(row.get("session_id") or "")
-    rel = str(row.get("file") or "")
+    try:
+        rel = _row_rel(source, row)
+    except MemNetError as exc:
+        _fail_session(report, sid, exc.code, exc.message)
+        return
     path = root / rel
     before = path.read_bytes() if path.is_file() else None
     try:
@@ -448,7 +624,13 @@ def _restore_one(root: Path, row: dict[str, Any], report: RestoreReport) -> None
         if entry is None:
             _fail_session(report, sid, "upgrade_restore", "session missing after load")
             return
-        if passport:
+        if source == SOURCE_CHECKPOINT:
+            # No passport: the ACL came from the #@ACL line; product and clock from the row.
+            if row.get("expires_at") and row.get("expires_at") != entry.meta.expires_at:
+                _fail_session(report, sid, "upgrade_clock", "ttl clock mismatch")
+                return
+            entry.meta.product = row.get("product")
+        elif passport:
             if passport.get("expires_at") and passport.get("expires_at") != entry.meta.expires_at:
                 _fail_session(report, sid, "upgrade_clock", "ttl clock mismatch")
                 return
@@ -492,37 +674,40 @@ def _restore_one(root: Path, row: dict[str, Any], report: RestoreReport) -> None
 
 
 def restore_manifest(directory: Path | None = None) -> RestoreReport:
-    """Reload a ready manifest. Does not delete snapshot files."""
+    """Reload the newest valid snapshot set. Does not delete snapshot files.
+
+    Candidates are the admin checkpoint and the upgrade-prepare manifest.
+    Newer sets that fail pre-flight are listed in ``rejected``. None on disk
+    is skipped; none valid raises the newest set's own error.
+    """
     root = directory or state_dir()
-    path = root / MANIFEST_NAME
-    if not path.is_file():
+    ranked = _ranked(root)
+    if not ranked:
         return RestoreReport(skipped=True)
-    manifest = _load_json(path)
-    if manifest.get("retired"):
-        return RestoreReport(skipped=True)
-    if not manifest.get("ready_to_stop"):
-        raise MemNetError("upgrade_not_ready", "manifest is not ready_to_stop", exit_code=3)
-    fmt = int(manifest.get("snapshot_format") or 0)
-    if fmt not in SUPPORTED_SNAPSHOT_FORMATS:
-        raise MemNetError(
-            "upgrade_snapshot_format",
-            f"unsupported snapshot format {fmt}",
-            exit_code=3,
+    chosen: tuple[RestoreCandidate, dict[str, Any]] | None = None
+    rejected: list[dict[str, str]] = []
+    for cand, manifest in ranked:
+        if cand.error_code is None and manifest is not None:
+            chosen = (cand, manifest)
+            break
+        rejected.append(
+            {"source": cand.source, "code": str(cand.error_code), "detail": cand.error_detail}
         )
+    if chosen is None:
+        newest = ranked[0][0]
+        raise MemNetError(str(newest.error_code), newest.error_detail, exit_code=3)
     if count() > 0:
         raise MemNetError("upgrade_restore_registry_busy", "registry is not empty", exit_code=3)
-    report = RestoreReport()
-    sessions = manifest.get("sessions") or []
-    if not isinstance(sessions, list):
-        raise MemNetError("upgrade_manifest", "sessions must be a list", exit_code=3)
-    for row in sessions:
-        if not isinstance(row, dict):
-            report.failed += 1
-            report.errors.append(
-                {"session_id": "", "code": "upgrade_manifest", "detail": "bad row"}
-            )
-            continue
-        _restore_one(root, row, report)
+    cand, manifest = chosen
+    report = RestoreReport(
+        source=cand.source,
+        timestamp=cand.timestamp,
+        timestamp_source=cand.timestamp_source,
+        manifest=str(cand.manifest_path.relative_to(root)),
+        rejected=rejected,
+    )
+    for row in manifest.get("sessions") or []:
+        _restore_one(cand.snap_root, row, report, cand.source)
     _atomic_write(
         root / RESTORE_NAME,
         json.dumps(report.as_dict(), indent=2, sort_keys=True) + "\n",
@@ -530,52 +715,59 @@ def restore_manifest(directory: Path | None = None) -> RestoreReport:
     return report
 
 
+def _emit(line: str) -> None:
+    import sys
+
+    sys.stdout.write(line + "\n")
+    sys.stderr.write(line + "\n")
+
+
 def startup_restore_or_exit(directory: Path | None = None) -> RestoreReport:
     """Serve startup. Exit 3 on a loud restore failure. Leave files in place."""
     try:
         report = restore_manifest(directory)
     except MemNetError as exc:
-        line = f"@ERR: {exc.code}|{exc.message}\n"
-        import sys
-
-        sys.stdout.write(line)
-        sys.stderr.write(line)
+        _emit(f"@ERR: {exc.code}|{exc.message}")
         raise SystemExit(exc.exit_code) from exc
     if report.skipped:
         return report
-    import sys
-
-    line = report.stat + "\n"
-    sys.stdout.write(line)
-    sys.stderr.write(line)
+    for item in report.rejected:
+        _emit(f"@WARN: restore_fallback|{item['source']}|{item['code']}|{item['detail']}")
+    _emit(report.source_stat)
+    _emit(report.stat)
     if report.failed:
         raise SystemExit(3)
-    retire_manifest(directory)
+    if report.source == SOURCE_UPGRADE:
+        retire_manifest(directory)
     return report
 
 
 def retire_manifest(directory: Path | None = None) -> None:
-    """Keep snapshot files, and stop replaying them on the next start.
+    """Mark the upgrade manifest restored at least once. It stays a candidate.
 
-    Refuses when the restore report is missing or not clean.
+    Refuses when the restore report is missing or not clean. The manifest
+    keeps its mtime, so a set with no timestamp keeps its age.
     """
+    from memnet.session import iso_timestamp
+
     root = directory or state_dir()
     report_path = root / RESTORE_NAME
     if not report_path.is_file():
         raise MemNetError("upgrade_retire_refused", "restore not verified", exit_code=2)
     report = _load_json(report_path)
-    if int(report.get("failed") or 0) != 0 or int(report.get("ok") or 0) < 0:
-        raise MemNetError("upgrade_retire_refused", "restore not verified", exit_code=2)
-    if int(report.get("failed") or 0) != 0:
+    if int(report.get("failed") or 0) != 0 or report.get("skipped"):
         raise MemNetError("upgrade_retire_refused", "restore not verified", exit_code=2)
     manifest_path = root / MANIFEST_NAME
     if not manifest_path.is_file():
         raise MemNetError("upgrade_manifest_missing", "no manifest", exit_code=2)
     manifest = _load_json(manifest_path)
-    if int(report.get("failed") or 0) != 0 or report.get("skipped"):
-        raise MemNetError("upgrade_retire_refused", "restore not verified", exit_code=2)
+    if manifest.get("retired") and manifest.get("retired_at"):
+        return
     manifest["retired"] = True
+    manifest.setdefault("retired_at", iso_timestamp())
+    stat = manifest_path.stat()
     _atomic_write(manifest_path, json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    os.utime(manifest_path, ns=(stat.st_atime_ns, stat.st_mtime_ns))
 
 
 def upgrade_prepare_envelope(

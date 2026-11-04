@@ -264,7 +264,7 @@ def test_inflight_blocks_ready_until_finished():
     reset_drain_gate()
 
 
-def test_clean_restore_retires_so_a_later_start_does_not_replay(
+def test_clean_restore_retires_and_a_later_start_still_restores(
     memnet_temp, monkeypatch, tmp_path, schema_file
 ):
     monkeypatch.setenv("MEMNET_ADMIN_TOKEN", TOKEN)
@@ -283,8 +283,12 @@ def test_clean_restore_retires_so_a_later_start_does_not_replay(
     assert manifest["retired"] is True
     reset_registry()
     again = startup_restore_or_exit(tmp_path)
-    assert again.skipped is True
-    assert get_entry(sid) is None
+    assert again.skipped is False
+    assert again.failed == 0
+    assert again.ok == 1
+    assert get_entry(sid) is not None
+    manifest = json.loads((tmp_path / MANIFEST_NAME).read_text(encoding="utf-8"))
+    assert manifest["retired"] is True
     assert (tmp_path / "upgrade-snapshots").is_dir()
 
 
@@ -447,8 +451,8 @@ def test_tcp_restart_restores_same_sessions(memnet_temp, monkeypatch, tmp_path, 
             host="127.0.0.1",
             port=port,
         )
-        assert replayed["exit_code"] != 0
-        assert "kept-fact" not in replayed["stdout"]
+        assert replayed["exit_code"] == 0, replayed
+        assert "kept-fact" in replayed["stdout"]
     finally:
         stop(proc)
 
