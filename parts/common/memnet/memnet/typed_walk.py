@@ -334,24 +334,26 @@ def scrub_ids(store: MemStore, text: str | None) -> str | None:
     return _RE_HID.sub(ID_MASK, _RE_TOKEN.sub(_mask, text))
 
 
-def _reply_ids(path: WalkPath) -> set[str]:
-    out: set[str] = set()
-    for rec in (path.start, *(s.edge for s in path.steps), *(s.node for s in path.steps)):
-        out.add(rec.hid)
-        nick = rec.fields.get("id")
-        if nick:
-            out.add(nick)
+def _props(store: MemStore, rec: Record) -> dict[str, str]:
+    """End-node fields minus id keys; a value that is a live nickname or hid is
+    dropped and an id token inside a longer value is masked (defensive)."""
+    by_hid = store._by_hid
+    out: dict[str, str] = {}
+    for key, val in rec.fields.items():
+        if key in _ID_KEYS or val in by_hid._nick or val in by_hid:
+            continue
+        out[key] = scrub_ids(store, val) or val
     return out
 
 
-def _node_ref(session_id: str, rec: Record, real: set[str] | None = None) -> dict:
+def _node_ref(session_id: str, rec: Record, store: MemStore | None = None) -> dict:
     ref: dict = {"kind": rec.tag, "handle": handle_for(session_id, rec, "node")}
-    if real is not None:
-        ref["props"] = {k: v for k, v in rec.fields.items() if k not in _ID_KEYS and v not in real}
+    if store is not None:
+        ref["props"] = _props(store, rec)
     return ref
 
 
-def _json_row(result: WalkResult, session_id: str, n: int, path: WalkPath, real: set[str]):
+def _json_row(result: WalkResult, store: MemStore, session_id: str, n: int, path: WalkPath):
     last = len(path.steps) - 1
     steps = [
         {
@@ -360,7 +362,7 @@ def _json_row(result: WalkResult, session_id: str, n: int, path: WalkPath, real:
                 "dir": "out" if step.forward else "in",
                 "handle": handle_for(session_id, step.edge, "edge"),
             },
-            "node": _node_ref(session_id, step.node, real if i == last else None),
+            "node": _node_ref(session_id, step.node, store if i == last else None),
         }
         for i, step in enumerate(path.steps)
     ]
@@ -372,13 +374,13 @@ def _dump(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
 
 
-def walk_json(result: WalkResult, session_id: str, *, max_bytes: int | None = None) -> str:
+def walk_json(
+    result: WalkResult, store: MemStore, session_id: str, *, max_bytes: int | None = None
+) -> str:
     """One ``@WALKJSON: <json>`` line, handles only; trailing rows dropped past ``max_bytes``."""
     cap = WALK_MAX_REPLY_BYTES if max_bytes is None else max_bytes
-    real: set[str] = set()
-    for p in result.paths:
-        real |= _reply_ids(p)
-    rows = [_dump(_json_row(result, session_id, i, p, real)) for i, p in enumerate(result.paths, 1)]
+    paths = enumerate(result.paths, start=1)
+    rows = [_dump(_json_row(result, store, session_id, i, p)) for i, p in paths]
     walk = {
         "type": result.relation,
         "dir": result.direction,

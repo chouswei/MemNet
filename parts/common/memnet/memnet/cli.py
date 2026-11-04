@@ -2016,7 +2016,7 @@ def query_typed_walk(
             _handle_error(exc)
             return
         if json_handles:
-            emit_stdout(tw.walk_json(result, ss.session_id))
+            emit_stdout(tw.walk_json(result, ss.store, ss.session_id))
             return
         for line in tw.emit_walk(result):
             emit_stdout(line)
