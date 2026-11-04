@@ -524,18 +524,21 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.4, 14.9-14.12 implemented, 14.2-14.3 PARKED) -----
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.3, 14.4, 14.9-14.12 implemented, 14.2 PARKED) -----
   // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
   // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
   // 14.1 and 14.4 are implemented (tests/test_range_where.py, tests/test_id_opaque_range.py,
   // tests/test_id_index.py, tests/test_id_index_perf.py);
+  // 14.3 is implemented (TypedWalk; tests/test_typed_walk.py, tests/test_typed_walk_where.py,
+  // tests/test_walk_index.py, tests/test_typed_walk_perf.py);
   // 14.5-14.8 are PROPOSAL target only: no SoftwareAllocate, no CodeModule path.
-  // 14.2 and 14.3 are PARKED.
+  // 14.2 is PARKED.
   part def AtelierBoardAskPlan {
     doc /*
       Engine touch points for MN-REQ-14 (parts/common/memnet/memnet/;
-      line numbers at the range-where-id-index combine). 14.1, 14.4 and
-      14.9-14.12 are implemented and listed where they landed; the other
+      line numbers at the range-where-id-index combine; 14.3 at the
+      typed-walks head). 14.1, 14.3, 14.4 and 14.9-14.12 are implemented
+      and listed where they landed; the other
       items are where a later cut would land, and the tracker MUST NOT
       list those as implemented.
       14.1 range WHERE (implemented): parse gql.py:282-319 (range on id
@@ -544,7 +547,11 @@ package MemNetImplementation {
            RelDropRec gql.py:132 and gql.py:1252, resolved in
            mutate_gate.py:996-1050.
       14.2 paged reads (PARKED): config.py:71 cap; gql_parse_front.py:34.
-      14.3 typed directed walks (PARKED): neighbors, mem_store.py:628-680.
+      14.3 typed directed walks (implemented; part TypedWalk): engine
+           typed_walk.py:103-196, reply emit_walk :240-263; adjacency
+           index in RecordTable mem_store.py:34-97, MemStore.typed_edges
+           :609-617, verify_indexes adjacency check :689-699; order-exact
+           rollback mutate_gate.py:608, :723-761; verb cli.py:1948-2000.
       14.4 id index and linear load (implemented): RecordTable
            mem_store.py:34-175 (high-water kept by clear(), :127-133),
            match_nickname :423, load_records :205-232; #@IDHW: line
@@ -571,7 +578,7 @@ package MemNetImplementation {
            dirty journal on MemStore; wire.py join_payload via str.translate.
     */
     attribute implemented : Boolean = false;
-    attribute parkedItems : String = "MN-REQ-14.2, MN-REQ-14.3";
+    attribute parkedItems : String = "MN-REQ-14.2";
     attribute dependsOn : String = "MN-REQ-14.5 after MN-REQ-14.4";
     // No satisfy: implemented=false must not look done to a tracker.
   }
@@ -581,7 +588,8 @@ package MemNetImplementation {
   // path, no satisfy. Each part traces to its MN-REQ-14 leaves by a plain
   // dependency targetTrace_<Part>_<Req>, which the tracker does not count.
   // Exception: IdIndex is implemented for 14.4 and satisfies it; its 14.6
-  // part stays a target trace.
+  // part stays a target trace. TypedWalk is implemented for 14.3 and
+  // satisfies it.
 
   part def IdIndex {
     doc /*
@@ -611,6 +619,33 @@ package MemNetImplementation {
     from IdIndex
     to MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_6_IdDesign {
     doc /* PROPOSAL target trace; not a satisfy; tracker does not count it. */
+  }
+
+  part def TypedWalk {
+    doc /*
+      Implemented (MN-REQ-14.3; behaviour TypedWalk; verify MN-VER-14-S03;
+      tests tests/test_typed_walk.py, tests/test_typed_walk_where.py,
+      tests/test_walk_index.py, tests/test_typed_walk_perf.py). Line refs
+      at the typed-walks head, parts/common/memnet/memnet/. Engine module
+      typed_walk.py (typed_walk :103-196, emit_walk :240-263; bounds
+      WALK_MAX_HOPS 10, WALK_MAX_LIMIT 500, WALK_MAX_EXAMINED 20,000,
+      WALK_MAX_REPLY_BYTES 1,048,576 at :28-33). Adjacency index (node
+      hid, standard relation, out | in) -> edge hids inside the mem_store
+      RecordTable (mem_store.py:34-97, MemStore._by_hid), read by
+      MemStore.typed_edges (:609-617) in edge first-insert order, kept on
+      every dict mutator and by _index_edge reindex (:781-790), checked by
+      verify_indexes() (:689-699), never stored, rebuilt on load. The
+      mutate_gate rollback of a refused batch is order-exact (delete
+      journal mutate_gate.py:608; undo :723-761; MemStore.restore_row /
+      finish_restore mem_store.py:450-499). Read verb cli.py query
+      typed-walk (:1948-2000), read ACL as pin_map. No MCP tool (waits for
+      14.7 handles); agent RETURN stays product-gated.
+    */
+    attribute implemented : Boolean = true;
+
+    perform action walk : MemNetBehaviour::TypedWalk;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_3_TypedDirectedWalks;
   }
 
   part def TombstoneStore {
@@ -720,8 +755,8 @@ package MemNetImplementation {
       parts and wires the behaviour: range WHERE (14.1), cap enforcement on
       write and load at line cap 135,168 (14.9 / 14.10), the D02 WHERE+SET
       fix (implemented; MN-VER-14-D02 fixed), the id lifecycle (14.6) and the session byte budget
-      (14.10). 14.2 paging and 14.3 typed walks stay PARKED and are not
-      composed here.
+      (14.10) and the typed walk (14.3, implemented; part TypedWalk). 14.2
+      paging stays PARKED and is not composed here.
     */
     attribute implemented : Boolean = false;
     part idIndex : IdIndex;
@@ -730,6 +765,7 @@ package MemNetImplementation {
     part developer : DeveloperListener;
     part byteBudget : SessionByteBudget;
     part bypassCaps : BypassPathCaps;
+    part typedWalk : TypedWalk;
 
     perform action rangeWhere : MemNetBehaviour::RangeWhereCompare;
     perform action capEnforce : MemNetBehaviour::ValueLineCapEnforce;
@@ -740,6 +776,7 @@ package MemNetImplementation {
     perform action developerLookup : MemNetBehaviour::DeveloperIdLookup;
     perform action boardWake : MemNetBehaviour::BoardWakeRead;
     perform action loadLinear : MemNetBehaviour::SessionLoadLinear;
+    perform action typedWalkRead : MemNetBehaviour::TypedWalk;
     exhibit state idLifecycle : MemNetBehaviour::IdLifecycle;
     exhibit state byteBudgetStates : MemNetBehaviour::SessionByteBudgetStates;
   }

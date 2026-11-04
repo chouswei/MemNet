@@ -4,7 +4,7 @@ Red-first tests for node B-perf of symphony cap135k-model: the model must carry
 part defs, actions and state machines for the MN-REQ-14 leaves, wired to the
 existing 14.x requirements and verify cases, with the fixed line-cap interface
 (MEMNET_MAX_LINE_BYTES default 4 x 32768 + 4096 = 135168, mutate-time
-escaped-size line_bytes refusal). 14.2 and 14.3 stay PARKED.
+escaped-size line_bytes refusal). 14.2 stays PARKED; 14.3 is implemented (#247).
 
 Red-first tests for node D-probe of symphony linecap-n1n6 (Elon review of
 PR #237 at ffe9324, owner decisions 2026-11-03): item 20 (targetTrace
@@ -278,7 +278,7 @@ def test_14_9_line_cap_is_135168_not_69632():
 
 def test_14_2_and_14_3_stay_parked():
     assert "PARKED" in _requirement_doc("MN_REQ_14_2_PagedReadsPastCap")
-    assert "PARKED" in _requirement_doc("MN_REQ_14_3_TypedDirectedWalks")
+    assert "Status: implemented" in _requirement_doc("MN_REQ_14_3_TypedDirectedWalks")
 
 
 # ----- Elon review of PR #237 at ffe9324: N1-N6 and D02 (symphony linecap-n1n6) -----

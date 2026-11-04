@@ -50,10 +50,10 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.4, 14.9-14.12 implemented, rest target only
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.3, 14.4, 14.9-14.12 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL
     MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id (implemented; tests/test_range_where.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
-    MN-REQ-14.3        Walks honour relation type and direction (PARKED: design review)
+    MN-REQ-14.3        Typed directed walks: query typed-walk, one edge type, out/in/both, 1..10 hops (implemented; tests/test_typed_walk.py, test_walk_index.py)
     MN-REQ-14.4        Nickname id index and linear session load (implemented; tests/test_id_index.py, test_id_index_perf.py)
     MN-REQ-14.5        Session record cap raisable once 14.4 lands (depends on 14.4)
     MN-REQ-14.6        Id design: UUIDv7 minted, never reused, tombstoned (PROPOSAL; traced to 14.4)
@@ -829,7 +829,8 @@ package MemNetRequirements {
           the MCP tools and the CLI-only surfaces. READ-SURFACES is MCP read
           tools, CLI-only reads
           (session_resume, tagmap_show, relations_list, query_neighbors,
-          query_path, query_context, housekeep_stale, housekeep_orphans,
+          query_path, query_context, query_typed_walk (14.3),
+          housekeep_stale, housekeep_orphans,
           housekeep_dangling, housekeep_recyclable) and the in-process
           get_session. Every session-scoped CLI command in cli.py is a read,
           a non-touch read, a maintenance save, or a non-read; the sync test fails
@@ -841,6 +842,7 @@ package MemNetRequirements {
           query_warm
           find
           query_walk
+          query_typed_walk
           read_list
           export_pin_map
           housekeep_stats
@@ -2445,7 +2447,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (14.1, 14.4, 14.9-14.12 implemented; rest PROPOSAL, target only) -----
+    // ----- Atelier-board asks (14.1, 14.3, 14.4, 14.9-14.12 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2458,14 +2460,16 @@ package MemNetRequirements {
         An eleventh (14.11) makes the write paths that bypass the mutate
         gate enforce the same caps. A twelfth (14.12) makes the byte-budget
         check incremental.
-        Implemented with runtime tests: leaves 14.1, 14.4 and 14.9 to 14.12
-        (test files named in each leaf's doc). The rest are target only:
-        leaves 14.5 to 14.8 are PROPOSAL, and leaves 14.2 and 14.3 are
-        PARKED until Elon reviews them (scope note r00002195). A target-only
+        Implemented with runtime tests: leaves 14.1, 14.3, 14.4 and 14.9 to
+        14.12 (test files named in each leaf's doc). The rest are target
+        only: leaves 14.5 to 14.8 are PROPOSAL, and leaf 14.2 is PARKED
+        until Elon reviews it (scope note r00002195). Leaf 14.3 was
+        un-parked by owner issue #247 (items 1-3) and built. A target-only
         leaf is never counted as verified. Defects found on the way are
         recorded in MN-VER-14-D01 and MN-VER-14-D02, not as requirements.
-        Line refs in 14.1, 14.4 and 14.6 are at the #245 head; other refs
-        below are at bb4a4dc, parts/common/memnet/memnet/.
+        Line refs in 14.1, 14.4 and 14.6 are at the #245 head (gql.py:388
+        and the 14.3 refs are at the typed-walks head); other refs below
+        are at bb4a4dc, parts/common/memnet/memnet/.
       */
       attribute requirementId : String = "MN-REQ-14";
 
@@ -2497,19 +2501,27 @@ package MemNetRequirements {
           it fully reads as a number (exponent allowed). Number compares
           with number, string with string by code point (for UTF-8 the same
           as byte order), with no locale collation. A non-finite numeric
-          field (for example 1e999) never matches a number range
-          (gql.py:384). (5) A mixed pair (number against string), a missing
+          field (for example 1e999, which overflows to inf) never matches a
+          number range (gql.py:388); NaN does not read as a number
+          (gql.py:145), so it is a mixed pair under rule (5). (5) A mixed pair (number against string), a missing
           property or an empty value does not match; that is not an error
           and there is no type_mismatch code. (6) WHERE is three-valued
-          (gql.py:321-399): such a comparison is UNKNOWN, AND / OR / NOT
+          (gql.py:321-399): a comparison on a mixed pair, a missing or
+          empty property or a non-finite numeric field is UNKNOWN (so a
+          non-finite field still matches through a true OR sibling, and
+          never under AND), AND / OR / NOT
           carry UNKNOWN, and UNKNOWN is no match, so NOT over a no-match
           stays no match. (7) On any refusal nothing is written, so there
           is no partial write. (8) Agent MATCH ... RETURN stays
           product-gated (gql_parse_front.py:34; paged reads are 14.2), so
-          the board wake read is not opened by this leaf. Bound: rowRev is a
-          fixed-width 6-digit string, so string order equals rev order only
-          up to 999,999. Evidence: tests/test_range_where.py,
-          tests/test_id_opaque_range.py.
+          the board wake read is not opened by this leaf. rowRev: a stored
+          rowRev such as '000124' fully reads as a number, so it is numeric
+          under rule (4); compare it with a number literal (n.rowRev > 123).
+          A quoted operand (n.rowRev > '000123') is a mixed pair under rule
+          (5) and gives no match. Evidence: tests/test_range_where.py,
+          tests/test_id_opaque_range.py, tests/test_range_where_nonfinite_or.py,
+          tests/test_typed_walk_where.py::test_main_use_row_rev_number_operand,
+          ::test_main_use_row_rev_quoted_operand_gives_no_rows.
           Verify: MN-VER-14-S01. Behaviour: BoardWakeRead, RangeWhereCompare.
         */
         attribute requirementId : String = "MN-REQ-14.1";
@@ -2543,22 +2555,107 @@ package MemNetRequirements {
 
       requirement def MN_REQ_14_3_TypedDirectedWalks {
         doc /*
-          Status: PROPOSAL, PARKED for design review. Semantics change:
-          mark before any cut. Today neighbors is untyped and undirected and
-          the fan-out cap applies to out-edges only (neighbors, mem_store.py:628-680,
-          config.py:136); a two-step walk from an ask crosses the Session
-          node (19,593 elements; one step already returns 123). Proposed: a
-          walk (query_walk / neighbors) SHALL take two optional arguments,
-          a relation type set and a direction, and when given SHALL follow
-          only edges of those types in that direction. Relation names fold
-          as in #226 (PART_OF stored partOf). An empty type set is refused;
-          a direction other than out, in or both is refused; the reply
-          echoes the folded types and the direction applied. With neither
-          argument given, the walk SHALL behave exactly as today, including
-          cap counting (out-edges only). The rule "the fan-out cap counts
-          the edges actually followed" applies only when a type or a
-          direction is given, so a default walk is unchanged.
-          Verify: MN-VER-14-S03 (shape only until accepted).
+          Status: implemented (owner issue #247 items 1-3; paging stays
+          14.2). Un-parked by the owner's ask; the in-run architect decided
+          the shape (skill v3.10.0). The earlier proposal (type and direction
+          arguments on neighbors / the leftover query_walk) is superseded and
+          not built. Line refs at the typed-walks head,
+          parts/common/memnet/memnet/.
+          (1) Surface. A read verb, not GQL: memnet query typed-walk --from
+          <id> --type <T> [--dir out|in|both] [--min-hops N] [--max-hops N]
+          [--where "<pred on n>"] [--limit N] [--session S] [--caller C]
+          (cli.py:1948-2000), defaults dir out, hops 1..1, limit 50; read
+          ACL as pin_map (cli.py:1983), run under the session lock. Engine
+          for in-process callers: typed_walk.typed_walk(store, ...)
+          (typed_walk.py:103-196). Products reach the verb through serve and
+          the product gateway (MN-REQ-06.12), argv unchanged. There is no
+          MCP tool: an MCP reply must not carry real ids, and the reply rows
+          are ids, so MCP exposure waits for the 14.7 handles. Agent MATCH
+          ... RETURN stays product-gated (gql_parse_front.py:34). The
+          leftover query walk, the MCP query_walk tool, MemStore.neighbors
+          and context_walk_hops are unchanged.
+          (2) Fold. --type goes through config.normalize_relation
+          (config.py:51-54): an invalid name is refused invalid_relation,
+          then all-upper snake folds to lowerCamel (PART_OF -> partOf,
+          IN_SESSION -> inSession) and any other valid name only has a
+          leading capital lowered (PartOf -> partOf). part_of is not folded
+          and does not match partOf. Stored edges are indexed under their
+          standard spelling, so a legacy raw spelling still matches. A
+          valid type with no edges returns 0 rows. The reply header echoes
+          the folded type.
+          (3) Semantics. --from is a nickname id resolved through the id
+          index (match_nickname, EDG rows excluded; typed_walk.py:94-100):
+          empty is refused no_anchor, 0 hits not_found, more than 1
+          cue_conflict. Hids are never accepted or emitted. Traversal is BFS
+          on one edge type in direction out, in or both: each node reached
+          at hop d with min <= d <= max is one row carrying the first
+          shortest path to it. A node is reached at most once and the start
+          never, so cycles end, a self-loop gives no row and parallel edges
+          give one row (the first edge). Nodes below min-hops are expanded
+          but not emitted. An edge whose far end is not stored is skipped
+          but counted as examined. All-paths enumeration is not offered.
+          (4) WHERE. --where is a predicate on n, the row's end node,
+          parsed by gql.parse_where_clause (gql.py:153) and evaluated by
+          gql.eval_where (gql.py:321) with the MN-REQ-14.1 rules unchanged:
+          three-valued, a missing, empty, mixed-type or non-finite field is
+          UNKNOWN and UNKNOWN is no match; a range on n.id is refused
+          unsupported_predicate (equality on n.id works); a variable other
+          than n is refused unsupported_predicate. WHERE filters rows, not
+          traversal. rowRev: compare with a number literal
+          (--where "n.rowRev > 123" matches rowRev '000124'); a quoted
+          operand (n.rowRev > '000123') is a mixed pair and gives no rows.
+          (5) Order (walk-only). Rows go in hop order; within a hop, in the
+          parents' BFS order; for each parent, its type-T edges in edge
+          first-insert sequence (RecordTable _seq; for both, out and in
+          merged by that sequence; mem_store.py:205-224). No id value, id
+          order or id sequence, no hid and no property value feeds the
+          order. It survives an id rename, snapshot save / load, checkpoint
+          restore and a refused mutate batch (the rollback is order-exact,
+          see (7)). A truncated reply is a prefix of the untruncated order.
+          pin_map's Recall Shape order is a different rule and is unchanged.
+          (6) Bounds (typed_walk.py:28-33, read at call time; checks
+          :115-127). Hops 1 <= min <= max <= 10, else refused
+          hops_out_of_range. Direction out, in or both, else refused
+          invalid_direction. Limit 1..500 (default 50), else refused
+          limit_out_of_range; a full page with one more qualifying row sets
+          truncated limit, exactly limit rows with the walk exhausted sets
+          none. At most 20,000 typed edge reads per call; past it the walk
+          stops and returns the rows so far with truncated budget (this one
+          budget bounds visited and frontier). Reply at most 1,048,576
+          UTF-8 bytes (lines plus newlines, header and stats included):
+          emit_walk stops before the row that would pass it, flag bytes
+          (typed_walk.py:240-263). The first bound hit wins.
+          (7) Index. An adjacency index (node hid, standard relation, out |
+          in) -> edge hids lives inside RecordTable (mem_store.py:34-57,
+          kept in _index :75-83 and _unindex_adj :85-97), with an indexed
+          (src, dist, relation) snapshot per edge for unindexing; every dict
+          mutator keeps it, MemStore._index_edge re-reads the row so an
+          in-place endpoint edit reaches it (mem_store.py:781-790), and
+          verify_indexes() reports "adjacency index differs" on a mismatch
+          (mem_store.py:689-699). A hop reads only the type-T bucket(s)
+          (MemStore.typed_edges, mem_store.py:609-617), never other edges;
+          WalkResult.examined counts those reads. It is never written to a
+          snapshot and is rebuilt on load. A refused mutate batch is rolled
+          back order-exact: deletes are journalled (mutate_gate.py:608) and
+          restored under their first-insert seq and write_order index
+          (mutate_gate.py:723-761; mem_store.py:450-499 and
+          RecordTable.restore :226-245; the legacy add / update path
+          restores live rows in place, mutate_gate.py:1241), so write_order,
+          RecordTable order, walk output and snapshot text equal the state
+          before the batch.
+          (8) Reply (typed_walk.py:199-263). One line each:
+          @WALK: type=<folded>|dir=<d>|hops=<min>..<max>|limit=<n>; then
+          @PATH: <row>|<hops>|<shaped path> per row (start and intermediate
+          nodes kind + id only, the END node with all its properties, edges
+          -[:<type> {id:'E1'}]-> forward or <-[:<type> {id:'E1'}]- backward;
+          a node or edge without a nickname shows no id); then
+          @STAT: walk_rows|<rows>|<limit>, @STAT: walk_truncated|none, limit,
+          budget or bytes|- and @STAT: walk_cursor|-|-. walk_cursor (and
+          WalkResult.cursor, always None) is the reserved slot for paging
+          (14.2, issue #247 item 4); no other line changes then.
+          Evidence: tests/test_typed_walk.py, tests/test_typed_walk_where.py,
+          tests/test_walk_index.py, tests/test_typed_walk_perf.py.
+          Verify: MN-VER-14-S03. Behaviour: TypedWalk.
         */
         attribute requirementId : String = "MN-REQ-14.3";
       }

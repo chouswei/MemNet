@@ -54,12 +54,12 @@
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore; no client retry; no silent
   session loss; no SemVer bump.
-  Atelier-board asks (MN-VER-14-S01..S12; S01, S04 and S09 to S12 implemented with
+  Atelier-board asks (MN-VER-14-S01..S12; S01, S03, S04 and S09 to S12 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
     MN-REQ-14.1 WHERE range, never on id, implemented (S01)
     14.2 paged reads, PARKED (S02)
-    14.3 typed directed walks, PARKED (S03)
+    14.3 typed directed walks (query typed-walk), implemented (S03)
     14.4 nickname id index + linear load, implemented (S04)
     14.5 raisable record cap, depends on 14.4 (S05)
     14.6 id design (S06)
@@ -2696,8 +2696,14 @@ package MemNetVerification {
       NOT over a no-match stays no match; nothing is written on a refusal;
       agent MATCH ... RETURN stays product-gated
       (::test_range_return_refused_product_gate); the CLI mutate path
-      honours a range (::test_run_argv_mutate_range_where). rowRev past
-      999,999 is outside the 6-digit string order.
+      honours a range (::test_run_argv_mutate_range_where). A stored rowRev
+      such as '000124' is numeric, so it compares with a number literal
+      (n.rowRev > 123); a quoted operand gives no match
+      (tests/test_typed_walk_where.py::test_main_use_row_rev_number_operand,
+      ::test_main_use_row_rev_quoted_operand_gives_no_rows). A non-finite
+      field still matches through a true OR sibling and never under AND
+      (tests/test_range_where_nonfinite_or.py::test_non_finite_hit_through_true_or_sibling,
+      ::test_non_finite_under_and_with_true_sibling_no_match).
       Behaviour: BoardWakeRead, RangeWhereCompare.
       Before (bb4a4dc) the statement was refused unsupported_predicate.
       Runtime tests: tests/test_range_where.py, tests/test_id_opaque_range.py.
@@ -2736,18 +2742,89 @@ package MemNetVerification {
 
   verification def MN_VER_14_S03_TypedDirectedWalks {
     doc /*
-      MN-REQ-14.3 (PROPOSAL, PARKED for design review) — a walk from an ask
-      given relation type partOf and direction in follows only those edges
-      and does not cross the Session node (today the two-step walk returns
-      19,593 elements and one step returns 123); with no type or direction
-      the result equals today's. Semantics change; not accepted.
+      MN-REQ-14.3 (implemented; owner issue #247 items 1-3) — memnet query
+      typed-walk / typed_walk.typed_walk walks one edge type from a start
+      node in direction out, in or both, 1..k hops (k <= 10), with a
+      WHERE on the end node, in a stated order, every bound enforced, over
+      an adjacency index kept across every write, rollback and load.
+      Behaviour: TypedWalk. Part: TypedWalk.
+      Start lookup by the id index: tests/test_typed_walk.py::test_start_not_found,
+      ::test_start_cue_conflict, ::test_start_no_anchor,
+      ::test_start_edge_nickname_is_not_a_start,
+      ::test_start_hid_is_not_accepted, ::test_start_uses_id_index,
+      ::test_no_hid_in_output_and_anon_node_shows_no_id.
+      Fold: tests/test_typed_walk.py::test_spelling_folds,
+      ::test_in_session_stored_folded_and_walked,
+      ::test_snake_lower_is_not_folded, ::test_unknown_valid_type_zero_rows,
+      ::test_invalid_relation_refused;
+      tests/test_walk_index.py::test_legacy_raw_relation_spelling_is_indexed_standard.
+      Out / in / both: tests/test_typed_walk.py::test_one_hop_in_far_nodes_with_id_and_every_property,
+      ::test_one_hop_out_and_engine_result, ::test_one_hop_in_backward_step_flag,
+      ::test_one_hop_both_merges_by_edge_insert_order,
+      ::test_default_direction_is_out, ::test_other_types_not_followed,
+      ::test_self_loop_gives_no_row, ::test_parallel_edges_one_row_first_edge,
+      ::test_edge_to_missing_endpoint_is_skipped.
+      WHERE: tests/test_typed_walk_where.py::test_where_operators,
+      ::test_leading_where_keyword_is_stripped, ::test_three_valued,
+      ::test_non_finite_field_is_unknown,
+      ::test_non_finite_matches_through_true_or_sibling,
+      ::test_non_finite_and_true_sibling_does_not_match,
+      ::test_range_on_id_refused, ::test_other_variable_refused,
+      ::test_bad_where_refused_not_internal,
+      ::test_where_filters_rows_not_traversal,
+      ::test_limit_counts_matching_rows,
+      ::test_main_use_row_rev_number_operand,
+      ::test_main_use_row_rev_quoted_operand_gives_no_rows.
+      1..k and cycles: tests/test_typed_walk.py::test_chain_of_12_at_max_10,
+      ::test_chain_walked_backwards, ::test_cycle_ends,
+      ::test_min_hops_skips_rows_but_expands, ::test_shortest_path_wins_bfs.
+      Order and rollback: tests/test_typed_walk.py::test_order_is_insertion_not_id,
+      ::test_order_follows_edge_insert_not_node_insert,
+      ::test_order_survives_rename, ::test_order_ignores_property_values,
+      ::test_order_hop_major_then_parent_order, ::test_save_load_keeps_output,
+      ::test_cli_session_save_load_keeps_output;
+      tests/test_walk_index.py::test_refused_batch_rollback_is_order_exact,
+      ::test_refused_batch_rollback_keeps_walk_rows_from_both_ends.
+      Each bound: tests/test_typed_walk.py::test_hops_out_of_range,
+      ::test_max_hops_ten_is_allowed, ::test_invalid_direction,
+      ::test_limit_out_of_range, ::test_limit_500_is_allowed,
+      ::test_limit_exact_is_not_truncated,
+      ::test_limit_one_short_is_truncated_prefix,
+      ::test_examined_budget_truncates_to_prefix, ::test_reply_bytes_truncates;
+      tests/test_typed_walk_perf.py::test_default_caps_never_trip_the_budget.
+      Reply and surface: tests/test_typed_walk.py::test_reply_lines_exact,
+      ::test_reply_forward_two_hops_shape,
+      ::test_intermediate_nodes_are_kind_and_id_only,
+      ::test_result_cursor_is_none, ::test_empty_walk_reply,
+      ::test_return_still_product_gated_beside_the_verb,
+      ::test_no_mcp_typed_walk_tool, ::test_leftover_query_walk_unchanged.
+      Index and examined: tests/test_walk_index.py::test_typed_edges_by_type_and_direction,
+      ::test_adj_after_create_delete_and_relationship_set,
+      ::test_adj_after_detach_delete, ::test_adj_after_rename_and_rename_merge,
+      ::test_adj_after_same_thing_absorb,
+      ::test_verify_flags_in_place_endpoint_edit_and_reindex_repairs,
+      ::test_adj_after_snapshot_save_load, ::test_adj_after_checkpoint_restore,
+      ::test_adj_after_bypass_import_over_line_cap,
+      ::test_adj_after_bypass_guard_rollback,
+      ::test_adj_survives_copy_deepcopy_pickle,
+      ::test_index_is_never_written_to_a_snapshot,
+      ::test_seeded_random_op_sequence_keeps_adjacency;
+      tests/test_typed_walk.py::test_examined_reads_only_typed_edges;
+      tests/test_typed_walk_perf.py::test_examined_is_exact_for_one_hop,
+      ::test_examined_never_exceeds_type_bucket_at_default_limit,
+      ::test_walk_never_scans_other_edges, ::test_ten_hop_chain_examined_bound,
+      ::test_one_hop_walk_is_linear_in_matching_edges.
+      Before (4b8ed16) there was no typed walk: neighbors was untyped and
+      undirected.
+      Runtime tests: tests/test_typed_walk.py, tests/test_typed_walk_where.py,
+      tests/test_walk_index.py, tests/test_typed_walk_perf.py.
     */
     attribute verificationId : String = "MN-VER-14-S03";
 
     subject system : MemNetSystem;
 
     objective atelierBoardS03 {
-      doc /* PROPOSAL: no runtime test yet; model-level trace only. */
+      doc /* Implemented: tests/test_typed_walk.py, tests/test_typed_walk_where.py, tests/test_walk_index.py and tests/test_typed_walk_perf.py assert the typed-walk rules. */
       verify typedDirectedWalksReq;
     }
   }

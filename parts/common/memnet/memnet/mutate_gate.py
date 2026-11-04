@@ -603,6 +603,9 @@ class MutateGate:
                     changes.append((eid, "dist"))
             return changes
 
+        # Deletes are journalled so a refused batch puts rows back in place:
+        # write_order, RecordTable order and so walk output stay as before (D8).
+        self.ss.store.begin_order_journal()
         try:
             absorb_warnings: list[str] = []
             for keep_rec, drop_rec, extra in absorbs:
@@ -720,15 +723,12 @@ class MutateGate:
         except MemNetError:
             # Undo renames first (commit order: drops → upserts → renames).
             store = self.ss.store
+            journal = store.end_order_journal()
             for old_id, new_id, merge_flag, source_backup, ep_changes in reversed(applied_renames):
                 if merge_flag:
                     # Restore deleted source, then put retargeted endpoints back.
                     if old_id not in store._by_hid:
-                        store._by_hid[old_id] = source_backup
-                        store.mark_dirty(old_id)
-                        if old_id not in store.write_order:
-                            store.write_order.append(old_id)
-                        store._index_tag(source_backup)
+                        store.restore_row(source_backup, journal)
                     survivor = store.resolve_one(new_id)
                     survivor_hid = survivor.hid if survivor is not None else new_id
                     for eid, field in ep_changes:
@@ -748,25 +748,17 @@ class MutateGate:
                         store.rename_id(source_backup.hid, orig_nick, merge=False)
             for rid in added:
                 store.delete(rid)
-            for old in replaced:
-                cur = store._by_hid.get(old.hid)
-                if cur is not None:
-                    if cur.tag == "EDG":
-                        store._unindex_edge(cur)
-                    store._unindex_tag(cur)
-                store._by_hid[old.hid] = old
-                store.mark_dirty(old.hid)
-                store._index_tag(old)
-                if old.tag == "EDG":
-                    store._index_edge(old)
+            # Pre-batch snapshots win: a row both replaced and deleted is put back
+            # from its replaced snapshot, once.
             for old in deleted_backup:
-                store._by_hid[old.hid] = old
-                store.mark_dirty(old.hid)
-                store.write_order.append(old.hid)
-                store._index_tag(old)
-                if old.tag == "EDG":
-                    store._index_edge(old)
+                if old.hid not in replaced_ids:
+                    store.restore_row(old, journal)
+            for old in replaced:
+                store.restore_row(old, journal)
+            store.finish_restore(journal)
             raise
+        finally:
+            self.ss.store.end_order_journal()
 
         ack = [emit_item(x, as_mutate=True) for x in ack_items]
         return MutateResult(
@@ -1246,10 +1238,7 @@ class MutateGate:
             for rid in added:
                 self.ss.store.delete(rid)
             for old in replaced:
-                self.ss.store._by_hid[old.hid] = old
-                self.ss.store.mark_dirty(old.hid)
-                if old.tag == "EDG":
-                    self.ss.store._index_edge(old)
+                self.ss.store.restore_row(old, {})
             raise
 
         ack = [emit_record(r, self.ss.tag_map) for r in records]

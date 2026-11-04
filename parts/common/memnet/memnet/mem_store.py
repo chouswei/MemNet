@@ -35,10 +35,13 @@ class RecordTable(dict):
     """``hid -> Record`` that keeps the nickname id index on every mutator.
 
     Indexes: nick -> hids, hid -> indexed (nick, tag, keys), hid -> first-insert
-    seq (dict order), raw tag -> Counter(field key), per-prefix id high-water.
+    seq (dict order), raw tag -> Counter(field key), per-prefix id high-water,
+    and the typed-walk adjacency (node hid, standard relation, "out"|"in") ->
+    edge hids, with edge hid -> indexed (src, dist, relation).
     Unindexing uses the indexed snapshot, never the record's current fields, so
     an in-place edit followed by a write (or ``reindex``) stays consistent.
     The high-water is never lowered (``clear`` included): minted ids are burnt.
+    No index is ever written to a snapshot; every one is rebuilt on load.
     """
 
     _MISSING = object()
@@ -51,6 +54,8 @@ class RecordTable(dict):
         self._next_seq = 0
         self._tag_keys: dict[str, Counter] = {}
         self._hw: dict[str, int] = {}
+        self._adj: dict[tuple[str, str, str], set[str]] = {}
+        self._eix: dict[str, tuple[str, str, str]] = {}
         self.update(*args, **kwargs)
 
     # --- index upkeep -------------------------------------------------------
@@ -67,8 +72,32 @@ class RecordTable(dict):
                 if n > self._hw.get(prefix, -1):
                     self._hw[prefix] = n
         self._tag_keys.setdefault(rec.tag, Counter()).update(keys)
+        if rec.tag == "EDG":
+            src = rec.fields.get("src") or ""
+            dist = rec.fields.get("dist") or ""
+            rel = standard_relation(rec.fields.get("relation") or "")
+            self._eix[hid] = (src, dist, rel)
+            if src:
+                self._adj.setdefault((src, rel, "out"), set()).add(hid)
+            if dist:
+                self._adj.setdefault((dist, rel, "in"), set()).add(hid)
+
+    def _unindex_adj(self, hid: str) -> None:
+        esnap = self._eix.pop(hid, None)
+        if esnap is None:
+            return
+        src, dist, rel = esnap
+        for key in ((src, rel, "out"), (dist, rel, "in")):
+            if not key[0]:
+                continue
+            bucket = self._adj.get(key)
+            if bucket is not None:
+                bucket.discard(hid)
+                if not bucket:
+                    del self._adj[key]
 
     def _unindex(self, hid: str) -> None:
+        self._unindex_adj(hid)
         snap = self._ix.pop(hid, None)
         if snap is None:
             return
@@ -130,6 +159,8 @@ class RecordTable(dict):
         self._ix.clear()
         self._seq.clear()
         self._tag_keys.clear()
+        self._adj.clear()
+        self._eix.clear()
         # self._hw is kept: the high-water is never lowered.
 
     def update(self, *args, **kwargs) -> None:
@@ -167,6 +198,52 @@ class RecordTable(dict):
             return list(bucket)
         return sorted(bucket, key=self._seq.__getitem__)
 
+    def indexed_edge(self, hid: str) -> tuple[str, str, str] | None:
+        """(src, dist, relation) as last indexed for edge ``hid`` (None if not indexed)."""
+        return self._eix.get(hid)
+
+    def adjacent(self, node_hid: str, relation: str, direction: str) -> list[str]:
+        """Edge hids of type ``relation`` at ``node_hid``, in first-insert order.
+
+        ``direction`` is "out" (src is the node), "in" (dist is the node) or
+        "both" (merged; a self-loop once). Reads only those index buckets.
+        """
+        if direction == "both":
+            out = self._adj.get((node_hid, relation, "out"))
+            inn = self._adj.get((node_hid, relation, "in"))
+            if out and inn:
+                hids = out | inn
+            else:
+                hids = out or inn
+        else:
+            hids = self._adj.get((node_hid, relation, direction))
+        if not hids:
+            return []
+        if len(hids) == 1:
+            return list(hids)
+        return sorted(hids, key=self._seq.__getitem__)
+
+    def restore(self, hid: str, rec: Record, seq: int) -> None:
+        """Re-insert a deleted row under its original first-insert ``seq``.
+
+        Rollback only: dict order is put back to seq order, so the table is
+        order-exact with its state before the delete (O(N) when it moves).
+        """
+        if dict.__contains__(self, hid):
+            self[hid] = rec
+            return
+        prev_last = next(reversed(dict.keys(self)), None)
+        dict.__setitem__(self, hid, rec)
+        self._seq[hid] = seq
+        if seq >= self._next_seq:
+            self._next_seq = seq + 1
+        self._index(hid, rec)
+        if prev_last is not None and self._seq[prev_last] > seq:
+            items = sorted(dict.items(self), key=lambda kv: self._seq[kv[0]])
+            dict.clear(self)
+            for key, val in items:
+                dict.__setitem__(self, key, val)
+
 
 def _rebuild_record_table(items: dict, hw: dict[str, int]) -> RecordTable:
     out = RecordTable(items)
@@ -191,6 +268,9 @@ class MemStore:
         # record changed since the last drain; _dirty_all forces a full rebuild.
         self._dirty: set[str] = set()
         self._dirty_all: bool = True
+        # Delete journal for an order-exact rollback: hid -> (first-insert seq,
+        # write_order index) at its first delete while a batch is open.
+        self._order_journal: dict[str, tuple[int, int]] | None = None
 
     def mark_dirty(self, *hids: str) -> None:
         """Note hids whose stored record changed (over-marking is always safe)."""
@@ -353,11 +433,70 @@ class MemStore:
         if existing.tag == "EDG":
             self._unindex_edge(existing)
         self._unindex_tag(existing)
+        journal = self._order_journal
+        if journal is not None and hid not in journal:
+            seq = self._by_hid._seq.get(hid, -1)
+            try:
+                pos = self.write_order.index(hid)
+            except ValueError:
+                pos = -1
+            journal[hid] = (seq, pos)
         rec = self._by_hid.pop(hid, None)
         self.mark_dirty(hid)
         if rec and hid in self.write_order:
             self.write_order.remove(hid)
         return rec
+
+    # --- order-exact rollback (D8) --------------------------------------------
+
+    def begin_order_journal(self) -> None:
+        """Start noting deletes so a refused batch can put rows back in place."""
+        self._order_journal = {}
+
+    def end_order_journal(self) -> dict[str, tuple[int, int]]:
+        """Stop noting deletes; return what was noted (empty when none was open)."""
+        journal = self._order_journal or {}
+        self._order_journal = None
+        return journal
+
+    def restore_row(self, rec: Record, journal: dict[str, tuple[int, int]]) -> None:
+        """Rollback: put ``rec`` back as the stored row for ``rec.hid``.
+
+        A live row is replaced in place (its position never moved). A row the
+        batch deleted goes back under its first-insert seq from ``journal``;
+        call ``finish_restore(journal)`` once afterwards to put write_order back.
+        """
+        hid = rec.hid
+        cur = self._by_hid.get(hid)
+        if cur is not None:
+            if cur.tag == "EDG":
+                self._unindex_edge(cur)
+            self._unindex_tag(cur)
+            self._by_hid[hid] = rec
+        else:
+            mark = journal.get(hid)
+            if mark is not None and mark[0] >= 0:
+                self._by_hid.restore(hid, rec, mark[0])
+            else:
+                self._by_hid[hid] = rec
+            if mark is None or mark[1] < 0:
+                if hid not in self.write_order:
+                    self.write_order.append(hid)
+        self.mark_dirty(hid)
+        self._index_tag(rec)
+        if rec.tag == "EDG":
+            self._index_edge(rec)
+
+    def finish_restore(self, journal: dict[str, tuple[int, int]]) -> None:
+        """Put restored rows back at their write_order index (undo in reverse)."""
+        if not journal:
+            return
+        present = set(self.write_order)
+        for hid, (_seq, pos) in reversed(list(journal.items())):
+            if pos < 0 or hid in present or hid not in self._by_hid:
+                continue
+            self.write_order.insert(pos, hid)
+            present.add(hid)
 
     def rename_id(
         self,
@@ -444,8 +583,38 @@ class MemStore:
         return out
 
     def reindex(self, hid: str) -> None:
-        """Re-read one row into the indexes after an in-place field edit."""
-        self._by_hid.reindex(hid)
+        """Re-read one row into the indexes after an in-place field edit.
+
+        For an edge, the src/dist sets are moved off the endpoints last indexed.
+        """
+        by_hid = self._by_hid
+        old = by_hid.indexed_edge(hid)
+        if old is not None:
+            for node, index in ((old[0], self._edges_by_src), (old[1], self._edges_by_dist)):
+                bucket = index.get(node) if node else None
+                if bucket is not None:
+                    bucket.discard(hid)
+                    if not bucket:
+                        del index[node]
+        by_hid.reindex(hid)
+        rec = dict.get(by_hid, hid)
+        if rec is not None and rec.tag == "EDG":
+            src = rec.fields.get("src", "")
+            dist = rec.fields.get("dist", "")
+            if src:
+                self._edges_by_src.setdefault(src, set()).add(hid)
+            if dist:
+                self._edges_by_dist.setdefault(dist, set()).add(hid)
+
+    def typed_edges(self, node_hid: str, relation: str, direction: str) -> list[Record]:
+        """Edges of type ``relation`` (already standard) at ``node_hid``.
+
+        ``direction``: "out" (src is the node), "in" (dist is the node) or "both"
+        (merged; a self-loop once). Order: edge first-insert sequence. Reads only
+        the adjacency buckets for (node, relation, direction), never other edges.
+        """
+        by_hid = self._by_hid
+        return [dict.__getitem__(by_hid, h) for h in by_hid.adjacent(node_hid, relation, direction)]
 
     def id_high_water(self) -> dict[str, int]:
         """Per-prefix highest numeric id suffix ever stored (never lowered)."""
@@ -504,6 +673,30 @@ class MemStore:
             problems.append(f"nickname index differs: {bad[:5]}")
         if by_hid._tag_keys != keys_want:
             problems.append("field-key counters differ")
+        adj_want: dict[tuple[str, str, str], set[str]] = {}
+        eix_want: dict[str, tuple[str, str, str]] = {}
+        for hid, rec in dict.items(by_hid):
+            if rec.tag != "EDG":
+                continue
+            src = rec.fields.get("src") or ""
+            dist = rec.fields.get("dist") or ""
+            rel = standard_relation(rec.fields.get("relation") or "")
+            eix_want[hid] = (src, dist, rel)
+            if src:
+                adj_want.setdefault((src, rel, "out"), set()).add(hid)
+            if dist:
+                adj_want.setdefault((dist, rel, "in"), set()).add(hid)
+        if by_hid._adj != adj_want or by_hid._eix != eix_want:
+            bad = sorted(
+                h for h in set(by_hid._eix) | set(eix_want) if by_hid._eix.get(h) != eix_want.get(h)
+            )
+            if not bad:
+                bad = sorted(
+                    f"{k[0]}:{k[1]}:{k[2]}"
+                    for k in set(by_hid._adj) | set(adj_want)
+                    if by_hid._adj.get(k) != adj_want.get(k)
+                )
+            problems.append(f"adjacency index differs: {bad[:5]}")
         for prefix, n in live_max.items():
             if by_hid._hw.get(prefix, -1) < n:
                 problems.append(f"id high-water {prefix}={by_hid._hw.get(prefix)} < live {n}")
@@ -592,6 +785,9 @@ class MemStore:
             self._edges_by_src.setdefault(src, set()).add(edge.hid)
         if dist:
             self._edges_by_dist.setdefault(dist, set()).add(edge.hid)
+        # Re-read the row too, so an in-place endpoint edit reaches the adjacency.
+        if dict.get(self._by_hid, edge.hid) is edge:
+            self._by_hid.reindex(edge.hid)
 
     def _unindex_edge(self, edge: Record) -> None:
         src = edge.fields.get("src", "")

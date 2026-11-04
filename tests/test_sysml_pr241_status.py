@@ -179,7 +179,7 @@ def test_n2_proposal_kept_on_others():
             idx[m.group(1)] = ln
     for k in ("14.6", "14.7", "14.8"):
         assert "PROPOSAL" in idx[k], k
-    assert "PARKED" in idx["14.2"] and "PARKED" in idx["14.3"]
+    assert "PARKED" in idx["14.2"] and "PARKED" not in idx["14.3"]
     for name in (
         "MN_REQ_14_5_",
         "MN_REQ_14_6_",

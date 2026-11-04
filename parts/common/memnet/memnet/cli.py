@@ -1945,6 +1945,61 @@ def query_walk(
             _handle_error(exc)
 
 
+@query_app.command("typed-walk")
+def query_typed_walk(
+    start: Annotated[
+        str | None,
+        typer.Option("--from", help="start node nickname id (id index; never a hid)"),
+    ] = None,
+    rel_type: Annotated[
+        str,
+        typer.Option("--type", help="edge type; PART_OF folds to partOf"),
+    ] = "",
+    direction: Annotated[str, typer.Option("--dir", help="out | in | both")] = "out",
+    min_hops: Annotated[int, typer.Option("--min-hops", help="1..10")] = 1,
+    max_hops: Annotated[int, typer.Option("--max-hops", help="min-hops..10")] = 1,
+    where: Annotated[
+        str | None,
+        typer.Option("--where", help="predicate on n, the row's end node (#250 rules)"),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", help="rows, 1..500")] = 50,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
+    """Typed walk (MN-REQ-14.3): BFS on one edge type, 1..k hops (k <= 10).
+
+    Reply: ``@WALK`` header, one ``@PATH: <row>|<hops>|<shaped path>`` per row
+    (END node with its properties), then ``walk_rows``, ``walk_truncated``
+    (none|limit|budget|bytes) and ``walk_cursor`` (reserved) stats. Order is hop,
+    then parents' BFS order, then edge first-insert order; never by id.
+    Bounds: limit 1..500, 20,000 typed edge reads, 1,048,576 reply bytes.
+    """
+    from memnet import typed_walk as tw
+
+    ss, lock = _load_session(session)
+    _acl_check(ss, caller, "pin_map")
+    with lock:
+        try:
+            result = tw.typed_walk(
+                ss.store,
+                start=start or "",
+                relation=rel_type,
+                direction=direction,
+                min_hops=min_hops,
+                max_hops=max_hops,
+                where=where,
+                limit=limit,
+            )
+        except MemNetError as exc:
+            _handle_error(exc)
+            return
+        for line in tw.emit_walk(result):
+            emit_stdout(line)
+
+
 @housekeep_app.command("stats")
 def housekeep_stats(
     session: Annotated[str | None, typer.Option("--session")] = None,

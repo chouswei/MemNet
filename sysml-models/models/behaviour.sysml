@@ -1558,11 +1558,11 @@ package MemNetBehaviour {
       then hostIdle;
   }
 
-  // ----- Atelier-board asks (MN-REQ-14; 14.9, 14.10, 14.11 implemented; others PROPOSAL) -----
+  // ----- Atelier-board asks (MN-REQ-14; 14.1, 14.3, 14.4, 14.9, 14.10, 14.11, 14.12 implemented; 14.2 PARKED; others PROPOSAL) -----
 
   action def BoardWakeRead {
     doc /*
-      PROPOSAL (MN-REQ-14.1 / 14.2 / 14.4; verify MN-VER-14-S01, S02). Board wake: MATCH rows WHERE
+      PROPOSAL (MN-REQ-14.1 / 14.2 / 14.3 / 14.4; verify MN-VER-14-S01, S02, S03). Board wake: MATCH rows WHERE
       toBot = $me AND rowRev > $since, ordered by rowRev, one page of at
       most the read cap (50, config.py:71). The range predicate itself is
       now honoured on WHERE ... SET / DELETE (14.1, RangeWhereCompare), but
@@ -1574,13 +1574,65 @@ package MemNetBehaviour {
       not a full scan (14.4 indexes the nickname id only; there is no
       property index for rowRev); (3) emit one page and, if more remain, a resume point
       (cursor or last rowRev; PARKED, 14.2); (4) caller repeats with the
-      resume point until none. Typed directed walk to the ask (14.3,
-      PARKED) is a separate optional step and is not part of the wake.
+      resume point until none. (5) Optional, not needed for the wake: the
+      typed directed walk to the ask (14.3, askWalk : TypedWalk) is now
+      built: memnet query typed-walk --from <ask> --type PART_OF --dir in --where
+      "n.toBot = 'x' AND n.rowRev > 123" (TypedWalk; compare rowRev with a
+      number literal). It returns at most one page (limit 1..500) and
+      paging past it is still 14.2 (walk_cursor is reserved, always -);
+      agent MATCH ... RETURN stays product-gated.
     */
     in item since : String;
     in item page : String;
     out item rows : String;
     out item resume : String;
+    action askWalk : TypedWalk;
+  }
+
+  action def TypedWalk {
+    doc /*
+      Implemented (MN-REQ-14.3; verify MN-VER-14-S03; tests
+      tests/test_typed_walk.py, tests/test_typed_walk_where.py,
+      tests/test_walk_index.py, tests/test_typed_walk_perf.py). Line refs
+      at the typed-walks head, parts/common/memnet/memnet/. Entry: memnet
+      query typed-walk (cli.py:1948-2000) or typed_walk.typed_walk
+      (typed_walk.py:103-196); no MCP tool until the 14.7 handles; agent
+      MATCH ... RETURN stays product-gated (gql_parse_front.py:34).
+      Steps: (1) check arguments, first refusal wins
+      (typed_walk.py:115-127): empty --from no_anchor; direction not out,
+      in or both invalid_direction; not 1 <= min <= max <= 10
+      hops_out_of_range; limit not 1..500 limit_out_of_range. (2) Fold
+      the type with config.normalize_relation (invalid_relation, then
+      PART_OF -> partOf). (3) Parse --where on n (gql.parse_where_clause;
+      range on n.id or a variable other than n refused
+      unsupported_predicate). (4) Resolve the start by the id index
+      (match_nickname, EDG excluded): 0 hits not_found, more than 1
+      cue_conflict; never a hid. (5) BFS: dequeue a node; read its type-T
+      edges from the adjacency index (MemStore.typed_edges,
+      mem_store.py:609-617) in edge first-insert order, out and in merged
+      for both; count each read as examined and stop with truncated budget
+      at 20,000; skip a reached node, the start and an unstored far end;
+      record the first shortest path; expand up to max hops. (6) Emit a
+      row for each node at min <= hop <= max whose end node passes WHERE
+      (gql.eval_where, three-valued, UNKNOWN is no match); a full page
+      with one more qualifying row stops with truncated limit. Order is
+      hop, then parents' BFS order, then edge first-insert order, never by
+      id value, id order, hid or property value. (7) Reply (emit_walk,
+      typed_walk.py:240-263): @WALK header, one @PATH per row (END node
+      with its properties, others kind + id), @STAT walk_rows,
+      walk_truncated (none, limit, budget or bytes) and walk_cursor (-,
+      reserved for paging, 14.2); stop before the row that would pass
+      1,048,576 reply bytes with flag bytes. The adjacency index is kept
+      by every RecordTable mutator and by the order-exact rollback of a
+      refused mutate batch (mutate_gate.py:723-761), checked by
+      verify_indexes(), never stored.
+    */
+    in item startId : String;
+    in item relation : String;
+    in item direction : String;
+    in item whereText : String;
+    out item paths : String;
+    out item truncated : String;
   }
 
   action def SessionLoadLinear {
@@ -1675,7 +1727,11 @@ package MemNetBehaviour {
       match). A stored field is numeric iff it fully reads as a number
       (exponent allowed); number compares with number, string with string
       by code point. A non-finite numeric field (for example 1e999) never
-      matches a number range (gql.py:384). Cardinality: a node WHERE ...
+      matches a number range (gql.py:388); a range on a non-finite field
+      is UNKNOWN like a mixed pair, so it still matches through a true OR
+      sibling and never under AND (tests/test_range_where_nonfinite_or.py).
+      NaN does not read as a number (gql.py:145), so it is a mixed pair.
+      Cardinality: a node WHERE ...
       SET / DELETE that matches none is refused not_found, more than one
       cue_conflict; a relationship WHERE ... SET updates every match; a
       relationship WHERE ... DELETE (RelDropRec, gql.py:132; resolved in
@@ -1683,8 +1739,10 @@ package MemNetBehaviour {
       attrs view) refuses none not_found and more than one cue_conflict,
       and takes predicates on r only (a.* / b.* refused
       unsupported_predicate). Nothing is written on a refusal. Agent
-      MATCH ... RETURN stays product-gated (gql_parse_front.py:34). rowRev
-      is a 6-digit string, bounded at 999,999.
+      MATCH ... RETURN stays product-gated (gql_parse_front.py:34). rowRev:
+      a stored '000124' fully reads as a number, so compare it with a
+      number literal (n.rowRev > 123); a quoted operand (n.rowRev >
+      '000123') is a mixed pair and gives no match.
     */
     in item predicate : String;
     in item param : String;
