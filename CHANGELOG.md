@@ -7,6 +7,24 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-11-04
+
+### Added
+
+- **Range WHERE, nickname id index, per-command cost fix** — WHERE accepts `<`, `<=`, `>`, `>=`; nickname lookups use an id index; per-command cost accounting fixed (#250, #245).
+- **Typed walks** — `memnet query typed-walk` over a new adjacency index; 1-10 hops, limits 50 / 500, 20000 nodes, 1 MiB. MN-REQ-14.3 implemented (#251, #247).
+
+### Fixed
+
+- **D02 relationship WHERE + SET** — now honoured instead of being refused as DELETE. MN-VER-14-D02 (#246).
+- **Model validators** — verify.sysml / deploy.sysml validator syntax errors cleared (#248, #250).
+
+### Changed
+
+- **Range comparisons on `id` are refused at parse** — ids are opaque.
+- **`rowRev` compare needs a number** — `n.rowRev > 123`; a string such as `'000123'` matches nothing.
+- **Non-finite values give unknown** in comparisons.
+
 ## [0.20.3] - 2026-11-03
 
 ### Changed
