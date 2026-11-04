@@ -56,11 +56,14 @@ class RecordTable(dict):
         self._hw: dict[str, int] = {}
         self._adj: dict[tuple[str, str, str], set[str]] = {}
         self._eix: dict[str, tuple[str, str, str]] = {}
+        # Bumped by every mutator (and ``reindex``): a cheap "has anything changed" token.
+        self.version = 0
         self.update(*args, **kwargs)
 
     # --- index upkeep -------------------------------------------------------
 
     def _index(self, hid: str, rec: Record) -> None:
+        self.version += 1
         nick = rec.fields.get("id") or ""
         keys = tuple(rec.fields)
         self._ix[hid] = (nick, rec.tag, keys)
@@ -83,6 +86,7 @@ class RecordTable(dict):
                 self._adj.setdefault((dist, rel, "in"), set()).add(hid)
 
     def _unindex_adj(self, hid: str) -> None:
+        self.version += 1
         esnap = self._eix.pop(hid, None)
         if esnap is None:
             return
@@ -97,6 +101,7 @@ class RecordTable(dict):
                     del self._adj[key]
 
     def _unindex(self, hid: str) -> None:
+        self.version += 1
         self._unindex_adj(hid)
         snap = self._ix.pop(hid, None)
         if snap is None:
@@ -118,6 +123,7 @@ class RecordTable(dict):
                 del self._tag_keys[tag]
 
     def reindex(self, hid: str) -> None:
+        self.version += 1
         self._unindex(hid)
         rec = dict.get(self, hid)
         if rec is not None:
@@ -126,6 +132,7 @@ class RecordTable(dict):
     # --- dict mutators ------------------------------------------------------
 
     def __setitem__(self, hid: str, rec: Record) -> None:
+        self.version += 1
         if not dict.__contains__(self, hid):
             self._seq[hid] = self._next_seq
             self._next_seq += 1
@@ -134,6 +141,7 @@ class RecordTable(dict):
         self._index(hid, rec)
 
     def __delitem__(self, hid: str) -> None:
+        self.version += 1
         dict.__delitem__(self, hid)
         self._unindex(hid)
         self._seq.pop(hid, None)
@@ -148,12 +156,14 @@ class RecordTable(dict):
         return default
 
     def popitem(self):
+        self.version += 1
         hid, rec = dict.popitem(self)
         self._unindex(hid)
         self._seq.pop(hid, None)
         return hid, rec
 
     def clear(self) -> None:
+        self.version += 1
         dict.clear(self)
         self._nick.clear()
         self._ix.clear()
@@ -229,6 +239,7 @@ class RecordTable(dict):
         Rollback only: dict order is put back to seq order, so the table is
         order-exact with its state before the delete (O(N) when it moves).
         """
+        self.version += 1
         if dict.__contains__(self, hid):
             self[hid] = rec
             return
@@ -271,9 +282,19 @@ class MemStore:
         # Delete journal for an order-exact rollback: hid -> (first-insert seq,
         # write_order index) at its first delete while a batch is open.
         self._order_journal: dict[str, tuple[int, int]] | None = None
+        # Change counter: every mutator bumps it, so a result derived from store
+        # contents alone (housekeep.stale_counts) can be cached on ``change_count``.
+        self._version = 0
+        self._stale_cache: tuple[int, tuple[int, int, int]] | None = None
+
+    @property
+    def change_count(self) -> int:
+        """Monotonic token: differs after any change to rows, edges, indexes or ids."""
+        return self._version + self._by_hid.version
 
     def mark_dirty(self, *hids: str) -> None:
         """Note hids whose stored record changed (over-marking is always safe)."""
+        self._version += 1
         self._dirty.update(hids)
 
     def drain_dirty(self) -> tuple[set[str], bool]:
@@ -283,6 +304,7 @@ class MemStore:
         return dirty, dirty_all
 
     def load_records(self, records: list[Record]) -> None:
+        self._version += 1
         self._by_hid.clear()
         self.write_order.clear()
         self._edges_by_src.clear()
@@ -491,6 +513,7 @@ class MemStore:
         """Put restored rows back at their write_order index (undo in reverse)."""
         if not journal:
             return
+        self._version += 1
         present = set(self.write_order)
         for hid, (_seq, pos) in reversed(list(journal.items())):
             if pos < 0 or hid in present or hid not in self._by_hid:
@@ -587,6 +610,7 @@ class MemStore:
 
         For an edge, the src/dist sets are moved off the endpoints last indexed.
         """
+        self._version += 1
         by_hid = self._by_hid
         old = by_hid.indexed_edge(hid)
         if old is not None:
@@ -622,6 +646,7 @@ class MemStore:
 
     def raise_id_high_water(self, hw: dict[str, int]) -> None:
         """Raise per-prefix high-water marks (snapshot ``#@IDHW``); never lowers."""
+        self._version += 1
         cur = self._by_hid._hw
         for prefix, n in hw.items():
             if n > cur.get(prefix, -1):
@@ -769,9 +794,11 @@ class MemStore:
         return ranked(rows, resolve=self.resolve_one)
 
     def _index_tag(self, rec: Record) -> None:
+        self._version += 1
         self._by_tag.setdefault(rec.tag, set()).add(rec.hid)
 
     def _unindex_tag(self, rec: Record) -> None:
+        self._version += 1
         bucket = self._by_tag.get(rec.tag)
         if bucket:
             bucket.discard(rec.hid)
@@ -779,6 +806,7 @@ class MemStore:
                 del self._by_tag[rec.tag]
 
     def _index_edge(self, edge: Record) -> None:
+        self._version += 1
         src = edge.fields.get("src", "")
         dist = edge.fields.get("dist", "")
         if src:
@@ -790,6 +818,7 @@ class MemStore:
             self._by_hid.reindex(edge.hid)
 
     def _unindex_edge(self, edge: Record) -> None:
+        self._version += 1
         src = edge.fields.get("src", "")
         dist = edge.fields.get("dist", "")
         if src:

@@ -129,12 +129,7 @@ def recyclable_rows(store: SessionStore) -> list[Record]:
     return [r for r in store.store._by_hid.values() if r.is_recyclable()]
 
 
-def stale_counts(store: SessionStore) -> tuple[int, int, int]:
-    """(recyclable, dangling, orphans) counts from one categorising pass.
-
-    ``recyclable`` matches ``len(recyclable_rows(store))``: ``_categorise``
-    skips LAW rows, so recyclable LAW rows are added here.
-    """
+def _scan_stale_counts(store: SessionStore) -> tuple[int, int, int]:
     buckets = _categorise(store)
     law_recyclable = sum(
         1 for r in store.store._by_hid.values() if r.tag == "LAW" and r.is_recyclable()
@@ -144,6 +139,29 @@ def stale_counts(store: SessionStore) -> tuple[int, int, int]:
         len(buckets.dangling),
         len(buckets.orphans),
     )
+
+
+def stale_counts(store: SessionStore, *, use_cache: bool = True) -> tuple[int, int, int]:
+    """(recyclable, dangling, orphans) counts from one categorising pass.
+
+    ``recyclable`` matches ``len(recyclable_rows(store))``: ``_categorise``
+    skips LAW rows, so recyclable LAW rows are added here.
+
+    The counts depend on store contents only, so the result is cached on the
+    ``MemStore`` (identity) and keyed on its change counter: a read command
+    does no scan; the first command after any write rescans once.
+    ``use_cache=False`` forces the scan (tests compare the two).
+    """
+    mem = store.store
+    if not use_cache:
+        return _scan_stale_counts(store)
+    version = mem.change_count
+    cached = mem._stale_cache
+    if cached is not None and cached[0] == version:
+        return cached[1]
+    counts = _scan_stale_counts(store)
+    mem._stale_cache = (version, counts)
+    return counts
 
 
 def dangling_rows(store: SessionStore) -> list[Record]:
