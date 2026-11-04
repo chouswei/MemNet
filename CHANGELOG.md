@@ -7,6 +7,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.5] - 2026-11-04
+
 ### Added
 
 - **Upgrade health and data check** — `memnet admin upgrade-verify --before <manifest>` compares the running serve with the saved upgrade manifest: the same session ids, and the same rows and relations per session. Any mismatch exits 3. It runs client side, so it also checks a 0.20.4 serve.
