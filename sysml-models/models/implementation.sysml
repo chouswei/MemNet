@@ -566,7 +566,7 @@ package MemNetImplementation {
 
   // CousinSysMLEdge has no SoftwareAllocate in this package.
 
-  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.3, 14.4, 14.9-14.12 implemented, 14.2 PARKED) -----
+  // ----- Atelier-board asks (PROPOSAL; MN-REQ-14; 14.1, 14.3, 14.4, 14.9-14.13 implemented, 14.2 PARKED) -----
   // 14.9 to 14.12 are shipped with runtime tests (SessionByteBudget in snapshot.py,
   // BypassPathCaps in bypass_caps.py, SessionByteLedger in session_bytes.py; config.py holds the caps).
   // 14.1 and 14.4 are implemented (tests/test_range_where.py, tests/test_id_opaque_range.py,
@@ -789,6 +789,26 @@ package MemNetImplementation {
     attribute implemented : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_12_IncrementalByteBudget;
+  }
+
+  part def PagingCursor {
+    doc /*
+      Implemented (MN-REQ-14.13; behaviour PagedRead; verify MN-VER-14-S13;
+      tests/test_paging_cursor.py). Engine module memnet/paging.py
+      (fingerprint, encode_cursor, decode_cursor); typed_walk.typed_walk
+      cursor / paged / session_id and WalkResult cursor, offset, cursor_at;
+      pin_map_composer.bounded_match_find offset; read verbs cli.py query
+      find (--cursor, --paged) and query typed-walk (--cursor, --limit);
+      memnet_mcp.server find (cursor, paged) and typed_walk (limit, cursor,
+      next_cursor). Stateless on the server: the token holds the position,
+      so it survives evict and restore only while MemStore.change_count is
+      unchanged (otherwise stale_cursor).
+    */
+    attribute implemented : Boolean = true;
+
+    perform action page : MemNetBehaviour::PagedRead;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_13_PagingCursor;
   }
 
   part def AtelierBoardTargetEngine {
