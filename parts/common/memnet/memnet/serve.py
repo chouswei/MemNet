@@ -1,8 +1,9 @@
 """Local TCP server — holds the in-memory session registry for CLI clients.
 
 Low-level TCP primitives:
-- send_command: send argv+stdin to a running memnet serve and return the JSON envelope.
-- probe: quick reachability check.
+- send_command: send argv+stdin to a running memnet serve and return the JSON envelope
+  (through memnet.serve_pool.POOL, which keeps sockets alive between calls).
+- probe: quick reachability check (parks the connection in the pool).
 - run_serve: start the TCP server.
 
 Most callers should use memnet.serve_client.dispatch (the canonical public client API)
@@ -163,15 +164,52 @@ def _handle_request(payload: dict[str, Any]) -> dict[str, Any]:
     return {"exit_code": code, "stdout": stdout, "stderr": stderr}
 
 
+_SERVE_IDLE_S_DEFAULT = 60.0
+
+
+def serve_idle_s() -> float:
+    """Seconds a kept-alive socket may sit idle before the serve closes it."""
+    raw = os.environ.get("MEMNET_SERVE_IDLE_S", "").strip()
+    try:
+        value = float(raw) if raw else _SERVE_IDLE_S_DEFAULT
+    except ValueError:
+        return _SERVE_IDLE_S_DEFAULT
+    return value if value > 0 else _SERVE_IDLE_S_DEFAULT
+
+
 class _Handler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
         from memnet import request_log
 
-        self._trace = request_log.begin(request_log.next_conn_id())
+        if self.request.family in (socket.AF_INET, socket.AF_INET6):
+            try:
+                self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            except OSError:
+                pass
+        conn_id = request_log.next_conn_id()
+        seq = 0
+        while True:
+            # Between keep-alive frames: idle timeout or EOF closes quietly, no trace.
+            if seq and not self._wait_next_frame():
+                return
+            seq += 1
+            self._keep_alive = False
+            self._trace = request_log.begin(conn_id)
+            self._trace.seq = seq
+            try:
+                self._handle_one()
+            finally:
+                request_log.finish(self._trace)
+            if not self._keep_alive:
+                return
+
+    def _wait_next_frame(self) -> bool:
+        """True when the kept socket has a next frame to read (not idle, not EOF)."""
         try:
-            self._handle_one()
-        finally:
-            request_log.finish(self._trace)
+            ready, _, _ = select.select([self.request], [], [], serve_idle_s())
+        except (OSError, ValueError):
+            return False
+        return bool(ready) and not _peer_gone(self.request)
 
     def _handle_one(self) -> None:
         from memnet import request_log
@@ -219,7 +257,11 @@ class _Handler(socketserver.BaseRequestHandler):
             request_log.describe_response(trace, response)
             if response is None:
                 return
+            keep = payload.get("keep_alive") is True
+            if keep:
+                response = {**response, "keep_alive": True}
             self._send_envelope(response)
+            self._keep_alive = keep and trace.outcome != "response_too_large"
         except Exception as exc:
             _LOG.exception("memnet serve handler error")
             try:
@@ -364,18 +406,9 @@ def send_command(
             "frame_too_large",
             f"request payload {len(payload)} bytes exceeds cap {max_frame}",
         )
-    frame = struct.pack(">I", len(payload)) + payload
-    try:
-        with socket.create_connection((host, port), timeout=wait) as sock:
-            sock.sendall(frame)
-            raw_len = _recv_exact(sock, 4)
-            (length,) = struct.unpack(">I", raw_len)
-            if length > max_frame:
-                raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
-            body = _recv_exact(sock, length)
-    except TimeoutError:
-        return _protocol_envelope("serve_timeout", "wait exceeded")
-    return json.loads(body.decode("utf-8"))
+    from memnet.serve_pool import POOL
+
+    return POOL.send(host, port, payload_obj, wait)
 
 
 def _peer_gone(sock: socket.socket) -> bool:
@@ -410,9 +443,6 @@ def _recv_exact(sock: socket.socket, n: int) -> bytes:
 def probe(host: str | None = None, port: int | None = None) -> bool:
     host = host or serve_host()
     port = port or serve_port()
-    try:
-        with socket.create_connection((host, port), timeout=0.2):
-            pass
-        return True
-    except OSError:
-        return False
+    from memnet.serve_pool import POOL
+
+    return POOL.probe(host, port)
