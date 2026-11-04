@@ -50,11 +50,11 @@ def test_old_client_against_new_serve(serve, old_build, tmp_path, schema_file):
         got = serve.client(
             old_build, ["mutate", "--stdin", "--session", sid], stdin=TSK % (tag, tag)
         )
-        assert got.returncode == 0, got.stderr
+        assert got.returncode == 0 and "@ERR" not in got.stderr, got.stderr
     found = serve.client(
         old_build, ["query", "find", "--kind", "TSK", "--limit", "20", "--session", sid]
     )
-    assert found.returncode == 0, found.stderr
+    assert found.returncode == 0 and "@ERR" not in found.stderr, found.stderr
     assert "goal-a" in found.stdout and "goal-b" in found.stdout
     # The serve still takes keep-alive clients after the old one-shot connections.
     assert any("goal-b" in line for line in serve.find(sid))

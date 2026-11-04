@@ -130,7 +130,13 @@ class Serve:
                 "MEMNET_SERVE_PORT": str(self.port),
             }
         )
-        for key in ("MEMNET_TEST_INLINE", "MEMNET_SESSION", "MEMNET_IPC_SOCKET"):
+        # Earlier in-process tests leave MEMNET_SERVE_INTERNAL set; a client must forward.
+        for key in (
+            "MEMNET_TEST_INLINE",
+            "MEMNET_SERVE_INTERNAL",
+            "MEMNET_SESSION",
+            "MEMNET_IPC_SOCKET",
+        ):
             env.pop(key, None)
         self.env = env
 
@@ -178,12 +184,12 @@ class Serve:
 
     def kill_any(self) -> None:
         """Teardown: the tracked process, and one a start command left in the pid file."""
-        self.stop(signal.SIGKILL)
         if self.pidfile.is_file():
             try:
                 os.kill(int(self.pidfile.read_text().strip()), signal.SIGKILL)
             except (OSError, ValueError):
                 pass
+        self.stop(signal.SIGKILL)
 
     def cmd(self, args: list[str], *, stdin: str | None = None, admin: bool = False) -> dict:
         return send_command(

@@ -66,7 +66,7 @@ def host(tmp_path):
     return {"tmp": tmp_path, "old": old, "new": new, "live": live, "saved": saved, "state": state}
 
 
-def _run(host: dict, *, start: str, stop: str = "true", saved: Path | None = None):
+def _run(host: dict, *, start: str, stop: str = "true", saved: Path | None = None, wait_s: int = 5):
     log = host["tmp"] / "calls.log"
     return subprocess.run(
         [
@@ -85,7 +85,7 @@ def _run(host: dict, *, start: str, stop: str = "true", saved: Path | None = Non
             "--start",
             f"echo start >> {shlex.quote(str(log))}; {start}",
             "--wait-s",
-            "5",
+            str(wait_s),
         ],
         capture_output=True,
         text=True,
@@ -124,7 +124,7 @@ def test_rollback_fails_when_the_old_serve_does_not_restore_every_session(host):
 
 
 def test_rollback_fails_when_the_old_serve_writes_no_restore_report(host):
-    got = _run(host, start="true")
+    got = _run(host, start="true", wait_s=1)
     assert got.returncode == 3
     assert "@ERR: upgrade_rollback|timeout|" in got.stderr
 
