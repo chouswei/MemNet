@@ -56,7 +56,7 @@ agensgraph = [
 
 [project.scripts]
 memnet = "memnet.cli:main"
-memnet-mcp = "memnet_mcp.server:main"
+memnet-mcp = "memnet_mcp.entry:main"
 
 [tool.hatch.version]
 path = "parts/common/memnet/memnet/__init__.py"

@@ -18,6 +18,8 @@ $MEMNET_STATE_DIR/checkpoint/<session>.snap
 
 A checkpoint does not slide TTL or expiry clocks, and it does not change session ids, ACL, or live state. It does not retire a manifest and it does not load a snapshot into the serve. Files for sessions that are no longer loaded are removed. A skipped session does not keep an older snap, so the directory matches the manifest.
 
+A checkpoint is a restart restore candidate. Every start of `memnet serve` restores from the newest valid snapshot set, checkpoint included: whichever of this manifest and the upgrade-prepare manifest is newer and passes its checks. A newer set that fails its checks is skipped with `@WARN: restore_fallback|...`. See "Restart restore" in [safe-upgrade.md](safe-upgrade.md). A session closed after the last checkpoint comes back on restart until the next checkpoint, so checkpoint after closing sessions and before a planned restart.
+
 ## Hourly: checkpoint, then restic to R2
 
 Set the repository and the R2 credentials in the job environment. R2 speaks the S3 API. Do not write the key values into git or into this file.

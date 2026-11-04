@@ -1434,7 +1434,10 @@ package MemNet {
       (MN-REQ-06.14). Lossless snapshot path. No silent session
       loss. Older patch snapshot format v1 loads. Corrupt restore
       fails loud and leaves snapshot files in place. A clean
-      restore retires the manifest in that same startup. No
+      restore of the upgrade set retires the manifest in that
+      same startup; retire is an audit mark and no longer stops
+      a later restore: every start restores the newest valid
+      set, checkpoint or upgrade-prepare (MN-REQ-06.17). No
       client retry. No systemd or gateway-pin helper.
     */
     attribute implemented : Boolean = true;
@@ -1496,7 +1499,8 @@ package MemNet {
       Admin checkpoint of every loaded session (MN-REQ-06.15).
       Per-session lock, lossless atomic snapshot under
       MEMNET_STATE_DIR/checkpoint. Unsaveable sessions are
-      named and skipped. Does not drain, retire, or load.
+      named and skipped. Does not drain, retire, or load;
+      serve start-up restore reads its manifest (MN-REQ-06.17).
     */
     attribute implemented : Boolean = true;
     attribute noSemVerBump : Boolean = true;

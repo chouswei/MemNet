@@ -10,6 +10,8 @@ Model: `MemNetLanMcpFront` outside `MemNetSystem` (`MN-REQ-06.9` / `MN-VER-06-S0
 
 Distinct from **MN-REQ-06.6** (`MemNetOpsFleet`): one droplet MemNet MCP bound to **that host’s** serve; device registries stay independent.
 
+The shipped part of this front is the product gateway, run as `memnet-mcp --transport gateway` ([`product-gateway-contract.md`](product-gateway-contract.md)). Any host that runs `memnet-mcp` installs `pip install 'memnet-llm[mcp]'`.
+
 ## Placement and routing
 
 `SessionOwnerRegistry` is the owner of a session (sid → `backendId`). **Explicit pin** of a new session to a live backend is allowed. Silent hash of sid is **not** the sole routing policy (hash MAY hint placement; the registry row is the owner).

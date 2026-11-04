@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from memnet.config import RELATION_BODY
+from memnet.exceptions import MemNetError
 from memnet.gql_parse_front import (
     GraphGlotError,
     clean_graphglot_message,
@@ -141,6 +142,7 @@ class RelDropRec(EdgeRec):
 
 
 _RANGE_OPS = {"<=": "LE", ">=": "GE", "<": "LT", ">": "GT"}
+_RANGE_SYMS = {v: k for k, v in _RANGE_OPS.items()}
 _RE_RANGE_NUM = re.compile(r"-?\d+(?:\.\d+)?")
 _RE_FIELD_NUM = re.compile(r"-?\d+(\.\d+)?([eE][+-]?\d+)?")
 _RE_FIELD_INT = re.compile(r"-?\d+")
@@ -307,7 +309,14 @@ class _WhereParser:
         ch = self.s[self.i : self.i + 1]
         if ch and ch in "'\"":
             val, self.i = _parse_string(self.s, self.i)
-            return WherePred(op=op, var=var, key=key, value=str(val), vtype="str")
+            lit = str(val)
+            if _RE_FIELD_NUM.fullmatch(lit):
+                raise ParseError(
+                    f"WHERE {sym} on {var}.{key}: quoted number '{lit}'; use a number literal",
+                    self.line_no,
+                    code="where_type_mismatch",
+                )
+            return WherePred(op=op, var=var, key=key, value=lit, vtype="str")
         m = _RE_RANGE_NUM.match(self.s, self.i)
         if m:
             nxt = self.s[m.end() : m.end() + 1]
@@ -327,6 +336,8 @@ def _eval3(rec: Any, pred: WherePred) -> bool | None:
     """Three-valued WHERE: None is UNKNOWN.
 
     UNKNOWN comes from a range op on a missing, mistyped or non-finite field.
+    AND / OR evaluate every child before combining, so a where_type_mismatch
+    refusal does not depend on sibling order.
     """
     op = pred.op
     if op == "TRUE":
@@ -334,29 +345,21 @@ def _eval3(rec: Any, pred: WherePred) -> bool | None:
     if op == "FALSE":
         return False
     if op == "AND":
-        out: bool | None = True
-        for c in pred.children:
-            v = _eval3(rec, c)
-            if v is False:
-                return False
-            if v is None:
-                out = None
-        return out
+        vals = [_eval3(rec, c) for c in pred.children]
+        if False in vals:
+            return False
+        return None if None in vals else True
     if op == "OR":
-        out = False
-        for c in pred.children:
-            v = _eval3(rec, c)
-            if v is True:
-                return True
-            if v is None:
-                out = None
-        return out
+        vals = [_eval3(rec, c) for c in pred.children]
+        if True in vals:
+            return True
+        return None if None in vals else False
     if op == "NOT":
         v = _eval3(rec, pred.children[0])
         return None if v is None else not v
     raw = str(rec.fields.get(pred.key, ""))
     if op in ("LT", "GT", "LE", "GE"):
-        return _eval_range(raw, op, pred.value, pred.vtype)
+        return _eval_range(raw, op, pred.value, pred.vtype, pred.var, pred.key)
     if op == "EQ":
         return raw == pred.value
     if op == "NE":
@@ -374,7 +377,9 @@ def _eval3(rec: Any, pred: WherePred) -> bool | None:
     return False
 
 
-def _eval_range(raw: str, op: str, value: str, vtype: str) -> bool | None:
+def _eval_range(
+    raw: str, op: str, value: str, vtype: str, var: str = "", key: str = ""
+) -> bool | None:
     if not raw:
         return None
     numeric = _RE_FIELD_NUM.fullmatch(raw) is not None
@@ -389,7 +394,11 @@ def _eval_range(raw: str, op: str, value: str, vtype: str) -> bool | None:
         right = _as_number(value)
     elif vtype == "str":
         if numeric:
-            return None
+            raise MemNetError(
+                "where_type_mismatch",
+                f"WHERE {_RANGE_SYMS[op]} on {var}.{key}: stored number vs quoted string; "
+                "use a number literal",
+            )
         left, right = raw, value
     else:
         return None
@@ -981,7 +990,10 @@ def _parse_match(s: str, line_no: int) -> list[NodeRec | EdgeRec]:
     patterns_chunk, rest = _split_match_body(m.group(1))
     try:
         patterns, consumed, full = _parse_node_patterns(patterns_chunk)
-    except ParseError:
+    except ParseError as exc:
+        if exc.code == "where_type_mismatch":
+            # inline WHERE type refusal: not a relationship MATCH
+            raise
         # Relationship MATCH: ()-[r {id:…}]-() DELETE r / … WHERE … SET r.k = v
         return _parse_match_rel(s, line_no, patterns_chunk, rest)
     tail = full[consumed:].strip()
