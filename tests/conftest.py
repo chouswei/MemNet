@@ -43,3 +43,11 @@ def schema_file():
 @pytest.fixture
 def workflow_file():
     return examples_dir() / "workflow.example.txt"
+
+
+@pytest.fixture(scope="session")
+def old_build(tmp_path_factory):
+    """A real 0.20.4 build in a temp venv (tests/old_build_lib.py); skips on a shallow clone."""
+    from old_build_lib import build_old
+
+    return build_old(tmp_path_factory.mktemp("old-build"))
