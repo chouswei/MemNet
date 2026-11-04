@@ -1968,6 +1968,13 @@ def query_typed_walk(
         str | None,
         typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
     ] = None,
+    json_handles: Annotated[
+        bool,
+        typer.Option(
+            "--json-handles",
+            help="one @WALKJSON line, handles only; --from may be a handle (h_...)",
+        ),
+    ] = False,
 ) -> None:
     """Typed walk (MN-REQ-14.3): BFS on one edge type, 1..k hops (k <= 10).
 
@@ -1976,6 +1983,11 @@ def query_typed_walk(
     (none|limit|budget|bytes) and ``walk_cursor`` (reserved) stats. Order is hop,
     then parents' BFS order, then edge first-insert order; never by id.
     Bounds: limit 1..500, 20,000 typed edge reads, 1,048,576 reply bytes.
+    An edge type no edge in the session has is refused ``unknown_relation``.
+
+    ``--json-handles`` (MN-REQ-14.7 slice): one ``@WALKJSON: <json>`` line where
+    every node and edge is an opaque session-keyed handle; no nickname, hid or
+    element id is emitted, error text included.
     """
     from memnet import typed_walk as tw
 
@@ -1983,6 +1995,9 @@ def query_typed_walk(
     _acl_check(ss, caller, "pin_map")
     with lock:
         try:
+            start_node = None
+            if json_handles and start and tw.is_handle(start):
+                start_node = tw.resolve_handle(ss.store, ss.session_id, start)
             result = tw.typed_walk(
                 ss.store,
                 start=start or "",
@@ -1992,9 +2007,16 @@ def query_typed_walk(
                 max_hops=max_hops,
                 where=where,
                 limit=limit,
+                start_node=start_node,
             )
         except MemNetError as exc:
+            if json_handles:
+                exc.message = tw.scrub_ids(ss.store, exc.message) or ""
+                exc.example = tw.scrub_ids(ss.store, exc.example)
             _handle_error(exc)
+            return
+        if json_handles:
+            emit_stdout(tw.walk_json(result, ss.session_id))
             return
         for line in tw.emit_walk(result):
             emit_stdout(line)

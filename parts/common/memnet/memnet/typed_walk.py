@@ -43,6 +43,9 @@ DIRECTIONS = ("out", "in", "both")
 HANDLE_PREFIX = "h_"
 HANDLE_LEN = 26  # base32 characters after the prefix
 _ID_KEYS = frozenset({"id", "hid", "_memnet_hid", "elementId"})
+_RE_TOKEN = re.compile(r"[^\s'\"`|,;()\[\]{}=<>]+")
+_RE_HID = re.compile(r"_el\d+")
+ID_MASK = "<id>"
 
 _RE_WHERE_KW = re.compile(r"^\s*WHERE\b", re.IGNORECASE)
 
@@ -316,6 +319,19 @@ def resolve_handle(store: MemStore, session_id: str, handle: str) -> Record:
     if len(hits) > 1:
         raise MemNetError("cue_conflict", f"handle {handle} matches {len(hits)} nodes")
     return hits[0]
+
+
+def scrub_ids(store: MemStore, text: str | None) -> str | None:
+    """``text`` with every live nickname or hid token (and any ``_elN``) masked."""
+    if not text:
+        return text
+    by_hid = store._by_hid
+
+    def _mask(m: re.Match) -> str:
+        tok = m.group(0)
+        return ID_MASK if tok in by_hid._nick or tok in by_hid else tok
+
+    return _RE_HID.sub(ID_MASK, _RE_TOKEN.sub(_mask, text))
 
 
 def _reply_ids(path: WalkPath) -> set[str]:
