@@ -32,11 +32,11 @@ memnet admin upgrade-prepare --state-dir "$MEMNET_STATE_DIR"
 @STAT: upgrade_restore|ok|<n>|failed|<m>
 ```
 
-A clean stat marks the manifest `retired` (with `retired_at`) inside that process. A retired manifest stays a candidate: every later restart restores again from the newest valid set (see "Restart restore"). The snapshot files stay on disk. A checksum failure, a parse failure, or an unsupported snapshot format in every set exits `3`, leaves the files untouched, and does not retire.
+A clean stat marks the manifest `retired` (with `retired_at`) inside that process. A retired manifest stays a candidate: every later restart restores again from the newest valid set (see "Restart restore"). The snapshot files stay on disk. A checksum failure, a parse failure, or an unsupported snapshot format in every set exits `3`, leaves the files untouched, and does not retire. A session that fails to load from a set that passed the check also exits `3`, with no fallback (see "Restart restore").
 
 ## Rollback
 
-Point the unit `ExecStart` back at the old venv and start it when the restore stat is not clean. After a clean stat the manifest is marked retired, but it is still a restore candidate: a later start restores the newest valid set again, which may be these snapshots or a newer checkpoint.
+Point the unit `ExecStart` back at the old venv and start it when the restore stat is not clean. After a clean stat the manifest is marked retired. The new build still treats it as a restore candidate and restores the newest valid set again on every start, which may be these snapshots or a newer checkpoint. An old build (0.20.4 or earlier) started after a clean stat skips the retired manifest and starts empty. The snapshot files stay on disk, so roll forward to the new build again, or restore them with the new build.
 
 From the build after 0.19.23 the first write of each snapshot in format 2 keeps the old bytes once. A format 1 file that is overwritten by a format 2 write is copied to `<file>.v1.bak` (mode `0600`, same directory) before the replace. A later save never overwrites that backup.
 
