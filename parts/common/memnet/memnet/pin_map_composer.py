@@ -498,8 +498,12 @@ def bounded_match_find(
     locators: list[tuple[str, str]],
     keyword: str | None,
     limit: int,
+    offset: int = 0,
 ) -> FindResult:
-    """Seed-only codebook find (BoundedMatchFind). No k-hop. Hard LIMIT."""
+    """Seed-only codebook find (BoundedMatchFind). No k-hop. Hard LIMIT.
+
+    ``offset`` skips that many ranked hits (paging); ``total`` stays all hits.
+    """
     if limit < 1:
         raise MemNetError("bad_limit", "find --limit must be >= 1")
     kind_u = kind.upper() if kind else None
@@ -540,7 +544,7 @@ def bounded_match_find(
     # Filter first, then rank only the hits.
     hits = [r for r in rows if _loc_ok(r) and _kw_ok(r)]
     hits = ranked(hits, resolve=getattr(store, "resolve_one", None))
-    return FindResult(seeds=hits[:limit], total=len(hits))
+    return FindResult(seeds=hits[offset : offset + limit], total=len(hits))
 
 
 # SysML-facing alias

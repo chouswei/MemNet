@@ -52,7 +52,7 @@
     MN-REQ-11.17.4     Caller gone or wait exceeded: named refuse; rollback
     MN-REQ-11.17.5     Repeat Snap of the same model identity replaces, not doubles
     MN-REQ-14          Atelier-board engine asks (PROPOSAL, 2026-11-02; Atelier Keeper
-                       benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.3, 14.4, 14.9-14.12 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL
+                       benchmarks, synthetic, origin/master bb4a4dc); 14.1, 14.3, 14.4, 14.9-14.13 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL
     MN-REQ-14.1        WHERE range comparisons < > <= >= on SET / DELETE WHERE, never on id; a quoted number or a quoted string against a stored number is refused where_type_mismatch (implemented; tests/test_range_where.py, test_range_type_refusal.py)
     MN-REQ-14.2        Paged reads past the 50-row cap (PARKED: Elon review; since-filter note)
     MN-REQ-14.3        Typed directed walks: query typed-walk, one edge type, out/in/both, 1..10 hops (implemented; tests/test_typed_walk.py, test_walk_index.py)
@@ -65,6 +65,7 @@
     MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
     MN-REQ-14.12       Budget check is incremental: re-encodes changed nodes + their incident edges, total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
+    MN-REQ-14.13       Opaque paging cursor for find and typed walks: limit + cursor in, next cursor out; bad_cursor / cursor_mismatch / stale_cursor; opt-in, replies unchanged otherwise (implemented; tests/test_paging_cursor.py)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -2583,7 +2584,7 @@ package MemNetRequirements {
       }
     }
 
-    // ----- Atelier-board asks (14.1, 14.3, 14.4, 14.9-14.12 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL, target only) -----
+    // ----- Atelier-board asks (14.1, 14.3, 14.4, 14.9-14.13 implemented; 14.2 PARKED; 14.5-14.8 PROPOSAL, target only) -----
 
     requirement def MN_REQ_14_AtelierBoardAsks {
       doc /*
@@ -2595,9 +2596,10 @@ package MemNetRequirements {
         total-bytes cap (14.10), block MemNet as an Atelier board store.
         An eleventh (14.11) makes the write paths that bypass the mutate
         gate enforce the same caps. A twelfth (14.12) makes the byte-budget
-        check incremental.
+        check incremental. A thirteenth (14.13) pages find and typed walks
+        by an opaque cursor.
         Implemented with runtime tests: leaves 14.1, 14.3, 14.4 and 14.9 to
-        14.12 (test files named in each leaf's doc). The rest are target
+        14.13 (test files named in each leaf's doc). The rest are target
         only: leaves 14.5 to 14.8 are PROPOSAL, and leaf 14.2 is PARKED
         until Elon reviews it (scope note r00002195). Leaf 14.3 was
         un-parked by owner issue #247 (items 1-3) and built. A target-only
@@ -3097,6 +3099,47 @@ package MemNetRequirements {
         */
         attribute requirementId : String = "MN-REQ-14.12";
       }
+
+      requirement def MN_REQ_14_13_PagingCursor {
+        doc /*
+          Status: implemented (owner issue #247 item 4). Cursor paging for
+          find (query find, MCP find) and typed walks (query typed-walk, MCP
+          typed_walk); serve proxies the same argv. It does not open agent
+          RETURN and does not un-park 14.2, the general read past the 50-row
+          cap (see the Elon NOTE on 14.2: his call for that leaf is a
+          since-filter; the owner asked for a cursor on these two verbs).
+          Request: limit (walk 1..500 as 14.3; find as before) and an
+          optional cursor. Reply: the next cursor while rows remain, else
+          none. CLI walk: walk_cursor stat; CLI find: a last line
+          "@STAT: find_cursor|<token>|-" ("-" when none); MCP typed_walk:
+          next_cursor (also stats.cursor), absent when paging was not asked,
+          null when no more; MCP find: the same stat line in its stdout.
+          Token. Opaque: "c_" plus base32 of a payload and a MAC. The payload
+          holds a format version, the query kind, the resume position (a row
+          count into the result, never an id or id order), the store
+          change_count (mem_store.py change_count) and a fingerprint of the
+          query parameters; the MAC is HMAC-SHA256 under the session id.
+          Callers never compare tokens; none is built or read by hand.
+          Refusals, in this order: bad_cursor (not a token, forged, issued
+          by another session or for the other verb); cursor_mismatch (a
+          query parameter changed; limit is not one and may change between
+          pages); stale_cursor (change_count differs: any write since the
+          page; reads never bump it). The cursor resumes by re-running the
+          query and skipping the rows already given, so pages join without
+          a gap or repeat while the session is unchanged. A walk page cut by
+          the reply-byte cap (14.3) still returns a cursor at the first
+          dropped row; a page cut by the 20,000 edge-read budget returns
+          none (a re-run would hit the same budget). Ranks, hop order and
+          first-insert order are those of 14.3; no id value or hid sets any
+          order.
+          Back-compat. Paging is opt-in: walk by an explicit limit or a
+          cursor, find by --paged or a cursor. A request that asks for none
+          of these gets the reply bytes it got before (tests pin them).
+          Evidence: tests/test_paging_cursor.py.
+          Verify: MN-VER-14-S13. Behaviour: PagedRead.
+        */
+        attribute requirementId : String = "MN-REQ-14.13";
+      }
     }
   }
 
@@ -3409,6 +3452,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_11_BypassPathCaps;
   requirement incrementalByteBudgetReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_12_IncrementalByteBudget;
+  requirement pagingCursorReq
+    : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_13_PagingCursor;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {

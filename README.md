@@ -50,6 +50,10 @@ CREATE (n)-[:helps {note:'labour'}]->(t)
 EOF
 
 memnet query find --session mn_… --kind TSK --limit 8
+# paging: a cursor is an opaque token; pass it back with the same cues
+memnet query find --session mn_… --kind TSK --limit 8 --paged          # ends with @STAT: find_cursor|<token>|-
+memnet query find --session mn_… --kind TSK --limit 8 --cursor <token>
+memnet query typed-walk --session mn_… --from <id> --type partOf --limit 20 --cursor <token>
 memnet query pin-map --session mn_… --kind TSK --locator 'goal=Clear warehouse' --depth 2
 ```
 

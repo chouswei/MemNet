@@ -1558,7 +1558,7 @@ package MemNetBehaviour {
       then hostIdle;
   }
 
-  // ----- Atelier-board asks (MN-REQ-14; 14.1, 14.3, 14.4, 14.9, 14.10, 14.11, 14.12 implemented; 14.2 PARKED; others PROPOSAL) -----
+  // ----- Atelier-board asks (MN-REQ-14; 14.1, 14.3, 14.4, 14.9, 14.10, 14.11, 14.12, 14.13 implemented; 14.2 PARKED; others PROPOSAL) -----
 
   action def BoardWakeRead {
     doc /*
@@ -1587,6 +1587,29 @@ package MemNetBehaviour {
     out item rows : String;
     out item resume : String;
     action askWalk : TypedWalk;
+  }
+
+  action def PagedRead {
+    doc /*
+      Implemented (MN-REQ-14.13; verify MN-VER-14-S13; tests
+      tests/test_paging_cursor.py). Entry: memnet query find / query
+      typed-walk with --cursor, and --paged (find) or an explicit --limit
+      (walk); MCP find and typed_walk; serve proxies the same argv. Steps:
+      (1) paging is asked only by a cursor, --paged (find) or an explicit
+      limit (walk); otherwise run the read unchanged. (2) Fingerprint the
+      query parameters (paging.fingerprint; limit excluded). (3) With a
+      cursor, paging.decode_cursor checks in order: shape and MAC under the
+      session id (bad_cursor), verb and fingerprint (bad_cursor,
+      cursor_mismatch), MemStore.change_count (stale_cursor); it returns the
+      row offset. (4) Run the read and skip offset rows (find:
+      bounded_match_find offset; walk: typed_walk skip, counted after the
+      WHERE and min-hops filters). (5) If rows remain, paging.encode_cursor
+      at offset + rows given with the current change_count: find
+      find_cursor stat; walk walk_cursor stat or stats.cursor (a byte cut
+      moves it to the first dropped row; a budget cut gives none); MCP
+      typed_walk repeats it as next_cursor. No id value or hid sets any
+      position.
+    */
   }
 
   action def TypedWalk {

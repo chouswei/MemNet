@@ -63,7 +63,7 @@
   memnet-mcp extra (MN-VER-06-S16): McpServerMod; console
   memnet_mcp.entry:main; one line mcp_extra_missing, exit 2, every
   transport and --help. Runtime: tests/test_mcp_extra_missing.py.
-  Atelier-board asks (MN-VER-14-S01..S12; S01, S03, S04 and S09 to S12 implemented with
+  Atelier-board asks (MN-VER-14-S01..S13; S01, S03, S04, S09 to S12 and S13 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
     MN-REQ-14.1 WHERE range, never on id, implemented (S01)
@@ -78,6 +78,7 @@
     14.10 per-session total-bytes cap (S10)
     14.11 bypass-path caps: import, hydrate; CLI delete/prune line cap only (S11)
     14.12 incremental byte-budget check, total equal to a full recount (S12)
+    14.13 opaque paging cursor for find and typed walks, opt-in (S13)
   Defect records:
     MN-VER-14-D01 two-step walk up to about 42% slower, ee36a95 to bb4a4dc
     MN-VER-14-D02 WHERE on a relationship with SET refused with a DELETE message (FIXED)
@@ -3237,6 +3238,36 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_14_S13_PagingCursor {
+    doc /*
+      MN-REQ-14.13, run by tests/test_paging_cursor.py. Cases: (a) typed-walk
+      and find pages, joined, equal the unpaged rows once and in order, and
+      the last page carries no cursor (an exact fit too); (b) the token is
+      "c_" plus base32, holds no nickname or hid, and a changed byte, a
+      foreign session's token, the other verb's token or text that is not a
+      token is bad_cursor; (c) a changed type, direction, hops, where, start,
+      kind, locator or keyword with a cursor is cursor_mismatch while a
+      changed limit is accepted and row numbers continue; (d) any write
+      since the page makes the cursor stale_cursor, while reads (walk, find,
+      pin-map) do not; (e) a walk page cut by the reply-byte cap resumes at
+      the first dropped row and the pages join without a gap; a page cut by
+      the edge-read budget returns no cursor; (f) walk --json-handles carries
+      the token in stats.cursor and MCP typed_walk adds next_cursor, with no
+      real id in the reply; MCP find pages the same; (g) back-compat: find
+      without --paged or --cursor, a walk without --limit or --cursor and an
+      MCP typed_walk without limit or cursor return the bytes they returned
+      before. Behaviour: PagedRead. Part: PagingCursor.
+    */
+    attribute verificationId : String = "MN-VER-14-S13";
+
+    subject system : MemNetSystem;
+
+    objective atelierBoardS13 {
+      doc /* Implemented: tests/test_paging_cursor.py. */
+      verify pagingCursorReq;
+    }
+  }
+
   verification def MN_VER_14_D01_TwoStepWalkRegression {
     doc /*
       DEFECT record (not a requirement; no fix claimed). The two-step walk
@@ -3373,6 +3404,8 @@ package MemNetVerification {
     : MN_VER_14_S11_BypassPathCaps;
   verification incrementalByteBudgetVerify
     : MN_VER_14_S12_IncrementalByteBudget;
+  verification pagingCursorVerify
+    : MN_VER_14_S13_PagingCursor;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify

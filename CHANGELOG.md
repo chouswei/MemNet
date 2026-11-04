@@ -7,6 +7,10 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Added
+
+- **Paging cursor for find and typed walks** — `memnet query find` and `memnet query typed-walk` (CLI, serve and the MCP tools `find` and `typed_walk`) take `--cursor` and reply with the next cursor while results remain: the `walk_cursor` stat, `@STAT: find_cursor|<token>|-`, and `next_cursor` on MCP `typed_walk`. The token is opaque (`c_` + base32 of a position, the session change counter and a query fingerprint under an HMAC keyed by the session id): it shows no id and no order. Refusals: `bad_cursor` (malformed, forged, another session's or the other verb's), `cursor_mismatch` (a query parameter changed; `limit` may change), `stale_cursor` (the session was written to since the page; reads do not count). A walk page cut by the reply-byte cap resumes at the first dropped row. Paging is opt-in (`--cursor`, `--paged` on find, an explicit `--limit` on typed-walk, `limit` or `cursor` on MCP `typed_walk`); without it replies are byte-for-byte unchanged. MN-REQ-14.13, MN-VER-14-S13. Closes #247 item 4.
+
 ## [0.20.5] - 2026-11-04
 
 ### Added
