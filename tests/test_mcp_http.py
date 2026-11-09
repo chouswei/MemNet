@@ -241,3 +241,99 @@ def test_cli_remote_bind_exits(monkeypatch: pytest.MonkeyPatch):
             ]
         )
     assert exc.value.code == 2
+
+
+def test_memnet_mcp_is_stateless_json():
+    """MN-REQ-06.19 (a): the shipped FastMCP needs no MCP session and answers plain JSON."""
+    from memnet_mcp.server import mcp as memnet_mcp
+
+    assert memnet_mcp.settings.stateless_http is True
+    assert memnet_mcp.settings.json_response is True
+
+
+def _start_mcp_http(port: int):
+    import os
+    import subprocess
+    import sys
+
+    env = dict(os.environ)
+    for key in ("MEMNET_MCP_HTTP_TOKEN", "MEMNET_MCP_ALLOW_REMOTE", "MEMNET_MCP_TRANSPORT"):
+        env.pop(key, None)
+    env["MEMNET_TEST_INLINE"] = "1"
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "memnet_mcp", "--transport", "streamable-http", "--port", str(port)],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    deadline = time.time() + 20.0
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return proc
+        except OSError:
+            time.sleep(0.05)
+    proc.kill()
+    pytest.fail("memnet-mcp streamable-http did not start")
+
+
+def _mcp_post(port: int, body: dict) -> tuple[int, dict, dict]:
+    import json
+
+    req = Request(
+        f"http://127.0.0.1:{port}/mcp",
+        data=json.dumps(body).encode(),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        },
+    )
+    with urlopen(req, timeout=10.0) as resp:
+        return resp.status, dict(resp.headers), json.loads(resp.read().decode())
+
+
+def test_tools_call_works_after_restart_without_session_header():
+    """MN-REQ-06.19 (a): a restart of memnet-mcp-http drops no MCP session.
+
+    First process: initialize, then tools/call. Second process on the same port: a
+    tools/call with no Mcp-Session-Id header and no new initialize still works.
+    """
+    port = _free_port()
+    init = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-06-18",
+            "capabilities": {},
+            "clientInfo": {"name": "restart-test", "version": "0"},
+        },
+    }
+    call = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {"name": "session_list", "arguments": {}},
+    }
+    proc = _start_mcp_http(port)
+    try:
+        status, headers, body = _mcp_post(port, init)
+        assert status == 200 and body["result"]["serverInfo"]["name"] == "memnet"
+        assert not any(k.lower() == "mcp-session-id" for k in headers)
+        status, _, body = _mcp_post(port, call)
+        assert status == 200 and body["result"]["isError"] is False
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
+
+    proc = _start_mcp_http(port)
+    try:
+        status, headers, body = _mcp_post(port, {**call, "id": 3})
+        assert status == 200, body
+        assert body["id"] == 3
+        assert body["result"]["isError"] is False
+        assert "sessions|" in body["result"]["content"][0]["text"]
+    finally:
+        proc.terminate()
+        proc.wait(timeout=10)
