@@ -188,10 +188,6 @@ def test_stdio_unchanged_when_registry_env_is_set(
 def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     calls: list[dict] = []
 
-    def fake_probe(host: str | None = None, port: int | None = None) -> bool:
-        del host, port
-        return True
-
     def fake_send(
         args, stdin=None, host=None, port=None, timeout=None, admin_token=None, admin_usage=False
     ):
@@ -209,7 +205,6 @@ def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path:
             return {"exit_code": 0, "stdout": f"@VER: memnet|{__version__}\n", "stderr": ""}
         return {"exit_code": 0, "stdout": "@SESSION: mn_new|soon|60\n", "stderr": ""}
 
-    monkeypatch.setattr("memnet_mcp.product_gateway.probe", fake_probe)
     monkeypatch.setattr("memnet_mcp.product_gateway.send_command", fake_send)
     cfg = tmp_path / "gw.json"
     state = tmp_path / "owners.json"
@@ -253,7 +248,9 @@ def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path:
     assert "namespace" not in calls[-1]
 
 
-def test_two_real_serves_route_isolate_and_pass_through(tmp_path: Path) -> None:
+def test_two_real_serves_route_isolate_and_pass_through(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     port_a = _free_port()
     port_b = _free_port()
     serve_a = _start_serve(port_a, tmp_path / "serve-a.log")
@@ -431,6 +428,8 @@ def test_two_real_serves_route_isolate_and_pass_through(tmp_path: Path) -> None:
         assert counts["products"]["endleaf"]["requests"] > 0
         assert "sessions" not in counts["products"]["endleaf"]
 
+        # A backend that stays down: the restart pause (MN-REQ-06.19) is bounded, then 502.
+        monkeypatch.setenv("MEMNET_SERVE_RETRY_S", "0.5")
         _stop(serve_a)
         serve_a = None
         deadline = time.time() + 5

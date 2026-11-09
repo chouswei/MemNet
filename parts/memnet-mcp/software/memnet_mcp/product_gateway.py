@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from memnet.serve import is_loopback_bind_host, probe, send_command
+from memnet.serve import is_loopback_bind_host, send_command
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 18770
@@ -526,23 +526,24 @@ class ProductGateway:
             ):
                 return hit[1]
         version: str | None = None
-        if probe(host=backend.host, port=backend.port):
-            try:
-                raw = send_command(
-                    ["version"],
-                    host=backend.host,
-                    port=backend.port,
-                    timeout=self.timeout_s,
-                )
-            except (OSError, json.JSONDecodeError):
-                raw = None
-            if isinstance(raw, dict):
-                for line in (raw.get("stdout") or "").splitlines():
-                    if line.startswith("@VER: memnet|"):
-                        version = line.split("|", 1)[1].strip()
-                        break
-        with self._lock:
-            self._ver_cache[backend.id] = (now, version)
+        # No probe gate: send_command pauses through a backend restart (MN-REQ-06.19).
+        try:
+            raw = send_command(
+                ["version"],
+                host=backend.host,
+                port=backend.port,
+                timeout=self.timeout_s,
+            )
+        except (OSError, json.JSONDecodeError):
+            raw = None
+        if isinstance(raw, dict):
+            for line in (raw.get("stdout") or "").splitlines():
+                if line.startswith("@VER: memnet|"):
+                    version = line.split("|", 1)[1].strip()
+                    break
+        if version is not None:
+            with self._lock:
+                self._ver_cache[backend.id] = (now, version)
         return version
 
     def _forward(

@@ -111,6 +111,8 @@ def test_fail_on_bad_before_file_or_no_serve(started, tmp_path):
     kept = tmp_path / "kept.json"
     shutil.copy(before, kept)
     serve.stop(signal.SIGTERM)
+    # Retry off: a serve that stays down is unreachable at once (no MN-REQ-06.19 pause).
+    serve.env["MEMNET_SERVE_RETRY_S"] = "0"
     got = _verify(serve, build, kept)
     assert got.returncode == 2, got.stderr
     assert "@ERR: serve_unreachable|" in got.stderr

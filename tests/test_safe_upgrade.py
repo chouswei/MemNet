@@ -409,6 +409,8 @@ def test_tcp_restart_restores_same_sessions(memnet_temp, monkeypatch, tmp_path, 
         )
         assert prepared["exit_code"] == 0, prepared
         assert "upgrade_prepare|ready|1" in prepared["stderr"]
+        # Retry off: see the raw refusal (the restart pause is MN-REQ-06.19).
+        monkeypatch.setenv("MEMNET_SERVE_RETRY_S", "0")
         refused = send_command(
             ["session", "open", "--map-file", str(schema_file)],
             host="127.0.0.1",
@@ -419,6 +421,7 @@ def test_tcp_restart_restores_same_sessions(memnet_temp, monkeypatch, tmp_path, 
     finally:
         stop(proc)
 
+    monkeypatch.delenv("MEMNET_SERVE_RETRY_S")
     proc = start()
     try:
         report = json.loads((state / "upgrade-restore.json").read_text(encoding="utf-8"))
