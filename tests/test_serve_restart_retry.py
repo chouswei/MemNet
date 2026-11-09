@@ -340,3 +340,37 @@ def test_gateway_pauses_through_backend_restart(tmp_path: Path, monkeypatch: pyt
         timer.join()
         for serve in back:
             serve.close()
+
+
+def test_gateway_placement_fails_over_past_a_dead_backend_fast(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Unpinned open: backend a stays down, b is up. Placement skips a without the pause."""
+    import time
+
+    from memnet_mcp.product_gateway import ProductGateway
+    from test_product_gateway import ENDLEAF, _config
+
+    monkeypatch.setenv("MEMNET_SERVE_RETRY_S", "30")
+    version = {"exit_code": 0, "stdout": f"@VER: memnet|{__version__}\n", "stderr": ""}
+    opened = {"exit_code": 0, "stdout": "@SESSION: mn_gw2|soon|60\n", "stderr": ""}
+    port_a, port_b = _free_port(), _free_port()
+    cfg, state = tmp_path / "gw.json", tmp_path / "owners.json"
+    _config(cfg, state, port_a, port_b)
+    gw = ProductGateway.load(str(cfg))
+    live = FakeServe(port_b, [version, opened])
+    try:
+        start = time.monotonic()
+        resp = gw.handle(
+            method="POST",
+            path="/gateway",
+            authorization=f"Bearer {ENDLEAF}",
+            body=json.dumps({"args": ["session", "open", "--map-file", "m.txt"]}).encode(),
+        )
+        elapsed = time.monotonic() - start
+    finally:
+        live.close()
+    assert resp.exit_code == 0, resp.stderr
+    assert "mn_gw2" in resp.stdout
+    assert [r["args"][0] for r in live.delivered] == ["version", "session"]
+    assert elapsed < 2.0, f"placement paused {elapsed:.1f}s on the dead backend"

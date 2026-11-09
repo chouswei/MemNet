@@ -14,6 +14,8 @@ During the restart, the serve answers `@ERR: serve_draining|retry_after_s=<secon
 
 Waits use exponential backoff with jitter (0.1 s doubling, capped at 2 s). The total pause is capped by `MEMNET_SERVE_RETRY_S` (default 30 s, comfortably longer than a restart; `0` turns the pause off). When the budget runs out, the last error or the draining reply is returned.
 
+The product gateway's placement of a new session checks each candidate backend's version in turn. Only the last candidate gets the pause. Every earlier one is tried once with no retry, so a backend that stays down fails over to the next at once, as before. Calls to a pinned backend (house, `backend` or an owned session) pause for the full budget.
+
 `memnet-mcp --transport streamable-http` is stateless (`stateless_http`, JSON replies). No MCP session lives in the process, so a restart of memnet-mcp-http, or a second process behind the same front, drops no MCP session: the next `tools/call` works without re-initialising. MemNet sessions are tool arguments and live in the serve.
 
 ## Procedure

@@ -189,7 +189,14 @@ def test_forward_keeps_args_and_stdin(monkeypatch: pytest.MonkeyPatch, tmp_path:
     calls: list[dict] = []
 
     def fake_send(
-        args, stdin=None, host=None, port=None, timeout=None, admin_token=None, admin_usage=False
+        args,
+        stdin=None,
+        host=None,
+        port=None,
+        timeout=None,
+        admin_token=None,
+        admin_usage=False,
+        retry_s=None,
     ):
         calls.append(
             {

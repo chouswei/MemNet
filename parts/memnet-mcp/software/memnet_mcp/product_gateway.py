@@ -467,9 +467,12 @@ class ProductGateway:
             return named, None
         mismatch: HandleResult | None = None
         unreachable: HandleResult | None = None
-        for backend_id in product.backends:
+        last = len(product.backends) - 1
+        for i, backend_id in enumerate(product.backends):
             backend = self.backends[backend_id]
-            version = self._version(backend)
+            # A down candidate with another behind it fails over at once; only the
+            # last one pauses through a restart (MN-REQ-06.19).
+            version = self._version(backend, retry_s=0.0 if i < last else None)
             if version is None:
                 unreachable = _gateway("backend_unreachable", backend.id, http=502)
                 continue
@@ -515,7 +518,7 @@ class ProductGateway:
             )
         return None
 
-    def _version(self, backend: Backend) -> str | None:
+    def _version(self, backend: Backend, *, retry_s: float | None = None) -> str | None:
         now = time.monotonic()
         with self._lock:
             hit = self._ver_cache.get(backend.id)
@@ -533,6 +536,7 @@ class ProductGateway:
                 host=backend.host,
                 port=backend.port,
                 timeout=self.timeout_s,
+                retry_s=retry_s,
             )
         except (OSError, json.JSONDecodeError):
             raw = None
