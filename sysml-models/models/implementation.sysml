@@ -74,6 +74,9 @@ package MemNetImplementation {
       missing module gives one stderr line, @ERR: mcp_extra_missing|...;
       install with: pip install 'memnet-llm[mcp]', and exit 2, for every
       transport and for --help (tests/test_mcp_extra_missing.py).
+      Streamable-http is stateless with JSON replies (FastMCP
+      stateless_http, json_response; MN-REQ-06.19): a restart drops no
+      MCP session.
       Tip/ops engine face. MUST NOT be taught as product invent face
       (tipIsFace=false).
     */
@@ -86,12 +89,15 @@ package MemNetImplementation {
     attribute mcpExtraMissingExit : Integer = 2;
     attribute extraCheckBeforeArgs : Boolean = true;
     attribute everyTransportNeedsExtra : Boolean = true;
+    attribute statelessHttp : Boolean = true;
+    attribute jsonResponse : Boolean = true;
     attribute tipIsFace : Boolean = false;
     attribute implemented : Boolean = true;
     attribute inThisRepo : Boolean = true;
     attribute track : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_18_McpExtraFailFast;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_19_RestartSafeTransport;
   }
 
   part def MemNetLlmWheel {
@@ -168,6 +174,35 @@ package MemNetImplementation {
     perform action startRestore : MemNetBehaviour::RestartRestoreChoice;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_17_RestartRestoreNewestSet;
+  }
+  part def ServeRetryMod {
+    doc /*
+      Restart-safe client retry (MN-REQ-06.19). One READ / WRITE
+      classification of serve requests (argv_kind, request_kind;
+      unknown is WRITE), the serve_draining retry_after parse, the
+      MEMNET_SERVE_RETRY_S budget and jittered backoff. The loop is
+      ServePool.send (memnet/serve_pool.py); send_command, the product
+      gateway and the memnet-mcp tcp client all go through it.
+    */
+    attribute path : String = "parts/common/memnet/memnet/serve_retry.py";
+    attribute pyName : String = "memnet.serve_retry";
+    attribute poolPath : String = "parts/common/memnet/memnet/serve_pool.py";
+    attribute implemented : Boolean = true;
+    attribute budgetEnv : String = "MEMNET_SERVE_RETRY_S";
+    attribute defaultBudgetS : Real = 30.0;
+    attribute backoffBaseS : Real = 0.1;
+    attribute backoffCapS : Real = 2.0;
+    attribute retriesNotDelivered : Boolean = true;
+    attribute honoursRetryAfter : Boolean = true;
+    attribute retriesReadAfterSend : Boolean = true;
+    attribute replaysWriteAfterSend : Boolean = false;
+    attribute unknownVerbIsWrite : Boolean = true;
+    attribute gatewayProbeGate : Boolean = false;
+    attribute nestedRetryLoops : Integer = 1;
+
+    perform action retryChoice : MemNetBehaviour::ServeRetryChoice;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_19_RestartSafeTransport;
   }
   part def ServeCheckpointMod {
     doc /* Admin checkpoint of loaded sessions without drain (MN-REQ-06.15). */
@@ -340,6 +375,7 @@ package MemNetImplementation {
   part adminUsageMod : AdminUsageReportMod;
   part safeUpgradeMod : SafeUpgradeMod;
   part serveCheckpointMod : ServeCheckpointMod;
+  part serveRetryMod : ServeRetryMod;
   part snapAclMod : SnapshotAclMod;
   part cliMod : CliFacadeMod;
   part sessionsMod : SessionLifecycleMod;
@@ -426,6 +462,11 @@ package MemNetImplementation {
     doc /* Drain, manifest, startup restore (newest valid set, MN-REQ-06.17), and retire on memnet-serve. */
     end logical ::> memNetSystem.core.transport.tcp.safeUpgrade;
     end code ::> safeUpgradeMod;
+  }
+  allocation serveRetryToMod : SoftwareAllocate {
+    doc /* Client pause through a serve restart or drain; never replays a write (MN-REQ-06.19). */
+    end logical ::> memNetSystem.core.transport.tcp.clientRetry;
+    end code ::> serveRetryMod;
   }
   allocation serveCheckpointToMod : SoftwareAllocate {
     doc /* Per-session checkpoint snaps on memnet-serve. Not agent MCP. */

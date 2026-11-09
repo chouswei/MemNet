@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import select
 import socket
 import struct
 import threading
 import time
+from collections.abc import Callable
 from typing import Any
 
 from memnet.config import serve_max_frame_bytes
+from memnet.serve_retry import (
+    RequestKind,
+    backoff_s,
+    draining_retry_after,
+    request_kind,
+    retry_budget_s,
+)
 
 _OFF_VALUES = frozenset({"0", "false", "no", "off"})
 _TIMEOUT_ENVELOPE: dict[str, Any] = {
@@ -56,11 +65,33 @@ def _close(sock: socket.socket) -> None:
         pass
 
 
+class _NotDelivered(Exception):
+    """The serve cannot have read the request (connect failed or frame not fully sent)."""
+
+    def __init__(self, cause: OSError) -> None:
+        super().__init__(str(cause))
+        self.cause = cause
+
+
+class _ReplyTooLarge(ConnectionError):
+    """The reply frame is over the cap: deterministic, so never retried."""
+
+
 class ServePool:
     """Idle sockets per (host, port), LIFO; each socket is checked out exclusively."""
 
-    def __init__(self, idle_s: float = 30.0) -> None:
+    def __init__(
+        self,
+        idle_s: float = 30.0,
+        *,
+        sleep: Callable[[float], None] = time.sleep,
+        clock: Callable[[], float] = time.monotonic,
+        rng: random.Random | None = None,
+    ) -> None:
         self._idle_s = idle_s
+        self._sleep = sleep
+        self._clock = clock
+        self._rng = rng
         self._lock = threading.Lock()
         self._idle: dict[tuple[str, int], list[tuple[socket.socket, float]]] = {}
         self._pid = os.getpid()
@@ -116,7 +147,21 @@ class ServePool:
         self._park(key, sock)
         return True
 
-    def send(self, host: str, port: int, payload: dict, timeout: float) -> dict:
+    def send(
+        self,
+        host: str,
+        port: int,
+        payload: dict,
+        timeout: float,
+        *,
+        retry_s: float | None = None,
+    ) -> dict:
+        """One serve request. Pauses through a restart or drain (MN-REQ-06.19).
+
+        Retries within ``retry_s`` (default ``MEMNET_SERVE_RETRY_S``) when the
+        request was not delivered or the serve answered serve_draining. A reset
+        after the frame was written is retried for READ requests only.
+        """
         keep = keepalive_enabled()
         body_obj = dict(payload)
         if keep:
@@ -132,7 +177,44 @@ class ServePool:
             }
         frame = struct.pack(">I", len(data)) + data
         key = (host, port)
+        budget = retry_budget_s() if retry_s is None else max(0.0, retry_s)
+        deadline = self._clock() + budget
+        attempt = 0
+        while True:
+            failure: OSError | None = None
+            reply: dict | None = None
+            try:
+                reply = self._send_once(key, frame, timeout, keep, max_frame)
+            except _NotDelivered as exc:
+                failure = exc.cause
+                wait = backoff_s(attempt, self._rng)
+            except OSError as exc:
+                if isinstance(exc, _ReplyTooLarge) or request_kind(payload) is not RequestKind.READ:
+                    raise
+                failure = exc
+                wait = backoff_s(attempt, self._rng)
+            else:
+                retry_after = draining_retry_after(reply)
+                if retry_after is None:
+                    return reply
+                wait = max(retry_after, backoff_s(attempt, self._rng))
+            remaining = deadline - self._clock()
+            if remaining <= 0:
+                if failure is not None:
+                    raise failure
+                return reply  # type: ignore[return-value]
+            self._sleep(min(wait, remaining))
+            attempt += 1
 
+    def _send_once(
+        self,
+        key: tuple[str, int],
+        frame: bytes,
+        timeout: float,
+        keep: bool,
+        max_frame: int,
+    ) -> dict:
+        """One attempt. Raises ``_NotDelivered`` when the serve cannot have read the frame."""
         sock: socket.socket | None = self._checkout(key) if keep else None
         try:
             if sock is not None:
@@ -145,12 +227,19 @@ class ServePool:
                     _close(sock)
                     sock = None
             if sock is None:
-                sock = socket.create_connection(key, timeout=timeout)
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                sock.sendall(frame)
+                try:
+                    sock = socket.create_connection(key, timeout=timeout)
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    sock.sendall(frame)
+                except TimeoutError:
+                    raise
+                except OSError as exc:
+                    # Refused, reset, or the frame was not fully written: the serve acts
+                    # only on a whole length-prefixed frame, so it did not run this one.
+                    raise _NotDelivered(exc) from exc
             (length,) = struct.unpack(">I", _recv_exact(sock, 4))
             if length > max_frame:
-                raise ConnectionError(f"response frame {length} bytes exceeds cap {max_frame}")
+                raise _ReplyTooLarge(f"response frame {length} bytes exceeds cap {max_frame}")
             reply = json.loads(_recv_exact(sock, length).decode("utf-8"))
         except TimeoutError:
             if sock is not None:

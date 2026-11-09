@@ -66,7 +66,7 @@ HTTP status is a hint. The body is always the envelope. Backend engine errors st
 | 404 | `gateway_unconfigured` | `GET <path>/admin/counts` when `admin.sha256` is unset |
 | 409 | `gateway_backend_version_mismatch` | `memnet version` is not the product pin |
 | 413 | `gateway_body_too_large` | Body above `body_max_bytes` |
-| 502 | `gateway_backend_unreachable` | TCP probe failed, the version command did not answer, the client wait expired, or `session list` and no backend answered |
+| 502 | `gateway_backend_unreachable` | The backend stayed unreachable past the restart pause (`MEMNET_SERVE_RETRY_S`, default 30 s; MN-REQ-06.19), the version command did not answer, the client wait expired, or `session list` and no backend answered |
 
 No HTTP response (the process exits 2 instead):
 

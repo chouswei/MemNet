@@ -388,6 +388,7 @@ def send_command(
     admin_token: str | None = None,
     admin_usage: bool = False,
     timeout: float | None = None,
+    retry_s: float | None = None,
 ) -> dict[str, Any]:
     host = host or serve_host()
     port = port or serve_port()
@@ -408,7 +409,7 @@ def send_command(
         )
     from memnet.serve_pool import POOL
 
-    return POOL.send(host, port, payload_obj, wait)
+    return POOL.send(host, port, payload_obj, wait, retry_s=retry_s)
 
 
 def _peer_gone(sock: socket.socket) -> bool:

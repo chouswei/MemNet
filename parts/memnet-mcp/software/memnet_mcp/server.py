@@ -40,7 +40,9 @@ from memnet_mcp.http_transport import (
 )
 from memnet_mcp.seed import supplement_seed_lines
 
-mcp = FastMCP("memnet")
+# Stateless streamable-http (MN-REQ-06.19): no tool keeps per-MCP-session state (the
+# MemNet session is a tool argument), so a restart or a second process drops no session.
+mcp = FastMCP("memnet", stateless_http=True, json_response=True)
 
 
 def _json(resp: MemNetResponse) -> str:

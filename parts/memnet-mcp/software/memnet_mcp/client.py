@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 
 from memnet.in_process_engine import run_argv
-from memnet.serve import probe, send_command
+from memnet.serve import send_command
 from memnet_mcp.parse import extract_errors, extract_session_id
 
 _SERVE_REQUIRED = "@ERR: serve_required|run memnet serve in another terminal first"
@@ -131,10 +131,12 @@ def run_memnet(
     mode = _transport()
 
     if mode == "tcp":
-        if probe():
+        # No probe gate: send_command pauses through a serve restart (MN-REQ-06.19).
+        try:
             raw = send_command(full_argv, stdin=stdin)
-            return MemNetResponse.from_raw(raw, session_hint=session)
-        return MemNetResponse.serve_required(session_hint=session)
+        except OSError:
+            return MemNetResponse.serve_required(session_hint=session)
+        return MemNetResponse.from_raw(raw, session_hint=session)
 
     raw = run_argv(full_argv, stdin=stdin)
     return MemNetResponse.from_raw(raw, session_hint=session)

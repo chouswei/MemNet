@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from memnet.serve import is_loopback_bind_host, probe, send_command
+from memnet.serve import is_loopback_bind_host, send_command
 
 DEFAULT_BIND = "127.0.0.1"
 DEFAULT_PORT = 18770
@@ -467,9 +467,12 @@ class ProductGateway:
             return named, None
         mismatch: HandleResult | None = None
         unreachable: HandleResult | None = None
-        for backend_id in product.backends:
+        last = len(product.backends) - 1
+        for i, backend_id in enumerate(product.backends):
             backend = self.backends[backend_id]
-            version = self._version(backend)
+            # A down candidate with another behind it fails over at once; only the
+            # last one pauses through a restart (MN-REQ-06.19).
+            version = self._version(backend, retry_s=0.0 if i < last else None)
             if version is None:
                 unreachable = _gateway("backend_unreachable", backend.id, http=502)
                 continue
@@ -515,7 +518,7 @@ class ProductGateway:
             )
         return None
 
-    def _version(self, backend: Backend) -> str | None:
+    def _version(self, backend: Backend, *, retry_s: float | None = None) -> str | None:
         now = time.monotonic()
         with self._lock:
             hit = self._ver_cache.get(backend.id)
@@ -526,23 +529,25 @@ class ProductGateway:
             ):
                 return hit[1]
         version: str | None = None
-        if probe(host=backend.host, port=backend.port):
-            try:
-                raw = send_command(
-                    ["version"],
-                    host=backend.host,
-                    port=backend.port,
-                    timeout=self.timeout_s,
-                )
-            except (OSError, json.JSONDecodeError):
-                raw = None
-            if isinstance(raw, dict):
-                for line in (raw.get("stdout") or "").splitlines():
-                    if line.startswith("@VER: memnet|"):
-                        version = line.split("|", 1)[1].strip()
-                        break
-        with self._lock:
-            self._ver_cache[backend.id] = (now, version)
+        # No probe gate: send_command pauses through a backend restart (MN-REQ-06.19).
+        try:
+            raw = send_command(
+                ["version"],
+                host=backend.host,
+                port=backend.port,
+                timeout=self.timeout_s,
+                retry_s=retry_s,
+            )
+        except (OSError, json.JSONDecodeError):
+            raw = None
+        if isinstance(raw, dict):
+            for line in (raw.get("stdout") or "").splitlines():
+                if line.startswith("@VER: memnet|"):
+                    version = line.split("|", 1)[1].strip()
+                    break
+        if version is not None:
+            with self._lock:
+                self._ver_cache[backend.id] = (now, version)
         return version
 
     def _forward(

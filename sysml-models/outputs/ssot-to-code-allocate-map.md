@@ -20,6 +20,7 @@
 | tcpDaemonToMod | `…transport.tcp` | `serveDaemonMod` | `parts/common/memnet/memnet/serve.py` | `memnet.serve` | true |
 | adminUsageToMod | `…transport.tcp.adminUsage` | `adminUsageMod` | `parts/common/memnet/memnet/admin_usage.py` | `memnet.admin_usage` | true |
 | safeUpgradeToMod | `…transport.tcp.safeUpgrade` | `safeUpgradeMod` | `parts/common/memnet/memnet/upgrade.py` | `memnet.upgrade` | true |
+| serveRetryToMod | `…transport.tcp.clientRetry` | `serveRetryMod` | `parts/common/memnet/memnet/serve_retry.py` | `memnet.serve_retry` | true |
 | serveCheckpointToMod | `…transport.tcp.serveCheckpoint` | `serveCheckpointMod` | `parts/common/memnet/memnet/checkpoint.py` | `memnet.checkpoint` | true |
 | cliToMod | `memNetSystem.core.cli` | `cliMod` | `parts/common/memnet/memnet/cli.py` | `memnet.cli` | true |
 | sessionsToMod | `…sessions` | `sessionsMod` | `parts/common/memnet/memnet/session_lifecycle.py` | `memnet.session_lifecycle` | true |

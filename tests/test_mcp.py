@@ -50,6 +50,7 @@ def test_serve_required_without_inline(monkeypatch):
     monkeypatch.delenv("MEMNET_SERVE_INTERNAL", raising=False)
     monkeypatch.setenv("MEMNET_MCP_TRANSPORT", "tcp")
     monkeypatch.setenv("MEMNET_SERVE_PORT", "59999")
+    monkeypatch.setenv("MEMNET_SERVE_RETRY_S", "0")
     resp = run_memnet(["session", "current"])
     assert resp.exit_code == 2
     assert resp.errors

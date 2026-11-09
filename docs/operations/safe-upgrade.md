@@ -2,7 +2,21 @@
 
 Upgrade `memnet-serve` without dropping a loaded session (MN-REQ-06.14). The procedure stays inside the serve process: save every session, restart on the new version, reload every session. The agent loop does not change: cue, then `pin_map`, then `mutate`.
 
-During the restart, clients see `@ERR: serve_draining|retry_after_s=<seconds>` or a connection error. There is no client retry window.
+During the restart, the serve answers `@ERR: serve_draining|retry_after_s=<seconds>` or refuses the connection. Clients pause through it (MN-REQ-06.19); see [Restart-safe clients](#restart-safe-clients).
+
+## Restart-safe clients
+
+`memnet` CLI, `memnet-mcp` over tcp and the product gateway all reach the serve through one client pool. That pool pauses through a restart or a drain rather than failing:
+
+- **Connection refused, or reset before the request was fully sent**: the serve never read it, so any request is retried.
+- **`serve_draining`**: the serve refused before doing any work, so any request is retried after at least `retry_after_s`.
+- **Reset after the request was sent**: the serve may have run it. A read (`pin_map`, `find`, `typed_walk`, `session_list`, …) is retried. A write (`mutate`, `session_open`, `session_save`, ingest, snap, ACL, reserve, admin, …) is not: the caller gets the error, and the write is never replayed. Unknown commands count as writes.
+
+Waits use exponential backoff with jitter (0.1 s doubling, capped at 2 s). The total pause is capped by `MEMNET_SERVE_RETRY_S` (default 30 s, comfortably longer than a restart; `0` turns the pause off). When the budget runs out, the last error or the draining reply is returned.
+
+The product gateway's placement of a new session checks each candidate backend's version in turn. Only the last candidate gets the pause. Every earlier one is tried once with no retry, so a backend that stays down fails over to the next at once, as before. Calls to a pinned backend (house, `backend` or an owned session) pause for the full budget.
+
+`memnet-mcp --transport streamable-http` is stateless (`stateless_http`, JSON replies). No MCP session lives in the process, so a restart of memnet-mcp-http, or a second process behind the same front, drops no MCP session: the next `tools/call` works without re-initialising. MemNet sessions are tool arguments and live in the serve.
 
 ## Procedure
 
