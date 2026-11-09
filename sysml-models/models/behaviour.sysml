@@ -1785,6 +1785,24 @@ package MemNetBehaviour {
     out item matched : String;
   }
 
+  action def ServeRetryChoice {
+    doc /*
+      Implemented (MN-REQ-06.19; verify MN-VER-06-S17; tests
+      tests/test_serve_restart_retry.py). One serve request, client
+      side (ServePool.send, serve_pool.py; classes in serve_retry.py).
+      (1) Not delivered (connect refused or reset, frame not fully
+      written): wait backoff (0.1 s doubling, cap 2 s, jitter), retry
+      any request. (2) Reply @ERR: serve_draining|retry_after_s=N:
+      wait at least N, retry any request. (3) Reset after the frame
+      was written: READ waits backoff and retries; WRITE surfaces the
+      error, delivered once. (4) Each wait is clamped to what is left
+      of MEMNET_SERVE_RETRY_S (default 30 s); when none is left, the
+      last connect error or the draining envelope surfaces.
+    */
+    in item request : String;
+    out item reply : String;
+  }
+
   action def RestartRestoreChoice {
     doc /*
       Implemented (MN-REQ-06.17; verify MN-VER-06-S15; tests

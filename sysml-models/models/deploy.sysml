@@ -1437,8 +1437,9 @@ package MemNet {
       restore of the upgrade set retires the manifest in that
       same startup; retire is an audit mark and no longer stops
       a later restore: every start restores the newest valid
-      set, checkpoint or upgrade-prepare (MN-REQ-06.17). No
-      client retry. No systemd or gateway-pin helper.
+      set, checkpoint or upgrade-prepare (MN-REQ-06.17). Clients
+      pause through it (ServeClientRetry, MN-REQ-06.19). No systemd
+      or gateway-pin helper.
     */
     attribute implemented : Boolean = true;
     attribute noSemVerBump : Boolean = true;
@@ -1527,6 +1528,28 @@ package MemNet {
     satisfy MN_REQ_00_MissionBridge::MN_REQ_07_McpAgentBoundary::MN_REQ_07_3_NoDomainProductTools;
   }
 
+  part def ServeClientRetry {
+    doc /*
+      Client side of the serve wire (MN-REQ-06.19). ServePool.send
+      pauses through a serve restart or drain: bounded retry
+      (MEMNET_SERVE_RETRY_S, default 30 s), backoff with jitter,
+      retry_after honoured. Not delivered or serve_draining: retry
+      any request. Reset after send: READ only; a WRITE is never
+      replayed. Gateway and memnet-mcp tcp client inherit it.
+    */
+    attribute implemented : Boolean = true;
+    attribute noSemVerBump : Boolean = true;
+    attribute budgetEnv : String = "MEMNET_SERVE_RETRY_S";
+    attribute defaultBudgetS : Real = 30.0;
+    attribute errDraining : String = "serve_draining";
+    attribute honoursRetryAfter : Boolean = true;
+    attribute replaysWriteAfterSend : Boolean = false;
+
+    perform action retryChoice : MemNetBehaviour::ServeRetryChoice;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_19_RestartSafeTransport;
+  }
+
   part def TcpServeBridge {
     doc /*
       Migration / multi-process fallback: length-prefixed JSON over TCP
@@ -1537,6 +1560,7 @@ package MemNet {
       adminUsage = MN-REQ-06.11 admin JSON (opaque aliases; not 06.5).
       safeUpgrade = MN-REQ-06.14 drain, manifest, and startup restore.
       serveCheckpoint = MN-REQ-06.15 per-session checkpoint; no drain.
+      clientRetry = MN-REQ-06.19 client pause through restart or drain.
       Many mn_* sessions in one registry. Not a projectId map.
       Not a second graph. Admin report MUST NOT emit those mn_* ids.
     */
@@ -1548,6 +1572,7 @@ package MemNet {
     part adminUsage : AdminUsageReport;
     part safeUpgrade : SafeServeUpgrade;
     part serveCheckpoint : ServeCheckpoint;
+    part clientRetry : ServeClientRetry;
     attribute host : String = "127.0.0.1";
     attribute listenPort : Integer = 18765;
     attribute requestOutputIsolated : Boolean = true;
@@ -1981,7 +2006,7 @@ package MemNet {
       rule). Agent memory payloads: GQL mutate + shaped pin_map.
       Structured JSON envelopes. No domain-product tools. LLM agents
       connect here to MemNet — not to DurableBuffer. Python rewrite
-      out of scope.
+      out of scope. Streamable-http is stateless (MN-REQ-06.19).
     */
     port apiOut : InProcessOutPort;
     port hostOut : JsonEnvelopeOutPort;
@@ -3815,6 +3840,7 @@ package MemNet {
     attribute gatewayCapsBelowBackend : Boolean = false;
     attribute bodyCeilingDeclared : Boolean = true;
     attribute versionPinPerProduct : Boolean = true;
+    attribute pausesThroughBackendRestart : Boolean = true;
     attribute listFilteredByProduct : Boolean = true;
     attribute foreignSessionGatewayErr : Boolean = true;
     attribute publicBindDefault : Boolean = false;

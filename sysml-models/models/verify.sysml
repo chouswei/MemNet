@@ -53,7 +53,7 @@
   Safe serve upgrade (MN-VER-06-S12): SafeServeUpgrade on
   TcpServeBridge; admin drain; manifest; startup restore;
   retire after a clean restore (audit mark; a later restart
-  still restores); no client retry; no silent session loss;
+  still restores); client pause is S17; no silent session loss;
   no SemVer bump.
   Restart restore (MN-VER-06-S15): SafeUpgradeMod; newest valid
   set of checkpoint and upgrade-prepare, tie to upgrade; retired
@@ -63,6 +63,11 @@
   memnet-mcp extra (MN-VER-06-S16): McpServerMod; console
   memnet_mcp.entry:main; one line mcp_extra_missing, exit 2, every
   transport and --help. Runtime: tests/test_mcp_extra_missing.py.
+  Restart-safe transport (MN-VER-06-S17): ServeRetryMod and
+  McpServerMod; stateless memnet-mcp-http; bounded pause through
+  refuse, reset before send and serve_draining; READ only after
+  send; write never replayed. Runtime:
+  tests/test_serve_restart_retry.py, tests/test_mcp_http.py.
   Atelier-board asks (MN-VER-14-S01..S13; S01, S03, S04, S09 to S12 and S13 implemented with
   runtime tests, the rest PROPOSAL, target only, model-level, never
   counted as verified):
@@ -1694,7 +1699,7 @@ package MemNetVerification {
       longer stops a later restore, and a later start restores
       again (MN-REQ-06.17, MN-VER-06-S15).
       Same session id, ACL, TTL clock, and house. Not an
-      agent MCP tool. No client retry. No SemVer bump.
+      agent MCP tool. Client pause: MN-REQ-06.19. No SemVer bump.
       Tests: tests/test_safe_upgrade.py::test_clean_restore_retires_and_a_later_start_still_restores
       (renamed from ..._so_a_later_start_does_not_replay; the second
       start restores again and the manifest stays retired);
@@ -1869,6 +1874,51 @@ package MemNetVerification {
           and mcpMod.extraCheckBeforeArgs == true
           and mcpMod.everyTransportNeedsExtra == true
           and wheel.track == true
+      }
+    }
+  }
+
+  verification def MN_VER_06_S17_RestartSafeTransport {
+    doc /*
+      MN-REQ-06.19 — a restart or drain pauses callers and drops no
+      session; a write is never replayed.
+      Refused then accepted, read and write:
+      tests/test_serve_restart_retry.py::test_connect_refused_then_accept_succeeds_for_read_and_write;
+      serve_draining retry_after honoured, read and write:
+      ::test_draining_envelope_honours_retry_after_then_succeeds;
+      reset after send on a write is delivered once, not retried:
+      ::test_reset_after_send_on_write_is_not_retried;
+      reset after send on a read is retried:
+      ::test_reset_after_send_on_read_is_retried_and_succeeds;
+      bounded budget: ::test_budget_is_bounded_then_the_connect_error_surfaces,
+      ::test_draining_past_the_budget_returns_the_refusal,
+      ::test_retry_off_by_env; an over-cap reply is not retried:
+      ::test_oversized_reply_on_read_is_not_retried; verb classes: ::test_read_verbs,
+      ::test_write_verbs_and_unknown_fail_closed,
+      ::test_request_kind_admin_flags; gateway through a backend
+      restart: ::test_gateway_pauses_through_backend_restart.
+      Stateless MCP: tests/test_mcp_http.py::test_memnet_mcp_is_stateless_json,
+      ::test_tools_call_works_after_restart_without_session_header.
+    */
+    attribute verificationId : String = "MN-VER-06-S17";
+
+    subject retryMod : ServeRetryMod;
+    subject mcpMod : McpServerMod;
+
+    objective restartSafeTransport {
+      doc /* Implemented: fake serve on loopback with a fake clock; two memnet-mcp processes on one port. */
+      verify requirement restartSafeTransportReq : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_19_RestartSafeTransport;
+      require constraint {
+        retryMod.implemented == true
+          and retryMod.retriesNotDelivered == true
+          and retryMod.honoursRetryAfter == true
+          and retryMod.retriesReadAfterSend == true
+          and retryMod.replaysWriteAfterSend == false
+          and retryMod.unknownVerbIsWrite == true
+          and retryMod.gatewayProbeGate == false
+          and retryMod.nestedRetryLoops == 1
+          and mcpMod.statelessHttp == true
+          and mcpMod.jsonResponse == true
       }
     }
   }

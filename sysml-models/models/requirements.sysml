@@ -43,6 +43,7 @@
     MN-REQ-06.16       Session snapshot carries the ACL (enabled, grants, digest-only bind); format 2 SHALL carry #@ACL:; format 1 loads ACL off (@ACL: absent|off); files 0600; first v2 write over v1 keeps <file>.v1.bak once (0600); no dual write
     MN-REQ-06.17       Restart restore from the newest valid snapshot set (checkpoint or upgrade-prepare); every restart restores; loud fallback (@WARN: restore_fallback); none valid exits 3 (implemented; tests/test_restart_restore.py)
     MN-REQ-06.18       memnet-mcp fails fast without the [mcp] extra: one stderr line mcp_extra_missing, exit 2 (implemented; tests/test_mcp_extra_missing.py)
+    MN-REQ-06.19       Restart-safe transport: stateless memnet-mcp-http; ServePool/gateway pause through a serve restart or drain by bounded retry (30 s); a write is never replayed after send (implemented; tests/test_serve_restart_retry.py)
     MN-REQ-11.17       Catalog Snap / model Snap — session strata (0.15)
     MN-REQ-11.17.1     Cross-cut satisfy locators on the catalog; SysMLEdge
                        pin_map is a different tool (not this catalog)
@@ -1417,9 +1418,10 @@ package MemNetRequirements {
           method (cue then pin_map, mutate). No SemVer bump.
           Patch-level c on 0.19. memnet-mcp and the product
           gateway are outside this procedure. During the restart
-          they see serve_draining or a connection error. There
-          is no client retry window and no helper that edits a
-          systemd unit or a gateway version pin.
+          they see serve_draining or a connection error; the
+          client pause through it is MN-REQ-06.19. There is no
+          helper that edits a systemd unit or a gateway version
+          pin.
           Admin drain: credential MEMNET_ADMIN_TOKEN (same gate as
           MN-REQ-06.11; unset admin_unconfigured; mismatch
           admin_denied). Command `memnet admin upgrade-prepare`
@@ -1676,6 +1678,50 @@ package MemNetRequirements {
           tests/test_mcp_extra_missing.py.
         */
         attribute requirementId : String = "MN-REQ-06.18";
+      }
+
+      requirement def MN_REQ_06_19_RestartSafeTransport {
+        doc /*
+          Status: implemented. Owner goal t1305u: an upgrade may
+          pause callers, but sessions SHALL work after it. A restart
+          or drain of memnet serve, memnet-mcp-http or the product
+          gateway SHALL pause callers by bounded retry. It SHALL NOT
+          drop an MCP session or fail a durable in-flight read. A
+          write SHALL NOT be silently replayed.
+          (1) memnet-mcp streamable-http is stateless: FastMCP
+          stateless_http=true and json_response=true
+          (memnet_mcp/server.py). No tool keeps per-MCP-session
+          state; the MemNet session is a tool argument. After a
+          restart, a tools/call with no Mcp-Session-Id header works.
+          (2) ServePool.send (memnet/serve_pool.py) retries within
+          MEMNET_SERVE_RETRY_S (default 30 s; 0 turns retry off)
+          with exponential backoff and jitter (0.1 s doubling, cap
+          2 s). Retry any request that was not delivered: connect
+          refused or reset, or the frame not fully written (the
+          serve acts only on a whole frame). Retry any request the
+          serve refused with @ERR: serve_draining|retry_after_s=N,
+          after at least N seconds. When the budget runs out, the
+          last connect error or the draining envelope surfaces.
+          (3) A reset after the whole frame was written is retried
+          for READ requests only. A WRITE surfaces the error and is
+          delivered once. One module classifies requests
+          (memnet/serve_retry.py): a READ allowlist (version,
+          guide, examples, map show and fields, relations list,
+          session current, list, resume and expire-status, read
+          list, query pin-map, warm, find, walk, typed-walk,
+          neighbors, path and context, housekeep stats, stale,
+          orphans, dangling and recyclable, export pin-map without
+          --out, admin usage-report). Every other request is a
+          WRITE, so an unknown verb is never replayed.
+          (4) The product gateway and the memnet-mcp tcp client
+          inherit (2) and (3) through send_command. Neither gates on
+          probe first. The gateway caches no failed version check.
+          One retry loop only; the gateway adds no budget of its own.
+          No SemVer bump. Verify: MN-VER-06-S17. Evidence:
+          tests/test_serve_restart_retry.py,
+          tests/test_mcp_http.py::test_tools_call_works_after_restart_without_session_header.
+        */
+        attribute requirementId : String = "MN-REQ-06.19";
       }
     }
 
