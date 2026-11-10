@@ -18,7 +18,7 @@ Patch by labels+properties. leftover `MATCH ({id})` / leftover NEW mint are left
 
 ## Pin_map (shaped subgraph)
 
-Primary read returns a bounded neighbourhood. Cue with `kind` / `locators` / `keyword`. leftover `anchor`/`anchors` are leftover nicknames. Empty cue = outline. `find` then `pin_map` from labels+props — `find` is not goldfish read.
+Primary read returns a bounded neighbourhood. Cue with `kind` / `locators` / `keyword`. leftover `anchor`/`anchors` are leftover nicknames. Empty cue = outline (once at job start, not every turn). `find` then `pin_map` from labels+props — `find` is not goldfish read.
 
 Session schema (`session_open` map — not graph rows):
 

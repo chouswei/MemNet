@@ -14,6 +14,7 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 ### Changed
 
 - The `[mcp]` extra now needs `mcp>=1.8` (stateless streamable-http).
+- **`pin_map` caller advice** — the tool description, CLI help, README and guides no longer say to call `pin_map` every turn or to use an empty cue as the normal read. Call it only when a turn needs memory, with a real cue; ask for the empty-cue session outline once at job start if a census helps. Behaviour is unchanged: an empty cue still returns the 0.11 outline.
 
 ## [0.20.6] - 2026-11-04
 

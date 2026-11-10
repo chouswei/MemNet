@@ -42,7 +42,7 @@ Stable nicknames if used: `MOD_` + path slug; `SYM_` + short slug. Locators (`pa
 
 ## Workflow
 
-1. `pin_map` on the live `TSK_*` or a root `MOD` (cue `kind` / `path=`). Empty cue = outline.
+1. `pin_map` on the live `TSK_*` or a root `MOD` (cue `kind` / `path=`). Empty cue = outline (once at job start).
 2. Glob / Grep / Read the files in this batch.
 3. **`mutate`** CREATE/SET only facts just verified. Batch 30–80 atoms.
 4. Re-`pin_map` to confirm. Add `calls` / `uses` only from a Read of the call site.

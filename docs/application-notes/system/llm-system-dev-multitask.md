@@ -100,7 +100,7 @@ Probe with `serve_status` before delegating if transport is uncertain.
 
 ### MUST
 
-- Use the parent's **session id**; **`pin_map` first** every turn.
+- Use the parent's **session id**; **`pin_map`** with a real cue when a turn needs memory.
 - Copy assigned ids from a **filter-out / high enough** pin-map slice — **MUST NOT** invent ids the parent already minted. If `pin_map` is clipped at a hard cap, the emit **MUST** show a truncation mark (same honesty family as CueConflict); treat that as incomplete Shape (FND / checklist / fundamentals must not silently drop).
 - Mutate only under the **assigned subgraph** (anchors + relations in the prompt).
 - Return a concise result; durable facts live in MemNet rows.
@@ -189,7 +189,7 @@ Edges: `owns`, `about`, `constrained_by`, `led_to_success` (parent settle), doma
 | Failure | Symptom | Mitigation |
 |---------|---------|------------|
 | In-process MCP under Multitask | Worker writes invisible to parent | TCP/HTTP shared store; `serve_status` |
-| Chat as SSOT | Duplicate ids, stale paths | `pin_map` every turn; parent reconcile from session |
+| Chat as SSOT | Duplicate ids, stale paths | `pin_map` when a turn needs memory; parent reconcile from session |
 | Parent polls / re-investigates | Token waste; gate violation | End turn after spawn; next turn pin_map only |
 | Parallel same-anchor writers | Silent clobber | Serial worker or disjoint scopes |
 | Assuming full ACL modes / `session_token` | False isolation | CapsPolicy when enabled; RSV + Path-B ingest **are** shipped; full modes still to-be |

@@ -74,6 +74,6 @@ MATCH the same labels+properties — leftover nickname `id` is leftover.
 
 ## Pair with goldfish loop
 
-Each turn: **pin_map** first → act → **`mutate`** if the user said something that must persist.
+When the turn needs memory: **pin_map** (real cue) → act → **`mutate`** if the user said something that must persist.
 
 Cross-ref: [atomisation.md](atomisation.md) · [coding-memory.md](coding-memory.md) · [mcp-policy.md](mcp-policy.md)

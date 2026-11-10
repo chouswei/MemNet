@@ -15,7 +15,7 @@
 
 - Everything you need for the current task lives in the MemNet graph for this session.
 - You **mutate** with openCypher-shaped GQL under MemNet gates; you **read** a bounded shaped subgraph via **`pin_map`**.
-- Each turn you re-inject only the live slice via **`pin_map`** (MCP) or **`query pin-map`** (CLI).
+- When a turn needs memory, you re-inject only the live slice via **`pin_map`** (MCP) or **`query pin-map`** (CLI).
 - When a sub-task is done, **settle** it (`status` / recycle policy) so it disappears from future pin maps.
 - Never rely on your own previous messages for durable ids or facts.
 - Handoff between agents = **session id** (+ write scope). Re-`pin_map` from a cue. Prefer **import** for absorbing a member slice — chat is never SSOT.
@@ -72,11 +72,11 @@ Formal wire: [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md).
 
 `serve_status` probes TCP serve — optional under in-process. Do not block on serve when MCP is in-process.
 
-### Goldfish loop (every turn)
+### Goldfish loop (when a turn needs memory)
 
-Interact only with **relevant slices** of the session — never dump the graph. Default **one** `pin_map(q)` (or skip). **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Prefer **filter-out** (drop news / tighten cue) or uncapped / high enough `max_rows` over hard truncate that drops `FND` / checklist / fundamentals. Engine \(M\) caps stay hard rejects — change cue/filter/scope. When ShapeWalk **does** hit a hard cap (`max_rows` / hop / budget) and the offer is clipped, the emit **MUST** carry an explicit truncation signal — same honesty family as **CueConflict** (visible on the wire, not silent). Treat that as an **incomplete Shape**; never claim a complete extract. Wire-flag honesty `c` MAY land in a sibling PR; the MUST holds even if the emit token follows. Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
+Interact only with **relevant slices** of the session — never dump the graph. Call `pin_map(q)` only when the turn needs something from memory, with a real cue; otherwise skip, and at most **one** per generate. **Drop** prior map rows from the prompt before the next generate — stuffing MCP JSON into a growing chat list is a fail (`stuffed_maps`). Prefer **filter-out** (drop news / tighten cue) or uncapped / high enough `max_rows` over hard truncate that drops `FND` / checklist / fundamentals. Engine \(M\) caps stay hard rejects — change cue/filter/scope. When ShapeWalk **does** hit a hard cap (`max_rows` / hop / budget) and the offer is clipped, the emit **MUST** carry an explicit truncation signal — same honesty family as **CueConflict** (visible on the wire, not silent). Treat that as an **incomplete Shape**; never claim a complete extract. Wire-flag honesty `c` MAY land in a sibling PR; the MUST holds even if the emit token follows. Commit a **sparse** Δ (`add`/`update` of what changed only). Env blobs (pytest logs, screenshots) stay in the outer harness. That writeback is not Path-B absorb.
 
-1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(q\) (no cue) ⇒ **session outline** (0.11: kinds + LIMIT exemplars of \(S\)); then pick one seen cue. Empty \(Q\) on a *kind* cue ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
+1. **Seed relative nodes** — cue \(q\) (kind / labels+props / keyword). `find(kind='TSK', limit=L)` / `memnet query find --kind TSK --limit L` yields \(Q\). Empty \(q\) (no cue) ⇒ **session outline** (0.11: kinds + LIMIT exemplars of \(S\)); ask for it once at job start, then pick one seen cue. Empty \(Q\) on a *kind* cue ⇒ skip (do not invent). leftover 0.9: copy an id then `--anchor` is leftover, not this loop.
 2. **ShapeWalk one slice** from \(Q\) (one \(M\), not \(M\times|Q|\)):
 
    MCP: `pin_map` from the cue/pattern (`kind` / `locators` / `keyword`)  
@@ -98,7 +98,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 
 Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. AgensGraph **0.7** is adapter + operator round trip (no runtime caller) when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work, and not a runtime caller. Neo4j is retired. `MEMNET_NEO4J_*` is ignored; the engine still starts. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
-Repeat. Each new turn starts with `pin_map(q)` (or empty-q outline). Drop the previous map from the pack.
+Repeat only when a later turn needs memory: `pin_map(q)` with a real cue. Drop the previous map from the pack.
 
 ### MCP quick reference (primary)
 
@@ -206,7 +206,7 @@ Do **not** confuse this key with `MEMNET_MCP_HTTP_TOKEN`, CapsPolicy `session_to
 
 ### Multi-agent / Multitask
 
-**MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` each turn. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
+**MUST** follow `docs/operations/multi-agent-sessions.md` when Multitask Mode or Task sub-agents are in play. One shared session id; parent settles `TSK_*` / `USR_*`; workers re-`pin_map` (real cue) when a turn needs memory. **MUST NOT** use default in-process MCP for shared Multitask graphs — use TCP serve or streamable-http. Path-B join: ImportGuard is optional — see **ImportGuard (optional soft LLM)** above.
 
 ### Model host (prefix)
 

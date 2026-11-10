@@ -45,7 +45,7 @@ flowchart TB
 2. One SCPI command per `CMD` node.
 3. Awkward characters in SCPI → tool stdin / quoted STRING properties — not bare pipe wire.
 4. Handshake order before setup; setup/trigger before acquire before measure.
-5. **`pin_map` from a cue** every turn — never dump the whole corpus. leftover `anchor=` is leftover.
+5. **`pin_map` from a cue** when a turn needs memory — never dump the whole corpus. leftover `anchor=` is leftover.
 
 ---
 

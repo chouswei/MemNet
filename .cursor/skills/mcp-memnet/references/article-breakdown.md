@@ -52,7 +52,7 @@ SCHEMA TSK ; fields=goal deadline status recycle
      split into CLM rows (one idea each)
      add ENT for named entities
      add edges: ART→SEC, SEC→CLM, CLM→ENT
-4. Each turn: pin_map(kind='SEC', locators=['heading=…'])  # or TSK by goal
+4. When a turn needs memory: pin_map(kind='SEC', locators=['heading=…'])  # or TSK by goal
 5. Generate summary / synthesis from pin-map slice only
 6. settle TSK when article pass is done
 ```
