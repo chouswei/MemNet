@@ -7,6 +7,8 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.7] - 2026-11-10
+
 ### Added
 
 - **Restart-safe transport** — an upgrade or restart of `memnet serve`, memnet-mcp-http or the product gateway now pauses callers instead of breaking them. The client pool (`ServePool.send`, used by the CLI, the memnet-mcp tcp client and the gateway) retries a refused connection, a reset before the request was fully sent, and `@ERR: serve_draining|retry_after_s=N` (waiting at least `N`), with exponential backoff and jitter, for at most `MEMNET_SERVE_RETRY_S` (default 30 s; `0` turns it off). A reset after the request was sent is retried for reads only; a write is never replayed. One module, `memnet.serve_retry`, says which commands are reads; anything else, including an unknown command, counts as a write. memnet-mcp streamable-http is stateless with JSON replies, so a restart drops no MCP session. The gateway no longer probes before a call or caches a failed version check. When it places a new session, only the last candidate backend pauses; a down backend with another behind it is tried once and skipped, so fail-over stays instant. MN-REQ-06.19, MN-VER-06-S17.
