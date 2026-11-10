@@ -49,9 +49,11 @@ def guide_text(*, loose: bool = False) -> str:
             "Mutate: CREATE / MATCH…SET / MERGE / DELETE; "
             "SameThingAbsorb: MATCH (a),(b) SET a += b after CueConflict.",
             "Create by labels+properties. leftover id:'NEW' mint is leftover, not product.",
-            "Live pin map: query pin-map --kind/--locator/--keyword/--cue (empty cue = outline).",
+            "Live pin map: query pin-map --kind/--locator/--keyword/--cue "
+            "(an empty cue returns the outline; use it once at job start).",
             "leftover --anchor is a leftover nickname alias, not TARGET law.",
-            "Goldfish caller: one pin_map(q) per generate; drop prior maps.",
+            "Goldfish caller: pin_map(q) only when the turn needs memory, "
+            "with a real cue; drop prior maps.",
             "Product Commit: memnet mutate --stdin (GQL CREATE/MERGE/SET/DELETE; no NEW mint).",
             "leftover add/update names remain leftover façades (do not teach as TARGET).",
             "Pin-map ingest: locators (path=, qname=, refdes=, skill_id=); no client NEW.",
@@ -74,7 +76,8 @@ Doctrine:
   Pin-map export: memnet export pin-map (shaped GQL of cue pin_map; empty cue = outline)
   Catalog Snap: snap model → catalog + interiors; look = pin_map; join = import-slice
   leftover import-slice --id-policy is leftover MERGE-as-lookup, not a PK teach
-  Goldfish caller: pin_map(q) or empty-q outline; drop prior maps; sparse Δ; env blobs in harness
+  Goldfish caller: pin_map(q) only when the turn needs memory (real cue;
+    outline once at job start); drop prior maps; sparse Δ; env blobs in harness
   Transport: in-process MCP first; LocalIpc (MEMNET_IPC_SOCKET) or serve/TCP
 
 Quick start (CLI sessions still need serve today):

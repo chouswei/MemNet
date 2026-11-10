@@ -65,7 +65,7 @@ Shaped pin map (illustrative; nickname `id` only if set):
 (:NPC {role: 'helper'})-[:helps {note: 'labour'}]->(:TSK {goal: 'Clear warehouse'})
 ```
 
-Create nodes by labels and properties (`CREATE ()` is legal); you don't mint ids yourself. The old `id:'NEW'` placeholder and `@ID:` id map are legacy and not part of the product. Each turn, call `pin_map(q)` (or skip it) and **drop** earlier maps from the prompt. The old `--anchor` flag still works, but only as a nickname cue. Agents speak **GQL only** (openCypher-shaped); no other input format is accepted. The wire format is defined in [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md).
+Create nodes by labels and properties (`CREATE ()` is legal); you don't mint ids yourself. The old `id:'NEW'` placeholder and `@ID:` id map are legacy and not part of the product. Call `pin_map(q)` only when a turn needs something from memory, with a real cue (not every turn, and not with an empty cue), and **drop** earlier maps from the prompt. The old `--anchor` flag still works, but only as a nickname cue. Agents speak **GQL only** (openCypher-shaped); no other input format is accepted. The wire format is defined in [`docs/grammar/gql-wire-profile.md`](docs/grammar/gql-wire-profile.md).
 
 MCP in-process (`memnet-mcp`) does not need serve — that's the usual single-agent path.
 

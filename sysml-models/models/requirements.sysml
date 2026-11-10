@@ -520,7 +520,7 @@ package MemNetRequirements {
 
       requirement def MN_REQ_04_1_AnchoredPinMap {
         doc /*
-          SHALL return a bounded live pin map for each turn -- a shaped
+          SHALL return a bounded live pin map for a cued request -- a shaped
           neighbourhood digest of pins -- not the full session or a raw
           search dump. Goldfish seeds from a cue or pattern (find); pin_map
           walks a shape. RelativeSeed MATCH_L yields walk-root elements Q;

@@ -21,7 +21,7 @@ Hatch **0.19.3**. Chat is never SSOT. Novel-writer is out of scope. **GQL only.*
 
 1. **Open** — `session_open` with a SCHEMA map (`map_file` / `map_lines`) covering every kind you will mutate. Missing kind → `unknown_tag`. Bundled maps: `parts/common/memnet/memnet/examples/schema.*.example.txt`.
 2. **Transport** — single agent: in-process MCP. Multitask / Task workers: TCP or streamable-http; load [memnet-multitask](../memnet-multitask/SKILL.md). Shared serve down: files only; plain Markdown.
-3. **Cue** — `kind` + labels+properties (`goal` / `name` / `qname` / `path` / `requirementId`) / keyword. Ego unknown: `find(limit=…)` then `pin_map` from that pattern. Prefer one live `TSK_*`. leftover `anchor=` is leftover. Empty cue = session outline (0.11). CueConflict when \(|Q|>1\) — do not pick one root.
+3. **Cue** — `kind` + labels+properties (`goal` / `name` / `qname` / `path` / `requirementId`) / keyword. Ego unknown: `find(limit=…)` then `pin_map` from that pattern. Prefer one live `TSK_*`. leftover `anchor=` is leftover. Empty cue = session outline (0.11), once at job start, not every turn. CueConflict when \(|Q|>1\) — do not pick one root.
 4. **`pin_map`** — one \(S\) per generate; complete Shape of **this** cue. **Drop** the prior map next turn.
 5. **Act** from that Shape plus the current request. Narrow-Read files at `SYM.line` / `SYM.path`.
 6. **Sparse Commit** — MCP/CLI **`mutate`** (`CREATE` / `MATCH`…`SET`/`DELETE`). leftover `add`/`update` / `id:'NEW'` are leftover-named.

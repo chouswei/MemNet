@@ -198,6 +198,13 @@ def test_mcp_tool_names(monkeypatch):
     assert "view" in props
     assert "depth" in props
     assert "max_rows" in props
+    pin_doc = " ".join((pin_tool.description or "").split())
+    assert "only when this turn actually needs something from memory" in pin_doc
+    assert "always with a real cue" in pin_doc
+    assert "once at job start" in pin_doc
+    assert "Drop prior pin_map rows" in pin_doc
+    assert "each turn call this" not in pin_doc
+    assert "empty-q outline of S" not in pin_doc
     add_tool = next(t for t in names if t.name == "add")
     add_doc = add_tool.description or ""
     assert "leftover" in add_doc.lower()

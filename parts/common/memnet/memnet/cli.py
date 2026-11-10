@@ -1848,12 +1848,13 @@ def query_pin_map(
 ) -> None:
     """Live pin map from a cue (kind / locators / keyword / --cue).
 
-    Goldfish caller (0.13): each turn pin_map(q) or outline-on-empty; drop prior
-    map rows from the prompt; sparse Δ; env blobs stay in the harness. leftover
-    --anchor is a leftover nickname alias, not TARGET law. Empty cue is session
-    outline (0.11 Recall census of S) regardless of --view. view=shell is grain
-    on a seed, not the outline. CueConflict when |Q|>1. Truncation when a
-    hard cap clips the neighbourhood (caps stay hard).
+    Goldfish caller (0.13): call only when the turn needs memory, with a real
+    cue; do not call every turn. Drop prior map rows from the prompt; sparse Δ;
+    env blobs stay in the harness. leftover --anchor is a leftover nickname
+    alias, not TARGET law. An empty cue still gives the session outline (0.11
+    Recall census of S) regardless of --view; ask for it once at job start, not
+    per turn. view=shell is grain on a seed, not the outline. CueConflict when
+    |Q|>1. Truncation when a hard cap clips the neighbourhood (caps stay hard).
     """
     _run_pin_map(
         cue=cue,

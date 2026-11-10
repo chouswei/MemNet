@@ -338,14 +338,18 @@ async def pin_map(
 ) -> str:
     """Live pin map: bounded shaped GQL neighbourhood.
 
-    Goldfish caller (0.13): each turn call this with a cue ``q`` (or empty-q
-    outline of S). Drop prior pin_map rows from the prompt before the next
-    generate. Sparse Δ on mutate. Env blobs stay in the outer harness.
+    Call only when this turn actually needs something from memory, and
+    always with a real cue (``kind`` / ``locators`` / ``keyword`` /
+    nickname ``cue`` / ``session``). Do not call every turn, and do not
+    call with an empty cue just to refresh context. An empty cue still
+    returns a session outline (0.11: kinds + LIMIT exemplars of S)
+    regardless of ``view``; request that outline once at job start if
+    you need a census, not every turn. Drop prior pin_map rows from the
+    prompt before the next generate. Sparse Δ on mutate. Env blobs stay
+    in the outer harness.
 
-    Product cue: ``kind`` / ``locators`` / ``keyword`` / ``cue`` (nickname) /
-    ``session``. leftover ``anchor`` / ``anchors`` are leftover nickname aliases,
-    not TARGET law. Empty cue is session outline (0.11: kinds + LIMIT exemplars
-    of S) regardless of ``view``. ``view=shell`` is grain on a seed — not the
+    leftover ``anchor`` / ``anchors`` are leftover nickname aliases,
+    not TARGET law. ``view=shell`` is grain on a seed — not the
     outline. When the cue yields |Q|>1 the emit carries CueConflict.
     When a hard cap clips the neighbourhood the emit carries Truncation
     (``## Truncation truncated=true``); caps stay hard.

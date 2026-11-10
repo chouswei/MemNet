@@ -29,7 +29,7 @@ From that problem, the product **must** be this shape:
 
 1. **Named session \(S\)** — a labelled property graph (GQL **node**/vertex, **edge**/relationship, **property**). The handle you pass is the **session id**. Peers **re-`pin_map`** from a codebook cue (labels+properties / keyword). They do not receive a graph dump in chat. Optional property `id` is a nickname, not identity.
 
-2. **Goldfish read** — each turn the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (kind / labels+properties / keyword / `find`), then neighbourhood. Empty \(q\) is **session outline** (0.11). Skip is valid when a *cued* seed is empty. When MATCH_L \(|Q|>1\), the emit carries **CueConflict** (list \(Q\), show cardinality) — do not pick one root and do not absorb. A codebook miss last-resorts **Peak_L** and **MUST** carry **CueMiss** / **Peak_L**, not CueConflict.
+2. **Goldfish read** — when a turn needs memory, the agent sees only a bounded **Recall Shape** \(\tilde{X} = \mathrm{Recall}(q)\), not raw \(S\). Cue first (kind / labels+properties / keyword / `find`), then neighbourhood. Empty \(q\) is **session outline** (0.11); request it once at job start, not every turn. Skip is valid when a *cued* seed is empty. When MATCH_L \(|Q|>1\), the emit carries **CueConflict** (list \(Q\), show cardinality) — do not pick one root and do not absorb. A codebook miss last-resorts **Peak_L** and **MUST** carry **CueMiss** / **Peak_L**, not CueConflict.
 
 3. **Sparse write** — \(\mathrm{Commit}(\Delta)\) gated mutate. Same **GQL (openCypher-shaped)** alphabet as the read. **Write = display**: the live pin map is a shaped subgraph emit, not a second language.
 

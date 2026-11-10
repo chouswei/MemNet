@@ -9,7 +9,7 @@ Optional extra HTTP `memnet-pi` is a human-machine path — not this cloud VM.
 1. `serve_status` — TCP only; skip under in-process
 2. `session_open` — `map_file` or `map_lines`
 3. `find` if ego unknown (`limit` required)
-4. `pin_map` every turn from a **cue**
+4. `pin_map` from a **cue**, only when the turn needs memory
 5. `mutate` (`wire_lines`; `llm_id` under RSV)
 6. Optional: `session_save` / `export_pin_map` / `housekeep_stats`
 
