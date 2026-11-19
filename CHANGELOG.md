@@ -7,6 +7,10 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Changed
+
+- **Mutate cost no longer grows with session size** — the `@WRN: stale_*` lines that every session-loading command emits used to come from a full scan of the session, redone after every write (a single insert went from 1.7 ms at 490 rows to 9.6 ms at 9,800). The recyclable, dangling and orphan counts are now kept by the row table (`memnet.stale_index`) and updated from the rows each write touches; load and restore rebuild once. The warning text and wire bytes are unchanged (no new fields). The full scan remains as the reference, in `housekeep stats` and in prune. `ops/bench_mutate_warn.py` measures it.
+
 ## [0.20.7] - 2026-11-10
 
 ### Added

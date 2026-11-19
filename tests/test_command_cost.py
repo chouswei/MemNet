@@ -151,7 +151,7 @@ def test_system_exit_codes_kept(memnet_temp, monkeypatch):
     assert run_memnet(["version"]).exit_code == 3
 
 
-# 4 — emit_stale_warnings: one categorising pass, same @WRN lines.
+# 4 — emit_stale_warnings: no categorising pass (incremental index), same @WRN lines.
 def test_stale_warnings_one_pass_same_lines(memnet_temp, monkeypatch):
     from memnet.housekeep import dangling_rows, orphan_rows, recyclable_rows
     from memnet.warnings import emit_stale_warnings
@@ -177,7 +177,7 @@ def test_stale_warnings_one_pass_same_lines(memnet_temp, monkeypatch):
     with capture_request_stdio(None) as (_out, err):
         emit_stale_warnings(ss)
         got = [line for line in err.getvalue().splitlines() if line.startswith("@WRN:")]
-    assert calls[0] == 1, f"_categorise called {calls[0]} times"
+    assert calls[0] == 0, f"_categorise called {calls[0]} times"
     assert got == expected
 
     from memnet.housekeep import stale_counts
@@ -185,8 +185,8 @@ def test_stale_warnings_one_pass_same_lines(memnet_temp, monkeypatch):
     assert stale_counts(ss) == (r, d, o)
 
 
-# 5 — one session-loading CLI command categorises once.
-def test_query_find_categorises_once(memnet_temp, monkeypatch):
+# 5 — a session-loading CLI command runs no categorising pass.
+def test_query_find_does_not_categorise(memnet_temp, monkeypatch):
     from memnet.in_process_engine import run_argv
 
     ss = _stale_session()
@@ -194,4 +194,4 @@ def test_query_find_categorises_once(memnet_temp, monkeypatch):
     calls = _spy_categorise(monkeypatch)
     resp = run_argv(["query", "find", "--kind", "PRT", "--limit", "5", "--session", sid])
     assert resp["exit_code"] == 0, resp["stderr"]
-    assert calls[0] == 1, f"_categorise called {calls[0]} times"
+    assert calls[0] == 0, f"_categorise called {calls[0]} times"
