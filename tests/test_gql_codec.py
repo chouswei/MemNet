@@ -201,3 +201,17 @@ def test_rel_delete_by_nickname_ends_is_accepted():
     e = doc.items[0]
     assert isinstance(e, EdgeRec)
     assert (e.op, e.frm, e.rel, e.to) == (Op.DROP, "A", "helps", "B")
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "CREATE (:TSK {goal: $g})",
+        "MERGE (n:TSK {goal: $g}) SET n += {a: 1}",
+        "MATCH (n:TSK {goal: 'x'}) SET n.z = $v",
+    ],
+)
+def test_parameters_are_refused(text):
+    with pytest.raises(ParseError) as exc:
+        parse(text)
+    assert exc.value.code == "parameter_unsupported"

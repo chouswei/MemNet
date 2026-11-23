@@ -52,9 +52,9 @@ Product `SoftwareAllocate` (SSOT part → live module) is the implementation led
 `:CON` matches Schummer & Hyba (2022) `:HYPERNODE` — SysML connector as LPG node ([arXiv:2201.06363](https://arxiv.org/abs/2201.06363)). Ends stay edges. Not a mission `TSK`.
 
 ```cypher
-MATCH (t:TSK {goal: $goal})
+MATCH (t:TSK {goal: 'TSK_model_<short>'})
 CREATE (p:PRT {name: 'Pdu', kind: 'partUsage'})-[:hasPort]->(por:POR {name: 'pwr_in', kind: 'portUsage', dir: 'in'})
-CREATE (p)-[:satisfies]->(:REQ {requirementId: $req})
+CREATE (p)-[:satisfies]->(:REQ {requirementId: 'R1'})
 ```
 
 Cue and MATCH by labels+properties (`goal`, `name`, `qname`, `path`, `requirementId`). leftover nickname `id` / `locators=['id=…']` are leftover.
