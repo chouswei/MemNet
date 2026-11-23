@@ -158,3 +158,46 @@ def test_parse_keyword_label_and_rel_and_prop():
 def test_reject_bad_create():
     with pytest.raises(ParseError):
         parse("CREATE something weird")
+
+
+# --- Accepted-subset pins (gql-wire-profile.md §1.4) -------------------------
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "CREATE (:A:B {x: 1})",
+        "CREATE (:TSK {goal: 'a'}), (:TSK {goal: 'b'})",
+        "CREATE (:TSK {goal: 'a'});CREATE (:TSK {goal: 'b'})",
+        "// note\nCREATE (:TSK {goal: 'a'})",
+        "MATCH (a:A {x: 1})-[r:helps]->(b:B {y: 2}) DELETE r",
+    ],
+)
+def test_subset_refusals_are_parse_errors(text):
+    with pytest.raises(ParseError):
+        parse(text)
+
+
+@pytest.mark.parametrize("clause", ["RETURN n", "WITH n AS m RETURN m"])
+def test_match_return_is_product_gate(clause):
+    with pytest.raises(ParseError) as exc:
+        parse(f"MATCH (n:TSK {{goal: 'x'}}) {clause}")
+    assert exc.value.code in {"product_gate", "parse_error"}
+
+
+def test_unwind_is_product_gate():
+    with pytest.raises(ParseError) as exc:
+        parse("UNWIND [1, 2] AS x CREATE (:N {v: x})")
+    assert exc.value.code == "product_gate"
+
+
+def test_keywords_are_case_insensitive():
+    doc = parse("create (:tsk {goal: 'a'})")
+    assert doc.items[0].op == Op.CREATE
+
+
+def test_rel_delete_by_nickname_ends_is_accepted():
+    doc = parse("MATCH (a {id: 'A'})-[r:helps]->(b {id: 'B'}) DELETE r")
+    e = doc.items[0]
+    assert isinstance(e, EdgeRec)
+    assert (e.op, e.frm, e.rel, e.to) == (Op.DROP, "A", "helps", "B")
