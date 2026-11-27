@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from memnet import proxy
 from memnet.config import standard_relation
 from memnet.exceptions import MemNetError
 from memnet.gql import (
@@ -555,6 +556,7 @@ class MutateGate:
             llm_id=llm_id,
             store=self.ss.store,
         )
+        proxy.check_records(records)
 
         if dry_run:
             ack = [emit_item(x, as_mutate=True) for x in ack_items]
@@ -715,6 +717,8 @@ class MutateGate:
                 if survivor is not None:
                     touched_lines.add(survivor.hid)
                 touched_lines.update(eid for eid, _field in ep_changes)
+            # SET / MERGE / absorb / rename merge into stored rows: re-check PROXY shape.
+            proxy.check_stored(self.ss.store, touched_lines)
             self._refuse_over_line_cap(touched_lines)
             self.ss.mark_written()
         except MemNetError:
@@ -1193,6 +1197,7 @@ class MutateGate:
         agent: str | None,
         dialect: str,
     ) -> MutateResult:
+        proxy.check_records(records)
         if dry_run:
             ack = [emit_record(r, self.ss.tag_map) for r in records]
             return MutateResult(records=records, ack_lines=ack, dialect=dialect)

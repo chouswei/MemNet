@@ -7,7 +7,7 @@ import re
 
 from memnet.config import ID_PATTERN, RESERVED_TAGS, Caps, normalize_relation
 from memnet.exceptions import MemNetError
-from memnet.fixed_tags import FIXED_TAGS
+from memnet.fixed_tags import FIXED_TAGS, SNAPSHOT_OMIT_SCHEMA
 from memnet.models import Record, TagDef, TagMap
 from memnet.wire import emit_record_line, escaped_utf8_len, parse_tag_line, split_payload
 
@@ -174,8 +174,11 @@ def emit_schema_line(tag: str, fields: list[str]) -> str:
 
 
 def tag_map_to_lines(tag_map: TagMap) -> list[str]:
+    """SCHEMA lines as a snapshot writes them (SNAPSHOT_OMIT_SCHEMA tags left out)."""
     lines: list[str] = []
     for tag in tag_map.tag_names():
+        if tag in SNAPSHOT_OMIT_SCHEMA:
+            continue
         td = tag_map.tags[tag]
         lines.append(emit_schema_line(tag, td.fields))
     return lines
@@ -308,6 +311,11 @@ def parse_line(
         raise MemNetError("unknown_tag", f"{tag} not in tagMap known: {known}")
     values = split_payload(payload)
     fields = validate_values(tag_def, values, caps)
+    if tag == "PROXY":
+        # Pipe add/update, snapshot load and restore all parse rows here.
+        from memnet.proxy import check_proxy_fields
+
+        check_proxy_fields(fields)
     nick = fields.get("id", "")
     if nick:
         if used_nicks is not None:
