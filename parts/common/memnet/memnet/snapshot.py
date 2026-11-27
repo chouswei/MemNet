@@ -53,6 +53,11 @@ _ACL_PREFIX = "#@ACL:"
 # Per-prefix minted-id high-water, written only when it is above the live ids
 # (a deleted id must not be re-minted after reload). A ``#`` line; optional.
 _IDHW_PREFIX = "#@IDHW: "
+# Per-session cap overrides (MN-REQ-05.6), written only when one is set, so every
+# other file stays byte-identical. A ``#`` line: 0.20.8 skips it and loads with
+# the process caps, which are never tighter than the override.
+_LIM_PREFIX = "#@LIM: "
+_LIM_KEYS = ("max_rows", "max_session_bytes")
 _SECTION_MAP = "# map"
 _SECTION_REL = "# relations"
 _SECTION_REC = "# records"
@@ -338,11 +343,17 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str], *, budget: bool = T
 
 
 def _refuse_session_bytes(
-    ss: SessionStore, hid_to_nick: dict[str, str], emit_map: TagMap, total: int
+    ss: SessionStore,
+    hid_to_nick: dict[str, str],
+    emit_map: TagMap,
+    total: int,
+    budget: int | None = None,
 ) -> None:
     """MN-REQ-14.10: refuse when the session's escaped snapshot line bytes
-    (schema + record + edge lines, UTF-8) would exceed max_session_bytes."""
-    budget = ss.caps.max_session_bytes
+    (schema + record + edge lines, UTF-8) would exceed the budget (default: the
+    write-time budget in force, :func:`effective_session_bytes`)."""
+    if budget is None:
+        budget = effective_session_bytes(ss)
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
         if rec:
@@ -351,6 +362,14 @@ def _refuse_session_bytes(
                 break
     if total > budget:
         raise MemNetError("limit_exceeded", f"session_bytes|{total}/{budget}")
+
+
+def effective_session_bytes(ss: SessionStore) -> int:
+    """The byte budget in force: min(session override, MEMNET_MAX_SESSION_BYTES)."""
+    override = ss.meta.max_session_bytes
+    if override is None:
+        return ss.caps.max_session_bytes
+    return min(override, ss.caps.max_session_bytes)
 
 
 def refuse_session_budget(ss: SessionStore) -> None:
@@ -366,7 +385,10 @@ def refuse_session_budget(ss: SessionStore) -> None:
             return  # save reports it
         raise
     total = sum(len(line.encode("utf-8")) for line in tag_map_to_lines(emit_map))
-    _refuse_session_bytes(ss, _snapshot_nicks(ss), emit_map, total)
+    # The process cap, not a session override: this guards that the file reloads, and
+    # load checks the process cap (MN-REQ-05.6 keeps an over-override session saveable).
+    budget = ss.caps.max_session_bytes
+    _refuse_session_bytes(ss, _snapshot_nicks(ss), emit_map, total, budget)
 
 
 def refuse_snapshot_text_budget(map_lines: list[str], rec_lines: list[str], caps: Caps) -> None:
@@ -406,6 +428,69 @@ def _idhw_line(ss: SessionStore) -> str | None:
     return _IDHW_PREFIX + json.dumps(hw, sort_keys=True, separators=(",", ":"))
 
 
+def _limits_of(meta: SessionMeta) -> dict[str, int]:
+    """The cap overrides set on a session; empty when it runs on the process caps."""
+    return {k: v for k in _LIM_KEYS if (v := getattr(meta, k)) is not None}
+
+
+def _lim_line(meta: SessionMeta) -> str | None:
+    limits = _limits_of(meta)
+    if not limits:
+        return None
+    return _LIM_PREFIX + json.dumps(limits, sort_keys=True, separators=(",", ":"))
+
+
+def _parse_lim(lines: list[str]) -> dict[str, int]:
+    """Cap overrides from the ``#@LIM:`` line. Absent: {}.
+
+    Fail closed on a malformed line: dropping it would silently loosen the session.
+    Unknown keys are ignored (forward compatible).
+    """
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith(_LIM_PREFIX.rstrip()):
+            continue
+        try:
+            data = json.loads(line.removeprefix(_LIM_PREFIX.rstrip()))
+        except ValueError as exc:
+            raise MemNetError("bad_snapshot", "malformed LIM line") from exc
+        if not isinstance(data, dict):
+            raise MemNetError("bad_snapshot", "malformed LIM line")
+        out: dict[str, int] = {}
+        for key in _LIM_KEYS:
+            if key not in data:
+                continue
+            val = data[key]
+            if not isinstance(val, int) or isinstance(val, bool) or val < 1:
+                raise MemNetError("bad_snapshot", "malformed LIM line")
+            out[key] = val
+        return out
+    return {}
+
+
+def _process_cap(caps: Caps, key: str) -> int:
+    return caps.max_rows if key == "max_rows" else caps.max_session_bytes
+
+
+def _clamped_limits(limits: dict[str, int], caps: Caps) -> dict[str, int]:
+    """Clamp loaded overrides to this process's caps, warning on each clamp."""
+    out: dict[str, int] = {}
+    for key, val in limits.items():
+        cap = _process_cap(caps, key)
+        if val > cap:
+            emit_wrn("limit_clamped", f"{key}|{val}/{cap}")
+            val = cap
+        out[key] = val
+    return out
+
+
+def apply_limits(entry: SessionEntry, limits: dict[str, int | None]) -> None:
+    """Set the cap overrides on a session entry: meta and the store's row cap."""
+    for key, val in limits.items():
+        setattr(entry.meta, key, val)
+    entry.store.row_cap = entry.meta.max_rows
+
+
 def _parse_idhw(lines: list[str]) -> dict[str, int] | None:
     """High-water from the ``#@IDHW:`` line. Absent or malformed: None (ignored)."""
     for raw in lines:
@@ -439,6 +524,9 @@ def _format_snapshot(ss: SessionStore, rec_lines: list[str], emit_map: TagMap) -
     idhw = _idhw_line(ss)
     if idhw is not None:
         lines.append(idhw)
+    lim = _lim_line(m)
+    if lim is not None:
+        lines.append(lim)
     lines.append(_SECTION_MAP)
     lines.extend(tag_map_to_lines(emit_map))
     lines.append(_SECTION_REL)
@@ -462,6 +550,8 @@ def _verify_emitted_snapshot(
     reloaded_acl = _parse_acl(lines)
     if reloaded_acl is None or acl_to_dict(reloaded_acl) != acl_to_dict(ss.acl):
         raise MemNetError("snapshot_unsaveable", "acl not reloadable")
+    if _parse_lim(lines) != _limits_of(ss.meta):
+        raise MemNetError("snapshot_unsaveable", "limits not reloadable")
     _, map_lines, _, rec_lines = _parse_sections(lines)
     try:
         loaded_map = load_persisted_map_from_lines(map_lines, ss.caps)
@@ -752,6 +842,7 @@ def load_snapshot_text(
     lines = split_snapshot_lines(text)
     meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
     acl = _parse_acl(lines)
+    limits = _parse_lim(lines)
     refuse_snapshot_text_budget(map_lines, rec_lines, caps)  # MN-REQ-14.11
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
@@ -802,6 +893,7 @@ def load_snapshot_text(
         acl=acl,
         touch_seq=_next_touch_seq(),
     )
+    apply_limits(entry, _clamped_limits(limits, caps))
     claim_slot(caps)
     try:
         register_claimed(session_id, entry)
@@ -839,6 +931,7 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
     meta, map_lines, rel_lines, rec_lines = _parse_sections(lines)
     # Parsed so checkpoint-verify fails on a corrupt ACL line; the throwaway entry keeps it.
     acl = _parse_acl(lines)
+    limits = _parse_lim(lines)  # a corrupt LIM line fails checkpoint-verify too
     tag_map = load_persisted_map_from_lines(map_lines, caps)
     relations = _parse_relations(rel_lines)
     if not relations:
@@ -856,10 +949,12 @@ def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> Session
     idhw = _parse_idhw(lines)
     if idhw:
         store.raise_id_high_water(idhw)
-    return SessionEntry(
+    entry = SessionEntry(
         meta=meta,
         tag_map=tag_map,
         store=store,
         relations=relations,
         acl=acl,
     )
+    apply_limits(entry, dict(limits))
+    return entry

@@ -9,8 +9,11 @@ from memnet.session import SessionStore, utc_now
 
 
 def emit_cap_warnings(store: SessionStore, caps: Caps) -> None:
+    max_rows = caps.max_rows
+    if store.store.row_cap is not None:  # MN-REQ-05.6 session override
+        max_rows = min(store.store.row_cap, max_rows)
     checks = [
-        ("rows", store.store.row_count_non_law(), caps.max_rows),
+        ("rows", store.store.row_count_non_law(), max_rows),
         ("law", store.store.law_count(), caps.max_law),
         ("relations", len(store.relations), caps.max_relations),
     ]

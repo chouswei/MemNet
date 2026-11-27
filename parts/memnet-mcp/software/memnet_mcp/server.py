@@ -183,6 +183,44 @@ async def session_close(session: str, caller: str | None = None) -> str:
 
 
 @mcp.tool()
+async def session_limits(session: str, caller: str | None = None) -> str:
+    """Show the session's TTL, row cap and byte cap in force, with current usage.
+
+    Each cap line ends ``session`` (an override is set) or ``process`` (the serve cap).
+    """
+    argv = ["session", "limits", "--session", session]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv)
+
+
+@mcp.tool()
+async def session_set_limits(
+    session: str,
+    ttl: int | None = None,
+    max_rows: int | str | None = None,
+    max_bytes: int | str | None = None,
+    caller: str | None = None,
+) -> str:
+    """Change a live session's TTL (minutes) and caps, all or nothing.
+
+    A cap may only be at or below the serve cap; ``"default"`` clears an override.
+    A cap below current usage refuses ``limit_below_usage`` and changes nothing:
+    rows are never dropped. The TTL clock restarts at this call.
+    """
+    argv = ["session", "set-limits", "--session", session]
+    if ttl is not None:
+        argv.extend(["--ttl", str(ttl)])
+    if max_rows is not None:
+        argv.extend(["--max-rows", str(max_rows)])
+    if max_bytes is not None:
+        argv.extend(["--max-bytes", str(max_bytes)])
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv)
+
+
+@mcp.tool()
 async def snap_model(
     root: str,
     map_file: str | None = None,
@@ -543,6 +581,31 @@ async def typed_walk(
         argv.extend(["--caller", caller])
     resp = await anyio.to_thread.run_sync(lambda: run_memnet(argv, session=session))
     return _walk_reply(resp, start, paging=limit is not None or cursor is not None)
+
+
+@mcp.tool()
+async def follow_proxy(
+    id: str,
+    session: str | None = None,
+    caller: str | None = None,
+) -> str:
+    """Follow a PROXY node one hop (pin_map, find and walks never follow one).
+
+    A PROXY (``CREATE (:PROXY {target_session: '<sid>', target: '<node id>'})``)
+    points at a node in a session; the target need not exist when it is
+    written. ``id`` is the PROXY's nickname (or a node handle) in ``session``.
+    Reply stdout: ``@STAT: follow|ok`` then the target node; ``@STAT:
+    follow|dangling|reason=target_missing`` (target session here, node gone);
+    ``@STAT: follow|not_reachable|...`` and an ``@FOLLOW:`` pointer line (target
+    session not reachable from here; not a confirmed delete). One hop only: a
+    target that is itself a PROXY is returned, not followed. ACL: pin_map on
+    both sessions; a denial is ``acl_*`` and says nothing about the target.
+    Refused ``not_found`` or ``not_proxy``.
+    """
+    argv = ["query", "follow", "--id", id]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
 
 
 async def _commit(
@@ -1053,9 +1116,16 @@ async def read_list(
 
 
 @mcp.tool()
-async def housekeep_stats(session: str | None = None) -> str:
-    """Return row counts and caps for the session."""
-    return await _run(["housekeep", "stats"], session=session)
+async def housekeep_stats(session: str | None = None, caller: str | None = None) -> str:
+    """Return row counts and caps for the session.
+
+    Optional ``caller`` is the CapsPolicy who-check used when counting
+    dangling PROXY rows (an ACL-protected target is ``not_reachable``).
+    """
+    argv = ["housekeep", "stats"]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

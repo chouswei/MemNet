@@ -36,6 +36,15 @@ def test_cannot_redefine_edg():
     assert exc.value.code == "fixed_tag"
 
 
+def test_user_proxy_schema_is_refused_on_map_and_snapshot():
+    from memnet.tag_map import load_persisted_map_from_lines
+
+    for loader in (load_map_from_lines, load_persisted_map_from_lines):
+        with pytest.raises(MemNetError) as exc:
+            loader(["SCHEMA PROXY ; fields=id host port proto"])
+        assert exc.value.code == "user_proxy_tag"
+
+
 def test_user_map_allows_fields_without_id_first():
     tm = load_map_from_lines(["@FOO: name|id"])
     assert tm.tags["FOO"].fields[0] == "name"

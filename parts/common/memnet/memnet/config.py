@@ -9,7 +9,7 @@ from pathlib import Path
 from memnet.exceptions import MemNetError
 
 RESERVED_TAGS = frozenset({"SESSION", "ERR", "WRN", "STAT", "REL", "DEL"})
-ORPHAN_EXEMPT_TAGS = frozenset({"LAW", "CFG", "SYS", "PLR"})
+ORPHAN_EXEMPT_TAGS = frozenset({"LAW", "CFG", "SYS", "PLR", "PROXY"})
 RECYCLE_INACTIVE = frozenset({"delete_on_settle", "delete_on_expire"})
 ID_PATTERN = r"^[A-Za-z0-9_.-]+$"
 # The one relation-name rule for every write path: lowerCamel (inFile), UPPER_SNAKE

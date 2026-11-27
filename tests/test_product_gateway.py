@@ -488,6 +488,143 @@ def test_two_real_serves_route_isolate_and_pass_through(
         _stop(serve_b)
 
 
+def test_follow_proxy_second_hop_through_owners_map(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PROXY in A (backend a) -> node in B (backend b): the gateway hops once by owners."""
+    port_a = _free_port()
+    port_b = _free_port()
+    serve_a = _start_serve(port_a, tmp_path / "serve-a.log")
+    serve_b = _start_serve(port_b, tmp_path / "serve-b.log")
+    cfg = tmp_path / "gw.json"
+    _config(cfg, tmp_path / "owners.json", port_a, port_b)
+    gw = ProductGateway.load(str(cfg))
+    gw.start()
+    url = f"http://127.0.0.1:{gw.bound_port}/gateway"
+
+    def call(token: str, args: list[str], *, stdin: str | None = None, **extra) -> dict:
+        payload = {"args": args, **extra}
+        if stdin is not None:
+            payload["stdin"] = stdin
+        status, body = _post(url, token, payload)
+        assert status in (200, 403, 502), (status, body)
+        return body
+
+    def opened(token: str, **where) -> str:
+        body = call(token, ["session", "open", "--map-file", str(SCHEMA)], **where)
+        assert body["exit_code"] == 0, body
+        return _sid(body)
+
+    def mutate(token: str, sid: str, text: str) -> None:
+        body = call(token, ["mutate", "--stdin", "--session", sid], stdin=text, session=sid)
+        assert body["exit_code"] == 0, body
+
+    def follow(sid: str, pid: str, *extra: str) -> dict:
+        args = ["query", "follow", "--id", pid, "--session", sid, *extra]
+        return call(ENDLEAF, args, session=sid)
+
+    try:
+        sid_a = opened(ENDLEAF, house="syson")
+        sid_b = opened(ENDLEAF, backend="b")
+        sid_other = opened(ATELIER)
+        assert sid_a in _live_sids(port_a) and sid_b in _live_sids(port_b)
+        assert sid_other in _live_sids(port_b)
+        mutate(ENDLEAF, sid_b, "CREATE (:TSK {id: 'T_B', goal: 'lives on b', status: 'open'})\n")
+        mutate(ATELIER, sid_other, "CREATE (:TSK {id: 'T_O', goal: 'atelier', status: 'open'})\n")
+        mutate(
+            ENDLEAF,
+            sid_a,
+            f"CREATE (:PROXY {{id: 'P_B', target_session: '{sid_b}', target: 'T_B'}})\n"
+            "CREATE (:PROXY {id: 'P_X', target_session: 'sess_target', target: 'T_B', "
+            "target_backend: 'b'})\n"
+            f"CREATE (:PROXY {{id: 'P_O', target_session: '{sid_other}', target: 'T_O', "
+            "target_backend: 'b'})\n",
+        )
+
+        # Direct to backend a: the target session is not in that process.
+        raw = send_command(
+            ["query", "follow", "--id", "P_B", "--session", sid_a], host="127.0.0.1", port=port_a
+        )
+        assert raw["stdout"].startswith("@STAT: follow|not_reachable"), raw
+
+        # Through the gateway: one hop to backend b by the owners map.
+        got = follow(sid_a, "P_B")
+        assert got["exit_code"] == 0, got
+        lines = got["stdout"].splitlines()
+        assert lines[0] == "@STAT: follow|ok"
+        assert "goal: 'lives on b'" in lines[1]
+
+        # Unknown target session: not reachable (target_backend is a label, not a route).
+        unknown = follow(sid_a, "P_X")
+        assert unknown["exit_code"] == 0, unknown
+        assert unknown["stdout"].startswith("@STAT: follow|not_reachable")
+        assert "target not reachable from here" in unknown["stdout"]
+
+        # Another product's session reads the same as unknown: no forbidden_session leak.
+        foreign = follow(sid_a, "P_O")
+        assert foreign["exit_code"] == 0, foreign
+        assert foreign["stdout"].startswith("@STAT: follow|not_reachable")
+        assert "gateway_forbidden" not in foreign["stderr"] and "atelier" not in foreign["stdout"]
+
+        # ACL on B: the hop carries --caller; a caller without pin_map on B is acl_*.
+        grant = call(
+            ENDLEAF, ["session", "acl-grant", "--caller", "bob", "--session", sid_b], session=sid_b
+        )
+        assert grant["exit_code"] == 0, grant
+        denied = follow(sid_a, "P_B", "--caller", "alice")
+        assert denied["exit_code"] != 0
+        assert "@ERR: acl_" in denied["stderr"]
+        assert "lives on b" not in denied["stdout"] and "follow|" not in denied["stdout"]
+        allowed = follow(sid_a, "P_B", "--caller", "bob")
+        assert allowed["exit_code"] == 0 and "lives on b" in allowed["stdout"], allowed
+
+        # Target backend down: the existing backend_unreachable.
+        monkeypatch.setenv("MEMNET_SERVE_RETRY_S", "0.5")
+        _stop(serve_b)
+        serve_b = None
+        deadline = time.time() + 5
+        while time.time() < deadline and probe(host="127.0.0.1", port=port_b):
+            time.sleep(0.05)
+        down = follow(sid_a, "P_B", "--caller", "bob")
+        assert down["stderr"].startswith("@ERR: gateway_backend_unreachable|b"), down
+    finally:
+        gw.stop()
+        _stop(serve_a)
+        _stop(serve_b)
+
+
+def test_follow_hop_never_routes_by_target_backend(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    calls: list[tuple[int, list[str]]] = []
+    not_reachable = (
+        "@STAT: follow|not_reachable|target not reachable from here\n@FOLLOW: mn_far|T1|b\n"
+    )
+
+    def fake_send(args, stdin=None, host=None, port=None, timeout=None, retry_s=None, **_kw):
+        calls.append((port, list(args)))
+        if args == ["version"]:
+            return {"exit_code": 0, "stdout": f"@VER: memnet|{__version__}\n", "stderr": ""}
+        return {"exit_code": 0, "stdout": not_reachable, "stderr": ""}
+
+    monkeypatch.setattr("memnet_mcp.product_gateway.send_command", fake_send)
+    cfg = tmp_path / "gw.json"
+    _config(cfg, tmp_path / "owners.json", 1, 2)
+    gw = ProductGateway.load(str(cfg))
+    gw._remember("mn_src", "endleaf", "a")
+    body = {"args": ["query", "follow", "--id", "P1", "--session", "mn_src"]}
+    result = gw.handle(
+        method="POST",
+        path="/gateway",
+        authorization=f"Bearer {ENDLEAF}",
+        body=json.dumps(body).encode(),
+    )
+    assert result.exit_code == 0
+    assert result.stdout == not_reachable
+    assert [args for _port, args in calls if args != ["version"]] == [body["args"]]
+    assert all(port == 1 for port, _args in calls), "only the source backend is asked"
+
+
 def test_body_ceiling_is_the_only_gateway_size_gate(tmp_path: Path) -> None:
     cfg = tmp_path / "gw.json"
     _config(cfg, tmp_path / "owners.json", 9, 10, body_max=64)

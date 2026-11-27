@@ -61,6 +61,40 @@ def test_old_client_against_new_serve(serve, old_build, tmp_path, schema_file):
     assert sid in serve.session_ids()
 
 
+def test_old_serve_refuses_proxy_write_and_proxy_snapshot_cleanly(serve, old_build, tmp_path):
+    """MN-REQ-15 upgrade safety: a 0.20.4 serve has no PROXY tag; it refuses, never corrupts."""
+    serve.start(new_build(tmp_path))
+    with_proxy = serve.open()
+    serve.mutate(
+        with_proxy,
+        "CREATE (:TSK {id: 'T1', goal: 'g', status: 'open'})\n"
+        f"CREATE (:PROXY {{id: 'P1', target_session: '{with_proxy}', target: 'T1'}})\n",
+    )
+    plain = serve.open()
+    serve.mutate(plain, TSK % ("p", "p"))
+    snaps = {}
+    for name, sid in (("proxy", with_proxy), ("plain", plain)):
+        snaps[name] = tmp_path / f"{name}.snap"
+        got = serve.cmd(["session", "save", "--file", str(snaps[name]), "--session", sid])
+        assert got["exit_code"] == 0, got
+    assert "PROXY" not in snaps["plain"].read_text(encoding="utf-8")
+    serve.stop(signal.SIGTERM)
+
+    serve.start(old_build)
+    sid = serve.open()
+    got = serve.cmd(
+        ["mutate", "--stdin", "--session", sid],
+        stdin="CREATE (:PROXY {target_session: 's', target: 'n'})\n",
+    )
+    assert got["exit_code"] != 0 and "@ERR: unknown_tag|" in got["stderr"], got
+    rows = serve.cmd(["read", "list", "--session", sid])
+    assert rows["exit_code"] == 0 and "PROXY" not in rows["stdout"], rows
+    refused = serve.cmd(["session", "load", "--file", str(snaps["proxy"])])
+    assert refused["exit_code"] != 0 and "unknown_tag" in refused["stderr"], refused
+    loaded = serve.cmd(["session", "load", "--file", str(snaps["plain"])])
+    assert loaded["exit_code"] == 0, loaded
+
+
 def test_pooled_client_against_old_serve(serve, old_build):
     serve.start(old_build)
     sids = [_pooled_sequence(serve, tag) for tag in ("a", "b", "c")]

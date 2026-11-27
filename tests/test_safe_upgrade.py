@@ -23,6 +23,7 @@ from memnet.snapshot import write_snapshot
 from memnet.upgrade import (
     BLOCKED_NAME,
     MANIFEST_NAME,
+    _house_tags,
     drain_gate,
     prepare_upgrade,
     reset_drain_gate,
@@ -199,7 +200,7 @@ def test_older_patch_snapshot_loads(memnet_temp, monkeypatch, tmp_path, schema_f
                 "expires_at": entry.meta.expires_at,
                 "created_at": entry.meta.created_at,
                 "ttl_minutes": entry.meta.ttl_minutes,
-                "house_tags": sorted(entry.tag_map.tags),
+                "house_tags": _house_tags(entry.tag_map),
                 "product": None,
                 "saved": True,
             }

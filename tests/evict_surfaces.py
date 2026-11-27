@@ -33,6 +33,7 @@ READ_SURFACES = (
     "read_list",
     "export_pin_map",
     "housekeep_stats",
+    "session_limits",
     "session_current",
     "session_resume",
     "tagmap_show",
@@ -44,6 +45,8 @@ READ_SURFACES = (
     "housekeep_orphans",
     "housekeep_dangling",
     "housekeep_recyclable",
+    "follow_proxy",
+    "query_follow",
 )
 # Reads that SHALL NOT touch: status, listing, usage and checkpoint verification.
 NON_TOUCH_READS = (
@@ -85,6 +88,8 @@ CLI_READ_ARGV = {
     "housekeep_orphans": ("housekeep", "orphans", "--session", "{sid}"),
     "housekeep_dangling": ("housekeep", "dangling", "--session", "{sid}"),
     "housekeep_recyclable": ("housekeep", "recyclable", "--session", "{sid}"),
+    # The seed has no PROXY: the --resolved-id form reads PLR01 in this session.
+    "query_follow": ("query", "follow", "--resolved-id", "PLR01", "--session", "{sid}"),
 }
 # Registered MCP tools that are not caller reads: writes, lifecycle, lease verbs.
 # Every other registered tool must be a READ-SURFACES or NON-TOUCH-READS entry, so a
@@ -108,6 +113,7 @@ MCP_NON_READ_TOOLS = frozenset(
         "session_load",
         "session_open",
         "session_save",
+        "session_set_limits",
         "snap_model",
         "update",
     }
@@ -143,6 +149,7 @@ _READ_ARGS = {
     "query_walk": {"cue": "PLR01"},
     "typed_walk": {"start": "PLR01", "edge_type": "binds"},
     "read_list": {"tag": "PLR"},
+    "follow_proxy": {"id": "PX_EVICT"},
 }
 # Engine saves (ENGINE_SAVES) to the dotted path of the function that runs them.
 # tests/test_sysml_session_evict.py asserts each path imports and names a callable.
@@ -150,6 +157,20 @@ ENGINE_SAVE_FUNCS = {
     "expire_save": "memnet.session.snapshot_expired_session",
     "evict_save": "memnet.session.save_evict_victim",
 }
+
+
+def _seed_proxy_untouched(sid: str) -> None:
+    """Put a PROXY to PLR01 in the session straight into the row table.
+
+    The workflow seed has no PROXY. A mutate would itself touch the session and
+    hide whether the follow read touches, so the row goes in under the store.
+    """
+    from memnet.models import Record
+    from memnet.registry import get_entry
+
+    entry = get_entry(sid)
+    fields = {"id": "PX_EVICT", "target_session": sid, "target": "PLR01", "target_backend": ""}
+    entry.store.add_row(Record(tag="PROXY", fields=fields), relations=entry.relations)
 
 
 def caller_read(surface: str, sid: str) -> int:
@@ -166,6 +187,8 @@ def caller_read(surface: str, sid: str) -> int:
         return runner.invoke(app, argv).exit_code
     from memnet_mcp import server as mcp_server
 
+    if surface == "follow_proxy":
+        _seed_proxy_untouched(sid)
     call = getattr(mcp_server, surface)
     resp = json.loads(asyncio.run(call(session=sid, **_READ_ARGS.get(surface, {}))))
     return resp["exit_code"]

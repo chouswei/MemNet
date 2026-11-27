@@ -227,12 +227,28 @@ package MemNet {
     attribute saveUsesSameFieldCountAsMutate : Boolean = true;
     attribute lineBytesOnEmittedLine : Boolean = true;
     attribute sessionSaveLoadCloseAclWho : Boolean = true;
+    // MN-REQ-05.6 live session limits. Runtime: tests/test_session_live_limits.py.
+    attribute liveLimitsShipped : Boolean = true;
+    attribute liveLimitsEffectiveIsMinOfOverrideAndProcess : Boolean = true;
+    attribute liveLimitsAboveProcessCapAllowed : Boolean = false;
+    attribute liveLimitsBelowUsageRefuses : Boolean = true;      // test_row_cap_below_usage_refuses_and_drops_nothing
+    attribute liveLimitsDropsRows : Boolean = false;
+    attribute liveLimitsAllOrNothing : Boolean = true;           // test_bad_values_refuse_and_change_nothing
+    attribute liveLimitsTtlRestartsAtCall : Boolean = true;      // test_lowered_ttl_never_makes_the_session_overdue_at_the_call
+    attribute liveLimitsSlideAtomic : Boolean = true;            // test_sliding_renew_racing_set_limits_never_keeps_an_old_ttl_expiry
+    attribute liveLimitsSetPermission : String = "mutate";
+    attribute liveLimitsReadPermission : String = "pin_map";
+    attribute liveLimitsSnapshotLinePrefix : String = "#@LIM:";
+    attribute liveLimitsLineOnlyWhenSet : Boolean = true;        // test_default_clears_the_lim_line_and_file_is_byte_identical
+    attribute liveLimitsMalformedFailsClosed : Boolean = true;   // test_malformed_lim_line_is_bad_snapshot
+    attribute liveLimitsOldReaderLoadsProcessCaps : Boolean = true;  // test_real_0_20_8_reader_loads_a_file_with_lim
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_1_StoreResourceCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_2_QueryFanoutCaps;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_3_ConsistentValueByteCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_6_LiveSessionLimits;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_01_SessionLifecycle::MN_REQ_01_10_SessionLifecycleAclWho;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_10_LlmPropertiesAndLimits::MN_REQ_10_2_PinMapMustFitContext;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_12_MultitaskMode::MN_REQ_12_7_NoAssumeAclReserveIngest;

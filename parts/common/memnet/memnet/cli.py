@@ -74,8 +74,10 @@ from memnet.session import (
     purge_expired,
     resolve_expire_load_path,
     resolve_session_id,
+    session_bytes_used,
+    set_session_limits,
 )
-from memnet.snapshot import load_snapshot, write_snapshot
+from memnet.snapshot import effective_session_bytes, load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
 from memnet.walk_query import WalkQuery
 from memnet.warnings import emit_session_warnings
@@ -85,7 +87,7 @@ def emit_del(record_id: str, tag: str) -> None:
     emit_stdout(f"@DEL: {record_id}|{tag}")
 
 
-def emit_stat(key: str, value: int, cap: str = "-") -> None:
+def emit_stat(key: str, value: int | str, cap: str = "-") -> None:
     emit_stdout(f"@STAT: {key}|{value}|{cap}")
 
 
@@ -768,6 +770,71 @@ def session_close(
         emit_session(session_id, "closed")
     except MemNetError as exc:
         _handle_error(exc)
+
+
+def _emit_session_limits(ss) -> None:
+    """The TTL and caps in force on a session (MN-REQ-05.6). Third field: who set the cap."""
+    m = ss.meta
+    emit_stat("ttl_minutes", m.ttl_minutes, "session")
+    emit_stat("expires_at", m.expires_at)
+    max_rows = ss.store.effective_max_rows()
+    emit_stat("max_rows", max_rows, "session" if m.max_rows is not None else "process")
+    max_bytes = effective_session_bytes(ss)
+    owner = "session" if m.max_session_bytes is not None else "process"
+    emit_stat("max_session_bytes", max_bytes, owner)
+    emit_stat("rows", ss.store.row_count_non_law(), str(max_rows))
+    try:
+        used: int | str = session_bytes_used(ss)
+    except MemNetError:
+        used = "-"  # unsaveable fixed-tag width: no exact total
+    emit_stat("session_bytes", used, str(max_bytes))
+
+
+@session_app.command("limits")
+def session_limits(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
+    """Show a live session's TTL, row cap and byte cap with current usage (MN-REQ-05.6)."""
+    ss, lock = _load_session(session)
+    with lock:
+        _acl_check(ss, caller, "pin_map")
+        _emit_session_limits(ss)
+
+
+@session_app.command("set-limits")
+def session_set_limits(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    ttl: Annotated[str | None, typer.Option("--ttl", help="Minutes 1..1440")] = None,
+    max_rows: Annotated[
+        str | None,
+        typer.Option("--max-rows", help="Row cap 1..MEMNET_MAX_ROWS, or default"),
+    ] = None,
+    max_bytes: Annotated[
+        str | None,
+        typer.Option("--max-bytes", help="Byte cap 1..MEMNET_MAX_SESSION_BYTES, or default"),
+    ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
+    """Change a live session's TTL and caps, all or nothing (MN-REQ-05.6).
+
+    A cap below current usage refuses limit_below_usage and nothing changes:
+    rows are never dropped. The TTL restarts at this call.
+    """
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        _acl_check(ss, caller, "mutate")
+        try:
+            set_session_limits(ss, ttl=ttl, max_rows=max_rows, max_bytes=max_bytes)
+        except MemNetError as exc:
+            _handle_error(exc)
+        _emit_session_limits(ss)
 
 
 @session_app.command("acl-enable")
@@ -2105,22 +2172,83 @@ def query_typed_walk(
             emit_stdout(line)
 
 
+@query_app.command("follow")
+def query_follow(
+    proxy_id: Annotated[
+        str | None,
+        typer.Option("--id", help="PROXY node nickname or handle in this session"),
+    ] = None,
+    resolved_id: Annotated[
+        str | None,
+        typer.Option(
+            "--resolved-id",
+            help="node id in this session (a gateway's second hop; no PROXY needed)",
+        ),
+    ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Follow a PROXY node one hop. pin-map, find and walks never follow it.
+
+    Reply: ``@STAT: follow|ok`` and the target node; ``@STAT:
+    follow|dangling|reason=target_missing`` when the target session is here
+    but the node is not; ``@STAT: follow|not_reachable|...`` and ``@FOLLOW:
+    <target_session>|<target>|<target_backend>`` when the target session is
+    not in this process (not a confirmed delete). A target that is itself a
+    PROXY is returned, not followed. ACL: pin_map on this session and on the
+    target session. Refused not_found, not_proxy, acl_*.
+    """
+    from memnet import proxy
+
+    if bool(proxy_id) == bool(resolved_id):
+        _handle_error(MemNetError("no_anchor", "query follow requires one of --id, --resolved-id"))
+    ss, lock = _load_session(session)
+    del lock  # proxy.follow / read_node take the session locks one at a time
+    try:
+        if resolved_id:
+            result = proxy.read_node(ss, resolved_id, caller=caller)
+        else:
+            assert proxy_id is not None
+            result = proxy.follow(ss, proxy_id, caller=caller, caps=_caps())
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    for line in result.lines():
+        emit_stdout(line)
+
+
 @housekeep_app.command("stats")
 def housekeep_stats(
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
+    from memnet.proxy import dangling_proxy_rows
+
     ss, lock = _load_session(session)
     caps = _caps()
     with lock:
         s = stats(ss)
-        emit_stat("rows", s["rows"], str(caps.max_rows))
-        emit_stat("edges", s["edges"], "-")
-        emit_stat("relations", s["relations"], str(caps.max_relations))
-        emit_stat("orphans", s["orphans"], "-")
-        emit_stat("dangling", s["dangling"], "-")
-        emit_stat("recyclable", s["recyclable"], "-")
         modified = ss.meta.modified_at or "-"
-        emit_stdout(f"@STAT: modified|{modified}|-")
+    # Read other sessions with this lock released (never two session locks at once).
+    try:
+        n_proxies = len(dangling_proxy_rows(ss, caller=caller))
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    emit_stat("rows", s["rows"], str(caps.max_rows))
+    emit_stat("edges", s["edges"], "-")
+    emit_stat("relations", s["relations"], str(caps.max_relations))
+    emit_stat("orphans", s["orphans"], "-")
+    emit_stat("dangling", s["dangling"], "-")
+    emit_stat("dangling_proxies", n_proxies, "-")
+    emit_stat("recyclable", s["recyclable"], "-")
+    emit_stdout(f"@STAT: modified|{modified}|-")
 
 
 @housekeep_app.command("stale")
@@ -2149,11 +2277,32 @@ def housekeep_orphans(
 @housekeep_app.command("dangling")
 def housekeep_dangling(
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
+    """Dangling edges, then PROXY nodes whose target is missing or not reachable.
+
+    Each PROXY row is followed by ``@STAT: dangling_proxy|reason=target_missing``
+    or ``reason=not_reachable``. Lists only: prune never deletes a PROXY.
+    An ACL-protected target is ``not_reachable`` (never confirms existence).
+    """
+    from memnet.proxy import dangling_proxy_rows
+
     ss, lock = _load_session(session)
     with lock:
         for rec in dangling_rows(ss):
             emit_stdout(emit_record(rec, ss.tag_map))
+    # Other sessions are read with this lock released (never two session locks at once).
+    try:
+        proxies = dangling_proxy_rows(ss, caller=caller)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    for rec, reason in proxies:
+        emit_stdout(emit_record(rec, ss.tag_map))
+        emit_stdout(f"@STAT: dangling_proxy|reason={reason}")
 
 
 @housekeep_app.command("recyclable")
@@ -2229,7 +2378,9 @@ def _prune_kind(session: str | None, kind: str, apply: bool) -> None:
                 rows = recyclable_rows(ss)
                 deleted = prune_rows(ss, rows) if apply else []
             elif kind == "dangling":
-                rows = dangling_rows(ss)
+                # Dangling edges only: a dangling PROXY is listed by housekeep
+                # dangling and is never deleted here.
+                rows = [r for r in dangling_rows(ss) if r.tag != "PROXY"]
                 deleted = prune_rows(ss, rows) if apply else []
             else:
                 rows = []

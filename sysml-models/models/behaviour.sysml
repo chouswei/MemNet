@@ -114,6 +114,14 @@ package MemNetBehaviour {
       from RAM. Runtime check: tests/test_session_evict.py.
     */
   }
+  attribute def EvSetLimits {
+    doc /*
+      MN-REQ-05.6: session set-limits on a live session, under its exclusive
+      lock. All arguments validated first; a refusal changes nothing. On
+      success the TTL clock restarts (expires_at = now + ttl) and the cap
+      overrides take effect for the next write. The session stays live.
+    */
+  }
   attribute def EvCloseOrExpire {
     doc /* session_close or TTL purge after optional expire save. */
   }
@@ -1543,6 +1551,56 @@ package MemNetBehaviour {
       typed_walk repeats it as next_cursor. No id value or hid sets any
       position.
     */
+  }
+
+  action def WriteProxy {
+    doc /*
+      Implemented (MN-REQ-15; verify MN-VER-15-S01; tests/test_proxy_nodes.py).
+      Entry: any write of a PROXY row: mutate GQL (CREATE, SET, MERGE,
+      absorb, rename), leftover add / update pipe, import-slice, snapshot load
+      or restore. Steps: (1) the tag map always holds the fixed PROXY tag
+      (fields id, target_session, target, target_backend); a SCHEMA PROXY in
+      a user map or a 0.20.8 snapshot is refused user_proxy_tag (nothing
+      loaded or remapped). (2) memnet.proxy check_proxy_fields:
+      target_session and target non-empty and ID_PATTERN, target_backend
+      empty or ID_PATTERN; else proxy_shape and the batch writes nothing (a
+      refused SET leaves the row as it was). (3) The target is not looked up:
+      it need not exist. (4) Snapshot save writes PROXY rows but no SCHEMA
+      PROXY line (fixed_tags.SNAPSHOT_OMIT_SCHEMA); the loader merges the
+      fixed tag back in, an older build refuses the row unknown_tag.
+    */
+    in item proxyRow : String;
+    out item written : Boolean;
+  }
+
+  action def FollowProxy {
+    doc /*
+      Implemented (MN-REQ-15; verify MN-VER-15-S02 to S04; tests
+      tests/test_proxy_nodes.py, tests/test_proxy_mcp.py,
+      tests/test_product_gateway.py). Entry: memnet query follow --id (MCP
+      follow_proxy). pin_map, find and walks never run it. Steps: (1) ACL
+      pin_map on the source session. (2) Resolve --id (nickname, handle or
+      hid) in the source session: missing not_found, not a PROXY not_proxy;
+      copy the pointer and release the source lock (never two session locks
+      at once). (3) Target session: this session, or a live session of this
+      process (opened with a touch); otherwise not_reachable with an
+      @FOLLOW: target_session|target|target_backend line. (4) ACL pin_map on
+      the target session before any TTL renew; a denial is acl_* and
+      nothing about the target is said. (5) Target node present: follow|ok
+      and the node as pin_map emits it; absent: follow|dangling|reason=
+      target_missing. One hop: a target PROXY is returned, not followed.
+      (6) Through the product gateway, a not_reachable reply is hopped once
+      by the owners map (same product, another backend) with query follow
+      --resolved-id and the same --caller; no owners row or another product
+      returns not_reachable unchanged; target_backend never routes.
+      (7) housekeep dangling / stats list and count the PROXY rows whose
+      follow would be dangling or not_reachable (no touch of other
+      sessions); an ACL-protected target is not_reachable, never
+      target_missing; prune dangling, prune orphans and prune stale never
+      delete them.
+    */
+    in item proxyId : String;
+    out item result : String;
   }
 
   action def TypedWalk {
