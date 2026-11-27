@@ -87,6 +87,8 @@ There is no serve-wide lock. Requests on different sessions still overlap. The c
 
 The gateway does not enforce `MEMNET_MAX_ROWS`, `MEMNET_MAX_BATCH_LINES`, or `MEMNET_MAX_VALUE_BYTES`. Engine defaults are `MEMNET_MAX_ROWS` 5000, batch 1000 lines, value 32768 decoded bytes, line 135168 escaped bytes (`parts/common/memnet/memnet/config.py`). A product may send `--max-rows` and a mutate stdin up to the body ceiling. The backend still applies its own caps. Those refusals come back verbatim.
 
+`session limits` and `session set-limits` (MN-REQ-05.6) carry `--session`, so they route as owned verbs like `mutate`: a product reaches only the sessions it owns (`gateway_forbidden_session` otherwise). The gateway forwards them unchanged and adds no code for them; a cap set this way can never exceed the backend's own.
+
 The gateway body ceiling is `body_max_bytes`, default **4194304** (4 MiB), the same figure as `MEMNET_SERVE_MAX_FRAME_BYTES`. State it in the config. Leave the gateway process's `MEMNET_SERVE_MAX_FRAME_BYTES` at least that large so the TCP client does not refuse a body the contract already accepted.
 
 ## Version pin

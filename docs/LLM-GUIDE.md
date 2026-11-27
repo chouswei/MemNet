@@ -107,6 +107,7 @@ Repeat only when a later turn needs memory: `pin_map(q)` with a real cue. Drop t
 | `session_open` | Open session; optional `seed_lines`; auto-seeds LAW01–LAW05 |
 | `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN) |
 | `session_close` | Close that id (does not dump \(S\)) |
+| `session_limits` / `session_set_limits` | Read or change the live TTL and row / byte caps (never above the serve cap; below usage refuses, rows are never dropped) |
 | `session_save` / `session_load` | Snapshot durability |
 | `pin_map` | **Live pin map** — primary read (`query_warm` = leftover alias) |
 | `mutate` | **Product Commit** — gated GQL CREATE / MERGE / SET / DELETE |
