@@ -3,7 +3,7 @@
 **Shelf:** product canon
 
 Evidence walk against SysML under `sysml-models/models/`.  
-Companions: [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md), [session-import-case-study.md](session-import-case-study.md).
+Companion: [session-import-case-study.md](session-import-case-study.md). The snapshot is the only durable copy (the M2.5 cabinet is removed).
 
 **Wire:** GQL / shaped `pin_map` only. Snapshot is a **named session file**, not a chat transcript.
 
@@ -19,7 +19,7 @@ Lead or host B **cold-starts** a mission without pasting graph dumps into chat: 
 | Ports / flows | `SessionSnapshotOutPort` / `SessionSnapshotInPort` |
 | Behaviour | `SessionLifecycleStates` - save/load transitions (`EvLoadSnapshot`, etc.) |
 | Requirements | MN-REQ-01.4 SaveSessionSnapshot; 01.5 Load; 01.6 OptionalKeepSessionId; 01.7 / 01.8 handoff |
-| Distinct from | MN-REQ-11 pin-map export (`PinMapIngest_*`); M2.5 `DurableBuffer` |
+| Distinct from | MN-REQ-11 pin-map export (`PinMapIngest_*`) |
 
 ## 3. Scenario
 
@@ -69,13 +69,12 @@ When only a **bounded** subgraph should move (separate sessions, Multitask impor
 | Mechanism | Role | Shipped claim |
 |-----------|------|----------------|
 | `SnapshotStore` save/load | Process/file passport for a named session | As-is session save/load; expire-save **configurable** (`MEMNET_SAVE_ON_EXPIRE` default off); file until user drop |
-| `DurableBuffer` hydrate/flush | Online GQL store behind MemNet | M2.5 **client** landed; live cabinet external |
+| (retired) `DurableBuffer` hydrate/flush | Online GQL store behind MemNet | Removed (`durableCabinetShipped=false`); 0.7 client had no runtime caller |
 | `WorkingMemorySlice` import | Lead imports member WM (path B) | Doctrine + ImportGuard nest |
 
 ## 6. Related
 
 | Study | Link |
 |-------|------|
-| Durable M2.5 | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Session import | [session-import-case-study.md](session-import-case-study.md) |
 | SysML goldfish | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) |

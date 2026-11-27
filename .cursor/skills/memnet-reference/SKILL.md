@@ -29,7 +29,7 @@ A `c` cut (wheel, tag, GitHub release, version bump) happens only when the owner
 
 1. Confirm the task is **product development** in this MemNet repo. If the task is **using** MemNet, stop and load [memnet-use](../memnet-use/SKILL.md).
 2. Read `AGENTS.md` and `project.toml`.
-3. Route via `docs/README.md` (identity / `grammar/` / `cabinet/` / `extras/` / `operations/` / `application-notes/`).
+3. Route via `docs/README.md` (identity / `grammar/` / `cabinet/` (retired) / `extras/` / `operations/` / `application-notes/`).
 4. SysML agent I/O: in-repo `sysml-*` skills (table in [`.cursor/skills/README.md`](../README.md)).
 
 ## Mission (product)

@@ -18,7 +18,7 @@ A goldfish turn is:
 cue  →  pin_map  →  mutate  →  pin_map
 ```
 
-Efficiency owns **wall-clock** and **token waste** on that loop (engine + MCP façade + optional Snap / cabinet behind the session). It does **not** own a new agent step.
+Efficiency owns **wall-clock** and **token waste** on that loop (engine + MCP façade + optional Snap). It does **not** own a new agent step.
 
 **MN-REQ-00** (cache-hit dump vs Shape+Flash) stays **unmeasured**. This plan does **not** ship a dump SKU. Measure dump vs Shape if needed for honesty; do not productise dump.
 
@@ -63,17 +63,9 @@ Path-B ingest pays the same Commit stack: `pin_map_ingest.py` `PinMapIngestBase.
 
 `Caps.max_sessions` default **1024**. TTL default 60 minutes, **sliding on every `get_session`** (`session.py`).
 
-### 2.4 Cabinet — hydrate/flush (ego slice, not a mutate delta)
+### 2.4 Cabinet — removed
 
-| Cost | Cite | What happens |
-|------|------|----------------|
-| Hydrate | `durable/agensgraph.py` `hydrate` | Loop `_HYDRATE_MATCH_KEYS = (_memnet_hid, "id")` — leftover **nickname `id` after hid miss**. Then a second query for edges among hydrated hids. Agens node walk is `OPTIONAL MATCH (ego)-[*0..depth]-(n)`. Neo4j hydrate is retired (#187). |
-| Flush | `flush` in both adapters | **One MERGE per node and per edge**, keyed on `_memnet_hid` (not `{id}`). Agens: one transaction of N statements. Neo4j: **auto-commit each** `session.run`. |
-| Slice rebuild | `durable/sync.py` `DurableSyncOwner.flush_from_session` | Rebuilds the slice with `context_pack` (ego neighbourhood), **not** a Commit delta. Hydrate upserts every returned record into the live session. |
-
-Default cabinet AgensGraph; Neo4j is the second adapter. **Do not vendor a server.** LLM ↔ Bolt stays forbidden.
-
-This is **not** a dump of whole \(S\) on every goldfish turn unless the host calls hydrate/flush. When called, it is **ego-bounded neighbourhood**, still rebuilt rather than a mutate delta.
+The durable cabinet (`memnet.durable`: AgensGraph adapter, `DurableSyncOwner`) is deleted, so its hydrate/flush costs no longer apply. The file snapshot is the durable copy. **Do not vendor a server.** LLM ↔ Bolt stays forbidden.
 
 ### 2.5 MCP / in-process façade
 
@@ -116,7 +108,7 @@ Leftover tools are **token / teach noise** on the goldfish turn if the model lis
 | **P0-c** | Edge emit re-resolves endpoints; shell cap after BFS | Cache endpoint records in `emit_gql`; apply shell caps **during** BFS | **`c`** — still one bounded Shape |
 | **P0-d** | `find` / outline / Peak_L linear-scan \(S\) | Kind/locator indexes; outline stops after per-kind LIMIT | **`c`** if empty-q stays outline and find stays seed-only |
 | **P1-a** | `snap_model`: 1+N `open_session` + ingest via `MutateGate` GQL | Reuse map parse; commit interiors through the store without a second GQL parse; interiors still `session=` look | **`c`** if Snap API and look loop stay the same |
-| **P1-b** | Flush N MERGEs; hydrate hid-then-`id`; `flush_from_session` rebuilds via `context_pack` | Batched MERGE; skip nickname query on hid hit; flush **touched** hids from Commit | **`c`** — still hydrate/flush behind \(S\), not LLM↔Bolt |
+| **P1-b** | Dropped — cabinet code removed (§2.4) | — | — |
 | **P1-c** | Absorb lists all EDG | Use incident-edge indexes already on the store | **`c`** — absorb stays agent-gated (0.12) |
 | **P2-a** | Leftover MCP `query_warm` / `add` / `update` / `query_walk` / `read_list` still registered | Teach: product-first descriptions; benches aim at `pin_map`+`mutate` | **`c`** if tools remain callable |
 | **P2-x** | Same leftover tools | Unregister leftover MCP tools | **`b` — exclude** (agents must drop names) |
@@ -133,7 +125,7 @@ Measure first, then cheapest **same-loop** wins. Do not implement from this note
 
 1. **M0 (must first).** Time in-process `pin_map` + `mutate` + second `pin_map` on a fixture session (and one `snap_model` separately). Optional: same loop via MCP argv vs direct bind. Optional: leftover tool-list tokens vs product-only. MN-REQ-00 dump vs Shape+Flash may be measured **without** shipping dump.
 2. **P0** — if M0 shows façade or parse on the goldfish path: **P0-a** (MCP bind), **P0-b** (single parse), **P0-c** (emit/walk), **P0-d** (MATCH_L indexes). Pick by measured share, not by this guess order.
-3. **P1** — only if interiors or cabinet are on the timed path: **P1-a** Snap mint/ingest, **P1-b** cabinet batch/delta, **P1-c** absorb edges.
+3. **P1** — only if interiors are on the timed path: **P1-a** Snap mint/ingest, **P1-c** absorb edges (**P1-b** dropped with the cabinet).
 4. **P2** — leftover teach/bench honesty (**P2-a**). Do **not** unregister leftover tools in this cut (**P2-x**).
 
 Package remains **0.19.3** until a later `c` that actually ships code. This extras note is the plan, not the bump.

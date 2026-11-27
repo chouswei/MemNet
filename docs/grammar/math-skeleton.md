@@ -1,6 +1,6 @@
 # Math skeleton (Recall / Commit)
 
-**Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Extra **0.17** = Host Snap locators (`RagHostHook` outside `MemNetSystem`). Extra **0.18** = Peak_L last-resort cue. Later = N-server / hosted cabinet.
+**Status:** 0.5 operator math SSOT. Version map [`../ROADMAP.md`](../ROADMAP.md). Product shape [`../SHAPE.md`](../SHAPE.md). **1.0** = 0.5–0.8 claimed. Extra **0.17** = Host Snap locators (outside `MemNetSystem`; the `RagHostHook` code is removed, hosts run their own search and commit locators via mutate). Extra **0.18** = Peak_L last-resort cue. Later = N-server / hosted cabinet.
 **Audience:** product developers. **British English.**  
 **Model:** `RecallCommit` in `sysml-models/models/deploy.sysml` (MN-REQ-13.1).  
 **Below this file:** host-search research [#77](https://github.com/chouswei/MemNet/issues/77) and [`memnet-host-search-nest.md`](../extras/memnet-host-search-nest.md). Notes 22–28 live on `master` ([#84](https://github.com/chouswei/MemNet/pull/84)). Strata / model Snap: [`memnet-session-strata.md`](../extras/memnet-session-strata.md).
@@ -99,7 +99,7 @@ Same symptom (haystack too large). Different owners. [#77](https://github.com/ch
 | Name | Haystack | Mechanism | Owner |
 |------|----------|-----------|--------|
 | **Shape** | One session \(S\) | \(\mathrm{Recall}(q)\to\tilde{X}\) (\(k\), \(M\), fan-out clamp, hide recycled). Order of \(\tilde{X}\) is a function of observables (kind + payload), not hid / nickname `id` / CREATE order. | `PinMapShapedRead` |
-| **Host Snap** | Corpus / library | Retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | `RagHostHook` **outside** `MemNetSystem` (0.17; skip valid) |
+| **Host Snap** | Corpus / library | Retrieve → locators (ANN / BM25 / corpus GraphRAG *on the library*) | Host's own search **outside** `MemNetSystem`; locators via MutateGate (no MemNet hook) |
 | **Model Snap** (design, 0.12) | One SysML (or design) **model** | \( \mathrm{Snap}(\mathrm{model})\to(S_{\mathrm{cat}},S_1,\ldots,S_k) \) | Session stack; **not** one session per file |
 
 The LLM **never** sees raw \(S\). Goldfish = Shape. Host Snap MAY feed **Commit** (locators), then Shape. Model Snap **partitions** a load tree so each interior stays Shape-sized. **MUST NOT** Snap-on-session (no embeddings / ANN of \(S\)). **MUST NOT** call `pin_map` a Snap.

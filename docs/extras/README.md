@@ -5,7 +5,7 @@ Numbered extras **0.10–0.19** live in package **0.19.3**. These notes are the 
 | Doc | Role |
 |-----|------|
 | [`memnet-neighbourhood-reserve.md`](memnet-neighbourhood-reserve.md) | RSV leases (shipped; this file remains the design note) |
-| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | Host locators / `RagHostHook` (0.17) |
+| [`memnet-host-search-nest.md`](memnet-host-search-nest.md) | **Retired** — host locators via mutate; no MemNet hook ships |
 | [`memnet-session-strata.md`](memnet-session-strata.md) | Sessions as strata; catalog Snap (0.15) |
 | [`memnet-security-multi-agent.md`](memnet-security-multi-agent.md) | Session ACL / token (design; CapsPolicy when ACL enabled) |
 | [`memnet-efficiency-gap.md`](memnet-efficiency-gap.md) | Unshipped **0.19.c** gap plan (same goldfish loop). Not a SemVer claim; not TARGET until measured |

@@ -92,7 +92,7 @@ def test_one_page_nest_labels_shelves():
         "Path B",
         "ImportGuard",
         "ImportAbsorb",
-        "DurableBuffer",
+        "durableCabinetShipped=false",
         "APPLICATION LOOK",
         "ARCHIVE LOOK",
         "OPS LOOK",
@@ -104,6 +104,7 @@ def test_one_page_nest_labels_shelves():
         "one MemNet MCP at droplet",
     ):
         assert needle in text
+    assert "DurableBuffer" not in text
 
 
 def test_no_http_dashboard_code_in_engine():

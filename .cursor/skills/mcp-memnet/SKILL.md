@@ -40,7 +40,7 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 2. **Cue** — `kind` / `locators` (`qname=`, `path=`, `goal=`, …) / `keyword` / nickname `cue`. Use a real cue; empty cue = **session outline** (0.11), once at job start, not every turn. Ego unknown: `find(limit=…)` then `pin_map` from labels+props. Prefer one live `TSK_*`. When MATCH_L \(|Q|>1\), CueConflict — do not pick one root. A locator/keyword miss is CueMiss / Peak_L, not CueConflict.
 3. **`pin_map`** — call only when the turn needs memory; one \(S\) per generate. MCP `session=` selects the stratum. Drop the prior map next turn. leftover `anchor=` / `anchors=` are leftover nicknames.
 4. **`mutate`** — sparse GraphElement `CREATE` / `MATCH`…`SET`/`DELETE`. No leftover `id:'NEW'` mint. Under RSV pass `llm_id`.
-5. Persist if needed: `session_save` (file) or AgensGraph adapter (0.7: adapter + operator round trip, no runtime caller). Neo4j is retired. Expire-time save is opt-in (`MEMNET_SAVE_ON_EXPIRE`). Agents MUST NOT talk Bolt.
+5. Persist if needed: `session_save` (file; the only durable copy — the AgensGraph cabinet client is removed). Neo4j is retired. Expire-time save is opt-in (`MEMNET_SAVE_ON_EXPIRE`). Agents MUST NOT talk Bolt.
 
 **MCP missing:** skip MemNet; plain Markdown only.
 

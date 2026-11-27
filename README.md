@@ -22,9 +22,8 @@ Package **`memnet-llm`** (CLI **`memnet`**), version **0.20.2** on PyPI. Python 
 ```bash
 pip install memnet-llm
 # or pin: pip install memnet-llm==0.20.2
-# optional extras (drivers only — not an AgensGraph server):
+# optional extra:
 # pip install 'memnet-llm[mcp]'
-# pip install 'memnet-llm[agensgraph]'
 # contributors: pip install -e ".[dev,mcp]"
 ```
 
@@ -86,14 +85,13 @@ Handoff between modules/agents is the **`sessionId`** (treat it as a secret capa
 
 **Transport:** in-process MCP default (one graph per process). Shared graph: `memnet serve --ipc` (`MEMNET_IPC_SOCKET`) or TCP `memnet serve` (`127.0.0.1:18765`). Multitask / parallel workers need a shared serve — not default in-process.
 
-**Durable:** optional client `memnet-llm[agensgraph]`; the cabinet is external and not vendored. Since **0.7** the adapter and an operator-run round trip exist, but nothing calls the cabinet at runtime yet, so a live cabinet is not claimed. Its CI tests skip unless `MEMNET_AGENSGRAPH_URL` is set. Neo4j is retired (#187). `MEMNET_NEO4J_*` is ignored (one log warning); the engine still starts.
+**Durable:** the file snapshot (`session save` / `session load`) is the durable copy. The 0.7 AgensGraph cabinet client never had a runtime caller and is removed, with its `agensgraph` extra ([`docs/cabinet/README.md`](docs/cabinet/README.md)). Neo4j is retired (#187). `MEMNET_NEO4J_*` is not read; the engine still starts.
 
 ## Not done yet
 
-- Hosted AgensGraph as a product service (operator runs the server; this repo does not vendor it)
 - N-server session pipe ([#47](https://github.com/chouswei/MemNet/issues/47))
 - Reading SysML files or edited pin maps back in (MN-REQ-11.5 SHOULD / [#66](https://github.com/chouswei/MemNet/issues/66)) — `pin_map` GQL can be written out today; matching identities on the way back comes later
-- Host search / RAG as a MemNet tool — application nest only ([`docs/extras/memnet-host-search-nest.md`](docs/extras/memnet-host-search-nest.md))
+- Host search / RAG as a MemNet tool — not shipped; a host runs its own search and commits locators through mutate ([`docs/extras/memnet-host-search-nest.md`](docs/extras/memnet-host-search-nest.md), retired)
 
 ## Links
 

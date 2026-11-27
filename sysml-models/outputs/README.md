@@ -4,8 +4,8 @@ Derived views from `sysml-models/models/`. Model-first; sync here after structur
 
 ## Architecture notes
 
-- [system-design-notes.md](system-design-notes.md) - SharedLlmMemory, handoff, happy-path A re-pin, optional ImportGuard (path B), AsyncTaskDispatch / WorkerPool, M2.5, CIP/oC9
-- [product-nest-one-page.md](product-nest-one-page.md) - Core session/GQL/RecallCommit + Multitask Path A/B + DurableBuffer; APPLICATION/ARCHIVE/OPS LOOK + IMPLEMENTATION allocate
+- [system-design-notes.md](system-design-notes.md) - SharedLlmMemory, handoff, happy-path A re-pin, optional ImportGuard (path B), AsyncTaskDispatch / WorkerPool, M2.5 (cabinet removed), CIP/oC9
+- [product-nest-one-page.md](product-nest-one-page.md) - Core session/GQL/RecallCommit + Multitask Path A/B; APPLICATION/ARCHIVE/OPS LOOK + IMPLEMENTATION allocate
 
 ## Principles (once)
 
@@ -27,7 +27,6 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 | [tcp-shared-multitask-case-study.md](tcp-shared-multitask-case-study.md) | Transport under Multitask: TCP / streamable-http shared store; in-process anti | MN-VER-12-S02; `TcpServeBridge` / handoff |
 | [session-import-case-study.md](session-import-case-study.md) | Lead **imports** member WM; optional ImportGuard nest (hook + cheap LLM #63); happy path A = re-pin | S10…S12, S14; SessionImportReceive |
 | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) | `session_save` / `session_load` cold-start without chat dump | `SnapshotStore`; MN-REQ-01.4/01.5; expire-save configurable (`MN-VER-01-S03`) |
-| [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) | Process death → flush → hydrate new session under budget | M2.5 client landed; live cabinet external; MN-REQ-06.4 |
 | [session-outline-case-study.md](session-outline-case-study.md) | Dark session empty q = Recall census of S (kinds + LIMIT exemplars) | MN-REQ-04.9; leftover skip leftover |
 | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) | Human look at serve n/max + housekeep; manage = Memnetor+Devicor | MN-REQ-06.5; MN-VER-06-S02; HTTP parked |
 | [admin-usage-report-case-study.md](admin-usage-report-case-study.md) | Admin-only serve usage JSON; opaque alias; not agent MCP | MN-REQ-06.11; MN-VER-06-S09 |
@@ -47,7 +46,7 @@ Keep product-canon and GQL application studies. Do not restore leftover `NEW` mi
 |-------|--------|----------|
 | [company-memory-case-study.md](company-memory-case-study.md) | Company analytical SSOT (`COM_*`) | Investor Role D; dual SSOT; analyse loop |
 | [evidence-centre-case-study.md](evidence-centre-case-study.md) | ai-investor EvidenceCentre librarian / MissionDock on SharedLlmMemory | Library / Wanted / Requisition / DelayQueue; soft librarian vs MutateGate |
-| [host-search-nest-case-study.md](host-search-nest-case-study.md) | Host locators into MutateGate **outside** MemNetSystem | `RagHostHook` 0.17; skip valid |
+| [host-search-nest-case-study.md](host-search-nest-case-study.md) | Host locators into MutateGate **outside** MemNetSystem | Hook retired (`hookShipped=false`); host brings its own search |
 | [inverting-amp-bind-relation-case-study.md](inverting-amp-bind-relation-case-study.md) | Dual-EDGE `:bind`+ports vs bare relation; law on node; ego `CST_U1` | `BindRelationship` / `LawOnNode` / `PinMapShapedRead` |
 | [tech-docs-scpi-case-study.md](tech-docs-scpi-case-study.md) | Atomise SCPI manual; pin_map one subsection | Doc working set; GQL `:precedes` |
 | [sysml-modeling-goldfish-case-study.md](sysml-modeling-goldfish-case-study.md) | Meta: MemNet as MBSE agent design memory (`TSK_model_memnet`) | `GoldfishLoop`; serve_down skip |

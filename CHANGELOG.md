@@ -7,6 +7,16 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Removed
+
+- **Dead code** — about 3,300 lines of Python that no command, server or MCP tool imported. The MCP tool list, CLI verbs, gateway routes and replies are unchanged.
+  - Alias modules whose code lives elsewhere: `caps_policy` (use `config.Caps`), `graph_store` (`mem_store`), `session_lifecycle` (`session`), `tcp_serve_bridge` (`serve`), `schema_registry` (`tag_map`), `snapshot_store` (`snapshot`), `housekeep_settle` (`housekeep`), `repo_paths`, and in memnet-mcp `mcp_facade` (`server`), `serve_bridge` (`client`) and `law_seed_helper` (`seed`).
+  - The Tier A / Layer parser and codecs (`tier_a`, `tier_a_codec`, `layer`, `layer_codec`). Mutate already refused that input with `legacy_dialect_retired`, and still does. The record classes the GQL parser uses moved to `memnet.records`.
+  - `rag_host_hook` and `goldfish_caller`, with their tests.
+- **Durable cabinet client** — `memnet.durable` (Fake and AgensGraph adapters, the sync owner) had no runtime caller. `memnet serve`, the local IPC gateway and memnet-mcp no longer bind it at startup, so their "durable sync owner bound" log or stderr line and the "Ignoring retired Neo4j settings" warning are gone. `MEMNET_NEO4J_*` and `MEMNET_AGENSGRAPH_*` are no longer read. The `memnet-llm[agensgraph]` extra and the `agensgraph_live` test marker are gone. Session save and load are the durable copy.
+- **Wheel size** — the 1 MB `examples/workflow.rto-remote.example.txt` SCPI fixture stays in the repo for tests but is no longer in the wheel, so `memnet examples path` lists one file fewer when installed from the wheel.
+- **SysML** — the alias code modules now point at the real modules (their logical parts stay). `RagHostHook`, `AgensGraphAdapter`, `DurableBuffer` and the durable ports and flows are gone from the model; `MemNetSystem.durableCabinetShipped` is false.
+
 ## [0.20.7] - 2026-11-10
 
 ### Added

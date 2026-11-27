@@ -3,12 +3,12 @@
 **Status:** **M2 shipped** (engine/MCP GQL accept + shaped `pin_map` emit). **M1 SSOT** for conventions remains this file.  
 **Teach cut (2026-08-19):** GraphElement is identity. `CREATE ()` is legal; `properties()` MAY be empty. Later MATCH/MERGE = labels + properties; an edge is type + end elements. Optional property `id` = nickname only. Hidden store handle (`elementId`-style) is **not** a property, **not** on the wire, **not** a business key. **MUST NOT** invent a replacement application store key. Breaking teach, not a 0.9 Python patch, not a 1.0 SemVer gate. **0.9 leftover invented store:** `leftover_by_id` / `leftover_id_first` / `leftover_NEW_mint` / `leftover_MERGE_by_id` / `leftover_allocate_from_locator` / `leftover_ingestIsIdRule`.  
 **Grammar SSOT:** vendored official [`openCypher.bnf`](openCypher.bnf) (Apache-2.0; [`NOTICE-openCypher.md`](NOTICE-openCypher.md)). Spelling/identity only — not TCK compliance, not a second accept path.  
-**Audience:** product developers; M2.5 durable-store authors; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
+**Audience:** product developers; M3 in-repo playbook / app-note authors. (User-pack skill migration is separate — see §6.)  
 **Brand:** MemNet (Net of Memory). **Dialect:** **GQL only** (openCypher-shaped, AgensGraph-compatible).  
 **Decision:** [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) — **superseded on Layer:** user directed **no Layer / Tier A** as agent wire or accept path; see ADR supersession note.  
 **British English.** ASCII ids.
 
-**Pointer chain:** product shape [`../SHAPE.md`](../SHAPE.md) → ADR-001 → **this file** → AgensGraph / durable store [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) (**M2.5**, live path **0.7**).
+**Pointer chain:** product shape [`../SHAPE.md`](../SHAPE.md) → ADR-001 → **this file** → `sysml-models/`. The **M2.5** durable store client (0.7) is removed; see [`../cabinet/README.md`](../cabinet/README.md).
 
 ---
 
@@ -271,11 +271,11 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 |-------|------|-------------------------|
 | **M1 (done)** | Conventions, MUST/MUST NOT, shaped-read contract, GQL-only teach | Engine code, app-note marathon, store adapter |
 | **M2 (done)** | `GqlCodec` accept; `PinMapShapedRead` emit; MutateGate GQL path; Layer/Tier A **retired** from product accept | — |
-| **M2.5 (done, 0.7)** | Durable online GQL store adapter (MemNet ↔ AgensGraph; one sync owner; 0.7 is adapter + operator round trip, no runtime caller). Neo4j retired (#187) — [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet; a Neo4j backend |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter (MemNet ↔ AgensGraph; one sync owner; 0.7 is adapter + operator round trip, no runtime caller). Neo4j retired (#187). **Client later removed** — [`../cabinet/README.md`](../cabinet/README.md) | Agent Bolt / LLM↔store direct teach; hosted cabinet; a Neo4j backend |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` + application-notes GQL examples | User-pack skill rewrite (sibling repo) |
 | **User-pack (parallel)** | `memnet-format` / `mcp-memnet` / … → GQL-only in `chouswei/cursor-user-skills` | **In flight separately** — not this repo’s M1–M3 gate |
 
-**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Leftover Layer/Tier A modules remain in `memnet.layer` / `memnet.tier_a` and are **rejected** on default mutate accept (`legacy_dialect_retired`). **M2.5** client + 0.7 live hydrate/flush are shipped; Fake + URL skip remain the CI seam.
+**As-is note:** Engine/MCP product path is **GQL** (`memnet.gql_codec.GqlCodec`, `PinMapComposer` shaped emit). Layer/Tier A modules are deleted; default mutate accept **rejects** those dialects (`legacy_dialect_retired`). Mutate record classes live in `memnet.records`. The **M2.5** cabinet client is removed; the file snapshot (`session save` / `session load`) is the durable copy.
 
 ---
 
@@ -290,8 +290,7 @@ Shaped subgraph = ordered openCypher-family lines (or isomorphic structured grap
 | [`../SHAPE.md`](../SHAPE.md) | Product shape from the problem |
 | [`../ROADMAP.md`](../ROADMAP.md) | SemVer map SSOT |
 | [`math-skeleton.md`](math-skeleton.md) | 0.5 Recall/Commit math SSOT (operator domains; one \(S\) per generate) |
-| [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) | Durable GQL store adapter sketch (**M2.5**) |
-| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Retired Neo4j cabinet (#187). Not a current backend |
+| [`../cabinet/README.md`](../cabinet/README.md) | Retired durable cabinet (**M2.5** client removed) |
 | [`../application-notes/examples/inverting-amplifier-gql-case-study.md`](../application-notes/examples/inverting-amplifier-gql-case-study.md) | Worked GQL encoding |
 | [`memnet-session-strata.md`](../extras/memnet-session-strata.md) | Named sessions as strata (not Layer wire) |
 | [`../../sysml-models/README.md`](../../sysml-models/README.md) | Nested `GqlCodec` / `PinMapShapedRead` |
