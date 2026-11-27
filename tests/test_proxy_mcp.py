@@ -1,4 +1,4 @@
-"""MCP follow_proxy (MN-REQ-15): one new tool; the 30 0.20.8 tools keep their names."""
+"""MCP follow_proxy (MN-REQ-15): additive on the 30 0.20.8 tools (plus live-limits)."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def test_follow_proxy_is_the_one_new_tool(monkeypatch):
     tools = asyncio.run(mcp.list_tools())
     names = {t.name for t in tools}
     assert len(BASE_TOOLS) == 30
-    assert names == BASE_TOOLS | {"follow_proxy"}
+    assert names == BASE_TOOLS | {"follow_proxy", "session_limits", "session_set_limits"}
     tool = next(t for t in tools if t.name == "follow_proxy")
     props = (tool.inputSchema or {}).get("properties") or {}
     assert set(props) == {"id", "session", "caller"}
