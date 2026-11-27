@@ -499,9 +499,8 @@ class MutateGate:
             ack_items.append(it)
 
         # Every edge gets an E id: CREATE without one (deferred) and PATCH of a
-        # legacy id-less edge (pending). The nickname scan runs only if needed.
+        # legacy id-less edge (pending). The allocator is built only if needed.
         id_less_patch = [r for r in pending if r.tag == "EDG" and not r.fields.get("id")]
-        # Known follow-up: the per-mutate scan of existing ids below is O(n) in the store.
         if id_less_patch or any(not it.edge_id for it in deferred_edges):
             edge_alloc = self._edge_id_allocator(pending, deferred_edges)
             for it in deferred_edges:
@@ -1111,13 +1110,12 @@ class MutateGate:
     def _edge_id_allocator(self, batch: list[Record], deferred: list[EdgeRec]) -> IdAllocator:
         """IdAllocator that will not reuse any nickname in the store, the batch, or a CREATE id.
 
-        Cost: one O(N) pass over the store (MemStore.nickname_set). No nickname
-        index exists, so this scan is the price of minting; it runs only for a
-        write that has at least one id-less edge, never for id'd edges.
+        Seeded from the store's per-prefix id high-water (never lowered, so no
+        live or deleted id is minted again) plus the batch ids: O(batch), not
+        O(store). Mints the same ids as seeding from the whole nickname set.
         """
-        used = self.ss.store.nickname_set()
-        used.update(r.fields["id"] for r in batch if r.fields.get("id"))
-        alloc = IdAllocator(used)
+        batch_ids = [r.fields["id"] for r in batch if r.fields.get("id")]
+        alloc = IdAllocator.from_high_water(self.ss.store.id_high_water(), batch_ids)
         for it in deferred:
             if it.edge_id:
                 alloc.observe(it.edge_id)
