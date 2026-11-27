@@ -182,7 +182,7 @@ def test_subset_refusals_are_parse_errors(text):
 def test_match_return_is_product_gate(clause):
     with pytest.raises(ParseError) as exc:
         parse(f"MATCH (n:TSK {{goal: 'x'}}) {clause}")
-    assert exc.value.code in {"product_gate", "parse_error"}
+    assert exc.value.code == "product_gate"
 
 
 def test_unwind_is_product_gate():
@@ -209,6 +209,7 @@ def test_rel_delete_by_nickname_ends_is_accepted():
         "CREATE (:TSK {goal: $g})",
         "MERGE (n:TSK {goal: $g}) SET n += {a: 1}",
         "MATCH (n:TSK {goal: 'x'}) SET n.z = $v",
+        "MATCH (n:TSK {goal: 'x'}) WHERE n.z = $v SET n.z = 1",
     ],
 )
 def test_parameters_are_refused(text):

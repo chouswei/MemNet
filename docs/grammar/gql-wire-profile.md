@@ -108,9 +108,22 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate
 
 **Batch:** one mutate payload = ordered list of such clauses (or structured equivalents). Response **MAY** list nicknames if any were assigned; it **MUST NOT** teach hidden storage handles (`elementId` style).
 
+### 1.3 Forbidden on the agent teach surface
+
+| MUST NOT | Why |
+|----------|-----|
+| Unbounded `MATCH` without anchor/depth/view envelope as primary read | Breaks goldfish / token budget |
+| Primary tabular `RETURN` columns / binding tables as goldfish read | Breaks redefined Write = display |
+| Full GQL **DDL** / graph-type / schema teach in first cut | SCHEMA deferred |
+| Variable-length / shortest-path as default agent read | Store/DBA only |
+| Dual-teach Layer ASCII / Tier A lines as peer or accept wire | User: **no Layer** |
+| Invent a replacement application store key | Grammar has none; locators/`id` are properties, not PK |
+| Invent a third peer dialect | One dialect = GQL |
+| Put constitutive **law** on a relationship | Law lives on the **node** (`law` property) |
+
 ### 1.4 Accepted subset (as built)
 
-The engine accepts only the shapes below. Anything else refuses; shape refusals are `parse_error` with free text (no stable code yet), gate refusals are `product_gate`, WHERE refusals carry the codes in §1.2. Pinned in `tests/test_gql_codec.py`.
+The engine accepts only the shapes below. Anything else refuses. Shape refusals (multi-label, comma CREATE, semicolon, comments, relationship DELETE by label or property) are `parse_error` with free text. Parameters refuse `parameter_unsupported`. Gate refusals are `product_gate`. WHERE refusals carry the codes in §1.2. Pinned in `tests/test_gql_codec.py`.
 
 | Form | Accepted | Refused |
 |------|----------|---------|
@@ -125,19 +138,6 @@ The engine accepts only the shapes below. Anything else refuses; shape refusals 
 | Read clauses | none (use `pin_map`) | `RETURN`, `WITH`, `UNWIND`, `CALL` → `product_gate` |
 
 Open: label case-sensitivity (`:tsk` vs `:TSK`) is not defined here; and `id:'NEW'` is accepted silently on CREATE (leftover sugar, stripped).
-
-### 1.3 Forbidden on the agent teach surface
-
-| MUST NOT | Why |
-|----------|-----|
-| Unbounded `MATCH` without anchor/depth/view envelope as primary read | Breaks goldfish / token budget |
-| Primary tabular `RETURN` columns / binding tables as goldfish read | Breaks redefined Write = display |
-| Full GQL **DDL** / graph-type / schema teach in first cut | SCHEMA deferred |
-| Variable-length / shortest-path as default agent read | Store/DBA only |
-| Dual-teach Layer ASCII / Tier A lines as peer or accept wire | User: **no Layer** |
-| Invent a replacement application store key | Grammar has none; locators/`id` are properties, not PK |
-| Invent a third peer dialect | One dialect = GQL |
-| Put constitutive **law** on a relationship | Law lives on the **node** (`law` property) |
 
 ---
 

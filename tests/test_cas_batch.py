@@ -1,9 +1,10 @@
-"""Compare-and-set over mutate: the write shape the Atelier single-store design relies on.
+"""Compare-and-set over mutate.
 
-Atelier's design (docs/memnet-single-store/design.md section 4, MN-ATOMIC) allocates
-with ``MATCH (c:CTR {acct:'A1'}) WHERE c.view = 8 AND c.rev = 41 ... SET ...`` and needs:
-exactly one match or the batch fails, a miss writes nothing, and an earlier line in the
-same batch is undone when a later CAS misses. These tests pin what the engine does today.
+A CAS write of the form
+``MATCH (c:CTR {acct:'A1'}) WHERE c.view = 8 AND c.rev = 41 ... SET ...``
+needs: exactly one match or the batch fails, a miss writes nothing, and an
+earlier line in the same batch is undone when a later CAS misses. These tests
+pin what the engine does today.
 """
 
 from __future__ import annotations
