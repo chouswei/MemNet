@@ -7,6 +7,10 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Added
+
+- **One-hop PROXY nodes** (MN-REQ-15). `PROXY` is a new built-in node kind with the fields `id`, `target_session`, `target` and `target_backend`: a pointer from one session to a node in a session, which may be another one. A write needs `target_session` and `target` (non-empty, the id character set) or it is refused `proxy_shape` and nothing is written; the target does not have to exist, and `target_backend` is only a label. `pin_map`, `find` and walks show a PROXY as a plain node and never follow it. The new read `memnet query follow --id <proxy>` (MCP tool `follow_proxy`; the other 30 tools are unchanged) follows one hop: `follow|ok` with the target node, `follow|dangling|reason=target_missing` when the target session is here but the node is not, or `follow|not_reachable` when the target session is not in this serve (not a confirmed delete). A target that is itself a PROXY is returned, not followed. It needs `pin_map` permission on both sessions, and a denial says nothing about the target. The product gateway makes the second hop to the backend its owners map names for the target session (same product only; `target_backend` is never used to route). `housekeep dangling` lists dangling PROXY rows with a reason line and `housekeep stats` adds `dangling_proxies`; the `dangling` count and `prune dangling` stay edges-only, so nothing deletes a PROXY. It is not a cross-session join: other reads stay inside one session. Snapshot format stays 2; a session without PROXY rows saves exactly as before, and an older build refuses a PROXY row `unknown_tag` instead of loading it wrongly.
+
 ## [0.20.8] - 2026-11-27
 
 ### Changed
