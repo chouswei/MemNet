@@ -8,7 +8,7 @@ import pytest
 from memnet.gql import ParseError, emit_item, parse, soft_validate
 from memnet.gql_codec import GqlCodec
 from memnet.gql_parse_front import GRAPHGLOT_DIALECT_NAME, parse_program, quote_reserved_idents
-from memnet.tier_a import EdgeRec, NodeRec, Op
+from memnet.records import EdgeRec, NodeRec, Op
 
 
 def test_parse_create_omits_leftover_new():

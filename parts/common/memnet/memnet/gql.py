@@ -23,7 +23,7 @@ from memnet.gql_parse_front import (
     parse_program,
 )
 from memnet.models import SHAPE_DROP_KEYS
-from memnet.tier_a import Document, EdgeRec, Field, NodeRec, Op, Section
+from memnet.records import Document, EdgeRec, Field, NodeRec, Op, Section
 from memnet.wire import split_lf_lines
 
 _IDENT = r"[A-Za-z_][A-Za-z0-9_]*"

@@ -64,7 +64,7 @@
     MN-REQ-14.8        Developer surface: real ids, stable outside references (PROPOSAL; traced to 14.6)
     MN-REQ-14.9        Value cap 4096 -> 32768 bytes and line cap 135168, no chunking (implemented; tests/test_value_cap_32k.py, test_line_cap_whole_line.py, test_line_cap_edge_schema.py)
     MN-REQ-14.10       Per-session total-bytes cap: escaped snapshot line bytes (default 163,840,000 bytes)
-    MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, hydrate, CLI delete/prune; load and save budget)
+    MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, CLI delete/prune; load and save budget)
     MN-REQ-14.12       Budget check is incremental: re-encodes changed nodes + their incident edges, total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
     MN-REQ-14.13       Opaque paging cursor for find and typed walks: limit + cursor in, next cursor out; bad_cursor / cursor_mismatch / stale_cursor; opt-in, replies unchanged otherwise (implemented; tests/test_paging_cursor.py)
 
@@ -106,12 +106,13 @@
     Target agent wire is openCypher-shaped GQL (ADR-001); Write = display
     redefined as bounded shaped pin_map subgraph wrapping GQL.
     Layer / Tier A = leftover engine only (not product accept; M2
-    retired MutateGate accept; leftover codecs memnet.tier_a / memnet.layer).
+    retired MutateGate accept; the memnet.tier_a / memnet.layer codecs are
+    deleted, and the mutate record classes live in memnet.records).
     Legacy @TAG pipe may still appear in old session files (import once).
     Store is in-memory Node|Edge property-graph records; process binding
     prefers in-process, then local IPC, TCP as fallback; fixed engine laws
-    often LAW01-LAW05. Durable AgensGraph-class store planned M2.5 behind
-    MemNet (not LLM-direct). Requirements state behavioural contracts;
+    often LAW01-LAW05. No durable cabinet ships; the file snapshot is the
+    durable copy (any future store sits behind MemNet, not LLM-direct). Requirements state behavioural contracts;
     surface spellings may change if the boundary still meets the contract.
 
   Stakeholders (comment only -- no structural defs in this file):
@@ -1041,31 +1042,25 @@ package MemNetRequirements {
 
       requirement def MN_REQ_06_4_DurableStoreBehindMemNet {
         doc /*
-          When a durable online GQL store (AgensGraph-class) is present,
-          MemNet SHALL remain the sole agent-facing shared memory. The
-          store SHALL sit behind MemNet (hydrate/flush). LLM ↔ store
-          direct (Bolt / driver) SHALL NOT be the default teach path.
-          M2.5 client hydrate/flush adapter seam IS landed (Fake always;
-          optional AgensGraph client with liveCabinetClaimed; one
-          DurableSyncOwner). Factory binds exactly one of fake or
-          AgensGraph (bindsExactlyOneOf="fake|agensgraph").
-          hydrateFlushCallers="tests" on DurableBuffer: no non-test
-          caller of hydrate/flush. serve, IPC, and MCP bind the owner
-          at startup and SHALL NOT be read as invoking it. SHALL NOT
-          wire a new hydrate/flush caller. The 0.7 claim is adapter +
-          operator round trip (no runtime caller). liveCabinetClaimed
-          records that operator round trip. The AgensGraph server SHALL
-          NOT be vendored in-repo. Neo4jAdapter, Neo4jLibraryPort, and
+          When a durable online GQL store is present, MemNet SHALL
+          remain the sole agent-facing shared memory and the store SHALL
+          sit behind MemNet. LLM ↔ store direct (Bolt / driver) SHALL NOT
+          be the default teach path. No such store ships: the durable
+          cabinet client (memnet.durable: Fake and AgensGraph adapters,
+          one sync owner) had no runtime caller and is removed, and
+          serve, IPC and MCP bind nothing at startup
+          (MemNetSystem.durableCabinetShipped=false). The file snapshot is
+          the durable copy. A store server SHALL NOT be vendored in-repo.
+          Neo4jAdapter, Neo4jLibraryPort, and
           liveNeo4jClaimed are retired on MemNetArchive (#187). When
           MEMNET_NEO4J_URL or any other MEMNET_NEO4J_* variable is set,
-          the engine SHALL ignore it and start. One log warning is
-          enough. SHALL NOT crash. SHALL NOT bind a Neo4j adapter.
+          the engine SHALL ignore it and start (no code reads it). SHALL
+          NOT crash. SHALL NOT bind a Neo4j adapter.
           Hid SHALL stay off the wire. SHALL NOT fuse retrieve rankers
-          (RRF / PPR / Leiden / ANN) into Recall / pin_map. HostSearch /
-          RagHostHook SHALL remain outside MemNetSystem. Extra 0.17:
-          RagHostHook.implemented SHALL be true outside MemNetSystem
-          (skip is valid); SHALL NOT nest the hook under MemNetSystem;
-          SHALL NOT add rag_query MCP. SHALL NOT read a Neo4j library.
+          (RRF / PPR / Leiden / ANN) into Recall / pin_map. HostSearch
+          SHALL remain outside MemNetSystem; MemNet ships no host-search
+          hook (memnet.rag_host_hook removed; skip is valid); SHALL NOT
+          nest a hook under MemNetSystem; SHALL NOT add rag_query MCP. SHALL NOT read a Neo4j library.
         */
         attribute requirementId : String = "MN-REQ-06.4";
       }
@@ -2590,7 +2585,7 @@ package MemNetRequirements {
           writeback Absorb (ImportAbsorb remains Path-B WorkingMemorySlice +
           leftover id_policy only — not entity resolution). SameThingAbsorb
           is a distinct in-session Commit rule, not goldfish-writeback naming
-          and not ImportAbsorb. Host Snap (corpus locators via RagHostHook) SHALL
+          and not ImportAbsorb. Host Snap (corpus locators from host-side search) SHALL
           stay outside MemNetSystem and SHALL NOT ANN-index the session.
           In-session task already on S SHALL RelativeSeed MATCH_L then
           ShapeWalk (leftover read_list / copy-id --anchor named leftover)
@@ -3058,7 +3053,7 @@ package MemNetRequirements {
       requirement def MN_REQ_14_10_SessionTotalBytesCap {
         doc /*
           Status: implemented (mutate gate, snapshot load and save, snapshot
-          import, durable hydrate; ingest through the mutate gate; tests
+          import; ingest through the mutate gate; tests
           tests/test_session_bytes_budget.py and
           tests/test_bypass_paths_caps.py). Without a total
           the record cap (14.5) and the value cap (14.9) multiply each
@@ -3068,15 +3063,15 @@ package MemNetRequirements {
           SCHEMA, record and edge line. A write that
           would go over it is refused with a named code, limit_exceeded|
           session_bytes {n}/{max}, and writes nothing. The same check runs
-          on snapshot load, snapshot save, snapshot import, durable hydrate
-          and ingest (via the mutate gate); a delete never trips it. The
+          on snapshot load, snapshot save, snapshot import and ingest (via
+          the mutate gate); a delete never trips it. The
           setting is the env var MEMNET_MAX_SESSION_BYTES. Its default is
           163,840,000 bytes (5,000 x 32,768 = 163,840,000; 156.25 MiB; owner-set; one
           named constant, DEFAULT_MAX_SESSION_BYTES in config.py). It is a
           deliberate cap, not a floor: 5,000 records at the 135,168-byte
           line cap would be 675,840,000 bytes, so the default can refuse a
           write that the value and line caps allow, and a lower setting can
-          refuse to load or hydrate a session that is over it (the setting to
+          refuse to load a session that is over it (the setting to
           raise is named in the error). Linked from 14.5 and
           14.9. The total is kept incrementally (MN-REQ-14.12).
           Verify: MN-VER-14-S10; incremental total: MN-VER-14-S12. Behaviour: ValueLineCapEnforce, SessionByteBudgetStates, BypassPathCapEnforce.
@@ -3092,11 +3087,7 @@ package MemNetRequirements {
           (value_bytes|{n}/{max}, line_bytes|{n}/{max},
           session_bytes|{n}/{max}) and SHALL be atomic: a refused call
           leaves the session exactly as it was. Paths: snapshot import
-          (import_absorb), durable hydrate (durable/sync.py), CLI delete and
-          housekeep prune. Hydrate into a session already over its byte
-          budget (for example under a lower MEMNET_MAX_SESSION_BYTES) is
-          refused session_bytes with nothing loaded; durable data is never
-          touched or truncated. A delete shrinks the session, so the byte
+          (import_absorb), CLI delete and housekeep prune. A delete shrinks the session, so the byte
           budget never refuses it, but the edge and SCHEMA lines it rewrites
           (an edge to a deleted node is written with the endpoint handle)
           must still pass the line cap, else the delete is refused and
@@ -3118,9 +3109,9 @@ package MemNetRequirements {
           it re-encodes only what changed, total equal to a full recount.
           The session total of 14.10 SHALL be kept as a per-session running
           sum of escaped UTF-8 line bytes, updated on create, update,
-          delete, import, hydrate and load. The rows re-encoded per write
+          delete, import and load. The rows re-encoded per write
           SHALL be the changed nodes plus the incident edges of changed
-          nodes; only the first check after load or hydrate, a store swap
+          nodes; only the first check after load, a store swap
           (MemStore replaced), a SCHEMA change, a bypass_guard rollback, a
           row-count tripwire or a leftover-nick collision pays one full
           rebuild. The ledger is dropped on expire and on save-on-expire

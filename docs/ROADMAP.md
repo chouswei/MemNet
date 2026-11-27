@@ -49,7 +49,7 @@ A `c` cut (wheel, tag, GitHub release, version bump) happens only when the owner
 
 - Package is **0.20.0**. Extras **0.10–0.19** stay the owns table below. **1.0** stays unclaimed.
 - **1.0 does not wait** on 0.19.c, efficiency, HostSearch, Peak_L, catalog Snap, N-server, or GraphGlot.
-- A new cabinet adapter does **not** move `a`. Hosted Agens as a product service, first-class `PORT`, and full ACL modes / `session_token` stay Later / unnumbered until a cut exists.
+- A new cabinet adapter does **not** move `a`. First-class `PORT`, and full ACL modes / `session_token` stay Later / unnumbered until a cut exists.
 
 ---
 
@@ -68,21 +68,20 @@ MemNet is **mission working memory** — the **memory plane of an agent harness*
                     |
          +----------+------------------+
          |                             |
-    host Snap (RAG)              cabinet Bolt
-    locators only                hydrate / flush
-    HostSearch locators (0.17)   Agens 0.7: adapter + operator
-    outside MemNetSystem         round trip (no runtime caller)
-                                 Neo4j retired (#187)
+    host Snap (RAG)              file snapshot
+    locators only                session save / load
+    host's own search            (0.7 Agens cabinet client
+    outside MemNetSystem          removed; Neo4j retired #187)
 ```
 
 | Layer | Job | This repo? |
 |-------|-----|------------|
 | Outer harness | Loop, tools, env blob, eval tape | **No** |
 | Memory plane | Named session \(S\); goldfish Shape; sparse mutate; Path-B Absorb | **Yes** — engine + `memnet-mcp` |
-| Library RAG | Corpus → locators (Snap) | **0.17** HostSearch outside `MemNetSystem` (skip valid) |
-| Cabinet | Persist one \(S\) | Agens **0.7**: adapter + operator round trip (no runtime caller). Neo4j retired (#187) |
+| Library RAG | Corpus → locators (Snap) | **No** — host's own search outside `MemNetSystem`; locators via mutate (0.17 hook code removed) |
+| Durable copy | Persist one \(S\) | File snapshot. Agens **0.7** cabinet client removed. Neo4j retired (#187) |
 
-Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labels+properties (or a kind/keyword cue). Chat is never SSOT. A durable store **backs** \(S\); it is not the handle and not the default teach surface. **MUST NOT** reframe MemNet as a Cypher proxy or as GraphRAG.
+Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labels+properties (or a kind/keyword cue). Chat is never SSOT. The durable copy (file snapshot) **backs** \(S\); it is not the handle and not the default teach surface. **MUST NOT** reframe MemNet as a Cypher proxy or as GraphRAG.
 
 **Two operators only.** Recall and Commit. CueConflict is an **emit mark**, not a command. SameThingAbsorb is a **Commit rule**, not a third operator. **MUST NOT** invent a replacement application store key (locator-as-PK, qname-as-PK, minted string-as-PK). GraphElement is identity. Optional property `id` is a nickname.
 
@@ -98,9 +97,9 @@ Handoff = **session id** (+ cue / write scope). Peers **re-`pin_map`** from labe
 |---------|------|--------|
 | **0.5.0** | Goldfish leftover: paradox V1/V3/V4/V6; BoundedMatchFind (#73) seed-only `find`; multi-ego `pin_map` under one \(M\) + one LAW | **Shipped** (`v0.5.0`) |
 | **0.6.0** | Honesty: V5 LAW×N pytest; snapshot as offered durable; version-map docs | **Shipped** (`v0.6.0`) |
-| **0.7.0** | Adapter + operator round trip (no runtime caller); `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL`. No runtime hydrate/flush caller | **Shipped** (`v0.7.0`); claim narrowed (#187) |
-| **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. Cabinet stays claimed | **Shipped** (`v0.8.0`) |
-| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule; [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md). Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
+| **0.7.0** | Adapter + operator round trip (no runtime caller); `liveCabinetClaimed=true`. Server not vendored. Fake + skip unless `MEMNET_AGENSGRAPH_URL`. No runtime hydrate/flush caller | **Shipped** (`v0.7.0`); claim narrowed (#187); cabinet client and `agensgraph` extra **later removed** |
+| **0.8.0** | GQL-only **teach** + product **shape for people** (`SHAPE.md`, playbook, application-note contract, Multitask honesty). Docs only. **No** engine cut. (Cabinet client later removed) | **Shipped** (`v0.8.0`) |
+| **0.9.0** | Neo4j `DurableStoreAdapter` client (`memnet-llm[neo4j]`); factory both-URL rule. Live round-trip claimed later as extra **0.14**. Cabinet extra, **not** a 1.0 gate | **Shipped** (`v0.9.0` era; extras later packaged as 0.19.0) |
 | **0.10–0.19** | Numbered extras (table below). Each row is one `b` (usage-method revision). Same pattern as 0.9: **not** 1.0 gates | **Packaged** (Hatch **0.20.0**; last published PyPI **`memnet-llm==0.19.26`**; extras first shipped as 0.19.0) |
 | **1.0.0** | **Claim** of **0.5 + 0.6 + 0.7 + 0.8**. Shape mature for people. Not GraphRAG. Not cabinet-only. Not a new engine. This is `a=1` | **Claim when coordinator tags** — package **0.20.0** does not claim 1.0 |
 | **Later** | Grammar Open / hosted product / leftover ACL; N-server research (#47); LAN MCP front invent (#191). GraphGlot parse-front is **shipped**. If **1.0 tags first**, remaining extras become **1.1, 1.2, …** with the same owns (`b` after the claim) | **Out** of 1.0 |
@@ -148,11 +147,11 @@ One concern per **`b`** (usage-method revision). Dependency order. **In package 
 | **0.14.0** | **Live Neo4j claimed** (old 0.11). Historical operator proof rpi5-syson @ d23cc71. **Retired** from the current package (#187): model on `MemNetArchive`; adapter and extra removed; `MEMNET_NEO4J_*` ignored. | 0.10 identity (else live claim cements leftover_MERGE_by_id) | Vendor Neo4j server; LLM↔Bolt; restore the cabinet; claim hydrate-by-hid proven on live |
 | **0.15.0** | **Catalog Snap** + session strata + model Snap (old 0.12). **Done / in package 0.19.0** (#124 @ 7767ed84). [`extras/memnet-session-strata.md`](extras/memnet-session-strata.md). Catalog cut's own fence: that extra does not own `liveNeo4jClaimed`. | ImportAbsorb pattern match (0.10); ingest locators as props | ANN rank sessions; Absorb whole \(S\); Layer; one session per REQ |
 | **0.16.0** | **Two Neo4j namespaces** (old 0.13). Was in package 0.19.0 (#127 @ c32d4c52). **Retired** with the Neo4j cabinet (#187). | 0.14 live claim | Fuse RRF/PPR into `pin_map`; `rag_query`; Snap-on-session; restore Neo4j; LLM↔Bolt |
-| **0.17.0** | **HostSearch locators** (old 0.14). **Done / in package 0.19.0** (#129 @ 00e74dfb). `RagHostHook.implemented=true` **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. | 0.16 | `rag_query` MCP; Snap-on-session |
+| **0.17.0** | **HostSearch locators** (old 0.14). **Done / in package 0.19.0** (#129 @ 00e74dfb). Hook was **outside** `MemNetSystem`; locators into MutateGate / ingest; skip is valid. **`RagHostHook` code later removed** (no product caller); hosts run their own search and commit locators via mutate. | 0.16 | `rag_query` MCP; Snap-on-session |
 | **0.18.0** | **Peak_L** last-resort (old 0.15). **Done / in package 0.19.0** (#128 @ dc464cd4). Topology cue on residual \(\rho^*\) when codebook miss; never default goldfish; V9 paradox pytest. | 0.5 find | Peak as default |
 | **0.19.0** | **Pin-map export** (old 0.16 / [#66](https://github.com/chouswei/MemNet/issues/66)). **Done / in package 0.19.0** (#123 @ 2c460e7d). Ingest ≠ export. | Shaped emit | Export as Absorb |
 
-**After 0.19 (still Later, unnumbered until a cut exists):** hosted AgensGraph as a **product service**; first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). N-server session pipe stays research (no cut; [#47](https://github.com/chouswei/MemNet/issues/47)).
+**After 0.19 (still Later, unnumbered until a cut exists):** first-class `PORT` NODE / SCHEMA vocab freeze; full ACL modes / `session_token` (CapsPolicy already ships when enabled). N-server session pipe stays research (no cut; [#47](https://github.com/chouswei/MemNet/issues/47)).
 
 **Not a `memnet-llm` `b`:** cache-hit dump vs Shape+Flash (measure, do not ship a SKU); OpenHands condenser patches; Inspect dual-tape; Letta MemFS; **pure efficiency / speed on the current goldfish loop** (that is **`0.19.c`**). Gap plan (unshipped): [`extras/memnet-efficiency-gap.md`](extras/memnet-efficiency-gap.md). Teach Cursor via user-pack `mcp-memnet`. Sibling skills repo may absorb 0.13 caller text; this engine still owns the **fail-the-stuffed-maps** test.
 
@@ -174,7 +173,6 @@ Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** 
 
 | Item | Notes |
 |------|--------|
-| Hosted AgensGraph as a product service | 0.7 is the client adapter + operator round trip (no runtime caller); server not vendored |
 | First-class `PORT` NODE; SCHEMA vocab freeze | Grammar Open; ports stay properties |
 | Full ACL modes / roles / `session_token` | CapsPolicy cut already ships when enabled |
 | GraphGlot parse-front (#109 @ 73a63c9b) | **Shipped** as parse-front only on master. ProductGqlGate still runs after parse. Not a store. Layer stays retired. |
@@ -191,7 +189,7 @@ Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** 
 
 **GQL:** agent teach/wire only. **MUST NOT** revive Layer teach.
 
-**AgensGraph:** backing graph for sessions — **not** a MemNet substitute and **not** the handoff handle. **0.7** is adapter + operator round trip (no runtime caller). **MUST NOT** dual-write without a single sync owner. **MUST NOT** teach LLM ↔ Bolt as the miss path. Neo4j is retired (#187).
+**Durable:** the file snapshot is the durable copy. The **0.7** AgensGraph client (no runtime caller) is removed. Any future cabinet sits **behind** sessions — **not** a MemNet substitute, **not** the handoff handle, never dual-written without one owner. **MUST NOT** teach LLM ↔ Bolt as the miss path. Neo4j is retired (#187).
 
 ---
 
@@ -202,9 +200,9 @@ Numbered fill is **0.10–0.19** above. This list is the overflow. **MUST NOT** 
 | **M1** | GQL wire profile SSOT; Layer archive; no Layer teach | **Done** (docs) |
 | **M2** | Engine/MCP: GQL accept + shaped `pin_map` emit; retire Layer/Tier A from product accept | **Done** |
 | **M3** | In-repo `LLM-GUIDE` + application-notes bodies → GQL examples | **Done** for **Layer retirement**. **0.10** TARGET teach rewrite (in package 0.19.0): cue/`pin_map` + pattern Commit; leftover `--anchor` / `id:'NEW'` named leftover. |
-| **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7 adapter + operator round trip, no runtime caller). Neo4j retired (#187) |
+| **M2.5** | Durable store **behind** working memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner) | **Done** (0.7 adapter + operator round trip, no runtime caller). Neo4j retired (#187). Cabinet client **later removed** |
 
-Durable: [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md), [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md). Numbered extras **0.10–0.19** above (in package **0.19.0**).
+Durable (retired): [`cabinet/README.md`](cabinet/README.md). Numbered extras **0.10–0.19** above (in package **0.19.0**).
 
 ### Already shipped (from 0.4.x — do not list as deferred)
 
@@ -258,7 +256,7 @@ Decision SSOT: [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) 
 | Host search MAY propose **locators** into MutateGate / ingest; skip is valid | Store embeddings or chunk bodies as the memory surface |
 | [#73](https://github.com/chouswei/MemNet/issues/73) `find` is **graph** lookup (seed nodes only; then `pin_map` from labels+props), not corpus RAG. Do **not** teach copy-id then `--anchor`. When \(|Q|>1\), CueConflict on emit (0.10) | Run HippoRAG PPR / Graphiti RRF / OpenIE / ANN **inside** the engine |
 
-Design: [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
+Design (retired): [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md). Math: [`grammar/math-skeleton.md`](grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77).
 
 ---
 
@@ -271,10 +269,9 @@ Design: [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md)
 | [`../README.md`](../README.md) | Doctrine / how to run |
 | [`adr/ADR-001-gql-agent-wire.md`](adr/ADR-001-gql-agent-wire.md) | GQL wire; no Layer |
 | [`grammar/gql-wire-profile.md`](grammar/gql-wire-profile.md) | **M1 SSOT** |
-| [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md) | Durable GQL store adapter (**M2.5**) |
-| [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md) | Retired Neo4j cabinet (#187) |
+| [`cabinet/README.md`](cabinet/README.md) | Retired durable cabinet (**M2.5** client removed) |
 | [`grammar/math-skeleton.md`](grammar/math-skeleton.md) | 0.5 Recall/Commit math |
-| [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md) | Host search nest (0.17; skip valid) |
+| [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md) | Host search nest (retired; no MemNet hook) |
 | [`application-notes/examples/inverting-amplifier-gql-case-study.md`](application-notes/examples/inverting-amplifier-gql-case-study.md) | InvAmp GQL case study |
 | [`../sysml-models/README.md`](../sysml-models/README.md) | Nested SysML outline |
 | [`../parts/memnet-mcp/README.md`](../parts/memnet-mcp/README.md) | HTTP env / Pi paste |

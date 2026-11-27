@@ -8,8 +8,8 @@ from memnet.cli import app
 from memnet.config import examples_dir
 from memnet.gql import parse
 from memnet.mutate_gate import MutateGate
+from memnet.records import NodeRec, Op
 from memnet.session import open_session
-from memnet.tier_a import NodeRec, Op
 
 runner = CliRunner()
 _CODING_MAP = examples_dir() / "schema.coding.example.txt"

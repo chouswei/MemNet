@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from memnet.tier_a import Document, EdgeRec, NodeRec, Op
+from memnet.records import Document, EdgeRec, NodeRec, Op
 
 _NUM_SUFFIX = re.compile(r"^([A-Za-z_]+)(\d+)$")
 
@@ -38,6 +38,23 @@ class IdAllocator:
                 prefix, n = m.group(1), int(m.group(2))
                 if n > self._seq.get(prefix, 0):
                     self._seq[prefix] = n
+
+    @classmethod
+    def from_high_water(cls, high_water: dict[str, int], extra_ids=()) -> IdAllocator:
+        """Allocator for ``mint`` / ``observe`` seeded from per-prefix high-water marks.
+
+        ``high_water`` is MemStore.id_high_water(): for each prefix, at least the
+        largest numeric suffix of any stored id. ``mint(prefix)`` then gives the
+        same ids as ``IdAllocator(every stored id | extra_ids)``: a stored id of
+        that prefix never exceeds the mark, so the old full set only ever held
+        ids below the first candidate. Cost O(prefixes + extra_ids), not O(store).
+        Not for ``allocate_from_locator`` (its "already used" check needs every id).
+        """
+        alloc = cls(set(extra_ids))
+        for prefix, n in high_water.items():
+            if n > alloc._seq.get(prefix, 0):
+                alloc._seq[prefix] = n
+        return alloc
 
     def observe(self, rid: str) -> None:
         if rid and rid != "NEW":

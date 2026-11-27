@@ -1,10 +1,10 @@
 """Cap enforcement for write paths that bypass the mutate gate (MN-REQ-14.11).
 
-Snapshot import (import_absorb), durable hydrate and CLI delete/prune write the
-store directly. They reuse the mutate checks (value cap, whole-line cap, field
-cap, session byte budget) and are atomic: the store is checkpointed, written,
-verified, and rolled back on any refusal, so a refused call leaves the session
-exactly as it was.
+Snapshot import (import_absorb) and CLI delete/prune write the store directly.
+They reuse the mutate checks (value cap, whole-line cap, field cap, session
+byte budget) and are atomic: the store is checkpointed, written, verified,
+and rolled back on any refusal, so a refused call leaves the session exactly
+as it was.
 """
 
 from __future__ import annotations

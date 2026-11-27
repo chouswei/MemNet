@@ -10,6 +10,6 @@
 
 Decision: [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md).
 
-Do **not** teach Layer, Tier A, `@TAG` pipe, leftover `id:'NEW'`, or line-codec `+/~/-` as agent wire. Those sources are **dropped** from this tree. Engine leftover codecs stay in `parts/common/memnet/memnet/tier_a.py` / `layer.py` and are **rejected** on product mutate.
+Do **not** teach Layer, Tier A, `@TAG` pipe, leftover `id:'NEW'`, or line-codec `+/~/-` as agent wire. Those sources are **dropped** from this tree. The engine Layer / Tier A codecs are deleted too; product mutate **rejects** those dialects.
 
-Cabinet: [`../cabinet/`](../cabinet/). Extras: [`../extras/`](../extras/). Index: [`../README.md`](../README.md).
+Cabinet (retired): [`../cabinet/`](../cabinet/). Extras: [`../extras/`](../extras/). Index: [`../README.md`](../README.md).

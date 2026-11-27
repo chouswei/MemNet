@@ -110,9 +110,9 @@ Path-B: **`ingest_*`** into the current session (locator ids; **no** leftover NE
 | Neighbourhood RSV | **Shipped** |
 | Path-B ingest | **Shipped** |
 | CapsPolicy ACL | **Shipped opt-in** (`session_acl_enable`) |
-| AgensGraph | **0.7** adapter + operator round trip (no runtime caller) when URL set |
+| AgensGraph cabinet | **Removed** (0.7 client had no runtime caller); `session_save` is the durable copy |
 | Neo4j | **Retired** (#187). `MEMNET_NEO4J_*` ignored |
-| HostSearch locators | Extra **0.17** (`RagHostHook`; no `rag_query`) |
+| HostSearch locators | Host's own search; locators via mutate (0.17 hook code removed; no `rag_query`) |
 | Peak_L | Extra **0.18** (last-resort; not default goldfish) |
 | Pin-map export / catalog Snap | Extra **0.19** / **0.15** |
 | Session ACL modes / `session_token` | **Design** — `docs/extras/memnet-security-multi-agent.md` |

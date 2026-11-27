@@ -20,7 +20,7 @@ Show a **concrete circuit mission** where agents stamp constitutive devices and 
 | Codec | `GqlCodec` | `gql_codec.py` (M2 shipped) |
 | Mutate | `MutateGate` + `IdAllocator` | `mutate_gate.py` |
 | Shaped read | `PinMapShapedRead` / `LivePinMap` | `pin_map_composer.py` |
-| Store | `GraphStore` (dual EDGE; law-on-node) | `mem_store` / `graph_store` |
+| Store | `GraphStore` (dual EDGE; law-on-node) | `mem_store` |
 | Items | `BindRelationship`, `RelationRelationship`, `LawOnNode`, `PortIncidence` | `connections.sysml` |
 | Loop | `GoldfishLoop` / `MutateWithNew` | `behaviour.sysml` |
 | Reqs | MN-REQ-02 (NODE\|EDGE), MN-REQ-03 (strict mutate), MN-REQ-04 (pin map) | `requirements.sysml` |

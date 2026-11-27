@@ -435,12 +435,13 @@ def absorb_working_memory_slice(
                     relations=lead.relations,
                 )
             imported.append(work_rec.hid)
-        # Id-less edges get an E id (CREATE path); one nickname scan, only if needed.
+        # Id-less edges get an E id (CREATE path), from the lead's id high-water.
         edge_alloc: IdAllocator | None = None
         if any(not r.fields.get("id") for r in prepared_edges):
-            taken = lead.store.nickname_set()
-            taken.update(r.fields["id"] for r in prepared_edges if r.fields.get("id"))
-            edge_alloc = IdAllocator(taken)
+            edge_alloc = IdAllocator.from_high_water(
+                lead.store.id_high_water(),
+                [r.fields["id"] for r in prepared_edges if r.fields.get("id")],
+            )
         for rec in prepared_edges:
             work_rec = rec
             if policy == "keep":

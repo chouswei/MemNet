@@ -9,9 +9,9 @@ from memnet.gql import emit_item, parse
 from memnet.mutate_gate import MutateGate
 from memnet.output import emit_record
 from memnet.pin_map_composer import record_to_gql_line
+from memnet.records import Op
 from memnet.session import open_session
 from memnet.snapshot import load_snapshot_text, materialise_snapshot_text, snapshot_text
-from memnet.tier_a import Op
 
 _MAP = ["SCHEMA PRT ; fields=id name role"]
 

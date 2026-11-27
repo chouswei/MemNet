@@ -88,13 +88,6 @@ def run_ipc_serve(path: str | None = None) -> None:
             _LOG.info("CheapLlmImportGuard installed (env key present)")
     except Exception:  # noqa: BLE001 — serve must start even if guard install fails
         _LOG.exception("CheapLlmImportGuard install skipped")
-    try:
-        from memnet.durable import get_sync_owner
-
-        owner = get_sync_owner()
-        _LOG.info("durable sync owner bound: adapter=%s", owner.adapter_name)
-    except Exception:  # noqa: BLE001 — serve must start even if durable bind logs fail
-        _LOG.exception("durable sync owner bind skipped")
 
     path_obj = Path(sock_path)
     path_obj.parent.mkdir(parents=True, exist_ok=True)

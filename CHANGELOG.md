@@ -7,6 +7,23 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+## [0.20.8] - 2026-11-27
+
+### Changed
+
+- **Faster writes and recalls on large sessions** — no change to replies, ids or files. A write no longer copies the whole store: the unused copy in the mutate gate is gone, and an id-less edge (mutate or import) gets its id from the stored per-prefix high-water mark instead of a scan of every id. The ids minted are the same as before. Recall sorts reuse each row's rank key until the next write to the session (any write throws all keys away, since an edge's key holds its endpoints' keys); pin_map, find and typed-walk output is byte-for-byte the same. After a session load or restore, the loaded objects are frozen out of Python's cyclic garbage collector (`gc.freeze()`), which removes the 125–140 ms full-collection pauses that hit about one read in ten on a 100k-row session; the freeze costs one collection (about 0.14 s) per load. Measured on synthetic 100k-row sessions (median, base 0.20.7 vs this change): node write 4.9 → 0.14 ms, id-less edge write 45.5 → 0.20 ms, 100-item batch 59.5 → 8.6 ms, pin_map depth 2 about 2.3x faster after a write and 4.7x on repeat reads, the slowest of 19 reads after a load 195 → 10.5 ms. Load time is unchanged within noise.
+- **Mutate cost no longer grows with session size** — the `@WRN: stale_*` lines that every session-loading command emits used to come from a full scan of the session, redone after every write (a single insert went from 1.7 ms at 490 rows to 9.6 ms at 9,800). The recyclable, dangling and orphan counts are now kept by the row table (`memnet.stale_index`) and updated from the rows each write touches; load and restore rebuild once. The warning text and wire bytes are unchanged (no new fields). The full scan remains as the reference, in `housekeep stats` and in prune. `ops/bench_mutate_warn.py` measures it.
+
+### Removed
+
+- **Dead code** — about 3,300 lines of Python that no command, server or MCP tool imported. The MCP tool list, CLI verbs, gateway routes and replies are unchanged.
+  - Alias modules whose code lives elsewhere: `caps_policy` (use `config.Caps`), `graph_store` (`mem_store`), `session_lifecycle` (`session`), `tcp_serve_bridge` (`serve`), `schema_registry` (`tag_map`), `snapshot_store` (`snapshot`), `housekeep_settle` (`housekeep`), `repo_paths`, and in memnet-mcp `mcp_facade` (`server`), `serve_bridge` (`client`) and `law_seed_helper` (`seed`).
+  - The Tier A / Layer parser and codecs (`tier_a`, `tier_a_codec`, `layer`, `layer_codec`). Mutate already refused that input with `legacy_dialect_retired`, and still does. The record classes the GQL parser uses moved to `memnet.records`.
+  - `rag_host_hook` and `goldfish_caller`, with their tests.
+- **Durable cabinet client** — `memnet.durable` (Fake and AgensGraph adapters, the sync owner) had no runtime caller. `memnet serve`, the local IPC gateway and memnet-mcp no longer bind it at startup, so their "durable sync owner bound" log or stderr line and the "Ignoring retired Neo4j settings" warning are gone. `MEMNET_NEO4J_*` and `MEMNET_AGENSGRAPH_*` are no longer read. The `memnet-llm[agensgraph]` extra and the `agensgraph_live` test marker are gone. Session save and load are the durable copy.
+- **Wheel size** — the 1 MB `examples/workflow.rto-remote.example.txt` SCPI fixture stays in the repo for tests but is no longer in the wheel, so `memnet examples path` lists one file fewer when installed from the wheel.
+- **SysML** — the alias code modules now point at the real modules (their logical parts stay). `RagHostHook`, `AgensGraphAdapter`, `DurableBuffer` and the durable ports and flows are gone from the model; `MemNetSystem.durableCabinetShipped` is false.
+
 ## [0.20.7] - 2026-11-10
 
 ### Added

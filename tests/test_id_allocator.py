@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 from memnet.id_allocator import IdAllocator
-from memnet.tier_a import parse
+from memnet.records import Document, EdgeRec, Field, NodeRec, Op
+
+
+def _node(nid: str) -> NodeRec:
+    fields = [Field("type", "=", "fact"), Field("code", "=", "x")]
+    fields.append(Field("recycle", "=", "persistent"))
+    return NodeRec(op=Op.CREATE, kind="CLM", id=nid, fields=fields)
 
 
 def test_leftover_mint_new_nodes_and_edges() -> None:
     """leftover AssignedIdMap / NEW mint still works; product Commit does not use it."""
-    doc = parse(
-        "+ CLM [NEW] ; type=fact ; code=x ; recycle=persistent\n"
-        "+ NEW [A1] --(about)--> [A1] ; recycle=persistent\n"
-    )
+    edge = EdgeRec(op=Op.CREATE, edge_id="NEW", frm="A1", rel="about", to="A1")
+    edge.fields.append(Field("recycle", "=", "persistent"))
+    doc = Document(items=[_node("NEW"), edge])
     alloc = IdAllocator(existing_ids={"A1"})
     assigned = alloc.mint_document(doc)
     assert assigned.mapping
@@ -22,7 +27,7 @@ def test_leftover_mint_new_nodes_and_edges() -> None:
 
 
 def test_leftover_mint_noop_when_no_new() -> None:
-    doc = parse("+ CLM [C10] ; type=fact ; code=x ; recycle=persistent\n")
+    doc = Document(items=[_node("C10")])
     alloc = IdAllocator()
     assigned = alloc.mint_document(doc)
     assert assigned.mapping == {}

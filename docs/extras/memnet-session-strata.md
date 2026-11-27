@@ -4,7 +4,7 @@
 **Audience:** product developers. British English.  
 **Homograph.** *Layer* in this repo means the **retired dialect** (ADR-001). Do **not** teach it. Below, a **stratum** is a **named session** \(S_i\), not a wire tier and not `view=shell`.
 
-**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Cabinet: [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md). Multitask: [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md).
+**Locked:** one GQL dialect; Write = display; chat never SSOT; no `rag_query`; Absorb = Path-B slice only; do not raise goldfish \(M\). Wire: [`gql-wire-profile.md`](../grammar/gql-wire-profile.md). Cabinet (retired): [`../cabinet/README.md`](../cabinet/README.md). Multitask: [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md).
 
 ---
 
@@ -189,6 +189,6 @@ Fits **0.15 Catalog Snap** (in package 0.19.3). **SysML model Snap** = one model
 | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md) | `view=` grain **inside** one \(S\) |
 | [`../adr/ADR-001-gql-agent-wire.md`](../adr/ADR-001-gql-agent-wire.md) | No Layer |
 | [`../multi-agent-sessions.md`](../operations/multi-agent-sessions.md) | Path A / Path B |
-| [`neo4j-buffer.md`](../cabinet/neo4j-buffer.md) | Cabinet vs optional library namespace; more sessions when over \(M\) |
+| [`../cabinet/README.md`](../cabinet/README.md) | Retired cabinet; file snapshot is the durable copy |
 | [`../application-notes/llm-sysml-v2-modeling.md`](../application-notes/system/llm-sysml-v2-modeling.md) | Loop: relatives + sub-unit sessions |
 | [`../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md`](../../sysml-models/outputs/sysml-session-nest-cuts-case-study.md) | Evidence: Turns A–I |

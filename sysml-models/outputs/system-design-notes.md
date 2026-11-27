@@ -5,7 +5,7 @@ Novel-writer is out of scope.
 
 **Wire:** openCypher-shaped GQL + shaped `pin_map` (ADR-001). Do not teach Layer.
 
-**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [durable M2.5](durable-hydrate-flush-case-study.md) · [session outline](session-outline-case-study.md) · [device fleet](device-fleet-one-mcp-case-study.md) · [SSOT → code](ssot-to-code-allocate-case-study.md) · [LAN MCP front](lan-mcp-front-case-study.md) · [ClusterRoute vs SliceHandCarry](cluster-route-vs-slice-hand-carry-case-study.md).
+**Product canon:** [goldfish desync](goldfish-chat-desync-case-study.md) · [multitask](multitask-case-study.md) · [async-parallel](async-parallel-conflict-case-study.md) · [TCP Multitask](tcp-shared-multitask-case-study.md) · [session-import](session-import-case-study.md) · [snapshot](snapshot-passport-case-study.md) · [session outline](session-outline-case-study.md) · [device fleet](device-fleet-one-mcp-case-study.md) · [SSOT → code](ssot-to-code-allocate-case-study.md) · [LAN MCP front](lan-mcp-front-case-study.md) · [ClusterRoute vs SliceHandCarry](cluster-route-vs-slice-hand-carry-case-study.md).
 
 **Application examples:** [company-memory](company-memory-case-study.md) · [evidence-centre](evidence-centre-case-study.md) · [host-search nest](host-search-nest-case-study.md) · [inverting-amp bind](inverting-amp-bind-relation-case-study.md) · [tech-docs SCPI](tech-docs-scpi-case-study.md) · [SysML goldfish](sysml-modeling-goldfish-case-study.md) · [SysML nest cuts](sysml-session-nest-cuts-case-study.md).
 
@@ -13,7 +13,7 @@ Novel-writer is out of scope.
 
 1. **MemNet = shared LLM memory** (`SharedLlmMemory`).
 2. **Session as SSOT handle** — `SessionHandoff` / `SessionHandoffById`; module A→B pipe; chat / MissionDock / HTTP never carry the graph. **sessionId = SessionCapability** (secret; MUST NOT dump in chat/queue).
-3. **Durable GQL store behind MemNet** — M2.5 / **0.7** Agens live hydrate/flush (`DurableStoreAdapter` / Fake / optional AgensGraph client; optional Neo4j extra **0.14** `liveNeo4jClaimed=true`; extra **0.16** optional library database name on the same Neo4j process, locators only, name MUST differ from the cabinet (`rejectSameNameAsCabinet`); one sync owner). Extra **0.17** `RagHostHook.implemented=true` **outside** `MemNetSystem` (skip valid). Cabinets external / not vendored.
+3. **Durable copy = file snapshot** — the M2.5 / **0.7** cabinet (`DurableBuffer` / AgensGraphAdapter, `memnet.durable`) is removed from the model and the code (`durableCabinetShipped=false`). Neo4j cabinet and its 0.14 / 0.16 extras are archived (#187). `HostSearchBridgePart` stays **outside** `MemNetSystem` with `hookShipped=false` (`RagHostHook` removed; the host brings its own search and sends locators through MutateGate).
 4. **Lead imports member WM** — **path A** shared mission `sessionId` → `pin_map` only (import nest skipped); **path B** `WorkingMemorySliceExport` → optional nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) → `ImportAbsorb` (engine SHALL hard; `id_policy` keep|reject|remint). Product verb = **import** (`SessionImport*` only). TARGET `keep` = MERGE of labels+props / type+ends (GraphElement). leftover_MERGE_by_id is 0.9 leftover, not keep. Micro `merge=true` ≠ this. Module: `memnet.import_absorb`.
 5. **CapsPolicy ACL cut (as-is shipped)** — beyond size: who /
    pin_map-vs-mutate / WorkerWriteScope HARD reject / optional SessionBind.
@@ -35,7 +35,7 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 |---------|----------------|
 | Company analytical SSOT | `CompanyAnalyticalSsot` (**application pattern section** in connections — not core item zoo) → [company-memory-case-study.md](company-memory-case-study.md) |
 | Evidence Centre (ai-investor) | Application librarian / MissionDock → [evidence-centre-case-study.md](evidence-centre-case-study.md) |
-| Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) |
+| Host search (index / RAG) | Optional locators into MutateGate **outside** MemNetSystem → [host-search-nest-case-study.md](host-search-nest-case-study.md) (hook retired; `hookShipped=false`) |
 | Human usage look (ops) | `MemNetUsageDashboard` **outside** MemNetSystem — look only; manage = Memnetor+Devicor → [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (ops) | `MemNetOpsFleet` **outside** MemNetSystem — device `MemNetCoreLibrary` services; one `MemNetMcpServer` at the droplet as MemNet tip/ops (`tipIsFace=false`); product invent face is cousin `sysmledge` (`mustNotInventUploadBind`); not N-server (#47) → [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
 | Tip access portal (ops) | `TipMemNetAccessPortal` **outside** MemNetSystem — Szu-Wei invite, Google login, Bearer for keyed tip MCP; unauthenticated WWW MemNet refused; look-only service/client status; not a sysmledge product; portal sidecar → [tip-memnet-access-portal-case-study.md](tip-memnet-access-portal-case-study.md) |
@@ -57,7 +57,6 @@ Patterns on **SharedLlmMemory** — application shelf. Product-canon mechanism s
 | Lead imports member WM (path B) | [session-import-case-study.md](session-import-case-study.md) |
 | Snapshot passport | [snapshot-passport-case-study.md](snapshot-passport-case-study.md) |
 | Safe serve upgrade | [safe-upgrade-case-study.md](safe-upgrade-case-study.md) |
-| Durable hydrate/flush | [durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md) |
 | Empty-cue session outline | [session-outline-case-study.md](session-outline-case-study.md) |
 | Human usage look (parked HTTP) | [usage-dashboard-case-study.md](usage-dashboard-case-study.md) |
 | Device fleet (one MemNet MCP at droplet; tip≠face) | [device-fleet-one-mcp-case-study.md](device-fleet-one-mcp-case-study.md) |
@@ -73,7 +72,7 @@ One-page product nest: [product-nest-one-page.md](product-nest-one-page.md).
 MemNetSystem                          // SharedLlmMemory product
 ├── Core                              // Session / GQL / RecallCommit
 ├── Multitask                         // Path A re-pin; Path B optional Guard → Absorb
-└── DurableBuffer                     // one primary cabinet story
+└── (no durable cabinet; file snapshot is the durable copy)
 
 APPLICATION LOOK   CousinPointingContrast / HostSearchBridge
 ARCHIVE LOOK       MemNetArchive (models/archive.sysml; off ProjectMemNet load)
@@ -139,7 +138,6 @@ reserve and Path-B ingest are **shipped**.
 | SessionHandoffFlow | Coordinator → Worker | Target |
 | WorkingMemorySliceFlow | Worker → `coordinator.importReceive.guard` | Target path B |
 | ImportGuardDecisionFlow | Guard → Absorb (nested) | Target |
-| DurableHydrate/FlushFlow | DurableBuffer adapters ↔ SessionLifecycle | M2.5; Agens 0.7 adapter + operator round trip (no runtime caller); Neo4j archived (#187) |
 | InProcess / TCP flows | MCP/CLI ↔ engine | Wired |
 
 ## Target ↔ as-is modules (engine)
@@ -148,16 +146,14 @@ Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`;
 
 | Target part | Today's module(s) | Status |
 |-------------|-------------------|--------|
-| GraphStore | `mem_store.py` + `graph_store.py` | Aliased |
+| GraphStore | `mem_store.py` | Live module |
 | GqlCodec | `gql.py` / `gql_codec.py` / `gql_parse_front.py` | **Shipped (M2)**; GraphGlot parse then product gate |
-| (as-is line codec) | `tier_a.py` / `tier_a_codec.py` | RETIRED/REJECTED on product path (M2 done) |
+| TierACodec (archive only) | none — deleted; mutate record classes in `records.py` | Layer/Tier A rejected on product path (M2 done) |
 | PinMapShapedRead | `pin_map_composer.py` + `acl.py` | Shaped GQL subgraph emit (M2); nested under Recall / AgentShapedRead (`implemented=true`) |
 | BoundedMatchFind | `query find` / MCP `find` | Nested under Recall / AgentShapedRead (`implemented=true`; #73 seed-only; then `pin_map`) |
 | RecallCommit | — | Modelled two-operator parent (MN-REQ-13); SameThingAbsorb is a Commit rule, not a third operator; no engine cut |
 | MutateGate | `mutate_gate.py` + `acl.py` | Commit gate (GQL); leftover_NEW_mint as-is; TARGET GraphElement create; Layer/Tier A rejected |
 | CapsPolicy | `config.Caps` + `acl.py` | Size caps and ACL who/read-vs-mutate/scope/bind shipped; `engineAclShipped=true` |
-| AgensGraphAdapter | `memnet.durable` (Fake + optional AgensGraph client) | **0.7** live hydrate/flush; cabinet external / not vendored |
-| Neo4jAdapter | `memnet.durable` (optional Neo4j client) | Extra **0.14** live claimed; `liveNeo4jClaimed=true` |
 
 ## Satisfy (MN-REQ-12 import + async + ACL honesty)
 
@@ -173,7 +169,7 @@ Formal allocate: `sysml-models/models/implementation.sysml` (`SoftwareAllocate`;
 
 - **M1:** GQL wire profile — **done**
 - **M2:** Engine/MCP GQL accept + shaped pin_map emit; Layer/Tier A retired — **done**
-- **M2.5:** Client + **0.7** Agens live hydrate/flush + extra **0.14** Neo4j live claim; cabinets external / not vendored ([durable-hydrate-flush-case-study.md](durable-hydrate-flush-case-study.md))
+- **M2.5:** 0.7 Agens adapter + operator round trip was shipped (no runtime caller); the cabinet is now **removed** (`durableCabinetShipped=false`); Neo4j archived (#187)
 - **M3:** In-repo playbook / app-note GQL rewrite — **done** (0.8)
 - ImportGuardHook — host plug-in (`set_import_guard` / `--no-guard` / GuardPassthrough); **shipped** (`implemented=true`; #49)
 - CheapLlmImportGuard — optional default LLM adapter (MN-REQ-12.11); **shipped** (`implemented=true`; **#63**; env-gated)

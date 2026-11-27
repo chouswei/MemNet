@@ -37,12 +37,7 @@ GQL + 0.5 math + openCypher spelling. Index: [`grammar/README.md`](grammar/READM
 
 ## Cabinet — `cabinet/`
 
-Durable store **behind** sessions. Index: [`cabinet/README.md`](cabinet/README.md).
-
-| Doc | Role |
-|-----|------|
-| [`cabinet/agensgraph-buffer.md`](cabinet/agensgraph-buffer.md) | AgensGraph adapter: 0.7 adapter + operator round trip (no runtime caller); Fake + URL skip |
-| [`cabinet/neo4j-buffer.md`](cabinet/neo4j-buffer.md) | Retired Neo4j cabinet (#187). `MEMNET_NEO4J_*` ignored |
+**Retired.** The durable cabinet client is removed; the file snapshot is the durable copy. Note: [`cabinet/README.md`](cabinet/README.md).
 
 ## Extras — `extras/`
 
@@ -51,7 +46,7 @@ Shipped extras and remaining design notes. Index: [`extras/README.md`](extras/RE
 | Doc | Role |
 |-----|------|
 | [`extras/memnet-neighbourhood-reserve.md`](extras/memnet-neighbourhood-reserve.md) | Neighbourhood reserve (RSV shipped; this file is still the design note) |
-| [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md) | Host locators into MutateGate (0.17 `RagHostHook`) |
+| [`extras/memnet-host-search-nest.md`](extras/memnet-host-search-nest.md) | **Retired** — host locators into MutateGate; no MemNet hook ships |
 | [`extras/memnet-session-strata.md`](extras/memnet-session-strata.md) | Sessions as strata (not Layer); 0.15 catalog Snap |
 | [`extras/memnet-security-multi-agent.md`](extras/memnet-security-multi-agent.md) | Session ACL / multi-agent (design) |
 

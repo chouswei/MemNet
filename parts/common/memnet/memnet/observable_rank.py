@@ -58,8 +58,18 @@ def ranked(
     *,
     resolve: ResolveFn | None = None,
 ) -> list[Record]:
-    """Stable sort by observable rank key. Ties are not broken by hid."""
-    return sorted(records, key=lambda r: record_rank_key(r, resolve))
+    """Stable sort by observable rank key. Ties are not broken by hid.
+
+    When ``resolve`` is a store's ``resolve_one``, the keys come from that
+    store's ``rank_key_function`` (same keys, cached until the store's next
+    write), so repeated sorts in one recall do not rebuild them.
+    """
+    owner = getattr(resolve, "__self__", None)
+    keyfn_of = getattr(owner, "rank_key_function", None)
+    keyfn = keyfn_of() if keyfn_of is not None and resolve == owner.resolve_one else None
+    if keyfn is None:
+        return sorted(records, key=lambda r: record_rank_key(r, resolve))
+    return sorted(records, key=keyfn)
 
 
 def resolve_from_rows(rows: Iterable[Record]) -> ResolveFn:

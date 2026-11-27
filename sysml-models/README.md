@@ -10,11 +10,11 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 
 1. **MemNet = mission working memory** — session-scoped NODE|EDGE buffer (brand SharedLlmMemory); **not** the search corpus, **not** GraphRAG. In-session recall = serial cue then `pin_map`; host RAG may propose locators only.
 2. **Session as SSOT handle** — pass a mission SOMETHING by **session id only** (`SessionHandoff` / `SessionHandoffById`); module A→B pipe; peers re-`pin_map`; chat / MissionDock / HTTP never carry the graph. **sessionId = secret capability** (MUST NOT dump in chat/queue).
-3. **Durable online GQL store** behind MemNet (`DurableBuffer` / AgensGraphAdapter) — **M2.5 / 0.7** claim is adapter + operator round trip (no runtime caller). Neo4j cabinet is on the archive shelf (#187). Cabinet external / not vendored. LLM↔store direct (Bolt) out of teach.
+3. **Durable copy = file snapshot** (`session save` / `session load`). The **M2.5 / 0.7** cabinet (`DurableBuffer` / AgensGraphAdapter) is removed from the model and the code (`durableCabinetShipped=false`). Neo4j cabinet is on the archive shelf (#187). LLM↔store direct (Bolt) out of teach.
 4. **Lead imports member working memory** — **happy path A** shared session → re-`pin_map` (no second store; **no ImportGuard**). Path B → `WorkingMemorySlice` through **optional** nested `ImportGuard` (`ImportGuardHook` shipped; `CheapLlmImportGuard` shipped #63) then `ImportAbsorb` (engine hard). Product verb = **import**. Colloquial "session merge" means this import only (no SessionMerge* types). Distinct from Cypher `MERGE` and micro id re-id `merge=true`.
 5. **CapsPolicy ACL cut** — **as-is shipped** when session ACL is enabled: who, pin_map-vs-mutate, WorkerWriteScope hard reject, and optional SessionBind. `engineAclShipped=true`; ACL remains off by default.
 
-**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 adapter + operator round trip, no runtime caller) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/extras/memnet-session-strata.md`](../docs/extras/memnet-session-strata.md).
+**Sequence:** M1 (done) → M2 (done) → **M2.5** (0.7 adapter + operator round trip, no runtime caller; later removed) → **M3** (0.8 in-repo playbook/app-note GQL rewrite, done). **1.0** = claim of 0.5–0.8. Design: **Snap this product model** (`ProjectMemNet`) into **multiple sessions** (catalog + package interiors); goldfish one interior. Not one ingest of the tree, not one session per file. [`docs/extras/memnet-session-strata.md`](../docs/extras/memnet-session-strata.md).
 
 ## Packages
 
@@ -45,7 +45,7 @@ MemNetSystem                                 // SharedLlmMemory product
 ├── Multitask
 │   ├── Path A                               // shared session → re-pin
 │   └── Path B                               // ImportGuard optional → ImportAbsorb
-└── DurableBuffer                            // one primary cabinet story
+└── (no durable cabinet; file snapshot is the durable copy)
 
 APPLICATION LOOK   CousinPointingContrast / HostSearchBridge (outside)
 ARCHIVE LOOK       MemNetArchive — leftover fog + retired Neo4j (#187); root does not import
@@ -64,8 +64,8 @@ IMPLEMENTATION     MemNetImplementation — SoftwareAllocate SSOT → live modul
 ## Target subsystems
 
 - **AgentMemory (SharedLlmMemory):** GraphStore, GqlCodec, **RecallCommit** (Recall: SessionOutline empty-q census + AgentShapedRead / PinMapShapedRead + BoundedMatchFind; Commit: MutateGate + RSV lease), SessionLifecycle
-- **MCP / CLI:** LLM ↔ MemNet only (not DurableBuffer as primary)
-- **DurableBuffer:** AgensGraphAdapter **client**; 0.7 claim is adapter + operator round trip (no runtime caller); Neo4j retired to archive (#187); cabinet external / not vendored
+- **MCP / CLI:** LLM ↔ MemNet only
+- **Durable:** file snapshot only; the AgensGraph cabinet client is removed (`durableCabinetShipped=false`); Neo4j retired to archive (#187)
 - **Multitask:** nested lead handoff + AsyncTaskDispatch + WorkerPool + import spine; MN-REQ-12
 - **Path-B PinMapIngest:** all domains shipped (`memnet.pin_map_ingest`; CLI/MCP `ingest sysml|codebase|pcba|skills`). **CatalogSnap** 0.15: `memnet snap model` / MCP `snap_model` + `session_list` (`sessions|n/max`) + `session_close`. **PinMapExport** 0.19: cue `pin_map` GQL write-out (`memnet export pin-map`). Re-ingest / `.sysml` reverse (#66) not claimed.
 - **Optional soft policy:** `ImportGuard` nest (path B): `ImportGuardHook` shipped; `CheapLlmImportGuard` shipped (#63; env-gated); happy path A = re-pin without guard
@@ -110,7 +110,6 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 | ClusterRoute vs SliceHandCarry (two named moves; inventOnly #191 / #47 cousin) | [outputs/cluster-route-vs-slice-hand-carry-case-study.md](outputs/cluster-route-vs-slice-hand-carry-case-study.md) |
 | SSOT → code allocate (one Hatch wheel, many hosts) | [outputs/ssot-to-code-allocate-case-study.md](outputs/ssot-to-code-allocate-case-study.md) |
 | SSOT → code tracker map | [outputs/ssot-to-code-allocate-map.md](outputs/ssot-to-code-allocate-map.md) |
-| Durable hydrate/flush (M2.5) | [outputs/durable-hydrate-flush-case-study.md](outputs/durable-hydrate-flush-case-study.md) |
 
 ### Application examples (on SharedLlmMemory)
 
@@ -118,7 +117,7 @@ Two shelves (detail + principles: [outputs/README.md](outputs/README.md)). **Pro
 |-------|------|
 | Company analytical SSOT (`COM_*`) | [outputs/company-memory-case-study.md](outputs/company-memory-case-study.md) |
 | Evidence Centre (ai-investor librarian / MissionDock) | [outputs/evidence-centre-case-study.md](outputs/evidence-centre-case-study.md) |
-| Host search nest (RAG / index outside MemNetSystem) | [outputs/host-search-nest-case-study.md](outputs/host-search-nest-case-study.md) |
+| Host search nest (RAG / index outside MemNetSystem; hook retired, `hookShipped=false`) | [outputs/host-search-nest-case-study.md](outputs/host-search-nest-case-study.md) |
 | Inverting amp bind vs relation (ego `CST_U1`) | [outputs/inverting-amp-bind-relation-case-study.md](outputs/inverting-amp-bind-relation-case-study.md) |
 | Tech docs / SCPI atomisation | [outputs/tech-docs-scpi-case-study.md](outputs/tech-docs-scpi-case-study.md) |
 | SysML modelling goldfish (MBSE meta) | [outputs/sysml-modeling-goldfish-case-study.md](outputs/sysml-modeling-goldfish-case-study.md) |

@@ -130,8 +130,8 @@ package MemNetImplementation {
     attribute pyName : String = "memnet.local_ipc_gateway";
   }
   part def TcpServeBridgeMod {
-    attribute path : String = "parts/common/memnet/memnet/tcp_serve_bridge.py";
-    attribute pyName : String = "memnet.tcp_serve_bridge";
+    attribute path : String = "parts/common/memnet/memnet/serve.py";
+    attribute pyName : String = "memnet.serve";
   }
   part def ServeDaemonMod {
     attribute path : String = "parts/common/memnet/memnet/serve.py";
@@ -228,12 +228,12 @@ package MemNetImplementation {
     attribute consoleEntry : String = "memnet.cli:main";
   }
   part def SessionLifecycleMod {
-    attribute path : String = "parts/common/memnet/memnet/session_lifecycle.py";
-    attribute pyName : String = "memnet.session_lifecycle";
+    attribute path : String = "parts/common/memnet/memnet/session.py";
+    attribute pyName : String = "memnet.session";
   }
   part def GraphStoreMod {
-    attribute path : String = "parts/common/memnet/memnet/graph_store.py";
-    attribute pyName : String = "memnet.graph_store";
+    attribute path : String = "parts/common/memnet/memnet/mem_store.py";
+    attribute pyName : String = "memnet.mem_store";
   }
   part def MemStoreMod {
     doc /* Backing store aliased with GraphStore (system-design-notes). */
@@ -241,8 +241,8 @@ package MemNetImplementation {
     attribute pyName : String = "memnet.mem_store";
   }
   part def CapsPolicyMod {
-    attribute path : String = "parts/common/memnet/memnet/caps_policy.py";
-    attribute pyName : String = "memnet.caps_policy";
+    attribute path : String = "parts/common/memnet/memnet/config.py";
+    attribute pyName : String = "memnet.config";
   }
   part def CapsAclMod {
     doc /* CapsPolicy ACL who / pin_map-vs-mutate / scope (acl.py). */
@@ -303,40 +303,32 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/catalog_snap.py";
     attribute pyName : String = "memnet.catalog_snap";
   }
-  part def AgensGraphAdapterMod {
-    attribute path : String = "parts/common/memnet/memnet/durable/agensgraph.py";
-    attribute pyName : String = "memnet.durable.agensgraph";
-  }
-  part def RagHostHookMod {
-    attribute path : String = "parts/common/memnet/memnet/rag_host_hook.py";
-    attribute pyName : String = "memnet.rag_host_hook";
-  }
   part def SchemaRegistryMod {
-    attribute path : String = "parts/common/memnet/memnet/schema_registry.py";
-    attribute pyName : String = "memnet.schema_registry";
+    attribute path : String = "parts/common/memnet/memnet/tag_map.py";
+    attribute pyName : String = "memnet.tag_map";
   }
   part def SnapshotStoreMod {
-    attribute path : String = "parts/common/memnet/memnet/snapshot_store.py";
-    attribute pyName : String = "memnet.snapshot_store";
+    attribute path : String = "parts/common/memnet/memnet/snapshot.py";
+    attribute pyName : String = "memnet.snapshot";
   }
   part def HousekeepSettleMod {
-    attribute path : String = "parts/common/memnet/memnet/housekeep_settle.py";
-    attribute pyName : String = "memnet.housekeep_settle";
+    attribute path : String = "parts/common/memnet/memnet/housekeep.py";
+    attribute pyName : String = "memnet.housekeep";
   }
 
   // ----- MCP surface modules -----
 
   part def McpFacadeMod {
-    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/mcp_facade.py";
-    attribute pyName : String = "memnet_mcp.mcp_facade";
+    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/server.py";
+    attribute pyName : String = "memnet_mcp.server";
   }
   part def McpServeBridgeMod {
-    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/serve_bridge.py";
-    attribute pyName : String = "memnet_mcp.serve_bridge";
+    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/client.py";
+    attribute pyName : String = "memnet_mcp.client";
   }
   part def LawSeedHelperMod {
-    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/law_seed_helper.py";
-    attribute pyName : String = "memnet_mcp.law_seed_helper";
+    attribute path : String = "parts/memnet-mcp/software/memnet_mcp/seed.py";
+    attribute pyName : String = "memnet_mcp.seed";
   }
   part def McpHttpTransportMod {
     doc /* Opt-in streamable-http; Multitask shared store with TCP. */
@@ -396,8 +388,6 @@ package MemNetImplementation {
   part ingestMod : PinMapIngestMod;
   part exportMod : PinMapExportMod;
   part catalogMod : CatalogSnapMod;
-  part agensMod : AgensGraphAdapterMod;
-  part ragHookMod : RagHostHookMod;
   part schemaMod : SchemaRegistryMod;
   part snapMod : SnapshotStoreMod;
   part housekeepMod : HousekeepSettleMod;
@@ -570,14 +560,6 @@ package MemNetImplementation {
     end logical ::> memNetSystem.pinMaps.catalog;
     end code ::> catalogMod;
   }
-  allocation agensToMod : SoftwareAllocate {
-    end logical ::> memNetSystem.durable.agens;
-    end code ::> agensMod;
-  }
-  allocation ragHookToMod : SoftwareAllocate {
-    end logical ::> hostSearch.hook;
-    end code ::> ragHookMod;
-  }
   allocation mcpToolsToMod : SoftwareAllocate {
     end logical ::> memNetSystem.mcp.tools;
     end code ::> mcpFacadeMod;
@@ -653,8 +635,7 @@ package MemNetImplementation {
            MEMNET_MAX_SESSION_BYTES, default 163,840,000 (escaped
            snapshot line bytes); refusal limit_exceeded|session_bytes.
       14.11 bypass paths: bypass_caps.py (checkpoint, verify, rollback) used by
-           import_absorb.py, durable/sync.py, cli.py delete and housekeep.py
-           prune; snapshot.py refuse_session_budget (save) and
+           import_absorb.py, cli.py delete and housekeep.py prune; snapshot.py refuse_session_budget (save) and
            refuse_snapshot_text_budget (load).
       14.12 incremental budget check: session_bytes.py (SessionBytes ledger,
            incremental_total, full_recount_total, check_budget) with a
@@ -690,8 +671,7 @@ package MemNetImplementation {
       delete or a refused batch; for that only, RecordTable keeps a
       per-prefix high-water that is never lowered, clear() included
       (mem_store.py:127-133). It persists through the snapshot "#@IDHW:"
-      line only (snapshot.py:393-438); durable / agensgraph does not
-      carry it yet. Still target (MN-REQ-14.6): a real-id key, UUIDv7
+      line only (snapshot.py:393-438). Still target (MN-REQ-14.6): a real-id key, UUIDv7
       minting, tombstones and refusal of a duplicate or tombstoned id.
     */
     attribute implemented : Boolean = true;
@@ -792,7 +772,7 @@ package MemNetImplementation {
       Implemented (MN-REQ-14.10; engine enforcement in snapshot.py). Per-session total of
       escaped snapshot line bytes; set by env var MEMNET_MAX_SESSION_BYTES (maxSessionBytes);
       default 163,840,000 bytes (config.py DEFAULT_MAX_SESSION_BYTES; counted as escaped snapshot line bytes); an
-      over-budget write, load, save, import or hydrate is
+      over-budget write, load, save or import is
       refused limit_exceeded|session_bytes and stores nothing.
       The total is kept incrementally by SessionByteLedger (MN-REQ-14.12).
     */
@@ -805,8 +785,7 @@ package MemNetImplementation {
   part def BypassPathCaps {
     doc /*
       Implemented (MN-REQ-14.11; bypass_caps.py). Value, whole-line and
-      session-byte caps on snapshot import, durable hydrate and CLI
-      delete/prune, atomic: a refusal restores the store, relations and
+      session-byte caps on snapshot import and CLI delete/prune, atomic: a refusal restores the store, relations and
       indexes. Deletes skip the byte budget but keep the line cap.
     */
     attribute implemented : Boolean = true;
@@ -819,7 +798,7 @@ package MemNetImplementation {
       Implemented (MN-REQ-14.12; memnet/session_bytes.py: SessionBytes,
       incremental_total, full_recount_total, check_budget; dirty journal on
       MemStore). Per-session running sum of escaped UTF-8 line bytes,
-      updated on create, update, delete, import, hydrate and load; a write
+      updated on create, update, delete, import and load; a write
       re-encodes the changed nodes plus the incident edges of changed
       nodes. The
       total equals full_recount_total at every point

@@ -166,7 +166,7 @@ Engine-law rows may prepend when present. Recyclable / out-of-budget neighbours 
 | Copper | Relationship type `:bind` + port endpoint properties |
 | Chart / mission links | Other relationship types on locators as properties |
 | Goldfish budget | `PinMapShapedRead` / `pin_map` view+depth+max_rows |
-| Durable AgensGraph | Optional later; same GQL family — not this sketch |
+| Durable copy | File snapshot (`session save` / `session load`); the AgensGraph cabinet client is removed |
 
 Maps to SysML: `GqlCodec`, `PinMapShapedRead`, `GraphStore`, items in `MemNetConnections`.
 

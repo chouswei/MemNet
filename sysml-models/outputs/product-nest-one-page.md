@@ -14,7 +14,8 @@ MemNetSystem                          // SharedLlmMemory product
 │   ├── Path A                        // shared session → re-pin (no import nest)
 │   └── Path B                        // slice → ImportGuard (optional soft)
 │                                     //        → ImportAbsorb (hard)
-└── DurableBuffer                     // cabinet_ego; factory binds exactly one of fake or AgensGraph
+                                      // no durable cabinet (durableCabinetShipped=false);
+                                      // file snapshot is the durable copy
 
 APPLICATION LOOK   CousinPointingContrast (eight cousins; SysMLEdge
                    is a distinct pin_map / not MemNet SSOT; overlay family
@@ -69,6 +70,6 @@ Honesty that leftovers exist lives on the **ARCHIVE** shelf, not on `ProjectMemN
 
 ## Review (TTL file + nest)
 
-Session TTL drops **RAM**. Explicit `session_save` and expire-save write **one** file blob. Expire-save is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM (`session_load(session=<sid>)` resolves the expire-dir snap when the caller already holds the sid; `loadByKnownSid`). DurableBuffer is a cabinet ego slice, not this file (`MN-VER-01-S03`, `MN-VER-06-S06`). Neo4j is archived (#187).
+Session TTL drops **RAM**. Explicit `session_save` and expire-save write **one** file blob. Expire-save is **off** unless `MEMNET_SAVE_ON_EXPIRE`. Disk file stays until the user deletes it; `session_load` restores RAM (`session_load(session=<sid>)` resolves the expire-dir snap when the caller already holds the sid; `loadByKnownSid`). This file is the only durable copy; the cabinet is removed (`durableCabinetShipped=false`; `MN-VER-01-S03`, `MN-VER-06-S06`). Neo4j is archived (#187).
 
 ARCHIVE leftover fog remains **off** `ProjectMemNet` load (`leftoverFogNested=false`, `leftoverArchiveOffLoad=true`). OPS `MemNetUsageDashboard` remains look-only (`httpImplemented=false`, `tipIsFace=false`, `agentWire=false`). SERVE `AdminUsageReport` remains on `TcpServeBridge` (`onAgentMcp=false`, `emitsRealSessionId=false`, `peekOnly=true`, `mcpProductLabelOpen=true`). OPS `MemNetOpsFleet` remains outside `MemNetSystem` (`mcpCount=1` = one MemNet MCP at droplet, `nServerFederation=false`, `productInventFace=sysmledge`, `tipIsFace=false`). OPS `TipMemNetAccessPortal` remains outside `MemNetSystem` (`tipIsFace=false`, `keyedWwwMcp=true`, `unauthenticatedWwwMcp=false`, `isSysmlEdgeProduct=false`, `inventOnly=false`, `portalWebImplemented=true`, `sellsInvent2Green=false`, `statusLookOnly=true`, `unparksUsageDashboard=false`). OPS `MemNetLanMcpFront` remains outside `MemNetSystem` (`inventOnly=true`, `implemented=false`, `codeApproved=false`, `nServerPeerHandoff=false`, `pinMapSpansBackends=false`, `worthBuildingVisible=true`; #191). Nested `MemNetProductGateway` is the shipped memnet-mcp cut (`implemented=true`, `reusesTipBearer=false`; MN-REQ-06.12) while the parent catalogue stays inventOnly. OPS `MemNetTwoMoves` remains outside `MemNetSystem` (`inventOnly=true`, `implemented=false`, `clusterIsWhereSessionLives=true`, `sliceIsExplicitCopy=true`, `liveHop=false`, `importSliceAcrossHosts=false`; #191 / #47 cousin). IMPLEMENTATION `MemNetLlmWheel` remains one Hatch package for many hosts (`oneWheelManyHosts=true`, `sysmlEdgeInWheel=false`). IMPLEMENTATION tracker (`ImplementationTracker`) watches allocate rows (`missingPathFailsCi`; `sysmlEdgeTracked=false`).

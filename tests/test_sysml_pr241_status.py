@@ -214,7 +214,7 @@ def test_n4_s09_objective_not_no_runtime_test():
     assert "no runtime test" not in _block(t, i)
 
 
-def test_n4_s11_cases_a_c_limited_to_import_hydrate():
+def test_n4_s11_cases_a_c_limited_to_import():
     t = _text("verify.sysml")
     d = _flat(_block(t, t.index("verification def MN_VER_14_S11_BypassPathCaps")))
     assert not re.search(
@@ -228,5 +228,5 @@ def test_n4_s11_cases_a_c_limited_to_import_hydrate():
 def test_n4_summary_consistent():
     t = _text("verify.sysml")[:6000]
     assert re.search(r"S09 to S1[12] implemented", t) or re.search(r"S09.{0,4}S1[12]", t)
-    assert re.search(r"(?i)14\.11 bypass-path caps: import, hydrate", t)
-    assert not re.search(r"14\.11 bypass-path caps: import, hydrate, CLI delete/prune \(S11\)", t)
+    assert re.search(r"(?i)14\.11 bypass-path caps: import; CLI delete/prune line cap only", t)
+    assert not re.search(r"14\.11 bypass-path caps: [^\n]*hydrate", t)
