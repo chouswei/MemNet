@@ -228,8 +228,15 @@ package MemNetImplementation {
     attribute consoleEntry : String = "memnet.cli:main";
   }
   part def SessionLifecycleMod {
+    doc /*
+      Live session limits (MN-REQ-05.6): set_session_limits in session.py; the
+      #@LIM: line and the effective byte budget in snapshot.py; the row cap in
+      mem_store.py; CLI session limits / set-limits in cli.py.
+    */
     attribute path : String = "parts/common/memnet/memnet/session.py";
     attribute pyName : String = "memnet.session";
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_6_LiveSessionLimits;
   }
   part def GraphStoreMod {
     attribute path : String = "parts/common/memnet/memnet/mem_store.py";
