@@ -511,6 +511,21 @@ def eviction_status() -> dict[str, int | str | None]:
     }
 
 
+# Guards the (ttl_minutes, expires_at) pair. A slide reads the TTL and writes the
+# expiry outside the entry lock, so without this a read racing set-limits could write
+# an expiry from the old TTL after the new one was set (MN-REQ-05.6).
+_slide_lock = threading.Lock()
+
+
+def _slide_expiry(meta: SessionMeta, ttl_minutes: int | None = None) -> None:
+    """Set ``expires_at = now + ttl`` (optionally setting a new TTL first), atomically."""
+    with _slide_lock:
+        if ttl_minutes is not None:
+            meta.ttl_minutes = ttl_minutes
+        expires = utc_now() + timedelta(minutes=meta.ttl_minutes)
+        meta.expires_at = expires.isoformat().replace("+00:00", "Z")
+
+
 def open_session(
     map_lines: list[str] | None = None,
     map_file: str | None = None,
@@ -589,9 +604,7 @@ def get_session(session_id: str, caps: Caps | None = None, *, touch: bool = True
             raise MemNetError("session_expired", "overdue", exit_code=2)
         # RENEWED: the TTL was extended before the lock was taken, so the session is live.
     # Sliding TTL: extend on access (avoids silent expiry for long sessions)
-    original_ttl = entry.meta.ttl_minutes
-    new_expires = utc_now() + timedelta(minutes=original_ttl)
-    entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
+    _slide_expiry(entry.meta)
     purge_expired(caps)
     ss = SessionStore(session_id, caps)
     if touch:
@@ -621,9 +634,7 @@ def get_session_for_save(session_id: str, caps: Caps | None = None) -> tuple[Ses
             raise MemNetError("session_expired", "overdue", exit_code=2)
         expired = False  # renewed under the lock: a live save
     if not expired:
-        original_ttl = entry.meta.ttl_minutes
-        new_expires = utc_now() + timedelta(minutes=original_ttl)
-        entry.meta.expires_at = new_expires.isoformat().replace("+00:00", "Z")
+        _slide_expiry(entry.meta)
         purge_expired(caps)
     else:
         purge_expired(caps, keep=session_id)
@@ -685,3 +696,83 @@ def reset_registry() -> None:
         _evicted_total = 0
         _last_evicted_product = None
     clear_all()
+
+
+# --- live session limits (MN-REQ-05.6) -------------------------------------------
+
+_DEFAULT_LIMIT = "default"
+
+
+def _parse_ttl_arg(raw: int | str) -> int:
+    try:
+        ttl = int(str(raw).strip())
+    except ValueError:
+        raise MemNetError("bad_ttl", "ttl must be 1..1440") from None
+    if ttl < 1 or ttl > 1440:
+        raise MemNetError("bad_ttl", "ttl must be 1..1440")
+    return ttl
+
+
+def _parse_cap_arg(raw: int | str, name: str, process_cap: int) -> int | None:
+    """One cap override: an int 1..process cap, or ``default`` (None = the process cap)."""
+    text = str(raw).strip()
+    if text == _DEFAULT_LIMIT:
+        return None
+    try:
+        val = int(text)
+    except ValueError:
+        val = 0
+    if val < 1 or val > process_cap:
+        raise MemNetError("bad_limit", f"{name} must be 1..{process_cap}")
+    return val
+
+
+def session_bytes_used(ss: SessionStore) -> int:
+    """The session's escaped snapshot byte total, as the byte cap counts it."""
+    from memnet.session_bytes import full_recount_total, incremental_total
+
+    total = incremental_total(ss)
+    return full_recount_total(ss) if total is None else total
+
+
+def set_session_limits(
+    ss: SessionStore,
+    *,
+    ttl: int | str | None = None,
+    max_rows: int | str | None = None,
+    max_bytes: int | str | None = None,
+) -> None:
+    """Change a live session's TTL and cap overrides, all or nothing (MN-REQ-05.6).
+
+    The caller holds the session lock exclusively. Every argument is checked before
+    anything changes. A cap below current usage refuses ``limit_below_usage``: rows
+    are never dropped. The TTL restarts at the call (the call is a touch), so the
+    call itself can never make a session overdue.
+    """
+    from memnet.snapshot import apply_limits
+
+    if ttl is None and max_rows is None and max_bytes is None:
+        raise MemNetError("no_limit", "give --ttl, --max-rows or --max-bytes")
+    caps = ss.caps
+    new_ttl = _parse_ttl_arg(ttl) if ttl is not None else None
+    changes: dict[str, int | None] = {}
+    if max_rows is not None:
+        changes["max_rows"] = _parse_cap_arg(max_rows, "max_rows", caps.max_rows)
+    if max_bytes is not None:
+        changes["max_session_bytes"] = _parse_cap_arg(
+            max_bytes, "max_session_bytes", caps.max_session_bytes
+        )
+    rows_cap = changes.get("max_rows")
+    if rows_cap is not None:
+        rows = ss.store.row_count_non_law()
+        if rows_cap < rows:
+            raise MemNetError("limit_below_usage", f"rows|{rows}/{rows_cap}")
+    bytes_cap = changes.get("max_session_bytes")
+    if bytes_cap is not None:
+        used = session_bytes_used(ss)
+        if bytes_cap < used:
+            raise MemNetError("limit_below_usage", f"session_bytes|{used}/{bytes_cap}")
+    # Validated: apply everything.
+    _slide_expiry(ss.meta, new_ttl)
+    if changes:
+        apply_limits(ss._entry, changes)

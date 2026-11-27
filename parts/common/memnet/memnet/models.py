@@ -82,3 +82,7 @@ class SessionMeta(BaseModel):
     acl_enabled: bool = False
     # Optional gate-side product label for admin usage (not agent wire).
     product: str | None = None
+    # Per-session cap overrides (MN-REQ-05.6). None = the process cap. The effective
+    # cap is min(override, process cap), so an override only ever tightens.
+    max_rows: int | None = None
+    max_session_bytes: int | None = None

@@ -183,6 +183,44 @@ async def session_close(session: str, caller: str | None = None) -> str:
 
 
 @mcp.tool()
+async def session_limits(session: str, caller: str | None = None) -> str:
+    """Show the session's TTL, row cap and byte cap in force, with current usage.
+
+    Each cap line ends ``session`` (an override is set) or ``process`` (the serve cap).
+    """
+    argv = ["session", "limits", "--session", session]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv)
+
+
+@mcp.tool()
+async def session_set_limits(
+    session: str,
+    ttl: int | None = None,
+    max_rows: int | str | None = None,
+    max_bytes: int | str | None = None,
+    caller: str | None = None,
+) -> str:
+    """Change a live session's TTL (minutes) and caps, all or nothing.
+
+    A cap may only be at or below the serve cap; ``"default"`` clears an override.
+    A cap below current usage refuses ``limit_below_usage`` and changes nothing:
+    rows are never dropped. The TTL clock restarts at this call.
+    """
+    argv = ["session", "set-limits", "--session", session]
+    if ttl is not None:
+        argv.extend(["--ttl", str(ttl)])
+    if max_rows is not None:
+        argv.extend(["--max-rows", str(max_rows)])
+    if max_bytes is not None:
+        argv.extend(["--max-bytes", str(max_bytes)])
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv)
+
+
+@mcp.tool()
 async def snap_model(
     root: str,
     map_file: str | None = None,

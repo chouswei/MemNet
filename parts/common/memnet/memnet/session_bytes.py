@@ -446,7 +446,7 @@ def check_budget(ss: SessionStore, schema_total: int, hid_to_nick, emit_map) -> 
         full = full_recount_total(ss)
         if t != full:
             raise _drift(t, full)
-    if t <= ss.caps.max_session_bytes:
+    if t <= snap.effective_session_bytes(ss):
         return
     # Refusal path: the old walk reports the partial sum in write_order.
     snap._refuse_session_bytes(ss, snap._snapshot_nicks(ss), emit_map, schema_total)

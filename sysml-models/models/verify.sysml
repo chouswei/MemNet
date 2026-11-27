@@ -2726,6 +2726,62 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_05_S10_LiveSessionLimits {
+    doc /*
+      MN-REQ-05.6 — change a live session's TTL and caps. Runtime:
+      tests/test_session_live_limits.py
+      ::test_lower_ttl_restarts_clock_and_slides_by_new_ttl,
+      ::test_lowered_ttl_never_makes_the_session_overdue_at_the_call,
+      ::test_raise_ttl_survives_sliding_renew_and_save_load,
+      ::test_row_cap_raise_lower_and_enforce,
+      ::test_row_cap_below_usage_refuses_and_drops_nothing,
+      ::test_byte_cap_lower_enforce_and_below_usage,
+      ::test_bad_values_refuse_and_change_nothing,
+      ::test_default_clears_the_lim_line_and_file_is_byte_identical,
+      ::test_real_0_20_8_reader_loads_a_file_with_lim,
+      ::test_malformed_lim_line_is_bad_snapshot,
+      ::test_expire_snapshot_carries_limits_and_reloads,
+      ::test_evict_snapshot_carries_limits_and_reloads,
+      ::test_checkpoint_restart_restores_ttl_and_caps,
+      ::test_upgrade_prepare_restore_keeps_clocks_ttl_and_caps,
+      ::test_acl_mutate_grant_needed_to_set_pin_map_to_read,
+      ::test_sliding_renew_racing_set_limits_never_keeps_an_old_ttl_expiry,
+      ::test_gateway_set_limits_on_a_foreign_session_is_forbidden.
+    */
+    attribute verificationId : String = "MN-VER-05-S10";
+
+    subject system : MemNetSystem;
+
+    objective liveSessionLimits {
+      verify liveSessionLimitsReq;
+      verify snapshotLosslessRoundTripReq;
+      require constraint {
+        system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsShipped == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsEffectiveIsMinOfOverrideAndProcess == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsAboveProcessCapAllowed == false
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsBelowUsageRefuses == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsDropsRows == false
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsAllOrNothing == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsTtlRestartsAtCall == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsSlideAtomic == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsLineOnlyWhenSet == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsMalformedFailsClosed == true
+          and system.core.transport.inProcess.memory.sessions.caps
+            .liveLimitsOldReaderLoadsProcessCaps == true
+      }
+    }
+  }
+
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
       storageRole only where bytes outlive the call: working_memory,
@@ -3479,6 +3535,8 @@ package MemNetVerification {
     : MN_VER_05_S08_SessionCapEvictReportNameNotId;
   verification sessionCapEvictLoadRestoresVerify
     : MN_VER_05_S09_SessionCapEvictLoadRestores;
+  verification liveSessionLimitsVerify
+    : MN_VER_05_S10_LiveSessionLimits;
   verification storageRolesVerify : MN_VER_06_S06_StorageRoles;
   verification lanMcpFrontSeveralServesVerify
     : MN_VER_06_S07_LanMcpFrontSeveralServes;

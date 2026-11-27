@@ -33,6 +33,7 @@ READ_SURFACES = (
     "read_list",
     "export_pin_map",
     "housekeep_stats",
+    "session_limits",
     "session_current",
     "session_resume",
     "tagmap_show",
@@ -112,6 +113,7 @@ MCP_NON_READ_TOOLS = frozenset(
         "session_load",
         "session_open",
         "session_save",
+        "session_set_limits",
         "snap_model",
         "update",
     }

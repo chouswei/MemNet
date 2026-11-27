@@ -63,6 +63,7 @@ session_open(map) → cue / find → pin_map → reason → mutate → pin_map
 | `session_open` | Map required |
 | `session_list` | Live ids plus `@STAT: sessions|n/max` (named strata; not ANN; default max **1024**) |
 | `session_close` | Close that id (SessionLifecycle; does not dump \(S\)) |
+| `session_limits` / `session_set_limits` | Live TTL and row / byte caps (MN-REQ-05.6); `"default"` clears a cap; below usage refuses `limit_below_usage` |
 | `session_save` / `session_load` / `session_current` | Snapshot / resume. `session_load(session=sid)` restores expire-dir snap |
 | `pin_map` | Primary read, only when the turn needs memory, with a real cue. Empty q = outline (once at job start). `view=shell` is grain on a seed, not outline |
 | `find` | Bounded seed (`limit` required). Not RAG |

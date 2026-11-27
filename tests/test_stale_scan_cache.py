@@ -232,6 +232,7 @@ _STORE_NON_MUTATORS = {
     "begin_order_journal",
     "end_order_journal",
     "row_count_non_law",
+    "effective_max_rows",
     "law_count",
     "match_nickname",
     "nickname_set",

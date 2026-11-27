@@ -94,6 +94,7 @@ Source: `_collect_sysml_files` and cousins.
 | MCP | `errors: ["@ERR: limit_exceeded\|rows {n}/{max}"]` |
 | Batch | All-or-nothing rollback (probe: 3 CREATEs with cap 2 → 0 rows left) |
 | In memory at cap | Further CREATE refuses; existing graph stays |
+| Per session | `session set-limits --max-rows N` (MN-REQ-05.6) sets a tighter cap on one live session; the cap in force is `min(N, MEMNET_MAX_ROWS)` and the refusal names it |
 | Gate should | Housekeep, split sessions, or raise `MEMNET_MAX_ROWS` **before** open |
 | Gate must not | Retry the same CREATE; assume old rows were dropped |
 
@@ -337,6 +338,24 @@ Source: `memnet/catalog_snap.py` `snap_model` / `_precheck_plan`; `memnet/serve.
 Source: `memnet/session.py`, `memnet/config.py` `save_on_expire` / `expire_snapshot_dir`.
 
 **Unsaved expiry:** the in-memory graph is gone. There is no recycle of rows into another session.
+
+## Live session limits (MN-REQ-05.6)
+
+| | |
+|--|--|
+| Read | `memnet session limits --session S [--caller C]` / MCP `session_limits`. READ (replayed after a reset); a touch |
+| Change | `memnet session set-limits --session S [--ttl N] [--max-rows N\|default] [--max-bytes N\|default] [--caller C]` / MCP `session_set_limits`. WRITE (never replayed; refused `serve_draining` while draining) |
+| Reply | `@STAT: ttl_minutes\|N\|session`, `@STAT: expires_at\|ISO\|-`, `@STAT: max_rows\|N\|session` or `process`, `@STAT: max_session_bytes\|N\|session` or `process`, `@STAT: rows\|n\|max`, `@STAT: session_bytes\|n\|max` (`-` when not exactly countable) |
+| Cap in force | `min(override, process cap)`. An override only tightens; `default` clears it. Above the process cap: `@ERR: bad_limit\|max_rows must be 1..5000` (or `max_session_bytes must be 1..163840000`; the number is the serve cap) |
+| Below usage | `@ERR: limit_below_usage\|rows {n}/{cap}` or `session_bytes {n}/{cap}`. Nothing changes; **rows are never dropped**. Prune first. A cap equal to usage is allowed (the session is then at its cap) |
+| TTL | `1..1440` else `@ERR: bad_ttl\|ttl must be 1..1440`. The clock restarts at the call (`expires_at = now + ttl`); later slides use the new TTL. An already overdue session gets the usual expiry codes |
+| Nothing given | `@ERR: no_limit\|give --ttl, --max-rows or --max-bytes` |
+| All or nothing | Every argument is checked first; any refusal leaves TTL and caps unchanged |
+| Who | ACL off: whoever holds the id (as `session close`). ACL on: set-limits needs the mutate grant, limits needs pin_map (`acl_who` / `acl_denied` / `acl_forbidden`) |
+| Persisted | TTL in `@SNAP` field 4. Overrides in one `#@LIM: {"max_rows":N,"max_session_bytes":N}` header line, only when set (session save, checkpoint, upgrade-prepare, expire-save and cap-eviction). Malformed: `@ERR: bad_snapshot\|malformed LIM line`. Above the loading serve cap: clamped, `@WRN: limit_clamped\|max_rows {n}/{cap}` |
+| Rollback | 0.20.8 skips the `#` line and loads with its process caps; rows and TTL are kept, only the tighter cap is forgotten |
+
+Source: `set_session_limits` in `memnet/session.py`, `#@LIM:` in `memnet/snapshot.py`. Tests: `tests/test_session_live_limits.py`.
 
 ## CapsPolicy ACL
 

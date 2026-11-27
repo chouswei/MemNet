@@ -35,6 +35,7 @@
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
     MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (shipped, unreleased); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
+    MN-REQ-05.6        Live session TTL and size-cap change (session limits / set-limits); cap = min(override, process cap); below usage refuses, never drops rows; #@LIM snapshot line
     MN-REQ-06.11       Admin-only serve usage report (counts/caps; opaque session alias; not agent MCP)
     MN-REQ-06.12       Product gateway on memnet-mcp: per-product route to owning serve (not mn_tip_)
     MN-REQ-06.13       Serve request isolation: each command's stdout, stderr, and exit_code
@@ -853,6 +854,7 @@ package MemNetRequirements {
           read_list
           export_pin_map
           housekeep_stats
+          session_limits
           session_current
           session_resume
           tagmap_show
@@ -1004,6 +1006,50 @@ package MemNetRequirements {
           MN-VER-05-S03 to MN-VER-05-S09. Regression for the no-rid rule: tests/test_mutate_no_rid_regression.py.
         */
         attribute requirementId : String = "MN-REQ-05.5";
+      }
+
+      requirement def MN_REQ_05_6_LiveSessionLimits {
+        doc /*
+          A live session's TTL and size caps SHALL be changeable without a
+          reopen: CLI session set-limits (WRITE) and session limits (READ),
+          MCP session_set_limits / session_limits. Existing verbs, tools and
+          outputs SHALL stay unchanged for old callers.
+
+          Caps. Per-session overrides max_rows and max_session_bytes. The cap
+          in force SHALL be min(override, process cap) (MEMNET_MAX_ROWS,
+          MEMNET_MAX_SESSION_BYTES): an override only tightens, or loosens
+          back up to the process cap (default clears it). A request above the
+          process cap SHALL refuse bad_limit. A cap below current usage (non-LAW
+          rows, or escaped snapshot bytes) SHALL refuse limit_below_usage and
+          SHALL NOT drop rows; a cap equal to usage is allowed. The row cap
+          and the byte budget SHALL be enforced at the same points as the
+          process caps (MN-REQ-05.1, MN-REQ-14.10).
+
+          TTL. 1..1440 minutes (bad_ttl otherwise). The call is a touch: the
+          clock SHALL restart at the call (expires_at = now + ttl), so the
+          call never makes a session overdue; later sliding renews use the
+          new TTL. The (ttl, expires_at) pair SHALL be updated atomically
+          with respect to a concurrent sliding renew.
+
+          All or nothing. Every argument SHALL be validated before anything
+          changes (no_limit, bad_ttl, bad_limit, limit_below_usage); any
+          refusal leaves the session untouched. set-limits holds the session
+          lock exclusively. Who: ACL off, whoever holds the sid; ACL on,
+          the mutate grant for set-limits and pin_map for limits.
+
+          Persistence. TTL is @SNAP field 4. Overrides SHALL persist in one
+          optional #@LIM: JSON header line, written only when an override is
+          set, so other snapshot files stay byte-identical and SNAPSHOT_FORMAT
+          stays 2. A malformed line SHALL fail the load bad_snapshot; unknown
+          keys are ignored; a value above the loading process cap is clamped
+          with @WRN limit_clamped. The line survives session save / load,
+          checkpoint restore, upgrade-prepare / restore, and expire and evict
+          snapshots. Rollback: 0.20.8 skips the # line and loads with the
+          process caps; no row is lost.
+
+          Verify: MN-VER-05-S10 (tests/test_session_live_limits.py).
+        */
+        attribute requirementId : String = "MN-REQ-05.6";
       }
     }
 
@@ -3352,6 +3398,8 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_4_ConsistentFieldCap;
   requirement sessionCapEvictLruReq
     : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_5_SessionCapEvictLru;
+  requirement liveSessionLimitsReq
+    : MN_REQ_00_MissionBridge::MN_REQ_05_HardCaps::MN_REQ_05_6_LiveSessionLimits;
 
   requirement processBoundaryReq
     : MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary;
@@ -3644,6 +3692,7 @@ package MemNetRequirements {
     end #derive ::> consistentValueByteCapReq;
     end #derive ::> consistentFieldCapReq;
     end #derive ::> sessionCapEvictLruReq;
+    end #derive ::> liveSessionLimitsReq;
   }
 
   #derivation connection deriveSessionCapEvictFromCapsAndSnapshot {

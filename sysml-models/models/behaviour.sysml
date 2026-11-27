@@ -114,6 +114,14 @@ package MemNetBehaviour {
       from RAM. Runtime check: tests/test_session_evict.py.
     */
   }
+  attribute def EvSetLimits {
+    doc /*
+      MN-REQ-05.6: session set-limits on a live session, under its exclusive
+      lock. All arguments validated first; a refusal changes nothing. On
+      success the TTL clock restarts (expires_at = now + ttl) and the cap
+      overrides take effect for the next write. The session stays live.
+    */
+  }
   attribute def EvCloseOrExpire {
     doc /* session_close or TTL purge after optional expire save. */
   }
