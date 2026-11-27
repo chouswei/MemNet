@@ -167,11 +167,13 @@ package MemNetArchive {
   part def TierACodec {
     doc /*
       RETIRED / REJECTED on product path (ADR-001 M2 **done**): former Layer /
-      Tier A NODE|EDGE ASCII (MemNetLayer.g4 / memnet.tier_a / memnet.layer).
+      Tier A NODE|EDGE ASCII (MemNetLayer.g4; former memnet.tier_a /
+      memnet.layer modules, now deleted).
       MutateGate rejects with legacy_dialect_retired. MUST NOT be nested as
       accept or 1.x teach. Hierarchical reconstruct (Recall k-hop) is NOT
-      Layer dialect. Leftover retire-from-wheel: modules may remain on disk
-      for archive/tests; MUST NOT silently delete. Primary wire is GqlCodec.
+      Layer dialect. The parser, emit and codec modules are deleted from
+      the wheel and the repo; the mutate record classes moved to
+      memnet.records. Primary wire is GqlCodec.
     */
     port tierAIn : TierAInPort;
     port tierAOut : TierAOutPort;
@@ -192,9 +194,8 @@ package MemNetArchive {
   }
 
   // =====================================================================
-  // Retired Neo4j cabinet (#187). Former product parts lived on
-  // DurableBuffer. No runtime hydrate/flush caller (agentReachable=false;
-  // hydrateFlushCallers="tests"). Bench: not faster at 80 / 229 / 504
+  // Retired Neo4j cabinet (#187). Former product parts lived on the
+  // durable cabinet, itself since removed (memnet.durable deleted). Bench: not faster at 80 / 229 / 504
   // nodes; JVM ~7 s / 811 MiB vs MemNet 0.87 s / 33 MiB; flush-then-hydrate
   // did not return the flushed node set. MUST NOT nest on product path.
   // =====================================================================
@@ -214,7 +215,8 @@ package MemNetArchive {
 
   part def Neo4jAdapter {
     doc /*
-      RETIRED archive — former cabinet client beside AgensGraphAdapter.
+      RETIRED archive — former cabinet client (the AgensGraph client is
+      deleted too).
       Ego hydrate/flush only. Opt-in was MEMNET_NEO4J_URL (extra
       memnet-llm[neo4j]). Factory no longer binds it. Engine ignores
       MEMNET_NEO4J_* and starts. MUST NOT nest on product path.
@@ -241,7 +243,7 @@ package MemNetArchive {
       RETIRED archive — former extra 0.16 second Neo4j database on the
       same process as Neo4jAdapter. Locator-only. Retired with the
       cabinet (#187). MUST NOT nest on product path. MUST NOT hydrate
-      session S. RagHostHook no longer reads this port.
+      session S. No host-search hook ships to read it.
     */
     attribute implemented : Boolean = false;
     attribute productPathRetired : Boolean = true;

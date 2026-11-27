@@ -2,8 +2,8 @@
   MemNet deploy — TARGET architecture after ADR-001.
 
   Product framing (2026-08-13): MemNet = shared LLM memory (SharedLlmMemory);
-  session id = pass-by-reference handle for a MissionWorkingSet; durable GQL
-  store (DurableBuffer / AgensGraphAdapter) behind MemNet.
+  session id = pass-by-reference handle for a MissionWorkingSet. No durable
+  cabinet ships (memnet.durable removed); the file snapshot is the durable copy.
   Neo4jAdapter / Neo4jLibraryPort / liveNeo4jClaimed: models/archive.sysml.
 
   Nesting (coarse → fine):
@@ -33,7 +33,6 @@
     ├── TransportBoundary           // InProcess / LocalIpc / TcpServe
     ├── MemNetMcpServer             // MemNet tip/ops MCP (GQL); fleet: one at droplet; tip≠face
     │   └── McpFacade               // TARGET cue/pattern commands only
-    ├── DurableBuffer               // AgensGraphAdapter; fake|agensgraph
     │                                 // Neo4j cabinet: models/archive.sysml (#187)
     ├── PinMapRoadmap               // PinMapIngest_* + CatalogSnap (0.15) + PinMapExport (0.19)
     └── MultitaskOperatingModel
@@ -62,8 +61,8 @@
 
   APPLICATION (not in MemNetSystem): HostSearchBridge — optional host
   locators into existing MutateGate / ingest. No ImportGuard leaf copy.
-  Extra 0.17: RagHostHook.implemented=true outside MemNetSystem; skip
-  is valid. Grammar: docs/extras/memnet-host-search-nest.md
+  MemNet ships no host-search hook (memnet.rag_host_hook removed); a host
+  brings its own search. Skip is valid.
   APPLICATION / OPS LOOK (not in MemNetSystem): MemNetUsageDashboard —
   human read-only usage look (serve_status, sessions n/max, housekeep,
   ImportGuard armed display). MUST NOT nest manage/mutate ports.
@@ -1068,7 +1067,7 @@ package MemNet {
       SessionImportReceive as Commit rules, not extra operators (ImportAbsorb
       is Path-B only; SameThingAbsorb is the in-session collapse).
       HostSearchBridge MUST NOT nest here. Two compressions: Snap (host
-      corpus, outside; 0.17 RagHostHook locators) vs Shape (Recall X̃).
+      corpus, outside; host-side locators) vs Shape (Recall X̃).
       Goldfish I/O: slice in (Recall), Δ out (Commit); pin topics then
       fetch slices. Extra 0.18: Peak_L last-resort residual cue is
       implemented under RelativeSeed (not a third operator; empty q stays
@@ -1243,8 +1242,7 @@ package MemNet {
       GraphStore + SchemaRegistry + RecallCommit (Recall + Commit) facades.
       Each session id is the pass-by-reference handle for a MissionWorkingSet
       (SOMETHING). Nested under AgentMemory (SharedLlmMemory). As-is:
-      memnet.registry + session. M2.5 hydrate/flush ports to DurableBuffer —
-      client landed; live cabinet external. RSV lease lives under Commit.
+      memnet.registry + session. RSV lease lives under Commit.
       Sliding TTL; expire save via nested SnapshotStore (configurable).
       The session id is the mission working-set handle, not the model
       SSOT and not a second graph.
@@ -1254,8 +1252,6 @@ package MemNet {
     port schemaIn : SchemaInPort;
     port snapOut : SessionSnapshotOutPort;
     port snapIn : SessionSnapshotInPort;
-    port hydrateIn : DurableHydrateInPort;
-    port flushOut : DurableFlushOutPort;
     // Path B import entry ports live on SessionImportReceive / ImportAbsorb
     // only — do not dual-name slice/importReq here.
     port errOut : ErrorSignalOutPort;
@@ -1308,8 +1304,6 @@ package MemNet {
     port gqlIn : GqlWireInPort;
     port shapedOut : ShapedSubgraphOutPort;
     port pinMapOut : LivePinMapOutPort;
-    port hydrateIn : DurableHydrateInPort;
-    port flushOut : DurableFlushOutPort;
   }
 
   // =====================================================================
@@ -2005,7 +1999,7 @@ package MemNet {
       commands (CueConflict is an emit mark; SameThingAbsorb is a Commit
       rule). Agent memory payloads: GQL mutate + shaped pin_map.
       Structured JSON envelopes. No domain-product tools. LLM agents
-      connect here to MemNet — not to DurableBuffer. Python rewrite
+      connect here to MemNet, never to a store. Python rewrite
       out of scope. Streamable-http is stateless (MN-REQ-06.19).
     */
     port apiOut : InProcessOutPort;
@@ -2106,76 +2100,6 @@ package MemNet {
     attribute tipIsFace : Boolean = false;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_6_DeviceServicesOneDropletMcp;
-  }
-
-  // =====================================================================
-  // Durable buffer (M2.5) — client hydrate/flush behind SharedLlmMemory
-  // =====================================================================
-
-  part def AgensGraphAdapter {
-    doc /*
-      M2.5 client adapter: hydrate/flush between SessionLifecycle /
-      GraphStore and an external DurableGraphStore (AgensGraph-class)
-      via DurableStoreAdapter. Same GQL family. Client seam landed
-      (memnet.durable: FakeDurableAdapter always; optional AgensGraphAdapter
-      under memnet-llm[agensgraph]; SessionLifecycle.hydrate_from_durable /
-      flush_to_durable; one DurableSyncOwner). 0.7 claim is adapter +
-      operator round trip (no runtime caller). Server not vendored.
-      MUST NOT dual-write without a single sync owner. MUST NOT be the LLM
-      primary path (LLM ↔ MemNet only). Ego slice, not a full copy of
-      S. storageRole cabinet_ego. Callers are
-      DurableBuffer.hydrateFlushCallers. MN-REQ-06.4.
-    */
-    port hydrateOut : DurableHydrateOutPort;
-    port flushIn : DurableFlushInPort;
-    port gqlIn : GqlWireInPort;
-    port gqlOut : GqlWireOutPort;
-    // Client hydrate/flush adapter seam (Fake + optional AgensGraph client).
-    attribute storageRole : String = "cabinet_ego";
-    attribute implemented : Boolean = true;
-    // liveCabinetClaimed: 0.7 claim is adapter + operator round trip
-    // (no runtime caller). serve, IPC, and MCP bind the owner at startup
-    // and do not invoke it. Callers are DurableBuffer.hydrateFlushCallers.
-    attribute liveCabinetClaimed : Boolean = true;
-    attribute phase : String = "M2.5";
-  }
-
-  part def DurableBuffer {
-    doc /*
-      Optional durable property-graph buffer behind MemNet SharedLlmMemory.
-      Connects to GraphStore / SessionLifecycle via hydrate/flush — not to
-      LLM agents as primary. Factory binds exactly one adapter (one sync
-      owner): fake or AgensGraph (bindsExactlyOneOf="fake|agensgraph").
-      0.7 claim is adapter + operator round trip (no runtime caller).
-      TARGET: no grammar store key; MERGE is a per-write lookup of labels
-      + props / rel type+ends, not a primary key. leftoverMergeById=true
-      records 0.9 nickname MERGE and invented by_id. elementId stays in
-      the cabinet, off the wire. Cabinet stays external / not vendored.
-      Neo4jAdapter, Neo4jLibraryPort, and liveNeo4jClaimed are retired
-      to MemNetArchive (#187). MEMNET_NEO4J_* on a host is ignored
-      (retiredNeo4jEnvIgnored). One log warning. The engine starts.
-      SHALL NOT crash. SHALL NOT bind a Neo4j adapter. An unconfigured
-      URL binds FakeDurableAdapter. hydrateFlushCallers names who calls
-      hydrate/flush. Do not wire a new caller. MN-REQ-06.4.
-    */
-    part agens : AgensGraphAdapter;
-    port hydrateOut : DurableHydrateOutPort;
-    port flushIn : DurableFlushInPort;
-    attribute storageRole : String = "cabinet_ego";
-    attribute hydrateFlushCallers : String = "tests";
-    attribute bindsExactlyOneOf : String = "fake|agensgraph";
-    attribute clientLanded : Boolean = true;
-    attribute retiredNeo4jEnvIgnored : Boolean = true;
-    // liveCabinetClaimed: 0.7 claim is adapter + operator round trip
-    // (no runtime caller). serve, IPC, and MCP bind the owner at startup
-    // and do not invoke it. Callers are hydrateFlushCallers.
-    attribute liveCabinetClaimed : Boolean = true;
-    attribute mergeByLabelsAndProps : Boolean = true;
-    attribute leftoverMergeById : Boolean = true;
-    attribute mergeIsPerWriteLookup : Boolean = true;
-    attribute noReplacementStoreKey : Boolean = true;
-
-    satisfy MN_REQ_00_MissionBridge::MN_REQ_06_ProcessBoundary::MN_REQ_06_4_DurableStoreBehindMemNet;
   }
 
   // =====================================================================
@@ -3085,8 +3009,7 @@ package MemNet {
   part def MemNetSystem {
     doc /*
       SharedLlmMemory product. Nest: AgentMemory (via core; RecallCommit
-      two-operator cut) + Transport + MCP (LLM ↔ MemNet) + DurableBuffer
-      (cabinet hydrate/flush; fake|agensgraph; Neo4j archived #187)
+      two-operator cut) + Transport + MCP (LLM ↔ MemNet) +
       PinMapRoadmap (PinMapIngest_* + CatalogSnap 0.15 + PinMapExport 0.19) +
       MultitaskOperatingModel (Coordinator → HandoffEmit /
       AsyncTaskDispatch / SessionImportReceive; WorkerPool).
@@ -3110,10 +3033,12 @@ package MemNet {
       contrast is outside; inventOnly).
       AdminUsageReport lives on TcpServeBridge (inside transport),
       not as a second MCP tool (adminUsageOnAgentMcp=false).
+      durableCabinetShipped=false: no cabinet client or sync owner ships
+      (memnet.durable removed); the file snapshot is the durable copy.
+      retiredNeo4jEnvIgnored=true: no code reads MEMNET_NEO4J_* (#187).
     */
     part core : MemNetCoreLibrary;
     part mcp : MemNetMcpServer;
-    part durable : DurableBuffer;
     part pinMaps : PinMapRoadmap;
     part multitask : MultitaskOperatingModel;
     attribute usageDashboardInsideSystem : Boolean = false;
@@ -3126,6 +3051,8 @@ package MemNet {
     attribute leftoverArchiveOffLoad : Boolean = true;
     attribute leftoverLayerDeleteThisPr : Boolean = false;
     attribute leftoverLayerMustNotNestOnProductPath : Boolean = true;
+    attribute durableCabinetShipped : Boolean = false;
+    attribute retiredNeo4jEnvIgnored : Boolean = true;
 
     connection mcpInProcess : InProcessFlow {
       end port source ::> mcp.tools.apiOut;
@@ -3147,14 +3074,6 @@ package MemNet {
       end port source ::> core.cli.cmdOut;
       end port sink ::> core.transport.tcp.cmdIn;
     }
-    connection durableHydrate : DurableHydrateFlow {
-      end port source ::> durable.hydrateOut;
-      end port sink ::> core.transport.inProcess.memory.sessions.hydrateIn;
-    }
-    connection durableFlush : DurableFlushFlow {
-      end port source ::> core.transport.inProcess.memory.sessions.flushOut;
-      end port sink ::> durable.flushIn;
-    }
     connection catalogLocatorToMcpList : CatalogSessionLocatorFlow {
       end port source ::> pinMaps.catalog.locatorOut;
       end port sink ::> mcp.tools.sessionList.locatorIn;
@@ -3172,54 +3091,24 @@ package MemNet {
   // =====================================================================
   // APPLICATION NEST — HostSearchBridge (MUST NOT instantiate under
   // MemNetSystem). Optional locators into existing MutateGate / ingest.
-  // Extra 0.17: RagHostHook.implemented=true; skip is valid.
-  // Grammar: docs/extras/memnet-host-search-nest.md
+  // MemNet ships no hook code; the host brings its own search.
   // =====================================================================
-
-  part def RagHostHook {
-    doc /*
-      Optional host corpus plug-in (grep / docs MCP / fail-open URL).
-      Neo4j library locators are retired (#187). Product compression = Snap
-      (topics / locators from the library haystack). Locator-only,
-      fail-open, MUST NOT mutate the session, MUST NOT appear as
-      memnet-mcp rag_query, MUST NOT ANN-index session S
-      (Snap-on-session forbidden). Skip is valid (pin_map Shape + grep).
-      Extra 0.17 ships the hook outside MemNetSystem. Module:
-      memnet.rag_host_hook.
-    */
-    port locatorIn : LibraryLocatorInPort;
-    port locatorOut : LibraryLocatorOutPort;
-    attribute implemented : Boolean = true;
-    attribute designOnly : Boolean = false;
-    attribute failOpen : Boolean = true;
-    attribute locatorOnly : Boolean = true;
-    attribute compressionKind : String = "snap";
-    attribute snapOnSession : Boolean = false;
-    attribute mcpRagQuery : Boolean = false;
-  }
 
   part def HostSearchBridgePart {
     doc /*
       APPLICATION NEST root (item HostSearchBridge in connections).
-      MUST NOT be a part of MemNetSystem. Snap = RagHostHook locators;
+      MUST NOT be a part of MemNetSystem. Snap = host-side locators;
       Shape stays PinMapShapedRead. Hard commit is existing MutateGate /
       PinMapIngest — no LocatorCommit wrapper. MUST NOT Snap-on-session.
-      Neo4j library locators are retired (#187). Hook consumes host
-      locators only (generate stays off the emit).
+      Neo4j library locators are retired (#187). MemNet ships no hook
+      code (memnet.rag_host_hook removed, hookShipped=false): the host
+      runs its own search and sends locators only (generate stays off
+      the emit).
     */
     attribute designOnly : Boolean = false;
-    part hook : RagHostHook;
+    attribute hookShipped : Boolean = false;
     port locatorIn : LibraryLocatorInPort;
     port locatorOut : LibraryLocatorOutPort;
-
-    connection hookIn : LibraryLocatorFlow {
-      end port source ::> locatorIn;
-      end port sink ::> hook.locatorIn;
-    }
-    connection hookEmit : LibraryLocatorFlow {
-      end port source ::> hook.locatorOut;
-      end port sink ::> locatorOut;
-    }
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_11_SnapshotInterop::MN_REQ_11_13_MapOfPins;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_13_RecallCommit::MN_REQ_13_1_TwoOperators;
@@ -3227,17 +3116,11 @@ package MemNet {
 
   part hostSearch : HostSearchBridgePart;
 
-  connection libraryToHostSearch : LibraryLocatorFlow {
-    doc /* Extra 0.16 library locators MAY feed the outside hook. */
-    end port source ::> memNetSystem.durable.'library'.locatorOut;
-    end port sink ::> hostSearch.locatorIn;
-  }
-
   connection hostSearchToMutate : LibraryLocatorFlow {
     doc /*
       Host locators into existing MutateGate. MUST NOT absorb
-      (ImportAbsorb is Path-B only). Skip is valid when the hook
-      emits nothing.
+      (ImportAbsorb is Path-B only). Skip is valid when the host
+      search emits nothing.
     */
     end port source ::> hostSearch.locatorOut;
     end port sink ::> memNetSystem.core.transport.inProcess.memory.sessions.recallCommit.commit.mutate.libraryLocatorIn;

@@ -60,7 +60,12 @@ def test_product_deploy_does_not_nest_leftover_fog():
     assert not re.search(r"^  part def Neo4jLibraryPort", text, re.M)
     assert not re.search(r"^  part def liveNeo4jClaimed", text, re.M)
     assert "part neo4j :" not in text
-    assert 'bindsExactlyOneOf : String = "fake|agensgraph"' in text
+    # The durable cabinet is removed, not archived: no part, no usage, no binder.
+    assert "part def DurableBuffer" not in text
+    assert "part def AgensGraphAdapter" not in text
+    assert "part durable :" not in text
+    assert "bindsExactlyOneOf" not in text
+    assert "attribute durableCabinetShipped : Boolean = false;" in text
     assert "part leftover_id_first" not in text
     assert "part leftover_by_id" not in text
     assert "part leftover_MERGE_by_id" not in text

@@ -3,8 +3,8 @@
 
   Target (ADR-001): property-graph / openCypher-shaped GQL agent memory.
   Product framing (2026-08-13): MemNet = shared LLM memory; session id =
-  pass-by-reference handle for a mission SOMETHING; durable GQL store sits
-  behind MemNet (planned M2.5). First-class constructs: Node, Edge
+  pass-by-reference handle for a mission SOMETHING; no durable cabinet
+  ships (the file snapshot is the durable copy). First-class constructs: Node, Edge
   (relationship), Property, Label. pin_map = shaped subgraph read wrapping
   GQL (Write = display redefined). No Layer / Tier A teach or accept path —
   as-is codecs are implementation lag removed in M2.
@@ -182,23 +182,6 @@ package MemNetConnections {
     attribute outcome : String;
     attribute reason : String;
     attribute keepIds : String;
-  }
-
-  item def DurableGraphStore {
-    doc /*
-      Online durable property-graph store (AgensGraph-class) behind
-      MemNet. Landed client: hydrate into / flush from the live
-      session an ego slice (DurableStoreAdapter / FakeDurableAdapter when
-      no URL / optional AgensGraph client with liveCabinetClaimed;
-      SessionLifecycle hydrate/flush). Factory binds exactly one of
-      fake or AgensGraph. 0.7 claim is adapter + operator round trip
-      (no runtime caller). Not a full copy of S. Not the file snapshot.
-      Neo4j cabinet is archived (#187). MEMNET_NEO4J_* is ignored.
-      Live cabinet is external — not vendored.
-      LLM ↔ store direct (including Bolt) is out of default teach.
-      One sync owner. MN-REQ-06.4.
-    */
-    attribute storageRole : String = "cabinet_ego";
   }
 
   // =====================================================================
@@ -641,7 +624,7 @@ package MemNetConnections {
   }
 
   // =====================================================================
-  // Ports — GQL primary + Multitask / durable; internal records
+  // Ports — GQL primary + Multitask; internal records
   // (Retired TierA / LegacyPipe ports: models/archive.sysml — off ProjectMemNet load)
   // =====================================================================
 
@@ -736,15 +719,14 @@ package MemNetConnections {
   port def LibraryLocatorOutPort {
     doc /*
       Extra 0.16: emit library-namespace locators only. Never generate.
-      Never shaped pin_map. Never cabinet hydrate payload.
+      Never shaped pin_map.
     */
     out item locator : LibraryLocator;
   }
   port def LibraryLocatorInPort {
     doc /*
-      Extra 0.17: accept library / host locators into RagHostHook
-      (outside MemNetSystem) and existing MutateGate / PinMapIngest.
-      Used this cut. SHALL NOT RRF/PPR. SHALL NOT Snap-on-session.
+      Accept host locators (host-side search, outside MemNetSystem)
+      into existing MutateGate / PinMapIngest. SHALL NOT RRF/PPR. SHALL NOT Snap-on-session.
       Skip is valid when the source emits nothing.
     */
     in item locator : LibraryLocator;
@@ -766,23 +748,6 @@ package MemNetConnections {
   port def ImportGuardDecisionInPort {
     doc /* Lead SessionImportReceive consumes ImportGuardDecision. */
     in item decision : ImportGuardDecision;
-  }
-
-  port def DurableHydrateOutPort {
-    doc /* Landed client: hydrate an ego slice from DurableGraphStore into the session. Not on Commit. Not on TTL. */
-    out item store : DurableGraphStore;
-  }
-  port def DurableHydrateInPort {
-    doc /* Landed client: session accepts an ego hydrate from DurableGraphStore. */
-    in item store : DurableGraphStore;
-  }
-  port def DurableFlushOutPort {
-    doc /* Landed client: flush an ego slice from the session toward DurableGraphStore. Not on Commit. Not on TTL. */
-    out item store : DurableGraphStore;
-  }
-  port def DurableFlushInPort {
-    doc /* Landed client: DurableGraphStore accepts an ego flush from the session. */
-    in item store : DurableGraphStore;
   }
 
   port def GraphRecordOutPort {
@@ -1153,16 +1118,6 @@ package MemNetConnections {
     end port sink : ImportGuardDecisionInPort;
   }
 
-  connection def DurableHydrateFlow {
-    doc /*
-      Landed client: DurableBuffer ports → SessionLifecycle / GraphStore.
-      Factory binds exactly one of fake, AgensGraph, or Neo4j. LLM does not
-      connect to DurableBuffer as primary.
-    */
-    end port source : DurableHydrateOutPort;
-    end port sink : DurableHydrateInPort;
-  }
-
   connection def LibraryLocatorFlow {
     doc /*
       Extra 0.16: Neo4j library port → locators only. Extra 0.17:
@@ -1173,16 +1128,6 @@ package MemNetConnections {
     */
     end port source : LibraryLocatorOutPort;
     end port sink : LibraryLocatorInPort;
-  }
-
-  connection def DurableFlushFlow {
-    doc /*
-      Landed client: SessionLifecycle / GraphStore → DurableBuffer ports.
-      Factory binds exactly one of fake, AgensGraph, or Neo4j.
-      One sync owner; MUST NOT dual-write.
-    */
-    end port source : DurableFlushOutPort;
-    end port sink : DurableFlushInPort;
   }
 
   connection def GraphRecordFlow {
@@ -1428,14 +1373,14 @@ package MemNetConnections {
 
   item def HostSearchBridge {
     doc /*
-      APPLICATION NEST only (MUST NOT nest under MemNetSystem). Optional
-      RagHostHook Snaps the corpus to locators; existing MutateGate /
+      APPLICATION NEST only (MUST NOT nest under MemNetSystem). The host's
+      own search Snaps the corpus to locators; existing MutateGate /
       PinMapIngest commits (Commit creates the element; no id-mint law).
       Extra 0.16 library port MAY feed locators here (0.17 consumes
       them; library stays locators-only / generate=false). Skip is
       valid. MUST NOT call this absorb (ImportAbsorb is Path-B slice +
       id_policy only). MUST NOT Snap-on-session. No rag_query MCP.
-      RagHostHook.implemented=true outside MemNetSystem. Product math
+      MemNet ships no hook code (memnet.rag_host_hook removed). Product math
       sits above this research: docs/grammar/math-skeleton.md. See
       docs/extras/memnet-host-search-nest.md.
     */
