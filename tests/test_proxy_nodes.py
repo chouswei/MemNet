@@ -519,6 +519,25 @@ def test_target_that_is_itself_a_proxy_is_returned_not_followed(two):
 # 14. help
 
 
+def _cli_option_flags(*path: str) -> set[str]:
+    """Click option strings, independent of Rich wrapping ``--id`` as ``-`` + ``-id``."""
+    import click
+    from typer.main import get_command
+
+    cmd = get_command(app)
+    ctx = click.Context(cmd)
+    for name in path:
+        nxt = cmd.get_command(ctx, name)
+        assert nxt is not None, f"missing CLI command {' '.join(path)}"
+        cmd = nxt
+        ctx = click.Context(cmd, parent=ctx)
+    flags: set[str] = set()
+    for param in cmd.get_params(ctx):
+        flags.update(param.opts)
+        flags.update(param.secondary_opts)
+    return flags
+
+
 def test_help_lists_follow():
     from typer.testing import CliRunner
 
@@ -526,5 +545,8 @@ def test_help_lists_follow():
     assert runner.invoke(app, ["--help"]).exit_code == 0
     got = runner.invoke(app, ["query", "--help"])
     assert got.exit_code == 0 and "follow" in got.output
-    sub = runner.invoke(app, ["query", "follow", "--help"])
-    assert sub.exit_code == 0 and "--id" in sub.output
+    # GitHub Actions paints help: Rich splits ``--id`` so it is not a substring.
+    sub = runner.invoke(app, ["query", "follow", "--help"], color=True)
+    assert sub.exit_code == 0
+    flags = _cli_option_flags("query", "follow")
+    assert {"--id", "--resolved-id", "--session", "--caller"} <= flags
