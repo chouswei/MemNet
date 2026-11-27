@@ -25,7 +25,7 @@ from memnet.admin_usage import authenticate
 from memnet.atomic_file import atomic_write_bytes
 from memnet.exceptions import MemNetError
 from memnet.fixed_tags import SNAPSHOT_OMIT_SCHEMA
-from memnet.registry import count, get_entry, list_entries
+from memnet.registry import count, get_entry, list_entries, remove_entry
 from memnet.snapshot import (
     SNAPSHOT_FORMAT,
     SNAPSHOT_MAGIC,
@@ -599,6 +599,12 @@ def _fail_session(report: RestoreReport, sid: str, code: str, detail: str) -> No
     report.errors.append({"session_id": sid, "code": code, "detail": detail})
 
 
+def _drop_restored(sid: str) -> None:
+    """A failed restore must not leave a half-live session in the registry."""
+    if sid:
+        remove_entry(sid)
+
+
 def _restore_one(
     root: Path, row: dict[str, Any], report: RestoreReport, source: str = SOURCE_UPGRADE
 ) -> None:
@@ -610,6 +616,7 @@ def _restore_one(
         return
     path = root / rel
     before = path.read_bytes() if path.is_file() else None
+    loaded_sid = ""
     try:
         if before is None:
             _fail_session(report, sid, "snapshot_not_found", "missing snapshot file")
@@ -627,6 +634,7 @@ def _restore_one(
         from memnet.config import Caps
 
         ss = load_snapshot_text(body, caps=Caps(), keep_id=True, preserve_clocks=True)
+        loaded_sid = ss.session_id
         entry = get_entry(ss.session_id)
         if entry is None:
             _fail_session(report, sid, "upgrade_restore", "session missing after load")
@@ -660,6 +668,7 @@ def _restore_one(
             return
         report.ok += 1
         report.session_ids.append(ss.session_id)
+        loaded_sid = ""
         bind = entry.acl.bind.mission_id if entry.acl and entry.acl.bind else None
         report.details.append(
             {
@@ -676,6 +685,7 @@ def _restore_one(
     except MemNetError as exc:
         _fail_session(report, sid, exc.code, exc.message)
     finally:
+        _drop_restored(loaded_sid)
         if before is not None and path.is_file() and path.read_bytes() != before:
             atomic_write_bytes(path, before)
 

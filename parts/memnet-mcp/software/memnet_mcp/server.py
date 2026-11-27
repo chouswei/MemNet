@@ -1078,9 +1078,16 @@ async def read_list(
 
 
 @mcp.tool()
-async def housekeep_stats(session: str | None = None) -> str:
-    """Return row counts and caps for the session."""
-    return await _run(["housekeep", "stats"], session=session)
+async def housekeep_stats(session: str | None = None, caller: str | None = None) -> str:
+    """Return row counts and caps for the session.
+
+    Optional ``caller`` is the CapsPolicy who-check used when counting
+    dangling PROXY rows (an ACL-protected target is ``not_reachable``).
+    """
+    argv = ["housekeep", "stats"]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -167,7 +167,7 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 
 ### PROXY nodes (one-hop pointer to another session)
 
-A `PROXY` is a built-in node kind (like `LAW`; never declare it in your map) that points at one node in a session, which may be another session:
+A `PROXY` is a built-in node kind (like `LAW`; **never declare it in your map**) that points at one node in a session, which may be another session:
 
 ```cypher
 CREATE (:PROXY {id: 'P_spec', target_session: '<session id>', target: '<node nickname>'})
@@ -179,9 +179,10 @@ MATCH (t:TSK {id: 'TSK_01'}), (p:PROXY {id: 'P_spec'}) CREATE (t)-[:dependsOn]->
 - The target **need not exist** when you write the PROXY. Sessions are independent.
 - `pin_map`, `find` and walks **do not follow** a PROXY: they show it as a plain node with its target fields.
 - `follow_proxy(id='P_spec', session=...)` (CLI `memnet query follow --id P_spec`) follows **one hop**. Results: `follow|ok` and the target node; `follow|dangling|reason=target_missing` (target session here, node gone); `follow|not_reachable` plus an `@FOLLOW:` line (target session not reachable from here; not proof that it is gone). If the target is itself a PROXY you get that PROXY back; call again on purpose if you need the next hop.
-- ACL: you need `pin_map` on both sessions. A denial is the usual `acl_*` and says nothing about the target.
+- ACL: you need `pin_map` on both sessions. A denial is the usual `acl_*` and says nothing about the target. Follow checks the target ACL before it renews that session's TTL.
 - Through the product gateway, a `not_reachable` from the first serve is hopped once to the backend the gateway knows owns the target session (same product only). This is not a general cross-session join: `pin_map` / `find` stay inside one session.
-- `housekeep dangling` lists dangling PROXY rows with a reason line; `housekeep stats` adds `dangling_proxies`. `prune dangling`, `prune orphans` and `prune stale` never delete a PROXY (it is orphan-exempt, like `LAW`). Delete a PROXY yourself with `mutate`.
+- `housekeep dangling` lists dangling PROXY rows with a reason line; `housekeep stats` adds `dangling_proxies`. An ACL-protected target is listed `not_reachable` (never `target_missing`, never a confirmation that the node exists). `prune dangling`, `prune orphans` and `prune stale` never delete a PROXY (it is orphan-exempt, like `LAW`). Delete a PROXY yourself with `mutate`.
+- A 0.20.8 map or snapshot that declared `SCHEMA PROXY` as a **user** tag is refused `user_proxy_tag`. Rename the tag (for example to `PROXYH`) in the SCHEMA line and every row, then open or load. Rolling back to 0.20.8: sessions with no PROXY rows load; a session whose snapshot contains PROXY rows is refused `unknown_tag` and is unavailable until you open it on this build again.
 
 ### Session lifecycle
 

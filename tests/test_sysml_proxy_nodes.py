@@ -76,6 +76,8 @@ def test_15_states_acl_gateway_housekeep_and_upgrade():
     assert "prune orphans" in doc and "prune stale" in doc
     assert "do not delete a PROXY" in doc
     assert "byte-identical to 0.20.8" in doc and "unknown_tag" in doc
+    assert "user_proxy_tag" in doc and "half-live" in doc
+    assert "ACL-protected target is not_reachable" in doc
     for path in ("tests/test_proxy_nodes.py", "tests/test_product_gateway.py"):
         assert path in doc, path
 
@@ -92,6 +94,10 @@ def test_behaviours_parts_and_satisfy():
         assert "MN-REQ-15" in _block(beh, f"action def {name}"), name
     follow = _block(beh, "action def FollowProxy")
     assert "owners map" in follow and "--resolved-id" in follow
+    write = _block(beh, "action def WriteProxy")
+    assert "user_proxy_tag" in write
+    assert "before any TTL renew" in follow
+    assert "ACL-protected target is not_reachable" in follow
     imp = _text("implementation.sysml")
     for name, action in (("ProxyNode", "WriteProxy"), ("FollowProxy", "FollowProxy")):
         body = _block(imp, f"part def {name} ")

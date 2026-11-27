@@ -130,11 +130,11 @@ class FollowResult:
         ]
 
 
-def _acl(ss, caller: str | None, agent: str | None) -> None:
+def _acl(holder, caller: str | None, agent: str | None) -> None:
     from memnet.acl import check_permission
 
     check_permission(
-        ss.acl,
+        holder.acl,
         caller=caller or os.environ.get("MEMNET_CALLER"),
         permission="pin_map",
         agent=agent or os.environ.get("MEMNET_AGENT"),
@@ -184,8 +184,11 @@ def follow(
     if target_session == ss.session_id:
         target_ss = ss
     else:
-        if get_entry(target_session) is None:
+        entry = get_entry(target_session)
+        if entry is None:
             return FollowResult(NOT_REACHABLE, pointer=ptr)
+        # ACL before any TTL renew: a denied caller must not keep the target alive.
+        _acl(entry, caller, agent)
         try:
             target_ss = get_session(target_session, caps or ss.caps, touch=True)
         except MemNetError as exc:
@@ -200,14 +203,19 @@ def follow(
         raise
 
 
-def dangling_proxy_rows(ss) -> list[tuple[Record, str]]:
+def dangling_proxy_rows(
+    ss, *, caller: str | None = None, agent: str | None = None
+) -> list[tuple[Record, str]]:
     """PROXY nodes of ``ss`` whose target is missing or not reachable from here.
 
     ``(record, reason)`` with reason ``target_missing`` (the target session is
     in this process, the node is not) or ``not_reachable`` (the target session
-    is not in this process). Other sessions are read through the registry
-    entry under their own lock, one at a time, with no touch and no TTL slide.
-    Call it without holding the ``ss`` lock. Lists only; deletes nothing.
+    is not in this process, or the caller lacks pin_map on it). An
+    ACL-protected target is ``not_reachable``: the scan never confirms that
+    the node exists or is absent. Other sessions are read through the
+    registry entry under their own lock, one at a time, with no touch and no
+    TTL slide. Call it without holding the ``ss`` lock. Lists only; deletes
+    nothing.
     """
     from memnet.registry import get_entry
 
@@ -229,6 +237,11 @@ def dangling_proxy_rows(ss) -> list[tuple[Record, str]]:
         ts, target, _ = pointer(rec)
         entry = get_entry(ts)
         if entry is None:
+            out.append((rec, NOT_REACHABLE))
+            continue
+        try:
+            _acl(entry, caller, agent)
+        except MemNetError:
             out.append((rec, NOT_REACHABLE))
             continue
         with entry.lock:

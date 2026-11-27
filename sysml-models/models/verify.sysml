@@ -3349,7 +3349,10 @@ package MemNetVerification {
       dangling_proxies apart from dangling, prune dangling --apply deletes a
       dangling edge and keeps every PROXY, prune orphans and prune stale
       --apply (and their dry-runs) keep an edgeless PROXY and still prune a
-      non-PROXY orphan, and housekeep does not touch the target session.
+      non-PROXY orphan, housekeep dangling and stats treat an ACL-protected
+      target as not_reachable (never target_missing), follow ACL denial
+      does not renew the target TTL, and housekeep does not touch the
+      target session.
     */
     attribute verificationId : String = "MN-VER-15-S03";
 
@@ -3368,7 +3371,10 @@ package MemNetVerification {
       with no PROXY row has no PROXY line; a session with PROXY rows survives
       session save / load and admin checkpoint / restore and follow still
       works; a 0.20.4 serve refuses a PROXY write and a PROXY snapshot
-      unknown_tag and still loads a plain snapshot from this build.
+      unknown_tag and still loads a plain snapshot from this build; a
+      0.20.8 user PROXY tag (2-field or 4-field) is refused user_proxy_tag
+      on session load and upgrade restore with no remapped rows and no
+      half-live session.
     */
     attribute verificationId : String = "MN-VER-15-S04";
 

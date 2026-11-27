@@ -2156,6 +2156,10 @@ def query_follow(
 @housekeep_app.command("stats")
 def housekeep_stats(
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     from memnet.proxy import dangling_proxy_rows
 
@@ -2166,7 +2170,7 @@ def housekeep_stats(
         modified = ss.meta.modified_at or "-"
     # Read other sessions with this lock released (never two session locks at once).
     try:
-        n_proxies = len(dangling_proxy_rows(ss))
+        n_proxies = len(dangling_proxy_rows(ss, caller=caller))
     except MemNetError as exc:
         _handle_error(exc)
         return
@@ -2206,11 +2210,16 @@ def housekeep_orphans(
 @housekeep_app.command("dangling")
 def housekeep_dangling(
     session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
 ) -> None:
     """Dangling edges, then PROXY nodes whose target is missing or not reachable.
 
     Each PROXY row is followed by ``@STAT: dangling_proxy|reason=target_missing``
     or ``reason=not_reachable``. Lists only: prune never deletes a PROXY.
+    An ACL-protected target is ``not_reachable`` (never confirms existence).
     """
     from memnet.proxy import dangling_proxy_rows
 
@@ -2220,7 +2229,7 @@ def housekeep_dangling(
             emit_stdout(emit_record(rec, ss.tag_map))
     # Other sessions are read with this lock released (never two session locks at once).
     try:
-        proxies = dangling_proxy_rows(ss)
+        proxies = dangling_proxy_rows(ss, caller=caller)
     except MemNetError as exc:
         _handle_error(exc)
         return

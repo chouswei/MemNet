@@ -101,7 +101,8 @@ def test_proxy_is_a_fixed_tag_that_cannot_be_redefined(memnet_temp):
     assert "PROXY" in ORPHAN_EXEMPT_TAGS
     with pytest.raises(MemNetError) as exc:
         load_map_from_lines(["SCHEMA PROXY ; fields=id x"])
-    assert exc.value.code == "fixed_tag"
+    assert exc.value.code == "user_proxy_tag"
+    assert "PROXYH" in (exc.value.example or "")
 
 
 def test_proxy_can_be_an_edge_end_inside_its_session(two):
@@ -296,12 +297,17 @@ def test_acl_denied_on_target_hides_target(two):
     _proxy(a.session_id, "P2", b.session_id, "GONE")
     a.grant_caller("alice")
     b.grant_caller("bob")
+    expires = get_entry(b.session_id).meta.expires_at
+    touch = get_entry(b.session_id).touch_seq
     for pid in ("P1", "P2"):
         got = _follow(a.session_id, pid, "--caller", "alice")
         assert got["exit_code"] != 0
         assert "@ERR: acl_" in got["stderr"]
         assert "secret" not in got["stdout"] + got["stderr"]
         assert "follow|" not in got["stdout"], "a denial says nothing about the target"
+    entry = get_entry(b.session_id)
+    assert entry.meta.expires_at == expires
+    assert entry.touch_seq == touch
     b.grant_caller("alice")
     assert "secret goal" in _ok(_follow(a.session_id, "P1", "--caller", "alice"))["stdout"]
 
@@ -348,6 +354,37 @@ def test_housekeep_dangling_lists_proxy_with_reason_and_prune_keeps_it(two):
     _ok(_mutate(b.session_id, "CREATE (:TSK {id: 'GONE', goal: 'back', status: 'open'})"))
     stats_after = _ok(_run(["housekeep", "stats", "--session", a.session_id]))["stdout"]
     assert "@STAT: dangling_proxies|1|-" in stats_after
+
+
+def test_housekeep_acl_protected_target_is_not_reachable(two):
+    a, b = two
+    _ok(_mutate(b.session_id, "CREATE (:TSK {id: 'SECRET', goal: 'hidden', status: 'open'})"))
+    _proxy(a.session_id, "Pyes", b.session_id, "SECRET")
+    _proxy(a.session_id, "Pno", b.session_id, "GONE")
+    a.grant_caller("alice")
+    b.grant_caller("bob")
+    dangling = _ok(_run(["housekeep", "dangling", "--caller", "alice", "--session", a.session_id]))[
+        "stdout"
+    ]
+    assert "target_missing" not in dangling
+    assert "hidden" not in dangling
+    assert dangling.count("reason=not_reachable") == 2
+    assert "Pyes" in dangling and "Pno" in dangling
+    stats = _ok(_run(["housekeep", "stats", "--caller", "alice", "--session", a.session_id]))[
+        "stdout"
+    ]
+    assert "@STAT: dangling_proxies|2|-" in stats
+    for pid in ("Pyes", "Pno"):
+        got = _follow(a.session_id, pid, "--caller", "alice")
+        assert got["exit_code"] != 0 and "@ERR: acl_" in got["stderr"]
+        assert "follow|" not in got["stdout"]
+    b.grant_caller("alice")
+    after = _ok(_run(["housekeep", "dangling", "--caller", "alice", "--session", a.session_id]))[
+        "stdout"
+    ]
+    assert "Pyes" not in after
+    assert "Pno" in after and "reason=target_missing" in after
+    assert "not_reachable" not in after
 
 
 def test_housekeep_does_not_touch_the_target_session(two):
@@ -441,6 +478,122 @@ def test_proxy_session_survives_save_and_load_and_follow_still_works(two, tmp_pa
         "target_backend": "pi-b",
     }
     assert "after load" in _ok(_follow(loaded.session_id, "P1"))["stdout"]
+
+
+def _inject_user_proxy(text: str, fields: list[str], row: str) -> str:
+    """A 0.20.8 snapshot that declared PROXY as a user tag (SCHEMA line + row)."""
+    schema = f"SCHEMA PROXY ; fields={' '.join(fields)}"
+    needle = "SCHEMA TSK ; fields=id goal status\n"
+    assert needle in text
+    text = text.replace(needle, needle + schema + "\n", 1)
+    return text.replace("# records\n", f"# records\n@PROXY: {row}\n", 1)
+
+
+def _assert_no_remapped_user_proxy() -> None:
+    from memnet.registry import list_entries
+
+    for entry in list_entries():
+        for rec in entry.store._by_hid.values():
+            if rec.tag != "PROXY":
+                continue
+            assert rec.fields.get("target_session") != "squid01"
+            assert rec.fields.get("target") != "3128"
+
+
+@pytest.mark.parametrize(
+    "fields,row",
+    [
+        (["id", "host"], "P1|squid01"),
+        (["id", "host", "port", "proto"], "P1|squid01|3128|http"),
+    ],
+    ids=["two-field", "four-field"],
+)
+def test_session_load_refuses_user_proxy_tag_and_leaves_file(two, tmp_path, fields, row):
+    a, _b = two
+    _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'T1', goal: 'g', status: 'open'})"))
+    path = tmp_path / "user-proxy.snap"
+    write_snapshot(a, str(path))
+    close_session(a.session_id)
+    before = _inject_user_proxy(path.read_text(encoding="utf-8"), fields, row)
+    path.write_text(before, encoding="utf-8")
+    raw = path.read_bytes()
+    got = _run(["session", "load", "--file", str(path)])
+    assert got["exit_code"] != 0
+    assert "@ERR: user_proxy_tag|" in got["stderr"]
+    assert path.read_bytes() == raw
+    assert get_entry(a.session_id) is None
+    _assert_no_remapped_user_proxy()
+
+
+def test_map_file_declaring_proxy_is_refused_user_proxy_tag(memnet_temp, tmp_path):
+    path = tmp_path / "user-proxy.map"
+    path.write_text(
+        "SCHEMA TSK ; fields=id goal status\nSCHEMA PROXY ; fields=id host\n",
+        encoding="utf-8",
+    )
+    got = _run(["session", "open", "--map-file", str(path)])
+    assert got["exit_code"] != 0
+    assert "@ERR: user_proxy_tag|" in got["stderr"]
+    assert "PROXYH" in got["stderr"]
+
+
+@pytest.mark.parametrize(
+    "fields,row",
+    [
+        (["id", "host"], "P1|squid01"),
+        (["id", "host", "port", "proto"], "P1|squid01|3128|http"),
+    ],
+    ids=["two-field", "four-field"],
+)
+def test_upgrade_restore_refuses_user_proxy_tag_and_drops_half_live(
+    memnet_temp, monkeypatch, tmp_path, fields, row
+):
+    import hashlib
+    import json
+
+    from memnet.session import reset_registry
+    from memnet.upgrade import MANIFEST_NAME, prepare_upgrade, reset_drain_gate, restore_manifest
+
+    token = "test-admin-token"
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", token)
+    a = open_session(map_lines=MAP, ttl_minutes=60)
+    b = open_session(map_lines=MAP, ttl_minutes=60)
+    try:
+        _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'TA', goal: 'keep-a', status: 'open'})"))
+        _ok(_mutate(b.session_id, "CREATE (:TSK {id: 'TB', goal: 'keep-b', status: 'open'})"))
+        result = prepare_upgrade(token, directory=tmp_path)
+        assert result.ready_to_stop is True
+        manifest_path = tmp_path / MANIFEST_NAME
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        poisoned = None
+        kept: dict[str, bytes] = {}
+        for sess in manifest["sessions"]:
+            snap = tmp_path / sess["file"]
+            if sess["session_id"] == a.session_id:
+                snap.write_text(
+                    _inject_user_proxy(snap.read_text(encoding="utf-8"), fields, row),
+                    encoding="utf-8",
+                )
+                sess["checksum_sha256"] = hashlib.sha256(snap.read_bytes()).hexdigest()
+                poisoned = snap
+            kept[sess["session_id"]] = snap.read_bytes()
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        reset_registry()
+        reset_drain_gate()
+        report = restore_manifest(tmp_path)
+        assert report.failed == 1 and report.ok == 1, report.errors
+        assert report.errors[0]["code"] == "user_proxy_tag"
+        assert get_entry(a.session_id) is None
+        assert get_entry(b.session_id) is not None
+        _assert_no_remapped_user_proxy()
+        assert poisoned is not None and poisoned.read_bytes() == kept[a.session_id]
+        for sess in manifest["sessions"]:
+            assert (tmp_path / sess["file"]).read_bytes() == kept[sess["session_id"]]
+    finally:
+        reset_drain_gate()
+        for sid in (a.session_id, b.session_id):
+            if get_entry(sid) is not None:
+                close_session(sid)
 
 
 def test_upgrade_house_tags_omit_proxy_so_old_manifests_restore(memnet_temp, monkeypatch, tmp_path):

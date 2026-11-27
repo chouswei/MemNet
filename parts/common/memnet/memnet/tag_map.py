@@ -109,6 +109,18 @@ def _register_user_tag(
     if tag in RESERVED_TAGS:
         raise MemNetError("reserved_tag", f"tag {tag} is reserved")
     if tag in FIXED_TAGS:
+        if tag == "PROXY":
+            # 0.20.8 allowed a user tag named PROXY. The loader must not skip
+            # SCHEMA PROXY (SNAPSHOT_OMIT_SCHEMA) and remap rows onto the
+            # fixed pointer fields. Refuse before any row is parsed.
+            raise MemNetError(
+                "user_proxy_tag",
+                "PROXY is now a fixed pointer tag; a user-defined PROXY tag "
+                "cannot be opened or loaded. Rename the user tag (for example "
+                "to PROXYH) in the map and in every row, then open or load "
+                "on this build",
+                example="SCHEMA PROXYH ; fields=id host port proto",
+            )
         if allow_fixed_skip:
             return
         raise MemNetError("fixed_tag", f"cannot redefine fixed tag {tag}")

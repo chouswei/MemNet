@@ -67,7 +67,7 @@
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, CLI delete/prune; load and save budget)
     MN-REQ-14.12       Budget check is incremental: re-encodes changed nodes + their incident edges, total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
     MN-REQ-14.13       Opaque paging cursor for find and typed walks: limit + cursor in, next cursor out; bad_cursor / cursor_mismatch / stale_cursor; opt-in, replies unchanged otherwise (implemented; tests/test_paging_cursor.py)
-    MN-REQ-15          One-hop PROXY nodes: fixed tag (target_session, target, target_backend), shape-checked writes, no auto-follow; query follow / follow_proxy one hop (ok / dangling / not_reachable); gateway hop by owners map; housekeep lists, prune keeps (implemented; tests/test_proxy_nodes.py)
+    MN-REQ-15          One-hop PROXY nodes: fixed tag (target_session, target, target_backend), shape-checked writes, no auto-follow; query follow / follow_proxy one hop (ok / dangling / not_reachable); gateway hop by owners map; housekeep lists, prune keeps; user PROXY tag refused user_proxy_tag (implemented; tests/test_proxy_nodes.py)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -3186,11 +3186,13 @@ package MemNetRequirements {
 
     requirement def MN_REQ_15_ProxyNodes {
       doc /*
-        Status: implemented (owner approval t51s1; additive, no wire change
-        for any row that is not a PROXY). A PROXY node points from this
+        Status: implemented (owner approval t51s1; additive for houses that
+        never defined a user PROXY tag). A PROXY node points from this
         session at one node in a session, which may be another session.
         Shape: PROXY is a fixed node tag (merged like LAW and EDG, never
-        user-defined: fixed_tag; not a reserved tag, so it is written)
+        user-defined: a map or 0.20.8 snapshot with SCHEMA PROXY is refused
+        user_proxy_tag, nothing loaded or remapped; not a reserved tag, so
+        it is written)
         with fields id, target_session, target, target_backend. id is the
         optional nickname. target_session and target are opaque ids: they
         SHALL be non-empty and match ID_PATTERN, are never rewritten and
@@ -3225,13 +3227,20 @@ package MemNetRequirements {
         housekeep stats adds dangling_proxies; the dangling count and prune
         dangling stay edges-only. PROXY is in ORPHAN_EXEMPT_TAGS, so prune
         orphans and prune stale (dry-run and --apply) do not delete a PROXY;
-        a non-PROXY orphan is still pruned. Housekeep does not touch another
-        session to inspect it.
+        a non-PROXY orphan is still pruned. The dangling-proxy scan uses the
+        same pin_map ACL as follow: an ACL-protected target is not_reachable
+        and does not say whether the node exists. Housekeep does not touch
+        another session to inspect it, and follow checks the target ACL
+        before it renews that session's TTL.
         Upgrade safety: snapshot format stays 2. A snapshot carries no PROXY
         SCHEMA line, so a session with no PROXY row saves byte-identical to
         0.20.8; a session with PROXY rows survives save / load and admin
-        checkpoint / restore; an older build refuses a PROXY write or a PROXY
-        row unknown_tag and writes nothing corrupt.
+        checkpoint / restore. A 0.20.8 user tag named PROXY (2-field or
+        4-field) is refused user_proxy_tag on session load and upgrade
+        restore; the file is left intact and a failed restore leaves no
+        half-live session. An older build refuses a PROXY write or a PROXY
+        row unknown_tag and writes nothing corrupt; that whole session is
+        then unavailable on 0.20.8 until it is opened on this build again.
         Out of scope: multi-hop, auto-follow in pin_map / find / walk,
         follow-result caching, session roots, converting snap_model locator
         stubs, a general cross-session join.

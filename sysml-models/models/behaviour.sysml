@@ -1552,7 +1552,8 @@ package MemNetBehaviour {
       absorb, rename), leftover add / update pipe, import-slice, snapshot load
       or restore. Steps: (1) the tag map always holds the fixed PROXY tag
       (fields id, target_session, target, target_backend); a SCHEMA PROXY in
-      a user map is refused fixed_tag. (2) memnet.proxy check_proxy_fields:
+      a user map or a 0.20.8 snapshot is refused user_proxy_tag (nothing
+      loaded or remapped). (2) memnet.proxy check_proxy_fields:
       target_session and target non-empty and ID_PATTERN, target_backend
       empty or ID_PATTERN; else proxy_shape and the batch writes nothing (a
       refused SET leaves the row as it was). (3) The target is not looked up:
@@ -1576,17 +1577,19 @@ package MemNetBehaviour {
       at once). (3) Target session: this session, or a live session of this
       process (opened with a touch); otherwise not_reachable with an
       @FOLLOW: target_session|target|target_backend line. (4) ACL pin_map on
-      the target session; a denial is acl_* and nothing about the target is
-      said. (5) Target node present: follow|ok and the node as pin_map emits
-      it; absent: follow|dangling|reason=target_missing. One hop: a target
-      PROXY is returned, not followed. (6) Through the product gateway, a
-      not_reachable reply is hopped once by the owners map (same product,
-      another backend) with query follow --resolved-id and the same
-      --caller; no owners row or another product returns not_reachable
-      unchanged; target_backend never routes. (7) housekeep dangling /
-      stats list and count the PROXY rows whose follow would be dangling or
-      not_reachable (no touch of other sessions); prune dangling, prune
-      orphans and prune stale never delete them.
+      the target session before any TTL renew; a denial is acl_* and
+      nothing about the target is said. (5) Target node present: follow|ok
+      and the node as pin_map emits it; absent: follow|dangling|reason=
+      target_missing. One hop: a target PROXY is returned, not followed.
+      (6) Through the product gateway, a not_reachable reply is hopped once
+      by the owners map (same product, another backend) with query follow
+      --resolved-id and the same --caller; no owners row or another product
+      returns not_reachable unchanged; target_backend never routes.
+      (7) housekeep dangling / stats list and count the PROXY rows whose
+      follow would be dangling or not_reachable (no touch of other
+      sessions); an ACL-protected target is not_reachable, never
+      target_missing; prune dangling, prune orphans and prune stale never
+      delete them.
     */
     in item proxyId : String;
     out item result : String;
