@@ -466,6 +466,47 @@ def test_lim_below_the_files_own_usage_loads_every_row_and_still_saves(
     assert lim.strip() in again.read_text(encoding="utf-8")
 
 
+def test_expire_snapshot_carries_limits_and_reloads(clock, schema_file, tmp_path, monkeypatch):
+    """Expire-save is write_snapshot: the #@LIM line must reload with the rows."""
+    expire_dir = tmp_path / "expire"
+    monkeypatch.setenv("MEMNET_SAVE_ON_EXPIRE", "1")
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    sid = _open(schema_file, ttl=5)
+    _rows(sid, 2)
+    _set(sid, "--max-rows", "9")
+    set_now_override(BASE + timedelta(minutes=6))
+    gone = _run("session", "limits", "--session", sid)
+    assert gone["exit_code"] != 0
+    snap = expire_dir / f"{sid}.snap"
+    assert snap.is_file()
+    assert '#@LIM: {"max_rows":9}' in snap.read_text(encoding="utf-8")
+    _ok("session", "load", "--session", sid)
+    st = _limits(sid)
+    assert st["max_rows"] == ("9", "session")
+    assert st["rows"] == ("2", "9")
+
+
+def test_evict_snapshot_carries_limits_and_reloads(clock, schema_file, tmp_path, monkeypatch):
+    """Cap-eviction writes the same snapshot file; reload keeps the override."""
+    expire_dir = tmp_path / "expire"
+    expire_dir.mkdir()
+    monkeypatch.setenv("MEMNET_EXPIRE_SNAPSHOT_DIR", str(expire_dir))
+    monkeypatch.setenv("MEMNET_MAX_SESSIONS", "1")
+    sid = _open(schema_file)
+    _rows(sid, 2)
+    _set(sid, "--max-rows", "9")
+    other = _open(schema_file)
+    snap = expire_dir / f"{sid}.snap"
+    assert snap.is_file()
+    assert '#@LIM: {"max_rows":9}' in snap.read_text(encoding="utf-8")
+    assert get_entry(sid) is None
+    _ok("session", "close", other)
+    _ok("session", "load", "--file", str(snap), "--keep-id")
+    st = _limits(sid)
+    assert st["max_rows"] == ("9", "session")
+    assert st["rows"] == ("2", "9")
+
+
 def test_checkpoint_restart_restores_ttl_and_caps(state, schema_file):
     sid = _open(schema_file, ttl=30)
     _rows(sid, 3)

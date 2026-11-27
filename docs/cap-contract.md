@@ -352,7 +352,7 @@ Source: `memnet/session.py`, `memnet/config.py` `save_on_expire` / `expire_snaps
 | Nothing given | `@ERR: no_limit\|give --ttl, --max-rows or --max-bytes` |
 | All or nothing | Every argument is checked first; any refusal leaves TTL and caps unchanged |
 | Who | ACL off: whoever holds the id (as `session close`). ACL on: set-limits needs the mutate grant, limits needs pin_map (`acl_who` / `acl_denied` / `acl_forbidden`) |
-| Persisted | TTL in `@SNAP` field 4. Overrides in one `#@LIM: {"max_rows":N,"max_session_bytes":N}` header line, only when set. Malformed: `@ERR: bad_snapshot\|malformed LIM line`. Above the loading serve cap: clamped, `@WRN: limit_clamped\|max_rows {n}/{cap}` |
+| Persisted | TTL in `@SNAP` field 4. Overrides in one `#@LIM: {"max_rows":N,"max_session_bytes":N}` header line, only when set (session save, checkpoint, upgrade-prepare, expire-save and cap-eviction). Malformed: `@ERR: bad_snapshot\|malformed LIM line`. Above the loading serve cap: clamped, `@WRN: limit_clamped\|max_rows {n}/{cap}` |
 | Rollback | 0.20.8 skips the `#` line and loads with its process caps; rows and TTL are kept, only the tighter cap is forgotten |
 
 Source: `set_session_limits` in `memnet/session.py`, `#@LIM:` in `memnet/snapshot.py`. Tests: `tests/test_session_live_limits.py`.

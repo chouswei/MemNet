@@ -2740,6 +2740,8 @@ package MemNetVerification {
       ::test_default_clears_the_lim_line_and_file_is_byte_identical,
       ::test_real_0_20_8_reader_loads_a_file_with_lim,
       ::test_malformed_lim_line_is_bad_snapshot,
+      ::test_expire_snapshot_carries_limits_and_reloads,
+      ::test_evict_snapshot_carries_limits_and_reloads,
       ::test_checkpoint_restart_restores_ttl_and_caps,
       ::test_upgrade_prepare_restore_keeps_clocks_ttl_and_caps,
       ::test_acl_mutate_grant_needed_to_set_pin_map_to_read,

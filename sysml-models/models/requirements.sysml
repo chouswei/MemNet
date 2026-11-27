@@ -1040,8 +1040,9 @@ package MemNetRequirements {
           stays 2. A malformed line SHALL fail the load bad_snapshot; unknown
           keys are ignored; a value above the loading process cap is clamped
           with @WRN limit_clamped. The line survives session save / load,
-          checkpoint restore and upgrade-prepare / restore. Rollback: 0.20.8
-          skips the # line and loads with the process caps; no row is lost.
+          checkpoint restore, upgrade-prepare / restore, and expire and evict
+          snapshots. Rollback: 0.20.8 skips the # line and loads with the
+          process caps; no row is lost.
 
           Verify: MN-VER-05-S10 (tests/test_session_live_limits.py).
         */
