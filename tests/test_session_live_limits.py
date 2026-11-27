@@ -346,7 +346,14 @@ from memnet.snapshot import load_snapshot_text
 text = open(sys.argv[1], encoding="utf-8").read()
 ss = load_snapshot_text(text, keep_id=True)
 ss = get_session(ss.session_id)
+from memnet.serve import _handle_request
+new_verb = _handle_request(
+    {"args": ["session", "set-limits", "--session", ss.session_id, "--ttl", "5"]}
+)
 print(json.dumps({
+    "new_verb_exit": new_verb["exit_code"],
+    "new_verb_err": new_verb["stderr"],
+    "ttl_after": get_session(ss.session_id).meta.ttl_minutes,
     "file": memnet.__file__,
     "rows": ss.store.row_count_non_law(),
     "ttl": ss.meta.ttl_minutes,
@@ -357,6 +364,8 @@ print(json.dumps({
 
 
 def test_real_0_20_8_reader_loads_a_file_with_lim(memnet_temp, schema_file, tmp_path):
+    """Rollback and mixed versions: the 0.20.8 code loads the new file with its process
+    caps, and its serve answers the new verb with a usage error, changing nothing."""
     sid = _open(schema_file, ttl=45)
     _rows(sid, 6)
     _set(sid, "--max-rows", "6", "--max-bytes", "500000")
@@ -382,6 +391,9 @@ def test_real_0_20_8_reader_loads_a_file_with_lim(memnet_temp, schema_file, tmp_
     assert got["file"].startswith(str(old_src)), got["file"]
     assert got["has_override"] is False  # really the 0.20.8 model
     assert got["rows"] == 6 and got["ttl"] == 45 and got["max_rows"] == 5000
+    assert got["new_verb_exit"] == 2
+    assert got["new_verb_err"].startswith("@ERR: usage|"), got["new_verb_err"]
+    assert got["ttl_after"] == 45
 
 
 def _saved(schema_file: Path, tmp_path: Path) -> tuple[str, Path, list[str]]:
