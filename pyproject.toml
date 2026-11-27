@@ -62,6 +62,10 @@ packages = [
     "parts/common/memnet/memnet",
     "parts/memnet-mcp/software/memnet_mcp",
 ]
+# 1 MB SCPI fixture: stays in the repo for tests, not shipped in the wheel.
+exclude = [
+    "parts/common/memnet/memnet/examples/workflow.rto-remote.example.txt",
+]
 
 [tool.hatch.build.targets.sdist]
 only-include = [
