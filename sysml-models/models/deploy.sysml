@@ -286,9 +286,11 @@ package MemNet {
     doc /*
       MemNet product gate AFTER a successful GraphGlot parse. Rejects Layer /
       Tier A and free WITH / UNWIND / CALL / unbounded MATCH…RETURN even when
-      GraphGlot accepts them. Goldfish bounds stay (pin_map + mutate / bounded
-      find). MUST NOT invent a store key. Module: memnet.gql_parse_front
-      gate_programs + memnet.gql._accept_parse.
+      GraphGlot accepts them. A bare $name value is refused
+      parameter_unsupported (gql.py _parse_value; MN-REQ-09.2). Goldfish
+      bounds stay (pin_map + mutate / bounded find). MUST NOT invent a
+      store key. Module: memnet.gql_parse_front gate_programs +
+      memnet.gql._accept_parse.
     */
     port astIn : ParsedGqlProgramInPort;
     port errOut : ErrorSignalOutPort;
@@ -298,6 +300,7 @@ package MemNet {
     attribute rejectCall : Boolean = true;
     attribute rejectUnboundedReturn : Boolean = true;
     attribute rejectLayer : Boolean = true;
+    attribute rejectParameter : Boolean = true;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_02_MemoryNetGraph::MN_REQ_02_5_GrammarExpressesNodeAndEdge;
     satisfy MN_REQ_00_MissionBridge::MN_REQ_04_SliceEconomy::MN_REQ_04_6_BoundedMatchFind;

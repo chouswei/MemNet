@@ -270,6 +270,16 @@ def test_other_variable_refused(rows, where, name):
     assert f"@ERR: unsupported_predicate|WHERE {name}: walk WHERE names n only" in err
 
 
+def test_parameter_in_where_is_refused(rows):
+    err = _refused(rows, "n.toBot = $g", "parameter_unsupported")
+    assert (
+        "@ERR: parameter_unsupported|parameter $g is not supported; "
+        "write the value as a literal" in err
+    )
+    # quoted '$g' is a string, not a parameter
+    assert _ids(rows, "n.toBot = '$g'") == []
+
+
 @pytest.mark.parametrize("where", ["n.x >", "n.x > n.k", "n.x > $p", "n.k = "])
 def test_bad_where_refused_not_internal(rows, where):
     out = _walk(rows, where)

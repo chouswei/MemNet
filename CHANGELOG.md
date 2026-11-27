@@ -7,6 +7,10 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Changed
+
+- **Bare `$name` parameters are refused** — a `$ident` in a property map, SET, or WHERE (including `typed_walk` / `query typed-walk --where`) is `@ERR: parameter_unsupported` and writes nothing. Before this cut the same text was stored as the literal `"$name"`. Quoted `'$name'` is still a string. Mixed versions: a 0.20.8-era client sending `$name` to a newer server gets a clean `@ERR` and nothing is written; existing rows that hold literal `"$name"` text still load, match when quoted, patch, and round-trip. MN-REQ-09.2.
+
 ## [0.20.8] - 2026-11-27
 
 ### Changed

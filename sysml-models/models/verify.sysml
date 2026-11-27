@@ -15,6 +15,7 @@
   Peak_L last-resort residual cue (MN-VER-04-S04); never default goldfish.
   pin_map order from Shape observables, not hid (MN-VER-04-S05).
   GraphGlot parse front + product gate (MN-VER-09-S01).
+  Bare $name refused parameter_unsupported (MN-VER-09-S02).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
   Durable cabinet honesty (MN-VER-06-S01): no cabinet ships
@@ -543,6 +544,28 @@ package MemNetVerification {
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.peak.defaultGoldfish == false
       }
+    }
+  }
+
+  verification def MN_VER_09_S02_ParameterUnsupported {
+    doc /*
+      MN-REQ-09.2 (implemented) — a bare $name in a property map, SET, or
+      honoured WHERE value is refused parameter_unsupported and writes
+      nothing (tests/test_gql_codec.py::test_parameters_are_refused);
+      the same code on the typed-walk WHERE read path
+      (tests/test_typed_walk_where.py::test_parameter_in_where_is_refused).
+      A quoted '$name' stays a string. Existing rows that hold the
+      literal text $name still load, match when quoted, patch, and
+      round-trip. A range RHS $param stays unsupported_predicate
+      (MN-REQ-14.1 rule 2). Behaviour: ProductGqlGate.
+    */
+    attribute verificationId : String = "MN-VER-09-S02";
+
+    subject system : MemNetSystem;
+
+    objective rejectBareParameter {
+      doc /* Implemented: tests/test_gql_codec.py and tests/test_typed_walk_where.py assert parameter_unsupported. */
+      verify rejectInvalidWireReq;
     }
   }
 
@@ -2777,6 +2800,8 @@ package MemNetVerification {
     : MN_VER_12_S14_CheapLlmImportGuard;
   verification graphglotParseThenGateVerify
     : MN_VER_09_S01_GraphGlotParseThenGate;
+  verification parameterUnsupportedVerify
+    : MN_VER_09_S02_ParameterUnsupported;
   verification boundedMatchFindNotShippedVerify
     : MN_VER_04_S01_BoundedMatchFindNotShipped;
   verification relativeSeedWalksFromQVerify

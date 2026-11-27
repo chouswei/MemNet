@@ -32,6 +32,7 @@
                        expire-save failure keeps RAM and counts against the session cap
     MN-REQ-01.10       CapsPolicy who-check on session save / load-into-ACL / close
     MN-REQ-03.4        MATCH WHERE SET/DELETE SHALL honour the predicate or refuse
+    MN-REQ-09.2        Invalid wire refused, not stored: a bare $name value is refused parameter_unsupported (implemented; tests/test_gql_codec.py)
     MN-REQ-05.3        One decoded value_bytes cap on pipe mutate, GQL mutate, snapshot load
     MN-REQ-05.4        One effective-field cap (default 64) on SCHEMA register, mutate, snapshot save/load; save never stricter than write
     MN-REQ-05.5        Session cap evicts least-recently-touched saveable session (shipped, unreleased); save victim first; none evictable refuses limit_exceeded ("all sessions are in use"); restore: same ACL, no lease carried over
@@ -1927,7 +1928,17 @@ package MemNetRequirements {
       requirement def MN_REQ_09_2_RejectInvalidWire {
         doc /*
           The canonical parser SHALL reject invalid wire rather than silently
-          mis-split fields.
+          mis-split fields. A bare $name parameter (openCypher parameter
+          syntax) in a property map, SET, or honoured WHERE value, including
+          query typed-walk --where, SHALL refuse parameter_unsupported
+          ("parameter $name is not supported; write the value as a
+          literal") and SHALL apply nothing. There is no parameter binding.
+          A quoted '$name' is a string. Existing rows that already hold the
+          literal text $name SHALL still load, match when quoted, patch,
+          and round-trip. A range RHS $param stays unsupported_predicate
+          (MN-REQ-14.1 rule 2). Evidence: tests/test_gql_codec.py,
+          tests/test_typed_walk_where.py::test_parameter_in_where_is_refused.
+          Verify: MN-VER-09-S02.
         */
         attribute requirementId : String = "MN-REQ-09.2";
       }

@@ -248,6 +248,7 @@ def test_doc_lists_live_defaults_and_wires():
         "1 catalog + N interiors",
         "MEMNET_MAX_VALUE_BYTES",
         "unsupported_predicate",
+        "parameter_unsupported",
         "snapshot_unsaveable",
     ):
         assert needle in text, needle
