@@ -20,9 +20,9 @@ from memnet.id_allocator import AssignedIdMap, IdAllocator
 from memnet.legacy_pipe_import import import_pipe_lines, looks_like_pipe
 from memnet.models import Record
 from memnet.output import emit_record
+from memnet.records import EdgeRec, Field, NodeRec, Op, Section
 from memnet.same_thing_absorb import absorb_same_thing
 from memnet.tag_map import check_value_bytes
-from memnet.tier_a import EdgeRec, Field, NodeRec, Op, Section
 from memnet.wire import parse_tag_line, split_payload
 
 _MERGE_TRUE = frozenset({"true", "1", "yes"})
