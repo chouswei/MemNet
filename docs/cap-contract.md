@@ -169,7 +169,6 @@ SCHEMA register refuses a declared map over the cap (`memnet/tag_map.py`). Mutat
 | Path | Checks | On refusal |
 |------|--------|------------|
 | Snapshot import (`import_absorb`) | value cap on the incoming records; then field cap, whole-line cap (record, edge, SCHEMA) and session byte budget on the result | Lead session restored; nothing imported |
-| Durable hydrate (`durable/sync.py`) | same | Nothing loaded into the session; durable data is never touched or truncated |
 | Ingest (`ingest_*`) | Goes through the mutate gate, so the mutate checks apply | Mutate rollback |
 | Snapshot load | Loader refusal of an over-cap value or line is kept; a snapshot whose stored SCHEMA + record lines exceed the budget is refused `session_bytes` | No session registered |
 | Snapshot save | `session_bytes` is checked with the existing line verify | No file written |

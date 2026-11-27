@@ -96,7 +96,7 @@ Interact only with **relevant slices** of the session — never dump the graph. 
 5. **Settle** finished work (`status=settled`, `recycle=delete_on_settle`) — HiAgent replace of the old subgoal.
 6. (Occasionally) prune recyclable rows.
 
-Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). Fake hydrate/flush is always-on CI. AgensGraph **0.7** is adapter + operator round trip (no runtime caller) when `MEMNET_AGENSGRAPH_URL` points at an operator cabinet — not required for default in-process work, and not a runtime caller. Neo4j is retired. `MEMNET_NEO4J_*` is ignored; the engine still starts. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
+Process death / TTL: `session save` / `session load` is the offered file durable. Expire-time save is **off by default**. Set ``MEMNET_SAVE_ON_EXPIRE=1`` so `session save --file` still writes after TTL (then the live id is dropped). Set ``MEMNET_EXPIRE_SNAPSHOT_DIR`` as well to auto-write `{session_id}.snap` on purge/get expire. After expire, restore a sid you already hold with MCP `session_load(session=sid)` (no serve-host file path). `serve_status` reports whether expire-save is armed (`save_on_expire`, `expire_snapshot_dir_set`). There is no durable cabinet: the 0.7 AgensGraph client is removed. Neo4j is retired. `MEMNET_NEO4J_*` is ignored; the engine still starts. Agents still MUST NOT talk Bolt. **0.8** teach: product shape [`SHAPE.md`](SHAPE.md); version map [`ROADMAP.md`](ROADMAP.md).
 
 Repeat only when a later turn needs memory: `pin_map(q)` with a real cue. Drop the previous map from the pack.
 
@@ -233,7 +233,7 @@ Keyed access to **tip** MemNet MCP only. Not the SysMLEdge product and not `open
 - Full `view=` grain filters (shell/interior caps exist; flowchart/parts/statechart soft-deferred)
 - Field-formula auto-emit from law nodes
 - SysML file reverse / pin-map re-ingest (MN-REQ-11.5 SHOULD / #66) — 0.19 GQL write-out is not identity merge
-- Host search / RAG as a MemNet MCP tool — extra **0.17** hook is **outside** `MemNetSystem` only (`docs/extras/memnet-host-search-nest.md`); skip valid; no `rag_query`
+- Host search / RAG as a MemNet MCP tool — no MemNet hook; a host runs its own search **outside** `MemNetSystem` and commits locators via mutate (`docs/extras/memnet-host-search-nest.md`, retired); no `rag_query`
 
 ### Neighbourhood reserve (MN-REQ-12.13)
 

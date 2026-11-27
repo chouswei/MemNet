@@ -11,8 +11,8 @@ from memnet.exceptions import MemNetError
 from memnet.gql import parse
 from memnet.import_absorb import import_slice
 from memnet.mutate_gate import MutateGate
+from memnet.records import NodeRec
 from memnet.session import get_session, open_session
-from memnet.tier_a import NodeRec
 
 runner = CliRunner()
 _CODING_MAP = examples_dir() / "schema.coding.example.txt"

@@ -21,7 +21,6 @@ from typer.testing import CliRunner
 from memnet.bypass_caps import bypass_guard
 from memnet.cli import app
 from memnet.config import Caps
-from memnet.durable import DurableSubgraph, DurableSyncOwner, FakeDurableAdapter
 from memnet.exceptions import MemNetError
 from memnet.housekeep import prune_rows
 from memnet.import_absorb import (
@@ -120,27 +119,6 @@ def _member(tag_suffix: str):
         allow_new_relation=True,
     )
     return member
-
-
-def _owner_with(prefix: str) -> DurableSyncOwner:
-    ego = Record(tag="MOD", fields={"id": f"{prefix}_ego", "path": "p", "note": "n"})
-    other = Record(tag="SYM", fields={"id": f"{prefix}_o", "kind": "k", "refdes": "r"})
-    edge = Record(
-        tag="EDG",
-        fields={
-            "id": f"{prefix}_e",
-            "src": f"{prefix}_ego",
-            "relation": "MENTIONS",
-            "dist": f"{prefix}_o",
-        },
-    )
-    adapter = FakeDurableAdapter()
-    adapter.seed(
-        DurableSubgraph(
-            ego_id=f"{prefix}_ego", nodes=[ego, other], edges=[edge], relations={"MENTIONS"}
-        )
-    )
-    return DurableSyncOwner(adapter)
 
 
 _WEIRD = ["a|b", "back\\slash", "line1\nline2", "caf\u00e9 \u2603 \U0001f600", "p|\\|\n|\u00e9"]
@@ -250,16 +228,6 @@ class _World:
         self.nodes += [f"IM_{suffix}", f"IS_{suffix}"]
         self.edges.append(f"IE_{suffix}")
 
-    def op_hydrate(self):
-        prefix = self.fresh("H")
-        owner = _owner_with(prefix)
-        try:
-            owner.hydrate_into_session(self.ss, f"{prefix}_ego")
-        except MemNetError:
-            return
-        self.nodes += [f"{prefix}_ego", f"{prefix}_o"]
-        self.edges.append(f"{prefix}_e")
-
     def op_cli_delete(self):
         nid = self.pick_node()
         if nid:
@@ -281,7 +249,6 @@ class _World:
         "op_remove_last_extra_row",
         "op_save_load",
         "op_import_slice",
-        "op_hydrate",
         "op_cli_delete",
     )
 
@@ -445,19 +412,6 @@ def test_c_import_over_budget_rolls_back(memnet_temp):
     ss.caps.max_session_bytes = before_bytes + 5
     with pytest.raises(MemNetError) as ei:
         absorb_working_memory_slice(ss, sl, enable_guard=False)
-    assert ei.value.message.startswith("session_bytes|")
-    ss.caps.max_session_bytes = Caps().max_session_bytes
-    _assert_refused_unchanged_then_writes(ss, before_bytes, before_content)
-
-
-def test_c_hydrate_over_budget_rolls_back(memnet_temp):
-    ss = _new_session()
-    _seed_two(ss)
-    owner = _owner_with("HY")
-    before_bytes, before_content = _assert_equal(ss), _content(ss)
-    ss.caps.max_session_bytes = before_bytes + 5
-    with pytest.raises(MemNetError) as ei:
-        owner.hydrate_into_session(ss, "HY_ego")
     assert ei.value.message.startswith("session_bytes|")
     ss.caps.max_session_bytes = Caps().max_session_bytes
     _assert_refused_unchanged_then_writes(ss, before_bytes, before_content)

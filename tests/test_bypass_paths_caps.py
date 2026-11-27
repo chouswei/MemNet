@@ -1,7 +1,7 @@
 """MN-REQ-14.11 — write paths that bypass the mutate gate enforce the same caps.
 
-Snapshot import (import_absorb), durable hydrate and CLI delete/prune: value cap,
-whole-line cap, session byte budget. Refusal is atomic (session unchanged).
+Snapshot import (import_absorb) and CLI delete/prune: value cap, whole-line cap,
+session byte budget. Refusal is atomic (session unchanged).
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from typer.testing import CliRunner
 
 from memnet.bypass_caps import bypass_guard
 from memnet.cli import app
-from memnet.durable import DurableSubgraph, DurableSyncOwner, FakeDurableAdapter, HydrateBudget
 from memnet.exceptions import MemNetError
 from memnet.housekeep import prune_rows
 from memnet.import_absorb import (
@@ -19,7 +18,6 @@ from memnet.import_absorb import (
     export_working_memory_slice,
     reset_import_guard_for_tests,
 )
-from memnet.models import Record
 from memnet.mutate_gate import MutateGate
 from memnet.session import open_session
 from memnet.snapshot import snapshot_text
@@ -173,101 +171,6 @@ def test_import_merge_refusal_restores_replaced_row(memnet_temp):
         _import(lead, member)
     assert _state(lead) == before
     assert lead.store.get("MOD_a").fields["note"] == "old"
-
-
-# --------------------------------------------------------------- hydrate
-
-
-def _owner(subgraph: DurableSubgraph) -> DurableSyncOwner:
-    adapter = FakeDurableAdapter()
-    adapter.seed(subgraph)
-    return DurableSyncOwner(adapter)
-
-
-def _ego(note: str = "n") -> DurableSubgraph:
-    ego = Record(tag="MOD", fields={"id": "MOD_ego", "path": "p", "note": note})
-    other = Record(tag="SYM", fields={"id": "SYM_o", "kind": "k", "refdes": "r"})
-    edge = Record(
-        tag="EDG",
-        fields={"id": "E_eo", "src": "MOD_ego", "relation": "MENTIONS", "dist": "SYM_o"},
-    )
-    return DurableSubgraph(
-        ego_id="MOD_ego", nodes=[ego, other], edges=[edge], relations={"MENTIONS"}
-    )
-
-
-def test_hydrate_value_cap_refused_and_session_unchanged(memnet_temp):
-    owner = _owner(_ego(note="x" * 200))
-    ss = _lead_with_seed()
-    ss.caps.max_value_bytes = 199
-    before = _state(ss)
-    with pytest.raises(MemNetError) as ei:
-        owner.hydrate_into_session(ss, "MOD_ego")
-    assert ei.value.message == "value_bytes|200/199"
-    assert _state(ss) == before
-
-
-def test_hydrate_value_cap_just_fitting_ok(memnet_temp):
-    owner = _owner(_ego(note="x" * 200))
-    ss = _lead_with_seed()
-    ss.caps.max_value_bytes = 200
-    owner.hydrate_into_session(ss, "MOD_ego")
-    assert ss.store.get("MOD_ego") is not None
-
-
-def test_hydrate_line_cap_refused_and_session_unchanged(memnet_temp):
-    owner = _owner(_ego(note="n" * 80))
-    probe = open_session(map_lines=_MAP)
-    owner.hydrate_into_session(probe, "MOD_ego")
-    longest = max(len(ln.encode()) for ln in _body_lines(probe))
-
-    ss = _lead_with_seed()
-    ss.caps.max_line_bytes = longest - 1
-    before = _state(ss)
-    with pytest.raises(MemNetError) as ei:
-        owner.hydrate_into_session(ss, "MOD_ego")
-    assert ei.value.message == f"line_bytes|{longest}/{longest - 1}"
-    assert _state(ss) == before
-
-    ss.caps.max_line_bytes = longest
-    owner.hydrate_into_session(ss, "MOD_ego")
-    assert ss.store.get("MOD_ego") is not None
-
-
-def test_hydrate_over_budget_refuses_atomically_and_durable_untouched(memnet_temp):
-    owner = _owner(_ego())
-    probe = _lead_with_seed()
-    owner.hydrate_into_session(probe, "MOD_ego")
-    total = sum(len(ln.encode()) for ln in _body_lines(probe))
-
-    ss = _lead_with_seed()
-    ss.caps.max_session_bytes = total - 1
-    before = _state(ss)
-    with pytest.raises(MemNetError) as ei:
-        owner.hydrate_into_session(ss, "MOD_ego")
-    assert ei.value.code == "limit_exceeded"
-    assert ei.value.message == f"session_bytes|{total}/{total - 1}"
-    assert "MEMNET_MAX_SESSION_BYTES" in (ei.value.example or "")
-    assert _state(ss) == before
-    # durable data untouched: the same ego still hydrates in full
-    again = owner.adapter.hydrate("MOD_ego", HydrateBudget())
-    assert len(again.nodes) == 2 and len(again.edges) == 1
-
-    ss.caps.max_session_bytes = total  # just fitting
-    owner.hydrate_into_session(ss, "MOD_ego")
-    assert ss.store.get("MOD_ego") is not None
-
-
-def test_hydrate_into_session_already_over_lowered_budget_refuses(memnet_temp):
-    owner = _owner(_ego())
-    ss = _lead_with_seed()
-    owner.hydrate_into_session(ss, "MOD_ego")  # fits under the default budget
-    ss.caps.max_session_bytes = 10  # setting lowered afterwards
-    before = _state(ss)
-    with pytest.raises(MemNetError) as ei:
-        owner.hydrate_into_session(ss, "MOD_ego")
-    assert ei.value.message.startswith("session_bytes|")
-    assert _state(ss) == before
 
 
 # ------------------------------------------------------------ CLI delete

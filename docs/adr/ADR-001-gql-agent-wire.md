@@ -22,7 +22,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 1. **Agent teach / wire = GQL (openCypher-shaped) only.**
 2. **MemNet remains the product** — mission working memory for LLMs (engine, MCP, sessions, Multitask), not a RAG corpus. Pin-map *concept* = bounded shaped GQL subgraph via `pin_map`-class tool. A **session** is the SSOT handle for a mission: handoff = session id (+ anchors / scope); peers re-`pin_map`; chat is never SSOT.
-3. **Layer / Tier A = dropped from docs** — not 1.x teach, not legacy-accept dual path. Leftover codecs remain in `memnet.layer` / `memnet.tier_a` and are rejected on mutate.
+3. **Layer / Tier A = dropped from docs** — not 1.x teach, not legacy-accept dual path. The Layer / Tier A modules are now deleted; mutate rejects those dialects. The mutate record classes live in `memnet.records`.
 4. **Write = display redefined on GQL:** shaped subgraph emit — not raw tabular `RETURN`. Locked: **B with A’s emit shape** ([`gql-wire-profile.md`](../grammar/gql-wire-profile.md)).
 5. **Do not invent a third peer dialect.**
 6. **Durable store (M2.5) backs sessions** — hydrate/flush with one sync owner; **MUST NOT** replace the session handle for agent handoff, teach LLM↔store direct, or MemNet-as-Cypher-proxy as the goldfish path.
@@ -45,7 +45,7 @@ This ADR does **not** abandon MemNet. It replaces **Layer / MemNet Grammar as ag
 
 **Harder / honest costs**
 
-- Layer / Tier A leftover codecs remain on disk (`memnet.layer` / `memnet.tier_a`); default mutate **rejects** them (`legacy_dialect_retired`) — **M2 done**.
+- Layer / Tier A codecs are deleted (record classes moved to `memnet.records`); default mutate **rejects** those dialects (`legacy_dialect_retired`) — **M2 done**.
 - In-repo playbook / application-notes teach GQL (**M3 / 0.8 done**). **User-pack** MemNet skills (`memnet-format`, `mcp-memnet`, …) may still migrate in `chouswei/cursor-user-skills` **in flight separately**.
 - Dual EDGE, law-on-node, `view=`, `NEW` mint are frozen in [`gql-wire-profile.md`](../grammar/gql-wire-profile.md).
 
@@ -66,7 +66,7 @@ User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did
 | **M0** | ADR accept; reverse “map only” stance. |
 | **M1 (done)** | [`gql-wire-profile.md`](../grammar/gql-wire-profile.md); purge Layer from forward docs. |
 | **M2 (done)** | Engine/MCP: GQL accept + shaped `pin_map` emit; remove Layer/Tier A from product codec path. |
-| **M2.5 (done, 0.7)** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Sketch: [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md). Live hydrate/flush proven (external cabinet; not vendored). **MUST NOT** reframe MemNet as a Cypher proxy. |
+| **M2.5 (done, 0.7)** | Durable online GQL store adapter **behind** shared LLM memory (MemNet ↔ AgensGraph hydrate/flush; one sync owner). Live hydrate/flush was proven by an operator round trip (external cabinet; not vendored). **Later removed:** the cabinet client (`memnet.durable`) and the `agensgraph` extra are deleted; the file snapshot is the durable copy ([`../cabinet/README.md`](../cabinet/README.md)). **MUST NOT** reframe MemNet as a Cypher proxy. |
 | **M3 (done, 0.8 docs)** | In-repo `LLM-GUIDE` body + application-notes examples → GQL. User-pack skill rewrite remains **in flight separately** (`chouswei/cursor-user-skills`). |
 
 **Order (historical):** M1 → M2 → **M2.5** → M3. All done. **MUST NOT** treat the adapter as deferred, or hold **1.0** for Later items.
@@ -76,7 +76,7 @@ User promotion (2026-08-13): durable adapter named **M2.5** so M3 (playbook) did
 **References**
 
 - [`../grammar/gql-wire-profile.md`](../grammar/gql-wire-profile.md) — **M1 SSOT** (incl. external dialect authority)
-- [`agensgraph-buffer.md`](../cabinet/agensgraph-buffer.md) — durable backing graph behind shared LLM memory (**M2.5**)
+- [`../cabinet/README.md`](../cabinet/README.md) — retired durable cabinet (**M2.5**, removed)
 - [`../ROADMAP.md`](../ROADMAP.md) — one-path plan; phase order M2 → M2.5 → M3
 - [openCypher CIP tree](https://github.com/opencypher/openCypher/tree/main/cip) — external dialect family home
 - [oC9 baseline](https://github.com/opencypher/openCypher/tree/main/cip/0.baseline) (`openCypher9.pdf`) — Cypher 9 baseline

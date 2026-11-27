@@ -50,7 +50,7 @@ Regenerate; do not hand-edit bodies. Banner on each file is the skim test: pipe 
 | File | Role |
 |------|------|
 | `workflow.memnet-codebase.snap.txt` | `scripts/generate_memnet_codebase_seed.py` |
-| `workflow.rto-remote.example.txt` | RTO SCPI dictionary; `scripts/extract_rto_scpi.py` |
+| `workflow.rto-remote.example.txt` | RTO SCPI dictionary; `scripts/extract_rto_scpi.py`. Repo only: not shipped in the wheel (about 1 MB) |
 
 ## Not this folder
 

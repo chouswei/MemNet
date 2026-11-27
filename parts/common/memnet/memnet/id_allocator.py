@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from memnet.tier_a import Document, EdgeRec, NodeRec, Op
+from memnet.records import Document, EdgeRec, NodeRec, Op
 
 _NUM_SUFFIX = re.compile(r"^([A-Za-z_]+)(\d+)$")
 

@@ -17,11 +17,10 @@
   GraphGlot parse front + product gate (MN-VER-09-S01).
   RecallCommit modelled (MN-VER-13-S01); leftover goldfish claimed in 0.5.
   SameThingAbsorb is a Commit rule (MN-VER-13-S02); Recall SHALL NOT absorb.
-  DurableBuffer honesty (MN-VER-06-S01): Agens liveCabinetClaimed
-  is adapter + operator round trip (no runtime caller);
-  bindsExactlyOneOf=fake|agensgraph; Neo4j cabinet archived (#187);
-  MEMNET_NEO4J_* ignored; RagHostHook.implemented=true required
-  outside MemNetSystem (hostSearchInsideSystem stays false).
+  Durable cabinet honesty (MN-VER-06-S01): no cabinet ships
+  (durableCabinetShipped=false); Neo4j cabinet archived (#187);
+  MEMNET_NEO4J_* ignored; no host-search hook ships
+  (hostSearch.hookShipped=false; hostSearchInsideSystem stays false).
   Human usage look (MN-VER-06-S02): MemNetUsageDashboard look-only
   outside MemNetSystem; HTTP/UI parked; no manage/mutate ports.
   Device fleet (MN-VER-06-S03): MemNetOpsFleet outside MemNetSystem;
@@ -81,7 +80,7 @@
     14.8 developer surface real ids (S08)
     14.9 value cap 32,768 bytes + line cap 135,168 (S09)
     14.10 per-session total-bytes cap (S10)
-    14.11 bypass-path caps: import, hydrate; CLI delete/prune line cap only (S11)
+    14.11 bypass-path caps: import; CLI delete/prune line cap only (S11)
     14.12 incremental byte-budget check, total equal to a full recount (S12)
     14.13 opaque paging cursor for find and typed walks, opt-in (S13)
   Defect records:
@@ -509,14 +508,13 @@ package MemNetVerification {
       after parse (WITH / UNWIND / CALL / unbounded RETURN / Layer). No TCK
       claim. Product gate still after parse. Neo4j cabinet stays
       archived (#187); this cut does not restore it. Recall/Commit still
-      two operators. RagHostHook stays outside MemNetSystem. Peak_L stays
+      two operators. HostSearch stays outside MemNetSystem. Peak_L stays
       last-resort under RelativeSeed only. Hid / elementId /
       _memnet_hid stay off CLI/MCP/GQL emit.
     */
     attribute verificationId : String = "MN-VER-09-S01";
 
     subject system : MemNetSystem;
-    subject ragHostHook : RagHostHook;
 
     objective parseFrontThenGate {
       verify graphglotParseThenProductGateReq;
@@ -535,7 +533,7 @@ package MemNetVerification {
             .productGate.rejectUnboundedReturn == true
           and system.core.transport.inProcess.memory.sessions.gqlWire
             .productGate.rejectLayer == true
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -544,8 +542,6 @@ package MemNetVerification {
             .recall.seed.peak.lastResort == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.seed.peak.defaultGoldfish == false
-          and ragHostHook.implemented == true
-          and ragHostHook.locatorOnly == true
       }
     }
   }
@@ -660,7 +656,7 @@ package MemNetVerification {
           and system.mcp.tools.pinMap.walk.requireStoreKeyAnchor == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -752,7 +748,7 @@ package MemNetVerification {
           and system.mcp.tools.leftoverEmptySeedSkipCommandNested == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.sameThing.implemented == false
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -766,8 +762,7 @@ package MemNetVerification {
       ρ* not raw contains degree. Two peaks CueConflict. Not a third
       operator. operatorCount stays 2. Neo4j cabinet stays archived
       (#187; not this Peak cut). Peak_L is this verification's subject,
-      not HostSearch. RagHostHook.implemented=true outside MemNetSystem
-      (0.17 law); hostSearchInsideSystem=false.
+      not HostSearch. hostSearchInsideSystem=false.
     */
     attribute verificationId : String = "MN-VER-04-S04";
 
@@ -830,7 +825,7 @@ package MemNetVerification {
             .recall.shapedRead.pinMap.defaultGoldfish == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.shapedRead.pinMap.codebookMissOnly == true
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -951,9 +946,7 @@ package MemNetVerification {
             .commit.mergeIsPerWriteLookup == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.noReplacementStoreKey == true
-          and system.durable.mergeIsPerWriteLookup == true
-          and system.durable.noReplacementStoreKey == true
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
           and system.pinMaps.'interface'.leftoverLocatorMint == true
           and system.multitask.coordinator.importReceive.absorb.idPolicy
             .remint.leftoverInventedMint == true
@@ -1180,49 +1173,37 @@ package MemNetVerification {
             .leftoverIdPolicyIsProductCommand == false
           and system.multitask.coordinator.importReceive.absorb.idPolicy
             .remint.productCommand == false
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
       }
     }
   }
 
   verification def MN_VER_06_S01_DurableCabinetHonesty {
     doc /*
-      MN-REQ-06.4 — DurableBuffer nest honesty (ImportGuard-style flags).
-      AgensGraphAdapter.liveCabinetClaimed is the 0.7 claim: adapter +
-      operator round trip (no runtime caller). Factory binds exactly
-      one of fake or AgensGraph. Neo4jAdapter / Neo4jLibraryPort /
-      liveNeo4jClaimed are on MemNetArchive (#187). MEMNET_NEO4J_* is
-      ignored (retiredNeo4jEnvIgnored). One DurableBuffer; one sync
-      owner. HostSearchBridge stays outside MemNetSystem;
-      RagHostHook.implemented=true (0.17) with fail-open locators;
-      hostSearchInsideSystem stays false. Server not vendored.
-      hydrateFlushCallers="tests": no non-test caller. serve, IPC, and
-      MCP bind the owner and do not invoke it. Do not wire a new caller.
+      MN-REQ-06.4 — durable cabinet honesty. No cabinet client ships
+      (memnet.durable removed; durableCabinetShipped=false), so nothing
+      binds a sync owner at startup and no store sits beside the session.
+      Neo4jAdapter / Neo4jLibraryPort / liveNeo4jClaimed are on
+      MemNetArchive (#187). MEMNET_NEO4J_* is ignored
+      (retiredNeo4jEnvIgnored). HostSearchBridge stays outside
+      MemNetSystem and MemNet ships no hook for it (hookShipped=false);
+      hostSearchInsideSystem stays false.
     */
     attribute verificationId : String = "MN-VER-06-S01";
 
     subject system : MemNetSystem;
-    subject ragHostHook : RagHostHook;
+    subject hostSearchNest : HostSearchBridgePart;
 
     objective cabinetHonesty {
       verify durableStoreBehindMemNetReq;
       require constraint {
-        system.durable.agens.implemented == true
-          and system.durable.agens.liveCabinetClaimed == true
-          and system.durable.hydrateFlushCallers == "tests"
-          and system.durable.bindsExactlyOneOf == "fake|agensgraph"
-          and system.durable.liveCabinetClaimed == true
-          and system.durable.retiredNeo4jEnvIgnored == true
+        system.durableCabinetShipped == false
+          and system.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .commit.mutate.libraryIngestThisCut == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .hostSearchInsideSystem == false
-          and ragHostHook.implemented == true
-          and ragHostHook.designOnly == false
-          and ragHostHook.failOpen == true
-          and ragHostHook.locatorOnly == true
-          and ragHostHook.snapOnSession == false
-          and ragHostHook.mcpRagQuery == false
+          and hostSearchNest.hookShipped == false
       }
     }
   }
@@ -2100,7 +2081,7 @@ package MemNetVerification {
       require constraint {
         system.core.transport.inProcess.memory.sessions.recallCommit
           .operatorCount == 2
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .recall.absorbs == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
@@ -2248,7 +2229,7 @@ package MemNetVerification {
           and system.mcp.tools.sessionList.requiresStoreKeyId == false
           and system.core.transport.inProcess.memory.sessions.recallCommit
             .operatorCount == 2
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.retiredNeo4jEnvIgnored == true
       }
     }
   }
@@ -2748,12 +2729,9 @@ package MemNetVerification {
   verification def MN_VER_06_S06_StorageRoles {
     doc /*
       storageRole only where bytes outlive the call: working_memory,
-      file_snapshot, cabinet_ego. Explicit save and expire-save are one
-      blob. Factory binds exactly one of fake or AgensGraph.
-      hydrateFlushCallers="tests": no non-test caller of hydrate/flush.
-      serve, IPC, and MCP bind the owner and do not invoke it. The 0.7
-      claim is adapter + operator round trip (no runtime caller).
-      Neo4j cabinet is archived. MEMNET_NEO4J_* is ignored.
+      file_snapshot. Explicit save and expire-save are one blob. No
+      durable cabinet ships (durableCabinetShipped=false), so there is no
+      cabinet_ego role. Neo4j cabinet is archived. MEMNET_NEO4J_* is ignored.
       Archive stays off load.
     */
     attribute verificationId : String = "MN-VER-06-S06";
@@ -2772,11 +2750,8 @@ package MemNetVerification {
             .storageRole == "file_snapshot"
           and system.core.transport.inProcess.memory.sessions.snap
             .explicitSaveAndExpireSaveOneBlob == true
-          and system.durable.storageRole == "cabinet_ego"
-          and system.durable.agens.storageRole == "cabinet_ego"
-          and system.durable.bindsExactlyOneOf == "fake|agensgraph"
-          and system.durable.hydrateFlushCallers == "tests"
-          and system.durable.retiredNeo4jEnvIgnored == true
+          and system.durableCabinetShipped == false
+          and system.retiredNeo4jEnvIgnored == true
           and system.leftoverArchiveOffLoad == true
       }
     }
@@ -3209,7 +3184,7 @@ package MemNetVerification {
       byte-identical), through GQL and the pipe protocol; (b) a session
       under the cap is unaffected; (c) MEMNET_MAX_SESSION_BYTES sets the
       cap; (d) deletes skip the check (spy: the budget helper is not
-      called); (e) load, save, import, hydrate and ingest apply the same
+      called); (e) load, save, import and ingest apply the same
       check. The default is a deliberate cap, not a floor of what loads.
       Behaviour: ValueLineCapEnforce; state machine SessionByteBudgetStates.
     */
@@ -3226,17 +3201,15 @@ package MemNetVerification {
   verification def MN_VER_14_S11_BypassPathCaps {
     doc /*
       MN-REQ-14.11, run by tests/test_bypass_paths_caps.py. Scope: (a)
-      value cap and (c) byte budget apply to snapshot import and durable
-      hydrate only; (b) line cap applies to snapshot import, durable hydrate
-      and CLI delete/prune. Cases: (a) a record over the value cap is
+      value cap and (c) byte budget apply to snapshot import only; (b)
+      line cap applies to snapshot import and CLI delete/prune. Cases: (a) a record over the value cap is
       refused value_bytes|{n}/{max}; (b) a record, edge
       or SCHEMA line over the line cap is refused line_bytes|{n}/{max};
       (c) a result over the byte budget is refused session_bytes|{n}/{max};
       in every case the session (lines, relations, write order) is
       unchanged and a batch is all-or-nothing; (d) the same input at exactly
-      the cap is accepted; (e) hydrate into a session already over a lowered
-      budget is refused session_bytes, loads nothing and leaves the durable
-      data untouched; (f) CLI delete and prune are never refused by the
+      the cap is accepted; (e) removed with the durable cabinet (no
+      hydrate path); (f) CLI delete and prune are never refused by the
       byte budget (spy) but are refused, and remove nothing, when a
       rewritten edge line would pass the line cap; (g) snapshot load refuses
       an over-budget snapshot and registers nothing; save refuses an
@@ -3258,10 +3231,10 @@ package MemNetVerification {
     doc /*
       MN-REQ-14.12, run by tests/test_session_bytes_incremental.py and
       tests/test_join_payload_vectorised.py. Cases: (a) after every create,
-      update, delete, import, hydrate and load the incremental total
+      update, delete, import and load the incremental total
       equals full_recount_total (MEMNET_DEBUG_SESSION_BYTES=1 asserts it);
       (b) a write re-encodes only changed nodes plus the incident edges of
-      changed nodes, with one full rebuild only after load, hydrate, a
+      changed nodes, with one full rebuild only after load, a
       store swap (MemStore replaced), a SCHEMA change, a rollback, a
       row-count check mismatch (row count differs from rows seen) or a
       leftover-nick collision; (c) SCHEMA widening by an undeclared key, a

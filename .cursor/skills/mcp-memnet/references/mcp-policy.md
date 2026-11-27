@@ -8,7 +8,7 @@ Cursor (stdio) → memnet-mcp
 
 - Product **0.19.3**. Cue then `pin_map`. Write **`mutate`**. leftover `add`/`update` / `query_warm` / `anchor=` named leftover.
 - Multitask **MUST NOT** use in-process MCP for a shared session.
-- AgensGraph 0.7 is adapter + operator round trip (no runtime caller). Neo4j is retired (#187). RSV + Path-B ingest + `snap_model` + `export_pin_map` shipped.
+- No durable cabinet: the 0.7 AgensGraph client is removed; `session_save` is the durable copy. Neo4j is retired (#187). RSV + Path-B ingest + `snap_model` + `export_pin_map` shipped.
 - Novel-writer MCP is dropped.
 
 ## mcp.json (this repo / local)

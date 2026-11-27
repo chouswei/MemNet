@@ -6,8 +6,7 @@
   pin-map ingest roadmap;
   SessionHandoffById (pass session id, not graph dump);
   SessionImportReceive (lead imports member working memory; ImportGuard);
-  Multitask Mode for relevant tasks only (MN-REQ-12);
-  optional DurableBuffer hydrate/flush (landed client; M2.5 seam).
+  Multitask Mode for relevant tasks only (MN-REQ-12).
   Empty-q GoldfishLoop: SessionOutline census of S (0.11 TARGET);
   leftover EvEmptySeedSkip is leftover 0.10 only.
 */
@@ -239,35 +238,21 @@ package MemNetBehaviour {
       pin_map only — no WorkingMemorySlice, no ImportGuard, no ImportAbsorb.
     */
   }
-  attribute def EvHydrateFromDurable {
-    doc /*
-      Landed client: hydrate an ego slice from DurableGraphStore into the
-      live session under pin budget. Not on Commit. Not on TTL. No MCP
-      or CLI caller.
-    */
-  }
-  attribute def EvFlushToDurable {
-    doc /*
-      Landed client: flush an ego slice from the session into
-      DurableGraphStore. One sync owner. Not on Commit. Not on TTL.
-      No MCP or CLI caller.
-    */
-  }
   attribute def EvHostSearchCue {
     doc /*
-      Extra 0.17: cue the outside RagHostHook (corpus Snap). SHALL NOT
-      pass session S. SHALL NOT ANN-index S.
+      Cue the host's own search (corpus Snap, outside MemNetSystem; MemNet
+      ships no hook). SHALL NOT pass session S. SHALL NOT ANN-index S.
     */
   }
   attribute def EvHostSearchSkip {
     doc /*
-      Extra 0.17: hook unset, host miss, timeout, or parse — skip is
+      No host search, host miss, timeout, or parse — skip is
       valid. Goldfish continues with pin_map / grep / existing pins.
     */
   }
   attribute def EvHostSearchLocators {
     doc /*
-      Extra 0.17: locators only. Commit via existing MutateGate /
+      Locators only. Commit via existing MutateGate /
       PinMapIngest. MUST NOT absorb. MUST NOT emit chunk bodies.
     */
   }
@@ -1455,66 +1440,14 @@ package MemNetBehaviour {
       then importIdle;
   }
 
-  // --- 10. Durable buffer hydrate/flush (M2.5 client landed; live cabinet external) ---
-
-  state def DurableHydrateFlushRoadmap {
-    doc /*
-      Landed client (name kept): SessionLifecycle.hydrate_from_durable /
-      flush_to_durable via DurableSyncOwner and DurableStoreAdapter
-      (FakeDurableAdapter always; optional AgensGraphAdapter client with
-      liveCabinetClaimed). MemNet remains sole agent-facing
-      memory; LLM ↔ DurableGraphStore direct (Bolt) is out of default
-      teach. Client seam landed. 0.7 claim is adapter + operator round
-      trip (no runtime caller) (MN-REQ-06.4). Neo4j cabinet is archived
-      (#187). Do not wire a new hydrate/flush caller.
-    */
-    entry;
-    then durableIdle;
-
-    state durableIdle {
-      doc /* No hydrate/flush job; live session uses GraphStore only. */
-    }
-    transition idle_to_hydrating
-      first durableIdle
-      accept EvHydrateFromDurable
-      then hydrating;
-    transition idle_to_flushing
-      first durableIdle
-      accept EvFlushToDurable
-      then flushing;
-
-    state hydrating {
-      doc /* Pull durable subgraph into session under pin / depth budget. */
-    }
-    transition hydrate_ok
-      first hydrating
-      accept EvCommitOk
-      then durableIdle;
-    transition hydrate_fail
-      first hydrating
-      accept EvError
-      then durableIdle;
-
-    state flushing {
-      doc /* Push settled / durable pins from session to DurableGraphStore. */
-    }
-    transition flush_ok
-      first flushing
-      accept EvCommitOk
-      then durableIdle;
-    transition flush_fail
-      first flushing
-      accept EvError
-      then durableIdle;
-  }
-
   // Neo4jLibraryLocatorRoadmap: models/archive.sysml (#187).
 
-  // --- Extra 0.17: host Snap locators (outside MemNetSystem) ---
+  // --- Host Snap locators (outside MemNetSystem) ---
 
   state def HostSearchLocatorRoadmap {
     doc /*
-      RagHostHook outside MemNetSystem. Cue → locators or skip.
+      Host-side search outside MemNetSystem (MemNet ships no hook).
+      Cue → locators or skip.
       Commit via existing MutateGate / ingest. MUST NOT absorb.
       MUST NOT rag_query. MUST NOT Snap-on-session.
     */
@@ -1522,7 +1455,7 @@ package MemNetBehaviour {
     then hostIdle;
 
     state hostIdle {
-      doc /* Hook waiting; skip is the default when unset. */
+      doc /* Host search waiting; skip is the default when unset. */
     }
     transition idle_skip
       first hostIdle
@@ -1898,15 +1831,11 @@ package MemNetBehaviour {
       (1) snapshot import (import_absorb): value cap on the incoming
       records first, then the write under a checkpoint, then field cap,
       whole-line cap (record, edge and SCHEMA lines) and session byte
-      budget on the result; (2) durable hydrate (durable/sync.py): same
-      checks; a hydrate that leaves the session over budget, including a
-      session already over a lowered MEMNET_MAX_SESSION_BYTES, is refused
-      limit_exceeded|session_bytes, loads nothing, leaves durable data
-      untouched, and the error names the setting to raise; (3) CLI delete
-      and housekeep prune: no byte-budget check (a delete shrinks the
+      budget on the result; the error names the setting to raise; (2) CLI
+      delete and housekeep prune: no byte-budget check (a delete shrinks the
       session, as mutate deletes always go through), but every rewritten
       edge and SCHEMA line must pass the line cap, else the whole delete or
-      prune is refused and nothing is removed; (4) snapshot load keeps the
+      prune is refused and nothing is removed; (3) snapshot load keeps the
       loader refusal of an over-cap value or line and refuses a snapshot
       over budget; snapshot save refuses an over-budget session and writes
       no file; ingest commits through the mutate gate. On any refusal the
@@ -1964,9 +1893,9 @@ package MemNetBehaviour {
   }
   attribute def EvBytesReachBudget {
     doc /*
-      The total reaches the budget without a write. A load or hydrate over
-      the budget is refused, so this event fires only when a load or hydrate
-      lands exactly at the budget, or when MEMNET_MAX_SESSION_BYTES is
+      The total reaches the budget without a write. A load over the
+      budget is refused, so this event fires only when a load lands
+      exactly at the budget, or when MEMNET_MAX_SESSION_BYTES is
       lowered under a loaded total. EvBytesWrite and EvBytesReachBudget are
       disjoint by cause: a write is always EvBytesWrite, never this event.
     */
@@ -2029,7 +1958,7 @@ package MemNetBehaviour {
       tests/test_session_bytes_budget.py, tests/test_bypass_paths_caps.py).
       Per-session byte budget over escaped snapshot line bytes. Default
       163,840,000 bytes (DEFAULT_MAX_SESSION_BYTES). Setting:
-      MEMNET_MAX_SESSION_BYTES. A write, load, import, hydrate or save that
+      MEMNET_MAX_SESSION_BYTES. A write, load, import or save that
       would put the total over the budget is refused
       limit_exceeded|session_bytes {n}/{max} and changes nothing. atBudget
       means the total is at or over the budget (a lowered setting can leave

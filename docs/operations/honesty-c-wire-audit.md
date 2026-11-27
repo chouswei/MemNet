@@ -97,7 +97,7 @@ Regression: `tests/test_pin_map_truncation.py`. Hid regression remains `tests/te
 | jsonl (`MemStore.to_jsonl_rows`) | `Record.hid` already `exclude=True`. Field copies of `SHAPE_DROP_KEYS` now popped. |
 | Rank / offer order | `RANK_EXCLUDE_KEYS` = `{id, src, dist}` ∪ `SHAPE_DROP_KEYS`. Seed-first in `view=shell` still prefers the cued element, not peer hid. |
 | RSV product errors | Were leaking hid (`id {_elN} already held…`). Now `anchor=` + `llm_id` only. Pin-map `## Reserves` already omitted held ids. |
-| Cabinet `_memnet_hid` MERGE | Internal only. Tests in `tests/test_durable_store.py` still require it on adapter Cypher. |
+| Cabinet `_memnet_hid` MERGE | Gone: the durable cabinet client (`memnet.durable`) and its adapter Cypher are removed. |
 
 ## Allowed leftovers (not this cut)
 

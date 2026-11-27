@@ -1,8 +1,8 @@
-# Case study: Host search (outside MemNetSystem)
+# Case study: Host search (outside MemNetSystem) — hook retired
 
 **Shelf:** application example (on SharedLlmMemory)
 
-Host corpus lookup MAY propose **locators**; MemNet **MutateGate** commits them. Skip is valid. Not a product MCP tool. Extra **0.17**: `RagHostHook.implemented=true` outside `MemNetSystem` (`memnet.rag_host_hook`).  
+Host corpus lookup MAY propose **locators**; MemNet **MutateGate** commits them. Skip is valid. Not a product MCP tool. **Retired:** the extra **0.17** `RagHostHook` code is removed (it never had a product caller). `HostSearchBridgePart` stays an outside nest with `hookShipped=false`: the host brings its own search and sends locators through the existing MutateGate.  
 Design: [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host-search-nest.md). Product math (above #77): [`docs/grammar/math-skeleton.md`](../../docs/grammar/math-skeleton.md). Research: [#77](https://github.com/chouswei/MemNet/issues/77) (notes 22–28 on `master` via [#84](https://github.com/chouswei/MemNet/pull/84)).
 
 ## Binding
@@ -11,22 +11,20 @@ Design: [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host
 
 | Path | When | What |
 |------|------|------|
-| A (prefer) | Pins already there, or grep/LSP suffices | Skip the hook — goldfish only |
-| B | Fuzzy find in docs/repo | `RagHostHook` proposes locators → **existing** MutateGate / ingest |
+| A (prefer) | Pins already there, or grep/LSP suffices | Skip host search — goldfish only |
+| B | Fuzzy find in docs/repo | Host's own search proposes locators → **existing** MutateGate / ingest |
 
 | Term | Meaning |
 |------|---------|
 | **`HostSearchBridge`** | Application nest — **MUST NOT** sit under `MemNetSystem` |
-| **`RagHostHook`** | Optional host Snap (`implemented=true`) — locators, not chunks |
+| **Host search** | The host's own Snap (no MemNet hook; `hookShipped=false`) — locators, not chunks |
 
-Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Extra 0.17 ships the fail-open hook; it still does **not** absorb. Do not teach `rag_query` on `memnet-mcp`. Do not ANN-index the session (Snap-on-session).
+Do not invent `LocatorCommit` / `HostSearchReceive` / passthrough leaves, and do **not** call the hard path Absorb — that word is `ImportAbsorb` (member slice + `id_policy`) only. Host locators go through existing MutateGate. ImportGuard shipped ≠ this nest shipped. Host locator commit does **not** absorb. Do not teach `rag_query` on `memnet-mcp`. Do not ANN-index the session (Snap-on-session).
 
 ```text
-HostSearchBridgePart              // MUST NOT nest under MemNetSystem
-  locatorIn  --LibraryLocatorFlow-->  RagHostHook.locatorIn
-  RagHostHook   implemented=true  fail-open  locator-only
-    locatorOut --LibraryLocatorFlow--> HostSearchBridgePart.locatorOut
-      --> MutateGate.libraryLocatorIn
+HostSearchBridgePart   hookShipped=false   // MUST NOT nest under MemNetSystem
+  locatorIn  (host's own search, locator-only)
+  locatorOut --LibraryLocatorFlow--> MutateGate.libraryLocatorIn
 ```
 
 ## Fake mission
@@ -65,7 +63,7 @@ HostSearchBridgePart              // MUST NOT nest under MemNetSystem
 
 | Path | Role |
 |------|------|
-| [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host-search-nest.md) | Design SSOT |
+| [`docs/extras/memnet-host-search-nest.md`](../../docs/extras/memnet-host-search-nest.md) | Retired design note |
 | [session-import-case-study.md](session-import-case-study.md) | Product ImportGuard (different nest) |
 | [`docs/application-notes/system/llm-software-development.md`](../../docs/application-notes/system/llm-software-development.md) | Cursor index vs locators |
 | [`docs/application-notes/domains/llm-daily-news.md`](../../docs/application-notes/domains/llm-daily-news.md) | `KYWD` as one overlapping cue idiom |

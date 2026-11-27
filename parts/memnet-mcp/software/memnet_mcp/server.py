@@ -1096,17 +1096,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _bind_durable_sync_owner() -> None:
-    """Bind one DurableSyncOwner from env (same factory as memnet serve)."""
-    try:
-        from memnet.durable import get_sync_owner
-
-        owner = get_sync_owner()
-        sys.stderr.write(f"# durable sync owner bound: adapter={owner.adapter_name}\n")
-    except Exception as exc:  # noqa: BLE001 — MCP should still start
-        sys.stderr.write(f"# durable sync owner bind skipped: {type(exc).__name__}: {exc}\n")
-
-
 def _maybe_install_import_guard() -> None:
     """Install CheapLlmImportGuard when MEMNET_IMPORT_GUARD_API_KEY is set (#63)."""
     try:
@@ -1121,7 +1110,6 @@ def _maybe_install_import_guard() -> None:
 def main(argv: list[str] | None = None) -> None:
     args = _parse_args(argv)
     _maybe_install_import_guard()
-    _bind_durable_sync_owner()
     if args.transport == "stdio":
         mcp.run(transport="stdio")
         return
