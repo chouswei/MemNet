@@ -142,8 +142,8 @@ def test_warnings_identical_through_cli_commands(memnet_temp, monkeypatch):
     assert run(True, steps[1]) == run(False, steps[1])
 
 
-# Reads do not rescan; the first command after a write rescans exactly once.
-def test_read_skips_scan_write_rescans_once(memnet_temp, monkeypatch):
+# Neither reads nor writes run the full scan; the counts still match it.
+def test_no_full_scan_on_read_or_write(memnet_temp, monkeypatch):
     ss = open_session(map_lines=_MAP)
     _add(ss, "@PRT: P1|a|r|persistent", "@PRT: P2|b|r|delete_on_settle")
     calls = [0]
@@ -154,17 +154,15 @@ def test_read_skips_scan_write_rescans_once(memnet_temp, monkeypatch):
         return real(*a, **k)
 
     monkeypatch.setattr(housekeep, "_categorise", spy)
-    for _ in range(5):
-        stale_counts(ss)
-    assert calls[0] == 1
+    assert stale_counts(ss) == (1, 0, 2)
     ss.store.get("P1")
     ss.store.list_records()
-    stale_counts(ss)
+    _add(ss, "@PRT: P3|c|r|persistent", "@EDG: E1|P1|links|P3|||")
+    ss.store.delete(_hid(ss, "P2"))
+    got = stale_counts(ss)
+    assert calls[0] == 0
+    assert got == stale_counts(ss, use_cache=False)  # the reference scan (1 call)
     assert calls[0] == 1
-    _add(ss, "@PRT: P3|c|r|persistent")
-    stale_counts(ss)
-    stale_counts(ss)
-    assert calls[0] == 2
 
 
 def test_cache_is_per_store(memnet_temp):
@@ -286,6 +284,7 @@ _TABLE_NON_MUTATORS = {
     "__reduce__",
     "nick_hids",
     "indexed_edge",
+    "stale_counts",
     "adjacent",
 }
 
