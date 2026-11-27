@@ -291,10 +291,8 @@ class MutateGate:
                     "CREATE illegal on update; use add (or MERGE / SET)",
                 )
 
-        existing = set(self.ss.store._by_hid.keys())
         # leftover IdAllocator / AssignedIdMap / NEW mint: not product Commit.
         assigned = AssignedIdMap()
-        del existing
 
         # Expand MERGE into CREATE when pattern absent; track upsert by hid.
         # Do not copy hid onto NodeRec.id — ack/emit is labels+props / nickname only.
