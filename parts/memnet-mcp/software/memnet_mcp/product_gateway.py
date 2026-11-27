@@ -393,12 +393,53 @@ class ProductGateway:
         if raw is None:
             return _gateway("backend_unreachable", backend.id, http=502)
         result = _from_backend(raw)
+        if argv[:2] == ["query", "follow"]:
+            return self._follow_hop(product, argv, result, source_backend=backend)
         if result.exit_code == 0 and len(argv) >= 2 and argv[0] == "session" and argv[1] == "close":
             self._forget(session)
         elif result.exit_code == 0:
             for sid in _sids(result.stdout, result.stderr):
                 self._remember_new(sid, product.id, backend.id)
         return result
+
+    def _follow_hop(
+        self,
+        product: Product,
+        argv: list[str],
+        result: HandleResult,
+        *,
+        source_backend: Backend,
+    ) -> HandleResult:
+        """Second hop of ``query follow`` when the source serve said not_reachable.
+
+        Routes by the owners map only (never by the PROXY's target_backend label).
+        A target session this product does not own reads as not reachable, so a
+        foreign product's session is never confirmed. One hop: the target
+        backend's reply is returned as is, even if it is itself a PROXY.
+        """
+        pointer = _follow_pointer(result)
+        if pointer is None:
+            return result
+        target_session, target = pointer
+        with self._lock:
+            row = self.owners.get(target_session)
+        if (
+            row is None
+            or row.product != product.id
+            or row.backend not in product.backends
+            or row.backend == source_backend.id
+        ):
+            return result
+        backend = self.backends[row.backend]
+        check = self._require_live(backend, product)
+        if check is not None:
+            return check
+        hop = ["query", "follow", "--resolved-id", target, "--session", target_session]
+        hop.extend(_caller_flags(argv))
+        raw = self._forward(backend, hop, None)
+        if raw is None:
+            return _gateway("backend_unreachable", backend.id, http=502)
+        return _from_backend(raw)
 
     def _list(self, product: Product, argv: list[str], stdin: str | None) -> HandleResult:
         kept: list[str] = []
@@ -859,6 +900,37 @@ def _kind(argv: list[str]) -> str:
         if argv[1] == "expire-status":
             return "probe"
     return "owned"
+
+
+_FOLLOW_NOT_REACHABLE = "@STAT: follow|not_reachable"
+_FOLLOW_POINTER = "@FOLLOW: "
+
+
+def _follow_pointer(result: HandleResult) -> tuple[str, str] | None:
+    """(target_session, target) of a not_reachable follow reply, else None."""
+    if result.exit_code != 0:
+        return None
+    lines = result.stdout.splitlines()
+    if not any(line.startswith(_FOLLOW_NOT_REACHABLE) for line in lines):
+        return None
+    for line in lines:
+        if line.startswith(_FOLLOW_POINTER):
+            parts = line[len(_FOLLOW_POINTER) :].split("|")
+            if len(parts) >= 2 and parts[0].strip() and parts[1].strip():
+                return parts[0].strip(), parts[1].strip()
+    return None
+
+
+def _caller_flags(argv: list[str]) -> list[str]:
+    """The client's ``--caller`` flag, repeated on the second hop (same ACL identity)."""
+    if "--caller" in argv:
+        idx = argv.index("--caller")
+        if idx + 1 < len(argv):
+            return ["--caller", argv[idx + 1]]
+    for item in argv:
+        if item.startswith("--caller="):
+            return [item]
+    return []
 
 
 def _sids(stdout: str, stderr: str) -> list[str]:

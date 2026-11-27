@@ -118,6 +118,7 @@ Repeat only when a later turn needs memory: `pin_map(q)` with a real cue. Drop t
 | `serve_status` | TCP serve probe (optional in-process) |
 | `typed_walk` | Typed walk over one edge type, handles only: `start` is a handle (`h_...`) from an earlier row or a nickname from `find`; continue from a row's end-node handle. Limit 1-500 (default 50), 20,000 edge reads, 1 MiB reply. An edge type no edge has is refused `unknown_relation`; a foreign or deleted handle is refused `stale_handle`. **Paging:** pass `limit` (or a `cursor`) and, while rows remain, the reply has `next_cursor`; pass it back as `cursor` with the same params (`limit` may change). Never parse or build a cursor. `bad_cursor`, `cursor_mismatch` (params changed), `stale_cursor` (the session changed since the page: restart) |
 | leftover `query_walk` | leftover hop debug, not goldfish |
+| `follow_proxy` | Follow a `PROXY` node **one hop** (`id` = the PROXY's nickname). `@STAT: follow\|ok` + the target node, `follow\|dangling\|reason=target_missing`, or `follow\|not_reachable` (not a confirmed delete). `not_proxy` / `not_found` / `acl_*`. See "PROXY nodes" |
 
 Always pass the same `session` id across tools in one job.
 
@@ -163,6 +164,25 @@ Next turn: `pin_map(q)` on a live cue — settled rows absent. Optionally `house
 - Switch task: settle the old `TSK`, then `pin_map` the next ego — do not RAG/embed the session.
 - leftover `query_walk` — hop debug only, not goldfish.
 - leftover `query context` — audit only; empty cue allowed (not `require_anchor` as product law). Do not use every turn.
+
+### PROXY nodes (one-hop pointer to another session)
+
+A `PROXY` is a built-in node kind (like `LAW`; **never declare it in your map**) that points at one node in a session, which may be another session:
+
+```cypher
+CREATE (:PROXY {id: 'P_spec', target_session: '<session id>', target: '<node nickname>'})
+CREATE (:PROXY {id: 'P_far', target_session: '<session id>', target: '<node nickname>', target_backend: '<backend label>'})
+MATCH (t:TSK {id: 'TSK_01'}), (p:PROXY {id: 'P_spec'}) CREATE (t)-[:dependsOn]->(p)
+```
+
+- `target_session` and `target` are required (non-empty, `A-Za-z0-9_.-`), else `proxy_shape` and nothing is written. `target_backend` is an optional label; nothing routes by it.
+- The target **need not exist** when you write the PROXY. Sessions are independent.
+- `pin_map`, `find` and walks **do not follow** a PROXY: they show it as a plain node with its target fields.
+- `follow_proxy(id='P_spec', session=...)` (CLI `memnet query follow --id P_spec`) follows **one hop**. Results: `follow|ok` and the target node; `follow|dangling|reason=target_missing` (target session here, node gone); `follow|not_reachable` plus an `@FOLLOW:` line (target session not reachable from here; not proof that it is gone). If the target is itself a PROXY you get that PROXY back; call again on purpose if you need the next hop.
+- ACL: you need `pin_map` on both sessions. A denial is the usual `acl_*` and says nothing about the target. Follow checks the target ACL before it renews that session's TTL.
+- Through the product gateway, a `not_reachable` from the first serve is hopped once to the backend the gateway knows owns the target session (same product only). This is not a general cross-session join: `pin_map` / `find` stay inside one session.
+- `housekeep dangling` lists dangling PROXY rows with a reason line; `housekeep stats` adds `dangling_proxies`. An ACL-protected target is listed `not_reachable` (never `target_missing`, never a confirmation that the node exists). `prune dangling`, `prune orphans` and `prune stale` never delete a PROXY (it is orphan-exempt, like `LAW`). Delete a PROXY yourself with `mutate`.
+- A 0.20.8 map or snapshot that declared `SCHEMA PROXY` as a **user** tag is refused `user_proxy_tag`. Rename the tag (for example to `PROXYH`) in the SCHEMA line and every row, then open or load. Rolling back to 0.20.8: sessions with no PROXY rows load; a session whose snapshot contains PROXY rows is refused `unknown_tag` and is unavailable until you open it on this build again.
 
 ### Session lifecycle
 
@@ -341,6 +361,7 @@ Older docs may mention `query warm` — use **`pin_map`** / `query pin-map`. `@W
 - `memnet query pin-map --kind TSK` — live pin map from a cue (`query warm` = leftover alias). leftover `--anchor` = leftover nickname alias.
 - `memnet mutate --stdin` — product GQL Commit. leftover `add`/`update` named leftover.
 - `memnet housekeep stale` · `memnet housekeep prune recyclable --apply`
+- `memnet query follow --id P1` — follow a PROXY node one hop (`housekeep dangling` lists dangling ones)
 - `memnet guide --loose` — short cheat sheet
 
 **0.8 default (single agent):** in-process stdio MCP needs no serve. Use serve or streamable-http when you need a **shared** graph across processes.

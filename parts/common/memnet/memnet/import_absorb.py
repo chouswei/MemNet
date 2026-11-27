@@ -395,6 +395,9 @@ def absorb_working_memory_slice(
     # Same caps as mutate (MN-REQ-14.11): value cap first, then line/field/budget
     # on the written result; any refusal rolls the lead session back untouched.
     check_record_values(prepared_nodes + prepared_edges, lead)
+    from memnet.proxy import check_records
+
+    check_records(prepared_nodes)
     imported: list[str] = []
     with lead.lock(exclusive=True), bypass_guard(lead) as guard:
         before = set(lead.store._by_hid)

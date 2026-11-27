@@ -21,7 +21,7 @@ from memnet.exceptions import MemNetError
 from memnet.registry import list_entries
 from memnet.session import iso_timestamp
 from memnet.snapshot import backup_v1_before_v2
-from memnet.upgrade import snapshot_format_version, state_dir
+from memnet.upgrade import _house_tags, snapshot_format_version, state_dir
 
 CHECKPOINT_DIRNAME = "checkpoint"
 MANIFEST_NAME = "checkpoint-manifest.json"
@@ -87,7 +87,7 @@ def _serialise(entry: Any) -> tuple[bytes, int, int, dict[str, Any]]:
             "expires_at": entry.meta.expires_at,
             "created_at": entry.meta.created_at,
             "ttl_minutes": entry.meta.ttl_minutes,
-            "house_tags": sorted(entry.tag_map.tags.keys()),
+            "house_tags": _house_tags(entry.tag_map),
             "product": entry.meta.product,
         }
     return text.encode("utf-8"), rows, edges, meta
