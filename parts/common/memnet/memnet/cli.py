@@ -2105,22 +2105,79 @@ def query_typed_walk(
             emit_stdout(line)
 
 
+@query_app.command("follow")
+def query_follow(
+    proxy_id: Annotated[
+        str | None,
+        typer.Option("--id", help="PROXY node nickname or handle in this session"),
+    ] = None,
+    resolved_id: Annotated[
+        str | None,
+        typer.Option(
+            "--resolved-id",
+            help="node id in this session (a gateway's second hop; no PROXY needed)",
+        ),
+    ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+    session: Annotated[str | None, typer.Option("--session")] = None,
+) -> None:
+    """Follow a PROXY node one hop. pin-map, find and walks never follow it.
+
+    Reply: ``@STAT: follow|ok`` and the target node; ``@STAT:
+    follow|dangling|reason=target_missing`` when the target session is here
+    but the node is not; ``@STAT: follow|not_reachable|...`` and ``@FOLLOW:
+    <target_session>|<target>|<target_backend>`` when the target session is
+    not in this process (not a confirmed delete). A target that is itself a
+    PROXY is returned, not followed. ACL: pin_map on this session and on the
+    target session. Refused not_found, not_proxy, acl_*.
+    """
+    from memnet import proxy
+
+    if bool(proxy_id) == bool(resolved_id):
+        _handle_error(MemNetError("no_anchor", "query follow requires one of --id, --resolved-id"))
+    ss, lock = _load_session(session)
+    del lock  # proxy.follow / read_node take the session locks one at a time
+    try:
+        if resolved_id:
+            result = proxy.read_node(ss, resolved_id, caller=caller)
+        else:
+            assert proxy_id is not None
+            result = proxy.follow(ss, proxy_id, caller=caller, caps=_caps())
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    for line in result.lines():
+        emit_stdout(line)
+
+
 @housekeep_app.command("stats")
 def housekeep_stats(
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    from memnet.proxy import dangling_proxy_rows
+
     ss, lock = _load_session(session)
     caps = _caps()
     with lock:
         s = stats(ss)
-        emit_stat("rows", s["rows"], str(caps.max_rows))
-        emit_stat("edges", s["edges"], "-")
-        emit_stat("relations", s["relations"], str(caps.max_relations))
-        emit_stat("orphans", s["orphans"], "-")
-        emit_stat("dangling", s["dangling"], "-")
-        emit_stat("recyclable", s["recyclable"], "-")
         modified = ss.meta.modified_at or "-"
-        emit_stdout(f"@STAT: modified|{modified}|-")
+    # Read other sessions with this lock released (never two session locks at once).
+    try:
+        n_proxies = len(dangling_proxy_rows(ss))
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    emit_stat("rows", s["rows"], str(caps.max_rows))
+    emit_stat("edges", s["edges"], "-")
+    emit_stat("relations", s["relations"], str(caps.max_relations))
+    emit_stat("orphans", s["orphans"], "-")
+    emit_stat("dangling", s["dangling"], "-")
+    emit_stat("dangling_proxies", n_proxies, "-")
+    emit_stat("recyclable", s["recyclable"], "-")
+    emit_stdout(f"@STAT: modified|{modified}|-")
 
 
 @housekeep_app.command("stale")
@@ -2150,10 +2207,26 @@ def housekeep_orphans(
 def housekeep_dangling(
     session: Annotated[str | None, typer.Option("--session")] = None,
 ) -> None:
+    """Dangling edges, then PROXY nodes whose target is missing or not reachable.
+
+    Each PROXY row is followed by ``@STAT: dangling_proxy|reason=target_missing``
+    or ``reason=not_reachable``. Lists only: prune never deletes a PROXY.
+    """
+    from memnet.proxy import dangling_proxy_rows
+
     ss, lock = _load_session(session)
     with lock:
         for rec in dangling_rows(ss):
             emit_stdout(emit_record(rec, ss.tag_map))
+    # Other sessions are read with this lock released (never two session locks at once).
+    try:
+        proxies = dangling_proxy_rows(ss)
+    except MemNetError as exc:
+        _handle_error(exc)
+        return
+    for rec, reason in proxies:
+        emit_stdout(emit_record(rec, ss.tag_map))
+        emit_stdout(f"@STAT: dangling_proxy|reason={reason}")
 
 
 @housekeep_app.command("recyclable")
@@ -2229,7 +2302,9 @@ def _prune_kind(session: str | None, kind: str, apply: bool) -> None:
                 rows = recyclable_rows(ss)
                 deleted = prune_rows(ss, rows) if apply else []
             elif kind == "dangling":
-                rows = dangling_rows(ss)
+                # Dangling edges only: a dangling PROXY is listed by housekeep
+                # dangling and is never deleted here.
+                rows = [r for r in dangling_rows(ss) if r.tag != "PROXY"]
                 deleted = prune_rows(ss, rows) if apply else []
             else:
                 rows = []
