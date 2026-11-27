@@ -302,6 +302,9 @@ class MemStore:
         mutator bumps, so any write (to any row) throws every key away. A per-row
         stamp would be wrong: an edge's key holds its endpoints' keys. Only rows
         stored here are cached; any other record (a copy) is keyed fresh.
+        Contract (as for ``_stale_cache``): code that edits a stored row's fields
+        in place must call a mutator (``replace_row``, ``reindex``, ``mark_dirty``,
+        ``_index_edge``) before the next read, or that read sees the old keys.
         """
         version = self.change_count
         cache = self._rank_cache

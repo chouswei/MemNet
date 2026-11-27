@@ -506,6 +506,45 @@ def test_set_on_edge_endpoint_then_recall_matches_cold(memnet_temp, monkeypatch)
     assert after != before
 
 
+@pytest.mark.parametrize("refuse", [False, True])
+def test_absorb_then_recall_matches_cold(memnet_temp, monkeypatch, refuse):
+    """SameThingAbsorb edits stored rows in place (fields, endpoints, folded edges).
+
+    Recall after it (and after a refused batch that absorbed, then rolled back)
+    must equal a cold rebuild: the in-place edits must not leave stale keys.
+    """
+    ss = open_session(map_lines=list(_MAP))
+    _apply(
+        ss,
+        "CREATE (:TSK {id: 'K', goal: 'aaa'})",
+        "CREATE (:TSK {id: 'D', goal: 'beta', note: 'zz'})",
+        "CREATE (:TSK {id: 'Y', goal: 'b0'})",
+        "CREATE (:PRT {id: 'H', name: 'hub', role: 'r'})",
+        "CREATE (:PRT {id: 'X', name: 'x', role: 'r'})",
+    )
+    # H->D ranks after H->Y ('b0' < 'beta'). The absorb retargets that edge in
+    # place onto K ('aaa'), so it must now rank first: a stale key keeps it last.
+    _apply(ss, "MATCH (h {id: 'H'}), (t {id: 'D'}) CREATE (h)-[:links]->(t)")
+    _apply(ss, "MATCH (h {id: 'H'}), (t {id: 'Y'}) CREATE (h)-[:links]->(t)")
+    _apply(ss, "MATCH (h {id: 'X'}), (t {id: 'D'}) CREATE (h)-[:links]->(t)")
+    _apply(ss, "MATCH (h {id: 'X'}), (t {id: 'K'}) CREATE (h)-[:links {w: '1'}]->(t)")
+    cues = ["H", "X"]
+    before = _reads(ss, cues)
+    assert before == _cold_reads(ss, cues, monkeypatch)
+    stmts = ["MATCH (a:TSK {goal: 'aaa'}), (b:TSK {goal: 'beta'})\nSET a += b"]
+    if refuse:
+        stmts.append("MATCH (n:PRT {id: 'NOPE'}) SET n.role = 'x'")
+        with pytest.raises(MemNetError):
+            _apply(ss, *stmts)
+        after = _reads(ss, cues)
+        assert after == before
+    else:
+        _apply(ss, *stmts)
+        after = _reads(ss, cues)
+        assert after != before
+    assert after == _cold_reads(ss, cues, monkeypatch)
+
+
 # --- gc.freeze after load -------------------------------------------------------
 
 
