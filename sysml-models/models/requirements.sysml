@@ -68,6 +68,7 @@
     MN-REQ-14.11       Write paths that bypass the mutate gate enforce the same caps (import, CLI delete/prune; load and save budget)
     MN-REQ-14.12       Budget check is incremental: re-encodes changed nodes + their incident edges, total equal to a full recount (implemented; tests/test_session_bytes_incremental.py, test_join_payload_vectorised.py)
     MN-REQ-14.13       Opaque paging cursor for find and typed walks: limit + cursor in, next cursor out; bad_cursor / cursor_mismatch / stale_cursor; opt-in, replies unchanged otherwise (implemented; tests/test_paging_cursor.py)
+    MN-REQ-15          One-hop PROXY nodes: fixed tag (target_session, target, target_backend), shape-checked writes, no auto-follow; query follow / follow_proxy one hop (ok / dangling / not_reachable); gateway hop by owners map; housekeep lists, prune keeps; user PROXY tag refused user_proxy_tag (implemented; tests/test_proxy_nodes.py)
 
   Nesting: requirement def inside requirement def only (SysML requirements
   tree). Deploy software elements satisfy leaves; they are not the
@@ -837,7 +838,7 @@ package MemNetRequirements {
           (session_resume, tagmap_show, relations_list, query_neighbors,
           query_path, query_context, query_typed_walk (14.3),
           housekeep_stale, housekeep_orphans,
-          housekeep_dangling, housekeep_recyclable) and the in-process
+          housekeep_dangling, housekeep_recyclable, query_follow (15)) and the in-process
           get_session. Every session-scoped CLI command in cli.py is a read,
           a non-touch read, a maintenance save, or a non-read; the sync test fails
           on any other.
@@ -865,6 +866,8 @@ package MemNetRequirements {
           housekeep_orphans
           housekeep_dangling
           housekeep_recyclable
+          follow_proxy
+          query_follow
           READ-SURFACES-END
 
           NON-TOUCH-READS-BEGIN
@@ -3224,6 +3227,76 @@ package MemNetRequirements {
         attribute requirementId : String = "MN-REQ-14.13";
       }
     }
+
+    // ----- One-hop PROXY nodes (implemented) -----
+
+    requirement def MN_REQ_15_ProxyNodes {
+      doc /*
+        Status: implemented (owner approval t51s1; additive for houses that
+        never defined a user PROXY tag). A PROXY node points from this
+        session at one node in a session, which may be another session.
+        Shape: PROXY is a fixed node tag (merged like LAW and EDG, never
+        user-defined: a map or 0.20.8 snapshot with SCHEMA PROXY is refused
+        user_proxy_tag, nothing loaded or remapped; not a reserved tag, so
+        it is written)
+        with fields id, target_session, target, target_backend. id is the
+        optional nickname. target_session and target are opaque ids: they
+        SHALL be non-empty and match ID_PATTERN, are never rewritten and
+        never need an mn_ prefix. target_backend is optional, a label only
+        (the gateway backend id when known); nothing routes by it.
+        Write: every write path (mutate GQL, including SET / MERGE merges,
+        leftover add / update, import-slice, snapshot load and restore)
+        refuses proxy_shape and writes nothing when target_session or
+        target is blank. A write does not require the target to exist and
+        does not look it up. A PROXY is a normal node for edges inside its
+        own session; it cannot be an edge.
+        Existing reads (pin_map, find, typed walk, walk and the others) stay
+        inside one session and show a PROXY as a plain node with its target
+        fields; they do not auto-follow.
+        Follow: one new read verb, CLI query follow (MCP follow_proxy),
+        follows one hop only. ok returns the target node; a target that is
+        itself a PROXY is returned and not followed again. dangling
+        (reason target_missing) when the target session is in this process
+        and the node is not; not_reachable (target not reachable from here,
+        with an @FOLLOW pointer line) when the target session is not in this
+        process, which is never read as a confirmed delete. Not a PROXY:
+        not_proxy. ACL: pin_map on the source session and on the target
+        session (same --caller / MEMNET_CALLER); a denial is the existing
+        acl_* error and does not say whether the target exists.
+        Gateway: on not_reachable the product gateway looks up the target
+        session in its owners map only. Same product: one second hop,
+        query follow --resolved-id to the owning backend. No owners row or
+        another product: the same not_reachable reply (no
+        forbidden_session leak). The stored target_backend is never a route.
+        Housekeep: housekeep dangling lists dangling PROXY rows with a
+        reason (target_missing or not_reachable) after the dangling edges;
+        housekeep stats adds dangling_proxies; the dangling count and prune
+        dangling stay edges-only. PROXY is in ORPHAN_EXEMPT_TAGS, so prune
+        orphans and prune stale (dry-run and --apply) do not delete a PROXY;
+        a non-PROXY orphan is still pruned. The dangling-proxy scan uses the
+        same pin_map ACL as follow: an ACL-protected target is not_reachable
+        and does not say whether the node exists. Housekeep does not touch
+        another session to inspect it, and follow checks the target ACL
+        before it renews that session's TTL.
+        Upgrade safety: snapshot format stays 2. A snapshot carries no PROXY
+        SCHEMA line, so a session with no PROXY row saves byte-identical to
+        0.20.8; a session with PROXY rows survives save / load and admin
+        checkpoint / restore. A 0.20.8 user tag named PROXY (2-field or
+        4-field) is refused user_proxy_tag on session load and upgrade
+        restore; the file is left intact and a failed restore leaves no
+        half-live session. An older build refuses a PROXY write or a PROXY
+        row unknown_tag and writes nothing corrupt; that whole session is
+        then unavailable on 0.20.8 until it is opened on this build again.
+        Out of scope: multi-hop, auto-follow in pin_map / find / walk,
+        follow-result caching, session roots, converting snap_model locator
+        stubs, a general cross-session join.
+        Evidence: tests/test_proxy_nodes.py, tests/test_proxy_mcp.py,
+        tests/test_product_gateway.py, tests/test_mixed_version_clients.py.
+        Verify: MN-VER-15-S01 to MN-VER-15-S04. Behaviour: WriteProxy,
+        FollowProxy. Parts: ProxyNode, FollowProxy.
+      */
+      attribute requirementId : String = "MN-REQ-15";
+    }
   }
 
   // --- Requirement usages + #derivation (SysML v2 deriveReqt) ---
@@ -3539,6 +3612,9 @@ package MemNetRequirements {
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_12_IncrementalByteBudget;
   requirement pagingCursorReq
     : MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_13_PagingCursor;
+
+  requirement proxyNodesReq
+    : MN_REQ_00_MissionBridge::MN_REQ_15_ProxyNodes;
 
   // Groups derive from mission (MN-REQ-00)
   #derivation connection deriveGroupsFromMission {
@@ -3984,5 +4060,13 @@ package MemNetRequirements {
     end #original ::> sessionTotalBytesCapReq;
     end #original ::> bypassPathCapsReq;
     end #derive ::> incrementalByteBudgetReq;
+  }
+
+  // PROXY nodes: from the mission, the node/edge graph and the session handle
+  #derivation connection deriveProxyNodesFromMission {
+    end #original ::> missionReq;
+    end #original ::> memoryNetGraphReq;
+    end #original ::> sessionAsSsotHandleReq;
+    end #derive ::> proxyNodesReq;
   }
 }

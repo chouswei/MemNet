@@ -63,6 +63,7 @@ _READ_VERBS: frozenset[tuple[str, str | None]] = frozenset(
         ("query", "find"),
         ("query", "walk"),
         ("query", "typed-walk"),
+        ("query", "follow"),
         ("query", "neighbors"),
         ("query", "path"),
         ("query", "context"),

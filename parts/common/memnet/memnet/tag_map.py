@@ -7,7 +7,7 @@ import re
 
 from memnet.config import ID_PATTERN, RESERVED_TAGS, Caps, normalize_relation
 from memnet.exceptions import MemNetError
-from memnet.fixed_tags import FIXED_TAGS
+from memnet.fixed_tags import FIXED_TAGS, SNAPSHOT_OMIT_SCHEMA
 from memnet.models import Record, TagDef, TagMap
 from memnet.wire import emit_record_line, escaped_utf8_len, parse_tag_line, split_payload
 
@@ -109,6 +109,18 @@ def _register_user_tag(
     if tag in RESERVED_TAGS:
         raise MemNetError("reserved_tag", f"tag {tag} is reserved")
     if tag in FIXED_TAGS:
+        if tag == "PROXY":
+            # 0.20.8 allowed a user tag named PROXY. The loader must not skip
+            # SCHEMA PROXY (SNAPSHOT_OMIT_SCHEMA) and remap rows onto the
+            # fixed pointer fields. Refuse before any row is parsed.
+            raise MemNetError(
+                "user_proxy_tag",
+                "PROXY is now a fixed pointer tag; a user-defined PROXY tag "
+                "cannot be opened or loaded. Rename the user tag (for example "
+                "to PROXYH) in the map and in every row, then open or load "
+                "on this build",
+                example="SCHEMA PROXYH ; fields=id host port proto",
+            )
         if allow_fixed_skip:
             return
         raise MemNetError("fixed_tag", f"cannot redefine fixed tag {tag}")
@@ -174,8 +186,11 @@ def emit_schema_line(tag: str, fields: list[str]) -> str:
 
 
 def tag_map_to_lines(tag_map: TagMap) -> list[str]:
+    """SCHEMA lines as a snapshot writes them (SNAPSHOT_OMIT_SCHEMA tags left out)."""
     lines: list[str] = []
     for tag in tag_map.tag_names():
+        if tag in SNAPSHOT_OMIT_SCHEMA:
+            continue
         td = tag_map.tags[tag]
         lines.append(emit_schema_line(tag, td.fields))
     return lines
@@ -308,6 +323,11 @@ def parse_line(
         raise MemNetError("unknown_tag", f"{tag} not in tagMap known: {known}")
     values = split_payload(payload)
     fields = validate_values(tag_def, values, caps)
+    if tag == "PROXY":
+        # Pipe add/update, snapshot load and restore all parse rows here.
+        from memnet.proxy import check_proxy_fields
+
+        check_proxy_fields(fields)
     nick = fields.get("id", "")
     if nick:
         if used_nicks is not None:

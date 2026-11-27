@@ -3347,6 +3347,101 @@ package MemNetVerification {
     }
   }
 
+  verification def MN_VER_15_S01_ProxyWriteShape {
+    doc /*
+      MN-REQ-15, run by tests/test_proxy_nodes.py. Cases: PROXY is a fixed
+      tag (fields id, target_session, target, target_backend; not reserved;
+      SCHEMA PROXY refused fixed_tag); a write with target_session or target
+      missing, blank or not ID_PATTERN is refused proxy_shape and writes
+      nothing, on mutate, SET (the row stays as it was), leftover pipe add
+      and snapshot load; a write whose target does not exist is accepted;
+      pin_map, find and walk show the PROXY with its target fields and never
+      follow it; an empty target_backend is left out like any empty field.
+      Behaviour: WriteProxy. Part: ProxyNode.
+    */
+    attribute verificationId : String = "MN-VER-15-S01";
+
+    subject system : MemNetSystem;
+
+    objective proxyS01 {
+      doc /* Implemented: tests/test_proxy_nodes.py. */
+      verify proxyNodesReq;
+    }
+  }
+
+  verification def MN_VER_15_S02_FollowOneHop {
+    doc /*
+      MN-REQ-15, run by tests/test_proxy_nodes.py and tests/test_proxy_mcp.py.
+      Cases: follow returns the target node in another live session and in
+      the same session; a closed or unknown target session is not_reachable
+      with the @FOLLOW pointer; a live session without the node is dangling
+      reason=target_missing; a non-PROXY id is not_proxy, an unknown id
+      not_found; a target that is itself a PROXY is returned and not
+      followed; ACL pin_map is checked on both sessions and a denial on the
+      target is acl_* with no target payload; follow_proxy is the one new
+      MCP tool and the 30 others keep their names.
+      Behaviour: FollowProxy. Part: FollowProxy.
+    */
+    attribute verificationId : String = "MN-VER-15-S02";
+
+    subject system : MemNetSystem;
+
+    objective proxyS02 {
+      doc /* Implemented: tests/test_proxy_nodes.py, tests/test_proxy_mcp.py. */
+      verify proxyNodesReq;
+    }
+  }
+
+  verification def MN_VER_15_S03_GatewayHopAndHousekeep {
+    doc /*
+      MN-REQ-15, run by tests/test_product_gateway.py and
+      tests/test_proxy_nodes.py. Cases: two real serves, PROXY in A on
+      backend a to a node in B on backend b: follow through the gateway
+      returns the B node by the owners map; an unknown target session and
+      another product's session are not_reachable (no forbidden_session);
+      target_backend is never a route; ACL denial on B is acl_*; B down is
+      gateway_backend_unreachable. housekeep dangling lists the dangling
+      PROXY rows with a reason line, housekeep stats counts
+      dangling_proxies apart from dangling, prune dangling --apply deletes a
+      dangling edge and keeps every PROXY, prune orphans and prune stale
+      --apply (and their dry-runs) keep an edgeless PROXY and still prune a
+      non-PROXY orphan, housekeep dangling and stats treat an ACL-protected
+      target as not_reachable (never target_missing), follow ACL denial
+      does not renew the target TTL, and housekeep does not touch the
+      target session.
+    */
+    attribute verificationId : String = "MN-VER-15-S03";
+
+    subject system : MemNetSystem;
+
+    objective proxyS03 {
+      doc /* Implemented: tests/test_product_gateway.py, tests/test_proxy_nodes.py. */
+      verify proxyNodesReq;
+    }
+  }
+
+  verification def MN_VER_15_S04_ProxyUpgradeSafety {
+    doc /*
+      MN-REQ-15, run by tests/test_proxy_nodes.py and
+      tests/test_mixed_version_clients.py. Cases: a snapshot of a session
+      with no PROXY row has no PROXY line; a session with PROXY rows survives
+      session save / load and admin checkpoint / restore and follow still
+      works; a 0.20.4 serve refuses a PROXY write and a PROXY snapshot
+      unknown_tag and still loads a plain snapshot from this build; a
+      0.20.8 user PROXY tag (2-field or 4-field) is refused user_proxy_tag
+      on session load and upgrade restore with no remapped rows and no
+      half-live session.
+    */
+    attribute verificationId : String = "MN-VER-15-S04";
+
+    subject system : MemNetSystem;
+
+    objective proxyS04 {
+      doc /* Implemented: tests/test_proxy_nodes.py, tests/test_mixed_version_clients.py. */
+      verify proxyNodesReq;
+    }
+  }
+
   verification def MN_VER_14_D01_TwoStepWalkRegression {
     doc /*
       DEFECT record (not a requirement; no fix claimed). The two-step walk
@@ -3487,6 +3582,14 @@ package MemNetVerification {
     : MN_VER_14_S12_IncrementalByteBudget;
   verification pagingCursorVerify
     : MN_VER_14_S13_PagingCursor;
+  verification proxyWriteShapeVerify
+    : MN_VER_15_S01_ProxyWriteShape;
+  verification followOneHopVerify
+    : MN_VER_15_S02_FollowOneHop;
+  verification gatewayHopAndHousekeepVerify
+    : MN_VER_15_S03_GatewayHopAndHousekeep;
+  verification proxyUpgradeSafetyVerify
+    : MN_VER_15_S04_ProxyUpgradeSafety;
   verification twoStepWalkRegressionVerify
     : MN_VER_14_D01_TwoStepWalkRegression;
   verification whereRelationSetRefusedAsDeleteVerify

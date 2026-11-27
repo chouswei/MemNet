@@ -583,6 +583,31 @@ async def typed_walk(
     return _walk_reply(resp, start, paging=limit is not None or cursor is not None)
 
 
+@mcp.tool()
+async def follow_proxy(
+    id: str,
+    session: str | None = None,
+    caller: str | None = None,
+) -> str:
+    """Follow a PROXY node one hop (pin_map, find and walks never follow one).
+
+    A PROXY (``CREATE (:PROXY {target_session: '<sid>', target: '<node id>'})``)
+    points at a node in a session; the target need not exist when it is
+    written. ``id`` is the PROXY's nickname (or a node handle) in ``session``.
+    Reply stdout: ``@STAT: follow|ok`` then the target node; ``@STAT:
+    follow|dangling|reason=target_missing`` (target session here, node gone);
+    ``@STAT: follow|not_reachable|...`` and an ``@FOLLOW:`` pointer line (target
+    session not reachable from here; not a confirmed delete). One hop only: a
+    target that is itself a PROXY is returned, not followed. ACL: pin_map on
+    both sessions; a denial is ``acl_*`` and says nothing about the target.
+    Refused ``not_found`` or ``not_proxy``.
+    """
+    argv = ["query", "follow", "--id", id]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
+
+
 async def _commit(
     mode: str,
     wire_lines: list[str],
@@ -1091,9 +1116,16 @@ async def read_list(
 
 
 @mcp.tool()
-async def housekeep_stats(session: str | None = None) -> str:
-    """Return row counts and caps for the session."""
-    return await _run(["housekeep", "stats"], session=session)
+async def housekeep_stats(session: str | None = None, caller: str | None = None) -> str:
+    """Return row counts and caps for the session.
+
+    Optional ``caller`` is the CapsPolicy who-check used when counting
+    dangling PROXY rows (an ACL-protected target is ``not_reachable``).
+    """
+    argv = ["housekeep", "stats"]
+    if caller:
+        argv.extend(["--caller", caller])
+    return await _run(argv, session=session)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
