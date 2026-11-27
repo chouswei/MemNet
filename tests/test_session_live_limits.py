@@ -443,6 +443,29 @@ def test_unknown_lim_key_loads_and_over_cap_value_is_clamped(
     assert _limits(sid)["max_rows"] == ("30", "session")
 
 
+def test_lim_below_the_files_own_usage_loads_every_row_and_still_saves(
+    memnet_temp, schema_file, tmp_path
+):
+    """A hand-edited #@LIM below usage: no row is dropped, new rows refuse, save works."""
+    sid, snap, lines = _saved(schema_file, tmp_path)
+    lim = '#@LIM: {"max_rows":1,"max_session_bytes":10}\n'
+    snap.write_text("".join(lim if x.startswith("#@LIM") else x for x in lines), encoding="utf-8")
+    _ok("session", "load", "--file", str(snap), "--keep-id")
+    assert _row_count(sid) == 2
+    raw = _run(
+        "mutate",
+        "--stdin",
+        "--session",
+        sid,
+        stdin="CREATE (:TSK {id: 'TSK_n', goal: 'n', status: 'open'})\n",
+    )
+    assert raw["exit_code"] != 0 and "@ERR: limit_exceeded|" in raw["stderr"]
+    assert _row_count(sid) == 2
+    again = tmp_path / "again.snap"
+    _ok("session", "save", "--session", sid, "--file", str(again))
+    assert lim.strip() in again.read_text(encoding="utf-8")
+
+
 def test_checkpoint_restart_restores_ttl_and_caps(state, schema_file):
     sid = _open(schema_file, ttl=30)
     _rows(sid, 3)

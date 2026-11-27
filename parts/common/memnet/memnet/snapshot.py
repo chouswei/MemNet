@@ -343,11 +343,17 @@ def refuse_mutate_line_cap(ss: SessionStore, hids: set[str], *, budget: bool = T
 
 
 def _refuse_session_bytes(
-    ss: SessionStore, hid_to_nick: dict[str, str], emit_map: TagMap, total: int
+    ss: SessionStore,
+    hid_to_nick: dict[str, str],
+    emit_map: TagMap,
+    total: int,
+    budget: int | None = None,
 ) -> None:
     """MN-REQ-14.10: refuse when the session's escaped snapshot line bytes
-    (schema + record + edge lines, UTF-8) would exceed max_session_bytes."""
-    budget = effective_session_bytes(ss)
+    (schema + record + edge lines, UTF-8) would exceed the budget (default: the
+    write-time budget in force, :func:`effective_session_bytes`)."""
+    if budget is None:
+        budget = effective_session_bytes(ss)
     for rid in ss.store.write_order:
         rec = ss.store._by_hid.get(rid)
         if rec:
@@ -379,7 +385,10 @@ def refuse_session_budget(ss: SessionStore) -> None:
             return  # save reports it
         raise
     total = sum(len(line.encode("utf-8")) for line in tag_map_to_lines(emit_map))
-    _refuse_session_bytes(ss, _snapshot_nicks(ss), emit_map, total)
+    # The process cap, not a session override: this guards that the file reloads, and
+    # load checks the process cap (MN-REQ-05.6 keeps an over-override session saveable).
+    budget = ss.caps.max_session_bytes
+    _refuse_session_bytes(ss, _snapshot_nicks(ss), emit_map, total, budget)
 
 
 def refuse_snapshot_text_budget(map_lines: list[str], rec_lines: list[str], caps: Caps) -> None:
