@@ -3347,8 +3347,9 @@ package MemNetVerification {
       gateway_backend_unreachable. housekeep dangling lists the dangling
       PROXY rows with a reason line, housekeep stats counts
       dangling_proxies apart from dangling, prune dangling --apply deletes a
-      dangling edge and keeps every PROXY, and housekeep does not touch the
-      target session.
+      dangling edge and keeps every PROXY, prune orphans and prune stale
+      --apply (and their dry-runs) keep an edgeless PROXY and still prune a
+      non-PROXY orphan, and housekeep does not touch the target session.
     */
     attribute verificationId : String = "MN-VER-15-S03";
 

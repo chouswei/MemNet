@@ -854,7 +854,8 @@ package MemNetImplementation {
       Implemented (MN-REQ-15; behaviour WriteProxy; verify MN-VER-15-S01;
       tests/test_proxy_nodes.py). Fixed node tag PROXY in fixed_tags.py
       (PROXY_FIELDS: id, target_session, target, target_backend; not in
-      config.RESERVED_TAGS or ORPHAN_EXEMPT_TAGS). Write shape check
+      config.RESERVED_TAGS; in ORPHAN_EXEMPT_TAGS so prune orphans and
+      prune stale skip it). Write shape check
       proxy.check_proxy_fields, called from tag_map.parse_line (pipe add /
       update, snapshot load and restore), mutate_gate (the GQL batch and the
       merged stored rows) and import_absorb (import-slice). Snapshot save
@@ -876,7 +877,8 @@ package MemNetImplementation {
       Implemented (MN-REQ-15; behaviour FollowProxy; verify MN-VER-15-S02 to
       S04). Engine proxy.follow / proxy.read_node / proxy.dangling_proxy_rows;
       CLI cli.py query follow (--id, --resolved-id), housekeep dangling and
-      housekeep stats (dangling_proxies); prune dangling skips PROXY rows. MCP
+      housekeep stats (dangling_proxies); prune dangling, prune orphans and
+      prune stale skip PROXY rows. MCP
       memnet_mcp.server follow_proxy (the one new tool; the 30 others
       unchanged). Gateway memnet_mcp.product_gateway _follow_hop: one second
       hop by the owners map only. serve_retry classes query follow a read.

@@ -91,13 +91,14 @@ def test_empty_target_backend_is_omitted_like_other_empty_fields(two):
 
 
 def test_proxy_is_a_fixed_tag_that_cannot_be_redefined(memnet_temp):
-    from memnet.config import RESERVED_TAGS
+    from memnet.config import ORPHAN_EXEMPT_TAGS, RESERVED_TAGS
     from memnet.exceptions import MemNetError
     from memnet.fixed_tags import FIXED_TAGS
 
     assert FIXED_TAGS["PROXY"].fields == ["id", "target_session", "target", "target_backend"]
     assert FIXED_TAGS["PROXY"].kind == "node"
     assert "PROXY" not in RESERVED_TAGS
+    assert "PROXY" in ORPHAN_EXEMPT_TAGS
     with pytest.raises(MemNetError) as exc:
         load_map_from_lines(["SCHEMA PROXY ; fields=id x"])
     assert exc.value.code == "fixed_tag"
@@ -359,6 +360,38 @@ def test_housekeep_does_not_touch_the_target_session(two):
     entry = get_entry(b.session_id)
     assert (entry.meta.modified_at, entry.touch_seq) == before
     assert entry.meta.expires_at == expires
+
+
+def test_edgeless_proxy_survives_prune_orphans_non_proxy_orphan_is_pruned(two):
+    a, _b = two
+    _proxy(a.session_id, "P1", "sess_target", "T1")
+    _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'LONE', goal: 'orphan tsk', status: 'open'})"))
+    listed = _ok(_run(["housekeep", "orphans", "--session", a.session_id]))["stdout"]
+    dry = _ok(_run(["housekeep", "prune", "orphans", "--session", a.session_id]))
+    assert "LONE" in listed and "P1" not in listed
+    assert "LONE" in dry["stdout"] and "P1" not in dry["stdout"]
+    assert "would-delete 1" in dry["stderr"]
+    stats = _ok(_run(["housekeep", "stats", "--session", a.session_id]))["stdout"]
+    assert "@STAT: orphans|1|-" in stats
+    _ok(_run(["housekeep", "prune", "orphans", "--apply", "--session", a.session_id]))
+    store = get_entry(a.session_id).store
+    assert [r.id for r in store.list_records("PROXY")] == ["P1"]
+    assert list(store.list_records("TSK")) == []
+
+
+def test_edgeless_proxy_survives_prune_stale_non_proxy_orphan_is_pruned(two):
+    a, _b = two
+    _proxy(a.session_id, "P1", "sess_target", "T1")
+    _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'LONE', goal: 'orphan tsk', status: 'open'})"))
+    listed = _ok(_run(["housekeep", "stale", "--session", a.session_id]))["stdout"]
+    dry = _ok(_run(["housekeep", "prune", "stale", "--session", a.session_id]))
+    assert "LONE" in listed and "P1" not in listed
+    assert "LONE" in dry["stdout"] and "P1" not in dry["stdout"]
+    assert "would-delete 1" in dry["stderr"]
+    _ok(_run(["housekeep", "prune", "stale", "--apply", "--session", a.session_id]))
+    store = get_entry(a.session_id).store
+    assert [r.id for r in store.list_records("PROXY")] == ["P1"]
+    assert list(store.list_records("TSK")) == []
 
 
 def test_prune_dangling_with_a_dangling_edge_deletes_the_edge_not_the_proxy(two):

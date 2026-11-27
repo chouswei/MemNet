@@ -158,6 +158,23 @@ def stale_counts(store: SessionStore, *, use_cache: bool = True) -> tuple[int, i
     return store.store._by_hid.stale_counts()
 
 
+def _stale_delete_rows(buckets: _Buckets) -> list[Record]:
+    """Recyclable + dangling + orphans, never a PROXY (MN-REQ-15).
+
+    PROXY is orphan-exempt, so it is not in ``orphans``. A recyclable PROXY
+    is still counted as recyclable; prune stale must not delete it either.
+    """
+    seen: set[str] = set()
+    rows: list[Record] = []
+    for group in (buckets.recyclable, buckets.dangling, buckets.orphans):
+        for rec in group:
+            if rec.hid in seen or rec.tag == "PROXY":
+                continue
+            seen.add(rec.hid)
+            rows.append(rec)
+    return rows
+
+
 def dangling_rows(store: SessionStore) -> list[Record]:
     return _categorise(store).dangling
 
@@ -172,15 +189,7 @@ def orphan_rows(
 
 
 def stale_rows(store: SessionStore) -> list[Record]:
-    buckets = _categorise(store)
-    seen: set[str] = set()
-    combined: list[Record] = []
-    for group in (buckets.recyclable, buckets.dangling, buckets.orphans):
-        for rec in group:
-            if rec.hid not in seen:
-                seen.add(rec.hid)
-                combined.append(rec)
-    return combined
+    return _stale_delete_rows(_categorise(store))
 
 
 def stats(store: SessionStore) -> dict[str, int]:
@@ -226,16 +235,10 @@ def prune_stale(store: SessionStore) -> list[Record]:
     """Recompute stale rows, then delete them.
 
     Same refusal as ``prune_rows``: a node any edge still references is
-    not deleted, and neither is the rest of the batch.
+    not deleted, and neither is the rest of the batch. PROXY rows are
+    never in the candidate list (orphan-exempt; not deleted if recyclable).
     """
     buckets = _categorise(store)
-    seen: set[str] = set()
-    rows: list[Record] = []
-    for group in (buckets.recyclable, buckets.dangling, buckets.orphans):
-        for rec in group:
-            if rec.hid in seen:
-                continue
-            seen.add(rec.hid)
-            rows.append(rec)
+    rows = _stale_delete_rows(buckets)
     _refuse_referenced(rows, buckets.referenced)
     return _delete_guarded(store, rows)

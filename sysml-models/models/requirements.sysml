@@ -3223,8 +3223,10 @@ package MemNetRequirements {
         Housekeep: housekeep dangling lists dangling PROXY rows with a
         reason (target_missing or not_reachable) after the dangling edges;
         housekeep stats adds dangling_proxies; the dangling count and prune
-        stay edges-only and prune does not delete a PROXY. Housekeep does
-        not touch another session to inspect it.
+        dangling stay edges-only. PROXY is in ORPHAN_EXEMPT_TAGS, so prune
+        orphans and prune stale (dry-run and --apply) do not delete a PROXY;
+        a non-PROXY orphan is still pruned. Housekeep does not touch another
+        session to inspect it.
         Upgrade safety: snapshot format stays 2. A snapshot carries no PROXY
         SCHEMA line, so a session with no PROXY row saves byte-identical to
         0.20.8; a session with PROXY rows survives save / load and admin

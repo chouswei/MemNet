@@ -71,7 +71,10 @@ def test_15_states_acl_gateway_housekeep_and_upgrade():
     assert "does not say whether the target exists" in doc
     assert "owners map only" in doc and "target_backend is never a route" in doc
     assert "no forbidden_session leak" in doc
-    assert "dangling_proxies" in doc and "prune does not delete a PROXY" in doc
+    assert "dangling_proxies" in doc
+    assert "ORPHAN_EXEMPT_TAGS" in doc
+    assert "prune orphans" in doc and "prune stale" in doc
+    assert "do not delete a PROXY" in doc
     assert "byte-identical to 0.20.8" in doc and "unknown_tag" in doc
     for path in ("tests/test_proxy_nodes.py", "tests/test_product_gateway.py"):
         assert path in doc, path
@@ -95,6 +98,8 @@ def test_behaviours_parts_and_satisfy():
         assert "attribute implemented : Boolean = true;" in body
         assert re.search(r"satisfy\s+[\w:]*MN_REQ_15_ProxyNodes\b", body), name
         assert f"MemNetBehaviour::{action}" in body
+        if name == "ProxyNode":
+            assert "ORPHAN_EXEMPT_TAGS" in body
     follow_part = _block(imp, "part def FollowProxy ")
     assert "attribute maxHops : Integer = 1;" in follow_part
     assert "attribute autoFollowOnPinMap : Boolean = false;" in follow_part

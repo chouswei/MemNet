@@ -1585,7 +1585,8 @@ package MemNetBehaviour {
       --caller; no owners row or another product returns not_reachable
       unchanged; target_backend never routes. (7) housekeep dangling /
       stats list and count the PROXY rows whose follow would be dangling or
-      not_reachable (no touch of other sessions); prune never deletes them.
+      not_reachable (no touch of other sessions); prune dangling, prune
+      orphans and prune stale never delete them.
     */
     in item proxyId : String;
     out item result : String;

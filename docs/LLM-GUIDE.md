@@ -181,7 +181,7 @@ MATCH (t:TSK {id: 'TSK_01'}), (p:PROXY {id: 'P_spec'}) CREATE (t)-[:dependsOn]->
 - `follow_proxy(id='P_spec', session=...)` (CLI `memnet query follow --id P_spec`) follows **one hop**. Results: `follow|ok` and the target node; `follow|dangling|reason=target_missing` (target session here, node gone); `follow|not_reachable` plus an `@FOLLOW:` line (target session not reachable from here; not proof that it is gone). If the target is itself a PROXY you get that PROXY back; call again on purpose if you need the next hop.
 - ACL: you need `pin_map` on both sessions. A denial is the usual `acl_*` and says nothing about the target.
 - Through the product gateway, a `not_reachable` from the first serve is hopped once to the backend the gateway knows owns the target session (same product only). This is not a general cross-session join: `pin_map` / `find` stay inside one session.
-- `housekeep dangling` lists dangling PROXY rows with a reason line; `housekeep stats` adds `dangling_proxies`. Nothing deletes them: `prune dangling` removes dangling edges only. Fix or delete a PROXY yourself with `mutate`.
+- `housekeep dangling` lists dangling PROXY rows with a reason line; `housekeep stats` adds `dangling_proxies`. `prune dangling`, `prune orphans` and `prune stale` never delete a PROXY (it is orphan-exempt, like `LAW`). Delete a PROXY yourself with `mutate`.
 
 ### Session lifecycle
 
