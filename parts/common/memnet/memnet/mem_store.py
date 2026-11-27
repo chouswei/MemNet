@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import time
 from collections import Counter, deque
+from collections.abc import Callable
 
 from memnet.config import (
     DEFAULT_QUERY_DEPTH,
@@ -16,7 +17,7 @@ from memnet.config import (
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
-from memnet.observable_rank import node_rank_key, ranked
+from memnet.observable_rank import node_rank_key, ranked, record_rank_key
 from memnet.output import emit_wrn
 
 _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
@@ -286,11 +287,41 @@ class MemStore:
         # contents alone (housekeep.stale_counts) can be cached on ``change_count``.
         self._version = 0
         self._stale_cache: tuple[int, tuple[int, int, int]] | None = None
+        # Rank keys (observable_rank) by hid, valid for one ``change_count``.
+        self._rank_cache: tuple[int, dict[str, tuple]] | None = None
 
     @property
     def change_count(self) -> int:
         """Monotonic token: differs after any change to rows, edges, indexes or ids."""
         return self._version + self._by_hid.version
+
+    def rank_key_function(self) -> Callable[[Record], tuple]:
+        """``record_rank_key(rec, self.resolve_one)``, cached until the next write.
+
+        One stamp for the whole store: the cache is ``change_count``, which every
+        mutator bumps, so any write (to any row) throws every key away. A per-row
+        stamp would be wrong: an edge's key holds its endpoints' keys. Only rows
+        stored here are cached; any other record (a copy) is keyed fresh.
+        """
+        version = self.change_count
+        cache = self._rank_cache
+        if cache is None or cache[0] != version:
+            cache = self._rank_cache = (version, {})
+        keys = cache[1]
+        by_hid = self._by_hid
+        resolve = self.resolve_one
+
+        def key(rec: Record) -> tuple:
+            hid = rec.hid
+            hit = keys.get(hid)
+            if hit is not None and dict.get(by_hid, hid) is rec:
+                return hit
+            k = record_rank_key(rec, resolve)
+            if dict.get(by_hid, hid) is rec:
+                keys[hid] = k
+            return k
+
+        return key
 
     def mark_dirty(self, *hids: str) -> None:
         """Note hids whose stored record changed (over-marking is always safe)."""
