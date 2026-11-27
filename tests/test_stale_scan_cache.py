@@ -227,6 +227,7 @@ _STORE_MUTATORS = {
 # Read-only or bookkeeping that never changes what stale_counts sees.
 _STORE_NON_MUTATORS = {
     "change_count",
+    "rank_key_function",
     "drain_dirty",
     "begin_order_journal",
     "end_order_journal",

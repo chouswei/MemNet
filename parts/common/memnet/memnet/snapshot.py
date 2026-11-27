@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import json
 import os
 import secrets
@@ -809,7 +810,22 @@ def load_snapshot_text(
         raise
     loaded = SessionStore(session_id, caps)
     loaded.restored = True
+    _freeze_loaded_heap()
     return loaded
+
+
+def _freeze_loaded_heap() -> None:
+    """Move what the finished load built out of the cyclic GC's view.
+
+    A 100k-row session is about 0.58M GC-tracked objects; a full collection
+    over them takes about 120 ms and lands inside reads as 1 s pin_map tails
+    (M2 study, bench_gc.py). Frozen objects are still freed by refcount when
+    the session closes; only cycles among them wait for process exit. Collect
+    first so parse garbage is not frozen. Each later load freezes its own new
+    objects (earlier frozen ones are not scanned again), so no unfreeze.
+    """
+    gc.collect()
+    gc.freeze()
 
 
 def materialise_snapshot_text(text: str, *, caps: Caps | None = None) -> SessionEntry:

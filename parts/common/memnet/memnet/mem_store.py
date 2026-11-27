@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import time
 from collections import Counter, deque
+from collections.abc import Callable
 
 from memnet.config import (
     DEFAULT_QUERY_DEPTH,
@@ -16,7 +17,7 @@ from memnet.config import (
 from memnet.exceptions import MemNetError
 from memnet.filter import record_matches
 from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
-from memnet.observable_rank import node_rank_key, ranked
+from memnet.observable_rank import node_rank_key, ranked, record_rank_key
 from memnet.output import emit_wrn
 from memnet.stale_index import StaleIndex
 
@@ -295,11 +296,45 @@ class MemStore:
         # Change counter: every mutator bumps it, so a result derived from store
         # contents alone can be cached on ``change_count``.
         self._version = 0
+        # Rank keys (observable_rank) by hid, valid for one ``change_count``.
+        self._rank_cache: tuple[int, dict[str, tuple]] | None = None
 
     @property
     def change_count(self) -> int:
         """Monotonic token: differs after any change to rows, edges, indexes or ids."""
         return self._version + self._by_hid.version
+
+    def rank_key_function(self) -> Callable[[Record], tuple]:
+        """``record_rank_key(rec, self.resolve_one)``, cached until the next write.
+
+        One stamp for the whole store: the cache is ``change_count``, which every
+        mutator bumps, so any write (to any row) throws every key away. A per-row
+        stamp would be wrong: an edge's key holds its endpoints' keys. Only rows
+        stored here are cached; any other record (a copy) is keyed fresh.
+        Contract: code that edits a stored row's fields in place must call a
+        mutator (``replace_row``, ``reindex``, ``mark_dirty``, ``_index_edge``)
+        before the next read, or that read sees the old keys. (The stale index in
+        ``memnet.stale_index`` needs the same call, with the edited hids.)
+        """
+        version = self.change_count
+        cache = self._rank_cache
+        if cache is None or cache[0] != version:
+            cache = self._rank_cache = (version, {})
+        keys = cache[1]
+        by_hid = self._by_hid
+        resolve = self.resolve_one
+
+        def key(rec: Record) -> tuple:
+            hid = rec.hid
+            hit = keys.get(hid)
+            if hit is not None and dict.get(by_hid, hid) is rec:
+                return hit
+            k = record_rank_key(rec, resolve)
+            if dict.get(by_hid, hid) is rec:
+                keys[hid] = k
+            return k
+
+        return key
 
     def mark_dirty(self, *hids: str) -> None:
         """Note hids whose stored record changed (over-marking is always safe)."""
