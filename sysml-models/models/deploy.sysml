@@ -1105,8 +1105,13 @@ package MemNet {
     doc /*
       Stats, stale/orphan/dangling/recyclable classification, settle/prune.
       The stale warnings after a command take their recyclable / dangling /
-      orphan counts from one categorising pass (stale_counts,
-      housekeep.py:132; warnings.py:39;
+      orphan counts from an incremental index kept by the row table
+      (stale_counts, housekeep.py; stale_index.py; warnings.py). A write
+      costs the rows it touches, not the session size; load and restore
+      rebuild once. The full categorising pass (_categorise) stays as the
+      reference and as the source for housekeep stats and prune. Warning
+      text is unchanged
+      (tests/test_stale_index_random.py, tests/test_stale_scan_cache.py,
       tests/test_command_cost.py::test_stale_warnings_one_pass_same_lines).
       Recycle policy feeds PinMapShapedRead hide rules.
       This part deletes classified rows. recycle=delete_on_settle and

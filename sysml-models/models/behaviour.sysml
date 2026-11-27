@@ -1628,9 +1628,10 @@ package MemNetBehaviour {
       high-water that is never lowered, clear() included
       (mem_store.py:127-133); snapshot save writes it as a "#@IDHW:" line
       only when it is above the live ids and load raises it back
-      (snapshot.py:393, :408, :795). The mutate gate seeds IdAllocator
-      from MemStore.nickname_set, which adds the high-water
-      (mutate_gate.py:1128-1130, mem_store.py:435, id_allocator.py:30-40). #@IDHW serves never-reuse only. Tests:
+      (snapshot.py:393, :408, :795). The mutate gate and import seed
+      IdAllocator.from_high_water with MemStore.id_high_water plus the
+      batch ids, never a scan of every id (mutate_gate.py
+      _edge_id_allocator, import_absorb.py, id_allocator.py). #@IDHW serves never-reuse only. Tests:
       tests/test_id_index.py::test_mint_does_not_reuse_deleted_edge_id,
       ::test_mint_never_reuses_across_snapshot_save_load,
       ::test_mint_never_reuses_across_checkpoint_restore,

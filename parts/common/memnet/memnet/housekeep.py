@@ -147,21 +147,15 @@ def stale_counts(store: SessionStore, *, use_cache: bool = True) -> tuple[int, i
     ``recyclable`` matches ``len(recyclable_rows(store))``: ``_categorise``
     skips LAW rows, so recyclable LAW rows are added here.
 
-    The counts depend on store contents only, so the result is cached on the
-    ``MemStore`` (identity) and keyed on its change counter: a read command
-    does no scan; the first command after any write rescans once.
-    ``use_cache=False`` forces the scan (tests compare the two).
+    The counts depend on store contents only. The default reads an index the
+    row table keeps current per write (``memnet.stale_index``): the cost is the
+    rows changed since the last read, not the session size; load and restore
+    rebuild once. ``use_cache=False`` runs the full scan, the reference the
+    tests compare the index against.
     """
-    mem = store.store
     if not use_cache:
         return _scan_stale_counts(store)
-    version = mem.change_count
-    cached = mem._stale_cache
-    if cached is not None and cached[0] == version:
-        return cached[1]
-    counts = _scan_stale_counts(store)
-    mem._stale_cache = (version, counts)
-    return counts
+    return store.store._by_hid.stale_counts()
 
 
 def dangling_rows(store: SessionStore) -> list[Record]:
