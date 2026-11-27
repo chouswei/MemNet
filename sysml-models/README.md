@@ -26,7 +26,7 @@ Design authority: rebuilt requirements + ADR-001 (GQL agent wire) + `docs/gramma
 | `models/deploy.sysml` | `MemNet` | Nested parts; `RecallCommit` two-operator cut; Multitask spine; `MemNetUsageDashboard` / `MemNetOpsFleet` / `TipMemNetAccessPortal` / `MemNetLanMcpFront` / `MemNetProductGateway` / `MemNetTwoMoves` outside `MemNetSystem` |
 | `models/implementation.sysml` | `MemNetImplementation` | `SoftwareAllocate` logical → live modules; one Hatch wheel many hosts; sysmledge not in wheel |
 | `models/behaviour.sysml` | `MemNetBehaviour` | HandoffById, SessionImportReceive, Multitask async, landed-client hydrate/flush |
-| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01; MN-VER-13-S01; MN-VER-05-S03…S09 (MN-REQ-05.5 session cap LRU evict, shipped unreleased; runtime checks in `tests/test_session_evict.py`); MN-VER-06-S01…S10 (S06 storage roles; S07 ClusterRoute LAN MCP front; S08 two named moves; S09 admin usage; S10 product gateway); MN-VER-01-S03 |
+| `models/verify.sysml` | `MemNetVerification` | MN-VER-12-G00 + S01…S14; MN-VER-04-S01…S05; MN-VER-09-S01, S02; MN-VER-13-S01; MN-VER-05-S03…S09 (MN-REQ-05.5 session cap LRU evict, shipped unreleased; runtime checks in `tests/test_session_evict.py`); MN-VER-06-S01…S10 (S06 storage roles; S07 ClusterRoute LAN MCP front; S08 two named moves; S09 admin usage; S10 product gateway); MN-VER-01-S03 |
 | `models/root.sysml` | `ProjectMemNet` | Root imports (load last). MUST NOT import `MemNetArchive` |
 | `models/archive.sysml` | `MemNetArchive` | ARCHIVE shelf (leftover_* / TierACodec / LegacyPipe* / retired Neo4j). **Off** `config.yaml` load |
 

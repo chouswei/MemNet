@@ -456,6 +456,7 @@ GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honou
 - Range on `id` (`n.id < v`, `r.id >= v`, …) refuses `WHERE <op> on id is not honoured` at parse time, anywhere under `AND` / `OR` / `NOT`, number or string operand: an id is opaque identity, with no meaning from its value, order or sequence. `=` / `<>` / `!=` on `id` stay honoured.
 - The right operand is a number literal (`-?\d+(\.\d+)?`) or a quoted string. Anything else (a property, `$param`, a bare word, `true` / `false` / `null`, a list or a map) refuses `WHERE <op> operand is not honoured`; a literal on the left (`5 < n.x`) refuses too.
 - A field is numeric iff it fully matches `-?\d+(\.\d+)?([eE][+-]?\d+)?`. A number literal compares numerically with a numeric field; a quoted string compares by code point with a non-numeric field.
+- Bare `$name` parameter refused (`parameter_unsupported`, parse time): a `$ident` in a property map, SET, or honoured WHERE value (equality and the other `_parse_value` operators, including `query typed-walk --where`) refuses `@ERR: parameter_unsupported|parameter $name is not supported; write the value as a literal` and writes nothing. There is no parameter binding. Quoted `'$name'` is a string. Existing rows that hold the literal text `$name` still load, match when quoted, patch, and round-trip. A range RHS `$param` stays `unsupported_predicate` (MN-REQ-14.1 rule 2).
 - Quoted number refused (`where_type_mismatch`, parse time, whatever the data): a quoted operand whose text fully matches the numeric pattern (`'123'`, `'000123'`, `'-2.5'`, `'1e3'`) refuses `@ERR: where_type_mismatch|WHERE <op> on <var>.<key>: quoted number '<lit>'; use a number literal`. The id check runs first, so a range on `id` stays `unsupported_predicate`. `''` and `' 5'` do not match the pattern and stay strings.
 - Stored number vs quoted string refused (`where_type_mismatch`, evaluation): a quoted string against a field that is numeric (non-finite `1e999` included) refuses `@ERR: where_type_mismatch|WHERE <op> on <var>.<key>: stored number vs quoted string; use a number literal`. One such row refuses the whole statement. `AND` / `OR` evaluate every child before combining, so the refusal does not depend on sibling order (results are otherwise unchanged).
 - No match (UNKNOWN, never an error): a missing or empty field; a number literal against a non-numeric field (`'abc'`, `'-'`, `'NaN'`, `' 5'`); a numeric-looking field whose value is not finite (`1e999`) against a number literal. `NOT` of UNKNOWN stays UNKNOWN; `AND` / `OR` are three-valued; UNKNOWN at the top is no match.
@@ -465,6 +466,10 @@ GQL `MATCH … WHERE … SET` / `DELETE` SHALL honour the WHERE predicate. Honou
 If lowering cannot honour the predicate, the whole statement refuses and applies nothing:
 
 `@ERR: unsupported_predicate|WHERE {name} is not honoured`
+
+A bare `$name` parameter also applies nothing (mutate CREATE / SET / MERGE / DELETE and `query typed-walk --where`):
+
+`@ERR: parameter_unsupported|parameter $name is not supported; write the value as a literal`
 
 A range type refusal also applies nothing (mutate SET / DELETE and `query typed-walk --where`):
 

@@ -527,11 +527,14 @@ def _parse_value(s: str, i: int) -> tuple[Any, int]:
     if ch == "[":
         return _parse_list(s, i)
     if ch == "$":
-        # Parameter token — treat name as literal placeholder string
+        # No parameter binding exists: storing "$name" as text would be a silent
+        # data bug, so refuse (profile section 1.4).
         m = re.match(rf"\$({_IDENT})", s[i:])
-        if not m:
-            raise ParseError("bad parameter")
-        return f"${m.group(1)}", i + m.end()
+        name = f"${m.group(1)}" if m else "$"
+        raise ParseError(
+            f"parameter {name} is not supported; write the value as a literal",
+            code="parameter_unsupported",
+        )
     # number / bool / bare ident (unquoted id-like)
     m = re.match(r"-?\d+(?:\.\d+)?", s[i:])
     if m:

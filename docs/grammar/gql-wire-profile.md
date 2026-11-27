@@ -97,10 +97,10 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate
 |--------|------------------------|-------|
 | Create node | `CREATE ()` or `CREATE (:TSK {goal:'…'})` | GraphElement identity. Empty properties legal. No required `id`. Optional nickname if you will point again |
 | Create relationship | `MATCH` ends by label + properties, then `CREATE (a)-[:TYPE {…}]->(b)` | Ends by type + properties; leftover 0.9 still MATCH `{id}` |
-| Merge / upsert | `MERGE (n:TSK {goal:$g}) SET n += {…}` | Per-write lookup of labels+props — **not** a primary key. `{id}` MERGE is leftover nickname. When \|Q\|>1, CueConflict (do not absorb) |
+| Merge / upsert | `MERGE (n:TSK {goal:'…'}) SET n += {…}` | Per-write lookup of labels+props — **not** a primary key. `{id}` MERGE is leftover nickname. When \|Q\|>1, CueConflict (do not absorb) |
 | SameThingAbsorb (Commit rule) | `MATCH (a:Label {…}), (b:Label {…}) SET a += b` | After CueConflict: agent-gated collapse of two patterns into one GraphElement (`aka` on the survivor). Not a product verb. Not MERGE-by-id / MERGE-by-name. Distinct from ImportAbsorb |
 | Patch properties | `MATCH (n:Label {goal:'…'}) SET n.key = value` | No mint on patch |
-| Delete | `MATCH (n:Label {…}) DETACH DELETE n` or delete one rel by type+ends | Settle / recycle policy elsewhere |
+| Delete | `MATCH (n:Label {…}) DETACH DELETE n`, or `MATCH (a {id:'A'})-[r:TYPE]->(b {id:'B'}) DELETE r` | Settle / recycle policy elsewhere. **0.20 leftover:** relationship DELETE resolves ends by nickname `id` only; label or property ends refuse `parse_error`. Pinned in `tests/test_gql_codec.py` |
 | Filter (WHERE) | `MATCH (n:Label) WHERE n.k >= 5 SET …` / `DELETE n`; `MATCH ()-[r:TYPE]-() WHERE r.k < 'b' SET …` / `DELETE r` | Honoured: `true`/`false`, `=` `<>` `!=`, `CONTAINS`, `STARTS WITH`, `ENDS WITH`, `=~`, `'k' IN n.list`, range `<` `>` `<=` `>=`, with `AND`/`OR`/`NOT`. Range RHS is a number literal or a quoted string only; number vs numeric field compares numerically, string vs non-numeric field by code point. A quoted number (`n.k > '123'`) refuses `@ERR: where_type_mismatch\|WHERE > on n.k: quoted number '123'; use a number literal`; a quoted string vs a stored number (non-finite included) refuses `@ERR: where_type_mismatch\|WHERE < on n.k: stored number vs quoted string; use a number literal`, whatever the `AND`/`OR` sibling order. Missing or empty fields, a number literal vs a non-numeric field, and a non-finite field vs a number literal never match (no error). Equality is exact text: `n.rowRev = 124` does not match `'000124'`; use `n.rowRev = '000124'` or a range (see `docs/cap-contract.md` MATCH WHERE). Node SET/DELETE and rel DELETE need exactly one match; rel SET updates every match. Other forms: `@ERR: unsupported_predicate\|WHERE {name} is not honoured` |
 | Range on id | `MATCH (n) WHERE n.id < 'P2' SET …` | Refused: `@ERR: unsupported_predicate\|WHERE < on id is not honoured` (any range op, node or rel, under `AND`/`OR`/`NOT`). Ids are opaque: no meaning from value, order or sequence |
 
@@ -120,6 +120,24 @@ Allowed **agent mutate** clause shapes (session-scoped; MutateGate / MCP `mutate
 | Invent a replacement application store key | Grammar has none; locators/`id` are properties, not PK |
 | Invent a third peer dialect | One dialect = GQL |
 | Put constitutive **law** on a relationship | Law lives on the **node** (`law` property) |
+
+### 1.4 Accepted subset (as built)
+
+The engine accepts only the shapes below. Anything else refuses. Shape refusals (multi-label, comma CREATE, semicolon, comments, relationship DELETE by label or property) are `parse_error` with free text. Parameters refuse `parameter_unsupported`. Gate refusals are `product_gate`. WHERE refusals carry the codes in §1.2. Pinned in `tests/test_gql_codec.py`.
+
+| Form | Accepted | Refused |
+|------|----------|---------|
+| Statement keywords | Case-insensitive (`create` = `CREATE`) | — |
+| Node labels | Zero or one label per node | `(:A:B {…})` → `parse_error` |
+| CREATE | One pattern per statement | Comma list `CREATE (…), (…)` → `parse_error` (use one statement per line) |
+| Statement separator | Newline | `;` → `parse_error` |
+| Comments | none | `//` line → `parse_error` |
+| Property values | string, number, `true`/`false`, `null`, list, map | — (store keeps text; round trip not specified here) |
+| Rel DELETE ends | Nickname `id` ends | Label or property ends → `parse_error` |
+| Parameters | none | `$name` → `parameter_unsupported` (no binding; write the literal) |
+| Read clauses | none (use `pin_map`) | `RETURN`, `WITH`, `UNWIND`, `CALL` → `product_gate` |
+
+Open: label case-sensitivity (`:tsk` vs `:TSK`) is not defined here; and `id:'NEW'` is accepted silently on CREATE (leftover sugar, stripped).
 
 ---
 
