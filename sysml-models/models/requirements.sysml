@@ -836,7 +836,7 @@ package MemNetRequirements {
           (session_resume, tagmap_show, relations_list, query_neighbors,
           query_path, query_context, query_typed_walk (14.3),
           housekeep_stale, housekeep_orphans,
-          housekeep_dangling, housekeep_recyclable) and the in-process
+          housekeep_dangling, housekeep_recyclable, query_follow (15)) and the in-process
           get_session. Every session-scoped CLI command in cli.py is a read,
           a non-touch read, a maintenance save, or a non-read; the sync test fails
           on any other.
@@ -863,6 +863,8 @@ package MemNetRequirements {
           housekeep_orphans
           housekeep_dangling
           housekeep_recyclable
+          follow_proxy
+          query_follow
           READ-SURFACES-END
 
           NON-TOUCH-READS-BEGIN
