@@ -7,6 +7,10 @@ This project uses Semantic Versioning as **interpreted for MemNet**: package `a.
 
 ## [Unreleased]
 
+### Changed
+
+- **Faster writes and recalls on large sessions** — no change to replies, ids or files. A write no longer copies the whole store: the unused copy in the mutate gate is gone, and an id-less edge (mutate or import) gets its id from the stored per-prefix high-water mark instead of a scan of every id. The ids minted are the same as before. Recall sorts reuse each row's rank key until the next write to the session (any write throws all keys away, since an edge's key holds its endpoints' keys); pin_map, find and typed-walk output is byte-for-byte the same. After a session load or restore, the loaded objects are frozen out of Python's cyclic garbage collector (`gc.freeze()`), which removes about 120 ms full-collection pauses on a 100k-row session. In the M2 study (to be re-measured) this gave about 22x faster node writes and 105x faster edge writes at 100k rows, and 1.5x (after a write) to 5.8x (read bursts) faster recall.
+
 ## [0.20.7] - 2026-11-10
 
 ### Added
