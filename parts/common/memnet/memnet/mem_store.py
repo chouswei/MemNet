@@ -19,6 +19,7 @@ from memnet.filter import record_matches
 from memnet.models import SHAPE_DROP_KEYS, Record, TagMap, new_hid
 from memnet.observable_rank import node_rank_key, ranked, record_rank_key
 from memnet.output import emit_wrn
+from memnet.stale_index import StaleIndex
 
 _ENGINE_LAW_IDS = frozenset({"LAW01", "LAW02", "LAW03", "LAW04", "LAW05"})
 _LAW_LINK_RELATIONS = frozenset({"governs", "features", "constrains", "applies_to"})
@@ -59,12 +60,15 @@ class RecordTable(dict):
         self._eix: dict[str, tuple[str, str, str]] = {}
         # Bumped by every mutator (and ``reindex``): a cheap "has anything changed" token.
         self.version = 0
+        # Incremental stale counts (memnet.stale_index): every index/unindex notes its hid.
+        self._stale = StaleIndex()
         self.update(*args, **kwargs)
 
     # --- index upkeep -------------------------------------------------------
 
     def _index(self, hid: str, rec: Record) -> None:
         self.version += 1
+        self._stale.touched.add(hid)
         nick = rec.fields.get("id") or ""
         keys = tuple(rec.fields)
         self._ix[hid] = (nick, rec.tag, keys)
@@ -103,6 +107,7 @@ class RecordTable(dict):
 
     def _unindex(self, hid: str) -> None:
         self.version += 1
+        self._stale.touched.add(hid)
         self._unindex_adj(hid)
         snap = self._ix.pop(hid, None)
         if snap is None:
@@ -165,6 +170,7 @@ class RecordTable(dict):
 
     def clear(self) -> None:
         self.version += 1
+        self._stale.invalidate()
         dict.clear(self)
         self._nick.clear()
         self._ix.clear()
@@ -208,6 +214,10 @@ class RecordTable(dict):
         if len(bucket) == 1:
             return list(bucket)
         return sorted(bucket, key=self._seq.__getitem__)
+
+    def stale_counts(self) -> tuple[int, int, int]:
+        """(recyclable, dangling, orphans), settled from the rows touched since last read."""
+        return self._stale.counts(self)
 
     def indexed_edge(self, hid: str) -> tuple[str, str, str] | None:
         """(src, dist, relation) as last indexed for edge ``hid`` (None if not indexed)."""
@@ -284,9 +294,8 @@ class MemStore:
         # write_order index) at its first delete while a batch is open.
         self._order_journal: dict[str, tuple[int, int]] | None = None
         # Change counter: every mutator bumps it, so a result derived from store
-        # contents alone (housekeep.stale_counts) can be cached on ``change_count``.
+        # contents alone can be cached on ``change_count``.
         self._version = 0
-        self._stale_cache: tuple[int, tuple[int, int, int]] | None = None
         # Rank keys (observable_rank) by hid, valid for one ``change_count``.
         self._rank_cache: tuple[int, dict[str, tuple]] | None = None
 
@@ -302,9 +311,10 @@ class MemStore:
         mutator bumps, so any write (to any row) throws every key away. A per-row
         stamp would be wrong: an edge's key holds its endpoints' keys. Only rows
         stored here are cached; any other record (a copy) is keyed fresh.
-        Contract (as for ``_stale_cache``): code that edits a stored row's fields
-        in place must call a mutator (``replace_row``, ``reindex``, ``mark_dirty``,
-        ``_index_edge``) before the next read, or that read sees the old keys.
+        Contract: code that edits a stored row's fields in place must call a
+        mutator (``replace_row``, ``reindex``, ``mark_dirty``, ``_index_edge``)
+        before the next read, or that read sees the old keys. (The stale index in
+        ``memnet.stale_index`` needs the same call, with the edited hids.)
         """
         version = self.change_count
         cache = self._rank_cache
@@ -330,6 +340,11 @@ class MemStore:
         """Note hids whose stored record changed (over-marking is always safe)."""
         self._version += 1
         self._dirty.update(hids)
+        # Rows edited in place and announced here reach the stale index; no hids = unknown.
+        if hids:
+            self._by_hid._stale.touched.update(hids)
+        else:
+            self._by_hid._stale.invalidate()
 
     def drain_dirty(self) -> tuple[set[str], bool]:
         dirty, dirty_all = self._dirty, self._dirty_all
