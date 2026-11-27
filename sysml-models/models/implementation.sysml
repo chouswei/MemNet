@@ -315,6 +315,11 @@ package MemNetImplementation {
     attribute path : String = "parts/common/memnet/memnet/housekeep.py";
     attribute pyName : String = "memnet.housekeep";
   }
+  part def ProxyNodeMod {
+    doc /* PROXY shape check, one-hop follow, dangling-proxy scan (MN-REQ-15). */
+    attribute path : String = "parts/common/memnet/memnet/proxy.py";
+    attribute pyName : String = "memnet.proxy";
+  }
 
   // ----- MCP surface modules -----
 
@@ -391,6 +396,7 @@ package MemNetImplementation {
   part schemaMod : SchemaRegistryMod;
   part snapMod : SnapshotStoreMod;
   part housekeepMod : HousekeepSettleMod;
+  part proxyMod : ProxyNodeMod;
   part mcpFacadeMod : McpFacadeMod;
   part mcpBridgeMod : McpServeBridgeMod;
   part lawSeedMod : LawSeedHelperMod;
@@ -515,6 +521,16 @@ package MemNetImplementation {
   allocation housekeepToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.transport.inProcess.memory.sessions.housekeep;
     end code ::> housekeepMod;
+  }
+  allocation proxyNodeToMod : SoftwareAllocate {
+    doc /* PROXY fixed tag write shape check (MN-REQ-15). */
+    end logical ::> memNetSystem.core.transport.inProcess.memory.sessions.schema;
+    end code ::> proxyMod;
+  }
+  allocation followProxyToMod : SoftwareAllocate {
+    doc /* query follow / follow_proxy one hop; dangling-proxy scan for housekeep (MN-REQ-15). */
+    end logical ::> memNetSystem.core.transport.inProcess.memory.sessions.recallCommit.recall.shapedRead;
+    end code ::> proxyMod;
   }
   allocation mutateToMod : SoftwareAllocate {
     end logical ::> memNetSystem.core.transport.inProcess.memory.sessions.recallCommit.commit.mutate;
@@ -829,6 +845,55 @@ package MemNetImplementation {
     perform action page : MemNetBehaviour::PagedRead;
 
     satisfy MN_REQ_00_MissionBridge::MN_REQ_14_AtelierBoardAsks::MN_REQ_14_13_PagingCursor;
+  }
+
+  // ----- One-hop PROXY nodes (MN-REQ-15, implemented) -----
+
+  part def ProxyNode {
+    doc /*
+      Implemented (MN-REQ-15; behaviour WriteProxy; verify MN-VER-15-S01;
+      tests/test_proxy_nodes.py). Fixed node tag PROXY in fixed_tags.py
+      (PROXY_FIELDS: id, target_session, target, target_backend; not in
+      config.RESERVED_TAGS or ORPHAN_EXEMPT_TAGS). Write shape check
+      proxy.check_proxy_fields, called from tag_map.parse_line (pipe add /
+      update, snapshot load and restore), mutate_gate (the GQL batch and the
+      merged stored rows) and import_absorb (import-slice). Snapshot save
+      leaves the PROXY SCHEMA line out (fixed_tags.SNAPSHOT_OMIT_SCHEMA,
+      tag_map.tag_map_to_lines).
+    */
+    attribute implemented : Boolean = true;
+    attribute fixedTag : String = "PROXY";
+    attribute targetMustExistOnWrite : Boolean = false;
+    attribute path : String = "parts/common/memnet/memnet/fixed_tags.py";
+
+    perform action write : MemNetBehaviour::WriteProxy;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_15_ProxyNodes;
+  }
+
+  part def FollowProxy {
+    doc /*
+      Implemented (MN-REQ-15; behaviour FollowProxy; verify MN-VER-15-S02 to
+      S04). Engine proxy.follow / proxy.read_node / proxy.dangling_proxy_rows;
+      CLI cli.py query follow (--id, --resolved-id), housekeep dangling and
+      housekeep stats (dangling_proxies); prune dangling skips PROXY rows. MCP
+      memnet_mcp.server follow_proxy (the one new tool; the 30 others
+      unchanged). Gateway memnet_mcp.product_gateway _follow_hop: one second
+      hop by the owners map only. serve_retry classes query follow a read.
+    */
+    attribute implemented : Boolean = true;
+    attribute maxHops : Integer = 1;
+    attribute autoFollowOnPinMap : Boolean = false;
+    attribute pruneDeletesProxy : Boolean = false;
+    attribute routesByTargetBackend : Boolean = false;
+    attribute path : String = "parts/common/memnet/memnet/proxy.py";
+    attribute cliPath : String = "parts/common/memnet/memnet/cli.py";
+    attribute mcpPath : String = "parts/memnet-mcp/software/memnet_mcp/server.py";
+    attribute gatewayPath : String = "parts/memnet-mcp/software/memnet_mcp/product_gateway.py";
+
+    perform action follow : MemNetBehaviour::FollowProxy;
+
+    satisfy MN_REQ_00_MissionBridge::MN_REQ_15_ProxyNodes;
   }
 
   part def AtelierBoardTargetEngine {
