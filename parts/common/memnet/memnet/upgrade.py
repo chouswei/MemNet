@@ -24,6 +24,7 @@ from memnet.acl import acl_from_dict, acl_to_dict
 from memnet.admin_usage import authenticate
 from memnet.atomic_file import atomic_write_bytes
 from memnet.exceptions import MemNetError
+from memnet.fixed_tags import SNAPSHOT_OMIT_SCHEMA
 from memnet.registry import count, get_entry, list_entries
 from memnet.snapshot import (
     SNAPSHOT_FORMAT,
@@ -201,7 +202,13 @@ def _edge_count(store: Any) -> int:
 
 
 def _house_tags(tag_map: Any) -> list[str]:
-    return sorted(tag_map.tags.keys())
+    """Tag names a snapshot writes (SNAPSHOT_OMIT_SCHEMA left out).
+
+    PROXY is a fixed tag the loader merges back in, so it is never a SCHEMA
+    line. A 0.20.8 passport listed LAW/EDG/user tags only; comparing the
+    in-memory map as-is would fail restore with upgrade_house.
+    """
+    return sorted(tag for tag in tag_map.tags.keys() if tag not in SNAPSHOT_OMIT_SCHEMA)
 
 
 def _apply_acl(entry: Any, data: dict[str, Any] | None) -> None:

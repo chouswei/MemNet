@@ -186,6 +186,33 @@ def test_follow_unknown_id_is_not_found(two):
     assert got["exit_code"] != 0 and "@ERR: not_found|" in got["stderr"]
 
 
+def test_follow_id_less_proxy_by_handle(two):
+    """pin_map hides nicknames; a handle is how an id-less PROXY is followed."""
+    from memnet.typed_walk import handle_for
+
+    a, b = two
+    _ok(_mutate(b.session_id, "CREATE (:TSK {id: 'T1', goal: 'via handle', status: 'open'})"))
+    _ok(
+        _mutate(
+            a.session_id,
+            f"CREATE (:PROXY {{target_session: '{b.session_id}', target: 'T1'}})",
+        )
+    )
+    (rec,) = _proxies(a.session_id)
+    assert not rec.fields.get("id")
+    handle = handle_for(a.session_id, rec, "node")
+    got = _ok(_follow(a.session_id, handle))
+    assert "via handle" in got["stdout"]
+
+
+def test_follow_nickname_cue_conflict_is_refused(two):
+    a, _b = two
+    _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'P1', goal: 'same nick', status: 'open'})"))
+    _proxy(a.session_id, "P1", "sess_target", "T1")
+    got = _follow(a.session_id, "P1")
+    assert got["exit_code"] != 0 and "@ERR: cue_conflict|" in got["stderr"]
+
+
 def test_follow_needs_exactly_one_of_id_or_resolved_id(two):
     a, _b = two
     got = _run(["query", "follow", "--session", a.session_id])
@@ -203,6 +230,7 @@ def test_follow_needs_exactly_one_of_id_or_resolved_id(two):
         "{target_session: '  ', target: 'T1'}",
         "{target_session: 's1', target: ''}",
         "{target_session: 's 1', target: 'T1'}",
+        "{target_session: 's1', target: 'T1', target_backend: 'not valid'}",
     ],
 )
 def test_write_without_pointer_fields_is_proxy_shape_and_writes_nothing(two, props):
@@ -380,6 +408,42 @@ def test_proxy_session_survives_save_and_load_and_follow_still_works(two, tmp_pa
         "target_backend": "pi-b",
     }
     assert "after load" in _ok(_follow(loaded.session_id, "P1"))["stdout"]
+
+
+def test_upgrade_house_tags_omit_proxy_so_old_manifests_restore(memnet_temp, monkeypatch, tmp_path):
+    """A 0.20.8 house_tags list has no PROXY; restore must not demand it."""
+    import json
+
+    from memnet.session import reset_registry
+    from memnet.upgrade import (
+        MANIFEST_NAME,
+        _house_tags,
+        prepare_upgrade,
+        reset_drain_gate,
+        restore_manifest,
+    )
+
+    token = "test-admin-token"
+    monkeypatch.setenv("MEMNET_ADMIN_TOKEN", token)
+    a = open_session(map_lines=MAP, ttl_minutes=60)
+    try:
+        _ok(_mutate(a.session_id, "CREATE (:TSK {id: 'T1', goal: 'g', status: 'open'})"))
+        assert "PROXY" in a.tag_map.tags
+        assert "PROXY" not in _house_tags(a.tag_map)
+        result = prepare_upgrade(token, directory=tmp_path)
+        assert result.ready_to_stop is True and result.unsaved == []
+        manifest = json.loads((tmp_path / MANIFEST_NAME).read_text(encoding="utf-8"))
+        for row in manifest["sessions"]:
+            assert "PROXY" not in row["house_tags"]
+            assert "LAW" in row["house_tags"] and "EDG" in row["house_tags"]
+        reset_registry()
+        reset_drain_gate()
+        report = restore_manifest(tmp_path)
+        assert report.failed == 0 and report.ok == 1, report.errors
+    finally:
+        reset_drain_gate()
+        if get_entry(a.session_id) is not None:
+            close_session(a.session_id)
 
 
 def test_proxy_sessions_survive_admin_checkpoint_and_restore(memnet_temp, monkeypatch, tmp_path):

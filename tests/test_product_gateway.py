@@ -598,8 +598,7 @@ def test_follow_hop_never_routes_by_target_backend(
 ) -> None:
     calls: list[tuple[int, list[str]]] = []
     not_reachable = (
-        "@STAT: follow|not_reachable|target not reachable from here\n"
-        "@FOLLOW: mn_far|T1|b\n"
+        "@STAT: follow|not_reachable|target not reachable from here\n@FOLLOW: mn_far|T1|b\n"
     )
 
     def fake_send(args, stdin=None, host=None, port=None, timeout=None, retry_s=None, **_kw):
