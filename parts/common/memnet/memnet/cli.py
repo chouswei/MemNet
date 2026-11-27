@@ -74,8 +74,10 @@ from memnet.session import (
     purge_expired,
     resolve_expire_load_path,
     resolve_session_id,
+    session_bytes_used,
+    set_session_limits,
 )
-from memnet.snapshot import load_snapshot, write_snapshot
+from memnet.snapshot import effective_session_bytes, load_snapshot, write_snapshot
 from memnet.tag_map import example_ingest_line
 from memnet.walk_query import WalkQuery
 from memnet.warnings import emit_session_warnings
@@ -85,7 +87,7 @@ def emit_del(record_id: str, tag: str) -> None:
     emit_stdout(f"@DEL: {record_id}|{tag}")
 
 
-def emit_stat(key: str, value: int, cap: str = "-") -> None:
+def emit_stat(key: str, value: int | str, cap: str = "-") -> None:
     emit_stdout(f"@STAT: {key}|{value}|{cap}")
 
 
@@ -768,6 +770,71 @@ def session_close(
         emit_session(session_id, "closed")
     except MemNetError as exc:
         _handle_error(exc)
+
+
+def _emit_session_limits(ss) -> None:
+    """The TTL and caps in force on a session (MN-REQ-05.6). Third field: who set the cap."""
+    m = ss.meta
+    emit_stat("ttl_minutes", m.ttl_minutes, "session")
+    emit_stat("expires_at", m.expires_at)
+    max_rows = ss.store.effective_max_rows()
+    emit_stat("max_rows", max_rows, "session" if m.max_rows is not None else "process")
+    max_bytes = effective_session_bytes(ss)
+    owner = "session" if m.max_session_bytes is not None else "process"
+    emit_stat("max_session_bytes", max_bytes, owner)
+    emit_stat("rows", ss.store.row_count_non_law(), str(max_rows))
+    try:
+        used: int | str = session_bytes_used(ss)
+    except MemNetError:
+        used = "-"  # unsaveable fixed-tag width: no exact total
+    emit_stat("session_bytes", used, str(max_bytes))
+
+
+@session_app.command("limits")
+def session_limits(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
+    """Show a live session's TTL, row cap and byte cap with current usage (MN-REQ-05.6)."""
+    ss, lock = _load_session(session)
+    with lock:
+        _acl_check(ss, caller, "pin_map")
+        _emit_session_limits(ss)
+
+
+@session_app.command("set-limits")
+def session_set_limits(
+    session: Annotated[str | None, typer.Option("--session")] = None,
+    ttl: Annotated[str | None, typer.Option("--ttl", help="Minutes 1..1440")] = None,
+    max_rows: Annotated[
+        str | None,
+        typer.Option("--max-rows", help="Row cap 1..MEMNET_MAX_ROWS, or default"),
+    ] = None,
+    max_bytes: Annotated[
+        str | None,
+        typer.Option("--max-bytes", help="Byte cap 1..MEMNET_MAX_SESSION_BYTES, or default"),
+    ] = None,
+    caller: Annotated[
+        str | None,
+        typer.Option("--caller", help="CallerId for CapsPolicy ACL who-check"),
+    ] = None,
+) -> None:
+    """Change a live session's TTL and caps, all or nothing (MN-REQ-05.6).
+
+    A cap below current usage refuses limit_below_usage and nothing changes:
+    rows are never dropped. The TTL restarts at this call.
+    """
+    ss, lock = _load_session(session, exclusive=True)
+    with lock:
+        _acl_check(ss, caller, "mutate")
+        try:
+            set_session_limits(ss, ttl=ttl, max_rows=max_rows, max_bytes=max_bytes)
+        except MemNetError as exc:
+            _handle_error(exc)
+        _emit_session_limits(ss)
 
 
 @session_app.command("acl-enable")

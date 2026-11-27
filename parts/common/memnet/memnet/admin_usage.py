@@ -282,6 +282,9 @@ def _peek_session_rows(
             unavailable.append(f"session_rows.{alias}.relations")
         try:
             rows_max = int(sess_caps.max_rows)
+            row_cap = getattr(entry.store, "row_cap", None)  # MN-REQ-05.6 override
+            if row_cap is not None:
+                rows_max = min(int(row_cap), rows_max)
         except Exception:  # noqa: BLE001
             rows_max = None
             unavailable.append(f"session_rows.{alias}.rows_max")

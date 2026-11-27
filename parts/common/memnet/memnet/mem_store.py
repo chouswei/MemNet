@@ -279,6 +279,8 @@ class MemStore:
     def __init__(self, tag_map: TagMap, caps: Caps | None = None) -> None:
         self.tag_map = tag_map
         self.caps = caps or Caps()
+        # Per-session row cap override (MN-REQ-05.6), mirrored from SessionMeta.max_rows.
+        self.row_cap: int | None = None
         # Graph is elements keyed by hidden handle (off the wire).
         # RecordTable keeps the nickname index on every write, rollbacks included.
         self._by_hid: RecordTable = RecordTable()
@@ -384,6 +386,12 @@ class MemStore:
     def row_count_non_law(self) -> int:
         return sum(len(s) for t, s in self._by_tag.items() if t != "LAW")
 
+    def effective_max_rows(self) -> int:
+        """The row cap in force: min(session override, MEMNET_MAX_ROWS) (MN-REQ-05.6)."""
+        if self.row_cap is None:
+            return self.caps.max_rows
+        return min(self.row_cap, self.caps.max_rows)
+
     def law_count(self) -> int:
         return len(self._by_tag.get("LAW", set()))
 
@@ -416,10 +424,11 @@ class MemStore:
                     f"law|{self.law_count() + 1}/{self.caps.max_law}",
                 )
         elif record.tag != "LAW" and not existing:
-            if self.row_count_non_law() >= self.caps.max_rows:
+            max_rows = self.effective_max_rows()
+            if self.row_count_non_law() >= max_rows:
                 raise MemNetError(
                     "limit_exceeded",
-                    f"rows|{self.row_count_non_law() + 1}/{self.caps.max_rows}",
+                    f"rows|{self.row_count_non_law() + 1}/{max_rows}",
                 )
         if record.tag == "EDG" and record.fields.get("relation"):
             record.fields["relation"] = normalize_relation(record.fields["relation"])

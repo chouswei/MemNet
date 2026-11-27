@@ -852,6 +852,7 @@ package MemNetRequirements {
           read_list
           export_pin_map
           housekeep_stats
+          session_limits
           session_current
           session_resume
           tagmap_show

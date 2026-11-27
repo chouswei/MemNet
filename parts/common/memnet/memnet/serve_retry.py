@@ -56,6 +56,7 @@ _READ_VERBS: frozenset[tuple[str, str | None]] = frozenset(
         ("session", "list"),
         ("session", "resume"),
         ("session", "expire-status"),
+        ("session", "limits"),
         ("read", "list"),
         ("query", "pin-map"),
         ("query", "warm"),
